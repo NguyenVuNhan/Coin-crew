@@ -1,0 +1,180 @@
+<style>
+  .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  @media (max-width: 1100px) { .flow { grid-template-columns: 1fr; max-width: 400px; } }
+  .step-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 8px; }
+  .step-label b { color: var(--text-primary); text-transform: none; letter-spacing: 0; font-size: 0.9rem; display: block; margin-top: 2px; }
+
+  /* phone screens use their own light palette: zinc neutrals, one teal accent */
+  .ph {
+    --z50:#fafafa; --z100:#f4f4f5; --z200:#e4e4e7; --z300:#d4d4d8; --z500:#71717a; --z600:#52525b; --z900:#18181b;
+    --acc:#0f766e; --acc-soft:#ccfbf1; --pos:#047857; --pos-soft:#d1fae5; --neg:#be123c; --neg-soft:#ffe4e6; --warn:#b45309; --warn-soft:#fef3c7;
+    background: var(--z50); color: var(--z900); border: 1px solid var(--z300); border-radius: 28px; padding: 16px;
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 380px; box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  .ph .num { font-variant-numeric: tabular-nums; }
+  .ph .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .ph .title { font-size: 18px; font-weight: 650; }
+  .ph .muted { color: var(--z600); font-size: 12.5px; }
+  .ph .pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .ph .avatars { display: flex; gap: 4px; }
+  .ph .av { width: 26px; height: 26px; border-radius: 50%; background: var(--z200); color: var(--z600); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .ph .hero { background: #fff; border: 1px solid var(--z200); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+  .ph .hero .big { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  .ph .sec { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--z500); margin: 16px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+  .ph .row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--z200); }
+  .ph .row:last-child { border-bottom: 0; }
+  .ph .row .grow { flex: 1; min-width: 0; }
+  .ph .row .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ph .amt { font-weight: 650; text-align: right; white-space: nowrap; }
+  .ph .btn { display: block; width: 100%; text-align: center; border-radius: 12px; padding: 11px; font-weight: 650; border: 1px solid var(--z300); background: #fff; color: var(--z900); margin-top: 8px; }
+  .ph .btn.primary { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .ph .btn-row { display: flex; gap: 8px; }
+  .ph .btn-row .btn { margin-top: 12px; }
+  .ph .toggle { display: flex; gap: 10px; align-items: flex-start; background: var(--z100); border-radius: 12px; padding: 10px 12px; margin-bottom: 4px; }
+  .ph .sw { width: 34px; height: 20px; border-radius: 999px; background: var(--acc); position: relative; flex-shrink: 0; margin-top: 2px; }
+  .ph .sw::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .ph .chip-link { font-size: 12px; font-weight: 650; color: var(--acc); text-transform: none; letter-spacing: 0; }
+  .ph .banner { background: var(--z100); border-radius: 10px; padding: 7px 10px; font-size: 12px; color: var(--z600); margin-bottom: 12px; }
+  .ph .qrcard { background: #fff; border: 1px solid var(--z200); border-radius: 16px; padding: 16px; text-align: center; }
+  .ph .qr { width: 176px; height: 176px; margin: 8px auto 10px; display: grid; grid-template-columns: repeat(25, 1fr); background: #fff; padding: 6px; border: 1px solid var(--z200); border-radius: 8px; }
+  .ph .qr i { display: block; aspect-ratio: 1; }
+  .ph .qr i.on { background: var(--z900); }
+  .ph .kv { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; text-align: left; }
+  .ph .kv span:first-child { color: var(--z600); }
+  .ph .memo { font-family: ui-monospace, Consolas, monospace; font-weight: 700; background: var(--warn-soft); color: #78350f; padding: 1px 6px; border-radius: 6px; }
+  .ph .status { display: flex; gap: 10px; align-items: center; border-radius: 12px; padding: 10px 12px; margin-top: 12px; background: var(--acc-soft); color: #134e4a; font-size: 13px; }
+  .ph .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--acc); flex-shrink: 0; animation: pulse 1.4s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .ph .link { color: var(--acc); font-weight: 650; font-size: 13px; text-align: center; margin-top: 10px; }
+  .notes { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 24px; }
+  @media (max-width: 1100px) { .notes { grid-template-columns: 1fr; } }
+  .notes ul { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.85rem; }
+  .notes li { margin-bottom: 4px; }
+</style>
+
+<h2>First version: split a trip, settle up with VietQR</h2>
+<p class="subtitle">Three screens in order: the organiser's trip page, what a friend sees from the shared link (no sign-in), and the pay screen. Names and amounts are samples.</p>
+
+<div class="flow">
+
+  <!-- 1. Organiser -->
+  <div>
+    <div class="step-label">1 · Organiser (signed in with Google)<b>Trip page</b></div>
+    <div class="ph">
+      <div class="top">
+        <div><div class="title">Đà Lạt · Oct 2026</div><div class="muted">4 people · 4 expenses</div></div>
+        <div class="avatars"><div class="av">M</div><div class="av">A</div><div class="av">B</div><div class="av">C</div></div>
+      </div>
+      <div class="hero">
+        <div class="muted">You're still owed</div>
+        <div class="big num" style="color:var(--pos)">1.630.000₫</div>
+        <div class="muted num">of 2.195.000₫ · trip total 4.900.000₫</div>
+      </div>
+
+      <div class="toggle">
+        <div class="sw"></div>
+        <div><div style="font-weight:650">Fewest transfers</div><div class="muted">We combine everyone's debts so people make as few bank transfers as possible. What each person owes in total stays the same.</div></div>
+      </div>
+
+      <div class="sec">Who pays whom <span class="chip-link">Share link</span></div>
+      <div class="row">
+        <div class="av">C</div>
+        <div class="grow"><div class="name">Chi → You</div><div class="muted">Waiting · QR sent 2 days ago</div></div>
+        <div><div class="amt num">1.245.000₫</div><div style="text-align:right"><span class="pill" style="background:var(--z100);color:var(--z600)">Remind</span></div></div>
+      </div>
+      <div class="row">
+        <div class="av">A</div>
+        <div class="grow"><div class="name">An → You</div><div class="muted">An says it's paid. Did it arrive?</div></div>
+        <div><div class="amt num">385.000₫</div><div style="text-align:right"><span class="pill" style="background:var(--warn-soft);color:var(--warn)">Confirm</span></div></div>
+      </div>
+      <div class="row">
+        <div class="av">B</div>
+        <div class="grow"><div class="name">Bình → You</div><div class="muted">Matched bank email · 14:32 today</div></div>
+        <div><div class="amt num" style="color:var(--z500);text-decoration:line-through">565.000₫</div><div style="text-align:right"><span class="pill" style="background:var(--pos-soft);color:var(--pos)">Paid ✓</span></div></div>
+      </div>
+
+      <div class="sec">Expenses</div>
+      <div class="row"><div class="grow"><div class="name">Homestay Bloom · 2 nights</div><div class="muted">You paid · split equally, 4</div></div><div class="amt num">3.200.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Lẩu gà lá é</div><div class="muted">An paid · split equally, 4</div></div><div class="amt num">860.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Motorbike rental + fuel</div><div class="muted">Bình paid · split equally, 4</div></div><div class="amt num">600.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Cà phê Túi Mơ To</div><div class="muted">You paid · You, An, Chi</div></div><div class="amt num">240.000₫</div></div>
+      <div class="btn primary">+ Add expense</div>
+    </div>
+  </div>
+
+  <!-- 2. Guest -->
+  <div>
+    <div class="step-label">2 · Friend opens the shared link<b>Guest view (no account)</b></div>
+    <div class="ph">
+      <div class="banner">Viewing as <b>Chi</b> · guest link from Minh</div>
+      <div class="top">
+        <div><div class="title">Đà Lạt · Oct 2026</div><div class="muted">Trip total 4.900.000₫</div></div>
+      </div>
+      <div class="hero">
+        <div class="muted">You owe Minh</div>
+        <div class="big num" style="color:var(--neg)">1.245.000₫</div>
+        <div class="btn primary">Pay with VietQR</div>
+      </div>
+
+      <div class="sec">How we got your share</div>
+      <div class="row"><div class="grow"><div class="name">Homestay Bloom</div><div class="muted">3.200.000₫ ÷ 4</div></div><div class="amt num">800.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Lẩu gà lá é</div><div class="muted">860.000₫ ÷ 4</div></div><div class="amt num">215.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Motorbike rental + fuel</div><div class="muted">600.000₫ ÷ 4</div></div><div class="amt num">150.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Cà phê Túi Mơ To</div><div class="muted">240.000₫ ÷ 3</div></div><div class="amt num">80.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Your total</div></div><div class="amt num">1.245.000₫</div></div>
+      <div class="muted" style="margin-top:10px">Read-only. Ask Minh if something looks wrong.</div>
+    </div>
+  </div>
+
+  <!-- 3. Pay -->
+  <div>
+    <div class="step-label">3 · Friend taps "Pay with VietQR"<b>Pay screen</b></div>
+    <div class="ph">
+      <div class="top"><div><div class="muted">Pay Minh</div><div class="title num">1.245.000₫</div></div></div>
+      <div class="qrcard">
+        <div class="muted" style="font-weight:700;letter-spacing:.04em">VIETQR · NAPAS 247</div>
+        <div class="qr" id="fakeqr"></div>
+        <div class="kv"><span>Bank</span><span>Techcombank</span></div>
+        <div class="kv"><span>Account</span><span class="num">1903 •••• 5678</span></div>
+        <div class="kv"><span>Name</span><span>NGUYEN VAN MINH</span></div>
+        <div class="kv"><span>Amount</span><span class="num">1.245.000₫</span></div>
+        <div class="kv"><span>Transfer note</span><span class="memo">DALAT C7K2</span></div>
+        <div class="muted" style="text-align:left;margin-top:6px">Keep this note unchanged so the payment can be matched.</div>
+      </div>
+      <div class="btn-row"><div class="btn primary">Open my bank app</div><div class="btn">Save QR</div></div>
+      <div class="status"><div class="dot"></div><div>Waiting for the money to reach Minh. This page updates by itself.</div></div>
+      <div class="link">I've already paid</div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <ul><li>"Fewest transfers" is Splitwise's "simplify debts" with new wording.</li><li>Three payment states: waiting, friend says paid (you confirm), matched automatically.</li></ul>
+  <ul><li>The friend never signs in; the link is the key.</li><li>They only see this trip, never your other money.</li></ul>
+  <ul><li>"Open my bank app" fills the payment in for 5 banks (MB, BIDV, VietinBank, ACB, OCB); others open the app and the friend scans or uses the saved QR.</li></ul>
+</div>
+
+<script>
+  (function () {
+    var n = 25, el = document.getElementById('fakeqr'), seed = 7;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    function finder(r, c) {
+      var spots = [[0,0],[0,n-7],[n-7,0]];
+      for (var k = 0; k < 3; k++) {
+        var R = r - spots[k][0], C = c - spots[k][1];
+        if (R >= 0 && R < 7 && C >= 0 && C < 7) {
+          return (R === 0 || R === 6 || C === 0 || C === 6 || (R >= 2 && R <= 4 && C >= 2 && C <= 4)) ? 1 : 0;
+        }
+        if (R >= -1 && R <= 7 && C >= -1 && C <= 7) return 0;
+      }
+      return -1;
+    }
+    var html = '';
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+      var f = finder(r, c);
+      var on = f === -1 ? rnd() > 0.52 : f === 1;
+      html += '<i' + (on ? ' class="on"' : '') + '></i>';
+    }
+    el.innerHTML = html;
+  })();
+</script>

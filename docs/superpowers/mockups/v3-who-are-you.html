@@ -1,0 +1,134 @@
+<style>
+  .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  @media (max-width: 1100px) { .flow { grid-template-columns: 1fr; max-width: 400px; } }
+  .step-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 8px; }
+  .step-label b { color: var(--text-primary); text-transform: none; letter-spacing: 0; font-size: 0.9rem; display: block; margin-top: 2px; }
+  .ph {
+    --z50:#fafafa; --z100:#f4f4f5; --z200:#e4e4e7; --z300:#d4d4d8; --z500:#71717a; --z600:#52525b; --z900:#18181b;
+    --acc:#0f766e; --acc-soft:#ccfbf1; --pos:#047857; --pos-soft:#d1fae5; --neg:#be123c; --warn:#b45309; --warn-soft:#fef3c7;
+    background: var(--z50); color: var(--z900); border: 1px solid var(--z300); border-radius: 28px; padding: 16px;
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 380px; box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  .ph .num { font-variant-numeric: tabular-nums; }
+  .ph .title { font-size: 18px; font-weight: 650; }
+  .ph .muted { color: var(--z600); font-size: 12.5px; }
+  .ph .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .ph .av { width: 30px; height: 30px; border-radius: 50%; background: var(--z200); color: var(--z600); font-size: 12px; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+  .ph .sec { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--z500); margin: 16px 0 6px; }
+  .ph .who { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--z200); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; }
+  .ph .who.sel { border: 2px solid var(--acc); padding: 9px 11px; background: #f0fdfa; }
+  .ph .who .grow { flex: 1; min-width: 0; }
+  .ph .who .name { font-weight: 650; }
+  .ph .btn { display: block; width: 100%; text-align: center; border-radius: 12px; padding: 11px; font-weight: 650; border: 1px solid var(--z300); background: #fff; color: var(--z900); margin-top: 8px; }
+  .ph .btn.primary { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .ph .btn-row { display: flex; gap: 8px; }
+  .ph .input { background: #fff; border: 2px solid var(--acc); border-radius: 12px; padding: 9px 12px; font-size: 15px; font-weight: 600; }
+  .ph .caret { display: inline-block; width: 1.5px; height: 17px; background: var(--acc); vertical-align: -3px; margin-left: 1px; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .ph .suggest { background: #fff; border: 1px solid var(--z200); border-radius: 12px; margin-top: 6px; overflow: hidden; }
+  .ph .suggest .it { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--z200); }
+  .ph .suggest .it:last-child { border-bottom: 0; }
+  .ph .match { background: var(--warn-soft); border: 1px solid #fcd34d; border-radius: 14px; padding: 12px; margin-top: 12px; }
+  .ph .row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--z200); }
+  .ph .row .grow { flex: 1; min-width: 0; }
+  .ph .row .name { font-weight: 600; }
+  .ph .card { background: var(--warn-soft); border: 1px solid #fcd34d; border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+  .ph .divider { text-align: center; font-size: 12px; color: var(--z500); margin: 14px 0 8px; }
+  .notes { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 24px; }
+  @media (max-width: 1100px) { .notes { grid-template-columns: 1fr; } }
+  .notes ul { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.85rem; }
+  .notes li { margin-bottom: 4px; }
+</style>
+
+<h2>One link in the group chat: "Who are you?"</h2>
+<p class="subtitle">Picking an existing name comes first; typing a new one is the fallback, and it gets checked against the names already in the trip.</p>
+
+<div class="flow">
+
+  <!-- 1. Pick -->
+  <div>
+    <div class="step-label">1 · Friend opens the group link<b>Pick your name</b></div>
+    <div class="ph">
+      <div class="title">Đà Lạt · Oct 2026</div>
+      <div class="muted" style="margin-bottom:12px">Minh shared this trip. Who are you?</div>
+
+      <div class="who sel">
+        <div class="av">C</div>
+        <div class="grow"><div class="name">Chi</div><div class="muted">You picked this on this phone last time</div></div>
+        <span class="pill" style="background:var(--acc-soft);color:#134e4a">This phone</span>
+      </div>
+      <div class="who">
+        <div class="av">A</div>
+        <div class="grow"><div class="name">An</div><div class="muted">Active on another phone · 2 h ago</div></div>
+      </div>
+      <div class="who">
+        <div class="av">B</div>
+        <div class="grow"><div class="name">Bình</div></div>
+      </div>
+      <div class="who">
+        <div class="av">M</div>
+        <div class="grow"><div class="name">Minh</div><div class="muted">Organiser · signed in</div></div>
+      </div>
+
+      <div class="btn primary">Continue as Chi</div>
+      <div class="divider">Not on the list?</div>
+      <div class="btn">I'm someone new</div>
+    </div>
+  </div>
+
+  <!-- 2. Type new name -->
+  <div>
+    <div class="step-label">2 · Taps "I'm someone new" and types<b>Similar-name check</b></div>
+    <div class="ph">
+      <div class="title">What's your name?</div>
+      <div class="muted" style="margin-bottom:12px">Use the name your friends know you by.</div>
+
+      <div class="input">Binh<span class="caret"></span></div>
+      <div class="suggest">
+        <div class="it"><div class="av">B</div><div style="flex:1"><b>Bình</b><div class="muted">Already in this trip</div></div><span class="pill" style="background:var(--z100);color:var(--z600)">Tap if this is you</span></div>
+      </div>
+
+      <div class="match">
+        <div style="font-weight:700;color:#78350f">Are you Bình?</div>
+        <div class="muted" style="color:#78350f">"Binh" looks like "Bình", who's already in this trip. Accents and capital letters are ignored when checking.</div>
+        <div class="btn-row"><div class="btn primary">Yes, I'm Bình</div><div class="btn">No, add me</div></div>
+      </div>
+
+      <div class="muted" style="margin-top:12px">If you add yourself, a member checks it before your name shows up in the trip.</div>
+    </div>
+  </div>
+
+  <!-- 3. Member sees new person -->
+  <div>
+    <div class="step-label">3 · Any signed-in member<b>New person to approve</b></div>
+    <div class="ph">
+      <div class="title">Đà Lạt · Oct 2026</div>
+      <div class="muted" style="margin-bottom:12px">4 people · 1 waiting</div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;color:#78350f">New person joined</div>
+          <span class="pill" style="background:#fff;color:var(--warn)">from the group link</span>
+        </div>
+        <div class="row" style="border:0">
+          <div class="av">C</div>
+          <div class="grow"><div class="name">Chi Nguyễn</div><div class="muted">Looks like <b>Chi</b>, who's already here</div></div>
+        </div>
+        <div class="btn-row"><div class="btn primary">Same as Chi</div><div class="btn">New person</div></div>
+      </div>
+
+      <div class="sec">People</div>
+      <div class="row"><div class="av">M</div><div class="grow"><div class="name">Minh</div><div class="muted">Organiser</div></div></div>
+      <div class="row"><div class="av">A</div><div class="grow"><div class="name">An</div><div class="muted">Guest · 2 phones</div></div></div>
+      <div class="row"><div class="av">B</div><div class="grow"><div class="name">Bình</div><div class="muted">Guest</div></div></div>
+      <div class="row" style="border:0"><div class="av">C</div><div class="grow"><div class="name">Chi</div><div class="muted">Guest</div></div><span class="pill" style="background:var(--z100);color:var(--z600)">Merge…</span></div>
+      <div class="muted" style="margin-top:6px">Merge moves every expense and payment from one name to another, for duplicates that slipped through.</div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <ul><li>The name picked last time on this phone is ready to go: one tap.</li><li>"Active on another phone" is a hint, not a lock. One person can use two phones.</li></ul>
+  <ul><li>Suggestions while typing, plus the "Are you Bình?" check, both ignore Vietnamese accents (Dung = Dũng, Binh = Bình).</li></ul>
+  <ul><li>New names wait for approval, like guest expenses, and the approval card suggests a match.</li><li>Merge is the fix when a duplicate slips through anyway.</li></ul>
+</div>

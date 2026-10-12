@@ -1,0 +1,129 @@
+<style>
+  .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  @media (max-width: 1100px) { .flow { grid-template-columns: 1fr; max-width: 400px; } }
+  .step-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 8px; }
+  .step-label b { color: var(--text-primary); text-transform: none; letter-spacing: 0; font-size: 0.9rem; display: block; margin-top: 2px; }
+  .ph {
+    --z50:#fafafa; --z100:#f4f4f5; --z200:#e4e4e7; --z300:#d4d4d8; --z500:#71717a; --z600:#52525b; --z900:#18181b;
+    --acc:#0f766e; --acc-soft:#ccfbf1; --pos:#047857; --pos-soft:#d1fae5; --neg:#be123c; --neg-soft:#ffe4e6; --warn:#b45309; --warn-soft:#fef3c7;
+    background: var(--z50); color: var(--z900); border: 1px solid var(--z300); border-radius: 28px; padding: 16px;
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 380px; box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  .ph .num { font-variant-numeric: tabular-nums; }
+  .ph .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .ph .title { font-size: 18px; font-weight: 650; }
+  .ph .muted { color: var(--z600); font-size: 12.5px; }
+  .ph .pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .ph .av { width: 26px; height: 26px; border-radius: 50%; background: var(--z200); color: var(--z600); font-size: 11px; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+  .ph .hero { background: #fff; border: 1px solid var(--z200); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+  .ph .hero .big { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  .ph .sec { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--z500); margin: 16px 0 6px; }
+  .ph .row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--z200); }
+  .ph .row:last-child { border-bottom: 0; }
+  .ph .row .grow { flex: 1; min-width: 0; }
+  .ph .row .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ph .amt { font-weight: 650; text-align: right; white-space: nowrap; }
+  .ph .btn { display: block; width: 100%; text-align: center; border-radius: 12px; padding: 11px; font-weight: 650; border: 1px solid var(--z300); background: #fff; color: var(--z900); margin-top: 8px; }
+  .ph .btn.primary { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .ph .btn.danger { color: var(--neg); }
+  .ph .btn-row { display: flex; gap: 8px; }
+  .ph .banner { background: var(--z100); border-radius: 10px; padding: 7px 10px; font-size: 12px; color: var(--z600); margin-bottom: 12px; }
+  .ph .field { background: #fff; border: 1px solid var(--z300); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; }
+  .ph .field label { display: block; font-size: 11.5px; color: var(--z500); font-weight: 600; }
+  .ph .field .val { font-size: 15px; font-weight: 600; }
+  .ph .field .val.big { font-size: 24px; }
+  .ph .seg { display: flex; background: var(--z100); border-radius: 10px; padding: 3px; gap: 2px; margin: 6px 0 8px; }
+  .ph .seg span { flex: 1; text-align: center; font-size: 12px; font-weight: 600; padding: 6px 2px; border-radius: 8px; color: var(--z600); }
+  .ph .seg span.on { background: #fff; color: var(--z900); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .ph .check { width: 18px; height: 18px; border-radius: 5px; background: var(--acc); color: #fff; font-size: 12px; display: grid; place-items: center; flex-shrink: 0; }
+  .ph .pending { background: var(--warn-soft); border: 1px solid #fcd34d; border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+  .ph .note { font-size: 12px; color: var(--z600); background: var(--z100); border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
+  .notes { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 24px; }
+  @media (max-width: 1100px) { .notes { grid-template-columns: 1fr; } }
+  .notes ul { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.85rem; }
+  .notes li { margin-bottom: 4px; }
+</style>
+
+<h2>Guests add expenses, a member approves</h2>
+<p class="subtitle">Chi (guest, no account) adds a street-food bill. It stays out of everyone's balance until a signed-in member approves it.</p>
+
+<div class="flow">
+
+  <!-- 1. Guest adds -->
+  <div>
+    <div class="step-label">1 · Guest taps "+ Add expense"<b>Add expense</b></div>
+    <div class="ph">
+      <div class="banner">Adding as <b>Chi</b> · Đà Lạt · Oct 2026</div>
+      <div class="field"><label>What for</label><div class="val">Bánh tráng nướng, chợ đêm</div></div>
+      <div class="field"><label>Amount</label><div class="val big num">180.000₫</div></div>
+      <div class="field"><label>Paid by</label><div class="val">Chi (me)</div></div>
+
+      <div class="sec" style="margin-top:12px">Split</div>
+      <div class="seg"><span class="on">Equally</span><span>Amounts</span><span>%</span><span>Shares</span><span>± Adjust</span></div>
+      <div class="row"><div class="check">✓</div><div class="av">M</div><div class="grow"><div class="name">Minh</div></div><div class="amt num">45.000₫</div></div>
+      <div class="row"><div class="check">✓</div><div class="av">A</div><div class="grow"><div class="name">An</div></div><div class="amt num">45.000₫</div></div>
+      <div class="row"><div class="check">✓</div><div class="av">B</div><div class="grow"><div class="name">Bình</div></div><div class="amt num">45.000₫</div></div>
+      <div class="row"><div class="check">✓</div><div class="av">C</div><div class="grow"><div class="name">Chi (me)</div></div><div class="amt num">45.000₫</div></div>
+
+      <div class="btn primary">Send for approval</div>
+      <div class="note">A group member checks it before it counts. You'll see it here as "waiting".</div>
+    </div>
+  </div>
+
+  <!-- 2. Guest sees pending -->
+  <div>
+    <div class="step-label">2 · Back on the guest view<b>Waiting for approval</b></div>
+    <div class="ph">
+      <div class="banner">Viewing as <b>Chi</b> · guest link from Minh</div>
+      <div class="hero">
+        <div class="muted">You owe Minh</div>
+        <div class="big num" style="color:var(--neg)">1.245.000₫</div>
+        <div class="muted num">Drops to 1.110.000₫ if your bánh tráng is approved</div>
+        <div class="btn primary">Pay with VietQR</div>
+      </div>
+      <div class="sec">Expenses</div>
+      <div class="row">
+        <div class="grow"><div class="name">Bánh tráng nướng, chợ đêm</div><div class="muted">You paid · split equally, 4</div></div>
+        <div><div class="amt num" style="color:var(--z500)">180.000₫</div><div style="text-align:right"><span class="pill" style="background:var(--warn-soft);color:var(--warn)">Waiting</span></div></div>
+      </div>
+      <div class="row"><div class="grow"><div class="name">Homestay Bloom · 2 nights</div><div class="muted">Minh paid · split equally, 4</div></div><div class="amt num">3.200.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Lẩu gà lá é</div><div class="muted">An paid · split equally, 4</div></div><div class="amt num">860.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Motorbike rental + fuel</div><div class="muted">Bình paid · split equally, 4</div></div><div class="amt num">600.000₫</div></div>
+      <div class="row"><div class="grow"><div class="name">Cà phê Túi Mơ To</div><div class="muted">Minh paid · Minh, An, Chi</div></div><div class="amt num">240.000₫</div></div>
+    </div>
+  </div>
+
+  <!-- 3. Member approves -->
+  <div>
+    <div class="step-label">3 · Any signed-in member<b>Approve on the trip page</b></div>
+    <div class="ph">
+      <div class="top"><div><div class="title">Đà Lạt · Oct 2026</div><div class="muted">4 people · 5 expenses</div></div></div>
+      <div class="pending">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;color:#78350f">1 expense to approve</div>
+          <span class="pill" style="background:#fff;color:var(--warn)">from a guest</span>
+        </div>
+        <div class="row" style="border:0;padding-bottom:0">
+          <div class="av">C</div>
+          <div class="grow"><div class="name">Bánh tráng nướng, chợ đêm</div><div class="muted">Chi paid · split equally, 4 · 45.000₫ each</div></div>
+          <div class="amt num">180.000₫</div>
+        </div>
+        <div class="btn-row"><div class="btn primary">Approve</div><div class="btn">Edit</div><div class="btn danger">Reject</div></div>
+      </div>
+      <div class="hero">
+        <div class="muted">You're still owed</div>
+        <div class="big num" style="color:var(--pos)">1.630.000₫</div>
+        <div class="muted num">Becomes 1.585.000₫ after you approve</div>
+      </div>
+      <div class="sec">Who pays whom</div>
+      <div class="row"><div class="av">C</div><div class="grow"><div class="name">Chi → You</div><div class="muted">Waiting</div></div><div class="amt num">1.245.000₫</div></div>
+      <div class="row"><div class="av">A</div><div class="grow"><div class="name">An → You</div><div class="muted">An says it's paid</div></div><div class="amt num">385.000₫</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <ul><li>All five Splitwise split modes, behind one row of tabs.</li><li>"Paid by" defaults to the guest, but they can pick someone else.</li></ul>
+  <ul><li>Waiting expenses are shown but don't change anyone's balance yet.</li><li>The guest sees what will change if it's approved.</li></ul>
+  <ul><li>Members' own expenses count straight away; only guest expenses wait.</li><li>Rejected ones go back to the guest with a reason.</li></ul>
+</div>
