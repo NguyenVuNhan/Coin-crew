@@ -38,3 +38,49 @@ export type ActivityAction =
   | 'membership_requested'
   | 'membership_approved'
   | 'membership_rejected';
+
+import type { SplitMode } from './split';
+import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
+import type { Transfer } from './transfers';
+import type { ActorKind } from './permissions';
+import type { MatchReason, NameCandidate } from './names';
+
+export interface BankFields { bin: string; accountNumber: string; holderName: string }
+export interface CreateTripInput { name: string; myName: string; people: string[]; myBank?: BankFields }
+
+export interface PersonView { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved' }
+export interface ExpenseView {
+  id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;
+  status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;
+  shares: { participantId: string; amount: number; inputValue: number }[];
+}
+export interface PaymentView {
+  id: string; fromId: string; toId: string; amountClaimed: number; amountConfirmed: number | null;
+  status: PaymentStatus; notArrived: boolean; createdAt: string;
+}
+export type Approval =
+  | { kind: 'expense'; expenseId: string }
+  | { kind: 'name'; participantId: string; matches: (NameCandidate & { reason: MatchReason })[] }
+  | { kind: 'bank'; bankId: string; participantId: string; bankName: string; accountNumber: string; holderName: string }
+  | { kind: 'payment'; paymentId: string }
+  | { kind: 'not_arrived'; paymentId: string }
+  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string };
+export interface TripView {
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number };
+  me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean };
+  people: PersonView[];
+  balances: Balances;
+  suggestions: Transfer[];
+  expenses: ExpenseView[];
+  payments: PaymentView[];
+  myBalance: { now: number; beforePayments: number; ifPendingApproved: number | null; waitingConfirm: number } | null;
+  /** Empty unless the actor is a member. */
+  approvals: Approval[];
+  /** Members only. */
+  links: { group: string; view: string } | null;
+}
+export interface TripListItem { id: string; name: string; archived: boolean; myBalance: number }
+export interface ActivityItem {
+  id: string; action: ActivityAction; actorName: string | null; deviceShort: string | null;
+  details: Record<string, unknown>; createdAt: string;
+}

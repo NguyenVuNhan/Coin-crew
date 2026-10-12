@@ -74,3 +74,48 @@ export async function pickAs(deviceId: string, participantId: string, tripId: st
   await sql('INSERT OR REPLACE INTO device_participants (device_hash, trip_id, participant_id, last_used_at) VALUES (?, ?, ?, ?)',
     await sha256Hex(deviceId), tripId, participantId, new Date().toISOString());
 }
+
+/** Approved mockup expenses (docs/superpowers/mockups/v1-flow.html), created by Minh. */
+export async function seedExpenses(): Promise<void> {
+  const all = [PID.M, PID.A, PID.B, PID.C];
+  const rows: [string, string, string, number, string[]][] = [
+    ['e-1', 'Homestay Bloom · 2 nights', PID.M, 3200000, all],
+    ['e-2', 'Lẩu gà lá é', PID.A, 860000, all],
+    ['e-3', 'Motorbike rental + fuel', PID.B, 600000, all],
+    ['e-4', 'Cà phê Túi Mơ To', PID.M, 240000, [PID.M, PID.A, PID.C]],
+  ];
+  for (const [id, description, payer, amount, people] of rows) {
+    await sql("INSERT OR IGNORE INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, ?, ?, 'VND', '2026-10-10', ?, 'equal', 'approved', ?, ?, ?)",
+      id, T.tripId, description, amount, payer, PID.M, '2026-10-10T00:00:00.000Z', '2026-10-10T00:00:00.000Z');
+    for (const p of people) {
+      await sql('INSERT OR IGNORE INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES (?, ?, 1, ?)', id, p, amount / people.length);
+    }
+  }
+}
+
+/** Approved bank details on Minh's profile. */
+export async function seedMinhBank(): Promise<void> {
+  await sql("INSERT OR IGNORE INTO bank_details (id, user_id, bin, account_number, holder_name, status, consent_at, created_at) VALUES ('b-minh', ?, '970407', '19031234565678', 'NGUYEN VAN MINH', 'approved', ?, ?)",
+    U.minh, '2026-10-12T00:00:00.000Z', '2026-10-12T00:00:00.000Z');
+}
+
+/** Turn a guest participant into a signed-in member and return their session cookie. */
+export async function linkMember(participantId: string, userId: string, name: string): Promise<string> {
+  const sid = await memberSid(userId, name);
+  await sql('UPDATE participants SET user_id = ? WHERE id = ?', userId, participantId);
+  return sid;
+}
+
+/** Headers for a guest device that picked `participantId` (or nobody). */
+export async function guestHeaders(participantId?: string, token: string = T.groupToken): Promise<Record<string, string>> {
+  const { deviceId, cookie } = await newDevice();
+  if (participantId) await pickAs(deviceId, participantId);
+  return { Cookie: cookie, 'X-Link-Token': token };
+}
+
+export async function json<R>(res: Response | Promise<Response>): Promise<R> {
+  return (await (await res).json()) as R;
+}
+
+export const byKey = <X extends { fromId: string; toId: string }>(ts: X[]) =>
+  [...ts].sort((x, y) => (x.fromId + x.toId).localeCompare(y.fromId + y.toId));

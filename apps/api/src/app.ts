@@ -4,6 +4,7 @@ import { errorResponse } from './lib/errors';
 import { authRoutes } from './auth/routes';
 import { deviceMiddleware } from './access/device';
 import { accessRoutes } from './access/routes';
+import { tripRoutes } from './trips/routes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -16,6 +17,7 @@ export function createApp(): Hono<AppBindings> {
   app.get('/api/health', (c) => c.json({ ok: true }));
   app.route('/api', authRoutes());
   app.route('/api', accessRoutes());
+  app.route('/api', tripRoutes());
 
   return app;
 }
