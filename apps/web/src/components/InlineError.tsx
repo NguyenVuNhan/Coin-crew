@@ -21,6 +21,8 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
 
   if (code === 'DAILY_LIMIT') {
     message = t('error.dailyLimit');
+  } else if (code === 'RATE_LIMITED') {
+    message = t('error.rateLimited');
   } else if (code === 'LINK_DEAD') {
     message = t('error.linkDead');
   } else if (code === 'VALIDATION') {

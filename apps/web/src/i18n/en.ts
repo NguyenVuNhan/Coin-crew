@@ -12,6 +12,7 @@ export const en = {
   'error.generic': 'Something went wrong. Try again.',
   'error.dailyLimit': "We're over today's free limit. Try again after 07:00.", // SPEC
   'error.linkDead': 'This link no longer works. Ask the organiser for a new one.', // SPEC
+  'error.rateLimited': 'Too many items are waiting for approval. Ask a member to approve them first.',
 
   'lang.vi': 'Tiếng Việt',
   'lang.en': 'English',
@@ -84,6 +85,56 @@ export const en = {
 
   'privacy.title': 'Privacy notice',
   'privacy.draft': 'Draft — pending legal review',
+
+  'join.opening': 'Opening the trip…',
+
+  'who.title': 'Who are you?',
+  'who.subtitle': 'Pick your name to continue.',
+  'who.continueAs': 'Continue as {name}',
+  'who.memberHint': 'Signed in — tap to sign in as {name}',
+  'who.pending': 'Waiting for approval',
+  'who.notOnList': 'Not on the list?',
+  'who.newTitle': "What's your name?",
+  'who.newHint': 'Use the name your friends know you by.',
+  'who.nameLabel': 'Your name',
+  'who.inTrip': 'Already in this trip',
+  'who.similar': '"{typed}" looks like "{name}", who\'s already in this trip.',
+  'who.newPendingNote': 'A member checks new names before they show up in the trip.',
+
+  'guest.viewingAs': 'Viewing as {name}',
+  'guest.switch': 'Not {name}? Switch',
+  'guest.youOwe': 'You owe {name}',
+  'guest.youreOwed': "You're owed",
+  'guest.settled': "You're all settled",
+  'guest.dropsTo': 'Drops to {amount} if your expenses are approved',
+  'guest.yourShare': 'How we got your share',
+  'guest.yourTotal': 'Your total',
+  'guest.becomeMember': 'Sign in with Google to become a member',
+  'guest.memberRequested': 'You asked to become a member. A member will approve it.',
+
+  'trip.total': 'Trip total {amount}',
+  'trip.people': '{n} people',
+  'trip.balances': 'Balances',
+  'trip.whoPaysWhom': 'Who pays whom',
+  'trip.expenses': 'Expenses',
+  'trip.addExpense': '+ Add expense',
+  'trip.pays': '{from} → {to}',
+  'trip.viewOnly': 'View only',
+  'trip.you': 'You',
+  'trip.allSettled': 'Everyone is settled up.',
+  'trip.waitingConfirm': '{amount} waiting for {name} to confirm',
+
+  'expense.youPaid': 'You paid',
+  'expense.personPaid': '{name} paid',
+  'split.equal': 'split equally, {n}',
+  'split.amounts': 'exact amounts',
+  'split.percent': 'by percentage',
+  'split.shares': 'by shares',
+  'split.adjust': 'with adjustments',
+  'status.waiting': 'Waiting',
+  'status.rejected': 'Rejected',
+  'status.disabled': 'Disabled',
+  'expense.rejectedBecause': 'Rejected: {reason}',
 } as const;
 
 export type MessageKey = keyof typeof en;

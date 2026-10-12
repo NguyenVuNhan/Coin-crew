@@ -12,6 +12,7 @@ export const vi: Record<MessageKey, string> = {
   'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
   'error.dailyLimit': 'Đã vượt giới hạn miễn phí hôm nay. Thử lại sau 07:00.', // REVIEW
   'error.linkDead': 'Liên kết này không còn hoạt động. Hãy xin trưởng nhóm liên kết mới.', // REVIEW
+  'error.rateLimited': 'Quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.', // REVIEW
 
   'lang.vi': 'Tiếng Việt', // REVIEW
   'lang.en': 'English', // REVIEW
@@ -84,4 +85,54 @@ export const vi: Record<MessageKey, string> = {
 
   'privacy.title': 'Thông báo quyền riêng tư', // REVIEW
   'privacy.draft': 'Bản nháp — đang chờ duyệt pháp lý', // REVIEW
+
+  'join.opening': 'Đang mở chuyến đi…', // REVIEW
+
+  'who.title': 'Bạn là ai?', // REVIEW
+  'who.subtitle': 'Chọn tên của bạn để tiếp tục.', // REVIEW
+  'who.continueAs': 'Tiếp tục với tên {name}', // REVIEW
+  'who.memberHint': 'Đã đăng nhập — chạm để đăng nhập với tên {name}', // REVIEW
+  'who.pending': 'Đang chờ duyệt', // REVIEW
+  'who.notOnList': 'Không có tên trong danh sách?', // REVIEW
+  'who.newTitle': 'Tên của bạn là gì?', // REVIEW
+  'who.newHint': 'Dùng tên mà bạn bè hay gọi bạn.', // REVIEW
+  'who.nameLabel': 'Tên của bạn', // REVIEW
+  'who.inTrip': 'Đã có trong chuyến đi này', // REVIEW
+  'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong chuyến đi này.', // REVIEW
+  'who.newPendingNote': 'Một thành viên sẽ kiểm tra tên mới trước khi xuất hiện trong chuyến đi.', // REVIEW
+
+  'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
+  'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
+  'guest.youOwe': 'Bạn cần trả {name}', // REVIEW
+  'guest.youreOwed': 'Bạn được nhận', // REVIEW
+  'guest.settled': 'Bạn đã thanh toán hết', // REVIEW
+  'guest.dropsTo': 'Giảm xuống {amount} nếu các khoản chi của bạn được duyệt', // REVIEW
+  'guest.yourShare': 'Cách tính phần của bạn', // REVIEW
+  'guest.yourTotal': 'Tổng của bạn', // REVIEW
+  'guest.becomeMember': 'Đăng nhập bằng Google để trở thành thành viên', // REVIEW
+  'guest.memberRequested': 'Bạn đã yêu cầu trở thành thành viên. Một thành viên sẽ duyệt yêu cầu này.', // REVIEW
+
+  'trip.total': 'Tổng chuyến đi {amount}', // REVIEW
+  'trip.people': '{n} người', // REVIEW
+  'trip.balances': 'Số dư', // REVIEW
+  'trip.whoPaysWhom': 'Ai trả ai', // REVIEW
+  'trip.expenses': 'Khoản chi', // REVIEW
+  'trip.addExpense': '+ Thêm khoản chi', // REVIEW
+  'trip.pays': '{from} → {to}', // REVIEW
+  'trip.viewOnly': 'Chỉ xem', // REVIEW
+  'trip.you': 'Bạn', // REVIEW
+  'trip.allSettled': 'Mọi người đã thanh toán hết.', // REVIEW
+  'trip.waitingConfirm': '{amount} đang chờ {name} xác nhận', // REVIEW
+
+  'expense.youPaid': 'Bạn đã trả', // REVIEW
+  'expense.personPaid': '{name} đã trả', // REVIEW
+  'split.equal': 'chia đều, {n}', // REVIEW
+  'split.amounts': 'số tiền chính xác', // REVIEW
+  'split.percent': 'theo phần trăm', // REVIEW
+  'split.shares': 'theo phần chia', // REVIEW
+  'split.adjust': 'có điều chỉnh', // REVIEW
+  'status.waiting': 'Đang chờ', // REVIEW
+  'status.rejected': 'Bị từ chối', // REVIEW
+  'status.disabled': 'Đã vô hiệu hóa', // REVIEW
+  'expense.rejectedBecause': 'Bị từ chối: {reason}', // REVIEW
 };
