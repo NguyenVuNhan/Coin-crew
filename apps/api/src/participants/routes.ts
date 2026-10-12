@@ -400,6 +400,11 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    // Removing a signed-in person would lock them (or the organiser) out of their own trip.
+    if (target.userId !== null) {
+      throw new ApiError('VALIDATION', 409, 'Signed-in people cannot be removed.');
+    }
+
     const expensePayer = await db
       .select({ id: expenses.id })
       .from(expenses)

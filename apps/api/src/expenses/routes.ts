@@ -148,6 +148,25 @@ async function validateExpenseInput(
   };
 }
 
+/** Approving (or re-enabling) an expense that involves a name still waiting for approval is refused (spec §6.2). */
+async function assertNoPendingPeople(db: Db, tripId: string, expenseId: string, payerId: string): Promise<void> {
+  const pending = await db
+    .select({ id: participants.id })
+    .from(participants)
+    .where(
+      and(
+        eq(participants.tripId, tripId),
+        eq(participants.status, 'pending'),
+        or(
+          eq(participants.id, payerId),
+          inArray(participants.id, db.select({ id: expenseShares.participantId }).from(expenseShares).where(eq(expenseShares.expenseId, expenseId))),
+        ),
+      ),
+    )
+    .limit(1);
+  if (pending.length > 0) throw new ApiError('PERSON_PENDING', 409, 'Approve the new name first.');
+}
+
 export function expenseRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -368,32 +387,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
-    const shares = await db
-      .select({ participantId: expenseShares.participantId })
-      .from(expenseShares)
-      .where(eq(expenseShares.expenseId, eid));
-
-    const participantIds = Array.from(
-      new Set([e.payerId, ...shares.map((s) => s.participantId)]),
-    );
-
-    if (participantIds.length > 0) {
-      const pendingParticipants = await db
-        .select({ id: participants.id })
-        .from(participants)
-        .where(
-          and(
-            eq(participants.tripId, tripId),
-            inArray(participants.id, participantIds),
-            eq(participants.status, 'pending'),
-          ),
-        )
-        .limit(1);
-
-      if (pendingParticipants.length > 0) {
-        throw new ApiError('PERSON_PENDING', 409, 'Approve the new name first.');
-      }
-    }
+    await assertNoPendingPeople(db, tripId, eid, e.payerId);
 
     const now = nowIso();
     const r = await db
@@ -553,6 +547,8 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (!e) {
       throw new ApiError('NOT_FOUND', 404);
     }
+
+    if (e.status === 'disabled') await assertNoPendingPeople(db, tripId, eid, e.payerId);
 
     const now = nowIso();
     const r = await db

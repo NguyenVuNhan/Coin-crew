@@ -1,0 +1,9 @@
+.fsl-resume-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  box-shadow: var(--shadow-sheet);
+  border-radius: var(--radius-pill);
+  z-index: 10;
+}

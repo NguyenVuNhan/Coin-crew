@@ -119,3 +119,14 @@ export async function json<R>(res: Response | Promise<Response>): Promise<R> {
 
 export const byKey = <X extends { fromId: string; toId: string }>(ts: X[]) =>
   [...ts].sort((x, y) => (x.fromId + x.toId).localeCompare(y.fromId + y.toId));
+
+/** `n` approved 1.000₫ expenses paid by Minh and split between Minh and Bình (for size limits). */
+export async function seedManyExpenses(n: number): Promise<void> {
+  const expense = env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, 'Nước', 1000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')");
+  const share = env.DB.prepare('INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES (?, ?, 1, 500)');
+  const stmts = [];
+  for (let i = 0; i < n; i++) {
+    stmts.push(expense.bind(`e-many-${i}`, T.tripId, PID.M, PID.M), share.bind(`e-many-${i}`, PID.M), share.bind(`e-many-${i}`, PID.B));
+  }
+  await env.DB.batch(stmts);
+}

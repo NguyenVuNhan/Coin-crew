@@ -9,6 +9,8 @@ import { Screen } from '../components/Screen';
 import { Amount } from '../components/Amount';
 import { EmptyState } from '../components/EmptyState';
 import { ExpenseRow } from '../components/ExpenseRow';
+import { PaymentsList } from '../components/PaymentsList';
+import { ReceivedButton } from '../components/ReceivedButton';
 import './GuestTrip.css';
 
 export function GuestTrip({ view }: { view: TripView }) {
@@ -162,6 +164,23 @@ export function GuestTrip({ view }: { view: TripView }) {
             )}
           </div>
         )}
+
+        {myId && view.suggestions.some((s) => s.toId === myId) && (
+          <section className="fsl-guest__section" aria-label={t('guest.paysYou')}>
+            <h2 className="fsl-section-heading">{t('guest.paysYou')}</h2>
+            <ul className="fsl-guest__pays-you">
+              {view.suggestions.filter((s) => s.toId === myId).map((s) => (
+                <li key={s.fromId} className="fsl-guest__pays-you-row">
+                  <span className="fsl-guest__pays-you-name">{nameOf(view, s.fromId)}</span>
+                  <Amount value={s.amount} tone="success" />
+                  <ReceivedButton view={view} fromId={s.fromId} amount={s.amount} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <PaymentsList view={view} mode="guest" />
 
         <div className="fsl-guest__action">
           <Link

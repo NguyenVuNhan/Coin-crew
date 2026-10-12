@@ -16,8 +16,13 @@ export function parseVnd(input: string): number | null {
   if (suffixed) {
     const [, whole = '', frac = '', unit] = suffixed;
     const zeros = SUFFIX_ZEROS[unit as keyof typeof SUFFIX_ZEROS];
-    if (frac.length > zeros) return null;
-    value = Number(whole) * 10 ** zeros + Number(frac.padEnd(zeros, '0') || '0');
+    if (frac.length === 3) {
+      // Exactly three digits after the separator is a thousands group: "1.200k" means 1.200 × 1.000.
+      value = Number(whole + frac) * 10 ** zeros;
+    } else {
+      if (frac.length > zeros) return null;
+      value = Number(whole) * 10 ** zeros + Number(frac.padEnd(zeros, '0') || '0');
+    }
   } else if (/^\d+$/.test(s) || /^\d{1,3}([., ])\d{3}(?:\1\d{3})*$/.test(s)) {
     value = Number(s.replace(/[., ]/g, ''));
   }

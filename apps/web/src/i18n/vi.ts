@@ -201,6 +201,14 @@ export const vi: Record<MessageKey, string> = {
   'whoPays.toConfirm': 'Xác nhận', // REVIEW
   'whoPays.paid': 'Đã trả ✓', // REVIEW
   'whoPays.waiting': 'Đang chờ', // REVIEW
+  'whoPays.received': 'Đã nhận', // REVIEW
+  'payments.title': 'Các khoản đã trả', // REVIEW
+  'payments.disable': 'Tắt', // REVIEW
+  'payments.enable': 'Bật lại', // REVIEW
+  'payments.didntArrive': 'Chưa nhận được', // REVIEW
+  'payments.reported': 'Đã báo. Một thành viên sẽ kiểm tra.', // REVIEW
+  'payments.notArrivedPill': 'Chưa nhận được', // REVIEW
+  'guest.paysYou': 'Ai trả cho bạn', // REVIEW
   'remind.text': 'Chào {name}! Bạn còn {amount} cần trả {creditor} cho chuyến "{trip}". Xem chi tiết và chuyển khoản bằng VietQR: {link}', // REVIEW
 
   'expenses.disable': 'Vô hiệu hóa', // REVIEW

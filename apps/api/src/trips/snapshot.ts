@@ -163,10 +163,11 @@ export async function buildSnapshot(
 
   const sharesByExpenseId = new Map<string, ExpenseView['shares']>();
   if (expenseIds.length > 0) {
+    // A subquery, not a list of ids: D1 allows only 100 bound parameters per query.
     const shareRows = await db
       .select()
       .from(expenseShares)
-      .where(inArray(expenseShares.expenseId, expenseIds));
+      .where(inArray(expenseShares.expenseId, db.select({ id: expenses.id }).from(expenses).where(eq(expenses.tripId, trip.id))));
     for (const s of shareRows) {
       let list = sharesByExpenseId.get(s.expenseId);
       if (!list) {

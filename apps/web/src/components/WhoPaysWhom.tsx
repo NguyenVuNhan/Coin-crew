@@ -8,11 +8,10 @@ import { Amount } from './Amount';
 import { Avatar } from './Avatar';
 import { Button } from './Button';
 import { Pill } from './Pill';
+import { ReceivedButton } from './ReceivedButton';
 import './WhoPaysWhom.css';
 
-const WEEK_MS = 7 * 24 * 3600_000;
-
-/** Suggested transfers, payments waiting for confirmation and recent confirmed payments, with Pay / Remind. */
+/** Suggested transfers with Pay / Remind / Received. Recorded payments live in PaymentsList. */
 export function WhoPaysWhom({ view }: { view: TripView }) {
   const t = useT();
   const [status, setStatus] = useState('');
@@ -33,9 +32,7 @@ export function WhoPaysWhom({ view }: { view: TripView }) {
     setStatus(result === 'copied' ? t('whoPays.remindCopied') : '');
   }
 
-  const saysPaid = view.payments.filter((p) => p.status === 'says_paid');
-  const recentPaid = view.payments.filter((p) => p.status === 'confirmed' && Date.now() - new Date(p.createdAt).getTime() < WEEK_MS);
-  const empty = view.suggestions.length === 0 && saysPaid.length === 0 && recentPaid.length === 0;
+  const empty = view.suggestions.length === 0;
 
   return (
     <section className="fsl-who-pays" aria-label={t('trip.whoPaysWhom')}>
@@ -50,28 +47,15 @@ export function WhoPaysWhom({ view }: { view: TripView }) {
               <span className="fsl-who-pays__text">{t('trip.pays', { from: label(s.fromId), to: label(s.toId) })}</span>
               <Amount value={s.amount} />
               {s.toId === me && !view.trip.archived ? (
-                <Button variant="secondary" onClick={() => onRemind(s)}>{t('whoPays.remind')}</Button>
+                <span className="fsl-who-pays__actions">
+                  <Button variant="secondary" onClick={() => onRemind(s)}>{t('whoPays.remind')}</Button>
+                  <ReceivedButton view={view} fromId={s.fromId} amount={s.amount} />
+                </span>
               ) : s.fromId === me ? (
                 <Link className="fsl-button fsl-button--primary" to={`/t/${tripId}/pay/${s.toId}`}>{t('whoPays.pay')}</Link>
               ) : (
                 <Pill tone="neutral">{t('whoPays.waiting')}</Pill>
               )}
-            </li>
-          ))}
-          {saysPaid.map((p) => (
-            <li key={`p-${p.id}`} className="fsl-who-pays__row" data-testid={`payment-${p.id}`}>
-              <Avatar name={nameOf(view, p.fromId)} size="sm" />
-              <span className="fsl-who-pays__text">{t('trip.pays', { from: label(p.fromId), to: label(p.toId) })}</span>
-              <Amount value={p.amountClaimed} />
-              <Pill tone={p.toId === me ? 'warning' : 'neutral'}>{p.toId === me ? t('whoPays.toConfirm') : t('whoPays.waiting')}</Pill>
-            </li>
-          ))}
-          {recentPaid.map((p) => (
-            <li key={`c-${p.id}`} className="fsl-who-pays__row fsl-who-pays__row--done" data-testid={`payment-${p.id}`}>
-              <Avatar name={nameOf(view, p.fromId)} size="sm" />
-              <span className="fsl-who-pays__text">{t('trip.pays', { from: label(p.fromId), to: label(p.toId) })}</span>
-              <Amount value={p.amountConfirmed ?? p.amountClaimed} />
-              <Pill tone="success">{t('whoPays.paid')}</Pill>
             </li>
           ))}
         </ul>

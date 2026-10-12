@@ -67,6 +67,13 @@ export function useTripView(
     startStopTimer();
   }, [startStopTimer]);
 
+  // Coming back to the page restarts polling that paused while it sat open.
+  const wasVisible = useRef(isDocumentVisible);
+  useEffect(() => {
+    if (isDocumentVisible && !wasVisible.current && stopped) resume();
+    wasVisible.current = isDocumentVisible;
+  }, [isDocumentVisible, stopped, resume]);
+
   const viewQuery = useQuery({
     queryKey: ['trip', tripId],
     queryFn: () => apiFetch<TripView>(`/api/trips/${tripId}`, { tripId }),

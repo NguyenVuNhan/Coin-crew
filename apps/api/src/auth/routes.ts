@@ -10,15 +10,21 @@ import { newId, nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
 import { createSession, getSessionUser, requireUser, setSessionCookie } from './session';
 
+/** Only same-site paths: "/x" but not "//host" or "/\host" (browsers read a backslash as a slash). */
+export function safeReturnTo(raw: string | undefined): string {
+  if (!raw || !raw.startsWith('/') || /[\\\u0000-\u001f]/.test(raw)) return '/trips';
+  const base = 'https://app.invalid';
+  const url = new URL(raw, base);
+  return url.origin === base ? url.pathname + url.search + url.hash : '/trips';
+}
+
 export function authRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
   app.get('/auth/google/start', (c) => {
     const rawReturnTo = c.req.query('returnTo');
     const returnTo =
-      rawReturnTo && rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//')
-        ? rawReturnTo
-        : '/trips';
+      safeReturnTo(rawReturnTo);
 
     const state = generateState();
     const verifier = generateCodeVerifier();
@@ -84,9 +90,7 @@ export function authRoutes(): Hono<AppBindings> {
 
     const oauthReturn = getCookie(c, 'oauth_return');
     const returnTo =
-      oauthReturn && oauthReturn.startsWith('/') && !oauthReturn.startsWith('//')
-        ? oauthReturn
-        : '/trips';
+      safeReturnTo(oauthReturn);
 
     deleteCookie(c, 'oauth_state', { path: '/' });
     deleteCookie(c, 'oauth_verifier', { path: '/' });

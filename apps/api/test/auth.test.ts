@@ -59,6 +59,16 @@ describe('Google sign-in', () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('VALIDATION');
   });
 
+  it('ignores a backslash returnTo that browsers treat as another site', async () => {
+    const { cb } = await signIn('g-7', '/\\evil.example');
+    expect(cb.headers.get('Location')).toBe('/trips');
+  });
+
+  it('keeps an ordinary trip path with hyphens', async () => {
+    const { cb } = await signIn('g-8', '/t/0f8c-4b2a?becomeMember=1');
+    expect(cb.headers.get('Location')).toBe('/t/0f8c-4b2a?becomeMember=1');
+  });
+
   it('ignores an outside returnTo', async () => {
     const { cb } = await signIn('g-3', '//evil.com');
     expect(cb.headers.get('Location')).toBe('/trips');

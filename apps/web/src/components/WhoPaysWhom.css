@@ -60,3 +60,10 @@
 .fsl-who-pays__status:empty {
   display: none;
 }
+
+.fsl-who-pays__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

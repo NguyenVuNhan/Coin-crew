@@ -371,7 +371,10 @@ export function bankRoutes(): Hono<AppBindings> {
       (s) => s.fromId === actor.participantId && s.toId === toId,
     );
 
-    ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined });
+    // A "says paid" payment removes the debt from the suggestions, but the payer still needs this screen
+    // (and the receiver's details) while it waits for confirmation.
+    const waiting = snapshot.payments.some((p) => p.status === 'says_paid' && p.fromId === actor.participantId && p.toId === toId);
+    ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting });
 
     const amount = self ? 0 : (suggestion?.amount ?? 0);
 

@@ -163,7 +163,17 @@ function PaymentApproval({ view, paymentId }: { view: TripView; paymentId: strin
       <p className="fsl-approvals__sub"><Amount value={p.amountClaimed} /></p>
       <div className="fsl-approvals__received">
         <label htmlFor={inputId}>{t('approvals.amountReceived')}</label>
-        <input id={inputId} className="fsl-approvals__input" inputMode="decimal" value={received} onChange={(ev) => setReceived(ev.target.value)} />
+        <input
+          id={inputId}
+          className="fsl-approvals__input"
+          inputMode="decimal"
+          aria-describedby={`${inputId}-preview`}
+          value={received}
+          onChange={(ev) => setReceived(ev.target.value)}
+        />
+        <span id={`${inputId}-preview`} className={parsed === null ? 'fsl-approvals__error' : 'fsl-approvals__mono'}>
+          {parsed === null ? t('expenseForm.amountInvalid') : formatVnd(parsed)}
+        </span>
       </div>
     </Row>
   );

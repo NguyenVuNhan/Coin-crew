@@ -82,6 +82,7 @@ export function PayScreen() {
   const [svg, setSvg] = useState<string>('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [recordedStatus, setRecordedStatus] = useState<string | null>(null);
+  const [recordedPaymentId, setRecordedPaymentId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [copiedField, setCopiedField] = useState<'account' | 'note' | null>(null);
@@ -185,6 +186,7 @@ export function PayScreen() {
         tripId,
       );
       setRecordedStatus(res.status);
+      setRecordedPaymentId(res.paymentId);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
         queryClient.invalidateQueries({ queryKey: ['pay', tripId] }),
@@ -248,6 +250,9 @@ export function PayScreen() {
 
   const name = payInfo.to.name;
   const hasInFlight = payInfo.inFlight.length > 0;
+  // The payment's live status comes from the trip view, so the screen moves on when the member confirms.
+  const recordedPayment = recordedPaymentId ? view?.payments.find((p) => p.id === recordedPaymentId) : undefined;
+  const effectiveStatus = recordedPayment?.status ?? recordedStatus;
 
   if (payInfo.amount === 0 && !hasInFlight && !recordedStatus) {
     return (
@@ -266,13 +271,13 @@ export function PayScreen() {
     payInfo.amount === 0 || hasInFlight || recordedStatus !== null;
 
   let statusContent: ReactNode;
-  if (recordedStatus === 'confirmed') {
+  if (effectiveStatus === 'confirmed') {
     statusContent = (
       <div className="fsl-pay__status fsl-pay__status--confirmed">
         <span>{t('pay.paid')}</span>
       </div>
     );
-  } else if (recordedStatus === 'says_paid' || hasInFlight) {
+  } else if (effectiveStatus === 'says_paid' || hasInFlight) {
     statusContent = (
       <div className="fsl-pay__status fsl-pay__status--waiting-confirm">
         <span className="fsl-pay__status-dot" aria-hidden="true" />

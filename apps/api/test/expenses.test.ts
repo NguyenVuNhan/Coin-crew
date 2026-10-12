@@ -136,3 +136,17 @@ describe('approving, rejecting, disabling', () => {
     expect(v.expenses.find((e) => e.id === 'e-1')?.disabledByName).toBeNull();
   });
 });
+
+describe('enable keeps the approval rules', () => {
+  it('re-enabling an expense that includes a name still waiting is blocked', async () => {
+    const g = await guestHeaders();
+    const { participantId } = await json<{ participantId: string }>(send('POST', '/people', g, { name: 'Dũng', confirmNew: true }));
+    const { expenseId } = await addAs(g, { ...equalAll(100000, participantId), entries: [{ participantId, value: 1 }, { participantId: PID.M, value: 1 }] });
+    const headers = await minh();
+    expect((await send('POST', `/expenses/${expenseId}/disable`, headers)).status).toBe(204);
+    const res = await send('POST', `/expenses/${expenseId}/enable`, headers);
+    expect(res.status).toBe(409);
+    expect((await err(res)).code).toBe('PERSON_PENDING');
+    expect((await view(headers)).expenses.find((e) => e.id === expenseId)?.status).toBe('disabled');
+  });
+});

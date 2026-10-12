@@ -66,6 +66,24 @@ describe('PayScreen', () => {
     expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 1245000 });
   });
 
+  it('turns into "Paid ✓" once the member confirms', async () => {
+    const state = { paid: false };
+    const confirmedPayment = { id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, amountClaimed: 1245000, amountConfirmed: 1245000, status: 'confirmed' as const, notArrived: false, createdAt: new Date().toISOString() };
+    mockApi({
+      'GET /api/trips/t-1': () => Response.json(state.paid ? { ...guestChiView(), trip: { ...guestChiView().trip, version: 4 }, payments: [confirmedPayment] } : guestChiView()),
+      'GET /api/trips/t-1/version': { version: 3 },
+      [`GET /api/trips/t-1/pay/${PIDS.M}`]: () => Response.json(state.paid ? payInfo({ amount: 0 }) : payInfo()),
+      'POST /api/trips/t-1/payments': () => {
+        state.paid = true;
+        return Response.json({ paymentId: 'pay-1', status: 'says_paid' }, { status: 201 });
+      },
+    });
+    renderAt(<PayScreen />, payRoute);
+    await userEvent.click(await screen.findByRole('button', { name: "I've already paid" }));
+    expect(await screen.findByText('Paid ✓')).toBeInTheDocument();
+    expect(screen.queryByText("You don't owe Minh anything right now.")).not.toBeInTheDocument();
+  });
+
   it('lists bank apps that open with the VietQR deeplink', async () => {
     api(payInfo());
     renderAt(<PayScreen />, payRoute);

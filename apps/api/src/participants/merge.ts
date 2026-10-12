@@ -90,29 +90,25 @@ export async function mergeParticipants(
       ),
   );
 
-  const tripExpenses = await db
-    .select({ id: expenses.id })
-    .from(expenses)
-    .where(eq(expenses.tripId, tripId));
-  const tripExpenseIds = tripExpenses.map((e) => e.id);
+  // Subqueries, not lists of ids: D1 allows only 100 bound parameters per query.
+  const tripExpenseIds = db.select({ id: expenses.id }).from(expenses).where(eq(expenses.tripId, tripId));
+  const fromExpenseIdsQuery = db
+    .select({ id: expenseShares.expenseId })
+    .from(expenseShares)
+    .where(and(inArray(expenseShares.expenseId, tripExpenseIds), eq(expenseShares.participantId, fromId)));
 
-  if (tripExpenseIds.length > 0) {
+  {
     const fromShares = await db
       .select()
       .from(expenseShares)
-      .where(
-        and(
-          inArray(expenseShares.expenseId, tripExpenseIds),
-          eq(expenseShares.participantId, fromId),
-        ),
-      );
+      .where(and(inArray(expenseShares.expenseId, tripExpenseIds), eq(expenseShares.participantId, fromId)));
 
     const fromExpenseIds = fromShares.map((s) => s.expenseId);
     if (fromExpenseIds.length > 0) {
       const relevantShares = await db
         .select()
         .from(expenseShares)
-        .where(inArray(expenseShares.expenseId, fromExpenseIds));
+        .where(inArray(expenseShares.expenseId, fromExpenseIdsQuery));
 
       const sharesByExpense = new Map<string, typeof relevantShares>();
       for (const s of relevantShares) {

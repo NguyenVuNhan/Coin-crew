@@ -16,7 +16,7 @@ export function errorResponse(err: unknown): Response {
     return Response.json({ error: { code: err.code, message: err.message } }, { status: err.status });
   }
 
-  if (err instanceof Error && /limit/i.test(err.message) && /row|exceed/i.test(err.message)) {
+  if (isDailyLimit(err)) {
     return Response.json(
       { error: { code: 'DAILY_LIMIT', message: "We're over today's free limit. Try again after 07:00." } },
       { status: 503 },
@@ -28,4 +28,12 @@ export function errorResponse(err: unknown): Response {
     { error: { code: 'INTERNAL', message: 'Something went wrong.' } },
     { status: 500 },
   );
+}
+
+/** D1's daily free-plan limit error. Drizzle wraps query errors, so the D1 text may sit in `cause`. */
+function isDailyLimit(err: unknown): boolean {
+  for (let e: unknown = err, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
+    if (/limit/i.test(e.message) && /row|exceed/i.test(e.message)) return true;
+  }
+  return false;
 }

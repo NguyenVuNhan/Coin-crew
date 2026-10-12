@@ -14,6 +14,7 @@ import { InlineError } from '../components/InlineError';
 import { ApprovalsCard } from '../components/ApprovalsCard';
 import { WhoPaysWhom } from '../components/WhoPaysWhom';
 import { ShareLinks } from '../components/ShareLinks';
+import { PaymentsList } from '../components/PaymentsList';
 import './MemberTrip.css';
 
 function useTripAction(tripId: string) {
@@ -151,6 +152,7 @@ export function MemberTrip({ view }: { view: TripView }) {
         <Hero view={view} />
         {!archived && <FewestSwitch view={view} />}
         <WhoPaysWhom view={view} />
+        <PaymentsList view={view} mode="member" />
         {!archived && view.expenses.length > 0 && addExpense}
         <section className="fsl-member__section" aria-label={t('trip.expenses')}>
           <h2 className="fsl-member__heading">{t('trip.expenses')}</h2>

@@ -30,6 +30,16 @@ describe('worker scaffold', () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('DAILY_LIMIT');
   });
 
+  it('a D1 limit error wrapped by Drizzle (in err.cause) is still DAILY_LIMIT', async () => {
+    const app = createApp();
+    app.get('/api/test/wrapped', () => {
+      throw new Error('Failed query: select * from trips', { cause: new Error('D1_ERROR: free tier daily rows read limit exceeded') });
+    });
+    const res = await call(app, '/api/test/wrapped');
+    expect(res.status).toBe(503);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('DAILY_LIMIT');
+  });
+
   it('any other error becomes 500 INTERNAL', async () => {
     const app = createApp();
     app.get('/api/test/boom', () => { throw new Error('boom'); });

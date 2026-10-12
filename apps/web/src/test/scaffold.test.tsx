@@ -107,6 +107,24 @@ describe('useTripView', () => {
     spy.mockRestore();
   });
 
+  it('resumes by itself when the page becomes visible again', async () => {
+    mockTrip();
+    let visibility: DocumentVisibilityState = 'visible';
+    const spy = vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
+    const { result } = renderHook(() => useTripView('t1', 20, { stopAfterMs: 100 }), { wrapper });
+    await waitFor(() => expect(result.current.stopped).toBe(true), { timeout: 1000 });
+    act(() => {
+      visibility = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    act(() => {
+      visibility = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(result.current.stopped).toBe(false);
+    spy.mockRestore();
+  });
+
   it('stops after stopAfterMs and resumes on request', async () => {
     mockTrip();
     const { result } = renderHook(() => useTripView('t1', 20, { stopAfterMs: 100 }), { wrapper });

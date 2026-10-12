@@ -172,3 +172,31 @@
   background-color: var(--color-accent-soft);
   color: var(--color-accent-soft-text);
 }
+
+.fsl-guest__pays-you {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fsl-guest__pays-you-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.fsl-guest__pays-you-row:first-child {
+  border-top: 0;
+}
+
+.fsl-guest__pays-you-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-semibold);
+}

@@ -119,6 +119,12 @@ describe('approving names and merging', () => {
     expect((await call(`${base}/people/${participantId}`, { method: 'DELETE', headers })).status).toBe(204);
   });
 
+  it('signed-in people (like the organiser) cannot be removed', async () => {
+    const res = await call(`${base}/people/${PID.M}`, { method: 'DELETE', headers: await minh() });
+    expect(res.status).toBe(409);
+    expect((await view(await minh())).me.kind).toBe('member');
+  });
+
   it('guests cannot merge or approve', async () => {
     const g = await guestHeaders(PID.C);
     expect((await post('/people/merge', g, { fromId: PID.B, intoId: PID.A })).status).toBe(403);

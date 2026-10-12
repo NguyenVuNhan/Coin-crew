@@ -383,9 +383,10 @@ export function paymentRoutes(): Hono<AppBindings> {
     const now = nowIso();
     const r = await db
       .update(payments)
+      // Back to what it was before disabling: a payment nobody confirmed yet waits for its receiver again (spec §9.4).
       .set({
-        status: 'confirmed',
-        amountConfirmed: sql<number>`coalesce(${payments.amountConfirmed}, ${payments.amountClaimed})`,
+        status: sql<'says_paid' | 'confirmed'>`CASE WHEN ${payments.confirmedByParticipantId} IS NULL THEN 'says_paid' ELSE 'confirmed' END`,
+        amountConfirmed: sql<number | null>`CASE WHEN ${payments.confirmedByParticipantId} IS NULL THEN NULL ELSE coalesce(${payments.amountConfirmed}, ${payments.amountClaimed}) END`,
         notArrivedAt: null,
         updatedAt: now,
       })

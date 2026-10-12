@@ -78,6 +78,15 @@ describe('member trip page', () => {
     expect(await within(card).findByText('Approve Chi Nguyễn first')).toBeInTheDocument();
   });
 
+  it('previews the amount received before confirming', async () => {
+    mockApi({ 'GET /api/trips/t-1': busyView(), 'GET /api/trips/t-1/version': { version: 3 } });
+    renderAt(<TripRoute />, route);
+    const field = await screen.findByLabelText('Amount received');
+    await userEvent.clear(field);
+    await userEvent.type(field, '1.200k');
+    expect(screen.getByText('1.200.000₫')).toBeInTheDocument();
+  });
+
   it('shows disabled expenses crossed out with who did it', async () => {
     mockApi({ 'GET /api/trips/t-1': busyView(), 'GET /api/trips/t-1/version': { version: 3 } });
     renderAt(<TripRoute />, route);

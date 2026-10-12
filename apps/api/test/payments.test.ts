@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { TripView } from '@fsl/core';
-import { call, json, seedTrip, seedExpenses, memberSid, guestHeaders, T, U, PID } from './helpers';
+import { call, json, seedTrip, seedExpenses, memberSid, guestHeaders, linkMember, T, U, PID } from './helpers';
 
 const base = `/api/trips/${T.tripId}`;
 const send = (path: string, headers: Record<string, string>, body?: unknown) =>
@@ -124,5 +124,38 @@ describe('who may record a payment', () => {
   it('guests cannot disable', async () => {
     const { body } = await record(await minh(), PID.M, PID.A, 100000);
     expect((await send(`/payments/${body!.paymentId}/disable`, await guestHeaders(PID.A))).status).toBe(403);
+  });
+});
+
+describe('pay info after "I\'ve already paid"', () => {
+  it('still answers while the payment waits for the member, with nothing more to pay', async () => {
+    const chi = await guestHeaders(PID.C);
+    const { body } = await record(chi, PID.C, PID.M, 1245000);
+    expect(body?.status).toBe('says_paid');
+    const res = await call(`${base}/pay/${PID.M}`, { headers: chi });
+    expect(res.status).toBe(200);
+    const info = await json<{ amount: number; inFlight: { id: string }[] }>(res);
+    expect(info.amount).toBe(0);
+    expect(info.inFlight.map((p) => p.id)).toEqual([body!.paymentId]);
+  });
+});
+
+describe('enable restores the status a payment had', () => {
+  it('a "says paid" payment comes back as "says paid", not confirmed', async () => {
+    const { body } = await record(await guestHeaders(PID.C), PID.C, PID.M, 1245000);
+    const an = { Cookie: `sid=${await linkMember(PID.A, U.an, 'An')}` };
+    expect((await send(`/payments/${body!.paymentId}/disable`, an)).status).toBe(204);
+    expect((await send(`/payments/${body!.paymentId}/enable`, an)).status).toBe(204);
+    const v = await view(await minh());
+    expect(v.payments.find((p) => p.id === body!.paymentId)?.status).toBe('says_paid');
+    expect(v.balances[PID.M]).toBe(2195000);
+  });
+
+  it('a confirmed payment comes back confirmed', async () => {
+    const { body } = await record(await minh(), PID.M, PID.A, 100000);
+    const headers = await minh();
+    await send(`/payments/${body!.paymentId}/disable`, headers);
+    await send(`/payments/${body!.paymentId}/enable`, headers);
+    expect((await view(headers)).payments.find((p) => p.id === body!.paymentId)?.status).toBe('confirmed');
   });
 });
