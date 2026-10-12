@@ -1,0 +1,50 @@
+.fsl-bank-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.fsl-bank-fields__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fsl-bank-fields__label {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  line-height: var(--leading-sm);
+}
+
+.fsl-bank-fields__hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  line-height: var(--leading-xs);
+}
+
+.fsl-bank-fields__select,
+.fsl-bank-fields__input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fsl-bank-fields__select:focus-visible,
+.fsl-bank-fields__input:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}

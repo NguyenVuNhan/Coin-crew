@@ -45,6 +45,45 @@ export const en = {
   'pay.alreadyPaid': "I've already paid", // SPEC
   'pay.openBankApp': 'Open my bank app', // SPEC
   'pay.saveQr': 'Save QR', // SPEC
+
+  'landing.tagline': 'Split trip costs with friends and settle up with VietQR. Friends join with a link — no account needed.',
+  'landing.signIn': 'Sign in with Google',
+
+  'trips.title': 'My trips',
+  'trips.new': 'New trip',
+  'trips.empty': 'No trips yet. Create your first trip.',
+  'trips.youreOwed': "You're owed",
+  'trips.youOwe': 'You owe',
+  'trips.settled': 'All settled',
+  'trips.archived': 'Archived',
+
+  'create.title': 'New trip',
+  'create.tripName': 'Trip name',
+  'create.tripNamePlaceholder': 'Đà Lạt · Oct 2026',
+  'create.myName': 'Your name',
+  'create.others': 'Who else is coming?',
+  'create.otherPlaceholder': 'Name',
+  'create.addPerson': 'Add person',
+  'create.removePerson': 'Remove {name}',
+  'create.bankTitle': 'Your bank details (optional)',
+  'create.bankHint': 'So friends can pay you back with VietQR. You can add them later.',
+  'create.submit': 'Create trip',
+
+  'bank.bank': 'Bank',
+  'bank.popular': 'Popular',
+  'bank.allBanks': 'All banks',
+  'bank.choose': 'Choose your bank',
+  'bank.accountNumber': 'Account number',
+  'bank.holderName': 'Account holder name',
+  'bank.holderHint': 'As your bank shows it, without accents.',
+
+  'consent.title': 'Before you start',
+  'consent.body': 'We store your name, email, the trips you join and any bank details you add, so your group can split costs and pay each other.',
+  'consent.agree': 'I agree to the privacy notice',
+  'consent.readNotice': 'Read the privacy notice',
+
+  'privacy.title': 'Privacy notice',
+  'privacy.draft': 'Draft — pending legal review',
 } as const;
 
 export type MessageKey = keyof typeof en;

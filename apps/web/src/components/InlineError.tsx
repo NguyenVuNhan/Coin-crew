@@ -23,6 +23,14 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
     message = t('error.dailyLimit');
   } else if (code === 'LINK_DEAD') {
     message = t('error.linkDead');
+  } else if (code === 'VALIDATION') {
+    if (error instanceof Error && error.message) {
+      message = error.message;
+    } else if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+      message = (error as { message: string }).message;
+    } else {
+      message = t('error.generic');
+    }
   } else {
     message = t('error.generic');
     if (onRetry) {

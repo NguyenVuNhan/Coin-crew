@@ -9,10 +9,11 @@ import './Sheet.css';
 
 export interface SheetProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   title: string;
   children: ReactNode;
   className?: string;
+  dismissible?: boolean;
 }
 
 export function Sheet({
@@ -21,11 +22,14 @@ export function Sheet({
   title,
   children,
   className = '',
+  dismissible = true,
 }: SheetProps) {
   const t = useT();
   const titleId = useId();
   const openerRef = useRef<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  const canDismiss = dismissible && typeof onClose === 'function';
 
   useEffect(() => {
     if (open) {
@@ -43,7 +47,7 @@ export function Sheet({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !canDismiss || !onClose) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
@@ -54,7 +58,7 @@ export function Sheet({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open, canDismiss, onClose]);
 
   if (!open) {
     return null;
@@ -63,7 +67,7 @@ export function Sheet({
   return (
     <div
       className="fsl-sheet-overlay"
-      onClick={onClose}
+      onClick={canDismiss ? onClose : undefined}
       aria-hidden="false"
     >
       <div
@@ -79,27 +83,29 @@ export function Sheet({
           <h2 id={titleId} className="fsl-sheet__title">
             {title}
           </h2>
-          <button
-            type="button"
-            className="fsl-sheet__close"
-            onClick={onClose}
-            aria-label={t('common.close')}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          {canDismiss && onClose && (
+            <button
+              type="button"
+              className="fsl-sheet__close"
+              onClick={onClose}
+              aria-label={t('common.close')}
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
         </header>
         <div className="fsl-sheet__content">{children}</div>
       </div>

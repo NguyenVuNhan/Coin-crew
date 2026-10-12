@@ -1,0 +1,19 @@
+.fsl-landing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) 0;
+}
+
+.fsl-landing__tagline {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.fsl-landing__action {
+  margin-top: var(--space-2);
+}

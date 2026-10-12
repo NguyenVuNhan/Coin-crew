@@ -45,4 +45,43 @@ export const vi: Record<MessageKey, string> = {
   'pay.alreadyPaid': 'Tôi đã chuyển tiền rồi', // REVIEW
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
   'pay.saveQr': 'Lưu mã QR', // REVIEW
+
+  'landing.tagline': 'Chia tiền chuyến đi cùng bạn bè và thanh toán bằng VietQR. Bạn bè tham gia bằng liên kết — không cần tài khoản.', // REVIEW
+  'landing.signIn': 'Đăng nhập bằng Google', // REVIEW
+
+  'trips.title': 'Chuyến đi của tôi', // REVIEW
+  'trips.new': 'Chuyến đi mới', // REVIEW
+  'trips.empty': 'Chưa có chuyến đi nào. Hãy tạo chuyến đi đầu tiên.', // REVIEW
+  'trips.youreOwed': 'Bạn được nhận', // REVIEW
+  'trips.youOwe': 'Bạn cần trả', // REVIEW
+  'trips.settled': 'Đã thanh toán hết', // REVIEW
+  'trips.archived': 'Đã lưu trữ', // REVIEW
+
+  'create.title': 'Chuyến đi mới', // REVIEW
+  'create.tripName': 'Tên chuyến đi', // REVIEW
+  'create.tripNamePlaceholder': 'Đà Lạt · Th10 2026', // REVIEW
+  'create.myName': 'Tên của bạn', // REVIEW
+  'create.others': 'Ai sẽ tham gia cùng?', // REVIEW
+  'create.otherPlaceholder': 'Tên', // REVIEW
+  'create.addPerson': 'Thêm người', // REVIEW
+  'create.removePerson': 'Xóa {name}', // REVIEW
+  'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
+  'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
+  'create.submit': 'Tạo chuyến đi', // REVIEW
+
+  'bank.bank': 'Ngân hàng', // REVIEW
+  'bank.popular': 'Phổ biến', // REVIEW
+  'bank.allBanks': 'Tất cả ngân hàng', // REVIEW
+  'bank.choose': 'Chọn ngân hàng', // REVIEW
+  'bank.accountNumber': 'Số tài khoản', // REVIEW
+  'bank.holderName': 'Tên chủ tài khoản', // REVIEW
+  'bank.holderHint': 'Như hiển thị trên ngân hàng, không dấu.', // REVIEW
+
+  'consent.title': 'Trước khi bắt đầu', // REVIEW
+  'consent.body': 'Chúng tôi lưu tên, email, các chuyến đi bạn tham gia và thông tin ngân hàng bạn thêm, để nhóm của bạn có thể chia tiền và thanh toán cho nhau.', // REVIEW
+  'consent.agree': 'Tôi đồng ý với thông báo quyền riêng tư', // REVIEW
+  'consent.readNotice': 'Đọc thông báo quyền riêng tư', // REVIEW
+
+  'privacy.title': 'Thông báo quyền riêng tư', // REVIEW
+  'privacy.draft': 'Bản nháp — đang chờ duyệt pháp lý', // REVIEW
 };
