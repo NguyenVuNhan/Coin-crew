@@ -100,3 +100,17 @@ export interface ExpenseInput {
   mode: SplitMode;
   entries: SplitEntry[];
 }
+
+export type BankInput = BankFields & { consent: true };
+export interface PayInfo {
+  to: { id: string; name: string };
+  /** What the actor currently owes `to` (0 when looking at your own details). */
+  amount: number;
+  bankState: 'ok' | 'none' | 'pending';
+  bank: { bin: string; bankName: string; accountNumber: string; accountNumberMasked: string; holderName: string } | null;
+  /** Transfer note for this payer → receiver pair; '' when looking at your own details. */
+  refCode: string;
+  /** VietQR string, only when bankState is 'ok' and someone else is paying. */
+  payload: string | null;
+  inFlight: PaymentView[];
+}

@@ -7,6 +7,7 @@ import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
 import { participantRoutes } from './participants/routes';
 import { expenseRoutes } from './expenses/routes';
+import { bankRoutes } from './bank/routes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -22,6 +23,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', tripRoutes());
   app.route('/api', participantRoutes());
   app.route('/api', expenseRoutes());
+  app.route('/api', bankRoutes());
 
   return app;
 }
