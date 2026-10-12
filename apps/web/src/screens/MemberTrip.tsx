@@ -40,6 +40,7 @@ function Hero({ view }: { view: TripView }) {
   const now = view.myBalance?.now ?? 0;
   const before = view.myBalance?.beforePayments ?? 0;
   const total = formatVnd(view.trip.total);
+  const myPerson = view.people.find((p) => p.id === view.me.participantId);
   return (
     <div className="fsl-member__hero">
       {now > 0 ? (
@@ -58,6 +59,12 @@ function Hero({ view }: { view: TripView }) {
       <p className="fsl-member__hero-sub">
         {before !== 0 ? t('member.ofTotal', { amount: formatVnd(Math.abs(before)), total }) : t('member.tripTotal', { total })}
       </p>
+      {now > 0 && myPerson && myPerson.bank === 'none' && (
+        <div className="fsl-notice fsl-notice--accent" style={{ marginTop: 'var(--space-3)' }}>
+          <span>{t('bankForm.addPrompt')} </span>
+          <Link to="/me/bank">{t('bankForm.title')}</Link>
+        </div>
+      )}
     </div>
   );
 }

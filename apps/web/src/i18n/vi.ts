@@ -265,4 +265,33 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.membership_requested': 'đã yêu cầu trở thành thành viên', // REVIEW
   'activity.action.membership_approved': 'đã duyệt thành viên mới', // REVIEW
   'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW
+
+  'pay.title': 'Thanh toán cho {name}', // REVIEW
+  'pay.bank': 'Ngân hàng', // REVIEW
+  'pay.account': 'Số tài khoản', // REVIEW
+  'pay.name': 'Tên chủ tài khoản', // REVIEW
+  'pay.amount': 'Số tiền', // REVIEW
+  'pay.note': 'Nội dung chuyển khoản', // REVIEW
+  'pay.copyAccount': 'Sao chép số tài khoản', // REVIEW
+  'pay.copyNote': 'Sao chép nội dung', // REVIEW
+  'pay.copied': 'Đã sao chép', // REVIEW
+  'pay.scanHint': 'Quét bằng bất kỳ ứng dụng ngân hàng Việt Nam nào, hoặc lưu mã QR và chọn từ thư viện ảnh.', // REVIEW
+  'pay.qrAlt': 'Mã VietQR thanh toán cho {name} {amount}', // REVIEW
+  'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
+  'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
+  'pay.paid': 'Đã thanh toán ✓', // REVIEW
+  'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
+  'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
+  'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
+  'pay.remindThem': 'Nhắc {name}', // REVIEW
+  'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
+
+  'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
+  'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW
+  'bankForm.memberNote': 'Đã lưu vào hồ sơ của bạn và được dùng trong tất cả chuyến đi.', // REVIEW
+  'bankForm.save': 'Lưu thông tin ngân hàng', // REVIEW
+  'bankForm.saved': 'Đã lưu', // REVIEW
+  'bankForm.pending': 'Đang chờ một thành viên duyệt thông tin ngân hàng của bạn.', // REVIEW
+  'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.', // REVIEW
 };
+

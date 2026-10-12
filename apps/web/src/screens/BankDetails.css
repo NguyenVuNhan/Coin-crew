@@ -1,0 +1,98 @@
+.fsl-bank-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.fsl-bank-details__note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-bank-details__consent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text);
+  user-select: none;
+}
+
+.fsl-bank-details__checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fsl-bank-details__checkbox:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-bank-details__consent-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fsl-bank-details__privacy-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: var(--weight-medium);
+}
+
+.fsl-bank-details__privacy-link:hover {
+  color: var(--color-accent-strong);
+}
+
+.fsl-bank-details__privacy-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.fsl-bank-details__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.fsl-bank-details__loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fsl-bank-details__notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.fsl-bank-details__notice--accent {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-soft-text);
+}
+
+.fsl-bank-details__success {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  text-align: center;
+}

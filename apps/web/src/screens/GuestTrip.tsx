@@ -21,6 +21,7 @@ export function GuestTrip({ view }: { view: TripView }) {
 
   const myId = view.me.participantId;
   const myName = myId ? nameOf(view, myId) : '?';
+  const myPerson = view.people.find((p) => p.id === myId);
   const myBalance = view.myBalance;
 
   useEffect(() => {
@@ -144,6 +145,21 @@ export function GuestTrip({ view }: { view: TripView }) {
                 })}
               </div>
             ))}
+          </div>
+        )}
+
+        {myBalance && myBalance.now > 0 && myPerson && myPerson.bank !== 'approved' && (
+          <div className="fsl-notice fsl-notice--accent">
+            {myPerson.bank === 'pending' ? (
+              t('bankForm.pending')
+            ) : (
+              <>
+                <span>{t('bankForm.addPrompt')} </span>
+                <Link to={`/t/${view.trip.id}/bank`}>
+                  {t('bankForm.title')}
+                </Link>
+              </>
+            )}
           </div>
         )}
 
