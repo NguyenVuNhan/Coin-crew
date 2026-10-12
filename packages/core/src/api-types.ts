@@ -39,7 +39,7 @@ export type ActivityAction =
   | 'membership_approved'
   | 'membership_rejected';
 
-import type { SplitMode } from './split';
+import type { SplitEntry, SplitMode } from './split';
 import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
 import type { Transfer } from './transfers';
 import type { ActorKind } from './permissions';
@@ -88,4 +88,15 @@ export interface ActivityItem {
 export interface PickerView {
   people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
   myPick: string | null;
+}
+
+export interface ExpenseInput {
+  /** 1–80 characters. */
+  description: string;
+  amount: number;
+  /** YYYY-MM-DD */
+  spentOn: string;
+  payerId: string;
+  mode: SplitMode;
+  entries: SplitEntry[];
 }
