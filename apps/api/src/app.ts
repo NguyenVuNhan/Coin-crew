@@ -5,6 +5,7 @@ import { authRoutes } from './auth/routes';
 import { deviceMiddleware } from './access/device';
 import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
+import { participantRoutes } from './participants/routes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -18,6 +19,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', authRoutes());
   app.route('/api', accessRoutes());
   app.route('/api', tripRoutes());
+  app.route('/api', participantRoutes());
 
   return app;
 }

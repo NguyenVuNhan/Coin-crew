@@ -84,3 +84,8 @@ export interface ActivityItem {
   id: string; action: ActivityAction; actorName: string | null; deviceShort: string | null;
   details: Record<string, unknown>; createdAt: string;
 }
+
+export interface PickerView {
+  people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
+  myPick: string | null;
+}

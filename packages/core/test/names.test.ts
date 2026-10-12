@@ -16,6 +16,9 @@ describe('findSimilarNames', () => {
   it('full name vs short name', () => expect(findSimilarNames('Chi Nguyễn', [{ id: '1', name: 'Chi' }])[0]?.reason).toBe('part'));
   it('short name vs full name', () => expect(findSimilarNames('Minh', [{ id: '1', name: 'Minh Anh' }])[0]?.reason).toBe('part'));
   it('short different names do not match', () => expect(findSimilarNames('An', [{ id: '1', name: 'Anh' }])).toEqual([]));
+  it('a one-letter swap in a short name is a different name (Binh vs Minh)', () =>
+    expect(findSimilarNames('Binh', [{ id: '1', name: 'Minh' }, { id: '2', name: 'Linh' }])).toEqual([]));
+  it('a one-letter swap in a longer name is a typo', () => expect(findSimilarNames('Phuang', [{ id: '1', name: 'Phương' }])[0]?.reason).toBe('typo'));
   it('keeps input order within a reason', () =>
     expect(findSimilarNames('Dung', [{ id: '1', name: 'Dũng' }, { id: '2', name: 'Dung' }]).map((m) => m.id)).toEqual(['1', '2']));
   it('orders same before typo before part', () =>

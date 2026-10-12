@@ -41,8 +41,11 @@ export function findSimilarNames(input: string, existing: NameCandidate[]): (Nam
   const matches: (NameCandidate & { reason: MatchReason })[] = [];
   for (const c of existing) {
     const m = normalizeName(c.name);
+    // Short Vietnamese names that differ by one swapped letter are different people (Minh, Binh, Linh),
+    // so a swap only counts as a typo from 5 letters; an added or dropped letter counts from 3.
+    const typoLength = n.length === m.length ? 5 : 3;
     const reason: MatchReason | null =
-      m === n ? 'same' : n.length >= 3 && m.length >= 3 && isOneEditApart(n, m) ? 'typo' : isPart(n, m) ? 'part' : null;
+      m === n ? 'same' : Math.min(n.length, m.length) >= typoLength && isOneEditApart(n, m) ? 'typo' : isPart(n, m) ? 'part' : null;
     if (reason) matches.push({ id: c.id, name: c.name, reason });
   }
   return matches.sort((x, y) => RANK[x.reason] - RANK[y.reason]);
