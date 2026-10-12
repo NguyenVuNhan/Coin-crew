@@ -6,7 +6,7 @@ import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { GuestTrip } from './GuestTrip';
 import { ViewOnlyTrip } from './ViewOnlyTrip';
-import { Placeholder } from './Placeholder';
+import { MemberTrip } from './MemberTrip';
 
 export function TripRoute() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -61,5 +61,5 @@ export function TripRoute() {
     return <ViewOnlyTrip view={view} />;
   }
 
-  return <Placeholder />;
+  return <MemberTrip view={view} />;
 }
