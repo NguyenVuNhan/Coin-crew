@@ -1,0 +1,376 @@
+{
+  "android": [
+    {
+      "appId": "icb",
+      "appName": "VietinBank iPay",
+      "autofill": true
+    },
+    {
+      "appId": "bidv",
+      "appName": "BIDV SmartBanking",
+      "autofill": true
+    },
+    {
+      "appId": "ocb",
+      "appName": "OCB OMNI - Digital Bank",
+      "autofill": true
+    },
+    {
+      "appId": "acb",
+      "appName": "ACB One",
+      "autofill": true
+    },
+    {
+      "appId": "mb",
+      "appName": "MB Bank",
+      "autofill": true
+    },
+    {
+      "appId": "vcb",
+      "appName": "Vietcombank",
+      "autofill": false
+    },
+    {
+      "appId": "tcb",
+      "appName": "Techcombank Mobile",
+      "autofill": false
+    },
+    {
+      "appId": "vpb",
+      "appName": "VPBank NEO",
+      "autofill": false
+    },
+    {
+      "appId": "vib-2",
+      "appName": "MyVIB 2.0",
+      "autofill": false
+    },
+    {
+      "appId": "shb",
+      "appName": "SHB SAHA",
+      "autofill": false
+    },
+    {
+      "appId": "lpb",
+      "appName": "Liên Việt 24h",
+      "autofill": false
+    },
+    {
+      "appId": "seab",
+      "appName": "SeAMobile",
+      "autofill": false
+    },
+    {
+      "appId": "scb",
+      "appName": "SCB Mobile Banking",
+      "autofill": false
+    },
+    {
+      "appId": "vietbank",
+      "appName": "Vietbank Digital",
+      "autofill": false
+    },
+    {
+      "appId": "cake",
+      "appName": "CAKE - Digital Banking",
+      "autofill": false
+    },
+    {
+      "appId": "hdb",
+      "appName": "HDBank",
+      "autofill": false
+    },
+    {
+      "appId": "vba",
+      "appName": "Agribank E-Mobile Banking",
+      "autofill": false
+    },
+    {
+      "appId": "tpb",
+      "appName": "TPBank Mobile",
+      "autofill": false
+    },
+    {
+      "appId": "timo",
+      "appName": "Timo Digital Bank",
+      "autofill": false
+    },
+    {
+      "appId": "vib",
+      "appName": "MyVIB",
+      "autofill": false
+    },
+    {
+      "appId": "shbvn",
+      "appName": "Shinhan Bank Vietnam SOL",
+      "autofill": false
+    },
+    {
+      "appId": "nab",
+      "appName": "Nam A Bank - Open Banking",
+      "autofill": false
+    },
+    {
+      "appId": "abb",
+      "appName": "ABBank",
+      "autofill": false
+    },
+    {
+      "appId": "eib",
+      "appName": "Eximbank EDigi",
+      "autofill": false
+    },
+    {
+      "appId": "coopbank",
+      "appName": "Co-opBank Mobile Banking",
+      "autofill": false
+    },
+    {
+      "appId": "pvcb",
+      "appName": "PVConnect",
+      "autofill": false
+    },
+    {
+      "appId": "wvn",
+      "appName": "Woori WON Vietnam",
+      "autofill": false
+    },
+    {
+      "appId": "klb",
+      "appName": "KienlongBank Plus",
+      "autofill": false
+    },
+    {
+      "appId": "bvb",
+      "appName": "BAOVIET Smart",
+      "autofill": false
+    },
+    {
+      "appId": "vab",
+      "appName": "Vietbank Digital Plus",
+      "autofill": false
+    },
+    {
+      "appId": "tpb-pay",
+      "appName": "TPBank QuickPay",
+      "autofill": false
+    },
+    {
+      "appId": "ncb",
+      "appName": "NCB iziMobile",
+      "autofill": false
+    },
+    {
+      "appId": "acb-biz",
+      "appName": "ACB One Biz",
+      "autofill": false
+    },
+    {
+      "appId": "oceanbank",
+      "appName": "OceanBank",
+      "autofill": false
+    },
+    {
+      "appId": "pbvn",
+      "appName": "PB engage VN",
+      "autofill": false
+    },
+    {
+      "appId": "sgicb",
+      "appName": "SAIGONBANK Smart Banking",
+      "autofill": false
+    },
+    {
+      "appId": "cimb",
+      "appName": "OCTO by CIMB",
+      "autofill": false
+    }
+  ],
+  "ios": [
+    {
+      "appId": "icb",
+      "appName": "‎VietinBank iPay",
+      "autofill": true
+    },
+    {
+      "appId": "bidv",
+      "appName": "‎SmartBanking",
+      "autofill": true
+    },
+    {
+      "appId": "ocb",
+      "appName": "‎OCB OMNI",
+      "autofill": true
+    },
+    {
+      "appId": "acb",
+      "appName": "‎ACB One",
+      "autofill": true
+    },
+    {
+      "appId": "mb",
+      "appName": "‎MB Bank",
+      "autofill": true
+    },
+    {
+      "appId": "vcb",
+      "appName": "‎Vietcombank",
+      "autofill": false
+    },
+    {
+      "appId": "tcb",
+      "appName": "‎Techcombank Mobile",
+      "autofill": false
+    },
+    {
+      "appId": "vpb",
+      "appName": "‎VPBank NEO",
+      "autofill": false
+    },
+    {
+      "appId": "vib-2",
+      "appName": "‎MyVIB 2.0",
+      "autofill": false
+    },
+    {
+      "appId": "shb",
+      "appName": "‎SHB SAHA",
+      "autofill": false
+    },
+    {
+      "appId": "lpb",
+      "appName": "‎Liên Việt 24h",
+      "autofill": false
+    },
+    {
+      "appId": "seab",
+      "appName": "‎SeAMobile",
+      "autofill": false
+    },
+    {
+      "appId": "scb",
+      "appName": "‎SCB Mobile Banking",
+      "autofill": false
+    },
+    {
+      "appId": "vietbank",
+      "appName": "‎Vietbank Digital",
+      "autofill": false
+    },
+    {
+      "appId": "cake",
+      "appName": "‎CAKE - Digital Bankin‪g",
+      "autofill": false
+    },
+    {
+      "appId": "hdb",
+      "appName": "‎HDBank",
+      "autofill": false
+    },
+    {
+      "appId": "vba",
+      "appName": "‎Agribank E-Mobile Banking",
+      "autofill": false
+    },
+    {
+      "appId": "tpb",
+      "appName": "‎TPBank Mobile",
+      "autofill": false
+    },
+    {
+      "appId": "timo",
+      "appName": "‎Timo Digital Bank",
+      "autofill": false
+    },
+    {
+      "appId": "vib",
+      "appName": "‎MyVIB",
+      "autofill": false
+    },
+    {
+      "appId": "shbvn",
+      "appName": "‎Shinhan Bank Vietnam SOL",
+      "autofill": false
+    },
+    {
+      "appId": "abb",
+      "appName": "ABBank",
+      "autofill": false
+    },
+    {
+      "appId": "eib",
+      "appName": "‎Eximbank EDigi",
+      "autofill": false
+    },
+    {
+      "appId": "pvcb",
+      "appName": "PVConnect",
+      "autofill": false
+    },
+    {
+      "appId": "vab",
+      "appName": "Vietbank Digital Plus",
+      "autofill": false
+    },
+    {
+      "appId": "coopbank",
+      "appName": "‎Co-opBank Mobile Banking",
+      "autofill": false
+    },
+    {
+      "appId": "pbvn",
+      "appName": "‎PB engage VN",
+      "autofill": false
+    },
+    {
+      "appId": "klb",
+      "appName": "‎KienlongBank Plus",
+      "autofill": false
+    },
+    {
+      "appId": "acb-biz",
+      "appName": "‎ACB One Biz",
+      "autofill": false
+    },
+    {
+      "appId": "bvb",
+      "appName": "‎BAOVIET Smart",
+      "autofill": false
+    },
+    {
+      "appId": "sgicb",
+      "appName": "‎SAIGONBANK Smart Banking",
+      "autofill": false
+    },
+    {
+      "appId": "oceanbank",
+      "appName": "‎OceanBank",
+      "autofill": false
+    },
+    {
+      "appId": "ncb",
+      "appName": "‎NCB iziMobile",
+      "autofill": false
+    },
+    {
+      "appId": "cimb",
+      "appName": "‎OCTO by CIMB Vietnam",
+      "autofill": false
+    },
+    {
+      "appId": "tpb-pay",
+      "appName": "‎TPBank QuickPay",
+      "autofill": false
+    },
+    {
+      "appId": "nab",
+      "appName": "‎NAM A MOBILE BANKING",
+      "autofill": false
+    },
+    {
+      "appId": "wvn",
+      "appName": "‎Woori WON Vietnam",
+      "autofill": false
+    }
+  ]
+}
