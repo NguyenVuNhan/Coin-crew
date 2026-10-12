@@ -7,6 +7,7 @@ import { Privacy } from './screens/Privacy';
 import { Join } from './screens/Join';
 import { TripRoute } from './screens/TripRoute';
 import { WhoAreYou } from './screens/WhoAreYou';
+import { ExpenseForm } from './screens/ExpenseForm';
 
 export function App() {
   return (
@@ -19,8 +20,8 @@ export function App() {
       <Route path="/j/:token" element={<Join />} />
       <Route path="/t/:tripId" element={<TripRoute />} />
       <Route path="/t/:tripId/who" element={<WhoAreYou />} />
-      <Route path="/t/:tripId/expenses/new" element={<Placeholder />} />
-      <Route path="/t/:tripId/expenses/:expenseId/edit" element={<Placeholder />} />
+      <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+      <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
       <Route path="/t/:tripId/pay/:toId" element={<Placeholder />} />
       <Route path="/t/:tripId/bank" element={<Placeholder />} />
       <Route path="/t/:tripId/people" element={<Placeholder />} />

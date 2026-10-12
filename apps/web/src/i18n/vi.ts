@@ -135,4 +135,35 @@ export const vi: Record<MessageKey, string> = {
   'status.rejected': 'Bị từ chối', // REVIEW
   'status.disabled': 'Đã vô hiệu hóa', // REVIEW
   'expense.rejectedBecause': 'Bị từ chối: {reason}', // REVIEW
+
+  'expenseForm.titleNew': 'Thêm khoản chi', // REVIEW
+  'expenseForm.titleEdit': 'Chỉnh sửa khoản chi', // REVIEW
+  'expenseForm.whatFor': 'Chi tiêu cho', // REVIEW
+  'expenseForm.whatForPlaceholder': 'Bánh tráng nướng, chợ đêm', // REVIEW
+  'expenseForm.amount': 'Số tiền', // REVIEW
+  'expenseForm.amountHint': 'Bạn có thể nhập 180.000, 50k hoặc 1,5tr.', // REVIEW
+  'expenseForm.amountInvalid': 'Nhập số tiền như 180.000, 50k hoặc 1,5tr.', // REVIEW
+  'expenseForm.date': 'Ngày', // REVIEW
+  'expenseForm.paidBy': 'Người trả', // REVIEW
+  'expenseForm.me': '{name} (tôi)', // REVIEW
+  'expenseForm.split': 'Chia tiền', // REVIEW
+  'expenseForm.include': 'Bao gồm {name}', // REVIEW
+  'expenseForm.amountFor': 'Số tiền của {name}', // REVIEW
+  'expenseForm.percentFor': 'Phần trăm của {name}', // REVIEW
+  'expenseForm.sharesFor': 'Số phần của {name}', // REVIEW
+  'expenseForm.adjustFor': 'Khoản điều chỉnh của {name}', // REVIEW
+  'expenseForm.add': 'Thêm khoản chi', // REVIEW
+  'expenseForm.save': 'Lưu thay đổi', // REVIEW
+  'expenseForm.guestNote': 'Một thành viên trong nhóm sẽ duyệt trước khi tính.', // REVIEW
+  'split.tab.equal': 'Chia đều', // REVIEW
+  'split.tab.amounts': 'Số tiền', // REVIEW
+  'split.tab.percent': '%', // REVIEW
+  'split.tab.shares': 'Số phần', // REVIEW
+  'split.tab.adjust': '± Điều chỉnh', // REVIEW
+  'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.', // REVIEW
+  'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.', // REVIEW
+  'splitError.AMOUNTS_DONT_ADD_UP': 'Tổng số tiền không khớp với tổng chi phí.', // REVIEW
+  'splitError.PERCENT_NOT_100': 'Tổng phần trăm phải bằng 100%.', // REVIEW
+  'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần chia phải lớn hơn 0.', // REVIEW
+  'splitError.NEGATIVE_SHARE': 'Khoản điều chỉnh lớn hơn tổng số tiền.', // REVIEW
 };
