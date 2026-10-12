@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { formatVnd } from '@fsl/core';
 import './Amount.css';
 
@@ -6,6 +7,7 @@ export interface AmountProps {
   tone?: 'auto' | 'neutral' | 'success' | 'danger';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  style?: CSSProperties;
 }
 
 export function Amount({
@@ -13,6 +15,7 @@ export function Amount({
   tone = 'neutral',
   size = 'md',
   className = '',
+  style,
 }: AmountProps) {
   let resolvedTone = tone;
   if (tone === 'auto') {
@@ -28,6 +31,7 @@ export function Amount({
   return (
     <span
       className={`fsl-amount fsl-amount--${resolvedTone} fsl-amount--${size} ${className}`.trim()}
+      style={style}
     >
       {formatVnd(value)}
     </span>

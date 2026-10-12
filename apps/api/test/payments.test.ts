@@ -87,6 +87,26 @@ describe('member pays a guest, guest pays a guest', () => {
   });
 });
 
+describe('keeping a payment flagged as not arrived', () => {
+  it('a member clears the flag and the approval goes away', async () => {
+    const { body } = await record(await minh(), PID.M, PID.A, 100000);
+    await env.DB.prepare("UPDATE payments SET not_arrived_at = '2026-10-12T10:00:00.000Z' WHERE id = ?").bind(body!.paymentId).run();
+    await env.DB.prepare('UPDATE trips SET version = version + 1 WHERE id = ?').bind(T.tripId).run();
+    const headers = await minh();
+    expect((await view(headers)).approvals).toContainEqual({ kind: 'not_arrived', paymentId: body!.paymentId });
+    expect((await send(`/payments/${body!.paymentId}/keep`, headers)).status).toBe(204);
+    const v = await view(headers);
+    expect(v.payments.find((p) => p.id === body!.paymentId)).toMatchObject({ status: 'confirmed', notArrived: false });
+    expect(v.approvals.filter((a) => a.kind === 'not_arrived')).toHaveLength(0);
+    expect((await send(`/payments/${body!.paymentId}/keep`, headers)).status).toBe(409);
+  });
+
+  it('guests cannot keep', async () => {
+    const { body } = await record(await minh(), PID.M, PID.A, 100000);
+    expect((await send(`/payments/${body!.paymentId}/keep`, await guestHeaders(PID.A))).status).toBe(403);
+  });
+});
+
 describe('who may record a payment', () => {
   it('not a third party, not a pending name, not a viewer', async () => {
     expect((await record(await guestHeaders(PID.B), PID.A, PID.M, 1000)).res.status).toBe(403);

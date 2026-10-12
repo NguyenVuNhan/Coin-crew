@@ -46,7 +46,12 @@ export function ExpenseRow({
   const content = (
     <>
       <div className="fsl-expense-row__info">
-        <div className="fsl-expense-row__desc">{expense.description}</div>
+        <div
+          className="fsl-expense-row__desc"
+          style={isDisabled ? { textDecoration: 'line-through' } : undefined}
+        >
+          {expense.description}
+        </div>
         <div className="fsl-expense-row__sub">{subline}</div>
         {isRejected && expense.rejectReason && (
           <div className="fsl-expense-row__extra fsl-expense-row__extra--danger">
@@ -63,6 +68,7 @@ export function ExpenseRow({
       <div className="fsl-expense-row__right">
         <Amount
           value={expense.amount}
+          style={isDisabled ? { textDecoration: 'line-through' } : undefined}
           className={isDisabled ? 'fsl-expense-row__amount--disabled' : ''}
         />
         {isPending && (

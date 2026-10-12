@@ -166,4 +166,103 @@ export const vi: Record<MessageKey, string> = {
   'splitError.PERCENT_NOT_100': 'Tổng phần trăm phải bằng 100%.', // REVIEW
   'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần chia phải lớn hơn 0.', // REVIEW
   'splitError.NEGATIVE_SHARE': 'Khoản điều chỉnh lớn hơn tổng số tiền.', // REVIEW
+
+  'member.stillOwed': 'Bạn vẫn được nhận', // REVIEW
+  'member.youOwe': 'Bạn cần trả', // REVIEW
+  'member.settled': 'Bạn đã thanh toán hết', // REVIEW
+  'member.ofTotal': 'trên {amount} · tổng chuyến đi {total}', // REVIEW
+  'member.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
+  'member.settings': 'Cài đặt chuyến đi', // REVIEW
+
+  'approvals.title': 'Cần duyệt', // REVIEW
+  'approvals.fromGuest': 'từ khách', // REVIEW
+  'approvals.expense': '{name} đã thêm {description}', // REVIEW
+  'approvals.approve': 'Duyệt', // REVIEW
+  'approvals.edit': 'Chỉnh sửa', // REVIEW
+  'approvals.reject': 'Từ chối', // REVIEW
+  'approvals.rejectReason': 'Lý do từ chối?', // REVIEW
+  'approvals.name': 'Người mới: {name}', // REVIEW
+  'approvals.looksLike': 'Có vẻ giống {name}, người đã có trong nhóm', // REVIEW
+  'approvals.sameAs': 'Là {name}', // REVIEW
+  'approvals.newPerson': 'Người mới', // REVIEW
+  'approvals.bank': '{name} đã thêm thông tin ngân hàng', // REVIEW
+  'approvals.confirm': 'Xác nhận', // REVIEW
+  'approvals.didntArrive': 'Chưa nhận được', // REVIEW
+  'approvals.amountReceived': 'Số tiền nhận được', // REVIEW
+  'approvals.notArrived': '{name} báo chưa nhận được {amount} từ {payer}', // REVIEW
+  'approvals.disable': 'Vô hiệu hóa', // REVIEW
+  'approvals.keep': 'Giữ lại', // REVIEW
+  'approvals.membership': '{user} ({email}) muốn tham gia với tên {name}', // REVIEW
+  'approvals.approveNameFirst': 'Duyệt {name} trước', // REVIEW
+
+  'whoPays.pay': 'Thanh toán', // REVIEW
+  'whoPays.remind': 'Nhắc', // REVIEW
+  'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
+  'whoPays.toConfirm': 'Xác nhận', // REVIEW
+  'whoPays.paid': 'Đã trả ✓', // REVIEW
+  'whoPays.waiting': 'Đang chờ', // REVIEW
+  'remind.text': 'Chào {name}! Bạn còn {amount} cần trả {creditor} cho chuyến "{trip}". Xem chi tiết và chuyển khoản bằng VietQR: {link}', // REVIEW
+
+  'expenses.disable': 'Vô hiệu hóa', // REVIEW
+  'expenses.enable': 'Kích hoạt lại', // REVIEW
+  'expenses.actions': 'Thao tác cho {description}', // REVIEW
+
+  'share.title': 'Chia sẻ', // REVIEW
+  'share.groupLink': 'Liên kết nhóm', // REVIEW
+  'share.groupHint': 'Gửi vào nhóm chat của bạn. Bạn bè chọn tên của mình — không cần tài khoản.', // REVIEW
+  'share.viewLink': 'Liên kết chỉ xem', // REVIEW
+  'share.viewHint': 'Những người có liên kết này có thể xem nhưng không thể thay đổi.', // REVIEW
+  'share.copy': 'Sao chép', // REVIEW
+  'share.copied': 'Đã sao chép', // REVIEW
+  'share.regenerate': 'Tạo liên kết mới', // REVIEW
+  'share.regenerateConfirm': 'Liên kết cũ sẽ ngừng hoạt động. Tạo liên kết mới?', // REVIEW
+
+  'settings.title': 'Cài đặt chuyến đi', // REVIEW
+  'settings.people': 'Thành viên', // REVIEW
+  'settings.activity': 'Hoạt động', // REVIEW
+  'settings.archive': 'Lưu trữ chuyến đi', // REVIEW
+  'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này sau khi lưu trữ. Lưu trữ?', // REVIEW
+  'settings.archived': 'Chuyến đi này đã được lưu trữ. Bạn vẫn có thể xem.', // REVIEW
+
+  'people.title': 'Thành viên', // REVIEW
+  'people.organiser': 'Trưởng nhóm', // REVIEW
+  'people.member': 'Thành viên', // REVIEW
+  'people.guest': 'Khách', // REVIEW
+  'people.merge': 'Hợp nhất', // REVIEW
+  'people.mergeInto': 'Hợp nhất {name} vào…', // REVIEW
+  'people.mergeConfirm': 'Chuyển toàn bộ khoản chi và thanh toán từ {from} sang {into}?', // REVIEW
+  'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
+  'people.remove': 'Xóa', // REVIEW
+  'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
+
+  'activity.title': 'Hoạt động', // REVIEW
+  'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
+  'activity.someone': 'Ai đó', // REVIEW
+  'activity.line': '{actor} {action}', // REVIEW
+  'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
+  'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
+  'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
+  'activity.action.expense_deleted': 'đã xóa khoản chi', // REVIEW
+  'activity.action.expense_approved': 'đã duyệt khoản chi', // REVIEW
+  'activity.action.expense_rejected': 'đã từ chối khoản chi', // REVIEW
+  'activity.action.expense_disabled': 'đã vô hiệu hóa khoản chi', // REVIEW
+  'activity.action.expense_enabled': 'đã kích hoạt lại khoản chi', // REVIEW
+  'activity.action.name_added': 'đã thêm tên', // REVIEW
+  'activity.action.name_approved': 'đã duyệt tên mới', // REVIEW
+  'activity.action.name_merged': 'đã hợp nhất hai tên', // REVIEW
+  'activity.action.person_removed': 'đã xóa một người', // REVIEW
+  'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng', // REVIEW
+  'activity.action.bank_approved': 'đã duyệt thông tin ngân hàng', // REVIEW
+  'activity.action.bank_rejected': 'đã từ chối thông tin ngân hàng', // REVIEW
+  'activity.action.payment_recorded': 'đã ghi nhận thanh toán', // REVIEW
+  'activity.action.payment_confirmed': 'đã xác nhận thanh toán', // REVIEW
+  'activity.action.payment_not_arrived': 'báo chưa nhận được tiền', // REVIEW
+  'activity.action.payment_disabled': 'đã vô hiệu hóa thanh toán', // REVIEW
+  'activity.action.payment_enabled': 'đã kích hoạt lại thanh toán', // REVIEW
+  'activity.action.links_regenerated': 'đã tạo lại liên kết', // REVIEW
+  'activity.action.trip_archived': 'đã lưu trữ chuyến đi', // REVIEW
+  'activity.action.fewest_changed': 'đã thay đổi cài đặt ít lần chuyển khoản nhất', // REVIEW
+  'activity.action.membership_requested': 'đã yêu cầu trở thành thành viên', // REVIEW
+  'activity.action.membership_approved': 'đã duyệt thành viên mới', // REVIEW
+  'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW
 };

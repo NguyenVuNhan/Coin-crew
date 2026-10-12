@@ -8,6 +8,9 @@ import { Join } from './screens/Join';
 import { TripRoute } from './screens/TripRoute';
 import { WhoAreYou } from './screens/WhoAreYou';
 import { ExpenseForm } from './screens/ExpenseForm';
+import { Settings } from './screens/Settings';
+import { People } from './screens/People';
+import { Activity } from './screens/Activity';
 
 export function App() {
   return (
@@ -24,9 +27,9 @@ export function App() {
       <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
       <Route path="/t/:tripId/pay/:toId" element={<Placeholder />} />
       <Route path="/t/:tripId/bank" element={<Placeholder />} />
-      <Route path="/t/:tripId/people" element={<Placeholder />} />
-      <Route path="/t/:tripId/activity" element={<Placeholder />} />
-      <Route path="/t/:tripId/settings" element={<Placeholder />} />
+      <Route path="/t/:tripId/people" element={<People />} />
+      <Route path="/t/:tripId/activity" element={<Activity />} />
+      <Route path="/t/:tripId/settings" element={<Settings />} />
     </Routes>
   );
 }

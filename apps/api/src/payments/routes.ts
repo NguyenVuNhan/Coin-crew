@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
   MAX_AMOUNT,
   canConfirmPayment,
@@ -408,6 +408,35 @@ export function paymentRoutes(): Hono<AppBindings> {
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: {},
+    });
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/payments/:pid/keep — a member decides a "didn't arrive" report is wrong and clears it.
+  app.post('/trips/:id/payments/:pid/keep', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'disable');
+
+    const db = getDb(c.env);
+    const r = await db
+      .update(payments)
+      .set({ notArrivedAt: null, updatedAt: nowIso() })
+      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId), eq(payments.status, 'confirmed'), isNotNull(payments.notArrivedAt)))
+      .run();
+    if (r.meta.changes === 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+
+    await commitTripWrite(db, tripId, [], {
+      action: 'payment_enabled',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { kept: true },
     });
 
     return c.body(null, 204);
