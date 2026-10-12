@@ -1,4 +1,5 @@
 import type { D1Migration } from '@cloudflare/vitest-plugin';
+import type { UserRow } from './auth/session';
 
 export type Env = {
   DB: D1Database;
@@ -15,6 +16,7 @@ export type Env = {
 
 export type Vars = {
   deviceHash: string;
+  user?: UserRow | null;
 };
 
 export type AppBindings = {
