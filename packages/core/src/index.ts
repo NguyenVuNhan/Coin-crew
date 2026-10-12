@@ -6,3 +6,4 @@ export * from './names';
 export * from './vietqr';
 export * from './refcode';
 export * from './banks';
+export * from './permissions';
