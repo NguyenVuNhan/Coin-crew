@@ -8,3 +8,7 @@ test-results/
 
 apps/api/public/*
 !apps/api/public/.gitkeep
+
+# Playwright
+/playwright-report/
+/test-results/

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "e2e:server": "node ../../e2e/reset-state.mjs && wrangler d1 migrations apply fsl --local --persist-to .wrangler/e2e && wrangler dev --local --port 8787 --persist-to .wrangler/e2e --var E2E_LOGIN:1 --var GOOGLE_CLIENT_ID:e2e --var GOOGLE_CLIENT_SECRET:e2e"
   },
   "dependencies": {
     "@fsl/core": "*",

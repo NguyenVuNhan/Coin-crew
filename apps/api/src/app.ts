@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppBindings } from './env';
 import { errorResponse } from './lib/errors';
 import { authRoutes } from './auth/routes';
+import { testLoginRoutes } from './auth/testLogin';
 import { deviceMiddleware } from './access/device';
 import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
@@ -20,6 +21,7 @@ export function createApp(): Hono<AppBindings> {
 
   app.get('/api/health', (c) => c.json({ ok: true }));
   app.route('/api', authRoutes());
+  app.route('/api', testLoginRoutes());
   app.route('/api', accessRoutes());
   app.route('/api', tripRoutes());
   app.route('/api', participantRoutes());
