@@ -1,0 +1,39 @@
+.fsl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-medium);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.fsl-pill--neutral {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.fsl-pill--accent {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-soft-text);
+}
+
+.fsl-pill--success {
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.fsl-pill--danger {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.fsl-pill--warning {
+  background-color: var(--color-warning-soft);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
+}

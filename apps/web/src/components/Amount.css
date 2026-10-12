@@ -1,0 +1,39 @@
+.fsl-amount {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  display: inline-block;
+}
+
+.fsl-amount--neutral {
+  color: var(--color-text);
+}
+
+.fsl-amount--success {
+  color: var(--color-success);
+}
+
+.fsl-amount--danger {
+  color: var(--color-danger);
+}
+
+.fsl-amount--sm {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.fsl-amount--md {
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+}
+
+.fsl-amount--lg {
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+}
+
+.fsl-amount--xl {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-2xl);
+  font-weight: var(--weight-bold);
+}
