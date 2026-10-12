@@ -5,3 +5,6 @@ dist/
 .dev.vars
 playwright-report/
 test-results/
+
+apps/api/public/*
+!apps/api/public/.gitkeep
