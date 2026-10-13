@@ -65,15 +65,23 @@ Builds the app, starts `wrangler dev` with a fresh local database and the test-o
 
 ## Deploy (Cloudflare free plan)
 
-```bash
-npx -w @fsl/api wrangler d1 create fsl
-```
+The app runs at https://finance-sheet-lover.5pmbmt.workers.dev. `apps/api/wrangler.jsonc` holds its D1 database ID and that address as `APP_ORIGIN`; local dev overrides `APP_ORIGIN` in `.dev.vars`.
 
-Put the printed `database_id` into `apps/api/wrangler.jsonc`, and set `vars.APP_ORIGIN` to your public URL. Then:
+Cloudflare Workers Builds deploys every push to `main`, with these settings on the Worker:
+
+- Root directory: the repo root
+- Build command: `npm run build -w @fsl/web`
+- Deploy command: `npx -w @fsl/api wrangler deploy`
+- Preview builds: off. A preview would use the live database, and Google sign-in always returns to the main address.
+- Cloudflare Access: off. Friends open group links without signing in.
+
+Builds don't touch the database. Apply new migrations from your machine, after `npx wrangler login`:
 
 ```bash
 npx -w @fsl/api wrangler d1 migrations apply fsl --remote
 ```
+
+Set the Google secrets once, in the dashboard (Settings → Variables and Secrets, type Secret) or with:
 
 ```bash
 npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_ID
@@ -82,6 +90,8 @@ npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_ID
 ```bash
 npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_SECRET
 ```
+
+To deploy by hand instead:
 
 ```bash
 npm run build -w @fsl/web && npx -w @fsl/api wrangler deploy

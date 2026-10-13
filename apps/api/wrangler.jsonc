@@ -8,8 +8,7 @@
     {
       "binding": "DB",
       "database_name": "fsl",
-      // Replace with the id printed by `npx wrangler d1 create fsl` before deploying (see README).
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "134fdc02-d3db-4af4-9228-f0ecbe9d965a",
       "migrations_dir": "migrations"
     }
   ],
@@ -21,5 +20,6 @@
     "run_worker_first": ["/api/*"]
   },
   "triggers": { "crons": ["0 * * * *"] },
-  "vars": { "APP_ORIGIN": "http://localhost:8787" }
+  // Production address. Local dev overrides it in apps/api/.dev.vars (see README).
+  "vars": { "APP_ORIGIN": "https://finance-sheet-lover.5pmbmt.workers.dev" }
 }
