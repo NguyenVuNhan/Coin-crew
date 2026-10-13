@@ -2,8 +2,8 @@
 
 Split trip expenses with friends and settle up with VietQR. Friends join from one link in the group chat, with no account. Members sign in with Google.
 
-- Design: [docs/superpowers/specs/2026-10-12-group-split-vietqr-design.md](docs/superpowers/specs/2026-10-12-group-split-vietqr-design.md)
-- Plan: [docs/superpowers/plans/2026-10-12-phase1-group-split-vietqr.md](docs/superpowers/plans/2026-10-12-phase1-group-split-vietqr.md)
+- Design, plan and project notes live in the owner's Obsidian vault: `30_Projects/Finance Sheet Lover - Trip Split & VietQR App/` (`2026-10-12-group-split-vietqr-design.md`, `2026-10-12-phase1-group-split-vietqr.md`, `2026-10-13-idea-discussion-next-steps.md`).
+- Layout mockups: [docs/superpowers/mockups/](docs/superpowers/mockups/)
 
 ## Layout
 
