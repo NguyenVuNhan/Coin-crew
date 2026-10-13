@@ -65,23 +65,31 @@ Builds the app, starts `wrangler dev` with a fresh local database and the test-o
 
 ## Deploy (Cloudflare free plan)
 
-The app runs at https://finance-sheet-lover.5pmbmt.workers.dev. `apps/api/wrangler.jsonc` holds its D1 database ID and that address as `APP_ORIGIN`; local dev overrides `APP_ORIGIN` in `.dev.vars`.
+The deployment's own values live in Cloudflare, not in the repo:
+
+| Name | Where | Value |
+|---|---|---|
+| `D1_DATABASE_ID` | Worker → Settings → Build → Variables and secrets | ID of the `fsl` D1 database |
+| `APP_ORIGIN` | Worker → Settings → Variables and Secrets (Text) | The app's public address, e.g. `https://finance-sheet-lover.<subdomain>.workers.dev` |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Worker → Settings → Variables and Secrets (Secret) | From the Google OAuth client |
+
+`apps/api/wrangler.jsonc` keeps a placeholder database ID for local dev and tests. `npm run deploy -w @fsl/api` writes `apps/api/wrangler.deploy.jsonc` (git-ignored) with the real ID from `D1_DATABASE_ID`, then deploys it. `keep_vars` stops a deploy from removing `APP_ORIGIN`.
 
 Cloudflare Workers Builds deploys every push to `main`, with these settings on the Worker:
 
 - Root directory: the repo root
 - Build command: `npm run build -w @fsl/web`
-- Deploy command: `npx -w @fsl/api wrangler deploy`
+- Deploy command: `npm run deploy -w @fsl/api`
 - Preview builds: off. A preview would use the live database, and Google sign-in always returns to the main address.
 - Cloudflare Access: off. Friends open group links without signing in.
 
-Builds don't touch the database. Apply new migrations from your machine, after `npx wrangler login`:
+Builds don't touch the database. Apply new migrations from your machine, after `npx wrangler login` and with `D1_DATABASE_ID` set in your shell:
 
 ```bash
-npx -w @fsl/api wrangler d1 migrations apply fsl --remote
+npm run db:migrate:remote -w @fsl/api
 ```
 
-Set the Google secrets once, in the dashboard (Settings → Variables and Secrets, type Secret) or with:
+Set the Google secrets once, in the dashboard or with:
 
 ```bash
 npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_ID
@@ -91,10 +99,10 @@ npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_ID
 npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_SECRET
 ```
 
-To deploy by hand instead:
+To deploy by hand instead, with `D1_DATABASE_ID` set:
 
 ```bash
-npm run build -w @fsl/web && npx -w @fsl/api wrangler deploy
+npm run build -w @fsl/web && npm run deploy -w @fsl/api
 ```
 
 Never set `E2E_LOGIN` outside local test runs; it enables a sign-in shortcut.
