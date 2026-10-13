@@ -8,7 +8,8 @@
     {
       "binding": "DB",
       "database_name": "fsl",
-      // Replace with the id printed by `npx wrangler d1 create fsl` before deploying (see README).
+      // Placeholder for local dev and tests. Deploys swap in the real ID from the D1_DATABASE_ID
+      // environment variable (scripts/write-deploy-config.mjs), so it stays out of the repo.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
@@ -21,5 +22,6 @@
     "run_worker_first": ["/api/*"]
   },
   "triggers": { "crons": ["0 * * * *"] },
-  "vars": { "APP_ORIGIN": "http://localhost:8787" }
+  // APP_ORIGIN is set in the Cloudflare dashboard (and in .dev.vars locally); deploys keep it.
+  "keep_vars": true
 }

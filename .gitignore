@@ -8,6 +8,7 @@ test-results/
 
 apps/api/public/*
 !apps/api/public/.gitkeep
+apps/api/wrangler.deploy.jsonc
 
 # Playwright
 /playwright-report/
