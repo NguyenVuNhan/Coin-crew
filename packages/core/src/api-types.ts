@@ -46,7 +46,18 @@ import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 
 export interface BankFields { bin: string; accountNumber: string; holderName: string }
-export interface CreateTripInput { name: string; myName: string; people: string[]; myBank?: BankFields }
+/** A person to add when creating a trip: a plain name, or someone with an account from the recent-people list. */
+export type CreateTripPerson = { name: string; userId?: string };
+/** Plain strings are still accepted so an older open client keeps working. */
+export interface CreateTripInput { name: string; myName: string; people: (string | CreateTripPerson)[]; myBank?: BankFields }
+/** Someone with an account who shared a trip with the caller (`GET /api/me/people`). */
+export interface RecentPerson {
+  userId: string;
+  /** Their name in the most recent shared trip. */
+  name: string;
+  /** Up to two shared trip names, newest first. */
+  trips: string[];
+}
 
 export interface PersonView { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved' }
 export interface ExpenseView {
