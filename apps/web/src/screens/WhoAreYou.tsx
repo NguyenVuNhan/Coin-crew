@@ -7,6 +7,7 @@ import { useT } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { formatAgo } from '../lib/time';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '../components/LanguageButton';
 import { Avatar } from '../components/Avatar';
 import { Pill } from '../components/Pill';
 import { Button } from '../components/Button';
@@ -146,7 +147,7 @@ export function WhoAreYou() {
 
   if (isLoading) {
     return (
-      <Screen title={t('who.title')}>
+      <Screen title={t('who.title')} right={<LanguageButton />}>
         <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
         <SkeletonList rows={4} />
       </Screen>
@@ -155,7 +156,7 @@ export function WhoAreYou() {
 
   if (error) {
     return (
-      <Screen title={t('who.title')}>
+      <Screen title={t('who.title')} right={<LanguageButton />}>
         <InlineError error={error} onRetry={() => refetch()} />
       </Screen>
     );
@@ -171,7 +172,7 @@ export function WhoAreYou() {
       : [];
 
   return (
-    <Screen title={t('who.title')}>
+    <Screen title={t('who.title')} right={<LanguageButton />}>
       <div className="fsl-who">
         <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
 

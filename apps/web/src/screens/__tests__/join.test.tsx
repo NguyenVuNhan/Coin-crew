@@ -122,7 +122,8 @@ describe('TripRoute', () => {
     renderAt(<TripRoute />, route);
     expect(await screen.findByText('View only')).toBeInTheDocument();
     expect(screen.getByText('Homestay Bloom · 2 nights')).toBeInTheDocument();
-    const buttons = screen.queryAllByRole('button').filter((b) => !/Tiếng Việt|English/.test(b.textContent ?? ''));
+    expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' })).toBeInTheDocument();
+    const buttons = screen.queryAllByRole('button').filter((b) => b.getAttribute('aria-label') !== 'Switch to Tiếng Việt');
     expect(buttons).toHaveLength(0);
     expect(screen.queryAllByRole('link')).toHaveLength(0);
   });

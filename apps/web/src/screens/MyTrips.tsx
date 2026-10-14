@@ -5,7 +5,6 @@ import type { TripListItem } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
-import { LangSwitch } from '../components/LangSwitch';
 import { ConsentSheet } from '../components/ConsentSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
@@ -47,7 +46,7 @@ export function MyTrips() {
   }, [meQuery.isSuccess, user, navigate]);
 
   return (
-    <Screen title={t('trips.title')} right={<LangSwitch />}>
+    <Screen title={t('trips.title')}>
       <ConsentSheet />
       <div className="fsl-my-trips">
         <div className="fsl-my-trips__header-action">

@@ -3,6 +3,7 @@ import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '../components/LanguageButton';
 import { Pill } from '../components/Pill';
 import { Avatar } from '../components/Avatar';
 import { Amount } from '../components/Amount';
@@ -14,7 +15,7 @@ export function ViewOnlyTrip({ view }: { view: TripView }) {
   const t = useT();
 
   return (
-    <Screen title={view.trip.name}>
+    <Screen title={view.trip.name} right={<LanguageButton />}>
       <div className="fsl-view-only">
         <div className="fsl-view-only__banner">
           <Pill tone="neutral">{t('trip.viewOnly')}</Pill>

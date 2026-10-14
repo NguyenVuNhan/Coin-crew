@@ -22,6 +22,14 @@ body {
   text-align: left;
 }
 
+/* Fields stay at --text-input (16px): smaller makes iOS Safari zoom the page when one is focused. */
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: var(--text-input);
+}
+
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);

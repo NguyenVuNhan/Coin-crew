@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
+import { LanguageButton } from '../components/LanguageButton';
 import './Landing.css';
 
 interface MeResponse {
@@ -41,7 +42,7 @@ export function Landing() {
   const signInUrl = `/api/auth/google/start?returnTo=${encodeURIComponent('/trips')}`;
 
   return (
-    <Screen title={APP_NAME}>
+    <Screen title={APP_NAME} right={<LanguageButton />}>
       <div className="fsl-landing">
         <p className="fsl-landing__tagline">{t('landing.tagline')}</p>
         <div className="fsl-landing__action">

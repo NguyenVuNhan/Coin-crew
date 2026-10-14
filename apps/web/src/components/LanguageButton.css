@@ -1,0 +1,30 @@
+.fsl-language-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-language-button:hover {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.fsl-language-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-language-button {
+    transition: none;
+  }
+}

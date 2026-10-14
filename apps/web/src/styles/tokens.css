@@ -48,6 +48,7 @@
   --text-lg: 18px;   --leading-lg: 24px;
   --text-xl: 24px;   --leading-xl: 30px;
   --text-2xl: 28px;  --leading-2xl: 34px;
+  --text-input: 16px; /* text fields, dropdowns, text areas: under 16px makes iOS zoom in on focus */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -58,8 +59,14 @@
 
   /* Phone-first: one column, centred on wider screens. */
   --content-max: 480px;
+  --content-wide: 1040px;   /* two-column screens, from 1024px */
+  --bottom-bar-h: 72px;
   --bp-sm: 640px;
   --bp-md: 768px;
   --bp-lg: 1024px;
   --bp-xl: 1280px;
+
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
 }

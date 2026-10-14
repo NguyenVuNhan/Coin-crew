@@ -16,6 +16,7 @@ export const en = {
 
   'lang.vi': 'Tiếng Việt',
   'lang.en': 'English',
+  'lang.switchTo': 'Switch to {lang}',
 
   'time.justNow': 'just now',
   'time.minutesAgo': '{n} min ago',

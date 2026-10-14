@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { nameOf, splitText } from '../lib/tripText';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '../components/LanguageButton';
 import { Amount } from '../components/Amount';
 import { EmptyState } from '../components/EmptyState';
 import { ExpenseRow } from '../components/ExpenseRow';
@@ -66,7 +67,7 @@ export function GuestTrip({ view }: { view: TripView }) {
   }, 0);
 
   return (
-    <Screen title={view.trip.name}>
+    <Screen title={view.trip.name} right={<LanguageButton />}>
       <div className="fsl-guest">
         <div className="fsl-guest__banner">
           <span>{t('guest.viewingAs', { name: myName })}</span>

@@ -16,6 +16,7 @@ export const vi: Record<MessageKey, string> = {
 
   'lang.vi': 'Tiếng Việt', // REVIEW
   'lang.en': 'English', // REVIEW
+  'lang.switchTo': 'Chuyển sang {lang}', // REVIEW
 
   'time.justNow': 'vừa xong', // REVIEW
   'time.minutesAgo': '{n} phút trước', // REVIEW
