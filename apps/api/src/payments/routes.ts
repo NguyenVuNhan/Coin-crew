@@ -123,6 +123,7 @@ export function paymentRoutes(): Hono<AppBindings> {
       fromId,
       toId,
       receiverIsMember: toIsMember,
+      payerIsMember: fromP.userId !== null,
     });
 
     if (status === 'forbidden') {

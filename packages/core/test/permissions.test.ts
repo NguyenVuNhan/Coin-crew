@@ -26,7 +26,9 @@ const rows: Row[] = [
 ];
 for (const action of ['edit_expense', 'delete_expense'] as const) {
   rows.push(
-    [`member ${action} of someone else, approved`, M, action, { expenseCreatedById: 'X', expenseStatus: 'approved' }, true],
+    [`member ${action} of someone else, approved`, M, action, { expenseCreatedById: 'X', expenseStatus: 'approved' }, false],
+    [`member ${action} own approved`, M, action, { expenseCreatedById: 'M', expenseStatus: 'approved' }, true],
+    [`member ${action} own pending`, M, action, { expenseCreatedById: 'M', expenseStatus: 'pending' }, true],
     [`guest ${action} own pending`, G, action, { expenseCreatedById: 'G', expenseStatus: 'pending' }, true],
     [`guest ${action} own approved`, G, action, { expenseCreatedById: 'G', expenseStatus: 'approved' }, false],
     [`guest ${action} of someone else, pending`, G, action, { expenseCreatedById: 'X', expenseStatus: 'pending' }, false],
@@ -77,16 +79,16 @@ describe('initialExpenseStatus', () => {
 });
 
 describe('statusForNewPayment', () => {
-  const s = (actorId: string, fromId: string, toId: string, receiverIsMember: boolean) =>
-    statusForNewPayment({ actorId, fromId, toId, receiverIsMember });
+  const s = (actorId: string, fromId: string, toId: string, receiverIsMember: boolean, payerIsMember = false) =>
+    statusForNewPayment({ actorId, fromId, toId, receiverIsMember, payerIsMember });
   it('guest → member, payer records', () => expect(s('C', 'C', 'M', true)).toBe('says_paid'));
   it('member marks received', () => expect(s('M', 'C', 'M', true)).toBe('confirmed'));
   it('member → guest, payer records', () => expect(s('M', 'M', 'C', false)).toBe('confirmed'));
   it('receiving guest marks received', () => expect(s('C', 'M', 'C', false)).toBe('confirmed'));
   it('guest → guest, payer records', () => expect(s('A', 'A', 'C', false)).toBe('confirmed'));
   it('guest → guest, receiver records', () => expect(s('C', 'A', 'C', false)).toBe('confirmed'));
-  it('member → member, payer records', () => expect(s('M', 'M', 'N', true)).toBe('says_paid'));
-  it('member → member, receiver records', () => expect(s('N', 'M', 'N', true)).toBe('confirmed'));
+  it('member → member, payer records: counts straight away', () => expect(s('M', 'M', 'N', true, true)).toBe('confirmed'));
+  it('member → member, receiver records', () => expect(s('N', 'M', 'N', true, true)).toBe('confirmed'));
   it('third party', () => expect(s('B', 'A', 'M', true)).toBe('forbidden'));
 });
 

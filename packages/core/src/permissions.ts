@@ -24,7 +24,8 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
       return true;
     case 'edit_expense':
     case 'delete_expense':
-      return isMember || (ctx.expenseCreatedById === me && ctx.expenseStatus === 'pending');
+      // Only the person who added an expense edits or deletes it: a member any time, a guest while it is pending.
+      return me !== null && ctx.expenseCreatedById === me && (isMember || ctx.expenseStatus === 'pending');
     case 'archive':
       return isMember && actor.isOrganiser;
     case 'set_own_bank':
@@ -42,10 +43,10 @@ export function initialExpenseStatus(actor: Actor): 'approved' | 'pending' {
   return actor.kind === 'member' ? 'approved' : 'pending';
 }
 
-// A payment into a member's account only counts once that member records or confirms it (spec §9.4).
-export function statusForNewPayment(a: { actorId: string; fromId: string; toId: string; receiverIsMember: boolean }): 'says_paid' | 'confirmed' | 'forbidden' {
+// A guest's payment into a member's account only counts once that member records or confirms it; a member's own record counts straight away (spec §9.4).
+export function statusForNewPayment(a: { actorId: string; fromId: string; toId: string; receiverIsMember: boolean; payerIsMember: boolean }): 'says_paid' | 'confirmed' | 'forbidden' {
   if (a.actorId !== a.fromId && a.actorId !== a.toId) return 'forbidden';
-  return a.receiverIsMember && a.actorId !== a.toId ? 'says_paid' : 'confirmed';
+  return a.receiverIsMember && a.actorId !== a.toId && !a.payerIsMember ? 'says_paid' : 'confirmed';
 }
 
 export function canConfirmPayment(actor: Actor, p: { toId: string; status: PaymentStatus }, receiverIsMember: boolean): boolean {

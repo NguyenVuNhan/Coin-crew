@@ -66,6 +66,14 @@ describe('member pays a guest, guest pays a guest', () => {
     expect(body?.status).toBe('confirmed');
   });
 
+  it('a member paying a member counts straight away', async () => {
+    const anSid = await linkMember(PID.A, U.an, 'An');
+    const { res, body } = await record({ Cookie: `sid=${anSid}` }, PID.A, PID.M, 100000);
+    expect(res.status).toBe(201);
+    expect(body?.status).toBe('confirmed');
+    expect((await view(await minh())).approvals.some((a) => a.kind === 'payment')).toBe(false);
+  });
+
   it('guest to guest counts straight away; "didn\'t arrive" flags it; a member disables and re-enables', async () => {
     await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', ?, 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
     await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
