@@ -3,6 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
+import { mockMedia } from '../../test/media';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
 import { TripRoute } from '../TripRoute';
 import { Activity } from '../Activity';
@@ -37,13 +38,126 @@ function busyView(): TripView {
   };
 }
 
+/** A trip with nothing in it yet. */
+const emptyTrip = (): TripView =>
+  tripView({
+    expenses: [], suggestions: [], balances: {}, trip: { ...tripView().trip, total: 0 },
+    myBalance: { now: 0, beforePayments: 0, ifPendingApproved: null, waitingConfirm: 0 },
+  });
+
+const TRIP_API = { 'GET /api/trips/t-1/version': { version: 3 } };
+
 describe('member trip page', () => {
   it('shows my balance against the trip', async () => {
     mockApi({ 'GET /api/trips/t-1': tripView(), 'GET /api/trips/t-1/version': { version: 3 } });
     renderAt(<TripRoute />, route);
-    expect(await screen.findByText("You're still owed")).toBeInTheDocument();
+    expect(await screen.findByText("You're owed")).toBeInTheDocument();
     expect(screen.getAllByText('2.195.000₫').length).toBeGreaterThan(0);
-    expect(screen.getByText('of 2.195.000₫ · trip total 4.900.000₫')).toBeInTheDocument();
+    expect(screen.getByText('Trip total 4.900.000₫')).toBeInTheDocument();
+    expect(screen.queryByText(/of 2\.195\.000₫/)).toBeNull();
+  });
+
+  it('counts the money that has arrived', async () => {
+    const view = tripView({ myBalance: { now: 1900000, beforePayments: 2195000, ifPendingApproved: null, waitingConfirm: 0 } });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByText('Trip total 4.900.000₫ · 295.000₫ received so far')).toBeInTheDocument();
+    expect(screen.getAllByText('1.900.000₫').length).toBeGreaterThan(0);
+  });
+
+  it('says who I am waiting on', async () => {
+    const view = tripView({
+      payments: [{ id: 'pay-w', fromId: PIDS.M, toId: PIDS.B, amountClaimed: 100000, amountConfirmed: null, status: 'says_paid', notArrived: false, createdAt: '2026-10-12T08:00:00.000Z' }],
+    });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByText('100.000₫ waiting for Bình to confirm')).toBeInTheDocument();
+  });
+
+  it('a new trip leads with the invite card', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': emptyTrip() });
+    renderAt(<TripRoute />, route);
+    const invite = await screen.findByText('Invite your group');
+    expect(screen.getByText('Post this link in your group chat. Friends pick their name, no account needed.')).toBeInTheDocument();
+    expect(screen.queryByText("You're owed")).toBeNull();
+    expect(screen.queryByText("You're all settled")).toBeNull();
+    const expenses = screen.getByRole('region', { name: 'Expenses' });
+    expect(within(expenses).getByText('Add the first expense')).toBeInTheDocument();
+    expect(invite.compareDocumentPosition(expenses) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('the Invite button shares the group link', async () => {
+    const share = vi.fn(async () => {});
+    vi.stubGlobal('navigator', { ...navigator, share });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<TripRoute />, route);
+    await userEvent.click(await screen.findByRole('button', { name: 'Invite' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Invite' });
+    const group = within(sheet).getByRole('group', { name: 'Group link' });
+    expect(within(group).getByLabelText('Group link')).toHaveValue(`${location.origin}/j/gtok-1`);
+    expect(within(sheet).getByRole('group', { name: 'View-only link' })).toBeInTheDocument();
+    await userEvent.click(within(group).getByRole('button', { name: 'Share' }));
+    expect(share).toHaveBeenCalledWith({ title: 'Đà Lạt · Oct 2026', text: 'Join "Đà Lạt · Oct 2026" to split costs:', url: `${location.origin}/j/gtok-1` });
+  });
+
+  it('without a share sheet, Share copies the link', async () => {
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal('navigator', { ...navigator, share: undefined, clipboard: { writeText } });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': emptyTrip() });
+    renderAt(<TripRoute />, route);
+    await screen.findByText('Invite your group');
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }));
+    expect(writeText).toHaveBeenCalledWith(`${location.origin}/j/gtok-1`);
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
+
+  it('making a new link asks first', async () => {
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirm);
+    const { calls } = mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView(), 'POST /api/trips/t-1/links/regenerate': null });
+    renderAt(<TripRoute />, route);
+    await userEvent.click(await screen.findByRole('button', { name: 'Invite' }));
+    const viewLink = within(await screen.findByRole('dialog', { name: 'Invite' })).getByRole('group', { name: 'View-only link' });
+    await userEvent.click(within(viewLink).getByRole('button', { name: 'Make a new link' }));
+    expect(confirm).toHaveBeenCalledWith('The old link will stop working. Make a new one?');
+    await waitFor(() => expect(calls.find((c) => c.path === '/api/trips/t-1/links/regenerate')?.body).toEqual({ which: 'view' }));
+  });
+
+  it('tapping an expense opens its details', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<TripRoute />, route);
+    await userEvent.click(await screen.findByRole('button', { name: /^Cà phê Túi Mơ To/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-4');
+  });
+
+  it('disabling an expense from its row', async () => {
+    mockMedia({ coarse: false });
+    const base = tripView();
+    const view = tripView({ expenses: [{ ...base.expenses[3]!, id: 'e-1d', description: 'Old taxi' }, ...base.expenses] });
+    const { calls } = mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view, 'POST /api/trips/t-1/expenses/e-1d/disable': null });
+    renderAt(<TripRoute />, route);
+    const row = (await screen.findByRole('button', { name: /^Old taxi/ })).closest('li')!;
+    await userEvent.click(within(row).getByRole('button', { name: 'Disable' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/expenses/e-1d/disable')).toBe(true));
+  });
+
+  it('the bottom bar adds an expense on phones', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByRole('link', { name: '+ Add expense' })).toHaveAttribute('href', '/t/t-1/expenses/new');
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/trips');
+    expect(screen.getByRole('link', { name: 'Trip settings' })).toHaveAttribute('title', 'Trip settings');
+  });
+
+  it('the loading and error screens offer the language switch', async () => {
+    mockApi({ 'GET /api/trips/t-1': () => new Promise<Response>(() => {}) });
+    const loading = renderAt(<TripRoute />, route);
+    expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' })).toBeInTheDocument();
+    loading.unmount();
+    mockApi({ 'GET /api/trips/t-1': () => Response.json({ error: { code: 'BOOM', message: 'x' } }, { status: 500 }) });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' })).toBeInTheDocument();
   });
 
   it('lists every kind of approval with its actions', async () => {
@@ -92,30 +206,20 @@ describe('member trip page', () => {
     renderAt(<TripRoute />, route);
     expect(await screen.findByText('Disabled by Minh')).toBeInTheDocument();
     expect(screen.getByText('Old taxi')).toHaveStyle({ textDecoration: 'line-through' });
-  });
-
-  it('explains Fewest transfers and switches it', async () => {
-    const { calls } = mockApi({ 'GET /api/trips/t-1': tripView(), 'GET /api/trips/t-1/version': { version: 3 }, 'PATCH /api/trips/t-1': null });
-    renderAt(<TripRoute />, route);
-    expect(await screen.findByText("We combine everyone's debts so people make as few bank transfers as possible. What each person owes in total stays the same.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('switch', { name: 'Fewest transfers' }));
-    await waitFor(() => expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fewestTransfers: false }));
-  });
-
-  it('reminds with the share sheet', async () => {
-    const share = vi.fn(async () => {});
-    vi.stubGlobal('navigator', { ...navigator, share });
-    mockApi({ 'GET /api/trips/t-1': tripView(), 'GET /api/trips/t-1/version': { version: 3 } });
-    renderAt(<TripRoute />, route);
-    const chiRow = await screen.findByTestId(`who-pays-${PIDS.C}-${PIDS.M}`);
-    await userEvent.click(within(chiRow).getByRole('button', { name: 'Remind' }));
-    await waitFor(() => expect(share).toHaveBeenCalledWith({ text: `Hi Chi! You still owe Minh 1.245.000₫ for "Đà Lạt · Oct 2026". See details and pay with VietQR: ${location.origin}/j/gtok-1` }));
+    const row = screen.getByRole('button', { name: /^Old taxi/ }).closest('li')!;
+    expect(within(row).getByRole('button', { name: 'Enable' })).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: 'Disable' })).toBeNull();
   });
 
   it('an empty trip invites the first expense', async () => {
-    mockApi({ 'GET /api/trips/t-1': tripView({ expenses: [], suggestions: [], balances: {}, trip: { ...tripView().trip, total: 0 } }), 'GET /api/trips/t-1/version': { version: 3 } });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': emptyTrip() });
     renderAt(<TripRoute />, route);
-    expect(await screen.findByText('No expenses yet. Add the first one.')).toBeInTheDocument();
+    expect(await screen.findByText('Add the first expense')).toBeInTheDocument();
+    expect(screen.getByText('Homestay, food, fuel: anything the group shares.')).toBeInTheDocument();
+    // The empty state carries the only add link: no bottom bar yet.
+    const add = screen.getAllByRole('link', { name: '+ Add expense' });
+    expect(add).toHaveLength(1);
+    expect(add[0]).toHaveAttribute('href', '/t/t-1/expenses/new');
   });
 });
 

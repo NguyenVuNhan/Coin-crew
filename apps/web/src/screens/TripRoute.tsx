@@ -5,6 +5,8 @@ import { useTripView } from '../api/hooks';
 import { useIsWide } from '../lib/media';
 import { useBackToTrip, useListScroll } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '../components/LanguageButton';
+import { TripLayout } from '../components/TripLayout';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { Button } from '../components/Button';
@@ -40,18 +42,41 @@ function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<S
   );
 }
 
+/** The trip page while it loads: balance card, three transfer rows and four expense rows, in the page's own columns. */
+function TripSkeleton({ wide }: { wide: boolean }) {
+  const balance = <Skeleton height={96} radius="lg" />;
+  const transfers = <SkeletonList rows={3} />;
+  const expenses = <SkeletonList rows={4} />;
+  return (
+    <div className="fsl-trip-skeleton">
+      {wide ? (
+        <TripLayout left={expenses} right={<>{balance}{transfers}</>} />
+      ) : (
+        <>
+          {balance}
+          {transfers}
+          {expenses}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function TripRoute() {
   const { tripId, expenseId, paymentId } = useParams<{ tripId: string; expenseId: string; paymentId: string }>();
   const navigate = useNavigate();
   const t = useT();
   const wide = useIsWide();
   const selection = selectionFrom({ expenseId, paymentId });
-  // Phones show the details as a page of their own; from 1024px the trip page shows them in its right panel (the trip page takes `selection`).
-  const detail = selection && selection.kind !== 'approvals' && !wide ? selection : null;
-  useListScroll(detail !== null);
 
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
+
+  // Phones show the details as a page of their own; from 1024px the member page shows them in its right panel
+  // (it takes `selection`). The guest and view-only pages get their panel in Task 12; until then they use the page too.
+  const panel = wide && (!view || view.me.kind === 'member');
+  const detail = selection && selection.kind !== 'approvals' && !panel ? selection : null;
+  useListScroll(detail !== null);
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {
@@ -59,27 +84,18 @@ export function TripRoute() {
     }
   }, [view, tripId, navigate]);
 
+  // A shared link's visitor sees these first, so they carry the language switch.
   if (isLoading) {
     return (
-      <Screen title="">
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-4)',
-            padding: 'var(--space-4) 0',
-          }}
-        >
-          <Skeleton height={140} radius="lg" />
-          <SkeletonList rows={4} />
-        </div>
+      <Screen title="" right={<LanguageButton />} wide>
+        <TripSkeleton wide={wide} />
       </Screen>
     );
   }
 
   if (error) {
     return (
-      <Screen title="">
+      <Screen title="" right={<LanguageButton />}>
         <InlineError error={error} onRetry={refetch} />
       </Screen>
     );

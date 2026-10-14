@@ -22,6 +22,12 @@
   overflow-wrap: anywhere;
 }
 
+/* The wide panel moves focus here when it opens; a heading is not a control, so no ring. */
+.fsl-details__title:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 .fsl-details__note {
   margin: 0;
   font-size: var(--text-sm);

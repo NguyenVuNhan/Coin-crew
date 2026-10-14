@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
@@ -17,6 +17,7 @@ import './GuestTrip.css';
 
 export function GuestTrip({ view }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const becomeMemberParam = searchParams.get('becomeMember') === '1';
 
@@ -182,7 +183,7 @@ export function GuestTrip({ view }: { view: TripView; selection?: Selection | nu
           </section>
         )}
 
-        <PaymentsList view={view} mode="guest" />
+        <PaymentsList view={view} onOpen={(id) => navigate(`/t/${view.trip.id}/payments/${id}`)} />
 
         <div className="fsl-guest__action">
           <Link

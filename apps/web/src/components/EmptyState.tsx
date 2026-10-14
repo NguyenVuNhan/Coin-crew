@@ -5,6 +5,8 @@ import './EmptyState.css';
 export interface EmptyStateProps {
   icon?: IconName;
   title: string;
+  /** One line under the title. */
+  body?: string;
   action: ReactNode;
   className?: string;
 }
@@ -12,6 +14,7 @@ export interface EmptyStateProps {
 export function EmptyState({
   icon,
   title,
+  body,
   action,
   className = '',
 }: EmptyStateProps) {
@@ -23,7 +26,10 @@ export function EmptyState({
             <Icon name={icon} size={20} />
           </span>
         )}
-        <p className="fsl-empty-state__title">{title}</p>
+        <div className="fsl-empty-state__text">
+          <p className="fsl-empty-state__title">{title}</p>
+          {body && <p className="fsl-empty-state__body">{body}</p>}
+        </div>
       </div>
       <div className="fsl-empty-state__action">{action}</div>
     </div>

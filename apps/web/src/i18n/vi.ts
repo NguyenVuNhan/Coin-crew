@@ -181,12 +181,24 @@ export const vi: Record<MessageKey, string> = {
   'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần chia phải lớn hơn 0.', // REVIEW
   'splitError.NEGATIVE_SHARE': 'Khoản điều chỉnh lớn hơn tổng số tiền.', // REVIEW
 
-  'member.stillOwed': 'Bạn vẫn được nhận', // REVIEW
-  'member.youOwe': 'Bạn cần trả', // REVIEW
-  'member.settled': 'Bạn đã thanh toán hết', // REVIEW
-  'member.ofTotal': 'trên {amount} · tổng chuyến đi {total}', // REVIEW
-  'member.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
   'member.settings': 'Cài đặt chuyến đi', // REVIEW
+
+  'balance.owed': 'Bạn được nhận', // REVIEW
+  'balance.owe': 'Bạn cần trả', // REVIEW
+  'balance.settled': 'Bạn đã thanh toán xong', // REVIEW
+  'balance.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
+  'balance.received': 'đã nhận {amount}', // REVIEW
+  'balance.waitingFor': '{amount} đang chờ {name} xác nhận', // REVIEW
+
+  'invite.button': 'Mời', // REVIEW
+  'invite.title': 'Mời bạn bè', // REVIEW
+  'invite.cardTitle': 'Mời nhóm của bạn', // REVIEW
+  'invite.cardBody': 'Gửi liên kết này vào nhóm chat. Bạn bè chọn tên của mình, không cần tài khoản.', // REVIEW
+  'invite.share': 'Chia sẻ', // REVIEW
+  'invite.shareText': 'Tham gia "{trip}" để chia tiền:', // REVIEW
+
+  'expenses.emptyTitle': 'Thêm khoản chi đầu tiên', // REVIEW
+  'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.', // REVIEW
 
   'approvals.title': 'Cần duyệt', // REVIEW
   'approvals.fromGuest': 'từ khách', // REVIEW
@@ -212,7 +224,6 @@ export const vi: Record<MessageKey, string> = {
   'whoPays.pay': 'Thanh toán', // REVIEW
   'whoPays.remind': 'Nhắc', // REVIEW
   'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
-  'whoPays.toConfirm': 'Xác nhận', // REVIEW
   'whoPays.paid': 'Đã trả ✓', // REVIEW
   'whoPays.waiting': 'Đang chờ', // REVIEW
   'whoPays.received': 'Đã nhận', // REVIEW
@@ -227,9 +238,7 @@ export const vi: Record<MessageKey, string> = {
 
   'expenses.disable': 'Vô hiệu hóa', // REVIEW
   'expenses.enable': 'Kích hoạt lại', // REVIEW
-  'expenses.actions': 'Thao tác cho {description}', // REVIEW
 
-  'share.title': 'Chia sẻ', // REVIEW
   'share.groupLink': 'Liên kết nhóm', // REVIEW
   'share.groupHint': 'Gửi vào nhóm chat của bạn. Bạn bè chọn tên của mình — không cần tài khoản.', // REVIEW
   'share.viewLink': 'Liên kết chỉ xem', // REVIEW

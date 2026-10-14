@@ -12,8 +12,15 @@
 
 .fsl-empty-state__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
+}
+
+.fsl-empty-state__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 .fsl-empty-state__icon {
@@ -24,6 +31,7 @@
   height: 20px;
   color: var(--color-text-subtle);
   flex-shrink: 0;
+  margin-top: 1px; /* centres the 20px icon on the title's 22px first line */
 }
 
 .fsl-empty-state__icon svg {
@@ -38,6 +46,14 @@
   line-height: var(--leading-base);
   color: var(--color-text);
   font-weight: var(--weight-medium);
+}
+
+.fsl-empty-state__body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
 }
 
 .fsl-empty-state__action {

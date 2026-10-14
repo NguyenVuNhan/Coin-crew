@@ -181,12 +181,24 @@ export const en = {
   'splitError.SHARES_NOT_POSITIVE': 'Every share must be more than 0.',
   'splitError.NEGATIVE_SHARE': 'The adjustments are bigger than the total.',
 
-  'member.stillOwed': "You're still owed",
-  'member.youOwe': 'You owe',
-  'member.settled': "You're all settled",
-  'member.ofTotal': 'of {amount} · trip total {total}',
-  'member.tripTotal': 'Trip total {total}',
   'member.settings': 'Trip settings',
+
+  'balance.owed': "You're owed",
+  'balance.owe': 'You owe',
+  'balance.settled': "You're all settled",
+  'balance.tripTotal': 'Trip total {total}',
+  'balance.received': '{amount} received so far',
+  'balance.waitingFor': '{amount} waiting for {name} to confirm',
+
+  'invite.button': 'Invite',
+  'invite.title': 'Invite',
+  'invite.cardTitle': 'Invite your group',
+  'invite.cardBody': 'Post this link in your group chat. Friends pick their name, no account needed.',
+  'invite.share': 'Share',
+  'invite.shareText': 'Join "{trip}" to split costs:',
+
+  'expenses.emptyTitle': 'Add the first expense',
+  'expenses.emptyBody': 'Homestay, food, fuel: anything the group shares.',
 
   'approvals.title': 'Needs approval',
   'approvals.fromGuest': 'from a guest',
@@ -212,7 +224,6 @@ export const en = {
   'whoPays.pay': 'Pay',
   'whoPays.remind': 'Remind',
   'whoPays.remindCopied': 'Reminder copied — paste it in your chat.',
-  'whoPays.toConfirm': 'Confirm',
   'whoPays.paid': 'Paid ✓',
   'whoPays.waiting': 'Waiting',
   'whoPays.received': 'Received',
@@ -227,9 +238,7 @@ export const en = {
 
   'expenses.disable': 'Disable',
   'expenses.enable': 'Enable',
-  'expenses.actions': 'Actions for {description}',
 
-  'share.title': 'Share',
   'share.groupLink': 'Group link',
   'share.groupHint': 'Post this in your group chat. Friends pick their name — no account needed.',
   'share.viewLink': 'View-only link',

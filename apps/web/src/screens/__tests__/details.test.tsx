@@ -146,7 +146,70 @@ describe('transaction details', () => {
     expect(screen.getByRole('button', { name: 'Back to trip' })).toBeInTheDocument();
   });
 
-  it.todo('on a wide screen the details sit next to the list'); // switched on in Task 8 with the right panel
+  it('on a wide screen the details sit next to the list', async () => {
+    mockMedia({ wide: true });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<App />, { route: '/t/t-1/expenses/e-1' });
+    const heading = await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' });
+    // Still the trip page, with the list beside the panel and the opened row marked.
+    expect(screen.getByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+    const list = screen.getByRole('region', { name: 'Expenses' });
+    expect(within(list).getByRole('button', { name: /^Homestay Bloom/ })).toHaveAttribute('aria-current', 'true');
+    expect(within(list).getByRole('button', { name: /^Lẩu gà lá é/ })).not.toHaveAttribute('aria-current');
+    expect(within(list).getByRole('link', { name: '+ Add expense' })).toBeInTheDocument();
+    expect(screen.queryByText("You're owed")).toBeNull(); // the panel shows the details instead of the balance
+    await waitFor(() => expect(heading).toHaveFocus());
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(await screen.findByText("You're owed")).toBeInTheDocument();
+  });
+
+  it('Esc closes the wide panel and gives focus back to the row that opened it', async () => {
+    mockMedia({ wide: true });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<App />, { route: '/t/t-1' });
+    await userEvent.click(await screen.findByRole('button', { name: /^Lẩu gà lá é/ }));
+    const heading = await screen.findByRole('heading', { name: 'Lẩu gà lá é' });
+    await waitFor(() => expect(heading).toHaveFocus());
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Lẩu gà lá é/ })).toHaveFocus());
+  });
+
+  it('switching rows on a wide screen keeps closing one step away from the list', async () => {
+    mockMedia({ wide: true });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<App />, { route: '/t/t-1' });
+    await userEvent.click(await screen.findByRole('button', { name: /^Lẩu gà lá é/ }));
+    await screen.findByRole('heading', { name: 'Lẩu gà lá é' });
+    await userEvent.click(screen.getByRole('button', { name: /^Motorbike rental/ }));
+    expect(await screen.findByRole('heading', { name: 'Motorbike rental + fuel' })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-3');
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+  });
+
+  it('a payment row opens its details in the wide panel', async () => {
+    mockMedia({ wide: true });
+    const view = tripView({ payments: [payment({ id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, status: 'confirmed' })] });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
+    renderAt(<App />, { route: '/t/t-1' });
+    const payments = await screen.findByRole('region', { name: 'Payments' });
+    await userEvent.click(within(payments).getByRole('button', { name: /^Chi → You/ }));
+    expect(await screen.findByRole('heading', { name: 'Chi → You' })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-1');
+  });
+
+  it('a guest on a wide screen still gets the details as a page', async () => {
+    mockMedia({ wide: true });
+    const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
+    renderAt(<App />, { route: '/t/t-1' });
+    const payments = await screen.findByRole('region', { name: 'Payments' });
+    await userEvent.click(within(payments).getByRole('button', { name: /^Bình → You/ }));
+    expect(await screen.findByRole('heading', { name: 'Bình → You' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Payment' })).toBeInTheDocument();
+  });
 
   it('a payment shows who paid whom and its status', async () => {
     const view = tripView({ payments: [payment({ id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, status: 'confirmed' })] });

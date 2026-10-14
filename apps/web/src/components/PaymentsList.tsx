@@ -1,84 +1,105 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import type { PaymentView, TripView } from '@fsl/core';
+import { useNavigate } from 'react-router';
+import { formatVnd, type PaymentView, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
-import { apiSend } from '../api/client';
 import { nameOf } from '../lib/tripText';
+import { useTripAction } from '../lib/useTripAction';
+import { paymentActions } from '../lib/rowActions';
+import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { ActionRow } from './ActionRow';
 import { Amount } from './Amount';
-import { Button } from './Button';
 import { Pill } from './Pill';
 import { InlineError } from './InlineError';
+import { paymentStatus } from './PaymentDetails';
 import './PaymentsList.css';
 
-function PaymentRow({ view, payment, mode }: { view: TripView; payment: PaymentView; mode: 'member' | 'guest' }) {
+function PaymentItem({
+  view,
+  payment,
+  selected,
+  hintable,
+  onOpen,
+}: {
+  view: TripView;
+  payment: PaymentView;
+  selected: boolean;
+  hintable: boolean;
+  onOpen(): void;
+}) {
   const t = useT();
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const tripId = view.trip.id;
+  const navigate = useNavigate();
+  const { busy, error, run } = useTripAction(view.trip.id);
+  const guardedRun = (path: string, body?: unknown) => (busy ? Promise.resolve() : run(path, body));
+
   const me = view.me.participantId;
-  const label = (id: string) => (id === me ? t('trip.you') : nameOf(view, id));
+  const who = (id: string) => (id === me ? t('trip.you') : nameOf(view, id));
   const off = payment.status === 'disabled';
+  const amount = payment.amountConfirmed ?? payment.amountClaimed;
 
-  async function act(action: 'disable' | 'enable' | 'not-arrived') {
-    setBusy(true);
-    setError(null);
-    try {
-      await apiSend(`/api/trips/${tripId}/payments/${payment.id}/${action}`, 'POST', {}, tripId);
-      await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const status = paymentStatus(payment);
+  const statusText = t(status.label);
 
-  const pill =
-    payment.notArrived ? <Pill tone="warning">{t('payments.reported')}</Pill>
-    : payment.status === 'confirmed' ? <Pill tone="success">{t('whoPays.paid')}</Pill>
-    : payment.status === 'says_paid' ? <Pill tone="warning">{t('whoPays.toConfirm')}</Pill>
-    : payment.status === 'rejected' ? <Pill tone="neutral">{t('payments.notArrivedPill')}</Pill>
-    : <Pill tone="neutral">{t('status.disabled')}</Pill>;
+  // Payment rows offer Disable / Enable (spec §4.3). Confirm and a member's "Didn't arrive" live in the approvals
+  // queue and the details; a guest receiver has no queue, so they keep "Didn't arrive" on the row.
+  const actions = paymentActions(view, payment, { t, navigate, run: guardedRun }).filter(
+    (a) => a.id !== 'confirm' && !(a.id === 'not-arrived' && view.me.kind === 'member'),
+  );
 
-  const canWrite = !view.trip.archived;
-  let action = null;
-  if (canWrite && mode === 'member' && (payment.status === 'confirmed' || payment.status === 'says_paid')) {
-    action = <Button variant="ghost" loading={busy} onClick={() => act('disable')}>{t('payments.disable')}</Button>;
-  } else if (canWrite && mode === 'member' && off) {
-    action = <Button variant="ghost" loading={busy} onClick={() => act('enable')}>{t('payments.enable')}</Button>;
-  } else if (canWrite && mode === 'guest' && payment.toId === me && payment.status === 'confirmed' && !payment.notArrived) {
-    action = <Button variant="ghost" loading={busy} onClick={() => act('not-arrived')}>{t('payments.didntArrive')}</Button>;
-  }
+  const title = t('trip.pays', { from: who(payment.fromId), to: who(payment.toId) });
+  const label = `${title}, ${formatVnd(amount)}, ${statusText}`;
 
   return (
-    <li className="fsl-payments__row" data-testid={`payment-row-${payment.id}`}>
-      <div className="fsl-payments__main">
-        <span className="fsl-payments__text" style={off ? { textDecoration: 'line-through' } : undefined}>
-          {t('trip.pays', { from: label(payment.fromId), to: label(payment.toId) })}
+    <li className="fsl-payments__item" data-testid={`payment-row-${payment.id}`}>
+      <ActionRow label={label} actions={actions} onOpen={onOpen} selected={selected} hintable={hintable}>
+        <span className="fsl-payments__row">
+          <span
+            className={`fsl-payments__text${off ? ' fsl-payments__text--off' : ''}`}
+            style={off ? { textDecoration: 'line-through' } : undefined}
+          >
+            {title}
+          </span>
+          <span className="fsl-payments__right">
+            <Amount value={amount} style={off ? { textDecoration: 'line-through' } : undefined} />
+            <Pill tone={status.tone}>{statusText}</Pill>
+          </span>
         </span>
-        <Amount value={payment.amountConfirmed ?? payment.amountClaimed} style={off ? { textDecoration: 'line-through' } : undefined} />
-      </div>
-      <div className="fsl-payments__meta">
-        {pill}
-        {action}
-      </div>
-      {error ? <InlineError error={error} /> : null}
+      </ActionRow>
+      {error ? <InlineError error={error} className="fsl-payments__error" /> : null}
     </li>
   );
 }
 
-/** Every recorded payment, with the §9.4 safety-net actions: members disable / re-enable, a receiving guest reports "didn't arrive". */
-export function PaymentsList({ view, mode }: { view: TripView; mode: 'member' | 'guest' }) {
+/** The trip's recorded payments list, with shortcut swipe and hover actions on each row. */
+export function PaymentsList({
+  view,
+  selectedId,
+  onOpen,
+  hintable = false,
+}: {
+  view: TripView;
+  selectedId?: string;
+  onOpen(id: string): void;
+  hintable?: boolean;
+}) {
   const t = useT();
   if (view.payments.length === 0) return null;
+
   return (
     <section className="fsl-payments" aria-label={t('payments.title')}>
       <h2 className="fsl-payments__heading">{t('payments.title')}</h2>
-      <ul className="fsl-payments__list">
-        {view.payments.map((p) => (
-          <PaymentRow key={p.id} view={view} payment={p} mode={mode} />
-        ))}
-      </ul>
+      <SwipeGroupProvider>
+        <ul className="fsl-payments__list">
+          {view.payments.map((p, i) => (
+            <PaymentItem
+              key={p.id}
+              view={view}
+              payment={p}
+              selected={p.id === selectedId}
+              hintable={hintable && i === 0}
+              onOpen={() => onOpen(p.id)}
+            />
+          ))}
+        </ul>
+      </SwipeGroupProvider>
     </section>
   );
 }

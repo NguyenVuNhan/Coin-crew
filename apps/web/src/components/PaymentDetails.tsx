@@ -14,7 +14,8 @@ import { InlineError } from './InlineError';
 import { Icon } from './icons';
 import './ExpenseDetails.css';
 
-function paymentStatus(p: PaymentView): { tone: PillProps['tone']; label: MessageKey } {
+/** A payment's status as a pill: the payments list and the details say the same thing. */
+export function paymentStatus(p: PaymentView): { tone: PillProps['tone']; label: MessageKey } {
   if (p.notArrived) return { tone: 'warning', label: 'payments.reported' };
   switch (p.status) {
     case 'confirmed': return { tone: 'success', label: 'whoPays.paid' };
@@ -58,7 +59,7 @@ export function PaymentDetails({
   return (
     <article className="fsl-details">
       <div className="fsl-details__head">
-        <h2 className="fsl-details__title">
+        <h2 className="fsl-details__title" tabIndex={-1}>
           {t('trip.pays', { from: label(p.fromId), to: label(p.toId) })}
         </h2>
         <Pill tone={status.tone}>{t(status.label)}</Pill>

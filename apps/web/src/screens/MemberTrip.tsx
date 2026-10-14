@@ -1,170 +1,184 @@
-import { useId, useState } from 'react';
-import { Link } from 'react-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { formatVnd, type ExpenseView, type TripView } from '@fsl/core';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
+import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
-import { apiSend } from '../api/client';
+import { useIsWide } from '../lib/media';
+import { useBackToTrip } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
-import { Amount } from '../components/Amount';
-import { Button } from '../components/Button';
-import { EmptyState } from '../components/EmptyState';
-import { ExpenseRow } from '../components/ExpenseRow';
-import { InlineError } from '../components/InlineError';
+import { Icon } from '../components/icons';
 import { ApprovalsCard } from '../components/ApprovalsCard';
+import { BalanceCard } from '../components/BalanceCard';
+import { InviteCard, InviteSheet } from '../components/InviteSheet';
 import { WhoPaysWhom } from '../components/WhoPaysWhom';
-import { ShareLinks } from '../components/ShareLinks';
 import { PaymentsList } from '../components/PaymentsList';
+import { ExpenseList } from '../components/ExpenseList';
+import { TripLayout } from '../components/TripLayout';
+import { ExpenseDetails } from '../components/ExpenseDetails';
+import { PaymentDetails } from '../components/PaymentDetails';
 import type { Selection } from './TripRoute';
 import './MemberTrip.css';
 
-function useTripAction(tripId: string) {
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  async function run(method: 'POST' | 'PATCH', path: string, body: unknown = {}) {
-    setBusy(true);
-    setError(null);
-    try {
-      await apiSend(`/api/trips/${tripId}${path}`, method, body, tripId);
-      await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return { busy, error, run };
-}
+type Detail = Exclude<Selection, { kind: 'approvals' }>;
 
-function Hero({ view }: { view: TripView }) {
+/**
+ * The wide screen's right panel showing one expense or payment. Not modal: it takes focus when it opens,
+ * × and Esc close it (back in history, or to the trip for a shared link), and nothing else is trapped.
+ */
+function DetailsPanel({ view, selection }: { view: TripView; selection: Detail }) {
   const t = useT();
-  const now = view.myBalance?.now ?? 0;
-  const before = view.myBalance?.beforePayments ?? 0;
-  const total = formatVnd(view.trip.total);
-  const myPerson = view.people.find((p) => p.id === view.me.participantId);
-  return (
-    <div className="fsl-member__hero">
-      {now > 0 ? (
-        <>
-          <p className="fsl-member__hero-label">{t('member.stillOwed')}</p>
-          <Amount value={now} tone="success" size="xl" />
-        </>
-      ) : now < 0 ? (
-        <>
-          <p className="fsl-member__hero-label">{t('member.youOwe')}</p>
-          <Amount value={-now} tone="danger" size="xl" />
-        </>
-      ) : (
-        <p className="fsl-member__hero-label">{t('member.settled')}</p>
-      )}
-      <p className="fsl-member__hero-sub">
-        {before !== 0 ? t('member.ofTotal', { amount: formatVnd(Math.abs(before)), total }) : t('member.tripTotal', { total })}
-      </p>
-      {now > 0 && myPerson && myPerson.bank === 'none' && (
-        <div className="fsl-notice fsl-notice--accent" style={{ marginTop: 'var(--space-3)' }}>
-          <span>{t('bankForm.addPrompt')} </span>
-          <Link to="/me/bank">{t('bankForm.title')}</Link>
-        </div>
-      )}
-    </div>
-  );
-}
+  const close = useBackToTrip(view.trip.id);
+  const panel = useRef<HTMLElement>(null);
 
-function FewestSwitch({ view }: { view: TripView }) {
-  const t = useT();
-  const explainId = useId();
-  const { busy, error, run } = useTripAction(view.trip.id);
-  const on = view.trip.fewestTransfers;
-  return (
-    <div className="fsl-member__switch-block">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-describedby={explainId}
-        className="fsl-member__switch"
-        disabled={busy}
-        onClick={() => run('PATCH', '', { fewestTransfers: !on })}
-      >
-        <span className={`fsl-member__track${on ? ' fsl-member__track--on' : ''}`} aria-hidden="true" />
-        <span className="fsl-member__switch-label">{t('fewest.title')}</span>
-      </button>
-      <p id={explainId} className="fsl-member__switch-explain">{t('fewest.explain')}</p>
-      {error ? <InlineError error={error} /> : null}
-    </div>
-  );
-}
+  useEffect(() => {
+    const el = panel.current;
+    (el?.querySelector<HTMLElement>('h2') ?? el)?.focus();
+  }, [selection.kind, selection.id]);
 
-function ExpenseItem({ view, expense }: { view: TripView; expense: ExpenseView }) {
-  const t = useT();
-  const tripId = view.trip.id;
-  const { busy, error, run } = useTripAction(tripId);
-  const disabled = expense.status === 'disabled';
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // A sheet open on top (Invite) handles its own Esc.
+      if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return;
+      close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [close]);
+
   return (
-    <li className="fsl-member__expense">
-      <div className="fsl-member__expense-main">
-        <ExpenseRow expense={expense} view={view} href={`/t/${tripId}/expenses/${expense.id}/edit`} />
-        {!view.trip.archived && (
-          <Button
-            variant="ghost"
-            loading={busy}
-            aria-label={`${disabled ? t('expenses.enable') : t('expenses.disable')} · ${t('expenses.actions', { description: expense.description })}`}
-            onClick={() => run('POST', `/expenses/${expense.id}/${disabled ? 'enable' : 'disable'}`)}
-          >
-            {disabled ? t('expenses.enable') : t('expenses.disable')}
-          </Button>
-        )}
+    <section
+      ref={panel}
+      tabIndex={-1}
+      className="fsl-member__panel"
+      aria-label={selection.kind === 'expense' ? t('details.expense') : t('details.payment')}
+    >
+      <div className="fsl-member__panel-head">
+        <span className="fsl-member__panel-kind">{selection.kind === 'expense' ? t('details.expense') : t('details.payment')}</span>
+        <button type="button" className="fsl-member__panel-close" aria-label={t('common.close')} title={t('common.close')} onClick={close}>
+          <Icon name="x" size={20} />
+        </button>
       </div>
-      {error ? <InlineError error={error} /> : null}
-    </li>
+      {/* Keyed by id so a reject reason or an error never carries over to the next row. */}
+      {selection.kind === 'expense' ? (
+        <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={close} />
+      ) : (
+        <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={close} />
+      )}
+    </section>
   );
 }
 
-/** The trip page for signed-in members (spec §10 screen 4). */
-export function MemberTrip({ view }: { view: TripView; selection?: Selection | null }) {
+/** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
+export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
+  const wide = useIsWide();
+  const navigate = useNavigate();
+  const { key } = useLocation();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const opener = useRef<HTMLElement | null>(null);
+
   const tripId = view.trip.id;
   const archived = view.trip.archived;
-  const addExpense = (
-    <Link className="fsl-button fsl-button--primary fsl-button--block" to={`/t/${tripId}/expenses/new`}>
-      {t('trip.addExpense')}
-    </Link>
+  const hasExpenses = view.expenses.length > 0;
+  const canInvite = !archived && view.links !== null;
+  const detail: Detail | null = selection && selection.kind !== 'approvals' ? selection : null;
+  const detailKey = detail ? `${detail.kind}/${detail.id}` : null;
+
+  function open(kind: Detail['kind'], id: string) {
+    if (detail?.kind === kind && detail.id === id) return;
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // The wide panel shows one item at a time: switching rows replaces the entry, so × is one step from the list.
+    // A shared link (key 'default') has no list behind it, so the first switch from there still pushes.
+    navigate(`/t/${tripId}/${kind === 'expense' ? 'expenses' : 'payments'}/${id}`, { replace: detail !== null && key !== 'default' });
+  }
+
+  // When the panel closes, focus goes back to the row that opened it.
+  const lastDetail = useRef(detailKey);
+  useEffect(() => {
+    if (lastDetail.current !== null && detailKey === null && opener.current?.isConnected) opener.current.focus();
+    lastDetail.current = detailKey;
+  }, [detailKey]);
+
+  const addLink = (block: boolean, variant: 'primary' | 'secondary' = 'primary') =>
+    archived ? undefined : (
+      <Link className={`fsl-button fsl-button--${variant}${block ? ' fsl-button--block' : ''}`} to={`/t/${tripId}/expenses/new`}>
+        {t('trip.addExpense')}
+      </Link>
+    );
+
+  const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
+  // A brand-new trip leads with the invite card; the balance appears with the first expense.
+  const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
+  const transfers = hasExpenses || view.suggestions.length > 0 ? <WhoPaysWhom view={view} /> : null;
+  const payments = (hintable: boolean) => (
+    <PaymentsList
+      view={view}
+      selectedId={detail?.kind === 'payment' ? detail.id : undefined}
+      onOpen={(id) => open('payment', id)}
+      hintable={hintable}
+    />
+  );
+  const expenses = (hintable: boolean, inHeading: boolean) => (
+    <ExpenseList
+      view={view}
+      selectedId={detail?.kind === 'expense' ? detail.id : undefined}
+      onOpen={(id) => open('expense', id)}
+      hintable={hintable}
+      // On a new trip the invite card's Share is the one primary button, so the empty state's add steps back.
+      add={addLink(false, !hasExpenses && canInvite ? 'secondary' : 'primary')}
+      addInHeading={inHeading}
+    />
+  );
+
+  const header = (
+    <>
+      {canInvite && (
+        <button type="button" className="fsl-member__invite" onClick={() => setInviteOpen(true)}>
+          <Icon name="userPlus" size={20} />
+          <span>{t('invite.button')}</span>
+        </button>
+      )}
+      <Link className="fsl-member__settings" to={`/t/${tripId}/settings`} aria-label={t('member.settings')} title={t('member.settings')}>
+        <Icon name="settings" size={20} />
+      </Link>
+    </>
   );
 
   return (
     <Screen
       title={view.trip.name}
-      right={
-        <Link className="fsl-member__settings" to={`/t/${tripId}/settings`} aria-label={t('member.settings')}>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-          </svg>
-        </Link>
-      }
+      back="/trips"
+      right={header}
+      wide
+      // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
+      bottomBar={!wide && hasExpenses ? addLink(true) : undefined}
     >
-      <div className="fsl-member">
-        {archived && <p className="fsl-member__notice">{t('settings.archived')}</p>}
-        <ApprovalsCard view={view} />
-        <Hero view={view} />
-        {!archived && <FewestSwitch view={view} />}
-        <WhoPaysWhom view={view} />
-        <PaymentsList view={view} mode="member" />
-        {!archived && view.expenses.length > 0 && addExpense}
-        <section className="fsl-member__section" aria-label={t('trip.expenses')}>
-          <h2 className="fsl-member__heading">{t('trip.expenses')}</h2>
-          {view.expenses.length === 0 ? (
-            <EmptyState title={t('expenses.empty')} action={archived ? null : addExpense} />
-          ) : (
-            <ul className="fsl-member__expenses">
-              {view.expenses.map((e) => (
-                <ExpenseItem key={e.id} view={view} expense={e} />
-              ))}
-            </ul>
-          )}
-        </section>
-        {!archived && <ShareLinks view={view} />}
-      </div>
+      {wide ? (
+        <div className="fsl-member">
+          <TripLayout
+            left={
+              <>
+                {notice}
+                <ApprovalsCard view={view} />
+                {expenses(true, true)}
+                {payments(false)}
+              </>
+            }
+            right={detail ? <DetailsPanel view={view} selection={detail} /> : <>{balance}{transfers}</>}
+          />
+        </div>
+      ) : (
+        <div className="fsl-member">
+          {notice}
+          <ApprovalsCard view={view} />
+          {balance}
+          {transfers}
+          {/* Only the first swipeable list on the page shows the swipe hint. */}
+          {payments(true)}
+          {expenses(view.payments.length === 0, false)}
+        </div>
+      )}
+      {canInvite && <InviteSheet view={view} open={inviteOpen} onClose={() => setInviteOpen(false)} />}
     </Screen>
   );
 }

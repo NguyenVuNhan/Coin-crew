@@ -85,7 +85,7 @@ export function ExpenseDetails({
   return (
     <article className="fsl-details">
       <div className="fsl-details__head">
-        <h2 className="fsl-details__title">{e.description}</h2>
+        <h2 className="fsl-details__title" tabIndex={-1}>{e.description}</h2>
         <Pill tone={status.tone}>{t(status.label)}</Pill>
       </div>
 

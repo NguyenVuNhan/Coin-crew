@@ -83,7 +83,7 @@ describe('polling budget', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
     mockApi({ 'GET /api/trips/t-1': tripView(), 'GET /api/trips/t-1/version': { version: 3 } });
     renderAt(<TripRoute />, route);
-    await screen.findByText("You're still owed");
+    await screen.findByText("You're owed");
     await act(async () => {
       vi.advanceTimersByTime(15 * 60_000 + 1);
     });
