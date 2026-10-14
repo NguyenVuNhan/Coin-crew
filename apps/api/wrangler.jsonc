@@ -4,6 +4,10 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // Serve on <name>.<subdomain>.workers.dev. No per-version preview URLs: they would hit the live
+  // database, and Google sign-in only returns to APP_ORIGIN.
+  "workers_dev": true,
+  "preview_urls": false,
   "d1_databases": [
     {
       "binding": "DB",

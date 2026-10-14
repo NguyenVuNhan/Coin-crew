@@ -42,12 +42,7 @@ npm run dev
 
 Open http://localhost:8787. For front-end work with hot reload, run `npm run dev -w @fsl/web` (port 5173, proxies `/api` to 8787) next to `npm run dev -w @fsl/api`.
 
-### Google sign-in
-
-In Google Cloud Console → APIs & Services → Credentials, create an OAuth client ID of type "Web application":
-
-- Authorised redirect URI: `${APP_ORIGIN}/api/auth/google/callback` (for local: `http://localhost:8787/api/auth/google/callback`)
-- Scopes on the consent screen: `openid`, `email`, `profile` only. The app never asks for Gmail or Drive.
+Google sign-in needs an OAuth client; [docs/setup.md](docs/setup.md#2-google-sign-in-oauth-client) shows how to create one.
 
 ## Tests
 
@@ -65,51 +60,7 @@ Builds the app, starts `wrangler dev` with a fresh local database and the test-o
 
 ## Deploy (Cloudflare free plan)
 
-The deployment's own values live in Cloudflare, not in the repo:
-
-| Name | Where | Value |
-|---|---|---|
-| `D1_DATABASE_ID` | Worker → Settings → Build → Variables and secrets | ID of the `fsl` D1 database |
-| `APP_ORIGIN` | Worker → Settings → Variables and Secrets (Text) | The app's public address, e.g. `https://finance-sheet-lover.<subdomain>.workers.dev` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Worker → Settings → Variables and Secrets (Secret) | From the Google OAuth client |
-
-`apps/api/wrangler.jsonc` keeps a placeholder database ID for local dev and tests. `npm run deploy -w @fsl/api` writes `apps/api/wrangler.deploy.jsonc` (git-ignored) with the real ID from `D1_DATABASE_ID`, then deploys it. `keep_vars` stops a deploy from removing `APP_ORIGIN`.
-
-Cloudflare Workers Builds deploys every push to `main`, with these settings on the Worker:
-
-- Root directory: the repo root
-- Build command: `npm run build -w @fsl/web`
-- Deploy command: `npm run deploy -w @fsl/api`
-- Preview builds: off. A preview would use the live database, and Google sign-in always returns to the main address.
-- Cloudflare Access: off. Friends open group links without signing in.
-
-Builds don't touch the database. Apply new migrations from your machine, after `npx wrangler login` and with `D1_DATABASE_ID` set in your shell:
-
-```bash
-npm run db:migrate:remote -w @fsl/api
-```
-
-Set the Google secrets once, in the dashboard or with:
-
-```bash
-npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_ID
-```
-
-```bash
-npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_SECRET
-```
-
-To deploy by hand instead, with `D1_DATABASE_ID` set:
-
-```bash
-npm run build -w @fsl/web && npm run deploy -w @fsl/api
-```
-
-Never set `E2E_LOGIN` outside local test runs; it enables a sign-in shortcut.
-
-### Usage alerts (optional)
-
-An hourly cron checks today's Workers requests and D1 rows against the free-plan limits in `apps/api/src/ops/usage.ts` and posts once per metric per day to a webhook at 80%. Set these secrets to turn it on: `CF_API_TOKEN` (Account Analytics: Read), `CF_ACCOUNT_ID`, `OPS_ALERT_WEBHOOK_URL` (any endpoint that accepts `{ "text": "…" }`, such as a Slack or Discord-compatible webhook).
+Every push to `main` deploys through Cloudflare Workers Builds. The database ID, public address and Google credentials live in Cloudflare, not in the repo. [docs/setup.md](docs/setup.md) walks through the whole setup from scratch: Google sign-in, the D1 database, Workers Builds, variables and secrets, migrations, usage alerts and troubleshooting.
 
 ## Still to check before going live
 
