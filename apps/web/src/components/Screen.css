@@ -45,6 +45,14 @@
   }
 }
 
+button.fsl-screen__back {
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
 .fsl-screen__back:hover {
   background-color: var(--color-surface-muted);
 }

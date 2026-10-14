@@ -1,11 +1,16 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useNavigate, useNavigationType } from 'react-router';
 import type { PaymentView, TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
 import { App } from '../../App';
+
+beforeEach(() => {
+  vi.stubGlobal('scrollTo', vi.fn()); // jsdom has no scrolling; the details page moves the window when it opens and closes
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -32,7 +37,7 @@ describe('transaction details', () => {
   it('an expense opens full screen with every share and my row marked', async () => {
     open(tripView(), '/t/t-1/expenses/e-1');
     expect(await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/t/t-1');
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveAttribute('title', 'Back');
     expect(screen.getAllByText('3.200.000₫').length).toBeGreaterThan(0);
     expect(screen.getByText('Paid by').parentElement).toHaveTextContent('You');
     expect(screen.getByText('Added by').parentElement).toHaveTextContent('You');
@@ -185,5 +190,80 @@ describe('transaction details', () => {
   it('keeps the edit page where it was', async () => {
     open(tripView(), '/t/t-1/expenses/e-1/edit');
     expect(await screen.findByRole('heading', { name: 'Edit expense' })).toBeInTheDocument();
+  });
+});
+
+/** Stands in for tapping a row of the trip page: an in-app push to the details, as Task 8's rows do. */
+function OpenButton({ to }: { to: string }) {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(to)}>Open {to}</button>;
+}
+
+/** PUSH, REPLACE or POP: how the router got to the current page. */
+function NavigationKind() {
+  return <div data-testid="navigation-kind">{useNavigationType()}</div>;
+}
+
+function openFromList(to: string) {
+  mockMedia({ wide: false });
+  mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+  renderAt(
+    <>
+      <OpenButton to={to} />
+      <NavigationKind />
+      <App />
+    </>,
+    { route: '/t/t-1', path: '*' },
+  );
+}
+
+describe('leaving the details', () => {
+  it('back from details opened in the app goes back in history instead of adding an entry', async () => {
+    openFromList('/t/t-1/expenses/e-1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Open /t/t-1/expenses/e-1' }));
+    expect(await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' })).toBeInTheDocument();
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('PUSH');
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');
+  });
+
+  it("'Back to trip' on something that is gone goes back in history too", async () => {
+    openFromList('/t/t-1/expenses/nope');
+    await userEvent.click(await screen.findByRole('button', { name: 'Open /t/t-1/expenses/nope' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Back to trip' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');
+  });
+
+  it('a shared link has nothing to go back to, so back replaces it with the trip', async () => {
+    open(tripView(), '/t/t-1/expenses/e-1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(await screen.findByRole('heading', { name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+  });
+
+  it('a shared link replaces the entry rather than pushing one', async () => {
+    mockMedia({ wide: false });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1/payments/nope', path: '*' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Back to trip' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('REPLACE');
+  });
+
+  it('returns to the list at the scroll position it was left at', async () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    vi.stubGlobal('scrollY', 420);
+    openFromList('/t/t-1/expenses/e-1');
+    const opener = await screen.findByRole('button', { name: 'Open /t/t-1/expenses/e-1' });
+    await screen.findByText('Homestay Bloom · 2 nights');
+    await userEvent.click(opener);
+    await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights', level: 2 });
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 0); // the details page starts at its top
+    vi.stubGlobal('scrollY', 0); // the shorter page has clamped the window to the top
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(scrollTo).toHaveBeenLastCalledWith(0, 420));
   });
 });

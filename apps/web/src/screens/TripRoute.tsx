@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useTripView } from '../api/hooks';
 import { useIsWide } from '../lib/media';
+import { useBackToTrip, useListScroll } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
@@ -24,18 +25,16 @@ function selectionFrom(params: { expenseId?: string; paymentId?: string }): Sele
   return null;
 }
 
-/** The details of one expense or payment as a page of its own (phones); back returns to the trip. */
+/** The details of one expense or payment as a page of its own (phones); back returns to the list where it was left. */
 function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<Selection, { kind: 'approvals' }> }) {
   const t = useT();
-  const navigate = useNavigate();
-  const tripPath = `/t/${view.trip.id}`;
-  const close = () => navigate(tripPath);
+  const goBack = useBackToTrip(view.trip.id);
   return (
-    <Screen title={selection.kind === 'expense' ? t('details.expense') : t('details.payment')} back={tripPath}>
+    <Screen title={selection.kind === 'expense' ? t('details.expense') : t('details.payment')} onBack={goBack}>
       {selection.kind === 'expense' ? (
-        <ExpenseDetails view={view} expenseId={selection.id} onClose={close} />
+        <ExpenseDetails view={view} expenseId={selection.id} onClose={goBack} />
       ) : (
-        <PaymentDetails view={view} paymentId={selection.id} onClose={close} />
+        <PaymentDetails view={view} paymentId={selection.id} onClose={goBack} />
       )}
     </Screen>
   );
@@ -47,6 +46,9 @@ export function TripRoute() {
   const t = useT();
   const wide = useIsWide();
   const selection = selectionFrom({ expenseId, paymentId });
+  // Phones show the details as a page of their own; from 1024px the trip page shows them in its right panel (the trip page takes `selection`).
+  const detail = selection && selection.kind !== 'approvals' && !wide ? selection : null;
+  useListScroll(detail !== null);
 
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
@@ -91,10 +93,9 @@ export function TripRoute() {
     return null;
   }
 
-  // Phones show the details as a page of their own; from 1024px the trip page shows them in its right panel (the trip page takes `selection`).
   const page =
-    selection && selection.kind !== 'approvals' && !wide ? (
-      <DetailsPage view={view} selection={selection} />
+    detail ? (
+      <DetailsPage view={view} selection={detail} />
     ) : view.me.kind === 'guest' ? (
       <GuestTrip view={view} selection={selection} />
     ) : view.me.kind === 'viewer' ? (

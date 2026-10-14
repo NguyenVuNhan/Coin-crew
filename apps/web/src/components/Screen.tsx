@@ -8,6 +8,8 @@ import './Screen.css';
 export interface ScreenProps {
   title: string;
   back?: string;
+  /** Goes back by itself instead of linking to `back` (the trip details use it to return to the list in history). */
+  onBack?: () => void;
   right?: ReactNode;
   bottomBar?: ReactNode;
   wide?: boolean;
@@ -18,6 +20,7 @@ export interface ScreenProps {
 export function Screen({
   title,
   back,
+  onBack,
   right,
   bottomBar,
   wide,
@@ -39,7 +42,17 @@ export function Screen({
     <div className={rootClass}>
       <header className="fsl-screen__header">
         <div className="fsl-screen__header-inner">
-          {back ? (
+          {onBack ? (
+            <button
+              type="button"
+              className="fsl-screen__back"
+              aria-label={t('common.back')}
+              title={t('common.back')}
+              onClick={onBack}
+            >
+              <Icon name="back" size={24} />
+            </button>
+          ) : back ? (
             <Link
               to={back}
               className="fsl-screen__back"
