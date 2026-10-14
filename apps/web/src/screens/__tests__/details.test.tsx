@@ -179,14 +179,30 @@ describe('transaction details', () => {
   it('switching rows on a wide screen keeps closing one step away from the list', async () => {
     mockMedia({ wide: true });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
-    renderAt(<App />, { route: '/t/t-1' });
+    renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1', path: '*' });
     await userEvent.click(await screen.findByRole('button', { name: /^Lẩu gà lá é/ }));
     await screen.findByRole('heading', { name: 'Lẩu gà lá é' });
     await userEvent.click(screen.getByRole('button', { name: /^Motorbike rental/ }));
     expect(await screen.findByRole('heading', { name: 'Motorbike rental + fuel' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-3');
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('REPLACE'); // the switch left no entry for Lẩu gà behind
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    // One step back in history lands on the list, not on the first expense.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');
+  });
+
+  it('after a shared link and a switch to another row, one × still closes the panel', async () => {
+    mockMedia({ wide: true });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1/expenses/e-1', path: '*' });
+    await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' });
+    await userEvent.click(screen.getByRole('button', { name: /^Lẩu gà lá é/ }));
+    expect(await screen.findByRole('heading', { name: 'Lẩu gà lá é' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('REPLACE');
+    expect(await screen.findByText("You're owed")).toBeInTheDocument();
   });
 
   it('a payment row opens its details in the wide panel', async () => {
@@ -204,11 +220,15 @@ describe('transaction details', () => {
     mockMedia({ wide: true });
     const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
-    renderAt(<App />, { route: '/t/t-1' });
+    renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1', path: '*' });
     const payments = await screen.findByRole('region', { name: 'Payments' });
     await userEvent.click(within(payments).getByRole('button', { name: /^Bình → You/ }));
     expect(await screen.findByRole('heading', { name: 'Bình → You' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Payment' })).toBeInTheDocument();
+    // Opened from the guest's list, so Back goes back in history.
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');
   });
 
   it('a payment shows who paid whom and its status', async () => {
@@ -256,10 +276,10 @@ describe('transaction details', () => {
   });
 });
 
-/** Stands in for tapping a row of the trip page: an in-app push to the details, as Task 8's rows do. */
+/** Stands in for tapping a row of the trip page: an in-app push to the details marked as coming from the list, as the rows do. */
 function OpenButton({ to }: { to: string }) {
   const navigate = useNavigate();
-  return <button type="button" onClick={() => navigate(to)}>Open {to}</button>;
+  return <button type="button" onClick={() => navigate(to, { state: { fromList: true } })}>Open {to}</button>;
 }
 
 /** PUSH, REPLACE or POP: how the router got to the current page. */
@@ -286,6 +306,17 @@ describe('leaving the details', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Open /t/t-1/expenses/e-1' }));
     expect(await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' })).toBeInTheDocument();
     expect(screen.getByTestId('navigation-kind')).toHaveTextContent('PUSH');
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');
+  });
+
+  it('a row tapped on a phone opens the details page, and Back goes back in history', async () => {
+    mockMedia({ wide: false });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1', path: '*' });
+    await userEvent.click(await screen.findByRole('button', { name: /^Lẩu gà lá é/ }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Expense' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
     expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');

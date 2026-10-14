@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
-import { useBackToTrip } from '../lib/detailsNav';
+import { useBackToTrip, useOpenDetails } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
 import { ApprovalsCard } from '../components/ApprovalsCard';
@@ -72,8 +72,7 @@ function DetailsPanel({ view, selection }: { view: TripView; selection: Detail }
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
-  const navigate = useNavigate();
-  const { key } = useLocation();
+  const openDetails = useOpenDetails(view.trip.id);
   const [inviteOpen, setInviteOpen] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
 
@@ -88,8 +87,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
     if (detail?.kind === kind && detail.id === id) return;
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     // The wide panel shows one item at a time: switching rows replaces the entry, so × is one step from the list.
-    // A shared link (key 'default') has no list behind it, so the first switch from there still pushes.
-    navigate(`/t/${tripId}/${kind === 'expense' ? 'expenses' : 'payments'}/${id}`, { replace: detail !== null && key !== 'default' });
+    openDetails(kind, id, detail !== null);
   }
 
   // When the panel closes, focus goes back to the row that opened it.

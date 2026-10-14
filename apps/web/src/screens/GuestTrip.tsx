@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { nameOf, splitText } from '../lib/tripText';
+import { useOpenDetails } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Amount } from '../components/Amount';
@@ -17,7 +18,7 @@ import './GuestTrip.css';
 
 export function GuestTrip({ view }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
-  const navigate = useNavigate();
+  const openDetails = useOpenDetails(view.trip.id);
   const [searchParams] = useSearchParams();
   const becomeMemberParam = searchParams.get('becomeMember') === '1';
 
@@ -183,7 +184,7 @@ export function GuestTrip({ view }: { view: TripView; selection?: Selection | nu
           </section>
         )}
 
-        <PaymentsList view={view} onOpen={(id) => navigate(`/t/${view.trip.id}/payments/${id}`)} />
+        <PaymentsList view={view} onOpen={(id) => openDetails('payment', id)} />
 
         <div className="fsl-guest__action">
           <Link

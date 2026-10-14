@@ -1,19 +1,46 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
+/** Router state on a details entry that a trip list opened: the list is the entry right behind it. */
+interface DetailsState {
+  fromList: true;
+}
+
+function cameFromList(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as Partial<DetailsState>).fromList === true;
+}
+
 /**
- * Leaves the details of a transaction: one step back in history when the person got here from inside
- * the app (so the list underneath is the page they left, and history does not grow), or, for a shared
- * link that has nothing behind it, to the trip page in place of the link.
- * The phone details page's back arrow and the "Back to trip" button use it, and so will the wide panel's close button.
+ * Opens the details of an expense or payment from a trip list. Opening marks the entry `fromList`, so leaving
+ * it can go back in history. Switching to another row while details are showing (the wide panel) replaces
+ * that entry and keeps its state: an entry reached from a shared link stays unmarked, one opened from the list stays marked.
+ */
+export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment', id: string, switching?: boolean) => void {
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  return useCallback(
+    (kind, id, switching = false) => {
+      const path = `/t/${tripId}/${kind === 'expense' ? 'expenses' : 'payments'}/${id}`;
+      if (switching) navigate(path, { replace: true, state });
+      else navigate(path, { state: { fromList: true } satisfies DetailsState });
+    },
+    [navigate, state, tripId],
+  );
+}
+
+/**
+ * Leaves the details of a transaction: one step back in history when a trip list opened them (so the list
+ * underneath is the page they left, and history does not grow), or, for a shared link that has nothing
+ * behind it, to the trip page in place of the link.
+ * The phone details page's back arrow, "Back to trip" and the wide panel's × and Esc use it.
  */
 export function useBackToTrip(tripId: string): () => void {
   const navigate = useNavigate();
-  const { key } = useLocation();
+  const fromList = cameFromList(useLocation().state);
   return useCallback(() => {
-    if (key !== 'default') navigate(-1);
+    if (fromList) navigate(-1);
     else navigate(`/t/${tripId}`, { replace: true });
-  }, [navigate, key, tripId]);
+  }, [navigate, fromList, tripId]);
 }
 
 function scrollWindowTo(y: number): void {
