@@ -1,19 +1,20 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PayInfo } from '@fsl/core';
-import { buildVietQrPayload, findBank, makeRefCode, toTransferNote } from '@fsl/core';
+import { buildVietQrPayload, findBank, toTransferNote } from '@fsl/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';
-import { bankDetails, participants, paymentRefs } from '../db/schema';
+import { bankDetails, participants } from '../db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
+import { getOrCreateRefCode } from '../payments/refs';
 import { getSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -365,18 +366,45 @@ export function bankRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const snapshot = await getSnapshot(db, actor.trip);
     const self = actor.participantId === toId;
+
+    // ?from=<payer>: the receiver asks for their own bank details and QR for one specific payer.
+    // Without it, the caller is the payer.
+    const fromParam = c.req.query('from');
+    const forPayer = fromParam !== undefined;
+    let payerId = actor.participantId;
+    if (forPayer) {
+      if (!self) {
+        throw new ApiError('FORBIDDEN', 403);
+      }
+      const fromParticipant = await db
+        .select({ id: participants.id })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.id, fromParam),
+            eq(participants.tripId, tripId),
+            inArray(participants.status, ['active', 'pending']),
+          ),
+        )
+        .get();
+      if (!fromParticipant || fromParticipant.id === toId) {
+        throw new ApiError('NOT_FOUND', 404);
+      }
+      payerId = fromParticipant.id;
+    }
+
+    const snapshot = await getSnapshot(db, actor.trip);
     const suggestion = snapshot.suggestions.find(
-      (s) => s.fromId === actor.participantId && s.toId === toId,
+      (s) => s.fromId === payerId && s.toId === toId,
     );
 
     // A "says paid" payment removes the debt from the suggestions, but the payer still needs this screen
     // (and the receiver's details) while it waits for confirmation.
-    const waiting = snapshot.payments.some((p) => p.status === 'says_paid' && p.fromId === actor.participantId && p.toId === toId);
+    const waiting = snapshot.payments.some((p) => p.status === 'says_paid' && p.fromId === payerId && p.toId === toId);
     ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting });
 
-    const amount = self ? 0 : (suggestion?.amount ?? 0);
+    const amount = self && !forPayer ? 0 : (suggestion?.amount ?? 0);
 
     let approvedRow: typeof bankDetails.$inferSelect | undefined;
     let guestHasPending = false;
@@ -433,62 +461,14 @@ export function bankRoutes(): Hono<AppBindings> {
         }
       : null;
 
-    let refCode = '';
-    if (!self && actor.participantId) {
-      const existingRef = await db
-        .select()
-        .from(paymentRefs)
-        .where(
-          and(
-            eq(paymentRefs.tripId, tripId),
-            eq(paymentRefs.fromId, actor.participantId),
-            eq(paymentRefs.toId, toId),
-          ),
-        )
-        .orderBy(asc(paymentRefs.createdAt))
-        .limit(1)
-        .get();
+    const refCode = payerId && payerId !== toId
+      ? await getOrCreateRefCode(db, actor.trip, payerId, toId)
+      : '';
 
-      if (existingRef) {
-        refCode = existingRef.code;
-      } else {
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const code = makeRefCode(actor.trip.name, Math.random);
-          try {
-            await db.insert(paymentRefs).values({
-              code,
-              tripId,
-              fromId: actor.participantId,
-              toId,
-              createdAt: nowIso(),
-            });
-            refCode = code;
-            break;
-          } catch {
-            const raceRef = await db
-              .select()
-              .from(paymentRefs)
-              .where(
-                and(
-                  eq(paymentRefs.tripId, tripId),
-                  eq(paymentRefs.fromId, actor.participantId),
-                  eq(paymentRefs.toId, toId),
-                ),
-              )
-              .orderBy(asc(paymentRefs.createdAt))
-              .limit(1)
-              .get();
-            if (raceRef) {
-              refCode = raceRef.code;
-              break;
-            }
-          }
-        }
-      }
-    }
-
+    // The payer's screen keeps its QR while a payment waits for confirmation (amount 0); the receiver's
+    // QR only exists while something is owed.
     const payload =
-      bankState === 'ok' && !self && approvedRow
+      bankState === 'ok' && approvedRow && (forPayer ? amount > 0 : !self)
         ? buildVietQrPayload({
             bin: approvedRow.bin,
             accountNumber: approvedRow.accountNumber,
@@ -500,7 +480,7 @@ export function bankRoutes(): Hono<AppBindings> {
     const inFlight = snapshot.payments.filter(
       (p) =>
         p.status === 'says_paid' &&
-        p.fromId === actor.participantId &&
+        p.fromId === payerId &&
         p.toId === toId,
     );
 

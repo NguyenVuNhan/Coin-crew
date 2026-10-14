@@ -96,6 +96,43 @@ describe('pay info', () => {
   });
 });
 
+describe('pay info for the receiver', () => {
+  const payFrom = (headers: Record<string, string>, toId: string, fromId: string) => call(`${base}/pay/${toId}?from=${fromId}`, { headers });
+
+  // Without Chi's 3.000.000 expense Chi owes Minh her 1.245.000 share of the first four expenses.
+  async function chiOwesMinh() {
+    await env.DB.prepare("DELETE FROM expense_shares WHERE expense_id = 'e-c'").run();
+    await env.DB.prepare("DELETE FROM expenses WHERE id = 'e-c'").run();
+  }
+
+  it('the receiver gets their own QR for a payer with the same note the payer sees', async () => {
+    await chiOwesMinh();
+    const forMinh = await json<PayInfo>(payFrom(await minh(), PID.M, PID.C));
+    const forChi = await json<PayInfo>(pay(await guestHeaders(PID.C), PID.M));
+    expect(forMinh).toMatchObject({ to: { id: PID.M, name: 'Minh' }, amount: 1245000, bankState: 'ok', bank: { accountNumberMasked: '1903 •••• 5678' } });
+    expect(forMinh.refCode).toMatch(/^DALAT [2-9A-HJ-NP-Z]{4}$/);
+    expect(forMinh.refCode).toBe(forChi.refCode);
+    expect(forMinh.payload).toBe(buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 1245000, note: forMinh.refCode }));
+  });
+
+  it('only the receiver may ask for a payer\'s QR', async () => {
+    await chiOwesMinh(); // so Chi's own pay screen for Minh would otherwise answer 200
+    expect((await payFrom(await guestHeaders(PID.C), PID.M, PID.B)).status).toBe(403);
+    expect((await payFrom(await guestHeaders(undefined, T.viewToken), PID.M, PID.B)).status).toBe(403);
+  });
+
+  it('nothing owed: amount 0 and no payload', async () => {
+    // Chi is owed money in this trip, so she owes Minh nothing.
+    const info = await json<PayInfo>(payFrom(await minh(), PID.M, PID.C));
+    expect(info).toMatchObject({ to: { id: PID.M }, amount: 0, bankState: 'ok', payload: null, inFlight: [] });
+    expect(info.refCode).toMatch(/^DALAT [2-9A-HJ-NP-Z]{4}$/);
+  });
+
+  it('a payer who is not in the trip is not found', async () => {
+    expect((await payFrom(await minh(), PID.M, 'p-nobody')).status).toBe(404);
+  });
+});
+
 describe('member bank details', () => {
   it('count straight away and refresh the trip view', async () => {
     await env.DB.prepare("DELETE FROM bank_details WHERE user_id = ?").bind(U.minh).run();
