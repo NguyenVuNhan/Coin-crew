@@ -315,5 +315,7 @@ export const vi: Record<MessageKey, string> = {
   'bankForm.saved': 'Đã lưu', // REVIEW
   'bankForm.pending': 'Đang chờ một thành viên duyệt thông tin ngân hàng của bạn.', // REVIEW
   'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.', // REVIEW
+
+  'rows.swipeHint': 'Vuốt trái hoặc chạm vào dòng để xem tùy chọn', // REVIEW
 };
 

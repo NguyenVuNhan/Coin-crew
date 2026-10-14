@@ -315,6 +315,8 @@ export const en = {
   'bankForm.saved': 'Saved',
   'bankForm.pending': 'Waiting for a member to approve your bank details.',
   'bankForm.addPrompt': 'Add your bank details so friends can pay you with VietQR.',
+
+  'rows.swipeHint': 'Swipe left or tap a row for options',
 } as const;
 
 export type MessageKey = keyof typeof en;
