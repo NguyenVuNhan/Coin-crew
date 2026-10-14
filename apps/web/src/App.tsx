@@ -27,6 +27,8 @@ export function App() {
       <Route path="/t/:tripId/who" element={<WhoAreYou />} />
       <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
       <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
+      <Route path="/t/:tripId/expenses/:expenseId" element={<TripRoute />} />
+      <Route path="/t/:tripId/payments/:paymentId" element={<TripRoute />} />
       <Route path="/t/:tripId/pay/:toId" element={<PayScreen />} />
       <Route path="/t/:tripId/bank" element={<BankDetails />} />
       <Route path="/t/:tripId/people" element={<People />} />

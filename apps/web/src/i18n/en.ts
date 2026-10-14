@@ -317,6 +317,20 @@ export const en = {
   'bankForm.addPrompt': 'Add your bank details so friends can pay you with VietQR.',
 
   'rows.swipeHint': 'Swipe left or tap a row for options',
+
+  'details.expense': 'Expense',
+  'details.payment': 'Payment',
+  'details.date': 'Date',
+  'details.paidBy': 'Paid by',
+  'details.addedBy': 'Added by',
+  'details.split': 'Split',
+  'details.you': '{name} (you)',
+  'details.amountClaimed': 'Amount sent',
+  'details.amountConfirmed': 'Amount received',
+  'details.recorded': 'Recorded',
+  'details.gone': "This isn't in the trip any more.",
+  'details.backToTrip': 'Back to trip',
+  'status.approved': 'Approved',
 } as const;
 
 export type MessageKey = keyof typeof en;

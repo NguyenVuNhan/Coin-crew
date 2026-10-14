@@ -12,9 +12,10 @@ import { EmptyState } from '../components/EmptyState';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { PaymentsList } from '../components/PaymentsList';
 import { ReceivedButton } from '../components/ReceivedButton';
+import type { Selection } from './TripRoute';
 import './GuestTrip.css';
 
-export function GuestTrip({ view }: { view: TripView }) {
+export function GuestTrip({ view }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const [searchParams] = useSearchParams();
   const becomeMemberParam = searchParams.get('becomeMember') === '1';

@@ -14,6 +14,7 @@ import { ApprovalsCard } from '../components/ApprovalsCard';
 import { WhoPaysWhom } from '../components/WhoPaysWhom';
 import { ShareLinks } from '../components/ShareLinks';
 import { PaymentsList } from '../components/PaymentsList';
+import type { Selection } from './TripRoute';
 import './MemberTrip.css';
 
 function useTripAction(tripId: string) {
@@ -120,7 +121,7 @@ function ExpenseItem({ view, expense }: { view: TripView; expense: ExpenseView }
 }
 
 /** The trip page for signed-in members (spec §10 screen 4). */
-export function MemberTrip({ view }: { view: TripView }) {
+export function MemberTrip({ view }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const tripId = view.trip.id;
   const archived = view.trip.archived;

@@ -317,5 +317,19 @@ export const vi: Record<MessageKey, string> = {
   'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.', // REVIEW
 
   'rows.swipeHint': 'Vuốt trái hoặc chạm vào dòng để xem tùy chọn', // REVIEW
+
+  'details.expense': 'Khoản chi', // REVIEW
+  'details.payment': 'Khoản chuyển', // REVIEW
+  'details.date': 'Ngày', // REVIEW
+  'details.paidBy': 'Người trả', // REVIEW
+  'details.addedBy': 'Người thêm', // REVIEW
+  'details.split': 'Cách chia', // REVIEW
+  'details.you': '{name} (bạn)', // REVIEW
+  'details.amountClaimed': 'Số tiền đã gửi', // REVIEW
+  'details.amountConfirmed': 'Số tiền đã nhận', // REVIEW
+  'details.recorded': 'Ghi lúc', // REVIEW
+  'details.gone': 'Mục này không còn trong chuyến đi.', // REVIEW
+  'details.backToTrip': 'Về chuyến đi', // REVIEW
+  'status.approved': 'Đã duyệt', // REVIEW
 };
 

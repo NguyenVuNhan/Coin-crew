@@ -9,9 +9,10 @@ import { Avatar } from '../components/Avatar';
 import { Amount } from '../components/Amount';
 import { EmptyState } from '../components/EmptyState';
 import { ExpenseRow } from '../components/ExpenseRow';
+import type { Selection } from './TripRoute';
 import './ViewOnlyTrip.css';
 
-export function ViewOnlyTrip({ view }: { view: TripView }) {
+export function ViewOnlyTrip({ view }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
 
   return (
