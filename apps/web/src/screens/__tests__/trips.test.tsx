@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { MyTrips } from '../MyTrips';
@@ -19,13 +19,64 @@ describe('Landing', () => {
     const link = await screen.findByRole('link', { name: 'Sign in with Google' });
     expect(link).toHaveAttribute('href', '/api/auth/google/start?returnTo=%2Ftrips');
   });
+
+  it('landing shows the headline and how it works', async () => {
+    mockApi({ 'GET /api/me': { user: null } });
+    renderAt(<Landing />);
+    expect(await screen.findByRole('heading', { name: 'Split trip costs. Settle up with VietQR.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'How it works' })).toBeInTheDocument();
+    const steps = screen.getAllByRole('listitem');
+    expect(steps).toHaveLength(3);
+    const lines: [string, string][] = [
+      ['Create a trip', "Add who's coming."],
+      ['Share one link', 'Everyone adds what they paid.'],
+      ['Settle up with VietQR', 'Pay each other with a VietQR code.'],
+    ];
+    lines.forEach(([title, body], i) => {
+      expect(within(steps[i]!).getByText(title)).toBeInTheDocument();
+      expect(within(steps[i]!).getByText(body)).toBeInTheDocument();
+    });
+    expect(screen.getByRole('link', { name: 'Privacy notice' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' })).toBeInTheDocument();
+  });
 });
 
 describe('MyTrips', () => {
   it('shows the empty state with one way forward', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/trips': [] });
     renderAt(<MyTrips />);
-    expect(await screen.findByText('No trips yet. Create your first trip.')).toBeInTheDocument();
+    expect(await screen.findByText('Plan your first trip')).toBeInTheDocument();
+    expect(screen.getByText('Create a trip, then share one link with your group.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'New trip' })).toHaveAttribute('href', '/trips/new');
+  });
+
+  it('is called Your trips and keeps the account menu in the header', async () => {
+    mockApi({ 'GET /api/me': me(), 'GET /api/trips': [] });
+    renderAt(<MyTrips />);
+    expect(await screen.findByRole('heading', { name: 'Your trips' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Account' })).toBeInTheDocument();
+  });
+
+  it('colours each trip line by what I owe and marks archived trips', async () => {
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/trips': [
+        { id: 't-1', name: 'Đà Lạt', archived: false, myBalance: 892500 },
+        { id: 't-2', name: 'Phú Quốc', archived: false, myBalance: -120000 },
+        { id: 't-3', name: 'Hội An', archived: true, myBalance: 0 },
+      ],
+    });
+    renderAt(<MyTrips />);
+    const owed = within(await screen.findByRole('link', { name: /Đà Lạt/ }));
+    expect(owed.getByText("You're owed")).toHaveClass('fsl-my-trips__line--success');
+    expect(owed.getByText('892.500₫')).toBeInTheDocument();
+    const owe = within(screen.getByRole('link', { name: /Phú Quốc/ }));
+    expect(owe.getByText('You owe')).toHaveClass('fsl-my-trips__line--danger');
+    expect(owe.getByText('120.000₫')).toBeInTheDocument();
+    const settled = within(screen.getByRole('link', { name: /Hội An/ }));
+    expect(settled.getByText('Settled')).toHaveClass('fsl-my-trips__line--neutral');
+    expect(settled.getByText('· archived')).toBeInTheDocument();
+    expect(within(screen.getByRole('link', { name: /Đà Lạt/ })).queryByText('· archived')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'New trip' })).toHaveAttribute('href', '/trips/new');
   });
 

@@ -48,16 +48,29 @@ export const en = {
   'pay.openBankApp': 'Open my bank app', // SPEC
   'pay.saveQr': 'Save QR', // SPEC
 
-  'landing.tagline': 'Split trip costs with friends and settle up with VietQR. Friends join with a link — no account needed.',
+  'landing.headline': 'Split trip costs. Settle up with VietQR.',
+  'landing.tagline': 'Friends join from one link in the group chat, no account needed.',
   'landing.signIn': 'Sign in with Google',
+  'landing.howItWorks': 'How it works',
+  'landing.step1': 'Create a trip',
+  'landing.step1Body': "Add who's coming.",
+  'landing.step2': 'Share one link',
+  'landing.step2Body': 'Everyone adds what they paid.',
+  'landing.step3': 'Settle up with VietQR',
+  'landing.step3Body': 'Pay each other with a VietQR code.',
 
-  'trips.title': 'My trips',
+  'trips.title': 'Your trips',
   'trips.new': 'New trip',
-  'trips.empty': 'No trips yet. Create your first trip.',
+  'trips.emptyTitle': 'Plan your first trip',
+  'trips.emptyBody': 'Create a trip, then share one link with your group.',
   'trips.youreOwed': "You're owed",
   'trips.youOwe': 'You owe',
-  'trips.settled': 'All settled',
-  'trips.archived': 'Archived',
+  'trips.settled': 'Settled',
+  'trips.archived': 'archived',
+
+  'account.label': 'Account',
+  'account.language': 'Language',
+  'account.signOut': 'Sign out',
 
   'create.title': 'New trip',
   'create.tripName': 'Trip name',

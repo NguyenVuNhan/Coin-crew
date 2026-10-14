@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { APP_NAME } from '../config';
 import { useT } from '../i18n';
+import type { MessageKey } from '../i18n/en';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
+import { Icon, type IconName } from '../components/icons';
 import { LanguageButton } from '../components/LanguageButton';
 import './Landing.css';
 
@@ -17,6 +19,12 @@ interface MeResponse {
     consentAt: string | null;
   } | null;
 }
+
+const STEPS: { icon: IconName; title: MessageKey; body: MessageKey }[] = [
+  { icon: 'map', title: 'landing.step1', body: 'landing.step1Body' },
+  { icon: 'link', title: 'landing.step2', body: 'landing.step2Body' },
+  { icon: 'qr', title: 'landing.step3', body: 'landing.step3Body' },
+];
 
 export function Landing() {
   const t = useT();
@@ -44,12 +52,37 @@ export function Landing() {
   return (
     <Screen title={APP_NAME} right={<LanguageButton />}>
       <div className="fsl-landing">
-        <p className="fsl-landing__tagline">{t('landing.tagline')}</p>
-        <div className="fsl-landing__action">
-          <Button variant="primary" block href={signInUrl}>
-            {t('landing.signIn')}
-          </Button>
-        </div>
+        <section className="fsl-landing__hero">
+          <h2 className="fsl-landing__headline">{t('landing.headline')}</h2>
+          <p className="fsl-landing__tagline">{t('landing.tagline')}</p>
+        </section>
+
+        <Button variant="primary" block href={signInUrl}>
+          {t('landing.signIn')}
+        </Button>
+
+        <section className="fsl-landing__how">
+          <h2 className="fsl-landing__section-title">{t('landing.howItWorks')}</h2>
+          <ol className="fsl-landing__steps">
+            {STEPS.map((step) => (
+              <li key={step.icon} className="fsl-landing__step">
+                <span className="fsl-landing__step-icon">
+                  <Icon name={step.icon} size={20} />
+                </span>
+                <div className="fsl-landing__step-text">
+                  <span className="fsl-landing__step-title">{t(step.title)}</span>
+                  <span className="fsl-landing__step-body">{t(step.body)}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <footer className="fsl-landing__footer">
+          <Link to="/privacy" className="fsl-landing__privacy">
+            {t('privacy.title')}
+          </Link>
+        </footer>
       </div>
     </Screen>
   );

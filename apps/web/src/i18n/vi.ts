@@ -48,16 +48,29 @@ export const vi: Record<MessageKey, string> = {
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
   'pay.saveQr': 'Lưu mã QR', // REVIEW
 
-  'landing.tagline': 'Chia tiền chuyến đi cùng bạn bè và thanh toán bằng VietQR. Bạn bè tham gia bằng liên kết — không cần tài khoản.', // REVIEW
+  'landing.headline': 'Chia tiền chuyến đi. Thanh toán bằng VietQR.', // REVIEW
+  'landing.tagline': 'Bạn bè tham gia từ một liên kết trong nhóm chat, không cần tài khoản.', // REVIEW
   'landing.signIn': 'Đăng nhập bằng Google', // REVIEW
+  'landing.howItWorks': 'Cách hoạt động', // REVIEW
+  'landing.step1': 'Tạo chuyến đi', // REVIEW
+  'landing.step1Body': 'Thêm những người đi cùng.', // REVIEW
+  'landing.step2': 'Chia sẻ một liên kết', // REVIEW
+  'landing.step2Body': 'Mọi người tự thêm khoản đã chi.', // REVIEW
+  'landing.step3': 'Thanh toán bằng VietQR', // REVIEW
+  'landing.step3Body': 'Chuyển khoản cho nhau bằng mã VietQR.', // REVIEW
 
-  'trips.title': 'Chuyến đi của tôi', // REVIEW
+  'trips.title': 'Chuyến đi của bạn', // REVIEW
   'trips.new': 'Chuyến đi mới', // REVIEW
-  'trips.empty': 'Chưa có chuyến đi nào. Hãy tạo chuyến đi đầu tiên.', // REVIEW
+  'trips.emptyTitle': 'Lên kế hoạch cho chuyến đi đầu tiên', // REVIEW
+  'trips.emptyBody': 'Tạo chuyến đi, rồi chia sẻ một liên kết cho cả nhóm.', // REVIEW
   'trips.youreOwed': 'Bạn được nhận', // REVIEW
   'trips.youOwe': 'Bạn cần trả', // REVIEW
-  'trips.settled': 'Đã thanh toán hết', // REVIEW
-  'trips.archived': 'Đã lưu trữ', // REVIEW
+  'trips.settled': 'Đã thanh toán xong', // REVIEW
+  'trips.archived': 'đã lưu trữ', // REVIEW
+
+  'account.label': 'Tài khoản', // REVIEW
+  'account.language': 'Ngôn ngữ', // REVIEW
+  'account.signOut': 'Đăng xuất', // REVIEW
 
   'create.title': 'Chuyến đi mới', // REVIEW
   'create.tripName': 'Tên chuyến đi', // REVIEW
