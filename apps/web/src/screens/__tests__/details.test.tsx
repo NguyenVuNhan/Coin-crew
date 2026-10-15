@@ -48,6 +48,16 @@ describe('transaction details', () => {
     expect(within(shares).getAllByText('800.000₫')).toHaveLength(4);
   });
 
+  it('lists the split in the order of the trip\'s people, whatever order the API sends', async () => {
+    const view = tripView();
+    const homestay = view.expenses.find((e) => e.id === 'e-1')!;
+    homestay.shares = [PIDS.B, PIDS.M, PIDS.C, PIDS.A].map((participantId) => ({ participantId, amount: 800000, inputValue: 1 }));
+    open(view, '/t/t-1/expenses/e-1');
+    const shares = await screen.findByRole('list', { name: 'Split' });
+    const names = within(shares).getAllByRole('listitem').map((li) => li.textContent?.replace(/[\d.]+₫$/, ''));
+    expect(names).toEqual(['Minh (you)', 'An', 'Bình', 'Chi']);
+  });
+
   it('only the person who added it can edit', async () => {
     // A member looking at Chi's pending expense: approve or reject it, but not edit it.
     open(memberViewWithChiPending(), '/t/t-1/expenses/e-5');

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Fragment, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { APP_NAME } from '../config';
@@ -53,7 +53,17 @@ export function Landing() {
     <Screen title={APP_NAME} right={<LanguageButton />}>
       <div className="fsl-landing">
         <section className="fsl-landing__hero">
-          <h2 className="fsl-landing__headline">{t('landing.headline')}</h2>
+          <h2 className="fsl-landing__headline">
+            {/* Each sentence wraps on its own, so a phone never breaks "Settle up" across lines. */}
+            {t('landing.headline')
+              .split('. ')
+              .map((sentence, i, all) => (
+                <Fragment key={i}>
+                  {i > 0 ? ' ' : null}
+                  <span className="fsl-landing__sentence">{i < all.length - 1 ? `${sentence}.` : sentence}</span>
+                </Fragment>
+              ))}
+          </h2>
           <p className="fsl-landing__tagline">{t('landing.tagline')}</p>
         </section>
 

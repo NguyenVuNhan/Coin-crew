@@ -20,6 +20,10 @@
   text-wrap: balance;
 }
 
+.fsl-landing__sentence {
+  display: inline-block;
+}
+
 .fsl-landing__tagline {
   margin: var(--space-2) 0 0;
   font-size: var(--text-base);

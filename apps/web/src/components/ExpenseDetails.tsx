@@ -81,6 +81,11 @@ export function ExpenseDetails({
     onReject: () => setRejecting(true),
   });
   const showReason = rejecting && e.status === 'pending';
+  // The API sends shares in storage order; list them in the trip's order of people, like every other list.
+  const place = new Map(view.people.map((p, i) => [p.id, i]));
+  const shares = [...e.shares].sort(
+    (a, b) => (place.get(a.participantId) ?? view.people.length) - (place.get(b.participantId) ?? view.people.length),
+  );
 
   return (
     <article className="fsl-details">
@@ -126,7 +131,7 @@ export function ExpenseDetails({
       </dl>
 
       <ul className="fsl-details__shares" aria-label={t('details.split')}>
-        {e.shares.map((s) => {
+        {shares.map((s) => {
           const isMe = s.participantId === view.me.participantId;
           return (
             <li
