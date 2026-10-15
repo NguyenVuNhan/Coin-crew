@@ -56,6 +56,9 @@
   color: var(--color-text-muted);
 }
 
+/* Full card width, so a block button fills the card at every width (shrunk to the text above it, it stopped short
+   from 768px); an inline button keeps its own width. */
 .fsl-empty-state__action {
+  align-self: stretch;
   margin-top: var(--space-1);
 }
