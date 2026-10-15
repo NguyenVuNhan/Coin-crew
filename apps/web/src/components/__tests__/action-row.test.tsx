@@ -1,4 +1,6 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, it, expect, afterEach, beforeEach, vi, type Mock } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
@@ -203,6 +205,90 @@ describe('hover on the web', () => {
     renderAt(<Row label="Homestay" />);
     drag(rowButton('Homestay'), -100);
     expect(surfaceOf('Homestay').style.transform).toBe('translateX(0px)');
+  });
+
+  it('are not there at all on a touch screen, where the swipe tray holds the actions', () => {
+    mockMedia({ coarse: true });
+    renderAt(<Row label="Homestay" />);
+    expect(document.querySelector('.fsl-action-row__tools')).toBeNull();
+    expect(document.querySelector('.fsl-action-row__tool')).toBeNull();
+  });
+});
+
+describe('hover tools, with the real stylesheet', () => {
+  // jsdom has no layout, but it applies the stylesheet's rules, matches :focus-within, and matches :hover for the
+  // target of the last mouse event; user-event refuses to click through `pointer-events: none`. Layout and the fade
+  // are checked in a browser (final-fix report). Vitest hands CSS imports over empty, so the file is read from disk.
+  let style: HTMLStyleElement;
+  beforeEach(() => {
+    style = document.createElement('style');
+    style.textContent = readFileSync(join(import.meta.dirname, '..', 'ActionRow.css'), 'utf8');
+    document.head.append(style);
+  });
+  afterEach(() => style.remove());
+  /** jsdom keeps computed styles until the DOM changes, and focus or hover moving is not a change: touch the DOM. */
+  const restyle = () => document.body.toggleAttribute('data-restyle');
+
+  function renderRow(onDisable: Mock) {
+    mockMedia({ coarse: false });
+    renderAt(
+      <>
+        <ActionRow label="Homestay" actions={actions(vi.fn(), onDisable)}>
+          <span>Homestay 800.000₫</span>
+        </ActionRow>
+        <button type="button">Elsewhere</button>
+      </>,
+    );
+    const tools = document.querySelector<HTMLElement>('.fsl-action-row__tools')!;
+    // Hidden elements have no accessible name, so find it by its label.
+    const disable = tools.querySelector<HTMLButtonElement>('button[aria-label="Disable"]')!;
+    return { tools, disable, elsewhere: screen.getByRole('button', { name: 'Elsewhere' }) };
+  }
+
+  it('lie over the row, and at rest can be neither seen, clicked nor reached', async () => {
+    const onDisable = vi.fn();
+    const { tools, disable } = renderRow(onDisable);
+    // Over the row, out of its flow: showing them moves nothing on the row.
+    expect(getComputedStyle(tools).position).toBe('absolute');
+    expect(getComputedStyle(disable).visibility).toBe('hidden');
+    expect(screen.queryByRole('button', { name: 'Disable' })).toBeNull();
+    await expect(userEvent.click(disable)).rejects.toThrow(/pointer-events: none/);
+    expect(onDisable).not.toHaveBeenCalled();
+  });
+
+  it('hovering the row shows them and they work; moving away hides them again', async () => {
+    const onDisable = vi.fn();
+    const { disable, elsewhere } = renderRow(onDisable);
+    fireEvent.mouseOver(rowButton('Homestay'));
+    restyle();
+    expect(getComputedStyle(disable).visibility).toBe('visible');
+    await userEvent.click(screen.getByRole('button', { name: 'Disable' }));
+    expect(onDisable).toHaveBeenCalledTimes(1);
+
+    fireEvent.mouseOver(elsewhere);
+    elsewhere.focus(); // the click left focus on Disable
+    restyle();
+    expect(getComputedStyle(disable).visibility).toBe('hidden');
+    await expect(userEvent.click(disable)).rejects.toThrow(/pointer-events: none/);
+    expect(onDisable).toHaveBeenCalledTimes(1);
+  });
+
+  it('keyboard focus on the row shows them before Tab moves on', async () => {
+    const onDisable = vi.fn();
+    const { disable, elsewhere } = renderRow(onDisable);
+    rowButton('Homestay').focus();
+    restyle();
+    expect(getComputedStyle(disable).visibility).toBe('visible');
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Disable' })).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    expect(onDisable).toHaveBeenCalledTimes(1);
+    await userEvent.tab();
+    expect(elsewhere).toHaveFocus();
+    restyle();
+    expect(getComputedStyle(disable).visibility).toBe('hidden');
   });
 });
 

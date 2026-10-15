@@ -22,20 +22,22 @@
 }
 
 .fsl-action-row__surface {
+  /* The row's background right now, which the hover tools repeat where they cover the row. */
+  --fsl-action-row-bg: var(--color-surface);
   display: flex;
   align-items: center;
-  background-color: var(--color-surface);
+  background-color: var(--fsl-action-row-bg);
   position: relative;
   will-change: transform;
 }
 
 .fsl-action-row--selected .fsl-action-row__surface {
-  background-color: var(--color-surface-muted);
+  --fsl-action-row-bg: var(--color-surface-muted);
 }
 
 @media (hover: hover) {
   .fsl-action-row__surface:hover {
-    background-color: var(--color-surface-muted);
+    --fsl-action-row-bg: var(--color-surface-muted);
   }
 }
 
@@ -131,26 +133,53 @@
   color: var(--color-success);
 }
 
-/* Out of the layout until the row is hovered or focused: an invisible block would still push that row's amount (or
-   pill) left by the width of its buttons, so rows with different actions would not line up. Keyboard focus on the
-   row shows them before Tab moves on, so they stay reachable. */
+/* Mouse and keyboard: while the row is hovered or holds focus, its actions cover the row's right end (the amount or
+   pill), on the row's own background. They lie over the row, not in it, so nothing on the row moves when they
+   appear and rows with different actions still line up. Hidden, they can be neither clicked nor tabbed to; while
+   they fade in they can't be clicked yet, so a click meant for the amount opens the row. Keyboard focus on the row
+   shows them before Tab moves on, so they stay reachable. At least 128px wide, so a row with one action still
+   covers a whole amount or pill (a longer pill fades out under the left edge); inset 2px so the row's focus ring
+   stays whole. */
 .fsl-action-row__tools {
-  display: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  min-width: 128px;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-1);
-  padding-right: var(--space-3);
-  flex-shrink: 0;
+  padding-left: var(--space-8);
+  padding-right: var(--space-2);
+  background: linear-gradient(to right, transparent, var(--fsl-action-row-bg) var(--space-6));
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .fsl-action-row:hover .fsl-action-row__tools,
 .fsl-action-row:focus-within .fsl-action-row__tools {
-  display: flex;
+  visibility: visible;
   animation: fsl-action-row-tools-in var(--motion-fast) var(--ease-out);
+}
+
+.fsl-action-row:hover .fsl-action-row__tool,
+.fsl-action-row:focus-within .fsl-action-row__tool {
+  pointer-events: auto;
+  animation: fsl-action-row-tools-armed var(--motion-fast);
 }
 
 @keyframes fsl-action-row-tools-in {
   from {
     opacity: 0;
+  }
+}
+
+/* For the length of the fade the tools let clicks through to the row underneath. */
+@keyframes fsl-action-row-tools-armed {
+  from,
+  to {
+    pointer-events: none;
   }
 }
 
@@ -228,7 +257,9 @@
   }
 
   .fsl-action-row:hover .fsl-action-row__tools,
-  .fsl-action-row:focus-within .fsl-action-row__tools {
+  .fsl-action-row:focus-within .fsl-action-row__tools,
+  .fsl-action-row:hover .fsl-action-row__tool,
+  .fsl-action-row:focus-within .fsl-action-row__tool {
     animation: none;
   }
 
