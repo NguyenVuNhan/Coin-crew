@@ -37,6 +37,14 @@
   border-radius: var(--radius-sm);
 }
 
+.fsl-guest__notice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
 .fsl-guest__section {
   display: flex;
   flex-direction: column;

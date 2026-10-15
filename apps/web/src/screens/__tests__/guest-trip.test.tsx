@@ -202,6 +202,54 @@ describe('guest page on a phone', () => {
   });
 });
 
+describe('guest page on an archived trip', () => {
+  /** The API refuses every write on an archived trip, so the page offers none of them. */
+  const archived = (view: TripView): TripView => ({ ...view, trip: { ...view.trip, archived: true } });
+
+  it('says so and offers nothing the API would refuse, on a phone', async () => {
+    mockMedia({ wide: false });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': archived(guestChiView()) });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByText('This trip is archived. You can still look at it.')).toBeInTheDocument();
+    expect(screen.getByText('You owe')).toBeInTheDocument(); // still looking at it, with no one to pay from the card
+    expect(screen.getAllByText('1.245.000₫').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: 'Pay with VietQR' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '+ Add expense' })).toBeNull();
+    expect(document.querySelector('.fsl-bottom-bar')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Sign in with Google to become a member' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Mark / })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    // The language switch is still in the footer.
+    expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' }).closest('footer')).not.toBeNull();
+  });
+
+  it('asks for no bank details and has no add button on a wide screen or in an empty trip', async () => {
+    mockMedia({ wide: true });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': archived(chiIsOwed()) });
+    const owed = renderAt(<TripRoute />, route);
+    const expenses = await screen.findByRole('region', { name: 'Expenses' });
+    expect(screen.getByText('This trip is archived. You can still look at it.')).toBeInTheDocument();
+    expect(within(expenses).queryByRole('link', { name: '+ Add expense' })).toBeNull();
+    expect(screen.queryByText(/Add your bank details so friends can pay you with VietQR\./)).toBeNull();
+    owed.unmount();
+
+    const empty = archived({ ...guestChiView(), expenses: [], suggestions: [], balances: {}, payments: [], myBalance: myBalance(0, null) });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': empty });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByText('No expenses yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '+ Add expense' })).toBeNull();
+  });
+
+  it('coming back from Google sign-in does not ask to become a member', async () => {
+    mockMedia({ wide: false });
+    const { calls } = mockApi({ ...TRIP_API, 'GET /api/trips/t-1': archived(guestChiView()), 'POST /api/trips/t-1/membership': null });
+    renderAt(<TripRoute />, { route: '/t/t-1?becomeMember=1', path: '/t/:tripId' });
+    await screen.findByText('This trip is archived. You can still look at it.');
+    expect(screen.queryByText('You asked to become a member. A member will approve it.')).toBeNull();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+  });
+});
+
 describe('guest page on a wide screen', () => {
   beforeEach(() => {
     mockMedia({ wide: true });

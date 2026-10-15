@@ -23,6 +23,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const wide = useIsWide();
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
   const hasExpenses = view.expenses.length > 0;
+  // The API refuses every write on an archived trip, so the page offers none (no add, pay, bank prompt or membership request).
+  const archived = view.trip.archived;
   const showsPay = hasExpenses && guestPayTarget(view) !== null && !(wide && detail !== null);
 
   const [searchParams] = useSearchParams();
@@ -38,6 +40,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   useEffect(() => {
     if (
       becomeMemberParam &&
+      !archived &&
       view.me.kind === 'guest' &&
       myId &&
       !requestedRef.current
@@ -51,7 +54,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         view.trip.id,
       ).catch(() => {});
     }
-  }, [becomeMemberParam, view.me.kind, myId, view.trip.id]);
+  }, [becomeMemberParam, archived, view.me.kind, myId, view.trip.id]);
 
   const approvedWithMyShare = myId
     ? view.expenses.filter(
@@ -66,14 +69,17 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
     return sum + (share ? share.amount : 0);
   }, 0);
 
-  const addLink = (block: boolean) => (
-    <Link
-      to={`/t/${view.trip.id}/expenses/new`}
-      className={`fsl-button fsl-button--${showsPay ? 'secondary' : 'primary'}${block ? ' fsl-button--block' : ''}`}
-    >
-      {t('trip.addExpense')}
-    </Link>
-  );
+  const addLink = (block: boolean) =>
+    archived ? undefined : (
+      <Link
+        to={`/t/${view.trip.id}/expenses/new`}
+        className={`fsl-button fsl-button--${showsPay ? 'secondary' : 'primary'}${block ? ' fsl-button--block' : ''}`}
+      >
+        {t('trip.addExpense')}
+      </Link>
+    );
+
+  const notice = archived ? <p className="fsl-guest__notice">{t('settings.archived')}</p> : null;
 
   const banner = (
     <div className="fsl-guest__banner">
@@ -91,7 +97,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const balance = hasExpenses ? <BalanceCard view={view} /> : null;
 
   const bankPrompt =
-    myBalance && myBalance.now > 0 && myPerson && myPerson.bank !== 'approved' ? (
+    !archived && myBalance && myBalance.now > 0 && myPerson && myPerson.bank !== 'approved' ? (
       <div className="fsl-notice fsl-notice--accent">
         {myPerson.bank === 'pending' ? (
           t('bankForm.pending')
@@ -172,7 +178,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
           {t('guest.memberRequested')}
         </div>
       ) : (
-        view.me.kind === 'guest' && (
+        view.me.kind === 'guest' &&
+        !archived && (
           <a
             href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${view.trip.id}?becomeMember=1`)}`}
             className="fsl-button fsl-button--ghost"
@@ -188,6 +195,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
     <Screen title={view.trip.name} wide bottomBar={!wide && hasExpenses ? addLink(true) : undefined}>
       <div className="fsl-guest">
         {banner}
+        {notice}
         {!wide ? (
           <>
             {balance}

@@ -8,11 +8,12 @@ import './BalanceCard.css';
 
 /**
  * The one transfer a guest pays straight from their balance card: they owe exactly one person. With several debts
- * (or none) there is nothing to pay from the card, and they pay from Your transfers instead.
+ * (or none) there is nothing to pay from the card, and they pay from Your transfers instead. Nothing is paid on an
+ * archived trip: the API refuses every write there.
  */
 export function guestPayTarget(view: TripView): Transfer | null {
   const me = view.me.participantId;
-  if (view.me.kind !== 'guest' || me === null || (view.myBalance?.now ?? 0) >= 0) return null;
+  if (view.me.kind !== 'guest' || me === null || view.trip.archived || (view.myBalance?.now ?? 0) >= 0) return null;
   const mine = view.suggestions.filter((s) => s.fromId === me);
   return mine.length === 1 ? mine[0]! : null;
 }
