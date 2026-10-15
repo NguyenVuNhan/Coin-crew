@@ -66,6 +66,11 @@
   min-width: 0;
 }
 
+/* The next card takes focus after Approve (the global :focus-visible ring marks it for keyboard users). */
+.fsl-approval-queue__item:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
 .fsl-approval-queue__item--next {
   animation: fsl-approval-slide-next var(--motion-base) var(--ease-out);
 }

@@ -177,12 +177,15 @@ describe('member trip page', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/expenses/e-5/approve')).toBe(true));
     // 2. a new name, with the merge choice
     await next();
-    expect(within(card).getByText('New person: Chi Nguyễn')).toBeInTheDocument();
+    expect(within(card).getByText('Chi Nguyễn wants to join')).toBeInTheDocument();
+    expect(within(card).getByText('Looks like Chi')).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Approve' })).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Same as Chi' })).toBeInTheDocument();
-    expect(within(card).getByRole('button', { name: 'New person' })).toBeInTheDocument();
-    // 3. bank details
+    expect(within(card).getByRole('button', { name: 'Reject' })).toBeInTheDocument();
+    // 3. bank details, with the account number masked
     await next();
-    expect(within(card).getByText('0123456789')).toBeInTheDocument();
+    expect(within(card).getByText('0123 •••• 6789')).toBeInTheDocument();
+    expect(within(card).queryByText('0123456789')).toBeNull();
     expect(within(card).getByText('MBBank')).toBeInTheDocument();
     // 4. a payment to me
     await next();
@@ -196,8 +199,10 @@ describe('member trip page', () => {
     expect(within(card).getByRole('button', { name: 'Keep' })).toBeInTheDocument();
     // 6. someone asking to become a member
     await next();
-    expect(within(card).getByText('An Trần (an@example.com) wants to join as An')).toBeInTheDocument();
+    expect(within(card).getByText('An wants to become a member')).toBeInTheDocument();
+    expect(within(card).getByText('An Trần · an@example.com')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Reject' })).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Next' })).toBeDisabled();
   });
 
@@ -269,13 +274,13 @@ describe('approvals queue', () => {
     const queue = await queueOf();
     expect(within(queue).getByText('1 of 6 waiting')).toBeInTheDocument();
     expect(within(queue).getByText('Bánh tráng nướng, chợ đêm')).toBeInTheDocument();
-    expect(within(queue).queryByText('New person: Chi Nguyễn')).toBeNull();
+    expect(within(queue).queryByText('Chi Nguyễn wants to join')).toBeNull();
     expect(within(queue).queryByRole('heading')).toBeNull();
     expect(within(queue).getByRole('button', { name: 'Previous' })).toBeDisabled();
 
     await stepNext(queue, 1);
     expect(within(queue).getByText('2 of 6 waiting')).toBeInTheDocument();
-    expect(within(queue).getByText('New person: Chi Nguyễn')).toBeInTheDocument();
+    expect(within(queue).getByText('Chi Nguyễn wants to join')).toBeInTheDocument();
     expect(within(queue).queryByText('Bánh tráng nướng, chợ đêm')).toBeNull();
 
     await userEvent.click(within(queue).getByRole('button', { name: 'Previous' }));
@@ -299,7 +304,7 @@ describe('approvals queue', () => {
     const queue = await queueOf();
     await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
     expect(await within(queue).findByText('1 of 5 waiting')).toBeInTheDocument();
-    expect(within(queue).getByText('New person: Chi Nguyễn')).toBeInTheDocument();
+    expect(within(queue).getByText('Chi Nguyễn wants to join')).toBeInTheDocument();
   });
 
   it('when the last one is handled the one before it shows', async () => {
@@ -380,6 +385,153 @@ describe('approvals queue', () => {
     await userEvent.type(within(queue).getByLabelText('Why are you rejecting it?'), 'Not ours');
     await userEvent.click(send);
     await waitFor(() => expect(calls.find((c) => c.path === '/api/trips/t-1/expenses/e-5/reject')?.body).toEqual({ reason: 'Not ours' }));
+  });
+
+  describe('a new person', () => {
+    const personCard = async () => {
+      const queue = await queueOf();
+      await stepNext(queue, 1);
+      return queue;
+    };
+
+    it('Approve and Same as send what they used to', async () => {
+      const { calls } = mockApi({
+        ...TRIP_API,
+        'GET /api/trips/t-1': busyView(),
+        'POST /api/trips/t-1/people/p-new/approve': null,
+      });
+      renderAt(<TripRoute />, route);
+      const queue = await personCard();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+      await waitFor(() => expect(calls.find((c) => c.path === '/api/trips/t-1/people/p-new/approve')?.body).toEqual({}));
+      await userEvent.click(within(queue).getByRole('button', { name: 'Same as Chi' }));
+      await waitFor(() => expect(calls.filter((c) => c.path === '/api/trips/t-1/people/p-new/approve').pop()?.body).toEqual({ sameAs: PIDS.C }));
+    });
+
+    it('Reject removes them', async () => {
+      const { calls } = mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView(), 'DELETE /api/trips/t-1/people/p-new': null });
+      renderAt(<TripRoute />, route);
+      const queue = await personCard();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Reject' }));
+      await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/trips/t-1/people/p-new')).toBe(true));
+      expect(calls.find((c) => c.method === 'DELETE')?.body).toBeUndefined();
+    });
+
+    it('someone already in an expense cannot be rejected: it points to merging', async () => {
+      mockApi({
+        ...TRIP_API,
+        'GET /api/trips/t-1': busyView(),
+        'DELETE /api/trips/t-1/people/p-new': () => Response.json({ error: { code: 'VALIDATION', message: 'Use merge instead' } }, { status: 409 }),
+      });
+      renderAt(<TripRoute />, route);
+      const queue = await personCard();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Reject' }));
+      expect(await within(queue).findByText('Use merge instead')).toBeInTheDocument();
+    });
+
+    it('lists every look-alike', async () => {
+      const view = busyView();
+      view.approvals[1] = { kind: 'name', participantId: 'p-new', matches: [{ id: PIDS.C, name: 'Chi', reason: 'part' }, { id: PIDS.B, name: 'Bình', reason: 'part' }] };
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
+      renderAt(<TripRoute />, route);
+      const queue = await personCard();
+      expect(within(queue).getByText('Looks like Chi, Bình')).toBeInTheDocument();
+      expect(within(queue).getByRole('button', { name: 'Same as Chi' })).toBeInTheDocument();
+    });
+
+    it('with no look-alike there is just Approve and Reject', async () => {
+      const view = busyView();
+      view.approvals[1] = { kind: 'name', participantId: 'p-new', matches: [] };
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
+      renderAt(<TripRoute />, route);
+      const queue = await personCard();
+      expect(within(queue).queryByText(/^Looks like/)).toBeNull();
+      expect(within(queue).queryByRole('button', { name: /^Same as/ })).toBeNull();
+      expect(within(queue).getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      expect(within(queue).getByRole('button', { name: 'Reject' })).toBeInTheDocument();
+    });
+  });
+
+  describe('keyboard focus', () => {
+    /** Chi's expense is the first approval; the trip drops it once `release()` lets the approve request finish. */
+    function approveFirstGate() {
+      let handled = false;
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      mockApi({
+        ...TRIP_API,
+        'GET /api/trips/t-1': () => {
+          const v = busyView();
+          return Response.json(handled ? { ...v, approvals: v.approvals.slice(1) } : v);
+        },
+        'POST /api/trips/t-1/expenses/e-5/approve': async () => {
+          await gate;
+          handled = true;
+          return new Response(null, { status: 204 });
+        },
+      });
+      return release;
+    }
+
+    it('after Approve in the queue the next card takes focus', async () => {
+      const release = approveFirstGate();
+      renderAt(<TripRoute />, route);
+      const queue = await queueOf();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+      release();
+      expect(await within(queue).findByText('1 of 5 waiting')).toBeInTheDocument();
+      expect(queue.querySelector('.fsl-approval-queue__item')).toHaveFocus();
+    });
+
+    it('also when the browser has already dropped focus from the disabled button', async () => {
+      const release = approveFirstGate();
+      renderAt(<TripRoute />, route);
+      const queue = await queueOf();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+      // jsdom lets a disabled button keep focus and ignores blur() on it; a real browser drops the focus to <body>.
+      const approve = document.activeElement as HTMLButtonElement;
+      approve.disabled = false;
+      approve.blur();
+      approve.disabled = true;
+      expect(document.body).toHaveFocus();
+      release();
+      expect(await within(queue).findByText('1 of 5 waiting')).toBeInTheDocument();
+      expect(queue.querySelector('.fsl-approval-queue__item')).toHaveFocus();
+    });
+
+    it('stepping with Next leaves focus on the arrow', async () => {
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      renderAt(<TripRoute />, route);
+      const queue = await queueOf();
+      const next = within(queue).getByRole('button', { name: 'Next' });
+      await userEvent.click(next);
+      expect(next).toHaveFocus();
+    });
+
+    it('focus that moved somewhere else stays there when the card is handled', async () => {
+      const release = approveFirstGate();
+      renderAt(<TripRoute />, route);
+      const queue = await queueOf();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+      const elsewhere = screen.getByRole('link', { name: 'Trip settings' });
+      elsewhere.focus();
+      release();
+      expect(await within(queue).findByText('1 of 5 waiting')).toBeInTheDocument();
+      expect(elsewhere).toHaveFocus();
+    });
+
+    it('on the list page the item that takes its place gets focus', async () => {
+      mockMedia({ wide: false });
+      const release = approveFirstGate();
+      renderAt(<App />, { route: '/t/t-1/approvals' });
+      const first = (await screen.findAllByRole('listitem'))[0]!;
+      await userEvent.click(within(first).getByRole('button', { name: 'Approve' }));
+      release();
+      await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(5));
+      const now = screen.getAllByRole('listitem')[0]!;
+      expect(within(now).getByText('Chi Nguyễn wants to join')).toBeInTheDocument();
+      expect(now).toHaveFocus();
+    });
   });
 
   it('tapping an expense approval opens its details', async () => {

@@ -2,7 +2,7 @@ import { useId, useState, type JSX } from 'react';
 import { formatVnd, parseVnd, type Approval, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { ApiClientError } from '../api/client';
-import { nameOf, splitText } from '../lib/tripText';
+import { maskAccount, nameOf, splitText } from '../lib/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';
 import { Button } from './Button';
@@ -83,26 +83,58 @@ function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expen
 function NameApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind: 'name' }> }) {
   const t = useT();
   const { busy, error, run } = useTripAction(view.trip.id);
+  const [rejected, setRejected] = useState(false);
   const match = a.matches[0];
-  const path = `/people/${a.participantId}/approve`;
+  const path = `/people/${a.participantId}`;
+
+  // A person who is already in an expense cannot be removed: the API says 409, and merging ("Same as") is the way.
+  const errorNode =
+    rejected && error instanceof ApiClientError && error.status === 409 ? (
+      <p className="fsl-approval__error" role="alert">{t('people.useMerge')}</p>
+    ) : error ? (
+      <InlineError error={error} />
+    ) : null;
 
   return (
     <div className="fsl-approval">
       <div className="fsl-approval__content">
         <p className="fsl-approval__title">{t('approvals.name', { name: nameOf(view, a.participantId) })}</p>
-        {match && <p className="fsl-approval__sub">{t('approvals.looksLike', { name: match.name })}</p>}
+        {match && <p className="fsl-approval__sub">{t('approvals.looksLike', { name: a.matches.map((m) => m.name).join(', ') })}</p>}
       </div>
       <div className="fsl-approval__actions">
+        <Button
+          variant={match ? 'secondary' : 'primary'}
+          loading={busy}
+          onClick={() => {
+            setRejected(false);
+            void run(`${path}/approve`, {});
+          }}
+        >
+          {t('approvals.approve')}
+        </Button>
         {match && (
-          <Button loading={busy} onClick={() => run(path, { sameAs: match.id })}>
+          <Button
+            loading={busy}
+            onClick={() => {
+              setRejected(false);
+              void run(`${path}/approve`, { sameAs: match.id });
+            }}
+          >
             {t('approvals.sameAs', { name: match.name })}
           </Button>
         )}
-        <Button variant={match ? 'secondary' : 'primary'} loading={busy} onClick={() => run(path, {})}>
-          {t('approvals.newPerson')}
+        <Button
+          variant="ghost"
+          loading={busy}
+          onClick={() => {
+            setRejected(true);
+            void run(path, undefined, 'DELETE');
+          }}
+        >
+          {t('approvals.reject')}
         </Button>
       </div>
-      {error ? <InlineError error={error} /> : null}
+      {errorNode}
     </div>
   );
 }
@@ -117,7 +149,7 @@ function BankApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind
         <p className="fsl-approval__title">{t('approvals.bank', { name: nameOf(view, a.participantId) })}</p>
         <div className="fsl-approval__sub fsl-approval__bank">
           <span>{a.bankName}</span>
-          <span className="fsl-approval__mono">{a.accountNumber}</span>
+          <span className="fsl-approval__mono">{maskAccount(a.accountNumber)}</span>
           <span>{a.holderName}</span>
         </div>
       </div>
@@ -247,9 +279,8 @@ function MembershipApproval({ view, a }: { view: TripView; a: Extract<Approval, 
   return (
     <div className="fsl-approval">
       <div className="fsl-approval__content">
-        <p className="fsl-approval__title">
-          {t('approvals.membership', { user: a.userName, email: a.userEmail, name: nameOf(view, a.participantId) })}
-        </p>
+        <p className="fsl-approval__title">{t('approvals.membership', { name: nameOf(view, a.participantId) })}</p>
+        <p className="fsl-approval__sub">{`${a.userName} · ${a.userEmail}`}</p>
       </div>
       <div className="fsl-approval__actions">
         <Button loading={busy} onClick={() => run(`/membership/${a.requestId}/approve`)}>

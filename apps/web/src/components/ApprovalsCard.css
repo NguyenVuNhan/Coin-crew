@@ -40,7 +40,7 @@ button.fsl-approval__content:focus-visible {
   margin: 0;
   font-size: var(--text-base);
   line-height: var(--leading-base);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold); /* the same as an expense row's title */
   color: var(--color-text);
   overflow-wrap: anywhere;
 }

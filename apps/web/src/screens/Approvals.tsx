@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useBackToTrip } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { ApprovalItem, approvalKey, waitingApprovals } from '../components/ApprovalsCard';
+import { FocusWatch } from '../components/FocusWatch';
 import './Approvals.css';
 
 /**
@@ -25,13 +26,29 @@ export function ApprovalList({ view, onClose, switching = false }: { view: TripV
     }
   }, [empty, onClose]);
 
+  // Handling an item removes it from the list: the item that takes its place gets the keyboard focus the removed one held.
+  const list = useRef<HTMLUListElement>(null);
+  const handoff = useRef(false);
+  const keys = approvals.map(approvalKey);
+  const previousKeys = useRef(keys);
+  useLayoutEffect(() => {
+    const before = previousKeys.current;
+    previousKeys.current = keys;
+    if (!handoff.current) return;
+    handoff.current = false;
+    const items = list.current?.children;
+    if (!items || items.length === 0) return;
+    const gone = before.findIndex((k) => !keys.includes(k));
+    (items[Math.min(Math.max(gone, 0), items.length - 1)] as HTMLElement).focus();
+  }, [keys.join('|')]);
+
   if (empty) return null;
   return (
-    <ul className="fsl-approvals__list">
+    <ul ref={list} className="fsl-approvals__list">
       {approvals.map((a) => (
-        <li key={approvalKey(a)} className="fsl-approvals__item">
+        <FocusWatch key={approvalKey(a)} as="li" handoff={handoff} className="fsl-approvals__item">
           <ApprovalItem view={view} approval={a} switching={switching} />
-        </li>
+        </FocusWatch>
       ))}
     </ul>
   );

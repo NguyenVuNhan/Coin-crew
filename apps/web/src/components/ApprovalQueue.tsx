@@ -1,10 +1,11 @@
-import { useState, type JSX } from 'react';
+import { useRef, useState, type JSX } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useApprovalsLink } from '../lib/detailsNav';
 import { usePrefersReducedMotion } from '../lib/media';
 import { ApprovalItem, approvalKey, waitingApprovals } from './ApprovalsCard';
+import { FocusWatch } from './FocusWatch';
 import { Icon } from './icons';
 import './ApprovalQueue.css';
 
@@ -26,6 +27,8 @@ export function ApprovalQueue({
   const reduced = usePrefersReducedMotion();
   const seeAll = useApprovalsLink(view.trip.id, switching);
   const [cursor, setCursor] = useState<Cursor>({ key: null, index: 0, dir: null });
+  // Approving the shown card removes it: whichever card shows next takes the keyboard focus the removed one held.
+  const handoff = useRef(false);
 
   const approvals = waitingApprovals(view);
   const keys = approvals.map(approvalKey);
@@ -84,12 +87,13 @@ export function ApprovalQueue({
           </div>
         )}
       </div>
-      <div
+      <FocusWatch
         key={shownKey}
+        handoff={handoff}
         className={`fsl-approval-queue__item${dir && !reduced ? ` fsl-approval-queue__item--${dir}` : ''}`}
       >
         <ApprovalItem view={view} approval={approvals[index]!} switching={switching} />
-      </div>
+      </FocusWatch>
       {n > 1 && (
         <Link className="fsl-approval-queue__all" {...seeAll}>
           {t('approvals.seeAll', { n })}

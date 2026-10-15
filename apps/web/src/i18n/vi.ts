@@ -213,10 +213,9 @@ export const vi: Record<MessageKey, string> = {
   'approvals.edit': 'Chỉnh sửa', // REVIEW
   'approvals.reject': 'Từ chối', // REVIEW
   'approvals.rejectReason': 'Lý do từ chối?', // REVIEW
-  'approvals.name': 'Người mới: {name}', // REVIEW
-  'approvals.looksLike': 'Có vẻ giống {name}, người đã có trong nhóm', // REVIEW
+  'approvals.name': '{name} muốn tham gia', // REVIEW
+  'approvals.looksLike': 'Có vẻ giống {name}', // REVIEW
   'approvals.sameAs': 'Là {name}', // REVIEW
-  'approvals.newPerson': 'Người mới', // REVIEW
   'approvals.bank': '{name} đã thêm thông tin ngân hàng', // REVIEW
   'approvals.confirm': 'Xác nhận', // REVIEW
   'approvals.didntArrive': 'Chưa nhận được', // REVIEW
@@ -224,7 +223,7 @@ export const vi: Record<MessageKey, string> = {
   'approvals.notArrived': '{name} báo chưa nhận được {amount} từ {payer}', // REVIEW
   'approvals.disable': 'Vô hiệu hóa', // REVIEW
   'approvals.keep': 'Giữ lại', // REVIEW
-  'approvals.membership': '{user} ({email}) muốn tham gia với tên {name}', // REVIEW
+  'approvals.membership': '{name} muốn trở thành thành viên', // REVIEW
   'approvals.approveNameFirst': 'Duyệt {name} trước', // REVIEW
 
   'whoPays.pay': 'Thanh toán', // REVIEW
