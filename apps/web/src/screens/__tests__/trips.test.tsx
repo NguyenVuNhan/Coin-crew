@@ -275,6 +275,78 @@ describe('CreateTrip people', () => {
     expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
   });
 
+  it('a suggestion chosen on one line is never picked by Enter on another', async () => {
+    const an = { userId: 'u-an', name: 'An', trips: ['Phú Quốc'] };
+    const binh = { userId: 'u-binh', name: 'Bình', trips: ['Sa Pa'] };
+    const { calls } = mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people': [an, binh],
+      'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
+    });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Your name');
+    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    // Line 1: An's account is suggested, but Enter keeps the typed name.
+    await userEvent.type(nameLines()[0]!, 'An');
+    await screen.findByRole('option', { name: /^An/ });
+    await userEvent.keyboard('{Enter}');
+    expect(nameLines()[1]!).toHaveFocus();
+    // Line 2: Bình chosen with the arrows.
+    await userEvent.keyboard('bi');
+    await screen.findByRole('option', { name: /^Bình/ });
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(screen.getByLabelText('Bình · has an account')).toBeInTheDocument();
+
+    // Back on line 1 the list opens again with nothing chosen, so Enter keeps "An" a typed name.
+    await userEvent.click(nameLines()[0]!);
+    expect(await screen.findByRole('option', { name: /^An/ })).toHaveAttribute('aria-selected', 'false');
+    expect(nameLines()[0]!).not.toHaveAttribute('aria-activedescendant');
+    await userEvent.keyboard('{Enter}');
+    expect(screen.queryByLabelText('An · has an account')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình', userId: 'u-binh' }] });
+  });
+
+  it('a suggestion highlighted but not chosen stays with its line', async () => {
+    const an = { userId: 'u-an', name: 'An', trips: ['Phú Quốc'] };
+    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [an, chi] });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Your name');
+    await userEvent.type(nameLines()[0]!, 'An{Enter}');
+    // Line 2: Chi highlighted with the arrows, then the person goes back to line 1 without choosing.
+    await userEvent.keyboard('ch');
+    await screen.findByRole('option', { name: /^Chi Trần/ });
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.click(nameLines()[0]!);
+    expect(await screen.findByRole('option', { name: /^An/ })).toHaveAttribute('aria-selected', 'false');
+    await userEvent.keyboard('{Enter}');
+    expect(screen.queryByLabelText(/has an account/)).not.toBeInTheDocument();
+    expect(nameLines().map((l) => l.value)).toEqual(['An', '', 'ch']);
+  });
+
+  it('the Enter that ends an IME composition neither adds a line nor picks a suggestion', async () => {
+    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Your name');
+    const field = nameLines()[0]!;
+    await userEvent.type(field, 'ch');
+    await screen.findByRole('listbox');
+    await userEvent.keyboard('{ArrowDown}');
+    // Safari (Vietnamese Telex on macOS and iOS): not flagged as composing, but keyCode 229.
+    expect(fireEvent.keyDown(field, { key: 'Enter', keyCode: 229 })).toBe(true);
+    expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
+    expect(nameLines()).toHaveLength(1);
+    // Other browsers flag it as composing.
+    fireEvent.keyDown(field, { key: 'Enter', keyCode: 13, isComposing: true });
+    expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
+    expect(nameLines()).toHaveLength(1);
+    // The next real Enter picks the chosen suggestion.
+    fireEvent.keyDown(field, { key: 'Enter', keyCode: 13 });
+    expect(screen.getByLabelText('Chi Trần · has an account')).toBeInTheDocument();
+  });
+
   it('Enter without a chosen suggestion adds the typed name as it is', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);

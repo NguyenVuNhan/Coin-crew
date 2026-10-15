@@ -78,6 +78,7 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
   };
 
   const pick = (entry: PersonEntry, person: RecentPerson) => {
+    setHighlight(-1);
     const picked = value.map((e) => (e.key === entry.key ? { ...e, name: person.name, userId: person.userId } : e));
     const index = value.findIndex((e) => e.key === entry.key);
     const r = withEmptyLineAfter(picked, index >= 0 ? index : 0);
@@ -100,7 +101,9 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, entry: PersonEntry, index: number) => {
-    if (e.nativeEvent.isComposing) return;
+    // Safari sends the Enter that ends an IME composition (Vietnamese Telex on macOS and iOS) with `isComposing`
+    // false but keyCode 229: it belongs to the IME, not to the list.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'ArrowDown') {
       if (open) {
         e.preventDefault();
@@ -120,6 +123,7 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
         e.preventDefault();
         e.stopPropagation();
         setClosedFor(`${entry.key}|${entry.name}`);
+        setHighlight(-1);
       }
       return;
     }
@@ -232,7 +236,12 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
                     onChange={(e) => setName(entry.key, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, entry, index)}
                     onPaste={(e) => handlePaste(e, entry, index)}
-                    onFocus={() => setActiveKey(entry.key)}
+                    onFocus={() => {
+                      // A suggestion chosen with the arrows belongs to the line it was chosen on: Enter on this line
+                      // must never pick an account the person did not choose here.
+                      setActiveKey(entry.key);
+                      setHighlight(-1);
+                    }}
                     onBlur={() => setActiveKey((prev) => (prev === entry.key ? null : prev))}
                     ref={(el) => registerRef(entry.key, el)}
                   />
