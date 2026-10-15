@@ -102,8 +102,9 @@ export interface PersonActionDeps {
 
 /**
  * What a member may do with a person on the People screen: merge them into another name, or remove them.
- * The organiser and the signed-in person can be merged but never removed (removing them would lock them out),
- * and nothing is offered in an archived trip.
+ * Only a guest who is not you can be removed: the organiser, you and every other signed-in member can be merged
+ * but never removed (the API refuses with 409, and removing them would lock them out). Nothing is offered in an
+ * archived trip.
  */
 export function personActions(view: TripView, person: PersonView, deps: PersonActionDeps): RowAction[] {
   if (view.trip.archived) return [];
@@ -115,7 +116,7 @@ export function personActions(view: TripView, person: PersonView, deps: PersonAc
     actions.push({ id: 'merge', label: t('people.merge'), icon: 'merge', onSelect: onMerge });
   }
 
-  if (can(actor, 'remove_person') && person.isOrganiser !== true && person.id !== view.me.participantId) {
+  if (can(actor, 'remove_person') && !person.isMember && person.isOrganiser !== true && person.id !== view.me.participantId) {
     actions.push({ id: 'remove', label: t('people.remove'), icon: 'trash', tone: 'danger', onSelect: onRemove });
   }
 
