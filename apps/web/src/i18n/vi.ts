@@ -29,7 +29,7 @@ export const vi: Record<MessageKey, string> = {
 
   'who.lastUsedHere': 'Lần trước bạn đã chọn người này trên điện thoại này', // REVIEW
   'who.activeElsewhere': 'Đang hoạt động trên máy khác · {ago}', // REVIEW
-  'who.someoneNew': 'Tôi là người mới', // REVIEW
+  'who.someoneNew': 'Không có trong danh sách? Thêm tên của bạn', // REVIEW
   'who.areYou': 'Bạn là {name} phải không?', // REVIEW
   'who.yesIm': 'Đúng, tôi là {name}', // REVIEW
   'who.noAddMe': 'Không, thêm tôi vào', // REVIEW
@@ -108,9 +108,12 @@ export const vi: Record<MessageKey, string> = {
   'who.title': 'Bạn là ai?', // REVIEW
   'who.subtitle': 'Chọn tên của bạn để tiếp tục.', // REVIEW
   'who.continueAs': 'Tiếp tục với tên {name}', // REVIEW
-  'who.memberHint': 'Đã đăng nhập — chạm để đăng nhập với tên {name}', // REVIEW
+  'who.hasAccount': 'Có tài khoản · đăng nhập bằng Google', // REVIEW
+  'who.search': 'Tìm tên', // REVIEW
+  'who.clearSearch': 'Xóa tìm kiếm', // REVIEW
+  'who.count': '{shown} trên {total} người', // REVIEW
+  'who.addNamed': 'Không có trong danh sách? Thêm "{name}"', // REVIEW
   'who.pending': 'Đang chờ duyệt', // REVIEW
-  'who.notOnList': 'Không có tên trong danh sách?', // REVIEW
   'who.newTitle': 'Tên của bạn là gì?', // REVIEW
   'who.newHint': 'Dùng tên mà bạn bè hay gọi bạn.', // REVIEW
   'who.nameLabel': 'Tên của bạn', // REVIEW
@@ -369,6 +372,8 @@ export const vi: Record<MessageKey, string> = {
   'bankForm.save': 'Lưu thông tin ngân hàng', // REVIEW
   'bankForm.saved': 'Đã lưu', // REVIEW
   'bankForm.pending': 'Đang chờ một thành viên duyệt thông tin ngân hàng của bạn.', // REVIEW
+  'bankForm.consentLabel': 'Tôi đồng ý với {link}', // REVIEW
+  'bankForm.privacyLink': 'thông báo quyền riêng tư', // REVIEW
   'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.', // REVIEW
 
   'rows.swipeHint': 'Vuốt trái hoặc chạm vào dòng để xem tùy chọn', // REVIEW

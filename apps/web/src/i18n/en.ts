@@ -29,7 +29,7 @@ export const en = {
 
   'who.lastUsedHere': 'You picked this on this phone last time', // SPEC
   'who.activeElsewhere': 'Active on another phone · {ago}', // SPEC
-  'who.someoneNew': "I'm someone new", // SPEC
+  'who.someoneNew': 'Not on the list? Add your name', // SPEC 2026-10-14
   'who.areYou': 'Are you {name}?', // SPEC
   'who.yesIm': "Yes, I'm {name}", // SPEC
   'who.noAddMe': 'No, add me', // SPEC
@@ -108,9 +108,12 @@ export const en = {
   'who.title': 'Who are you?',
   'who.subtitle': 'Pick your name to continue.',
   'who.continueAs': 'Continue as {name}',
-  'who.memberHint': 'Signed in — tap to sign in as {name}',
+  'who.hasAccount': 'Has an account · sign in with Google',
+  'who.search': 'Search names',
+  'who.clearSearch': 'Clear search',
+  'who.count': '{shown} of {total} people',
+  'who.addNamed': 'Not on the list? Add "{name}"',
   'who.pending': 'Waiting for approval',
-  'who.notOnList': 'Not on the list?',
   'who.newTitle': "What's your name?",
   'who.newHint': 'Use the name your friends know you by.',
   'who.nameLabel': 'Your name',
@@ -369,6 +372,8 @@ export const en = {
   'bankForm.save': 'Save bank details',
   'bankForm.saved': 'Saved',
   'bankForm.pending': 'Waiting for a member to approve your bank details.',
+  'bankForm.consentLabel': 'I agree to the {link}',
+  'bankForm.privacyLink': 'privacy notice',
   'bankForm.addPrompt': 'Add your bank details so friends can pay you with VietQR.',
 
   'rows.swipeHint': 'Swipe left or tap a row for options',

@@ -2,7 +2,7 @@ import { useState, useEffect, useId } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView, NameCandidate } from '@fsl/core';
-import { suggestNames } from '@fsl/core';
+import { suggestNames, normalizeName } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { formatAgo } from '../lib/time';
@@ -13,6 +13,7 @@ import { Pill } from '../components/Pill';
 import { Button } from '../components/Button';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
+import { Icon } from '../components/icons';
 import './WhoAreYou.css';
 
 export function WhoAreYou() {
@@ -26,6 +27,7 @@ export function WhoAreYou() {
 
   const [step, setStep] = useState<'pick' | 'new'>('pick');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const [name, setName] = useState('');
   const [amberMatch, setAmberMatch] = useState<NameCandidate | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
@@ -145,6 +147,13 @@ export function WhoAreYou() {
     }
   }
 
+  function handleAddNamed() {
+    setName(query.trim());
+    setAmberMatch(null);
+    setActionError(null);
+    setStep('new');
+  }
+
   if (isLoading) {
     return (
       <Screen title={t('who.title')} right={<LanguageButton />}>
@@ -162,6 +171,12 @@ export function WhoAreYou() {
     );
   }
 
+  const people = picker?.people ?? [];
+  const showSearch = people.length > 10;
+  const needle = normalizeName(query);
+  const visible = showSearch && needle ? people.filter((p) => normalizeName(p.name).includes(needle)) : people;
+  const noMatch = showSearch && needle !== '' && visible.length === 0;
+
   const trimmed = name.trim();
   const suggestions =
     step === 'new' && trimmed && picker
@@ -172,102 +187,150 @@ export function WhoAreYou() {
       : [];
 
   return (
-    <Screen title={t('who.title')} right={<LanguageButton />}>
-      <div className="fsl-who">
+    <Screen
+      title={t('who.title')}
+      right={<LanguageButton />}
+      bottomBar={
+        step === 'pick' ? (
+          <>
+            {actionError ? <InlineError error={actionError} /> : null}
+            <Button
+              variant="primary"
+              block
+              disabled={!selectedId || isSubmitting}
+              onClick={() => selectedId && handlePickPerson(selectedId)}
+            >
+              {selectedPerson
+                ? t('who.continueAs', { name: selectedPerson.name })
+                : t('common.continue')}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
+      <div
+        className={`fsl-who${step === 'pick' && actionError ? ' fsl-who--bar-error' : ''}`}
+      >
         <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
 
         {step === 'pick' ? (
           <div className="fsl-who__pick-step">
-            <div
-              role="radiogroup"
-              aria-label={t('who.title')}
-              className="fsl-who__list"
-            >
-              {picker?.people.map((person) => {
-                if (person.isMember) {
+            {showSearch && (
+              <>
+                <div className="fsl-who__search">
+                  <span className="fsl-who__search-icon" aria-hidden="true">
+                    <Icon name="search" size={18} />
+                  </span>
+                  <input
+                    type="search"
+                    aria-label={t('who.search')}
+                    className="fsl-who__search-input"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    autoComplete="off"
+                  />
+                  {query !== '' && (
+                    <button
+                      type="button"
+                      className="fsl-who__search-clear"
+                      aria-label={t('who.clearSearch')}
+                      title={t('who.clearSearch')}
+                      onClick={() => setQuery('')}
+                    >
+                      <Icon name="x" size={18} />
+                    </button>
+                  )}
+                </div>
+                <p className="fsl-who__count" role="status">
+                  {t('who.count', { shown: visible.length, total: people.length })}
+                </p>
+              </>
+            )}
+
+            {visible.length > 0 && (
+              <div
+                role="radiogroup"
+                aria-label={t('who.title')}
+                className="fsl-who__list"
+              >
+                {visible.map((person) => {
+                  if (person.isMember) {
+                    return (
+                      <a
+                        key={person.id}
+                        href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`}
+                        className="fsl-who__row fsl-who__row--member"
+                      >
+                        <Avatar name={person.name} />
+                        <div className="fsl-who__row-info">
+                          <div className="fsl-who__row-name">{person.name}</div>
+                          <div className="fsl-who__row-sub">
+                            {t('who.hasAccount')}
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  }
+
+                  const isSelected = selectedId === person.id;
+
                   return (
-                    <a
+                    <button
                       key={person.id}
-                      href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`}
-                      className="fsl-who__row fsl-who__row--member"
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`fsl-who__row fsl-who__row--radio ${isSelected ? 'fsl-who__row--selected' : ''}`}
+                      onClick={() => setSelectedId(person.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          setSelectedId(person.id);
+                        }
+                      }}
                     >
                       <Avatar name={person.name} />
                       <div className="fsl-who__row-info">
                         <div className="fsl-who__row-name">{person.name}</div>
-                        <div className="fsl-who__row-sub">
-                          {t('who.memberHint', { name: person.name })}
-                        </div>
+                        {person.lastUsedHere && (
+                          <div className="fsl-who__row-sub">
+                            {t('who.lastUsedHere')}
+                          </div>
+                        )}
+                        {person.activeElsewhere && (
+                          <div className="fsl-who__row-sub">
+                            {t('who.activeElsewhere', {
+                              ago: formatAgo(person.activeElsewhere),
+                            })}
+                          </div>
+                        )}
                       </div>
-                    </a>
+                      {person.status === 'pending' && (
+                        <Pill tone="warning">{t('who.pending')}</Pill>
+                      )}
+                    </button>
                   );
-                }
-
-                const isSelected = selectedId === person.id;
-
-                return (
-                  <button
-                    key={person.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    className={`fsl-who__row fsl-who__row--radio ${isSelected ? 'fsl-who__row--selected' : ''}`}
-                    onClick={() => setSelectedId(person.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === ' ' || e.key === 'Enter') {
-                        e.preventDefault();
-                        setSelectedId(person.id);
-                      }
-                    }}
-                  >
-                    <Avatar name={person.name} />
-                    <div className="fsl-who__row-info">
-                      <div className="fsl-who__row-name">{person.name}</div>
-                      {person.lastUsedHere && (
-                        <div className="fsl-who__row-sub">
-                          {t('who.lastUsedHere')}
-                        </div>
-                      )}
-                      {person.activeElsewhere && (
-                        <div className="fsl-who__row-sub">
-                          {t('who.activeElsewhere', {
-                            ago: formatAgo(person.activeElsewhere),
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    {person.status === 'pending' && (
-                      <Pill tone="warning">{t('who.pending')}</Pill>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                })}
+              </div>
+            )}
 
             <div className="fsl-who__actions">
-              {actionError ? <InlineError error={actionError} /> : null}
-              <Button
-                variant="primary"
-                block
-                disabled={!selectedId || isSubmitting}
-                onClick={() => selectedId && handlePickPerson(selectedId)}
-              >
-                {selectedPerson
-                  ? t('who.continueAs', { name: selectedPerson.name })
-                  : t('common.continue')}
-              </Button>
-
-              <div className="fsl-who__divider">{t('who.notOnList')}</div>
-
-              <Button
-                variant="secondary"
-                block
-                onClick={() => {
-                  setStep('new');
-                  setActionError(null);
-                }}
-              >
-                {t('who.someoneNew')}
-              </Button>
+              {noMatch ? (
+                <Button variant="secondary" block onClick={handleAddNamed}>
+                  {t('who.addNamed', { name: query.trim() })}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  block
+                  onClick={() => {
+                    setStep('new');
+                    setActionError(null);
+                  }}
+                >
+                  {t('who.someoneNew')}
+                </Button>
+              )}
             </div>
           </div>
         ) : (
