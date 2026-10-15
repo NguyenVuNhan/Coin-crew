@@ -3,11 +3,9 @@
 export const en = {
   'common.retry': 'Try again',
   'common.cancel': 'Cancel',
-  'common.save': 'Save',
   'common.continue': 'Continue',
   'common.back': 'Back',
   'common.close': 'Close',
-  'common.loading': 'Loading…',
   'common.undo': 'Undo',
 
   'error.generic': 'Something went wrong. Try again.',
@@ -34,7 +32,6 @@ export const en = {
   'who.yesIm': "Yes, I'm {name}", // SPEC
   'who.noAddMe': 'No, add me', // SPEC
 
-  'expenses.empty': 'No expenses yet. Add the first one.', // SPEC
   'expenses.disabledBy': 'Disabled by {name}', // SPEC
   'expense.sendForApproval': 'Send for approval', // SPEC
 
@@ -123,10 +120,6 @@ export const en = {
 
   'guest.viewingAs': 'Viewing as {name}',
   'guest.switch': 'Not {name}? Switch',
-  'guest.youOwe': 'You owe {name}',
-  'guest.youreOwed': "You're owed",
-  'guest.settled': "You're all settled",
-  'guest.dropsTo': 'Drops to {amount} if your expenses are approved',
   'guest.ifApprovedOwe': "If your expenses are approved, you'll owe {amount}",
   'guest.ifApprovedOwed': "If your expenses are approved, you'll be owed {amount}",
   'guest.ifApprovedSettled': "If your expenses are approved, you'll be settled",
@@ -138,14 +131,12 @@ export const en = {
   'trip.total': 'Trip total {amount}',
   'trip.people': '{n} people',
   'trip.balances': 'Balances',
-  'trip.whoPaysWhom': 'Who pays whom',
   'trip.expenses': 'Expenses',
   'trip.addExpense': '+ Add expense',
   'trip.pays': '{from} → {to}',
   'trip.viewOnly': 'View only',
   'trip.you': 'You',
   'trip.allSettled': 'Everyone is settled up.',
-  'trip.waitingConfirm': '{amount} waiting for {name} to confirm',
 
   'expense.youPaid': 'You paid',
   'expense.personPaid': '{name} paid',
@@ -251,7 +242,6 @@ export const en = {
 
   'whoPays.remindCopied': 'Reminder copied — paste it in your chat.',
   'whoPays.paid': 'Paid ✓',
-  'whoPays.received': 'Received',
 
   'transfers.mine': 'Your transfers',
   'transfers.all': 'Who pays whom',
@@ -269,10 +259,8 @@ export const en = {
   'payments.title': 'Payments',
   'payments.disable': 'Disable',
   'payments.enable': 'Enable',
-  'payments.didntArrive': "Didn't arrive",
   'payments.reported': 'Reported. A member will check it.',
   'payments.notArrivedPill': "Didn't arrive",
-  'guest.paysYou': 'Who pays you',
   'remind.text': 'Hi {name}! You still owe {creditor} {amount} for "{trip}". See details and pay with VietQR: {link}',
 
   'expenses.disable': 'Disable',

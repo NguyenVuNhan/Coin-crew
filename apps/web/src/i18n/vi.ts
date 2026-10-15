@@ -3,11 +3,9 @@ import type { MessageKey } from './en';
 export const vi: Record<MessageKey, string> = {
   'common.retry': 'Thử lại', // REVIEW
   'common.cancel': 'Hủy', // REVIEW
-  'common.save': 'Lưu', // REVIEW
   'common.continue': 'Tiếp tục', // REVIEW
   'common.back': 'Quay lại', // REVIEW
   'common.close': 'Đóng', // REVIEW
-  'common.loading': 'Đang tải…', // REVIEW
   'common.undo': 'Hoàn tác', // REVIEW
 
   'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
@@ -34,7 +32,6 @@ export const vi: Record<MessageKey, string> = {
   'who.yesIm': 'Đúng, tôi là {name}', // REVIEW
   'who.noAddMe': 'Không, thêm tôi vào', // REVIEW
 
-  'expenses.empty': 'Chưa có khoản chi nào. Hãy thêm khoản đầu tiên.', // REVIEW
   'expenses.disabledBy': 'Đã bị vô hiệu hóa bởi {name}', // REVIEW
   'expense.sendForApproval': 'Gửi để duyệt', // REVIEW
 
@@ -123,10 +120,6 @@ export const vi: Record<MessageKey, string> = {
 
   'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
   'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
-  'guest.youOwe': 'Bạn cần trả {name}', // REVIEW
-  'guest.youreOwed': 'Bạn được nhận', // REVIEW
-  'guest.settled': 'Bạn đã thanh toán hết', // REVIEW
-  'guest.dropsTo': 'Giảm xuống {amount} nếu các khoản chi của bạn được duyệt', // REVIEW
   'guest.ifApprovedOwe': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ cần trả {amount}', // REVIEW
   'guest.ifApprovedOwed': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ được nhận {amount}', // REVIEW
   'guest.ifApprovedSettled': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ thanh toán hết', // REVIEW
@@ -138,14 +131,12 @@ export const vi: Record<MessageKey, string> = {
   'trip.total': 'Tổng chuyến đi {amount}', // REVIEW
   'trip.people': '{n} người', // REVIEW
   'trip.balances': 'Số dư', // REVIEW
-  'trip.whoPaysWhom': 'Ai trả ai', // REVIEW
   'trip.expenses': 'Khoản chi', // REVIEW
   'trip.addExpense': '+ Thêm khoản chi', // REVIEW
   'trip.pays': '{from} → {to}', // REVIEW
   'trip.viewOnly': 'Chỉ xem', // REVIEW
   'trip.you': 'Bạn', // REVIEW
   'trip.allSettled': 'Mọi người đã thanh toán hết.', // REVIEW
-  'trip.waitingConfirm': '{amount} đang chờ {name} xác nhận', // REVIEW
 
   'expense.youPaid': 'Bạn đã trả', // REVIEW
   'expense.personPaid': '{name} đã trả', // REVIEW
@@ -251,7 +242,6 @@ export const vi: Record<MessageKey, string> = {
 
   'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
   'whoPays.paid': 'Đã trả ✓', // REVIEW
-  'whoPays.received': 'Đã nhận', // REVIEW
 
   'transfers.mine': 'Khoản chuyển của bạn', // REVIEW
   'transfers.all': 'Ai trả ai', // REVIEW
@@ -269,10 +259,8 @@ export const vi: Record<MessageKey, string> = {
   'payments.title': 'Các khoản đã trả', // REVIEW
   'payments.disable': 'Tắt', // REVIEW
   'payments.enable': 'Bật lại', // REVIEW
-  'payments.didntArrive': 'Chưa nhận được', // REVIEW
   'payments.reported': 'Đã báo. Một thành viên sẽ kiểm tra.', // REVIEW
   'payments.notArrivedPill': 'Chưa nhận được', // REVIEW
-  'guest.paysYou': 'Ai trả cho bạn', // REVIEW
   'remind.text': 'Chào {name}! Bạn còn {amount} cần trả {creditor} cho chuyến "{trip}". Xem chi tiết và chuyển khoản bằng VietQR: {link}', // REVIEW
 
   'expenses.disable': 'Vô hiệu hóa', // REVIEW
