@@ -186,6 +186,23 @@ describe('transaction details', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^Lẩu gà lá é/ })).toHaveFocus());
   });
 
+  it('Esc while typing a reject reason keeps the wide panel and the text', async () => {
+    mockMedia({ wide: true });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': memberViewWithChiPending() });
+    renderAt(<App />, { route: '/t/t-1/expenses/e-5' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Reject' }));
+    const reason = screen.getByLabelText('Why are you rejecting it?');
+    await userEvent.type(reason, 'Not ours');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-5');
+    expect(screen.getByLabelText('Why are you rejecting it?')).toHaveValue('Not ours');
+    // Outside the field Esc still closes the panel.
+    await userEvent.tab();
+    expect(reason).not.toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+  });
+
   it('switching rows on a wide screen keeps closing one step away from the list', async () => {
     mockMedia({ wide: true });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });

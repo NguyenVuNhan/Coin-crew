@@ -34,6 +34,8 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
       if (e.key !== 'Escape' || e.defaultPrevented) return;
       // A sheet open on top (Invite) handles its own Esc.
       if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return;
+      // Esc in a field (a reject reason being typed) belongs to the field: closing would lose the text.
+      if (isEditable(e.target)) return;
       close();
     };
     document.addEventListener('keydown', onKeyDown);
@@ -63,6 +65,11 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
       )}
     </section>
   );
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') !== null;
 }
 
 /**
