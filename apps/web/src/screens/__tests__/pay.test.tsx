@@ -383,7 +383,8 @@ describe('PayScreen', () => {
     api(payInfo());
     renderAt(<PayScreen />, payRoute);
     expect(await screen.findByRole('button', { name: "I've paid" })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /VietQR code to pay Minh/ })).toBeInTheDocument();
+    // The QR image arrives after the button: it is drawn asynchronously.
+    expect(await screen.findByRole('img', { name: /VietQR code to pay Minh/ })).toBeInTheDocument();
     expect(screen.getByText('Tap after the money has left your account.')).toBeInTheDocument();
     expect(document.querySelector('.fsl-bottom-bar')).toBeNull();
   });
