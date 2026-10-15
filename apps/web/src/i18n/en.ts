@@ -8,6 +8,7 @@ export const en = {
   'common.back': 'Back',
   'common.close': 'Close',
   'common.loading': 'Loading…',
+  'common.undo': 'Undo',
 
   'error.generic': 'Something went wrong. Try again.',
   'error.dailyLimit': "We're over today's free limit. Try again after 07:00.", // SPEC
@@ -235,6 +236,14 @@ export const en = {
   'transfers.showAll': 'Show all',
   'transfers.showMine': 'Show mine',
   'transfers.addBank': 'Add your bank details to get a QR code',
+  'transfers.markReceived': 'Mark {amount} from {name} as received',
+  'transfers.markPaid': 'Mark {amount} to {name} as paid',
+  'transfers.received': 'Received',
+  'transfers.paid': "I've paid",
+  'transfers.receivedSnack': '{name} paid {amount}',
+  'transfers.paidSnack': 'You paid {name} {amount}',
+  'transfers.waitingFor': 'Waiting for {name}',
+  'transfers.nothingDue': "{name} doesn't owe you anything right now.",
   'payments.title': 'Payments',
   'payments.disable': 'Disable',
   'payments.enable': 'Enable',

@@ -8,6 +8,7 @@ export const vi: Record<MessageKey, string> = {
   'common.back': 'Quay lại', // REVIEW
   'common.close': 'Đóng', // REVIEW
   'common.loading': 'Đang tải…', // REVIEW
+  'common.undo': 'Hoàn tác', // REVIEW
 
   'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
   'error.dailyLimit': 'Đã vượt giới hạn miễn phí hôm nay. Thử lại sau 07:00.', // REVIEW
@@ -235,6 +236,14 @@ export const vi: Record<MessageKey, string> = {
   'transfers.showAll': 'Xem tất cả', // REVIEW
   'transfers.showMine': 'Chỉ của tôi', // REVIEW
   'transfers.addBank': 'Thêm thông tin ngân hàng để có mã QR', // REVIEW
+  'transfers.markReceived': 'Đánh dấu đã nhận {amount} từ {name}', // REVIEW
+  'transfers.markPaid': 'Đánh dấu đã trả {amount} cho {name}', // REVIEW
+  'transfers.received': 'Đã nhận', // REVIEW
+  'transfers.paid': 'Tôi đã trả', // REVIEW
+  'transfers.receivedSnack': '{name} đã trả {amount}', // REVIEW
+  'transfers.paidSnack': 'Bạn đã trả {name} {amount}', // REVIEW
+  'transfers.waitingFor': 'Đang chờ {name}', // REVIEW
+  'transfers.nothingDue': '{name} hiện không nợ bạn khoản nào.', // REVIEW
   'payments.title': 'Các khoản đã trả', // REVIEW
   'payments.disable': 'Tắt', // REVIEW
   'payments.enable': 'Bật lại', // REVIEW

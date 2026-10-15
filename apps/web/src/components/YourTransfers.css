@@ -81,6 +81,74 @@
   border-bottom: 0;
 }
 
+.fsl-transfers .fsl-action-row__leading {
+  padding-left: var(--space-2);
+}
+
+.fsl-transfers .fsl-action-row__leading + .fsl-action-row__main {
+  padding-left: var(--space-3);
+}
+
+.fsl-transfers__tick {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  color: var(--color-success);
+}
+
+.fsl-transfers__tick:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-transfers__tick[aria-disabled='true'] {
+  cursor: default;
+}
+
+.fsl-transfers__tick-circle {
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-text-subtle);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-transfers__tick:hover .fsl-transfers__tick-circle {
+  border-color: var(--color-success);
+}
+
+.fsl-transfers__tick--done .fsl-transfers__tick-circle {
+  background-color: var(--color-success-soft);
+  border-color: var(--color-success);
+}
+
+.fsl-transfers__tick-space {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fsl-transfers__tick-space--waiting {
+  color: var(--color-warning);
+}
+
 .fsl-transfers__plain {
   display: flex;
   align-items: center;
@@ -104,6 +172,36 @@
 .fsl-transfers__plain .fsl-transfers__text {
   font-weight: var(--weight-regular);
   color: var(--color-text-muted);
+}
+
+.fsl-transfers__text--done {
+  color: var(--color-text-muted);
+}
+
+.fsl-transfers__plain--aligned {
+  padding-left: calc(var(--space-2) + 44px + var(--space-3));
+}
+
+.fsl-transfers__plain--waiting {
+  padding-left: var(--space-2);
+}
+
+.fsl-transfers__text-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fsl-transfers__text-block .fsl-transfers__text {
+  flex: none;
+}
+
+.fsl-transfers__sub {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-warning);
 }
 
 .fsl-transfers__chevron {
@@ -144,6 +242,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fsl-transfers__chip-pill {
+    transition: none;
+  }
+
+  .fsl-transfers__tick-circle {
     transition: none;
   }
 }

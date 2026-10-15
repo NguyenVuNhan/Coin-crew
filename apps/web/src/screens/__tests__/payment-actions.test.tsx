@@ -17,16 +17,21 @@ const payment = (p: Partial<PaymentView> & Pick<PaymentView, 'id' | 'fromId' | '
 });
 
 describe('member: payment actions (spec §9.4)', () => {
-  // Task 10: Your transfers no longer has a Received button on its rows. Task 11 brings this back as the tick circle
-  // (a guest paying me) and rewrites this test with it.
-  it.skip('marks money as received without waiting for a claim', async () => {
+  it('marks money as received without waiting for a claim', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
     const { calls } = mockApi({
       'GET /api/trips/t-1': tripView(), 'GET /api/trips/t-1/version': { version: 3 },
       'POST /api/trips/t-1/payments': () => Response.json({ paymentId: 'pay-9', status: 'confirmed' }, { status: 201 }),
     });
     renderAt(<TripRoute />, route);
-    const row = await screen.findByTestId(`who-pays-${PIDS.C}-${PIDS.M}`);
-    await userEvent.click(within(row).getByRole('button', { name: 'Received' }));
+    const row = await screen.findByTestId(`transfer-${PIDS.C}-${PIDS.M}`);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(within(row).getByRole('button', { name: 'Mark 1.245.000₫ from Chi as received' }));
+    // Recorded once Undo has had its 5 seconds.
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
     await waitFor(() => expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 1245000 }));
   });
 

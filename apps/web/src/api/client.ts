@@ -96,6 +96,8 @@ export function apiSend<T>(
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body?: unknown,
   tripId?: string,
+  /** `keepalive` lets the request finish after the page is closed or left (a tick sent on the way out). */
+  opts?: { keepalive?: boolean },
 ): Promise<T> {
   const headers = new Headers();
   let bodyStr: string | undefined;
@@ -108,5 +110,6 @@ export function apiSend<T>(
     headers,
     body: bodyStr,
     tripId,
+    ...(opts?.keepalive ? { keepalive: true } : {}),
   });
 }

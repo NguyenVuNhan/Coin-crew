@@ -22,6 +22,7 @@ export function ActionRow({
   onOpen,
   selected,
   expanded,
+  controls,
   leading,
   hintable,
   children,
@@ -32,6 +33,8 @@ export function ActionRow({
   selected?: boolean;
   /** For a row that opens its content in place instead of going elsewhere: sets `aria-expanded` on the row's button. */
   expanded?: boolean;
+  /** Id of the content the row opens in place, set as `aria-controls` while it is shown. */
+  controls?: string;
   leading?: ReactNode;
   hintable?: boolean;
   children: ReactNode;
@@ -105,6 +108,7 @@ export function ActionRow({
             aria-label={label}
             aria-current={selected || undefined}
             aria-expanded={expanded}
+            aria-controls={controls}
             onClick={() => (swipe.open ? swipe.close() : onOpen?.())}
           >
             {children}

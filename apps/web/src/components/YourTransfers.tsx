@@ -1,10 +1,13 @@
-import { useEffect, useState, type JSX } from 'react';
-import { formatVnd, type Transfer, type TripView } from '@fsl/core';
+import { useEffect, useId, useRef, useState, type JSX } from 'react';
+import { formatVnd, type PaymentView, type Transfer, type TripView } from '@fsl/core';
 import { useT, getLang } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { groupLink, remind, remindText } from '../lib/remind';
 import { usePayInfo } from '../api/payInfo';
-import { ActionRow } from './ActionRow';
+import { useIsCoarsePointer } from '../lib/media';
+import { usePendingPayment, type PendingPayment } from '../lib/usePendingPayment';
+import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { ActionRow, type RowAction } from './ActionRow';
 import { Amount } from './Amount';
 import { Avatar } from './Avatar';
 import { Button } from './Button';
@@ -12,6 +15,7 @@ import { Icon } from './icons';
 import { InlineError } from './InlineError';
 import { PayQr } from './PayQr';
 import { Skeleton } from './Skeleton';
+import { Snackbar } from './Snackbar';
 import './YourTransfers.css';
 
 /** In-place detail for an open transfer row, showing QR code or bank status. */
@@ -57,6 +61,9 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
           {t('transfers.addBank')}
         </Button>
       );
+    }
+    if (info.amount === 0 || info.payload === null) {
+      return <p className="fsl-transfers__note">{t('transfers.nothingDue', { name: nameOf(view, row.fromId) })}</p>;
     }
     return (
       <PayQr
@@ -104,6 +111,10 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
     return <p className="fsl-transfers__note">{t('pay.waitingConfirm', { name: info.to.name })}</p>;
   }
 
+  if (info.amount === 0 || info.payload === null) {
+    return <p className="fsl-transfers__note">{t('pay.nothingOwed', { name: info.to.name })}</p>;
+  }
+
   return <PayQr info={info} variant="pay" />;
 }
 
@@ -147,8 +158,50 @@ export function YourTransfers({ view }: { view: TripView }): JSX.Element {
 
   const title = effectiveMode === 'mine' ? t('transfers.mine') : t('transfers.all');
 
+  const coarse = useIsCoarsePointer();
+  const uid = useId();
+  const sectionRef = useRef<HTMLElement>(null);
+  const { pending, sending, error, schedule, undo } = usePendingPayment(view.trip.id);
+
+  // Ticks confirm that money moved: only for someone who can record payments right now.
+  const canTick = me !== null && !view.trip.archived && view.me.kind !== 'viewer' && !view.me.participantPending;
+  const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
+  /** A guest paying me ('received') or my own debt ('paid'). A member paying me marks it themselves, so no tick. */
+  const tickOf = (s: Transfer): 'received' | 'paid' | null => {
+    if (!canTick) return null;
+    if (s.toId === me && !isMember(s.fromId)) return 'received';
+    if (s.fromId === me) return 'paid';
+    return null;
+  };
+  const samePair = (p: PendingPayment, s: Transfer) => p.fromId === s.fromId && p.toId === s.toId;
+
+  // My "says paid" payments leave the suggestions until the receiver confirms them: show them as waiting rows.
+  const waiting: PaymentView[] = me === null ? [] : view.payments.filter((p) => p.status === 'says_paid' && p.fromId === me);
+  // When any row has a tick (or a waiting clock), the other rows keep the same space so the initials line up.
+  const aligned = waiting.length > 0 || rows.some((s) => tickOf(s) !== null);
+
+  const undoAndFocus = () => {
+    const p = pending;
+    undo();
+    if (p) sectionRef.current?.querySelector<HTMLElement>(`[data-tick="${p.fromId}>${p.toId}"]`)?.focus();
+  };
+
+  const snackbar = pending ? (
+    <Snackbar
+      message={
+        pending.fromId === me
+          ? t('transfers.paidSnack', { name: nameOf(view, pending.toId), amount: formatVnd(pending.amount) })
+          : t('transfers.receivedSnack', { name: nameOf(view, pending.fromId), amount: formatVnd(pending.amount) })
+      }
+      actionLabel={t('common.undo')}
+      onAction={undoAndFocus}
+    />
+  ) : error !== null ? (
+    <Snackbar message={t('error.generic')} />
+  ) : null;
+
   return (
-    <section className="fsl-transfers" aria-label={title}>
+    <section ref={sectionRef} className="fsl-transfers" aria-label={title}>
       <div className="fsl-transfers__top">
         <h2 className="fsl-transfers__title">{title}</h2>
         {me !== null && view.suggestions.length > 0 && (
@@ -160,55 +213,114 @@ export function YourTransfers({ view }: { view: TripView }): JSX.Element {
         )}
       </div>
 
-      {view.suggestions.length === 0 ? (
+      {view.suggestions.length === 0 && waiting.length === 0 ? (
         <p className="fsl-transfers__empty">{t('trip.allSettled')}</p>
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && waiting.length === 0 ? (
         <p className="fsl-transfers__empty">{t('balance.settled')}</p>
       ) : (
-        <ul className="fsl-transfers__list">
-          {rows.map((s) => {
-            const key = keyOf(s);
-            const isOpen = openRow !== null && key === keyOf(openRow);
-            const involves = involvesMe(s);
-            const rowTitle = t('trip.pays', { from: label(s.fromId), to: label(s.toId) });
+        <SwipeGroupProvider>
+          <ul className="fsl-transfers__list">
+            {rows.map((s) => {
+              const key = keyOf(s);
+              const isOpen = openRow !== null && key === keyOf(openRow);
+              const involves = involvesMe(s);
+              const rowTitle = t('trip.pays', { from: label(s.fromId), to: label(s.toId) });
 
-            return (
-              <li key={key} className="fsl-transfers__item" data-testid={'transfer-' + s.fromId + '-' + s.toId}>
-                {involves ? (
-                  <>
-                    <ActionRow
-                      label={rowTitle + ', ' + formatVnd(s.amount)}
-                      actions={[]}
-                      expanded={isOpen}
-                      onOpen={() => setOpenKey(isOpen ? null : key)}
-                    >
-                      <Avatar name={label(s.fromId)} size="sm" />
+              const kind = tickOf(s);
+              const isPending = pending !== null && samePair(pending, s);
+              const isSending = sending.some((p) => samePair(p, s));
+              const done = isPending || isSending;
+              const detailId = `${uid}-detail-${s.fromId}-${s.toId}`;
+              const confirm = () => schedule({ fromId: s.fromId, toId: s.toId, amount: s.amount });
+              const tickLabel =
+                kind === 'received'
+                  ? t('transfers.markReceived', { amount: formatVnd(s.amount), name: nameOf(view, s.fromId) })
+                  : t('transfers.markPaid', { amount: formatVnd(s.amount), name: nameOf(view, s.toId) });
+              const leading =
+                kind !== null ? (
+                  <button
+                    type="button"
+                    className={`fsl-transfers__tick${done ? ' fsl-transfers__tick--done' : ''}`}
+                    aria-label={tickLabel}
+                    title={tickLabel}
+                    aria-pressed={done}
+                    aria-disabled={isSending || undefined}
+                    data-tick={key}
+                    onClick={() => {
+                      if (isSending) return; // already on its way: never undo or record it twice
+                      if (isPending) undo();
+                      else confirm();
+                    }}
+                  >
+                    <span className="fsl-transfers__tick-circle" aria-hidden="true">
+                      {done && <Icon name="check" size={14} />}
+                    </span>
+                  </button>
+                ) : aligned ? (
+                  <span className="fsl-transfers__tick-space" aria-hidden="true" />
+                ) : undefined;
+              // Phones: the same confirmation behind a swipe. Not while it is ticked, so it can't be sent twice.
+              const actions: RowAction[] =
+                coarse && kind !== null && !done
+                  ? [{ id: 'confirm', label: t(kind === 'received' ? 'transfers.received' : 'transfers.paid'), icon: 'check', tone: 'success', onSelect: confirm }]
+                  : [];
+
+              return (
+                <li key={key} className="fsl-transfers__item" data-testid={'transfer-' + s.fromId + '-' + s.toId}>
+                  {involves ? (
+                    <>
+                      <ActionRow
+                        label={rowTitle + ', ' + formatVnd(s.amount)}
+                        actions={actions}
+                        expanded={isOpen}
+                        controls={isOpen ? detailId : undefined}
+                        leading={leading}
+                        onOpen={() => setOpenKey(isOpen ? null : key)}
+                      >
+                        <Avatar name={nameOf(view, s.fromId)} size="sm" />
+                        <span className={`fsl-transfers__text${done ? ' fsl-transfers__text--done' : ''}`}>{rowTitle}</span>
+                        <Amount value={s.amount} />
+                        <Icon
+                          name={isOpen ? 'chevronUp' : 'chevronDown'}
+                          size={20}
+                          className="fsl-transfers__chevron"
+                        />
+                      </ActionRow>
+                      {isOpen && (
+                        <div className="fsl-transfers__detail" id={detailId}>
+                          <TransferDetail view={view} row={openRow} />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className={`fsl-transfers__plain${aligned ? ' fsl-transfers__plain--aligned' : ''}`}>
+                      <Avatar name={nameOf(view, s.fromId)} size="sm" />
                       <span className="fsl-transfers__text">{rowTitle}</span>
                       <Amount value={s.amount} />
-                      <Icon
-                        name={isOpen ? 'chevronUp' : 'chevronDown'}
-                        size={20}
-                        className="fsl-transfers__chevron"
-                      />
-                    </ActionRow>
-                    {isOpen && (
-                      <div className="fsl-transfers__detail">
-                        <TransferDetail view={view} row={openRow} />
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="fsl-transfers__plain">
-                    <Avatar name={label(s.fromId)} size="sm" />
-                    <span className="fsl-transfers__text">{rowTitle}</span>
-                    <Amount value={s.amount} />
-                  </div>
-                )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+            {waiting.map((p) => (
+              <li key={p.id} className="fsl-transfers__item" data-testid={'waiting-' + p.id}>
+                <div className="fsl-transfers__plain fsl-transfers__plain--waiting">
+                  <span className="fsl-transfers__tick-space fsl-transfers__tick-space--waiting" aria-hidden="true">
+                    <Icon name="clock" size={18} />
+                  </span>
+                  <Avatar name={nameOf(view, p.fromId)} size="sm" />
+                  <span className="fsl-transfers__text-block">
+                    <span className="fsl-transfers__text">{t('trip.pays', { from: label(p.fromId), to: label(p.toId) })}</span>
+                    <span className="fsl-transfers__sub">{t('transfers.waitingFor', { name: nameOf(view, p.toId) })}</span>
+                  </span>
+                  <Amount value={p.amountClaimed} />
+                </div>
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        </SwipeGroupProvider>
       )}
+      {snackbar}
     </section>
   );
 }
