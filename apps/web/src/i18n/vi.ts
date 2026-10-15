@@ -123,6 +123,9 @@ export const vi: Record<MessageKey, string> = {
   'guest.youreOwed': 'Bạn được nhận', // REVIEW
   'guest.settled': 'Bạn đã thanh toán hết', // REVIEW
   'guest.dropsTo': 'Giảm xuống {amount} nếu các khoản chi của bạn được duyệt', // REVIEW
+  'guest.ifApprovedOwe': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ cần trả {amount}', // REVIEW
+  'guest.ifApprovedOwed': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ được nhận {amount}', // REVIEW
+  'guest.ifApprovedSettled': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ thanh toán hết', // REVIEW
   'guest.yourShare': 'Cách tính phần của bạn', // REVIEW
   'guest.yourTotal': 'Tổng của bạn', // REVIEW
   'guest.becomeMember': 'Đăng nhập bằng Google để trở thành thành viên', // REVIEW
@@ -187,6 +190,7 @@ export const vi: Record<MessageKey, string> = {
 
   'balance.owed': 'Bạn được nhận', // REVIEW
   'balance.owe': 'Bạn cần trả', // REVIEW
+  'balance.oweName': 'Bạn cần trả {name}', // REVIEW
   'balance.settled': 'Bạn đã thanh toán xong', // REVIEW
   'balance.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
   'balance.received': 'đã nhận {amount}', // REVIEW
@@ -201,6 +205,7 @@ export const vi: Record<MessageKey, string> = {
 
   'expenses.emptyTitle': 'Thêm khoản chi đầu tiên', // REVIEW
   'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.', // REVIEW
+  'expenses.emptyViewer': 'Chưa có khoản chi nào.', // REVIEW
 
   'approvals.title': 'Cần duyệt', // REVIEW
   'approvals.allTitle': 'Đang chờ duyệt', // REVIEW

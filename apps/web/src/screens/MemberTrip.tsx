@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
-import { useBackToTrip, useOpenDetails } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
@@ -13,94 +12,21 @@ import { YourTransfers } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
-import { ExpenseDetails } from '../components/ExpenseDetails';
-import { PaymentDetails } from '../components/PaymentDetails';
 import type { Selection } from './TripRoute';
-import { ApprovalList } from './Approvals';
+import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import './MemberTrip.css';
-
-type Detail = Exclude<Selection, { kind: 'approvals' }>;
-
-/**
- * The wide screen's right panel showing one expense or payment, or the full approvals list. Not modal: it takes
- * focus when it opens, × and Esc close it (back in history, or to the trip for a shared link), and nothing else is trapped.
- */
-function DetailsPanel({ view, selection }: { view: TripView; selection: Selection }) {
-  const t = useT();
-  const close = useBackToTrip(view.trip.id);
-  const panel = useRef<HTMLElement>(null);
-  const label = selection.kind === 'expense' ? t('details.expense') : selection.kind === 'payment' ? t('details.payment') : t('approvals.allTitle');
-  const selectedId = selection.kind === 'approvals' ? null : selection.id;
-
-  useEffect(() => {
-    const el = panel.current;
-    (el?.querySelector<HTMLElement>('h2') ?? el)?.focus();
-  }, [selection.kind, selectedId]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
-      // A sheet open on top (Invite) handles its own Esc.
-      if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return;
-      close();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [close]);
-
-  return (
-    <section
-      ref={panel}
-      tabIndex={-1}
-      className="fsl-member__panel"
-      aria-label={label}
-    >
-      <div className="fsl-member__panel-head">
-        <span className="fsl-member__panel-kind">{label}</span>
-        <button type="button" className="fsl-member__panel-close" aria-label={t('common.close')} title={t('common.close')} onClick={close}>
-          <Icon name="x" size={20} />
-        </button>
-      </div>
-      {/* Keyed by id so a reject reason or an error never carries over to the next row. */}
-      {selection.kind === 'expense' ? (
-        <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={close} />
-      ) : selection.kind === 'payment' ? (
-        <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={close} />
-      ) : (
-        <ApprovalList view={view} onClose={close} switching />
-      )}
-    </section>
-  );
-}
 
 /** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
-  const openDetails = useOpenDetails(view.trip.id);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const opener = useRef<HTMLElement | null>(null);
 
   const tripId = view.trip.id;
   const archived = view.trip.archived;
   const hasExpenses = view.expenses.length > 0;
   const canInvite = !archived && view.links !== null;
-  const detail: Detail | null = selection && selection.kind !== 'approvals' ? selection : null;
-  const detailKey = detail ? `${detail.kind}/${detail.id}` : null;
-
-  function open(kind: Detail['kind'], id: string) {
-    if (detail?.kind === kind && detail.id === id) return;
-    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    // The wide panel shows one thing at a time (details or the approvals list): switching replaces the entry, so × is one step from the list.
-    openDetails(kind, id, selection !== null);
-  }
-
-  // When the panel closes, focus goes back to the row that opened it.
-  const lastDetail = useRef(detailKey);
-  useEffect(() => {
-    if (lastDetail.current !== null && detailKey === null && opener.current?.isConnected) opener.current.focus();
-    lastDetail.current = detailKey;
-  }, [detailKey]);
+  const { detail, open } = useDetailsSelection(tripId, selection);
 
   const addLink = (block: boolean, variant: 'primary' | 'secondary' = 'primary') =>
     archived ? undefined : (

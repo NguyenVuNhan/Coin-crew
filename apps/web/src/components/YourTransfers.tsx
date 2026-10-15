@@ -180,6 +180,12 @@ export function YourTransfers({ view }: { view: TripView }): JSX.Element {
   // When any row has a tick (or a waiting clock), the other rows keep the same space so the initials line up.
   const aligned = waiting.length > 0 || rows.some((s) => tickOf(s) !== null);
 
+  // A new version of the trip can take the ticked transfer away while Undo is on offer (the other side recorded it, or
+  // claimed it). Sending the tick then would count the money twice: cancel it, and its snackbar goes with it.
+  useEffect(() => {
+    if (pending !== null && !view.suggestions.some((s) => samePair(pending, s))) undo();
+  }, [pending, view.suggestions, undo]);
+
   const undoAndFocus = () => {
     const p = pending;
     undo();

@@ -74,12 +74,10 @@ export function TripRoute() {
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
 
-  // Phones show the details, and the approvals list, as a page of their own; from 1024px the member page shows
-  // them in its right panel (it takes `selection`). The guest and view-only pages get their panel in Task 12;
-  // until then they use the page too (the approvals list is for members only).
-  const panel = wide && (!view || view.me.kind === 'member');
-  const detail = selection && selection.kind !== 'approvals' && !panel ? selection : null;
-  const approvalsPage = selection?.kind === 'approvals' && !panel;
+  // Phones show the details, and the approvals list, as a page of their own; from 1024px every trip page (member,
+  // guest and view-only) shows them in its right panel (it takes `selection`).
+  const detail = selection && selection.kind !== 'approvals' && !wide ? selection : null;
+  const approvalsPage = selection?.kind === 'approvals' && !wide;
   useListScroll(detail !== null ? 'details' : approvalsPage ? 'approvals' : 'list');
 
   useEffect(() => {

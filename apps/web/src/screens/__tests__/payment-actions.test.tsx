@@ -71,16 +71,25 @@ describe('guest: payments to me', () => {
   }
 
   it('marks a transfer as received and reports one that did not arrive', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
     const { calls } = mockApi({
       'GET /api/trips/t-1': chiIsOwed(), 'GET /api/trips/t-1/version': { version: 3 },
       'POST /api/trips/t-1/payments': () => Response.json({ paymentId: 'pay-9', status: 'confirmed' }, { status: 201 }),
       'POST /api/trips/t-1/payments/pay-3/not-arrived': null,
     });
     renderAt(<TripRoute />, route);
-    const paysYou = await screen.findByRole('region', { name: 'Who pays you' });
-    await userEvent.click(within(paysYou).getByRole('button', { name: 'Received' }));
+    // An owes the guest: Your transfers has a tick for it, in place of the old "Who pays you" section.
+    const row = await screen.findByTestId(`transfer-${PIDS.A}-${PIDS.C}`);
+    expect(screen.queryByRole('region', { name: 'Who pays you' })).toBeNull();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(within(row).getByRole('button', { name: 'Mark 200.000₫ from An as received' }));
+    expect(calls.some((c) => c.method === 'POST')).toBe(false); // Undo is on offer first
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
     await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/payments')?.body).toEqual({ fromId: PIDS.A, toId: PIDS.C, amount: 200000 }));
-    await userEvent.click(within(screen.getByTestId('payment-row-pay-3')).getByRole('button', { name: "Didn't arrive" }));
+    // A confirmed payment into the guest's account can still be reported as not arrived.
+    await user.click(within(screen.getByTestId('payment-row-pay-3')).getByRole('button', { name: "Didn't arrive" }));
     await waitFor(() => expect(calls.some((c) => c.path === '/api/trips/t-1/payments/pay-3/not-arrived')).toBe(true));
   });
 });

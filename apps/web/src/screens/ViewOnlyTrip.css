@@ -53,16 +53,3 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.fsl-view-only__pays-text {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  color: var(--color-text);
-}
-
-.fsl-view-only__settled {
-  padding: var(--space-4);
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}

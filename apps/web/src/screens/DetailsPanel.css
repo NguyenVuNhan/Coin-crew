@@ -1,0 +1,61 @@
+/* The wide right panel: one expense or payment. */
+.fsl-details-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fsl-details-panel:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.fsl-details-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.fsl-details-panel__kind {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+}
+
+.fsl-details-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  /* Only as far as the sticky column's own padding, or the column scrolls sideways. */
+  margin-right: calc(-1 * var(--space-1));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-details-panel__close:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.fsl-details-panel__close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-details-panel__close {
+    transition: none;
+  }
+}

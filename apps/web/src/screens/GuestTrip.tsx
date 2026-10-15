@@ -4,24 +4,29 @@ import type { TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
+import { useIsWide } from '../lib/media';
 import { nameOf, splitText } from '../lib/tripText';
-import { useOpenDetails } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Amount } from '../components/Amount';
-import { EmptyState } from '../components/EmptyState';
-import { ExpenseRow } from '../components/ExpenseRow';
+import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
+import { YourTransfers } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
-import { ReceivedButton } from '../components/ReceivedButton';
+import { ExpenseList } from '../components/ExpenseList';
+import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
+import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import './GuestTrip.css';
 
-export function GuestTrip({ view }: { view: TripView; selection?: Selection | null }) {
+export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
-  const openDetails = useOpenDetails(view.trip.id);
+  const wide = useIsWide();
+  const { detail, open } = useDetailsSelection(view.trip.id, selection);
+  const hasExpenses = view.expenses.length > 0;
+  const showsPay = hasExpenses && guestPayTarget(view) !== null && !(wide && detail !== null);
+
   const [searchParams] = useSearchParams();
   const becomeMemberParam = searchParams.get('becomeMember') === '1';
-
   const [memberRequested, setMemberRequested] = useState(false);
   const requestedRef = useRef(false);
 
@@ -48,14 +53,6 @@ export function GuestTrip({ view }: { view: TripView; selection?: Selection | nu
     }
   }, [becomeMemberParam, view.me.kind, myId, view.trip.id]);
 
-  const mySuggestions = myId
-    ? view.suggestions.filter((s) => s.fromId === myId)
-    : [];
-
-  const waitingPayments = myId
-    ? view.payments.filter((p) => p.status === 'says_paid' && p.fromId === myId)
-    : [];
-
   const approvedWithMyShare = myId
     ? view.expenses.filter(
         (e) =>
@@ -69,221 +66,160 @@ export function GuestTrip({ view }: { view: TripView; selection?: Selection | nu
     return sum + (share ? share.amount : 0);
   }, 0);
 
-  return (
-    <Screen title={view.trip.name} right={<LanguageButton />}>
-      <div className="fsl-guest">
-        <div className="fsl-guest__banner">
-          <span>{t('guest.viewingAs', { name: myName })}</span>
-          <span className="fsl-guest__banner-dot">·</span>
-          <Link
-            to={`/t/${view.trip.id}/who`}
-            className="fsl-guest__switch-link"
-          >
-            {t('guest.switch', { name: myName })}
-          </Link>
-        </div>
+  const addLink = (block: boolean) => (
+    <Link
+      to={`/t/${view.trip.id}/expenses/new`}
+      className={`fsl-button fsl-button--${showsPay ? 'secondary' : 'primary'}${block ? ' fsl-button--block' : ''}`}
+    >
+      {t('trip.addExpense')}
+    </Link>
+  );
 
-        {myBalance && (
-          <div className="fsl-guest__hero">
-            {myBalance.now < 0 ? (
-              mySuggestions.length > 0 ? (
-                mySuggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.toId}
-                    className="fsl-guest__hero-owe-block"
-                  >
-                    <div className="fsl-guest__hero-label">
-                      {t('guest.youOwe', {
-                        name: nameOf(view, suggestion.toId),
-                      })}
-                    </div>
-                    <Amount
-                      value={Math.abs(suggestion.amount)}
-                      tone="danger"
-                      size="xl"
-                    />
-                    <Link
-                      to={`/t/${view.trip.id}/pay/${suggestion.toId}`}
-                      className="fsl-button fsl-button--primary fsl-button--block"
-                    >
-                      {t('pay.payWithVietQr')}
-                    </Link>
+  const banner = (
+    <div className="fsl-guest__banner">
+      <span>{t('guest.viewingAs', { name: myName })}</span>
+      <span className="fsl-guest__banner-dot">·</span>
+      <Link
+        to={`/t/${view.trip.id}/who`}
+        className="fsl-guest__switch-link"
+      >
+        {t('guest.switch', { name: myName })}
+      </Link>
+    </div>
+  );
+
+  const balance = hasExpenses ? <BalanceCard view={view} /> : null;
+
+  const bankPrompt =
+    myBalance && myBalance.now > 0 && myPerson && myPerson.bank !== 'approved' ? (
+      <div className="fsl-notice fsl-notice--accent">
+        {myPerson.bank === 'pending' ? (
+          t('bankForm.pending')
+        ) : (
+          <>
+            <span>{t('bankForm.addPrompt')} </span>
+            <Link to={`/t/${view.trip.id}/bank`}>
+              {t('bankForm.title')}
+            </Link>
+          </>
+        )}
+      </div>
+    ) : null;
+
+  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} /> : null;
+
+  const payments = (hintable: boolean) => (
+    <PaymentsList
+      view={view}
+      selectedId={detail?.kind === 'payment' ? detail.id : undefined}
+      onOpen={(id) => open('payment', id)}
+      hintable={hintable}
+    />
+  );
+
+  const expenses = (hintable: boolean, inHeading: boolean) => (
+    <ExpenseList
+      view={view}
+      selectedId={detail?.kind === 'expense' ? detail.id : undefined}
+      onOpen={(id) => open('expense', id)}
+      hintable={hintable}
+      add={addLink(false)}
+      addInHeading={inHeading}
+    />
+  );
+
+  const share =
+    approvedWithMyShare.length > 0 ? (
+      <section className="fsl-guest__section">
+        <h2 className="fsl-section-heading">{t('guest.yourShare')}</h2>
+        <div className="fsl-card">
+          {approvedWithMyShare.map((e) => {
+            const myShare = e.shares.find((s) => s.participantId === myId)!;
+            const subline =
+              e.mode === 'equal'
+                ? `${formatVnd(e.amount)} ÷ ${e.shares.length}`
+                : splitText(e, t);
+            return (
+              <div key={e.id} className="fsl-guest__share-row">
+                <div className="fsl-guest__share-info">
+                  <div className="fsl-guest__share-desc">
+                    {e.description}
                   </div>
-                ))
-              ) : (
-                <div className="fsl-guest__hero-owe-block">
-                  <div className="fsl-guest__hero-label">
-                    {t('trips.youOwe')}
-                  </div>
-                  <Amount
-                    value={Math.abs(myBalance.now)}
-                    tone="danger"
-                    size="xl"
-                  />
+                  <div className="fsl-guest__share-sub">{subline}</div>
                 </div>
-              )
-            ) : myBalance.now > 0 ? (
-              <div className="fsl-guest__hero-owed-block">
-                <div className="fsl-guest__hero-label">
-                  {t('guest.youreOwed')}
-                </div>
-                <Amount value={myBalance.now} tone="success" size="xl" />
+                <Amount value={myShare.amount} />
               </div>
-            ) : (
-              <div className="fsl-guest__hero-settled">
-                {t('guest.settled')}
-              </div>
-            )}
-
-            {myBalance.ifPendingApproved !== null && (
-              <div className="fsl-guest__hero-sub">
-                {t('guest.dropsTo', {
-                  amount: formatVnd(Math.abs(myBalance.ifPendingApproved)),
-                })}
-              </div>
-            )}
-
-            {waitingPayments.map((p) => (
-              <div key={p.id} className="fsl-guest__hero-sub">
-                {t('trip.waitingConfirm', {
-                  amount: formatVnd(p.amountClaimed),
-                  name: nameOf(view, p.toId),
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {myBalance && myBalance.now > 0 && myPerson && myPerson.bank !== 'approved' && (
-          <div className="fsl-notice fsl-notice--accent">
-            {myPerson.bank === 'pending' ? (
-              t('bankForm.pending')
-            ) : (
-              <>
-                <span>{t('bankForm.addPrompt')} </span>
-                <Link to={`/t/${view.trip.id}/bank`}>
-                  {t('bankForm.title')}
-                </Link>
-              </>
-            )}
-          </div>
-        )}
-
-        {myId && view.suggestions.some((s) => s.toId === myId) && (
-          <section className="fsl-guest__section" aria-label={t('guest.paysYou')}>
-            <h2 className="fsl-section-heading">{t('guest.paysYou')}</h2>
-            <ul className="fsl-guest__pays-you">
-              {view.suggestions.filter((s) => s.toId === myId).map((s) => (
-                <li key={s.fromId} className="fsl-guest__pays-you-row">
-                  <span className="fsl-guest__pays-you-name">{nameOf(view, s.fromId)}</span>
-                  <Amount value={s.amount} tone="success" />
-                  <ReceivedButton view={view} fromId={s.fromId} amount={s.amount} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <PaymentsList view={view} onOpen={(id) => openDetails('payment', id)} />
-
-        <div className="fsl-guest__action">
-          <Link
-            to={`/t/${view.trip.id}/expenses/new`}
-            className="fsl-button fsl-button--primary fsl-button--block"
-          >
-            {t('trip.addExpense')}
-          </Link>
-        </div>
-
-        {approvedWithMyShare.length > 0 && (
-          <section className="fsl-guest__section">
-            <h2 className="fsl-section-heading">{t('guest.yourShare')}</h2>
-            <div className="fsl-card">
-              {approvedWithMyShare.map((e) => {
-                const myShare = e.shares.find((s) => s.participantId === myId)!;
-                const subline =
-                  e.mode === 'equal'
-                    ? `${formatVnd(e.amount)} ÷ ${e.shares.length}`
-                    : splitText(e, t);
-                return (
-                  <div key={e.id} className="fsl-guest__share-row">
-                    <div className="fsl-guest__share-info">
-                      <div className="fsl-guest__share-desc">
-                        {e.description}
-                      </div>
-                      <div className="fsl-guest__share-sub">{subline}</div>
-                    </div>
-                    <Amount value={myShare.amount} />
-                  </div>
-                );
-              })}
-              <div className="fsl-guest__share-row fsl-guest__share-row--total">
-                <span className="fsl-guest__share-total-label">
-                  {t('guest.yourTotal')}
-                </span>
-                <Amount
-                  value={totalMyShare}
-                  className="fsl-guest__share-total-amount"
-                />
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section className="fsl-guest__section">
-          <h2 className="fsl-section-heading">{t('trip.expenses')}</h2>
-          {view.expenses.length === 0 ? (
-            <EmptyState
-              title={t('expenses.empty')}
-              action={
-                <Link
-                  to={`/t/${view.trip.id}/expenses/new`}
-                  className="fsl-button fsl-button--primary"
-                >
-                  {t('trip.addExpense')}
-                </Link>
-              }
+            );
+          })}
+          <div className="fsl-guest__share-row fsl-guest__share-row--total">
+            <span className="fsl-guest__share-total-label">
+              {t('guest.yourTotal')}
+            </span>
+            <Amount
+              value={totalMyShare}
+              className="fsl-guest__share-total-amount"
             />
-          ) : (
-            <div className="fsl-card">
-              {view.expenses.map((expense) => {
-                const isMyPending =
-                  expense.status === 'pending' &&
-                  myId !== null &&
-                  (expense.createdById === myId || expense.payerId === myId);
-                const href = isMyPending
-                  ? `/t/${view.trip.id}/expenses/${expense.id}/edit`
-                  : undefined;
+          </div>
+        </div>
+      </section>
+    ) : null;
 
-                return (
-                  <ExpenseRow
-                    key={expense.id}
-                    expense={expense}
-                    view={view}
-                    href={href}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </section>
+  const footer = (
+    <footer className="fsl-guest__footer">
+      <LanguageButton />
+      {memberRequested ? (
+        <div className="fsl-notice fsl-notice--accent">
+          {t('guest.memberRequested')}
+        </div>
+      ) : (
+        view.me.kind === 'guest' && (
+          <a
+            href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${view.trip.id}?becomeMember=1`)}`}
+            className="fsl-button fsl-button--ghost"
+          >
+            {t('guest.becomeMember')}
+          </a>
+        )
+      )}
+    </footer>
+  );
 
-        <footer className="fsl-guest__footer">
-          {memberRequested ? (
-            <div className="fsl-notice fsl-notice--accent">
-              {t('guest.memberRequested')}
-            </div>
-          ) : (
-            view.me.kind === 'guest' && (
-              <a
-                href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${view.trip.id}?becomeMember=1`)}`}
-                className="fsl-button fsl-button--ghost fsl-button--block"
-              >
-                {t('guest.becomeMember')}
-              </a>
-            )
-          )}
-        </footer>
+  return (
+    <Screen title={view.trip.name} wide bottomBar={!wide && hasExpenses ? addLink(true) : undefined}>
+      <div className="fsl-guest">
+        {banner}
+        {!wide ? (
+          <>
+            {balance}
+            {bankPrompt}
+            {transfers}
+            {payments(true)}
+            {share}
+            {expenses(view.payments.length === 0, false)}
+          </>
+        ) : (
+          <TripLayout
+            left={
+              <>
+                {expenses(true, true)}
+                {payments(false)}
+              </>
+            }
+            right={
+              selection ? (
+                <DetailsPanel view={view} selection={selection} />
+              ) : (
+                <>
+                  {balance}
+                  {bankPrompt}
+                  {transfers}
+                  {share}
+                </>
+              )
+            }
+          />
+        )}
+        {footer}
       </div>
     </Screen>
   );

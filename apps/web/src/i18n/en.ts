@@ -123,6 +123,9 @@ export const en = {
   'guest.youreOwed': "You're owed",
   'guest.settled': "You're all settled",
   'guest.dropsTo': 'Drops to {amount} if your expenses are approved',
+  'guest.ifApprovedOwe': "If your expenses are approved, you'll owe {amount}",
+  'guest.ifApprovedOwed': "If your expenses are approved, you'll be owed {amount}",
+  'guest.ifApprovedSettled': "If your expenses are approved, you'll be settled",
   'guest.yourShare': 'How we got your share',
   'guest.yourTotal': 'Your total',
   'guest.becomeMember': 'Sign in with Google to become a member',
@@ -187,6 +190,7 @@ export const en = {
 
   'balance.owed': "You're owed",
   'balance.owe': 'You owe',
+  'balance.oweName': 'You owe {name}',
   'balance.settled': "You're all settled",
   'balance.tripTotal': 'Trip total {total}',
   'balance.received': '{amount} received so far',
@@ -201,6 +205,7 @@ export const en = {
 
   'expenses.emptyTitle': 'Add the first expense',
   'expenses.emptyBody': 'Homestay, food, fuel: anything the group shares.',
+  'expenses.emptyViewer': 'No expenses yet.',
 
   'approvals.title': 'Needs approval',
   'approvals.allTitle': 'Waiting for approval',

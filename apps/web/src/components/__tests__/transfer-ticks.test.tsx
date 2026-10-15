@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useQuery } from '@tanstack/react-query';
 import type { PayInfo, PaymentView, TripView } from '@fsl/core';
@@ -70,12 +71,15 @@ describe('Your transfers: tick to confirm', () => {
   });
 
   it('records a tick after 5 seconds', async () => {
+    // A manual clock for this one: with `shouldAdvanceTime` real time moves the fake clock too, which would leave the
+    // "nothing at 4.9 seconds" check only ~100ms of slack on a slow machine. user-event waits on real time, so click
+    // with fireEvent here.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: false });
     const { calls, fetchMock } = mockApi({ [PAYMENTS]: recorded() });
     renderAt(<YourTransfers view={tripView()} />);
     const tick = screen.getByRole('button', { name: AN });
     expect(tick).toHaveAttribute('aria-pressed', 'false');
-    await user().click(tick);
-    // Advance straight away: the clock also runs with real time, so slow queries first would eat the 100ms margin.
+    fireEvent.click(tick);
     await later(4_900);
 
     expect(posted(calls)).toEqual([]);
@@ -110,6 +114,49 @@ describe('Your transfers: tick to confirm', () => {
     expect(screen.queryByRole('status')).toBeNull();
     await later(10_000);
     expect(posted(calls)).toEqual([]);
+  });
+
+  it('a tick whose transfer disappears before the 5 seconds end is cancelled, not recorded', async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    // Polling brings a new trip while Undo is still on offer.
+    let setView: (view: TripView) => void = () => {};
+    function Polled() {
+      const [view, set] = useState(tripView());
+      setView = set;
+      return <YourTransfers view={view} />;
+    }
+    renderAt(<Polled />);
+    await user().click(screen.getByRole('button', { name: AN }));
+    await later(2_000);
+    expect(screen.getByRole('status')).toHaveTextContent('An paid 385.000₫');
+
+    // An's debt is gone: the other side recorded it, or Minh confirmed An's own claim. Sending the tick would count it twice.
+    act(() => setView({ ...tripView(), suggestions: tripView().suggestions.filter((s) => s.fromId !== PIDS.A) }));
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('button', { name: AN })).toBeNull();
+    await later(10_000);
+    expect(posted(calls)).toEqual([]);
+
+    // Leaving the page now sends nothing either.
+    cleanup();
+    expect(posted(calls)).toEqual([]);
+  });
+
+  it('a tick whose transfer is still there when the new trip arrives is still recorded', async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    let setView: (view: TripView) => void = () => {};
+    function Polled() {
+      const [view, set] = useState(tripView());
+      setView = set;
+      return <YourTransfers view={view} />;
+    }
+    renderAt(<Polled />);
+    await user().click(screen.getByRole('button', { name: AN }));
+    // Someone else's debt changed, not An's.
+    act(() => setView({ ...tripView(), suggestions: tripView().suggestions.filter((s) => s.fromId !== PIDS.B) }));
+    expect(screen.getByRole('status')).toHaveTextContent('An paid 385.000₫');
+    await later(5_000);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
   });
 
   it('flushes a pending tick when the component unmounts', async () => {

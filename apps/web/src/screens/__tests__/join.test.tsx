@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ExpenseView, TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { guestChiView, picker, viewerView, tripView, PIDS } from '../../test/fixtures';
 import { Join } from '../Join';
@@ -106,9 +107,42 @@ describe('TripRoute', () => {
     expect(await screen.findByText('Viewing as Chi')).toBeInTheDocument();
     expect(screen.getByText('You owe Minh')).toBeInTheDocument();
     expect(screen.getAllByText('1.245.000₫').length).toBeGreaterThan(0);
-    expect(screen.getByText('Drops to 1.110.000₫ if your expenses are approved')).toBeInTheDocument();
+    expect(screen.getByText("If your expenses are approved, you'll owe 1.110.000₫")).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Pay with VietQR' })).toHaveAttribute('href', `/t/t-1/pay/${PIDS.M}`);
     expect(screen.getByText('Waiting')).toBeInTheDocument();
+  });
+
+  it('the add button steps back while there is something to pay', async () => {
+    mockApi({ 'GET /api/trips/t-1': guestChiView(), 'GET /api/trips/t-1/version': { version: 3 } });
+    const owing = renderAt(<TripRoute />, route);
+    expect(await screen.findByRole('link', { name: 'Pay with VietQR' })).toHaveClass('fsl-button--primary');
+    // The page's only teal button is Pay; Add is the outline one.
+    expect(screen.getByRole('link', { name: '+ Add expense' })).toHaveClass('fsl-button--secondary');
+    owing.unmount();
+
+    // Nothing to pay: Add is the primary button again.
+    const settled: TripView = { ...guestChiView(), suggestions: [], balances: {}, myBalance: { now: 0, beforePayments: 0, ifPendingApproved: null, waitingConfirm: 0 } };
+    mockApi({ 'GET /api/trips/t-1': settled, 'GET /api/trips/t-1/version': { version: 3 } });
+    renderAt(<TripRoute />, route);
+    expect(await screen.findByText("You're all settled")).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pay with VietQR' })).toBeNull();
+    expect(screen.getByRole('link', { name: '+ Add expense' })).toHaveClass('fsl-button--primary');
+  });
+
+  it('a guest only gets Edit on expenses they added', async () => {
+    // Chi added e-5 (pending). She also paid for e-6, which Minh added: that one is not hers to edit.
+    const view = guestChiView();
+    const paidForByChi: ExpenseView = { ...view.expenses[1]!, id: 'e-6', description: 'Taxi to the market', payerId: PIDS.C, status: 'pending' };
+    mockApi({ 'GET /api/trips/t-1': { ...view, expenses: [...view.expenses, paidForByChi] }, 'GET /api/trips/t-1/version': { version: 3 } });
+    renderAt(<TripRoute />, route);
+    const list = await screen.findByRole('region', { name: 'Expenses' });
+    const edits = within(list).getAllByRole('button', { name: 'Edit' });
+    expect(edits).toHaveLength(1);
+    expect(edits[0]!.closest('li')).toHaveTextContent('Bánh tráng nướng, chợ đêm');
+    const taxi = within(list).getByRole('button', { name: /^Taxi to the market/ }).closest('li') as HTMLElement;
+    expect(within(taxi).queryByRole('button', { name: 'Edit' })).toBeNull();
+    // Nothing else is offered to a guest.
+    expect(within(list).queryByRole('button', { name: /^(Disable|Approve|Reject)$/ })).toBeNull();
   });
 
   it('a guest without a name goes to "Who are you?"', async () => {
@@ -123,8 +157,11 @@ describe('TripRoute', () => {
     expect(await screen.findByText('View only')).toBeInTheDocument();
     expect(screen.getByText('Homestay Bloom · 2 nights')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' })).toBeInTheDocument();
-    const buttons = screen.queryAllByRole('button').filter((b) => b.getAttribute('aria-label') !== 'Switch to Tiếng Việt');
-    expect(buttons).toHaveLength(0);
+    // The only other buttons are the expense rows, which open read-only details: no Edit, no ticks, no Pay.
+    const rows = within(screen.getByRole('region', { name: 'Expenses' })).getAllByRole('button');
+    expect(rows).toHaveLength(4);
+    const others = screen.queryAllByRole('button').filter((b) => b.getAttribute('aria-label') !== 'Switch to Tiếng Việt' && !rows.includes(b));
+    expect(others).toHaveLength(0);
     expect(screen.queryAllByRole('link')).toHaveLength(0);
   });
 

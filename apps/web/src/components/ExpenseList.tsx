@@ -81,10 +81,11 @@ export function ExpenseList({
         {addInHeading && view.expenses.length > 0 ? add : null}
       </div>
       {view.expenses.length === 0 ? (
+        // Nobody can add here (a view-only link, an archived trip): no invitation to add the first expense.
         <EmptyState
           icon="receipt"
-          title={t('expenses.emptyTitle')}
-          body={t('expenses.emptyBody')}
+          title={add ? t('expenses.emptyTitle') : t('expenses.emptyViewer')}
+          body={add ? t('expenses.emptyBody') : undefined}
           action={add ?? null}
         />
       ) : (
