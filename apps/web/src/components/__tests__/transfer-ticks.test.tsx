@@ -89,7 +89,8 @@ describe('Your transfers: tick to confirm', () => {
     expect(within(snack).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     await later(100);
     expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
-    expect(keepalives(fetchMock)).toEqual([false]);
+    // Sent with keepalive like every tick: closing the tab while the request is out must not lose it.
+    expect(keepalives(fetchMock)).toEqual([true]);
     expect(screen.queryByRole('status')).toBeNull();
   });
 
@@ -210,7 +211,7 @@ describe('Your transfers: tick to confirm', () => {
       { fromId: 'p-an', toId: 'p-minh', amount: 385000 },
       { fromId: 'p-chi', toId: 'p-minh', amount: 1245000 },
     ]);
-    expect(keepalives(fetchMock)).toEqual([false, false]);
+    expect(keepalives(fetchMock)).toEqual([true, true]);
   });
 
   it('a ticked row stays done while it is being recorded', async () => {
@@ -235,6 +236,62 @@ describe('Your transfers: tick to confirm', () => {
 
     await act(async () => release());
     await waitFor(() => expect(tick).not.toHaveAttribute('aria-disabled', 'true'));
+  });
+
+  it('a tick sent on the way out stays done if the section comes back before the server answers', async () => {
+    let release: () => void = () => {};
+    const { calls, fetchMock } = mockApi({
+      [PAYMENTS]: () =>
+        new Promise<Response>((resolve) => {
+          release = () => resolve(Response.json({ paymentId: 'pay-9', status: 'confirmed' }, { status: 201 }));
+        }),
+    });
+    const first = renderAt(<YourTransfers view={tripView()} />);
+    await user().click(screen.getByRole('button', { name: AN }));
+    first.unmount(); // sent at once, with keepalive
+    expect(posted(calls)).toHaveLength(1);
+    expect(keepalives(fetchMock)).toEqual([true]);
+
+    // Back within the round trip: the old trip still lists An's debt, but the row is done and can't be sent again.
+    const again = renderAt(<YourTransfers view={tripView()} />);
+    const tick = within(again.container).getByRole('button', { name: AN });
+    expect(tick).toHaveAttribute('aria-pressed', 'true');
+    expect(tick).toHaveAttribute('aria-disabled', 'true');
+    await user().click(tick);
+    expect(screen.queryByRole('status')).toBeNull();
+    await later(10_000);
+    expect(posted(calls)).toHaveLength(1);
+    // Only that trip's row: the same two people in another trip can still tick.
+    const base = tripView();
+    const other = renderAt(<YourTransfers view={{ ...base, trip: { ...base.trip, id: 't-2' } }} />);
+    expect(within(other.container).getByRole('button', { name: AN })).toHaveAttribute('aria-pressed', 'false');
+    other.unmount();
+
+    await act(async () => release());
+    await waitFor(() => expect(tick).not.toHaveAttribute('aria-disabled', 'true'));
+    expect(posted(calls)).toHaveLength(1);
+  });
+
+  it('a tick sent on the way out reloads the trip even with nothing on screen', async () => {
+    let gets = 0;
+    const { calls } = mockApi({
+      'GET /api/trips/t-1': () => {
+        gets += 1;
+        return Response.json(tripView());
+      },
+      [PAYMENTS]: recorded(),
+    });
+    function Live() {
+      const { data } = useQuery({ queryKey: ['trip', 't-1'], queryFn: () => apiFetch<TripView>('/api/trips/t-1', { tripId: 't-1' }) });
+      return data ? <YourTransfers view={data} /> : null;
+    }
+    const { unmount } = renderAt(<Live />);
+    await user().click(await screen.findByRole('button', { name: AN }));
+    expect(gets).toBe(1);
+    unmount();
+    expect(posted(calls)).toHaveLength(1);
+    // A screen that comes back then finds the debt gone instead of an old trip it could tick again.
+    await waitFor(() => expect(gets).toBe(2));
   });
 
   it('a tick that fails to record says so and can be ticked again', async () => {
