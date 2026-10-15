@@ -1,4 +1,4 @@
-import { useRef, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
@@ -29,6 +29,11 @@ export function ApprovalQueue({
   const [cursor, setCursor] = useState<Cursor>({ key: null, index: 0, dir: null });
   // Approving the shown card removes it: whichever card shows next takes the keyboard focus the removed one held.
   const handoff = useRef(false);
+  // The hand-off is for the card that mounts in the same commit. A passive effect runs after that, so whatever it did
+  // not use (the last card went, nothing took over) is dropped here and cannot move focus when a card arrives later.
+  useEffect(() => {
+    handoff.current = false;
+  });
 
   const approvals = waitingApprovals(view);
   const keys = approvals.map(approvalKey);

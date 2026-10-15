@@ -520,6 +520,40 @@ describe('approvals queue', () => {
       expect(elsewhere).toHaveFocus();
     });
 
+    it('a card that arrives later does not steal focus after the last one was handled', async () => {
+      mockMedia({ coarse: false });
+      let phase: 'one' | 'none' | 'new' = 'one';
+      mockApi({
+        ...TRIP_API,
+        'GET /api/trips/t-1': () => {
+          const v = busyView();
+          const approvals = phase === 'one' ? [v.approvals[5]!] : phase === 'none' ? [] : [v.approvals[0]!];
+          return Response.json({ ...v, approvals });
+        },
+        'POST /api/trips/t-1/membership/m-1/approve': () => {
+          phase = 'none';
+          return new Response(null, { status: 204 });
+        },
+        'POST /api/trips/t-1/expenses/e-4/disable': () => {
+          phase = 'new';
+          return new Response(null, { status: 204 });
+        },
+      });
+      renderAt(<TripRoute />, route);
+      const queue = await queueOf();
+      await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+      await waitFor(() => expect(screen.queryByRole('region', { name: 'Needs approval' })).toBeNull());
+
+      // Later, somewhere else on the page, the trip refreshes and a new approval shows up.
+      const row = screen.getByRole('button', { name: /^Cà phê Túi Mơ To/ }).closest('li')!;
+      const disable = within(row).getByRole('button', { name: 'Disable' });
+      await userEvent.click(disable);
+      const arrived = await screen.findByRole('region', { name: 'Needs approval' });
+      expect(within(arrived).getByText('Bánh tráng nướng, chợ đêm')).toBeInTheDocument();
+      expect(arrived.contains(document.activeElement)).toBe(false);
+      expect(disable).toHaveFocus();
+    });
+
     it('on the list page the item that takes its place gets focus', async () => {
       mockMedia({ wide: false });
       const release = approveFirstGate();
