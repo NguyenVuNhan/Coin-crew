@@ -45,8 +45,6 @@ export const en = {
   'pay.keepNote': 'Keep this note unchanged so the payment can be matched.', // SPEC
   'pay.bankPending': "{name}'s bank details are waiting for approval", // SPEC
   'pay.bankNone': "{name} hasn't added bank details yet", // SPEC
-  'pay.waiting': 'Waiting for the money to reach {name}. This page updates by itself.', // SPEC
-  'pay.alreadyPaid': "I've already paid", // SPEC
   'pay.openBankApp': 'Open bank app', // SPEC 2026-10-14
   'pay.saveQr': 'Save QR', // SPEC
 
@@ -320,10 +318,17 @@ export const en = {
   'activity.action.membership_rejected': 'declined a new member',
 
   'pay.title': 'Pay {name}',
-  'pay.bank': 'Bank',
+  'pay.toLine': 'to {holder} · {bank}',
+  'pay.iPaid': "I've paid",
+  'pay.iPaidHint': 'Tap after the money has left your account.',
+  'pay.sentTitle': 'Payment sent · {amount}',
+  'pay.sentBody': 'Waiting for {name} to confirm it arrived. This page updates by itself.',
+  'pay.mistake': "Paid by mistake? Ask {name} to tap \"Didn't arrive\".",
+  'pay.paidTitle': 'Paid · {amount} to {name}',
+  'pay.paidBody': 'It counts straight away.',
+  'pay.stillOwed': 'Still owed {amount}',
+  'pay.showQrRest': 'Show QR for the rest',
   'pay.account': 'Account',
-  'pay.name': 'Name',
-  'pay.amount': 'Amount',
   'pay.note': 'Transfer note',
   'pay.copyAccount': 'Copy account number',
   'pay.copyNote': 'Copy note',
@@ -332,7 +337,6 @@ export const en = {
   'pay.qrAlt': 'VietQR code to pay {name} {amount}',
   'pay.tapToCheck': 'Tap to check again',
   'pay.waitingConfirm': 'Waiting for {name} to confirm',
-  'pay.paid': 'Paid ✓',
   'pay.nothingOwed': "You don't owe {name} anything right now.",
   'pay.chooseApp': 'Choose your bank app',
   'pay.fillsIn': 'fills in the payment',

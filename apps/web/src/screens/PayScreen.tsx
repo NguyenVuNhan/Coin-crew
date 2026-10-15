@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd } from '@fsl/core';
@@ -7,51 +7,18 @@ import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { usePayInfo } from '../api/payInfo';
 import { groupLink, remind } from '../lib/remind';
-import { qrSrc, saveQr, useQrSvg } from '../lib/qr';
+import { useIsWide, useIsCoarsePointer } from '../lib/media';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Amount } from '../components/Amount';
+import { EmptyState } from '../components/EmptyState';
 import { InlineError } from '../components/InlineError';
 import { Skeleton } from '../components/Skeleton';
-import { BankAppSheet } from '../components/BankAppSheet';
+import { PayQr } from '../components/PayQr';
+import { Icon } from '../components/icons';
 import './PayScreen.css';
 
-function CopyIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
+type StatusCard = { kind: 'sent' | 'paid'; amount: number } | null;
 
 export function PayScreen() {
   const { tripId = '', toId = '' } = useParams<{ tripId: string; toId: string }>();
@@ -72,65 +39,63 @@ export function PayScreen() {
     error: payError,
     isLoading: isPayLoading,
     refetch: refetchPay,
-  } = usePayInfo({ tripId, toId, enabled: !!view && !!tripId && !!toId, version: view?.trip.version ?? 0 });
+  } = usePayInfo({
+    tripId,
+    toId,
+    enabled: !!view && !!tripId && !!toId,
+    version: view?.trip.version ?? 0,
+  });
 
-  const svg = useQrSvg(payInfo?.payload ?? null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [recordedStatus, setRecordedStatus] = useState<string | null>(null);
-  const [recordedPaymentId, setRecordedPaymentId] = useState<string | null>(null);
+  const wide = useIsWide();
+  const coarse = useIsCoarsePointer();
+  const [recorded, setRecorded] = useState<{ id: string; amount: number; status: string } | null>(null);
+  const [restOpen, setRestOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [copiedField, setCopiedField] = useState<'account' | 'note' | null>(null);
+  const [remindCopied, setRemindCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleCopyAccount = () => {
-    if (payInfo?.bank?.accountNumber && typeof navigator !== 'undefined' && navigator.clipboard) {
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const copy = (field: 'account' | 'note', text: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard
-        .writeText(payInfo.bank.accountNumber)
+        .writeText(text)
         .then(() => {
-          setCopiedField('account');
-          setTimeout(() => setCopiedField(null), 2000);
+          if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+          setCopiedField(field);
+          copyTimerRef.current = setTimeout(() => {
+            setCopiedField(null);
+            copyTimerRef.current = null;
+          }, 2000);
         })
         .catch(() => {});
     }
   };
 
-  const handleCopyNote = () => {
-    if (payInfo?.refCode && typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard
-        .writeText(payInfo.refCode)
-        .then(() => {
-          setCopiedField('note');
-          setTimeout(() => setCopiedField(null), 2000);
-        })
-        .catch(() => {});
-    }
-  };
-
-  const handleSaveQr = () => {
-    void saveQr(svg, payInfo?.refCode ?? '');
-  };
-
-  const handleAlreadyPaid = async () => {
+  const handleIPaid = async () => {
     if (!tripId || !toId || !view?.me.participantId || !payInfo) return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      const amount = payInfo.amount;
       const res = await apiSend<{ paymentId: string; status: string }>(
         `/api/trips/${tripId}/payments`,
         'POST',
-        {
-          fromId: view.me.participantId,
-          toId,
-          amount: payInfo.amount,
-        },
+        { fromId: view.me.participantId, toId, amount },
         tripId,
       );
-      setRecordedStatus(res.status);
-      setRecordedPaymentId(res.paymentId);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
         queryClient.invalidateQueries({ queryKey: ['pay', tripId] }),
       ]);
+      setRecorded({ id: res.paymentId, amount, status: res.status });
+      setRestOpen(false);
     } catch (err) {
       setSubmitError(err);
     } finally {
@@ -145,7 +110,7 @@ export function PayScreen() {
       trip: view.trip.name,
       link: groupLink(view),
     });
-    void remind(text);
+    void remind(text).then((r) => setRemindCopied(r === 'copied'));
   };
 
   if (viewError || payError) {
@@ -185,197 +150,193 @@ export function PayScreen() {
   }
 
   const name = payInfo.to.name;
-  const hasInFlight = payInfo.inFlight.length > 0;
-  // The payment's live status comes from the trip view, so the screen moves on when the member confirms.
-  const recordedPayment = recordedPaymentId ? view?.payments.find((p) => p.id === recordedPaymentId) : undefined;
-  const effectiveStatus = recordedPayment?.status ?? recordedStatus;
-
-  if (payInfo.amount === 0 && !hasInFlight && !recordedStatus) {
-    return (
-      <Screen title={t('pay.title', { name })} back={`/t/${tripId}`}>
-        <div className="fsl-pay__empty">
-          <p className="fsl-pay__empty-text">{t('pay.nothingOwed', { name })}</p>
-          <Button href={`/t/${tripId}`} variant="secondary">
-            {t('common.back')}
-          </Button>
-        </div>
-      </Screen>
-    );
+  const archived = view.trip.archived;
+  const live = recorded ? view.payments.find((p) => p.id === recorded.id) : undefined;
+  const recordedStatus = recorded ? (live?.status ?? recorded.status) : null;
+  // A payment recorded here follows its live status (the member confirming turns "sent" into "paid"); one that
+  // was already on its way when the page opened shows as sent.
+  let card: StatusCard = null;
+  if (recorded && recordedStatus === 'confirmed') {
+    card = { kind: 'paid', amount: live?.amountConfirmed ?? recorded.amount };
+  } else if (recorded && recordedStatus === 'says_paid') {
+    card = { kind: 'sent', amount: live?.amountClaimed ?? recorded.amount };
+  } else if (payInfo.inFlight.length > 0) {
+    card = { kind: 'sent', amount: payInfo.inFlight.reduce((sum, p) => sum + p.amountClaimed, 0) };
   }
 
-  const hideAlreadyPaid =
-    payInfo.amount === 0 || hasInFlight || recordedStatus !== null;
+  const bank = payInfo.bank;
+  const stoppedCheck = stopped ? (
+    <div className="fsl-pay__stopped">
+      <Button
+        variant="secondary"
+        onClick={() => {
+          resume();
+          refetch();
+          refetchPay();
+        }}
+      >
+        {t('pay.tapToCheck')}
+      </Button>
+    </div>
+  ) : null;
 
-  let statusContent: ReactNode;
-  if (effectiveStatus === 'confirmed') {
-    statusContent = (
-      <div className="fsl-pay__status fsl-pay__status--confirmed">
-        <span>{t('pay.paid')}</span>
-      </div>
+  let footer: ReactNode = null;
+  let content: ReactNode = null;
+  // Only the QR view uses the two columns; the other views stay a phone-width column on a wide screen.
+  let isLayout = false;
+
+  if (card !== null && !restOpen) {
+    footer = (
+      <>
+        <Button href={`/t/${tripId}`} variant="primary" block>
+          {t('details.backToTrip')}
+        </Button>
+        {card.kind === 'sent' && (
+          <p className="fsl-pay__hint">{t('pay.mistake', { name })}</p>
+        )}
+      </>
     );
-  } else if (effectiveStatus === 'says_paid' || hasInFlight) {
-    statusContent = (
-      <div className="fsl-pay__status fsl-pay__status--waiting-confirm">
-        <span className="fsl-pay__status-dot" aria-hidden="true" />
-        <span>{t('pay.waitingConfirm', { name })}</span>
-      </div>
+    content = (
+      <>
+        <section className={`fsl-pay__card fsl-pay__card--${card.kind}`} aria-live="polite">
+          <div className="fsl-pay__card-icon">
+            <Icon name={card.kind === 'sent' ? 'clock' : 'circleCheck'} size={28} />
+          </div>
+          <p className="fsl-pay__card-title">
+            {card.kind === 'sent'
+              ? t('pay.sentTitle', { amount: formatVnd(card.amount) })
+              : t('pay.paidTitle', { amount: formatVnd(card.amount), name })}
+          </p>
+          <p className="fsl-pay__card-body">
+            {card.kind === 'sent' ? t('pay.sentBody', { name }) : t('pay.paidBody')}
+          </p>
+          {card.kind === 'sent' && payInfo.refCode ? (
+            <div className="fsl-pay__card-note">
+              <span className="fsl-pay__row-label">{t('pay.note')}</span>{' '}
+              <span className="fsl-pay__memo">{payInfo.refCode}</span>
+            </div>
+          ) : null}
+        </section>
+        {payInfo.amount > 0 && (
+          <div className="fsl-pay__owed">
+            <p>{t('pay.stillOwed', { amount: formatVnd(payInfo.amount) })}</p>
+            <Button variant="secondary" onClick={() => setRestOpen(true)}>
+              {t('pay.showQrRest')}
+            </Button>
+          </div>
+        )}
+        {stoppedCheck}
+        {wide && footer}
+      </>
     );
-  } else if (stopped) {
-    statusContent = (
-      <div className="fsl-pay__status fsl-pay__status--stopped">
-        <Button
-          variant="secondary"
-          onClick={() => {
-            resume();
-            refetch();
-            refetchPay();
-          }}
-        >
-          {t('pay.tapToCheck')}
+  } else if (payInfo.amount === 0) {
+    content = (
+      <div className="fsl-pay__empty">
+        <p className="fsl-pay__empty-text">{t('pay.nothingOwed', { name })}</p>
+        <Button href={`/t/${tripId}`} variant="secondary">
+          {t('common.back')}
         </Button>
       </div>
     );
+  } else if (payInfo.bankState !== 'ok' || !bank || !payInfo.payload) {
+    content = (
+      <>
+        <div className="fsl-pay__hero">
+          <Amount value={payInfo.amount} size="xl" />
+        </div>
+        <EmptyState
+          icon="bank"
+          title={payInfo.bankState === 'pending' ? t('pay.bankPending', { name }) : t('pay.bankNone', { name })}
+          action={
+            <Button variant="secondary" block onClick={handleRemind}>
+              {t('pay.remindThem', { name })}
+            </Button>
+          }
+        />
+        <p className="fsl-pay__hint" aria-live="polite">
+          {remindCopied ? t('whoPays.remindCopied') : null}
+        </p>
+      </>
+    );
   } else {
-    statusContent = (
-      <div className="fsl-pay__status">
-        <span className="fsl-pay__status-dot" aria-hidden="true" />
-        <span>{t('pay.waiting', { name })}</span>
+    isLayout = true;
+    if (!archived) {
+      footer = (
+        <>
+          <Button variant="secondary" block loading={isSubmitting} onClick={handleIPaid}>
+            {t('pay.iPaid')}
+          </Button>
+          <p className="fsl-pay__hint">{t('pay.iPaidHint')}</p>
+        </>
+      );
+    }
+    content = (
+      <div className="fsl-pay__layout">
+        <div className="fsl-pay__hero">
+          <Amount value={payInfo.amount} size="xl" />
+          <p className="fsl-pay__to">{t('pay.toLine', { holder: bank.holderName, bank: bank.bankName })}</p>
+        </div>
+        <div className="fsl-pay__qr">
+          <PayQr info={payInfo} variant="pay" summary={false} />
+        </div>
+        <div className="fsl-pay__body">
+          <div className="fsl-pay__rows">
+            <div className="fsl-pay__row">
+              <span className="fsl-pay__row-label">{t('pay.account')}</span>
+              <span className="fsl-pay__row-value">
+                <span className="fsl-pay__account-number">{bank.accountNumberMasked}</span>
+                <button
+                  type="button"
+                  className="fsl-pay__icon-btn"
+                  aria-label={t('pay.copyAccount')}
+                  title={t('pay.copyAccount')}
+                  onClick={() => copy('account', bank.accountNumber)}
+                >
+                  <Icon name={copiedField === 'account' ? 'check' : 'copy'} size={16} />
+                </button>
+              </span>
+            </div>
+            <div className="fsl-pay__row">
+              <span className="fsl-pay__row-label">{t('pay.note')}</span>
+              <span className="fsl-pay__row-value">
+                <span className="fsl-pay__memo">{payInfo.refCode}</span>
+                <button
+                  type="button"
+                  className="fsl-pay__icon-btn"
+                  aria-label={t('pay.copyNote')}
+                  title={t('pay.copyNote')}
+                  onClick={() => copy('note', payInfo.refCode)}
+                >
+                  <Icon name={copiedField === 'note' ? 'check' : 'copy'} size={16} />
+                </button>
+              </span>
+            </div>
+            <span className="fsl-pay__sr" role="status">
+              {copiedField ? t('pay.copied') : ''}
+            </span>
+          </div>
+          <p className="fsl-pay__keep-note">{t('pay.keepNote')}</p>
+          {!coarse && <p className="fsl-pay__scan-hint">{t('pay.scanHint')}</p>}
+          {stoppedCheck}
+          {submitError !== null && (
+            <InlineError error={submitError} onRetry={handleIPaid} />
+          )}
+          {wide && footer}
+        </div>
       </div>
     );
   }
 
   return (
-    <Screen title={t('pay.title', { name })} back={`/t/${tripId}`}>
-      <div className="fsl-pay">
-        <div className="fsl-pay__hero">
-          <div className="fsl-pay__hero-label">{t('pay.title', { name })}</div>
-          <Amount value={payInfo.amount} size="xl" />
-        </div>
-
-        {payInfo.bankState === 'pending' && (
-          <div className="fsl-pay__notice fsl-pay__notice--pending">
-            {t('pay.bankPending', { name })}
-          </div>
-        )}
-
-        {payInfo.bankState === 'none' && (
-          <div className="fsl-pay__notice-stack">
-            <div className="fsl-pay__notice fsl-pay__notice--none">
-              {t('pay.bankNone', { name })}
-            </div>
-            <Button variant="secondary" block onClick={handleRemind}>
-              {t('pay.remindThem', { name })}
-            </Button>
-          </div>
-        )}
-
-        {payInfo.bankState === 'ok' && (
-          <>
-            <div className="fsl-pay__qr-card">
-              <div className="fsl-pay__qr-wrap">
-                <img
-                  className="fsl-pay__qr-image"
-                  alt={t('pay.qrAlt', {
-                    name,
-                    amount: formatVnd(payInfo.amount),
-                  })}
-                  src={qrSrc(svg)}
-                />
-              </div>
-
-              <div className="fsl-pay__details">
-                <div className="fsl-pay__row">
-                  <span className="fsl-pay__row-label">{t('pay.bank')}</span>
-                  <span className="fsl-pay__row-value">
-                    {payInfo.bank?.bankName}
-                  </span>
-                </div>
-
-                <div className="fsl-pay__row">
-                  <span className="fsl-pay__row-label">{t('pay.account')}</span>
-                  <span className="fsl-pay__row-value fsl-pay__row-value--with-action">
-                    <span>{payInfo.bank?.accountNumberMasked}</span>
-                    <button
-                      type="button"
-                      className="fsl-pay__icon-btn"
-                      aria-label={t('pay.copyAccount')}
-                      onClick={handleCopyAccount}
-                    >
-                      {copiedField === 'account' ? <CheckIcon /> : <CopyIcon />}
-                    </button>
-                  </span>
-                </div>
-
-                <div className="fsl-pay__row">
-                  <span className="fsl-pay__row-label">{t('pay.name')}</span>
-                  <span className="fsl-pay__row-value">
-                    {payInfo.bank?.holderName}
-                  </span>
-                </div>
-
-                <div className="fsl-pay__row">
-                  <span className="fsl-pay__row-label">{t('pay.amount')}</span>
-                  <span className="fsl-pay__row-value">
-                    {formatVnd(payInfo.amount)}
-                  </span>
-                </div>
-
-                <div className="fsl-pay__row">
-                  <span className="fsl-pay__row-label">{t('pay.note')}</span>
-                  <span className="fsl-pay__row-value fsl-pay__row-value--with-action">
-                    <span className="fsl-pay__memo">{payInfo.refCode}</span>
-                    <button
-                      type="button"
-                      className="fsl-pay__icon-btn"
-                      aria-label={t('pay.copyNote')}
-                      onClick={handleCopyNote}
-                    >
-                      {copiedField === 'note' ? <CheckIcon /> : <CopyIcon />}
-                    </button>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <p className="fsl-pay__keep-note">{t('pay.keepNote')}</p>
-            <p className="fsl-pay__scan-hint">{t('pay.scanHint')}</p>
-
-            <div className="fsl-pay__actions">
-              <Button variant="primary" block onClick={() => setSheetOpen(true)}>
-                {t('pay.openBankApp')}
-              </Button>
-              <Button variant="secondary" block onClick={handleSaveQr}>
-                {t('pay.saveQr')}
-              </Button>
-            </div>
-
-            <div className="fsl-pay__status-block" aria-live="polite">
-              {statusContent}
-            </div>
-
-            {!hideAlreadyPaid && (
-              <div className="fsl-pay__already-paid-wrap">
-                <Button
-                  variant="ghost"
-                  className="fsl-pay__already-paid"
-                  onClick={handleAlreadyPaid}
-                  loading={isSubmitting}
-                >
-                  {t('pay.alreadyPaid')}
-                </Button>
-              </div>
-            )}
-
-            {submitError !== null && (
-              <InlineError error={submitError} onRetry={handleAlreadyPaid} />
-            )}
-
-            <BankAppSheet
-              open={sheetOpen}
-              onClose={() => setSheetOpen(false)}
-            />
-          </>
-        )}
+    <Screen
+      title={t('pay.title', { name })}
+      back={`/t/${tripId}`}
+      wide
+      bottomBar={wide ? undefined : (footer ?? undefined)}
+    >
+      <div className={`fsl-pay${isLayout ? '' : ' fsl-pay--narrow'}`}>
+        {archived && <p className="fsl-pay__notice">{t('settings.archived')}</p>}
+        {content}
       </div>
     </Screen>
   );

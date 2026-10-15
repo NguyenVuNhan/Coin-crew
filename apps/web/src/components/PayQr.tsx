@@ -9,14 +9,18 @@ import { Button } from './Button';
 import { BankAppSheet } from './BankAppSheet';
 import './PayQr.css';
 
-export type PayQrProps = { info: PayInfo } & (
+export type PayQrProps = {
+  info: PayInfo;
+  /** Show the amount, the bank line and the note under the QR. False where the screen shows them itself. */
+  summary?: boolean;
+} & (
   | { variant: 'pay' }
   | { variant: 'receive'; shareText: string }
 );
 
 /** VietQR code with quick payment, saving, and sharing actions. */
 export function PayQr(props: PayQrProps): JSX.Element | null {
-  const { info } = props;
+  const { info, summary = true } = props;
   const t = useT();
   const svg = useQrSvg(info.payload);
   const coarse = useIsCoarsePointer();
@@ -49,14 +53,18 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
           src={qrSrc(svg)}
         />
       )}
-      <Amount value={info.amount} size="lg" />
-      {info.bank !== null && (
-        <p className="fsl-pay-qr__bank">{`${info.bank.bankName} · ${info.bank.holderName}`}</p>
+      {summary && (
+        <>
+          <Amount value={info.amount} size="lg" />
+          {info.bank !== null && (
+            <p className="fsl-pay-qr__bank">{`${info.bank.bankName} · ${info.bank.holderName}`}</p>
+          )}
+          <div className="fsl-pay-qr__note">
+            <span className="fsl-pay-qr__note-label">{t('pay.note')}</span>
+            <span className="fsl-pay-qr__memo">{info.refCode}</span>
+          </div>
+        </>
       )}
-      <div className="fsl-pay-qr__note">
-        <span className="fsl-pay-qr__note-label">{t('pay.note')}</span>
-        <span className="fsl-pay-qr__memo">{info.refCode}</span>
-      </div>
       <div className="fsl-pay-qr__actions">
         {props.variant === 'receive' && (
           <Button variant="primary" block disabled={!svg} loading={busy} onClick={() => void share(props.shareText)}>

@@ -45,8 +45,6 @@ export const vi: Record<MessageKey, string> = {
   'pay.keepNote': 'Giữ nguyên nội dung chuyển khoản này để đối soát thanh toán.', // REVIEW
   'pay.bankPending': 'Thông tin ngân hàng của {name} đang chờ duyệt', // REVIEW
   'pay.bankNone': '{name} chưa thêm thông tin ngân hàng', // REVIEW
-  'pay.waiting': 'Đang chờ {name} nhận được tiền. Trang này sẽ tự động cập nhật.', // REVIEW
-  'pay.alreadyPaid': 'Tôi đã chuyển tiền rồi', // REVIEW
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
   'pay.saveQr': 'Lưu mã QR', // REVIEW
 
@@ -320,10 +318,17 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW
 
   'pay.title': 'Thanh toán cho {name}', // REVIEW
-  'pay.bank': 'Ngân hàng', // REVIEW
+  'pay.toLine': 'đến {holder} · {bank}', // REVIEW
+  'pay.iPaid': 'Tôi đã chuyển', // REVIEW
+  'pay.iPaidHint': 'Chạm sau khi tiền đã rời khỏi tài khoản của bạn.', // REVIEW
+  'pay.sentTitle': 'Đã gửi thanh toán · {amount}', // REVIEW
+  'pay.sentBody': 'Đang chờ {name} xác nhận đã nhận được. Trang này sẽ tự động cập nhật.', // REVIEW
+  'pay.mistake': 'Chuyển nhầm? Nhờ {name} chạm "Chưa nhận được".', // REVIEW
+  'pay.paidTitle': 'Đã trả · {amount} cho {name}', // REVIEW
+  'pay.paidBody': 'Được tính ngay.', // REVIEW
+  'pay.stillOwed': 'Còn nợ {amount}', // REVIEW
+  'pay.showQrRest': 'Hiện mã QR cho phần còn lại', // REVIEW
   'pay.account': 'Số tài khoản', // REVIEW
-  'pay.name': 'Tên chủ tài khoản', // REVIEW
-  'pay.amount': 'Số tiền', // REVIEW
   'pay.note': 'Nội dung chuyển khoản', // REVIEW
   'pay.copyAccount': 'Sao chép số tài khoản', // REVIEW
   'pay.copyNote': 'Sao chép nội dung', // REVIEW
@@ -332,7 +337,6 @@ export const vi: Record<MessageKey, string> = {
   'pay.qrAlt': 'Mã VietQR thanh toán cho {name} {amount}', // REVIEW
   'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
   'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
-  'pay.paid': 'Đã thanh toán ✓', // REVIEW
   'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
   'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
   'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW

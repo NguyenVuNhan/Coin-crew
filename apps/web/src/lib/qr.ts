@@ -3,29 +3,32 @@ import QRCode from 'qrcode';
 
 const PNG_SIZE = 1024;
 
-/** The VietQR picture for a payload as SVG text; '' while it is being made, and when there is no payload. */
+/**
+ * The VietQR picture for a payload as SVG text; '' while it is being made, and when there is no payload. A picture is
+ * kept with the payload it was made from, so a new payload never shows the previous picture.
+ */
 export function useQrSvg(payload: string | null): string {
-  const [svg, setSvg] = useState('');
+  const [made, setMade] = useState<{ payload: string; svg: string } | null>(null);
 
   useEffect(() => {
     if (!payload) {
-      setSvg('');
+      setMade(null);
       return;
     }
     let active = true;
     QRCode.toString(payload, { type: 'svg', errorCorrectionLevel: 'M', margin: 2 })
-      .then((res) => {
-        if (active) setSvg(res);
+      .then((svg) => {
+        if (active) setMade({ payload, svg });
       })
       .catch(() => {
-        if (active) setSvg('');
+        if (active) setMade(null);
       });
     return () => {
       active = false;
     };
   }, [payload]);
 
-  return svg;
+  return payload !== null && made?.payload === payload ? made.svg : '';
 }
 
 /** The SVG text as an `<img src>`; '' for no picture yet. */
