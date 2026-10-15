@@ -85,6 +85,7 @@ export const en = {
   'create.submit': 'Create trip',
   'create.suggestTitle': 'From your recent trips',
   'create.hasAccount': '{name} · has an account',
+  'create.alreadyListed': '{name} is already on the list with their account.',
 
   'bank.bank': 'Bank',
   'bank.popular': 'Popular',

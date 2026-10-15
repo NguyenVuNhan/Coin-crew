@@ -1,6 +1,6 @@
 import { useState, useRef, useId, useMemo, useEffect } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
-import type { RecentPerson } from '@fsl/core';
+import { normalizeName, type RecentPerson } from '@fsl/core';
 import { useT } from '../i18n';
 import { newPersonEntry, filterRecentPeople, type PersonEntry } from '../lib/recentPeople';
 import { useRecentPeople } from '../api/recentPeople';
@@ -29,6 +29,10 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
   const [closedFor, setClosedFor] = useState<string | null>(null);
   const { data } = useRecentPeople();
   const exclude = useMemo(() => new Set(value.flatMap((e) => (e.userId ? [e.userId] : []))), [value]);
+  const accountNames = useMemo(
+    () => new Map(value.flatMap((e) => (e.userId ? [[normalizeName(e.name), e.name] as const] : []))),
+    [value],
+  );
   const activeEntry = value.find((e) => e.key === activeKey && !e.userId);
   const activeName = activeEntry?.name;
   const suggestions = useMemo(
@@ -202,68 +206,80 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
           const isOpen = open && entry.key === activeKey;
           const listboxId = `${baseId}-listbox-${entry.key}`;
           const optionId = (idx: number) => `${listboxId}-opt-${idx}`;
+          // A plain name that is a picked account's name (ignoring accents and capitals) is probably the same person.
+          const typed = normalizeName(entry.name);
+          const accountName = typed === '' ? undefined : accountNames.get(typed);
+          const hintId = `${baseId}-hint-${entry.key}`;
 
           return (
-            <div key={entry.key} className="fsl-people-input__row">
-              <div className="fsl-people-input__field">
-                <input
-                  className="fsl-input"
-                  type="text"
-                  maxLength={40}
-                  autoComplete="off"
-                  placeholder={t('create.otherPlaceholder')}
-                  aria-label={`${t('create.otherPlaceholder')} ${index + 1}`}
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-expanded={isOpen}
-                  aria-controls={isOpen ? listboxId : undefined}
-                  aria-activedescendant={isOpen && highlighted >= 0 ? optionId(highlighted) : undefined}
-                  value={entry.name}
-                  onChange={(e) => setName(entry.key, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, entry, index)}
-                  onPaste={(e) => handlePaste(e, entry, index)}
-                  onFocus={() => setActiveKey(entry.key)}
-                  onBlur={() => setActiveKey((prev) => (prev === entry.key ? null : prev))}
-                  ref={(el) => registerRef(entry.key, el)}
-                />
-                {isOpen && (
-                  <div className="fsl-people-input__dropdown">
-                    <div className="fsl-people-input__dropdown-title" aria-hidden="true">
-                      {t('create.suggestTitle')}
+            <div key={entry.key} className="fsl-people-input__item">
+              <div className="fsl-people-input__row">
+                <div className="fsl-people-input__field">
+                  <input
+                    className="fsl-input"
+                    type="text"
+                    maxLength={40}
+                    autoComplete="off"
+                    placeholder={t('create.otherPlaceholder')}
+                    aria-label={`${t('create.otherPlaceholder')} ${index + 1}`}
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={isOpen}
+                    aria-controls={isOpen ? listboxId : undefined}
+                    aria-activedescendant={isOpen && highlighted >= 0 ? optionId(highlighted) : undefined}
+                    aria-describedby={accountName === undefined ? undefined : hintId}
+                    value={entry.name}
+                    onChange={(e) => setName(entry.key, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, entry, index)}
+                    onPaste={(e) => handlePaste(e, entry, index)}
+                    onFocus={() => setActiveKey(entry.key)}
+                    onBlur={() => setActiveKey((prev) => (prev === entry.key ? null : prev))}
+                    ref={(el) => registerRef(entry.key, el)}
+                  />
+                  {isOpen && (
+                    <div className="fsl-people-input__dropdown">
+                      <div className="fsl-people-input__dropdown-title" aria-hidden="true">
+                        {t('create.suggestTitle')}
+                      </div>
+                      <ul role="listbox" id={listboxId} aria-label={t('create.suggestTitle')} className="fsl-people-input__options">
+                        {suggestions.map((p, i) => (
+                          <li
+                            key={p.userId}
+                            id={optionId(i)}
+                            role="option"
+                            aria-selected={i === highlighted}
+                            className={`fsl-people-input__option${i === highlighted ? ' fsl-people-input__option--active' : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pick(entry, p)}
+                          >
+                            <Avatar name={p.name} size="sm" />
+                            <span className="fsl-people-input__option-text">
+                              <span className="fsl-people-input__option-name">{p.name}</span>
+                              <span className="fsl-people-input__option-trips">{p.trips.join(' · ')}</span>
+                            </span>
+                            <Icon name="userCheck" size={18} className="fsl-people-input__option-icon" />
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul role="listbox" id={listboxId} aria-label={t('create.suggestTitle')} className="fsl-people-input__options">
-                      {suggestions.map((p, i) => (
-                        <li
-                          key={p.userId}
-                          id={optionId(i)}
-                          role="option"
-                          aria-selected={i === highlighted}
-                          className={`fsl-people-input__option${i === highlighted ? ' fsl-people-input__option--active' : ''}`}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => pick(entry, p)}
-                        >
-                          <Avatar name={p.name} size="sm" />
-                          <span className="fsl-people-input__option-text">
-                            <span className="fsl-people-input__option-name">{p.name}</span>
-                            <span className="fsl-people-input__option-trips">{p.trips.join(' · ')}</span>
-                          </span>
-                          <Icon name="userCheck" size={18} className="fsl-people-input__option-icon" />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  )}
+                </div>
+                {value.length > 1 && (
+                  <button
+                    type="button"
+                    className="fsl-people-input__remove"
+                    aria-label={removeLabel(entry, index)}
+                    title={removeLabel(entry, index)}
+                    onClick={() => removeAt(index)}
+                  >
+                    <Icon name="x" size={20} />
+                  </button>
                 )}
               </div>
-              {value.length > 1 && (
-                <button
-                  type="button"
-                  className="fsl-people-input__remove"
-                  aria-label={removeLabel(entry, index)}
-                  title={removeLabel(entry, index)}
-                  onClick={() => removeAt(index)}
-                >
-                  <Icon name="x" size={20} />
-                </button>
+              {accountName !== undefined && (
+                <p id={hintId} className="fsl-people-input__hint">
+                  {t('create.alreadyListed', { name: accountName })}
+                </p>
               )}
             </div>
           );

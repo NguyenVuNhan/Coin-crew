@@ -85,6 +85,7 @@ export const vi: Record<MessageKey, string> = {
   'create.submit': 'Tạo chuyến đi', // REVIEW
   'create.suggestTitle': 'Từ các chuyến đi gần đây', // REVIEW
   'create.hasAccount': '{name} · có tài khoản', // REVIEW
+  'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW
   'bank.popular': 'Phổ biến', // REVIEW

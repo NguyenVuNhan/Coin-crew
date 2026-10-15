@@ -305,6 +305,51 @@ describe('CreateTrip people', () => {
     expect(await screen.findByRole('option', { name: /Chi Trần/ })).toBeInTheDocument();
   });
 
+  it('warns when a typed name matches a picked account, and the trip can still be created', async () => {
+    const hint = 'Chi Trần is already on the list with their account.';
+    const { calls } = mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people': [chi],
+      'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
+    });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Your name');
+    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
+
+    await userEvent.type(nameLines()[0]!, 'chi tra');
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    await userEvent.type(nameLines()[0]!, 'n');
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(nameLines()[0]!).toHaveAccessibleDescription(hint);
+
+    await userEvent.type(nameLines()[0]!, 'h');
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    expect(nameLines()[0]!).not.toHaveAccessibleDescription();
+    await userEvent.keyboard('{Backspace}');
+    expect(screen.getByText(hint)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'Chi Trần', userId: 'u-chi' }, { name: 'chi tran' }] });
+  });
+
+  it('the warning goes away when the account row is removed', async () => {
+    const hint = 'Chi Trần is already on the list with their account.';
+    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Your name');
+    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
+    await userEvent.type(nameLines()[0]!, 'CHÍ TRẦN');
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Chi Trần' }));
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    expect(nameLines()[0]!).toHaveValue('CHÍ TRẦN');
+    expect(nameLines()[0]!).not.toHaveAccessibleDescription();
+  });
+
   it('removing the account row leaves a line to type in', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
