@@ -28,8 +28,20 @@ function getTodayLocalDate(): string {
 
 type T = ReturnType<typeof useT>;
 
-/** The line under the split picker: the mode in words, how many people it counts and, for an equal split, what each pays. */
-function splitCaption(t: T, mode: SplitMode, people: number, result: SplitResult | null): string {
+/**
+ * The line under the split picker: the mode in words, how many people it counts and the result so far. An equal
+ * split says what each pays; exact amounts and percentages say what is left (or over) until they add up.
+ * `total` is the amount being split (null until it is typed); `assigned` is the sum of the values typed (hundredths of a
+ * percent for percentages, dong for exact amounts).
+ */
+function splitCaption(
+  t: T,
+  mode: SplitMode,
+  people: number,
+  result: SplitResult | null,
+  total: number | null,
+  assigned: number,
+): string {
   switch (mode) {
     case 'equal': {
       if (!result || !result.ok) return t('split.captionEqualNone', { n: people });
@@ -38,10 +50,19 @@ function splitCaption(t: T, mode: SplitMode, people: number, result: SplitResult
       const allEqual = result.shares.every((s) => s.amount === each);
       return t(allEqual ? 'split.captionEqual' : 'split.captionEqualAbout', { n: people, each: formatVnd(each) });
     }
-    case 'amounts':
-      return t('split.captionExact', { n: people });
-    case 'percent':
-      return t('split.captionPercent', { n: people });
+    case 'amounts': {
+      const left = total === null ? 0 : total - assigned;
+      if (left === 0) return t('split.captionExact', { n: people });
+      return t(left > 0 ? 'split.captionExactLeft' : 'split.captionExactOver', { n: people, amount: formatVnd(Math.abs(left)) });
+    }
+    case 'percent': {
+      const left = 10000 - assigned;
+      if (left === 0) return t('split.captionPercent', { n: people });
+      return t(left > 0 ? 'split.captionPercentLeft' : 'split.captionPercentOver', {
+        n: people,
+        pct: fromEntryValue('percent', Math.abs(left)),
+      });
+    }
     case 'shares':
       return t('split.captionShares', { n: people });
     case 'adjust':
@@ -211,16 +232,28 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     return computeShares(parsedAmount, mode, entries);
   }, [parsedAmount, mode, entries]);
 
-  const caption = splitCaption(t, mode, entries.length, splitResult);
+  // Percent and exact amounts have no ticks: until someone is given a value, everyone listed is still to be given one.
+  const captionPeople = (mode === 'amounts' || mode === 'percent') && entries.length === 0 ? view.people.length : entries.length;
+  const assigned = entries.reduce((sum, e) => sum + e.value, 0);
+  const caption = splitCaption(t, mode, captionPeople, splitResult, parsedAmount, assigned);
 
-  const computedSharesMap = useMemo(() => {
-    if (!splitResult || !splitResult.ok) return null;
+  // Each person's share as the amount and the split are typed. Once the split adds up it is core's result (which
+  // places the leftover dong); before that, exact amounts are what was typed and a percentage is its part of the
+  // total rounded to whole dong, so the rows follow every keystroke in every mode.
+  const liveShares = useMemo(() => {
     const map = new Map<string, number>();
-    for (const s of splitResult.shares) {
-      map.set(s.participantId, s.amount);
+    if (splitResult?.ok) {
+      for (const s of splitResult.shares) map.set(s.participantId, s.amount);
+    } else if (mode === 'amounts') {
+      for (const e of entries) map.set(e.participantId, e.value);
+    } else if (mode === 'percent' && parsedAmount !== null) {
+      for (const e of entries) {
+        const share = Math.round((parsedAmount * e.value) / 10000);
+        if (Number.isSafeInteger(share)) map.set(e.participantId, share);
+      }
     }
     return map;
-  }, [splitResult]);
+  }, [splitResult, mode, entries, parsedAmount]);
 
   const isDescriptionValid = description.trim().length > 0;
   const isAmountValid = parsedAmount !== null;
@@ -392,7 +425,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
           <div className="fsl-card">
             {view.people.map((person) => {
-              const shareAmount = computedSharesMap?.get(person.id);
+              const shareAmount = liveShares.get(person.id);
               const isIncluded = included.has(person.id);
               const isInputInvalid = Boolean(inputErrors[person.id]);
 

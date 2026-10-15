@@ -127,17 +127,62 @@ describe('ExpenseForm', () => {
     expect(screen.getByText('Split equally · 3 people · about 33.333₫ each')).toBeInTheDocument();
   });
 
-  it('names the other modes and shows shares once they add up', async () => {
+  it('percent shows each amount as you type and what is left', async () => {
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<ExpenseForm />, newRoute);
     await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
     await userEvent.click(screen.getByRole('radio', { name: 'Percent' }));
-    expect(screen.getByText('By percent · 0 people')).toBeInTheDocument();
+    // Nothing typed yet: everyone is still to be given a share, never "0 people".
+    expect(screen.getByText('By percent · 4 people · 100% left')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Percent for Minh'), '60');
+    expect(within(rowOf('Minh')).getByText('60.000₫')).toBeInTheDocument();
+    expect(screen.getByText(/^By percent · .* · 40% left$/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Percent for An'), '40');
-    expect(screen.getByText('By percent · 2 people')).toBeInTheDocument();
     expect(within(rowOf('Minh')).getByText('60.000₫')).toBeInTheDocument();
     expect(within(rowOf('An')).getByText('40.000₫')).toBeInTheDocument();
+    expect(screen.getByText('By percent · 2 people')).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('Percent for An'));
+    await userEvent.type(screen.getByLabelText('Percent for An'), '50');
+    expect(within(rowOf('An')).getByText('50.000₫')).toBeInTheDocument();
+    expect(screen.getByText('By percent · 2 people · 10% over')).toBeInTheDocument();
+  });
+
+  it('rounds a percent share to whole dong while you type', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '1.000');
+    await userEvent.click(screen.getByRole('radio', { name: 'Percent' }));
+    await userEvent.type(screen.getByLabelText('Percent for Minh'), '33,33');
+    expect(within(rowOf('Minh')).getByText('333₫')).toBeInTheDocument();
+    expect(screen.getByText(/^By percent · .* · 66\.67% left$/)).toBeInTheDocument();
+  });
+
+  it('exact amounts say what is left to assign, then balance', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
+    await userEvent.click(screen.getByRole('radio', { name: 'Exact amounts' }));
+    expect(screen.getByText('Exact amounts · 4 people · 100.000₫ left to assign')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Amount for Minh'), '50.000');
+    expect(within(rowOf('Minh')).getByText('50.000₫')).toBeInTheDocument();
+    expect(screen.getByText(/^Exact amounts · .* · 50\.000₫ left to assign$/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Amount for An'), '50.000');
+    expect(screen.getByText('Exact amounts · 2 people')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add expense' })).toBeDisabled(); // no "What for" yet
+    await userEvent.type(screen.getByLabelText('Amount for Bình'), '10.000');
+    expect(screen.getByText('Exact amounts · 3 people · 10.000₫ over')).toBeInTheDocument();
+    expect(within(rowOf('Bình')).getByText('10.000₫')).toBeInTheDocument();
+  });
+
+  it('shares and adjust name the mode and count everyone ticked', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
+    await userEvent.click(screen.getByRole('radio', { name: 'Shares' }));
+    expect(screen.getByText('By shares · 4 people')).toBeInTheDocument();
+    for (const name of ['Minh', 'An', 'Bình', 'Chi']) expect(within(rowOf(name)).getByText('25.000₫')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: 'Adjust' }));
+    expect(screen.getByText('Equal split with adjustments · 4 people')).toBeInTheDocument();
   });
 
   it("someone else's expense cannot be edited", async () => {

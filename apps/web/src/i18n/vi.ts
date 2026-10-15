@@ -182,7 +182,11 @@ export const vi: Record<MessageKey, string> = {
   'split.captionEqualAbout': 'Chia đều · {n} người · mỗi người khoảng {each}', // REVIEW
   'split.captionEqualNone': 'Chia đều · {n} người', // REVIEW
   'split.captionExact': 'Số tiền chính xác · {n} người', // REVIEW
+  'split.captionExactLeft': 'Số tiền chính xác · {n} người · còn {amount} chưa chia', // REVIEW
+  'split.captionExactOver': 'Số tiền chính xác · {n} người · vượt {amount}', // REVIEW
   'split.captionPercent': 'Theo phần trăm · {n} người', // REVIEW
+  'split.captionPercentLeft': 'Theo phần trăm · {n} người · còn {pct}%', // REVIEW
+  'split.captionPercentOver': 'Theo phần trăm · {n} người · vượt {pct}%', // REVIEW
   'split.captionShares': 'Theo số phần · {n} người', // REVIEW
   'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
   'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
