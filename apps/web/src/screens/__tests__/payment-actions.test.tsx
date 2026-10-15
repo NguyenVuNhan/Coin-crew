@@ -17,7 +17,9 @@ const payment = (p: Partial<PaymentView> & Pick<PaymentView, 'id' | 'fromId' | '
 });
 
 describe('member: payment actions (spec §9.4)', () => {
-  it('marks money as received without waiting for a claim', async () => {
+  // Task 10: Your transfers no longer has a Received button on its rows. Task 11 brings this back as the tick circle
+  // (a guest paying me) and rewrites this test with it.
+  it.skip('marks money as received without waiting for a claim', async () => {
     const { calls } = mockApi({
       'GET /api/trips/t-1': tripView(), 'GET /api/trips/t-1/version': { version: 3 },
       'POST /api/trips/t-1/payments': () => Response.json({ paymentId: 'pay-9', status: 'confirmed' }, { status: 201 }),

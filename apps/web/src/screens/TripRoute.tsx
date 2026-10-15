@@ -80,7 +80,7 @@ export function TripRoute() {
   const panel = wide && (!view || view.me.kind === 'member');
   const detail = selection && selection.kind !== 'approvals' && !panel ? selection : null;
   const approvalsPage = selection?.kind === 'approvals' && !panel;
-  useListScroll(detail !== null || approvalsPage);
+  useListScroll(detail !== null ? 'details' : approvalsPage ? 'approvals' : 'list');
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {

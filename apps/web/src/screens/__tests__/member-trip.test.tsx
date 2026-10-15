@@ -666,6 +666,52 @@ describe('approvals queue', () => {
       expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
     });
 
+    it.each([
+      ['an expense', /^Cà phê Túi Mơ To/, '/t/t-1/expenses/e-4', 'Expense'],
+      ['a payment', /^Chi → You/, '/t/t-1/payments/pay-1', 'Payment'],
+    ])('opening %s from the left list while the approvals panel is open replaces the entry', async (_what, rowName, path, kind) => {
+      mockMedia({ wide: true });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      renderAt(<App />, { route: '/t/t-1' });
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      await screen.findByRole('region', { name: 'Waiting for approval' });
+      await userEvent.click(screen.getByRole('button', { name: rowName }));
+      expect(screen.getByTestId('location')).toHaveTextContent(path);
+      await userEvent.click(within(await screen.findByRole('region', { name: kind })).getByRole('button', { name: 'Close' }));
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
+    });
+
+    it('each page remembers its own scroll place: the list, then the approvals list, then an expense', async () => {
+      mockMedia({ wide: false });
+      const scrollTo = vi.fn();
+      vi.stubGlobal('scrollTo', scrollTo);
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      vi.stubGlobal('scrollY', 300); // the trip page is scrolled down
+      renderAt(<App />, { route: '/t/t-1' });
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      await screen.findByRole('heading', { name: 'Waiting for approval' });
+      expect(scrollTo).toHaveBeenLastCalledWith(0, 0); // the approvals list starts at its top
+
+      vi.stubGlobal('scrollY', 120); // scrolled a little down the approvals list
+      await userEvent.click(await screen.findByRole('button', { name: /^Bánh tráng nướng, chợ đêm/ }));
+      await screen.findByRole('heading', { name: 'Bánh tráng nướng, chợ đêm', level: 2 });
+      expect(scrollTo).toHaveBeenLastCalledWith(0, 0); // the expense starts at its top
+
+      vi.stubGlobal('scrollY', 0); // the shorter page has clamped the window to the top
+      await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+      await waitFor(() => expect(scrollTo).toHaveBeenLastCalledWith(0, 120)); // back on the approvals list where it was left
+
+      vi.stubGlobal('scrollY', 0);
+      await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+      await waitFor(() => expect(scrollTo).toHaveBeenLastCalledWith(0, 300)); // and back on the trip page where it was left
+
+      // Opening the approvals list again is a new visit: it starts at the top, not where it was last time.
+      vi.stubGlobal('scrollY', 300);
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      await screen.findByRole('heading', { name: 'Waiting for approval' });
+      expect(scrollTo).toHaveBeenLastCalledWith(0, 0);
+    });
+
     it('a shared link to the list with nothing waiting goes to the trip', async () => {
       mockMedia({ wide: false });
       mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });

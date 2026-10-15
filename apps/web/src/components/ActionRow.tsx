@@ -21,6 +21,7 @@ export function ActionRow({
   actions,
   onOpen,
   selected,
+  expanded,
   leading,
   hintable,
   children,
@@ -29,6 +30,8 @@ export function ActionRow({
   actions: RowAction[];
   onOpen?: () => void;
   selected?: boolean;
+  /** For a row that opens its content in place instead of going elsewhere: sets `aria-expanded` on the row's button. */
+  expanded?: boolean;
   leading?: ReactNode;
   hintable?: boolean;
   children: ReactNode;
@@ -101,6 +104,7 @@ export function ActionRow({
             className="fsl-action-row__main"
             aria-label={label}
             aria-current={selected || undefined}
+            aria-expanded={expanded}
             onClick={() => (swipe.open ? swipe.close() : onOpen?.())}
           >
             {children}

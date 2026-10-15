@@ -9,7 +9,7 @@ import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
 import { InviteCard, InviteSheet } from '../components/InviteSheet';
-import { WhoPaysWhom } from '../components/WhoPaysWhom';
+import { YourTransfers } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
@@ -91,8 +91,8 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   function open(kind: Detail['kind'], id: string) {
     if (detail?.kind === kind && detail.id === id) return;
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    // The wide panel shows one item at a time: switching rows replaces the entry, so × is one step from the list.
-    openDetails(kind, id, detail !== null);
+    // The wide panel shows one thing at a time (details or the approvals list): switching replaces the entry, so × is one step from the list.
+    openDetails(kind, id, selection !== null);
   }
 
   // When the panel closes, focus goes back to the row that opened it.
@@ -112,7 +112,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
-  const transfers = hasExpenses || view.suggestions.length > 0 ? <WhoPaysWhom view={view} /> : null;
+  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} /> : null;
   const payments = (hintable: boolean) => (
     <PaymentsList
       view={view}

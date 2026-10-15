@@ -87,7 +87,7 @@ describe('PayScreen', () => {
   it('lists bank apps that open with the VietQR deeplink', async () => {
     api(payInfo());
     renderAt(<PayScreen />, payRoute);
-    await userEvent.click(await screen.findByRole('button', { name: 'Open my bank app' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Open bank app' }));
     expect(await screen.findByRole('link', { name: /Vietcombank/ })).toHaveAttribute('href', 'https://dl.vietqr.io/pay?app=vcb');
   });
 

@@ -226,12 +226,15 @@ export const vi: Record<MessageKey, string> = {
   'approvals.membership': '{name} muốn trở thành thành viên', // REVIEW
   'approvals.approveNameFirst': 'Duyệt {name} trước', // REVIEW
 
-  'whoPays.pay': 'Thanh toán', // REVIEW
-  'whoPays.remind': 'Nhắc', // REVIEW
   'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
   'whoPays.paid': 'Đã trả ✓', // REVIEW
-  'whoPays.waiting': 'Đang chờ', // REVIEW
   'whoPays.received': 'Đã nhận', // REVIEW
+
+  'transfers.mine': 'Khoản chuyển của bạn', // REVIEW
+  'transfers.all': 'Ai trả ai', // REVIEW
+  'transfers.showAll': 'Xem tất cả', // REVIEW
+  'transfers.showMine': 'Chỉ của tôi', // REVIEW
+  'transfers.addBank': 'Thêm thông tin ngân hàng để có mã QR', // REVIEW
   'payments.title': 'Các khoản đã trả', // REVIEW
   'payments.disable': 'Tắt', // REVIEW
   'payments.enable': 'Bật lại', // REVIEW
@@ -320,6 +323,9 @@ export const vi: Record<MessageKey, string> = {
   'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
   'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
   'pay.remindThem': 'Nhắc {name}', // REVIEW
+  'pay.share': 'Chia sẻ', // REVIEW
+  'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
+  'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.', // REVIEW
   'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
 
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW

@@ -56,20 +56,36 @@ function scrollWindowTo(y: number): void {
   if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, y);
 }
 
-/**
- * While `away` is true the trip page is replaced by a page of its own (the phone details). Remembers how far
- * the list was scrolled when that began, puts it back when `away` ends, and starts the other page at its top.
- */
-export function useListScroll(away: boolean): void {
-  const saved = useRef(0);
-  const committedAway = useRef(away);
+/** The pages a trip route can show, from the list itself down to the one opened on top of it. */
+export type TripPage = 'list' | 'approvals' | 'details';
+const DEPTH: Record<TripPage, number> = { list: 0, approvals: 1, details: 2 };
 
-  // Read while rendering: React has not touched the page yet, so this is still where the list was scrolled.
-  if (away && !committedAway.current && typeof window !== 'undefined') saved.current = window.scrollY;
+/**
+ * Keeps the window's scroll place across the trip's pages (on phones the approvals list and the details are pages
+ * of their own). Going deeper remembers where the page being left was scrolled and starts the new one at its top;
+ * going back puts each page where it was left, and a page that was left behind is forgotten, so opening it again
+ * is a new visit that starts at the top.
+ */
+export function useListScroll(page: TripPage): void {
+  const saved = useRef<Partial<Record<TripPage, number>>>({});
+  const committed = useRef(page);
+
+  // Read while rendering: React has not touched the page yet, so this is still where the page being left was scrolled.
+  if (page !== committed.current && DEPTH[page] > DEPTH[committed.current] && typeof window !== 'undefined') {
+    saved.current[committed.current] = window.scrollY;
+  }
 
   useLayoutEffect(() => {
-    if (committedAway.current === away) return; // first render, or nothing changed
-    committedAway.current = away;
-    scrollWindowTo(away ? 0 : saved.current);
-  }, [away]);
+    const from = committed.current;
+    if (from === page) return; // first render, or nothing changed
+    committed.current = page;
+    if (DEPTH[page] > DEPTH[from]) {
+      scrollWindowTo(0);
+      return;
+    }
+    scrollWindowTo(saved.current[page] ?? 0);
+    for (const left of Object.keys(saved.current) as TripPage[]) {
+      if (DEPTH[left] > DEPTH[page]) delete saved.current[left];
+    }
+  }, [page]);
 }

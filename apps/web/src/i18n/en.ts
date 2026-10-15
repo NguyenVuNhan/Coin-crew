@@ -46,7 +46,7 @@ export const en = {
   'pay.bankNone': "{name} hasn't added bank details yet", // SPEC
   'pay.waiting': 'Waiting for the money to reach {name}. This page updates by itself.', // SPEC
   'pay.alreadyPaid': "I've already paid", // SPEC
-  'pay.openBankApp': 'Open my bank app', // SPEC
+  'pay.openBankApp': 'Open bank app', // SPEC 2026-10-14
   'pay.saveQr': 'Save QR', // SPEC
 
   'landing.headline': 'Split trip costs. Settle up with VietQR.',
@@ -226,12 +226,15 @@ export const en = {
   'approvals.membership': '{name} wants to become a member',
   'approvals.approveNameFirst': 'Approve {name} first',
 
-  'whoPays.pay': 'Pay',
-  'whoPays.remind': 'Remind',
   'whoPays.remindCopied': 'Reminder copied — paste it in your chat.',
   'whoPays.paid': 'Paid ✓',
-  'whoPays.waiting': 'Waiting',
   'whoPays.received': 'Received',
+
+  'transfers.mine': 'Your transfers',
+  'transfers.all': 'Who pays whom',
+  'transfers.showAll': 'Show all',
+  'transfers.showMine': 'Show mine',
+  'transfers.addBank': 'Add your bank details to get a QR code',
   'payments.title': 'Payments',
   'payments.disable': 'Disable',
   'payments.enable': 'Enable',
@@ -320,6 +323,9 @@ export const en = {
   'pay.chooseApp': 'Choose your bank app',
   'pay.fillsIn': 'fills in the payment',
   'pay.remindThem': 'Remind {name}',
+  'pay.share': 'Share',
+  'pay.shareSaved': 'QR saved and message copied.',
+  'pay.shareFailed': "Couldn't share. Try Save QR.",
   'pay.remindBankText': 'Hi {name}! Please add your bank details in "{trip}" so I can pay you back with VietQR: {link}',
 
   'bankForm.title': 'Your bank details',

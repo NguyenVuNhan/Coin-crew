@@ -1,14 +1,13 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useParams } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import QRCode from 'qrcode';
-import type { PayInfo } from '@fsl/core';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
-import { apiFetch, apiSend } from '../api/client';
+import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
-import { remind } from '../lib/remind';
-import { linkTokens } from '../lib/linkTokens';
+import { usePayInfo } from '../api/payInfo';
+import { groupLink, remind } from '../lib/remind';
+import { qrSrc, saveQr, useQrSvg } from '../lib/qr';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Amount } from '../components/Amount';
@@ -73,41 +72,15 @@ export function PayScreen() {
     error: payError,
     isLoading: isPayLoading,
     refetch: refetchPay,
-  } = useQuery({
-    queryKey: ['pay', tripId, toId, view?.trip.version],
-    queryFn: () => apiFetch<PayInfo>(`/api/trips/${tripId}/pay/${toId}`, { tripId }),
-    enabled: !!view && !!tripId && !!toId,
-  });
+  } = usePayInfo({ tripId, toId, enabled: !!view && !!tripId && !!toId, version: view?.trip.version ?? 0 });
 
-  const [svg, setSvg] = useState<string>('');
+  const svg = useQrSvg(payInfo?.payload ?? null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [recordedStatus, setRecordedStatus] = useState<string | null>(null);
   const [recordedPaymentId, setRecordedPaymentId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [copiedField, setCopiedField] = useState<'account' | 'note' | null>(null);
-
-  useEffect(() => {
-    if (!payInfo?.payload) {
-      setSvg('');
-      return;
-    }
-    let active = true;
-    QRCode.toString(payInfo.payload, {
-      type: 'svg',
-      errorCorrectionLevel: 'M',
-      margin: 2,
-    })
-      .then((res) => {
-        if (active) setSvg(res);
-      })
-      .catch(() => {
-        if (active) setSvg('');
-      });
-    return () => {
-      active = false;
-    };
-  }, [payInfo?.payload]);
 
   const handleCopyAccount = () => {
     if (payInfo?.bank?.accountNumber && typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -134,40 +107,7 @@ export function PayScreen() {
   };
 
   const handleSaveQr = () => {
-    try {
-      if (!svg || typeof document === 'undefined') return;
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 1024;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, 1024, 1024);
-
-      const img = new Image();
-      img.onload = () => {
-        try {
-          ctx.drawImage(img, 0, 0, 1024, 1024);
-          canvas.toBlob((blob) => {
-            if (!blob) return;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const cleanRef = (payInfo?.refCode ?? 'qr').replace(/\s+/g, '-');
-            a.download = `vietqr-${cleanRef}.png`;
-            a.href = url;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          }, 'image/png');
-        } catch {
-          // ignore
-        }
-      };
-      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-    } catch {
-      // on failure do nothing
-    }
+    void saveQr(svg, payInfo?.refCode ?? '');
   };
 
   const handleAlreadyPaid = async () => {
@@ -200,14 +140,10 @@ export function PayScreen() {
 
   const handleRemind = () => {
     if (!view) return;
-    const groupToken =
-      view.links?.group ?? (tripId ? linkTokens.get(tripId) : null) ?? '';
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const link = `${origin}/j/${groupToken}`;
     const text = t('pay.remindBankText', {
       name: payInfo?.to.name ?? '',
       trip: view.trip.name,
-      link,
+      link: groupLink(view),
     });
     void remind(text);
   };
@@ -343,9 +279,7 @@ export function PayScreen() {
                     name,
                     amount: formatVnd(payInfo.amount),
                   })}
-                  src={
-                    svg ? 'data:image/svg+xml;utf8,' + encodeURIComponent(svg) : ''
-                  }
+                  src={qrSrc(svg)}
                 />
               </div>
 
