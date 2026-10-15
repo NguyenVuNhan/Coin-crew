@@ -59,7 +59,11 @@ export interface RecentPerson {
   trips: string[];
 }
 
-export interface PersonView { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved' }
+export interface PersonView {
+  id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
+  /** The person who created the trip. Left out by an older server. */
+  isOrganiser?: boolean;
+}
 export interface ExpenseView {
   id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;
   status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;

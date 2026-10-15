@@ -18,6 +18,7 @@ describe('POST /api/trips', () => {
     const v = await view(headers, tripId);
     expect(v.people.map((p) => p.name)).toEqual(['Minh', 'An', 'Bình', 'Chi']);
     expect(v.people[0]).toMatchObject({ isMember: true, bank: 'approved' });
+    expect(v.people.map((p) => p.isOrganiser)).toEqual([true, false, false, false]);
     expect(v.me).toMatchObject({ kind: 'member', isOrganiser: true });
     expect(v.links?.group).toBeTruthy();
     expect(v.links?.view).toBeTruthy();

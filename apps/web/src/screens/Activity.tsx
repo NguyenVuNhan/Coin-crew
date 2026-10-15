@@ -1,10 +1,10 @@
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { ActivityItem } from '@fsl/core';
-import type { MessageKey } from '../i18n/en';
 import { useT } from '../i18n';
 import { apiFetch, type ApiClientError } from '../api/client';
-import { formatAgo } from '../lib/time';
+import { useTripView } from '../api/hooks';
+import { activityLine, groupByDay, timeOf } from '../lib/activityText';
 import { Screen } from '../components/Screen';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
@@ -21,40 +21,38 @@ export function Activity() {
     enabled: !!tripId,
   });
 
+  const { view, isLoading: viewLoading } = useTripView(tripId ?? '', 0);
+  const loading = isLoading || viewLoading;
+
   return (
     <Screen title={t('activity.title')} back={`/t/${tripId}/settings`}>
       <div className="fsl-activity">
-        {isLoading && <SkeletonList rows={5} />}
+        {loading && !error && <SkeletonList rows={5} />}
 
         {error && (
           <InlineError error={error as ApiClientError} onRetry={refetch} />
         )}
 
-        {!isLoading && !error && (!data || data.length === 0) && (
-          <EmptyState title={t('activity.empty')} action={null} />
+        {!loading && !error && (!data || data.length === 0) && (
+          <EmptyState icon="clock" title={t('activity.empty')} action={null} />
         )}
 
-        {!isLoading && !error && data && data.length > 0 && (
-          <div className="fsl-card">
-            {data.map((item) => {
-              const actionKey = `activity.action.${item.action}` as MessageKey;
-              const line = t('activity.line', {
-                actor: item.actorName ?? t('activity.someone'),
-                action: t(actionKey),
-              });
-              const meta =
-                formatAgo(item.createdAt) +
-                (item.deviceShort ? ` · ${item.deviceShort}` : '');
-
-              return (
-                <div key={item.id} className="fsl-activity__row">
-                  <div className="fsl-activity__line">{line}</div>
-                  <div className="fsl-activity__meta">{meta}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {!loading && !error && data && data.length > 0 &&
+          groupByDay(data, new Date()).map((group) => (
+            <section key={group.label} className="fsl-activity__day">
+              <h2 className="fsl-activity__heading">{group.label}</h2>
+              <ul className="fsl-activity__list">
+                {group.items.map((item) => (
+                  <li key={item.id} className="fsl-activity__row">
+                    <div className="fsl-activity__line">{activityLine(item, view, t)}</div>
+                    <div className="fsl-activity__meta">
+                      {timeOf(item.createdAt)}{item.deviceShort ? <> · {t('activity.device')} <code className="fsl-activity__device">{item.deviceShort}</code></> : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
       </div>
     </Screen>
   );

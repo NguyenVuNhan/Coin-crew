@@ -34,7 +34,7 @@
   height: 20px;
   border-radius: var(--radius-pill);
   background: var(--color-border-strong);
-  transition: background-color 0.15s;
+  transition: background-color var(--motion-fast) var(--ease-out);
 }
 
 .fsl-fewest__track::after {
@@ -46,7 +46,7 @@
   height: 16px;
   border-radius: 50%;
   background: var(--color-surface);
-  transition: transform 0.15s;
+  transition: transform var(--motion-fast) var(--ease-out);
 }
 
 .fsl-fewest__track--on {

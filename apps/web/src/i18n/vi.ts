@@ -293,6 +293,10 @@ export const vi: Record<MessageKey, string> = {
   'settings.archive': 'Lưu trữ chuyến đi', // REVIEW
   'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này sau khi lưu trữ. Lưu trữ?', // REVIEW
   'settings.archived': 'Chuyến đi này đã được lưu trữ. Bạn vẫn có thể xem.', // REVIEW
+  'settings.bank': 'Thông tin ngân hàng của bạn', // REVIEW
+  'settings.language': 'Ngôn ngữ', // REVIEW
+  'settings.dangerZone': 'Vùng nguy hiểm', // REVIEW
+  'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ.', // REVIEW
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
@@ -309,6 +313,19 @@ export const vi: Record<MessageKey, string> = {
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
   'activity.someone': 'Ai đó', // REVIEW
   'activity.line': '{actor} {action}', // REVIEW
+  'activity.today': 'Hôm nay', // REVIEW
+  'activity.yesterday': 'Hôm qua', // REVIEW
+  'activity.device': 'thiết bị', // REVIEW
+  'activity.expenseAdded': '{actor} đã thêm {description} · {amount}', // REVIEW
+  'activity.expenseEdited': '{actor} đã sửa {description} · {amount}', // REVIEW
+  'activity.expenseApproved': '{actor} đã duyệt {description}', // REVIEW
+  'activity.expenseRejected': '{actor} đã từ chối {description}', // REVIEW
+  'activity.paymentRecorded': '{from} đã trả {to} {amount}', // REVIEW
+  'activity.paymentConfirmed': '{actor} đã xác nhận một khoản thanh toán · {amount}', // REVIEW
+  'activity.nameAdded': '{actor} đã thêm {name}', // REVIEW
+  'activity.nameApproved': '{actor} đã duyệt {name}', // REVIEW
+  'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
+  'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
   'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
   'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
   'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW

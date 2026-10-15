@@ -739,13 +739,17 @@ describe('remindText', () => {
 describe('Activity', () => {
   it('lists who did what', async () => {
     mockApi({
+      'GET /api/trips/t-1': tripView(),
       'GET /api/trips/t-1/activity': [
-        { id: 'a-2', action: 'expense_approved', actorName: 'Minh', deviceShort: 'abc123', details: {}, createdAt: new Date().toISOString() },
+        { id: 'a-3', action: 'expense_approved', actorName: 'Minh', deviceShort: 'abc123', details: { description: 'Bánh tráng nướng' }, createdAt: new Date().toISOString() },
+        { id: 'a-2', action: 'expense_disabled', actorName: 'Minh', deviceShort: 'abc123', details: {}, createdAt: new Date().toISOString() },
         { id: 'a-1', action: 'trip_created', actorName: 'Minh', deviceShort: null, details: {}, createdAt: '2026-10-10T00:00:00.000Z' },
       ],
     });
     renderAt(<Activity />, { route: '/t/t-1/activity', path: '/t/:tripId/activity' });
-    expect(await screen.findByText('Minh approved an expense')).toBeInTheDocument();
+    expect(await screen.findByText('Minh approved Bánh tráng nướng')).toBeInTheDocument();
+    expect(screen.getByText('Minh disabled an expense')).toBeInTheDocument();
     expect(screen.getByText('Minh created the trip')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import {
   type Actor,
   type ExpenseView,
   type PaymentView,
+  type PersonView,
   type TripView,
 } from '@fsl/core';
 import type { RowAction } from '../components/ActionRow';
@@ -88,6 +89,34 @@ export function paymentActions(view: TripView, p: PaymentView, deps: ActionDeps)
     } else if (p.status === 'confirmed' || p.status === 'says_paid') {
       actions.push({ id: 'disable', label: t('payments.disable'), icon: 'ban', tone: 'danger', onSelect: () => void run(`/payments/${p.id}/disable`) });
     }
+  }
+
+  return actions;
+}
+
+export interface PersonActionDeps {
+  t: T;
+  onMerge(): void;
+  onRemove(): void;
+}
+
+/**
+ * What a member may do with a person on the People screen: merge them into another name, or remove them.
+ * The organiser and the signed-in person can be merged but never removed (removing them would lock them out),
+ * and nothing is offered in an archived trip.
+ */
+export function personActions(view: TripView, person: PersonView, deps: PersonActionDeps): RowAction[] {
+  if (view.trip.archived) return [];
+  const { t, onMerge, onRemove } = deps;
+  const actor = actorOf(view);
+  const actions: RowAction[] = [];
+
+  if (can(actor, 'merge')) {
+    actions.push({ id: 'merge', label: t('people.merge'), icon: 'merge', onSelect: onMerge });
+  }
+
+  if (can(actor, 'remove_person') && person.isOrganiser !== true && person.id !== view.me.participantId) {
+    actions.push({ id: 'remove', label: t('people.remove'), icon: 'trash', tone: 'danger', onSelect: onRemove });
   }
 
   return actions;
