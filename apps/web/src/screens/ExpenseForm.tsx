@@ -1,13 +1,16 @@
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { TripView, ExpenseView, ExpenseInput, SplitMode, SplitEntry, SplitError } from '@fsl/core';
-import { computeShares, formatVnd, parseVnd } from '@fsl/core';
+import type { TripView, ExpenseView, ExpenseInput, SplitMode, SplitEntry, SplitError, SplitResult } from '@fsl/core';
+import { can, computeShares, formatVnd, parseVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
 import { apiSend } from '../api/client';
 import { toEntryValue, fromEntryValue } from '../lib/splitInput';
+import { useLeaveForm } from '../lib/detailsNav';
+import { actorOf } from '../lib/rowActions';
+import { SplitModePicker } from '../components/SplitModePicker';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
@@ -23,13 +26,28 @@ function getTodayLocalDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-const SPLIT_MODES: { mode: SplitMode; labelKey: MessageKey }[] = [
-  { mode: 'equal', labelKey: 'split.tab.equal' },
-  { mode: 'amounts', labelKey: 'split.tab.amounts' },
-  { mode: 'percent', labelKey: 'split.tab.percent' },
-  { mode: 'shares', labelKey: 'split.tab.shares' },
-  { mode: 'adjust', labelKey: 'split.tab.adjust' },
-];
+type T = ReturnType<typeof useT>;
+
+/** The line under the split picker: the mode in words, how many people it counts and, for an equal split, what each pays. */
+function splitCaption(t: T, mode: SplitMode, people: number, result: SplitResult | null): string {
+  switch (mode) {
+    case 'equal': {
+      if (!result || !result.ok) return t('split.captionEqualNone', { n: people });
+      // The few dong that do not divide evenly make some shares one more than the rest: the line gives the smallest.
+      const each = Math.min(...result.shares.map((s) => s.amount));
+      const allEqual = result.shares.every((s) => s.amount === each);
+      return t(allEqual ? 'split.captionEqual' : 'split.captionEqualAbout', { n: people, each: formatVnd(each) });
+    }
+    case 'amounts':
+      return t('split.captionExact', { n: people });
+    case 'percent':
+      return t('split.captionPercent', { n: people });
+    case 'shares':
+      return t('split.captionShares', { n: people });
+    case 'adjust':
+      return t('split.captionAdjust', { n: people });
+  }
+}
 
 const SPLIT_ERRORS = new Set<string>([
   'NO_PARTICIPANTS',
@@ -45,12 +63,13 @@ interface ExpenseFormContentProps {
   tripId: string;
   expenseId?: string;
   expense?: ExpenseView;
+  title: string;
+  leave: () => void;
 }
 
-function ExpenseFormContent({ view, tripId, expenseId, expense }: ExpenseFormContentProps) {
+function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: ExpenseFormContentProps) {
   const t = useT();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const isEdit = Boolean(expenseId);
   const me = view.me.participantId;
@@ -192,6 +211,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense }: ExpenseFormCon
     return computeShares(parsedAmount, mode, entries);
   }, [parsedAmount, mode, entries]);
 
+  const caption = splitCaption(t, mode, entries.length, splitResult);
+
   const computedSharesMap = useMemo(() => {
     if (!splitResult || !splitResult.ok) return null;
     const map = new Map<string, number>();
@@ -245,7 +266,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense }: ExpenseFormCon
         await apiSend(`/api/trips/${tripId}/expenses`, 'POST', body, tripId);
       }
       await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      navigate(`/t/${tripId}`);
+      leave();
     } catch (err) {
       setSubmitError(err);
     } finally {
@@ -260,292 +281,287 @@ function ExpenseFormContent({ view, tripId, expenseId, expense }: ExpenseFormCon
       : t('expenseForm.add');
 
   return (
-    <form onSubmit={handleSubmit} className="fsl-expense-form">
-      <div className="fsl-field">
-        <label htmlFor="expense-what-for" className="fsl-field-label">
-          {t('expenseForm.whatFor')}
-        </label>
-        <input
-          id="expense-what-for"
-          type="text"
-          className="fsl-input"
-          placeholder={t('expenseForm.whatForPlaceholder')}
-          maxLength={80}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-
-      <div className="fsl-field">
-        <label htmlFor="expense-amount" className="fsl-field-label">
-          {t('expenseForm.amount')}
-        </label>
-        <input
-          id="expense-amount"
-          type="text"
-          inputMode="decimal"
-          className="fsl-input fsl-input--amount"
-          value={amountText}
-          onChange={(e) => setAmountText(e.target.value)}
-          aria-describedby={isAmountInvalid ? 'expense-amount-error' : 'expense-amount-hint'}
-        />
-        {parsedAmount !== null && (
-          <div className="fsl-amount-preview">
-            {formatVnd(parsedAmount)}
-          </div>
-        )}
-        {isAmountInvalid ? (
-          <div id="expense-amount-error" role="alert" className="fsl-field-error">
-            {t('expenseForm.amountInvalid')}
-          </div>
-        ) : (
-          <div id="expense-amount-hint" className="fsl-field-hint">
-            {t('expenseForm.amountHint')}
-          </div>
-        )}
-      </div>
-
-      <div className="fsl-field">
-        <label htmlFor="expense-date" className="fsl-field-label">
-          {t('expenseForm.date')}
-        </label>
-        <input
-          id="expense-date"
-          type="date"
-          className="fsl-input"
-          value={spentOn}
-          onChange={(e) => setSpentOn(e.target.value)}
-        />
-      </div>
-
-      <div className="fsl-field">
-        <label htmlFor="expense-paid-by" className="fsl-field-label">
-          {t('expenseForm.paidBy')}
-        </label>
-        <select
-          id="expense-paid-by"
-          className="fsl-select"
-          value={payerId}
-          onChange={(e) => setPayerId(e.target.value)}
-        >
-          {view.people.map((person) => (
-            <option key={person.id} value={person.id}>
-              {person.id === me
-                ? t('expenseForm.me', { name: person.name })
-                : person.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="fsl-expense-form__split-section">
-        <h2 className="fsl-section-heading">{t('expenseForm.split')}</h2>
-
-        <div role="tablist" aria-label={t('expenseForm.split')} className="fsl-split-tabs">
-          {SPLIT_MODES.map(({ mode: m, labelKey }) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              className={`fsl-split-tab ${mode === m ? 'fsl-split-tab--active' : ''}`}
-              onClick={() => setMode(m)}
-            >
-              {t(labelKey)}
-            </button>
-          ))}
+    <Screen
+      title={title}
+      onBack={leave}
+      bottomBar={
+        <>
+          {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
+          <Button
+            type="submit"
+            form="expense-form"
+            variant="primary"
+            block
+            loading={isSubmitting}
+            disabled={!canSubmit || isSubmitting}
+          >
+            {submitText}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="expense-form"
+        onSubmit={handleSubmit}
+        className={`fsl-expense-form${submitError ? ' fsl-expense-form--bar-error' : ''}`}
+      >
+        <div className="fsl-field">
+          <label htmlFor="expense-what-for" className="fsl-field-label">
+            {t('expenseForm.whatFor')}
+          </label>
+          <input
+            id="expense-what-for"
+            type="text"
+            className="fsl-input"
+            placeholder={t('expenseForm.whatForPlaceholder')}
+            maxLength={80}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </div>
 
-        <div className="fsl-card">
-          {view.people.map((person) => {
-            const shareAmount = computedSharesMap?.get(person.id);
-            const isIncluded = included.has(person.id);
-            const isInputInvalid = Boolean(inputErrors[person.id]);
+        <div className="fsl-field">
+          <label htmlFor="expense-amount" className="fsl-field-label">
+            {t('expenseForm.amount')}
+          </label>
+          <input
+            id="expense-amount"
+            type="text"
+            inputMode="decimal"
+            className="fsl-input fsl-input--amount"
+            value={amountText}
+            onChange={(e) => setAmountText(e.target.value)}
+            aria-describedby={isAmountInvalid ? 'expense-amount-error' : 'expense-amount-hint'}
+          />
+          {parsedAmount !== null && (
+            <div className="fsl-amount-preview">
+              {formatVnd(parsedAmount)}
+            </div>
+          )}
+          {isAmountInvalid ? (
+            <div id="expense-amount-error" role="alert" className="fsl-field-error">
+              {t('expenseForm.amountInvalid')}
+            </div>
+          ) : (
+            <div id="expense-amount-hint" className="fsl-field-hint">
+              {t('expenseForm.amountHint')}
+            </div>
+          )}
+        </div>
 
-            return (
-              <div
-                key={person.id}
-                className="fsl-split-row"
-                data-testid={`split-row-${person.name}`}
-              >
-                {(mode === 'equal' || mode === 'adjust') && (
-                  <label className="fsl-split-row__check-label">
-                    <input
-                      type="checkbox"
-                      className="fsl-split-row__checkbox"
-                      aria-label={t('expenseForm.include', { name: person.name })}
-                      checked={isIncluded}
-                      onChange={(e) => {
-                        const next = new Set(included);
-                        if (e.target.checked) next.add(person.id);
-                        else next.delete(person.id);
-                        setIncluded(next);
-                      }}
-                    />
-                  </label>
-                )}
+        <div className="fsl-expense-form__row">
+          <div className="fsl-field">
+            <label htmlFor="expense-date" className="fsl-field-label">
+              {t('expenseForm.date')}
+            </label>
+            <input
+              id="expense-date"
+              type="date"
+              className="fsl-input"
+              value={spentOn}
+              onChange={(e) => setSpentOn(e.target.value)}
+            />
+          </div>
 
-                <Avatar name={person.name} size="sm" />
-
-                <span className="fsl-split-row__name">
+          <div className="fsl-field">
+            <label htmlFor="expense-paid-by" className="fsl-field-label">
+              {t('expenseForm.paidBy')}
+            </label>
+            <select
+              id="expense-paid-by"
+              className="fsl-select"
+              value={payerId}
+              onChange={(e) => setPayerId(e.target.value)}
+            >
+              {view.people.map((person) => (
+                <option key={person.id} value={person.id}>
                   {person.id === me
                     ? t('expenseForm.me', { name: person.name })
                     : person.name}
-                </span>
-
-                {mode === 'adjust' && (
-                  <div className="fsl-split-row__control">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      className="fsl-input fsl-split-row__input"
-                      aria-label={t('expenseForm.adjustFor', { name: person.name })}
-                      value={adjustInputs[person.id] ?? '0'}
-                      disabled={!isIncluded}
-                      onChange={(e) =>
-                        setAdjustInputs((prev) => ({
-                          ...prev,
-                          [person.id]: e.target.value,
-                        }))
-                      }
-                    />
-                    {isInputInvalid && (
-                      <span role="alert" className="fsl-field-error">
-                        {t('expenseForm.amountInvalid')}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {mode === 'amounts' && (
-                  <div className="fsl-split-row__control">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      className="fsl-input fsl-split-row__input"
-                      aria-label={t('expenseForm.amountFor', { name: person.name })}
-                      value={amountsInputs[person.id] ?? ''}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setAmountsInputs((prev) => ({
-                          ...prev,
-                          [person.id]: e.target.value,
-                        }))
-                      }
-                    />
-                    {isInputInvalid && (
-                      <span role="alert" className="fsl-field-error">
-                        {t('expenseForm.amountInvalid')}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {mode === 'percent' && (
-                  <div className="fsl-split-row__control">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      className="fsl-input fsl-split-row__input"
-                      aria-label={t('expenseForm.percentFor', { name: person.name })}
-                      value={percentInputs[person.id] ?? ''}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setPercentInputs((prev) => ({
-                          ...prev,
-                          [person.id]: e.target.value,
-                        }))
-                      }
-                    />
-                    {isInputInvalid && (
-                      <span role="alert" className="fsl-field-error">
-                        {t('expenseForm.amountInvalid')}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {mode === 'shares' && (
-                  <div className="fsl-split-row__control">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      className="fsl-input fsl-split-row__input"
-                      aria-label={t('expenseForm.sharesFor', { name: person.name })}
-                      value={sharesInputs[person.id] ?? '1'}
-                      placeholder="1"
-                      onChange={(e) =>
-                        setSharesInputs((prev) => ({
-                          ...prev,
-                          [person.id]: e.target.value,
-                        }))
-                      }
-                    />
-                    {isInputInvalid && (
-                      <span role="alert" className="fsl-field-error">
-                        {t('expenseForm.amountInvalid')}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {shareAmount !== undefined && (
-                  <span className="fsl-split-row__share">
-                    {formatVnd(shareAmount)}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {parsedAmount !== null && splitResult && !splitResult.ok && (
-          <div role="alert" className="fsl-split-error">
-            {t(`splitError.${splitResult.error}` as MessageKey)}
+        <div className="fsl-expense-form__split-section">
+          <h2 className="fsl-section-heading">{t('expenseForm.split')}</h2>
+
+          <SplitModePicker value={mode} onChange={setMode} />
+          <p className="fsl-split-caption">{caption}</p>
+
+          <div className="fsl-card">
+            {view.people.map((person) => {
+              const shareAmount = computedSharesMap?.get(person.id);
+              const isIncluded = included.has(person.id);
+              const isInputInvalid = Boolean(inputErrors[person.id]);
+
+              return (
+                <div
+                  key={person.id}
+                  className="fsl-split-row"
+                  data-testid={`split-row-${person.name}`}
+                >
+                  {(mode === 'equal' || mode === 'adjust') && (
+                    <label className="fsl-split-row__check-label">
+                      <input
+                        type="checkbox"
+                        className="fsl-split-row__checkbox"
+                        aria-label={t('expenseForm.include', { name: person.name })}
+                        checked={isIncluded}
+                        onChange={(e) => {
+                          const next = new Set(included);
+                          if (e.target.checked) next.add(person.id);
+                          else next.delete(person.id);
+                          setIncluded(next);
+                        }}
+                      />
+                    </label>
+                  )}
+
+                  <Avatar name={person.name} size="sm" />
+
+                  <span className="fsl-split-row__name">
+                    {person.id === me
+                      ? t('expenseForm.me', { name: person.name })
+                      : person.name}
+                  </span>
+
+                  {mode === 'adjust' && (
+                    <div className="fsl-split-row__control">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="fsl-input fsl-split-row__input"
+                        aria-label={t('expenseForm.adjustFor', { name: person.name })}
+                        value={adjustInputs[person.id] ?? '0'}
+                        disabled={!isIncluded}
+                        onChange={(e) =>
+                          setAdjustInputs((prev) => ({
+                            ...prev,
+                            [person.id]: e.target.value,
+                          }))
+                        }
+                      />
+                      {isInputInvalid && (
+                        <span role="alert" className="fsl-field-error">
+                          {t('expenseForm.amountInvalid')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {mode === 'amounts' && (
+                    <div className="fsl-split-row__control">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="fsl-input fsl-split-row__input"
+                        aria-label={t('expenseForm.amountFor', { name: person.name })}
+                        value={amountsInputs[person.id] ?? ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setAmountsInputs((prev) => ({
+                            ...prev,
+                            [person.id]: e.target.value,
+                          }))
+                        }
+                      />
+                      {isInputInvalid && (
+                        <span role="alert" className="fsl-field-error">
+                          {t('expenseForm.amountInvalid')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {mode === 'percent' && (
+                    <div className="fsl-split-row__control">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="fsl-input fsl-split-row__input"
+                        aria-label={t('expenseForm.percentFor', { name: person.name })}
+                        value={percentInputs[person.id] ?? ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setPercentInputs((prev) => ({
+                            ...prev,
+                            [person.id]: e.target.value,
+                          }))
+                        }
+                      />
+                      {isInputInvalid && (
+                        <span role="alert" className="fsl-field-error">
+                          {t('expenseForm.amountInvalid')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {mode === 'shares' && (
+                    <div className="fsl-split-row__control">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="fsl-input fsl-split-row__input"
+                        aria-label={t('expenseForm.sharesFor', { name: person.name })}
+                        value={sharesInputs[person.id] ?? '1'}
+                        placeholder="1"
+                        onChange={(e) =>
+                          setSharesInputs((prev) => ({
+                            ...prev,
+                            [person.id]: e.target.value,
+                          }))
+                        }
+                      />
+                      {isInputInvalid && (
+                        <span role="alert" className="fsl-field-error">
+                          {t('expenseForm.amountInvalid')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {shareAmount !== undefined && (
+                    <span className="fsl-split-row__share">
+                      {formatVnd(shareAmount)}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
 
-      <div className="fsl-expense-form__actions">
-        {submitError ? (
-          <InlineError
-            error={formatSubmitError(submitError)}
-            className="fsl-expense-form__submit-error"
-          />
-        ) : null}
-
-        <Button
-          type="submit"
-          variant="primary"
-          block
-          loading={isSubmitting}
-          disabled={!canSubmit || isSubmitting}
-        >
-          {submitText}
-        </Button>
+          {parsedAmount !== null && splitResult && !splitResult.ok && (
+            <div role="alert" className="fsl-split-error">
+              {t(`splitError.${splitResult.error}` as MessageKey)}
+            </div>
+          )}
+        </div>
 
         {view.me.kind === 'guest' && (
           <p className="fsl-expense-form__guest-note">
             {t('expenseForm.guestNote')}
           </p>
         )}
-      </div>
-    </form>
+      </form>
+    </Screen>
   );
 }
 
 export function ExpenseForm() {
   const { tripId = '', expenseId } = useParams<{ tripId: string; expenseId?: string }>();
   const t = useT();
+  const leave = useLeaveForm(tripId);
   const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 0);
 
   const isEdit = Boolean(expenseId);
   const title = isEdit ? t('expenseForm.titleEdit') : t('expenseForm.titleNew');
-  const back = `/t/${tripId}`;
 
   if (isLoading || !view) {
     return (
-      <Screen title={title} back={back}>
+      <Screen title={title} onBack={leave}>
         <div className="fsl-expense-form">
           <div className="fsl-field">
             <Skeleton width="30%" height={14} />
@@ -576,7 +592,7 @@ export function ExpenseForm() {
 
   if (tripError) {
     return (
-      <Screen title={title} back={back}>
+      <Screen title={title} onBack={leave}>
         <div className="fsl-expense-form">
           <InlineError error={tripError} onRetry={refetch} />
         </div>
@@ -587,7 +603,7 @@ export function ExpenseForm() {
   const expense = expenseId ? view.expenses.find((e) => e.id === expenseId) : undefined;
   if (expenseId && !expense) {
     return (
-      <Screen title={title} back={back}>
+      <Screen title={title} onBack={leave}>
         <div className="fsl-expense-form">
           <InlineError error={{ code: 'NOT_FOUND' }} />
         </div>
@@ -595,14 +611,25 @@ export function ExpenseForm() {
     );
   }
 
+  if (expense && !can(actorOf(view), 'edit_expense', { expenseCreatedById: expense.createdById, expenseStatus: expense.status })) {
+    return (
+      <Screen title={title} onBack={leave}>
+        <div className="fsl-expense-form">
+          <p className="fsl-expense-form__not-yours">{t('expense.notYours')}</p>
+          <Button variant="secondary" onClick={leave}>{t('common.back')}</Button>
+        </div>
+      </Screen>
+    );
+  }
+
   return (
-    <Screen title={title} back={back}>
-      <ExpenseFormContent
-        view={view}
-        tripId={tripId}
-        expenseId={expenseId}
-        expense={expense}
-      />
-    </Screen>
+    <ExpenseFormContent
+      view={view}
+      tripId={tripId}
+      expenseId={expenseId}
+      expense={expense}
+      title={title}
+      leave={leave}
+    />
   );
 }

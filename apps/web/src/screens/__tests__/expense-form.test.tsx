@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Link, Route, Routes, useNavigationType } from 'react-router';
 import { renderAt, mockApi } from '../../test/render';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
 import { ExpenseForm } from '../ExpenseForm';
@@ -53,7 +54,7 @@ describe('ExpenseForm', () => {
     renderAt(<ExpenseForm />, newRoute);
     await userEvent.type(await screen.findByLabelText('What for'), 'Lẩu');
     await userEvent.type(screen.getByLabelText('Amount'), '100.000');
-    await userEvent.click(screen.getByRole('tab', { name: 'Amounts' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Exact amounts' }));
     await userEvent.type(screen.getByLabelText('Amount for Minh'), '50.000');
     await userEvent.type(screen.getByLabelText('Amount for An'), '20.000');
     expect(screen.getByText("The amounts don't add up to the total.")).toBeInTheDocument();
@@ -97,5 +98,90 @@ describe('ExpenseForm', () => {
     expect(screen.getByLabelText('Amount')).toHaveValue('180.000');
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true));
+  });
+  it('the split modes are named icons', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    const group = await screen.findByRole('radiogroup', { name: 'Split' });
+    const radios = within(group).getAllByRole('radio');
+    expect(radios.map((r) => r.getAttribute('aria-label'))).toEqual(['Equally', 'Exact amounts', 'Percent', 'Shares', 'Adjust']);
+    expect(radios.map((r) => r.getAttribute('title'))).toEqual(['Equally', 'Exact amounts', 'Percent', 'Shares', 'Adjust']);
+    expect(within(group).getByRole('radio', { name: 'Equally' })).toBeChecked();
+  });
+
+  it("shows each person's share as you type", async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '180.000');
+    expect(screen.getByText('Split equally · 4 people · 45.000₫ each')).toBeInTheDocument();
+    expect(screen.getAllByText('45.000₫')).toHaveLength(4);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Include Bình' }));
+    expect(screen.getByText('Split equally · 3 people · 60.000₫ each')).toBeInTheDocument();
+  });
+
+  it('says about when an equal split leaves a few dong over', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Include Chi' }));
+    expect(screen.getByText('Split equally · 3 people · about 33.333₫ each')).toBeInTheDocument();
+  });
+
+  it('names the other modes and shows shares once they add up', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView() });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
+    await userEvent.click(screen.getByRole('radio', { name: 'Percent' }));
+    expect(screen.getByText('By percent · 0 people')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Percent for Minh'), '60');
+    await userEvent.type(screen.getByLabelText('Percent for An'), '40');
+    expect(screen.getByText('By percent · 2 people')).toBeInTheDocument();
+    expect(within(rowOf('Minh')).getByText('60.000₫')).toBeInTheDocument();
+    expect(within(rowOf('An')).getByText('40.000₫')).toBeInTheDocument();
+  });
+
+  it("someone else's expense cannot be edited", async () => {
+    mockApi({ 'GET /api/trips/t-1': { ...guestChiView(), me: tripView().me } });
+    renderAt(<ExpenseForm />, editRoute);
+    expect(await screen.findByText('Only the person who added this expense can edit it.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('What for')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    const backs = screen.getAllByRole('button', { name: 'Back' });
+    await userEvent.click(backs[backs.length - 1]!);
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+  });
+
+  describe('after saving', () => {
+    function Harness() {
+      const navType = useNavigationType();
+      return (
+        <>
+          <Routes>
+            <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
+            <Route path="/t/:tripId/expenses/:expenseId" element={<Link to="/t/t-1/expenses/e-5/edit">Edit it</Link>} />
+            <Route path="/t/:tripId" element={<p>The trip</p>} />
+          </Routes>
+          <div data-testid="nav-type">{navType}</div>
+        </>
+      );
+    }
+
+    it('an edit opened from the details goes back to them instead of adding an entry', async () => {
+      const { calls } = mockApi({ 'GET /api/trips/t-1': guestChiView(), 'PATCH /api/trips/t-1/expenses/e-5': null });
+      renderAt(<Harness />, { route: '/t/t-1/expenses/e-5' });
+      await userEvent.click(await screen.findByRole('link', { name: 'Edit it' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }));
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1\/expenses\/e-5$/));
+      expect(screen.getByTestId('nav-type')).toHaveTextContent('POP');
+      expect(calls.some((c) => c.method === 'PATCH')).toBe(true);
+    });
+
+    it('a form opened from a link replaces itself with the trip', async () => {
+      mockApi({ 'GET /api/trips/t-1': guestChiView(), 'PATCH /api/trips/t-1/expenses/e-5': null });
+      renderAt(<Harness />, { route: editRoute.route });
+      await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }));
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+      expect(screen.getByTestId('nav-type')).toHaveTextContent('REPLACE');
+    });
   });
 });

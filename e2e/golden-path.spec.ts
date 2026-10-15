@@ -41,7 +41,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   // Minh's own expense counts straight away.
   await minh.getByRole('link', { name: '+ Add expense' }).click();
   await minh.getByLabel('What for').fill('Homestay Bloom');
-  await minh.getByLabel('Amount').fill('800.000');
+  await minh.getByLabel('Amount', { exact: true }).fill('800.000');
   await minh.getByRole('button', { name: 'Add expense' }).click();
   await expect(minh).toHaveURL(tripUrl);
   await expect(minh.getByText('Homestay Bloom')).toBeVisible();
@@ -57,7 +57,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await noSidewaysScroll(chi);
   await chi.getByRole('link', { name: '+ Add expense' }).click();
   await chi.getByLabel('What for').fill('Bánh tráng nướng');
-  await chi.getByLabel('Amount').fill('180.000');
+  await chi.getByLabel('Amount', { exact: true }).fill('180.000');
   await chi.getByRole('button', { name: 'Send for approval' }).click();
   await expect(chi.getByText('Viewing as Chi')).toBeVisible();
   await expect(chi.getByText('Waiting').first()).toBeVisible();

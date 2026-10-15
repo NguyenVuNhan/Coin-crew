@@ -52,6 +52,21 @@ export function useBackToTrip(tripId: string): () => void {
   }, [navigate, fromList, tripId]);
 }
 
+/**
+ * Leaves the add or edit expense form, after saving or on back. When something in the app linked to the form, the
+ * page it came from is right behind it, so one step back returns there (the list, or the details the edit was opened
+ * from) and history does not grow. A form that was the first page of the visit (a shared or typed address) has nothing
+ * of the app behind it: it is replaced by the trip page. The router gives only that first entry the key `default`.
+ */
+export function useLeaveForm(tripId: string): () => void {
+  const navigate = useNavigate();
+  const openedInApp = useLocation().key !== 'default';
+  return useCallback(() => {
+    if (openedInApp) navigate(-1);
+    else navigate(`/t/${tripId}`, { replace: true });
+  }, [navigate, openedInApp, tripId]);
+}
+
 function scrollWindowTo(y: number): void {
   if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, y);
 }

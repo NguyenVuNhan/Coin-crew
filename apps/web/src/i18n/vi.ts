@@ -173,10 +173,19 @@ export const vi: Record<MessageKey, string> = {
   'expenseForm.save': 'Lưu thay đổi', // REVIEW
   'expenseForm.guestNote': 'Một thành viên trong nhóm sẽ duyệt trước khi tính.', // REVIEW
   'split.tab.equal': 'Chia đều', // REVIEW
-  'split.tab.amounts': 'Số tiền', // REVIEW
-  'split.tab.percent': '%', // REVIEW
-  'split.tab.shares': 'Số phần', // REVIEW
-  'split.tab.adjust': '± Điều chỉnh', // REVIEW
+  'split.mode.equal': 'Chia đều', // REVIEW
+  'split.mode.exact': 'Số tiền chính xác', // REVIEW
+  'split.mode.percent': 'Phần trăm', // REVIEW
+  'split.mode.shares': 'Số phần', // REVIEW
+  'split.mode.adjust': 'Điều chỉnh', // REVIEW
+  'split.captionEqual': 'Chia đều · {n} người · mỗi người {each}', // REVIEW
+  'split.captionEqualAbout': 'Chia đều · {n} người · mỗi người khoảng {each}', // REVIEW
+  'split.captionEqualNone': 'Chia đều · {n} người', // REVIEW
+  'split.captionExact': 'Số tiền chính xác · {n} người', // REVIEW
+  'split.captionPercent': 'Theo phần trăm · {n} người', // REVIEW
+  'split.captionShares': 'Theo số phần · {n} người', // REVIEW
+  'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
+  'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
   'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.', // REVIEW
   'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.', // REVIEW
   'splitError.AMOUNTS_DONT_ADD_UP': 'Tổng số tiền không khớp với tổng chi phí.', // REVIEW

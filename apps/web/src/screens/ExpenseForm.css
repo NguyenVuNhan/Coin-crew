@@ -74,43 +74,29 @@
   gap: var(--space-2);
 }
 
-.fsl-split-tabs {
-  display: flex;
-  background-color: var(--color-surface-muted);
-  border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 2px;
+.fsl-expense-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
 }
 
-.fsl-split-tab {
-  flex: 1;
+.fsl-expense-form__row > .fsl-field {
   min-width: 0;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
+}
+
+/* A date field and a dropdown differ by a pixel in height on their own; side by side they must line up. */
+.fsl-expense-form__row .fsl-input,
+.fsl-expense-form__row .fsl-select {
+  height: 48px;
+}
+
+.fsl-split-caption {
+  margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  padding: 0 var(--space-1);
-  text-align: center;
-  white-space: nowrap;
-}
-
-.fsl-split-tab:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-.fsl-split-tab--active {
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-sm);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .fsl-split-row {
@@ -196,21 +182,25 @@
   margin-top: var(--space-1);
 }
 
-.fsl-expense-form__actions {
-  display: flex;
-  flex-direction: column;
-  margin-top: var(--space-2);
-}
-
-.fsl-expense-form__submit-error {
-  margin-bottom: var(--space-3);
+.fsl-expense-form__not-yours {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text);
 }
 
 .fsl-expense-form__guest-note {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   text-align: center;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   color: var(--color-text-subtle);
   line-height: var(--leading-xs);
+}
+
+@media (max-width: 1023px) {
+  .fsl-expense-form--bar-error {
+    padding-bottom: calc(var(--space-8) * 3);
+  }
 }
