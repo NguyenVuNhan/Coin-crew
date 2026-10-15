@@ -83,6 +83,8 @@ export const vi: Record<MessageKey, string> = {
   'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
   'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
   'create.submit': 'Tạo chuyến đi', // REVIEW
+  'create.suggestTitle': 'Từ các chuyến đi gần đây', // REVIEW
+  'create.hasAccount': '{name} · có tài khoản', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW
   'bank.popular': 'Phổ biến', // REVIEW

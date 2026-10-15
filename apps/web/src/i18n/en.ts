@@ -83,6 +83,8 @@ export const en = {
   'create.bankTitle': 'Your bank details (optional)',
   'create.bankHint': 'So friends can pay you back with VietQR. You can add them later.',
   'create.submit': 'Create trip',
+  'create.suggestTitle': 'From your recent trips',
+  'create.hasAccount': '{name} · has an account',
 
   'bank.bank': 'Bank',
   'bank.popular': 'Popular',

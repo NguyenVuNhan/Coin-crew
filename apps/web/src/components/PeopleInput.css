@@ -1,0 +1,156 @@
+.fsl-people-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fsl-people-input__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fsl-people-input__add {
+  align-self: flex-start;
+}
+
+.fsl-people-input__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fsl-people-input__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.fsl-people-input__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) ease-out, color var(--motion-fast) ease-out, border-color var(--motion-fast) ease-out;
+}
+
+.fsl-people-input__remove:hover {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.fsl-people-input__remove:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-people-input__locked {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-soft-text);
+  border-radius: var(--radius-md);
+  font-size: var(--text-input);
+  font-family: var(--font-sans);
+}
+
+.fsl-people-input__locked-icon {
+  flex-shrink: 0;
+}
+
+.fsl-people-input__locked-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fsl-people-input__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  padding: var(--space-1) 0;
+}
+
+.fsl-people-input__dropdown-title {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+.fsl-people-input__options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fsl-people-input__option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.fsl-people-input__option:hover,
+.fsl-people-input__option--active {
+  background-color: var(--color-accent-soft);
+}
+
+.fsl-people-input__option-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.fsl-people-input__option-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fsl-people-input__option-trips {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fsl-people-input__option-icon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-people-input__remove {
+    transition: none;
+  }
+}
