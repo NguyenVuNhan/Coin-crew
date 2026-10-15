@@ -176,6 +176,9 @@ export function WhoAreYou() {
   const needle = normalizeName(query);
   const visible = showSearch && needle ? people.filter((p) => normalizeName(p.name).includes(needle)) : people;
   const noMatch = showSearch && needle !== '' && visible.length === 0;
+  // The bottom bar offers only a name the person can see: a search that hides the pre-selected one leaves nothing
+  // chosen until it shows again (the choice comes back when the search is cleared).
+  const chosen = selectedPerson && visible.some((p) => p.id === selectedPerson.id) ? selectedPerson : undefined;
 
   const trimmed = name.trim();
   const suggestions =
@@ -197,11 +200,11 @@ export function WhoAreYou() {
             <Button
               variant="primary"
               block
-              disabled={!selectedId || isSubmitting}
-              onClick={() => selectedId && handlePickPerson(selectedId)}
+              disabled={!chosen || isSubmitting}
+              onClick={() => chosen && handlePickPerson(chosen.id)}
             >
-              {selectedPerson
-                ? t('who.continueAs', { name: selectedPerson.name })
+              {chosen
+                ? t('who.continueAs', { name: chosen.name })
                 : t('common.continue')}
             </Button>
           </>

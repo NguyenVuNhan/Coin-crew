@@ -121,6 +121,30 @@ describe('WhoAreYou search', () => {
     await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/people')?.body).toEqual({ name: 'Zed', confirmNew: false }));
   });
 
+  it('a pre-selected name hidden by the search is not offered in the bottom bar', async () => {
+    const { calls } = mockApi({
+      'GET /api/trips/t-1/people/picker': { ...crowd(14), myPick: 'p-3' },
+      'POST /api/trips/t-1/people/pick': null,
+    });
+    renderAt(<WhoAreYou />, route);
+    expect(await screen.findByRole('button', { name: 'Continue as Chi' })).toBeEnabled();
+    const search = screen.getByRole('searchbox', { name: 'Search names' });
+    await userEvent.type(search, 'zed');
+    expect(screen.getByRole('button', { name: 'Not on the list? Add "zed"' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Continue as Chi' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    // A search that shows other people does not offer Chi either.
+    await userEvent.clear(search);
+    await userEvent.type(search, 'thao');
+    expect(screen.queryByRole('button', { name: 'Continue as Chi' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    // Clearing the search brings Chi back, still chosen.
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(screen.getByRole('radio', { name: 'Chi' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'Continue as Chi' }));
+    await waitFor(() => expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ participantId: 'p-3' }));
+  });
+
   it('10 people or fewer: no search', async () => {
     mockApi({ 'GET /api/trips/t-1/people/picker': crowd(10) });
     renderAt(<WhoAreYou />, route);
