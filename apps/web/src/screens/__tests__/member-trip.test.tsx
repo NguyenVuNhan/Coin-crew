@@ -1,10 +1,11 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
+import { App } from '../../App';
 import { TripRoute } from '../TripRoute';
 import { Activity } from '../Activity';
 import { remindText } from '../../lib/remind';
@@ -167,16 +168,37 @@ describe('member trip page', () => {
     });
     renderAt(<TripRoute />, route);
     const card = await screen.findByRole('region', { name: 'Needs approval' });
-    expect(within(card).getByText('Chi added Bánh tráng nướng, chợ đêm')).toBeInTheDocument();
+    const next = () => userEvent.click(within(card).getByRole('button', { name: 'Next' }));
+    // 1. a guest's expense
+    expect(within(card).getByText('Bánh tráng nướng, chợ đêm')).toBeInTheDocument();
+    expect(within(card).getByText('Chi added · 180.000₫ · split equally, 4')).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Reject' })).toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: 'Approve' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/expenses/e-5/approve')).toBe(true));
+    // 2. a new name, with the merge choice
+    await next();
+    expect(within(card).getByText('New person: Chi Nguyễn')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Same as Chi' })).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'New person' })).toBeInTheDocument();
+    // 3. bank details
+    await next();
     expect(within(card).getByText('0123456789')).toBeInTheDocument();
-    expect(within(card).getByText("Chi says it's paid. Did it arrive?")).toBeInTheDocument();
+    expect(within(card).getByText('MBBank')).toBeInTheDocument();
+    // 4. a payment to me
+    await next();
+    expect(within(card).getByText('Chi says they paid you 1.245.000₫')).toBeInTheDocument();
+    expect(within(card).getByText('Did it arrive?')).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: "Didn't arrive" })).toBeInTheDocument();
+    // 5. a payment that did not arrive
+    await next();
+    expect(within(card).getByRole('button', { name: 'Disable' })).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Keep' })).toBeInTheDocument();
+    // 6. someone asking to become a member
+    await next();
     expect(within(card).getByText('An Trần (an@example.com) wants to join as An')).toBeInTheDocument();
-    await userEvent.click(within(card).getAllByRole('button', { name: 'Approve' })[0]!);
-    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/expenses/e-5/approve')).toBe(true));
+    expect(within(card).getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Next' })).toBeDisabled();
   });
 
   it('tells you to approve a pending name first', async () => {
@@ -188,17 +210,25 @@ describe('member trip page', () => {
     });
     renderAt(<TripRoute />, route);
     const card = await screen.findByRole('region', { name: 'Needs approval' });
-    await userEvent.click(within(card).getAllByRole('button', { name: 'Approve' })[0]!);
+    await userEvent.click(within(card).getByRole('button', { name: 'Approve' }));
     expect(await within(card).findByText('Approve Chi Nguyễn first')).toBeInTheDocument();
   });
 
   it('previews the amount received before confirming', async () => {
-    mockApi({ 'GET /api/trips/t-1': busyView(), 'GET /api/trips/t-1/version': { version: 3 } });
+    const { calls } = mockApi({
+      'GET /api/trips/t-1': busyView(), 'GET /api/trips/t-1/version': { version: 3 },
+      'POST /api/trips/t-1/payments/pay-1/confirm': null,
+    });
     renderAt(<TripRoute />, route);
-    const field = await screen.findByLabelText('Amount received');
+    const card = await screen.findByRole('region', { name: 'Needs approval' });
+    for (let i = 0; i < 3; i++) await userEvent.click(within(card).getByRole('button', { name: 'Next' }));
+    await userEvent.click(within(card).getByRole('button', { name: 'Got a different amount?' }));
+    const field = within(card).getByLabelText('Amount received');
     await userEvent.clear(field);
     await userEvent.type(field, '1.200k');
-    expect(screen.getByText('1.200.000₫')).toBeInTheDocument();
+    expect(within(card).getByText('1.200.000₫')).toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(calls.find((c) => c.path === '/api/trips/t-1/payments/pay-1/confirm')?.body).toEqual({ amount: 1200000 }));
   });
 
   it('shows disabled expenses crossed out with who did it', async () => {
@@ -220,6 +250,249 @@ describe('member trip page', () => {
     const add = screen.getAllByRole('link', { name: '+ Add expense' });
     expect(add).toHaveLength(1);
     expect(add[0]).toHaveAttribute('href', '/t/t-1/expenses/new');
+  });
+});
+
+describe('approvals queue', () => {
+  beforeEach(() => {
+    vi.stubGlobal('scrollTo', vi.fn()); // jsdom has no scrolling; the approvals page moves the window when it opens and closes
+  });
+
+  const queueOf = () => screen.findByRole('region', { name: 'Needs approval' });
+  const stepNext = async (queue: HTMLElement, times: number) => {
+    for (let i = 0; i < times; i++) await userEvent.click(within(queue).getByRole('button', { name: 'Next' }));
+  };
+
+  it('shows one approval at a time with its position', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    expect(within(queue).getByText('1 of 6 waiting')).toBeInTheDocument();
+    expect(within(queue).getByText('Bánh tráng nướng, chợ đêm')).toBeInTheDocument();
+    expect(within(queue).queryByText('New person: Chi Nguyễn')).toBeNull();
+    expect(within(queue).queryByRole('heading')).toBeNull();
+    expect(within(queue).getByRole('button', { name: 'Previous' })).toBeDisabled();
+
+    await stepNext(queue, 1);
+    expect(within(queue).getByText('2 of 6 waiting')).toBeInTheDocument();
+    expect(within(queue).getByText('New person: Chi Nguyễn')).toBeInTheDocument();
+    expect(within(queue).queryByText('Bánh tráng nướng, chợ đêm')).toBeNull();
+
+    await userEvent.click(within(queue).getByRole('button', { name: 'Previous' }));
+    expect(within(queue).getByText('1 of 6 waiting')).toBeInTheDocument();
+  });
+
+  it('approving moves on to the next one', async () => {
+    let approved = false;
+    mockApi({
+      ...TRIP_API,
+      'GET /api/trips/t-1': () => {
+        const v = busyView();
+        return Response.json(approved ? { ...v, approvals: v.approvals.slice(1) } : v);
+      },
+      'POST /api/trips/t-1/expenses/e-5/approve': () => {
+        approved = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+    expect(await within(queue).findByText('1 of 5 waiting')).toBeInTheDocument();
+    expect(within(queue).getByText('New person: Chi Nguyễn')).toBeInTheDocument();
+  });
+
+  it('when the last one is handled the one before it shows', async () => {
+    let handled = false;
+    mockApi({
+      ...TRIP_API,
+      'GET /api/trips/t-1': () => {
+        const v = busyView();
+        return Response.json(handled ? { ...v, approvals: v.approvals.slice(0, 5) } : v);
+      },
+      'POST /api/trips/t-1/membership/m-1/approve': () => {
+        handled = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    await stepNext(queue, 5);
+    expect(within(queue).getByText('6 of 6 waiting')).toBeInTheDocument();
+    await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+    expect(await within(queue).findByText('5 of 5 waiting')).toBeInTheDocument();
+    expect(within(queue).getByRole('button', { name: 'Keep' })).toBeInTheDocument();
+  });
+
+  it('the card goes when nothing is left to approve', async () => {
+    let done = false;
+    mockApi({
+      ...TRIP_API,
+      'GET /api/trips/t-1': () => {
+        const v = busyView();
+        return Response.json({ ...v, approvals: done ? [] : [v.approvals[5]!] });
+      },
+      'POST /api/trips/t-1/membership/m-1/approve': () => {
+        done = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    // With one item there are no arrows and no "See all".
+    expect(within(queue).getByText('1 of 1 waiting')).toBeInTheDocument();
+    expect(within(queue).queryByRole('button', { name: 'Next' })).toBeNull();
+    expect(within(queue).queryByRole('link', { name: /^See all/ })).toBeNull();
+    await userEvent.click(within(queue).getByRole('button', { name: 'Approve' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Needs approval' })).toBeNull());
+  });
+
+  it('never offers Edit', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    for (let i = 0; i < 6; i++) {
+      expect(within(queue).getByText(`${i + 1} of 6 waiting`)).toBeInTheDocument();
+      expect(within(queue).queryByRole('button', { name: 'Edit' })).toBeNull();
+      expect(within(queue).queryByRole('link', { name: 'Edit' })).toBeNull();
+      if (i < 5) await stepNext(queue, 1);
+    }
+  });
+
+  it('asks about a different amount only when you want to', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    await stepNext(queue, 3);
+    expect(within(queue).getByText('Chi says they paid you 1.245.000₫')).toBeInTheDocument();
+    expect(within(queue).queryByLabelText('Amount received')).toBeNull();
+    await userEvent.click(within(queue).getByRole('button', { name: 'Got a different amount?' }));
+    expect(within(queue).getByLabelText('Amount received')).toHaveValue('1.245.000');
+  });
+
+  it('rejecting an expense asks why first', async () => {
+    const { calls } = mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView(), 'POST /api/trips/t-1/expenses/e-5/reject': null });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    await userEvent.click(within(queue).getByRole('button', { name: 'Reject' }));
+    const send = within(queue).getAllByRole('button', { name: 'Reject' }).find((b) => b.classList.contains('fsl-button--danger'))!;
+    expect(send).toBeDisabled();
+    await userEvent.type(within(queue).getByLabelText('Why are you rejecting it?'), 'Not ours');
+    await userEvent.click(send);
+    await waitFor(() => expect(calls.find((c) => c.path === '/api/trips/t-1/expenses/e-5/reject')?.body).toEqual({ reason: 'Not ours' }));
+  });
+
+  it('tapping an expense approval opens its details', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    await userEvent.click(within(queue).getByRole('button', { name: /^Bánh tráng nướng, chợ đêm/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-5');
+  });
+
+  it('tapping a payment approval opens the payment', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+    renderAt(<TripRoute />, route);
+    const queue = await queueOf();
+    await stepNext(queue, 3);
+    await userEvent.click(within(queue).getByRole('button', { name: /^Chi says they paid you/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-1');
+  });
+
+  it('slides the next card in unless motion is reduced', async () => {
+    mockMedia({ reducedMotion: false });
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+    const first = renderAt(<TripRoute />, route);
+    let queue = await queueOf();
+    expect(queue.querySelector('.fsl-approval-queue__item')).not.toHaveClass('fsl-approval-queue__item--next');
+    await stepNext(queue, 1);
+    expect(queue.querySelector('.fsl-approval-queue__item')).toHaveClass('fsl-approval-queue__item--next');
+    first.unmount();
+
+    mockMedia({ reducedMotion: true });
+    renderAt(<TripRoute />, route);
+    queue = await queueOf();
+    await stepNext(queue, 1);
+    expect(queue.querySelector('.fsl-approval-queue__item')).not.toHaveClass('fsl-approval-queue__item--next');
+  });
+
+  describe('See all', () => {
+    it('lists every approval on a page of its own on phones', async () => {
+      mockMedia({ wide: false });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      renderAt(<App />, { route: '/t/t-1' });
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/approvals');
+      expect(await screen.findByRole('heading', { name: 'Waiting for approval' })).toBeInTheDocument();
+      const items = screen.getAllByRole('listitem');
+      expect(items).toHaveLength(6);
+      expect(within(items[0]!).getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      expect(within(items[3]!).getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+
+      // Back returns to the trip page, where the queue is.
+      await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
+      expect(await queueOf()).toBeInTheDocument();
+    });
+
+    it('opens an expense from the list and comes back to the list', async () => {
+      mockMedia({ wide: false });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      renderAt(<App />, { route: '/t/t-1' });
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      await userEvent.click(await screen.findByRole('button', { name: /^Bánh tráng nướng, chợ đêm/ }));
+      expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-5');
+      await userEvent.click(await screen.findByRole('button', { name: 'Back' }));
+      expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/approvals');
+    });
+
+    it('opens in the right panel on wide screens, and × and Esc close it', async () => {
+      mockMedia({ wide: true });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      renderAt(<App />, { route: '/t/t-1' });
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      const panel = await screen.findByRole('region', { name: 'Waiting for approval' });
+      expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/approvals');
+      expect(within(panel).getAllByRole('listitem')).toHaveLength(6);
+      expect(screen.getByRole('region', { name: 'Needs approval' })).toBeInTheDocument(); // the queue stays on the left
+
+      await userEvent.click(within(panel).getByRole('button', { name: 'Close' }));
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
+      expect(screen.queryByRole('region', { name: 'Waiting for approval' })).toBeNull();
+
+      await userEvent.click(screen.getByRole('link', { name: 'See all 6' }));
+      expect(await screen.findByRole('region', { name: 'Waiting for approval' })).toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
+      expect(screen.queryByRole('region', { name: 'Waiting for approval' })).toBeNull();
+    });
+
+    it('switching from the panel list to an expense replaces the entry, so × is one step from the trip', async () => {
+      mockMedia({ wide: true });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': busyView() });
+      renderAt(<App />, { route: '/t/t-1' });
+      await userEvent.click(await screen.findByRole('link', { name: 'See all 6' }));
+      const panel = await screen.findByRole('region', { name: 'Waiting for approval' });
+      await userEvent.click(within(panel).getByRole('button', { name: /^Bánh tráng nướng, chợ đêm/ }));
+      expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-5');
+      await userEvent.click(within(await screen.findByRole('region', { name: 'Expense' })).getByRole('button', { name: 'Close' }));
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
+    });
+
+    it('a shared link to the list with nothing waiting goes to the trip', async () => {
+      mockMedia({ wide: false });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+      renderAt(<App />, { route: '/t/t-1/approvals' });
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    });
+
+    it('a guest has no approvals page', async () => {
+      mockMedia({ wide: false });
+      mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
+      renderAt(<App />, { route: '/t/t-1/approvals' });
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    });
   });
 });
 

@@ -87,7 +87,8 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  margin-right: calc(-1 * var(--space-2));
+  /* Only as far as the sticky column's own padding, or the column scrolls sideways. */
+  margin-right: calc(-1 * var(--space-1));
   padding: 0;
   border: 0;
   border-radius: var(--radius-pill);

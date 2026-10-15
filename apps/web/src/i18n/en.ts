@@ -37,7 +37,8 @@ export const en = {
   'expenses.disabledBy': 'Disabled by {name}', // SPEC
   'expense.sendForApproval': 'Send for approval', // SPEC
 
-  'approvals.saysPaid': "{name} says it's paid. Did it arrive?", // SPEC
+  'approvals.paidYou': '{name} says they paid you {amount}', // SPEC 2026-10-14
+  'approvals.didItArrive': 'Did it arrive?', // SPEC 2026-10-14
 
   'pay.payWithVietQr': 'Pay with VietQR', // SPEC
   'pay.keepNote': 'Keep this note unchanged so the payment can be matched.', // SPEC
@@ -201,8 +202,13 @@ export const en = {
   'expenses.emptyBody': 'Homestay, food, fuel: anything the group shares.',
 
   'approvals.title': 'Needs approval',
-  'approvals.fromGuest': 'from a guest',
-  'approvals.expense': '{name} added {description}',
+  'approvals.allTitle': 'Waiting for approval',
+  'approvals.position': '{i} of {n} waiting', // SPEC 2026-10-14
+  'approvals.previous': 'Previous',
+  'approvals.next': 'Next',
+  'approvals.seeAll': 'See all {n}', // SPEC 2026-10-14
+  'approvals.addedBy': '{name} added · {amount} · {split}', // SPEC 2026-10-14
+  'approvals.differentAmount': 'Got a different amount?', // SPEC 2026-10-14
   'approvals.approve': 'Approve',
   'approvals.edit': 'Edit',
   'approvals.reject': 'Reject',

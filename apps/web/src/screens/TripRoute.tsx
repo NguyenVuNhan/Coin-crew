@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { Navigate, useMatch, useNavigate, useParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useTripView } from '../api/hooks';
 import { useIsWide } from '../lib/media';
@@ -17,6 +17,7 @@ import './TripRoute.css';
 import { GuestTrip } from './GuestTrip';
 import { ViewOnlyTrip } from './ViewOnlyTrip';
 import { MemberTrip } from './MemberTrip';
+import { Approvals } from './Approvals';
 
 /** What the address points at inside the trip: the transaction whose details are open, or the approvals list. */
 export type Selection = { kind: 'expense'; id: string } | { kind: 'payment'; id: string } | { kind: 'approvals' };
@@ -67,16 +68,19 @@ export function TripRoute() {
   const navigate = useNavigate();
   const t = useT();
   const wide = useIsWide();
-  const selection = selectionFrom({ expenseId, paymentId });
+  const onApprovals = useMatch('/t/:tripId/approvals') !== null;
+  const selection: Selection | null = onApprovals ? { kind: 'approvals' } : selectionFrom({ expenseId, paymentId });
 
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
 
-  // Phones show the details as a page of their own; from 1024px the member page shows them in its right panel
-  // (it takes `selection`). The guest and view-only pages get their panel in Task 12; until then they use the page too.
+  // Phones show the details, and the approvals list, as a page of their own; from 1024px the member page shows
+  // them in its right panel (it takes `selection`). The guest and view-only pages get their panel in Task 12;
+  // until then they use the page too (the approvals list is for members only).
   const panel = wide && (!view || view.me.kind === 'member');
   const detail = selection && selection.kind !== 'approvals' && !panel ? selection : null;
-  useListScroll(detail !== null);
+  const approvalsPage = selection?.kind === 'approvals' && !panel;
+  useListScroll(detail !== null || approvalsPage);
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {
@@ -109,9 +113,16 @@ export function TripRoute() {
     return null;
   }
 
+  // Only members have anything to approve: a guest or a view-only link to the list lands on the trip.
+  if (selection?.kind === 'approvals' && view.me.kind !== 'member') {
+    return <Navigate to={`/t/${view.trip.id}`} replace />;
+  }
+
   const page =
     detail ? (
       <DetailsPage view={view} selection={detail} />
+    ) : approvalsPage ? (
+      <Approvals view={view} />
     ) : view.me.kind === 'guest' ? (
       <GuestTrip view={view} selection={selection} />
     ) : view.me.kind === 'viewer' ? (

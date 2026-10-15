@@ -6,7 +6,7 @@ import { useIsWide } from '../lib/media';
 import { useBackToTrip, useOpenDetails } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
-import { ApprovalsCard } from '../components/ApprovalsCard';
+import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
 import { InviteCard, InviteSheet } from '../components/InviteSheet';
 import { WhoPaysWhom } from '../components/WhoPaysWhom';
@@ -16,23 +16,26 @@ import { TripLayout } from '../components/TripLayout';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
 import type { Selection } from './TripRoute';
+import { ApprovalList } from './Approvals';
 import './MemberTrip.css';
 
 type Detail = Exclude<Selection, { kind: 'approvals' }>;
 
 /**
- * The wide screen's right panel showing one expense or payment. Not modal: it takes focus when it opens,
- * × and Esc close it (back in history, or to the trip for a shared link), and nothing else is trapped.
+ * The wide screen's right panel showing one expense or payment, or the full approvals list. Not modal: it takes
+ * focus when it opens, × and Esc close it (back in history, or to the trip for a shared link), and nothing else is trapped.
  */
-function DetailsPanel({ view, selection }: { view: TripView; selection: Detail }) {
+function DetailsPanel({ view, selection }: { view: TripView; selection: Selection }) {
   const t = useT();
   const close = useBackToTrip(view.trip.id);
   const panel = useRef<HTMLElement>(null);
+  const label = selection.kind === 'expense' ? t('details.expense') : selection.kind === 'payment' ? t('details.payment') : t('approvals.allTitle');
+  const selectedId = selection.kind === 'approvals' ? null : selection.id;
 
   useEffect(() => {
     const el = panel.current;
     (el?.querySelector<HTMLElement>('h2') ?? el)?.focus();
-  }, [selection.kind, selection.id]);
+  }, [selection.kind, selectedId]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -50,10 +53,10 @@ function DetailsPanel({ view, selection }: { view: TripView; selection: Detail }
       ref={panel}
       tabIndex={-1}
       className="fsl-member__panel"
-      aria-label={selection.kind === 'expense' ? t('details.expense') : t('details.payment')}
+      aria-label={label}
     >
       <div className="fsl-member__panel-head">
-        <span className="fsl-member__panel-kind">{selection.kind === 'expense' ? t('details.expense') : t('details.payment')}</span>
+        <span className="fsl-member__panel-kind">{label}</span>
         <button type="button" className="fsl-member__panel-close" aria-label={t('common.close')} title={t('common.close')} onClick={close}>
           <Icon name="x" size={20} />
         </button>
@@ -61,8 +64,10 @@ function DetailsPanel({ view, selection }: { view: TripView; selection: Detail }
       {/* Keyed by id so a reject reason or an error never carries over to the next row. */}
       {selection.kind === 'expense' ? (
         <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={close} />
-      ) : (
+      ) : selection.kind === 'payment' ? (
         <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={close} />
+      ) : (
+        <ApprovalList view={view} onClose={close} switching />
       )}
     </section>
   );
@@ -157,18 +162,18 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
             left={
               <>
                 {notice}
-                <ApprovalsCard view={view} />
+                <ApprovalQueue view={view} switching={selection !== null} />
                 {expenses(true, true)}
                 {payments(false)}
               </>
             }
-            right={detail ? <DetailsPanel view={view} selection={detail} /> : <>{balance}{transfers}</>}
+            right={selection ? <DetailsPanel view={view} selection={selection} /> : <>{balance}{transfers}</>}
           />
         </div>
       ) : (
         <div className="fsl-member">
           {notice}
-          <ApprovalsCard view={view} />
+          <ApprovalQueue view={view} />
           {balance}
           {transfers}
           {/* Only the first swipeable list on the page shows the swipe hint. */}

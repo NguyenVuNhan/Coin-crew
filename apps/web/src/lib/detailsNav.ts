@@ -10,6 +10,11 @@ function cameFromList(state: unknown): boolean {
   return typeof state === 'object' && state !== null && (state as Partial<DetailsState>).fromList === true;
 }
 
+/** How a trip list opens a details or approvals entry; switching inside the wide panel replaces the entry and keeps its state. */
+function entryOptions(state: unknown, switching: boolean): { replace?: true; state: unknown } {
+  return switching ? { replace: true, state } : { state: { fromList: true } satisfies DetailsState };
+}
+
 /**
  * Opens the details of an expense or payment from a trip list. Opening marks the entry `fromList`, so leaving
  * it can go back in history. Switching to another row while details are showing (the wide panel) replaces
@@ -20,12 +25,16 @@ export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment', id
   const { state } = useLocation();
   return useCallback(
     (kind, id, switching = false) => {
-      const path = `/t/${tripId}/${kind === 'expense' ? 'expenses' : 'payments'}/${id}`;
-      if (switching) navigate(path, { replace: true, state });
-      else navigate(path, { state: { fromList: true } satisfies DetailsState });
+      navigate(`/t/${tripId}/${kind === 'expense' ? 'expenses' : 'payments'}/${id}`, entryOptions(state, switching));
     },
     [navigate, state, tripId],
   );
+}
+
+/** `<Link>` props for the full approvals list, marked and replaced by the same rules as `useOpenDetails`. */
+export function useApprovalsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
+  const { state } = useLocation();
+  return { to: `/t/${tripId}/approvals`, ...entryOptions(state, switching) };
 }
 
 /**

@@ -37,7 +37,8 @@ export const vi: Record<MessageKey, string> = {
   'expenses.disabledBy': 'Đã bị vô hiệu hóa bởi {name}', // REVIEW
   'expense.sendForApproval': 'Gửi để duyệt', // REVIEW
 
-  'approvals.saysPaid': '{name} báo đã chuyển khoản. Bạn đã nhận được tiền chưa?', // REVIEW
+  'approvals.paidYou': '{name} báo đã chuyển khoản cho bạn {amount}', // REVIEW
+  'approvals.didItArrive': 'Bạn đã nhận được tiền chưa?', // REVIEW
 
   'pay.payWithVietQr': 'Thanh toán bằng VietQR', // REVIEW
   'pay.keepNote': 'Giữ nguyên nội dung chuyển khoản này để đối soát thanh toán.', // REVIEW
@@ -201,8 +202,13 @@ export const vi: Record<MessageKey, string> = {
   'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.', // REVIEW
 
   'approvals.title': 'Cần duyệt', // REVIEW
-  'approvals.fromGuest': 'từ khách', // REVIEW
-  'approvals.expense': '{name} đã thêm {description}', // REVIEW
+  'approvals.allTitle': 'Đang chờ duyệt', // REVIEW
+  'approvals.position': '{i} trên {n} đang chờ', // REVIEW
+  'approvals.previous': 'Trước', // REVIEW
+  'approvals.next': 'Tiếp', // REVIEW
+  'approvals.seeAll': 'Xem tất cả {n}', // REVIEW
+  'approvals.addedBy': '{name} đã thêm · {amount} · {split}', // REVIEW
+  'approvals.differentAmount': 'Số tiền nhận khác?', // REVIEW
   'approvals.approve': 'Duyệt', // REVIEW
   'approvals.edit': 'Chỉnh sửa', // REVIEW
   'approvals.reject': 'Từ chối', // REVIEW
