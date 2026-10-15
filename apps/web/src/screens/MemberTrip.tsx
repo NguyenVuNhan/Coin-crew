@@ -8,7 +8,7 @@ import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
 import { InviteCard, InviteSheet } from '../components/InviteSheet';
-import { YourTransfers } from '../components/YourTransfers';
+import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
@@ -27,6 +27,8 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const hasExpenses = view.expenses.length > 0;
   const canInvite = !archived && view.links !== null;
   const { detail, open } = useDetailsSelection(tripId, selection);
+  // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
+  const transfersState = useTransfersState(view);
 
   const addLink = (block: boolean, variant: 'primary' | 'secondary' = 'primary') =>
     archived ? undefined : (
@@ -38,7 +40,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
-  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} /> : null;
+  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} state={transfersState} /> : null;
   const payments = (hintable: boolean) => (
     <PaymentsList
       view={view}
@@ -108,6 +110,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
         </div>
       )}
       {canInvite && <InviteSheet view={view} open={inviteOpen} onClose={() => setInviteOpen(false)} />}
+      <TransfersSnackbar view={view} state={transfersState} />
     </Screen>
   );
 }

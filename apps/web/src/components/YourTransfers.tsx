@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type JSX } from 'react';
+import { useEffect, useId, useState, type JSX } from 'react';
 import { formatVnd, type PaymentView, type Transfer, type TripView } from '@fsl/core';
 import { useT, getLang } from '../i18n';
 import { nameOf } from '../lib/tripText';
@@ -118,8 +118,74 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
   return <PayQr info={info} variant="pay" />;
 }
 
-/** The trip's transfers list showing who owes whom, with in-place VietQR codes. */
-export function YourTransfers({ view }: { view: TripView }): JSX.Element {
+/** What Your transfers keeps when the page switches layout: the open row and a tick waiting out its Undo. */
+export interface TransfersState {
+  openKey: string | null;
+  setOpenKey(key: string | null): void;
+  ticks: ReturnType<typeof usePendingPayment>;
+}
+
+/**
+ * Your transfers' state, for a trip page to hold above its phone / layout A branch (ruling R-Z). Crossing 1024px swaps
+ * the two trees: state kept inside the section would close an open QR row, and unmounting would send a pending tick
+ * at once with its Undo gone.
+ */
+export function useTransfersState(view: TripView): TransfersState {
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const ticks = usePendingPayment(view.trip.id);
+  const { pending, undo } = ticks;
+  // A new version of the trip can take the ticked transfer away while Undo is on offer (the other side recorded it, or
+  // claimed it). Sending the tick then would count the money twice: cancel it, and its snackbar goes with it. This
+  // runs here, not in the section, so it also holds while layout A shows details in place of the section.
+  useEffect(() => {
+    if (pending !== null && !view.suggestions.some((s) => s.fromId === pending.fromId && s.toId === pending.toId)) undo();
+  }, [pending, view.suggestions, undo]);
+  return { openKey, setOpenKey, ticks };
+}
+
+/** The Undo snackbar of a pending tick (or the error of a failed one), wherever the page shows Your transfers. */
+export function TransfersSnackbar({ view, state }: { view: TripView; state: TransfersState }): JSX.Element | null {
+  const t = useT();
+  const { pending, error, undo } = state.ticks;
+  if (pending) {
+    const undoAndFocus = () => {
+      undo();
+      document.querySelector<HTMLElement>(`[data-tick="${pending.fromId}>${pending.toId}"]`)?.focus();
+    };
+    return (
+      <Snackbar
+        message={
+          pending.fromId === view.me.participantId
+            ? t('transfers.paidSnack', { name: nameOf(view, pending.toId), amount: formatVnd(pending.amount) })
+            : t('transfers.receivedSnack', { name: nameOf(view, pending.fromId), amount: formatVnd(pending.amount) })
+        }
+        actionLabel={t('common.undo')}
+        onAction={undoAndFocus}
+      />
+    );
+  }
+  return error !== null ? <Snackbar message={t('error.generic')} /> : null;
+}
+
+/**
+ * The trip's transfers list showing who owes whom, with in-place VietQR codes. A page that switches layout passes
+ * `state` from `useTransfersState` and renders `TransfersSnackbar` itself; without it the section keeps its own.
+ */
+export function YourTransfers({ view, state }: { view: TripView; state?: TransfersState }): JSX.Element {
+  return state ? <TransfersSection view={view} state={state} /> : <OwnTransfers view={view} />;
+}
+
+function OwnTransfers({ view }: { view: TripView }): JSX.Element {
+  const state = useTransfersState(view);
+  return (
+    <>
+      <TransfersSection view={view} state={state} />
+      <TransfersSnackbar view={view} state={state} />
+    </>
+  );
+}
+
+function TransfersSection({ view, state }: { view: TripView; state: TransfersState }): JSX.Element {
   const t = useT();
   const me = view.me.participantId;
   const [mode, setMode] = useState<'mine' | 'all'>(() => {
@@ -147,21 +213,20 @@ export function YourTransfers({ view }: { view: TripView }): JSX.Element {
 
   const rows = effectiveMode === 'mine' ? view.suggestions.filter(involvesMe) : view.suggestions;
 
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const { openKey, setOpenKey } = state;
   const openRow = rows.find((s) => keyOf(s) === openKey && involvesMe(s)) ?? null;
 
   useEffect(() => {
     if (openKey !== null && openRow === null) {
       setOpenKey(null);
     }
-  }, [openKey, openRow]);
+  }, [openKey, openRow, setOpenKey]);
 
   const title = effectiveMode === 'mine' ? t('transfers.mine') : t('transfers.all');
 
   const coarse = useIsCoarsePointer();
   const uid = useId();
-  const sectionRef = useRef<HTMLElement>(null);
-  const { pending, sending, error, schedule, undo } = usePendingPayment(view.trip.id);
+  const { pending, sending, schedule, undo } = state.ticks;
 
   // Ticks confirm that money moved: only for someone who can record payments right now.
   const canTick = me !== null && !view.trip.archived && view.me.kind !== 'viewer' && !view.me.participantPending;
@@ -180,34 +245,8 @@ export function YourTransfers({ view }: { view: TripView }): JSX.Element {
   // When any row has a tick (or a waiting clock), the other rows keep the same space so the initials line up.
   const aligned = waiting.length > 0 || rows.some((s) => tickOf(s) !== null);
 
-  // A new version of the trip can take the ticked transfer away while Undo is on offer (the other side recorded it, or
-  // claimed it). Sending the tick then would count the money twice: cancel it, and its snackbar goes with it.
-  useEffect(() => {
-    if (pending !== null && !view.suggestions.some((s) => samePair(pending, s))) undo();
-  }, [pending, view.suggestions, undo]);
-
-  const undoAndFocus = () => {
-    const p = pending;
-    undo();
-    if (p) sectionRef.current?.querySelector<HTMLElement>(`[data-tick="${p.fromId}>${p.toId}"]`)?.focus();
-  };
-
-  const snackbar = pending ? (
-    <Snackbar
-      message={
-        pending.fromId === me
-          ? t('transfers.paidSnack', { name: nameOf(view, pending.toId), amount: formatVnd(pending.amount) })
-          : t('transfers.receivedSnack', { name: nameOf(view, pending.fromId), amount: formatVnd(pending.amount) })
-      }
-      actionLabel={t('common.undo')}
-      onAction={undoAndFocus}
-    />
-  ) : error !== null ? (
-    <Snackbar message={t('error.generic')} />
-  ) : null;
-
   return (
-    <section ref={sectionRef} className="fsl-transfers" aria-label={title}>
+    <section className="fsl-transfers" aria-label={title}>
       <div className="fsl-transfers__top">
         <h2 className="fsl-transfers__title">{title}</h2>
         {me !== null && view.suggestions.length > 0 && (
@@ -326,7 +365,6 @@ export function YourTransfers({ view }: { view: TripView }): JSX.Element {
           </ul>
         </SwipeGroupProvider>
       )}
-      {snackbar}
     </section>
   );
 }

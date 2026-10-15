@@ -10,7 +10,7 @@ import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Amount } from '../components/Amount';
 import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
-import { YourTransfers } from '../components/YourTransfers';
+import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
@@ -22,6 +22,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const t = useT();
   const wide = useIsWide();
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
+  // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
+  const transfersState = useTransfersState(view);
   const hasExpenses = view.expenses.length > 0;
   // The API refuses every write on an archived trip, so the page offers none (no add, pay, bank prompt or membership request).
   const archived = view.trip.archived;
@@ -112,7 +114,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       </div>
     ) : null;
 
-  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} /> : null;
+  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} state={transfersState} /> : null;
 
   const payments = (hintable: boolean) => (
     <PaymentsList
@@ -228,6 +230,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
           />
         )}
         {footer}
+        <TransfersSnackbar view={view} state={transfersState} />
       </div>
     </Screen>
   );
