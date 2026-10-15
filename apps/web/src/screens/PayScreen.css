@@ -10,6 +10,13 @@
   margin-inline: auto;
 }
 
+/* A failed "I've paid" adds an error above the button in the fixed bottom bar (phones): more room to scroll clear. */
+@media (max-width: 1023px) {
+  .fsl-pay--bar-error {
+    padding-bottom: calc(var(--space-8) * 3);
+  }
+}
+
 .fsl-pay__layout {
   display: grid;
   grid-template-columns: 1fr;

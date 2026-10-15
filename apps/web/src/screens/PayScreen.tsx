@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatVnd } from '@fsl/core';
+import { formatVnd, type PayInfo, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
@@ -18,7 +18,23 @@ import { PayQr } from '../components/PayQr';
 import { Icon } from '../components/icons';
 import './PayScreen.css';
 
+type Recorded = { id: string; amount: number; status: string };
 type StatusCard = { kind: 'sent' | 'paid'; amount: number } | null;
+
+/**
+ * What the status card shows. A payment recorded here follows its live status in the trip view (the member confirming
+ * turns "sent" into "paid"); one that was already on its way when the page opened shows as sent.
+ */
+function statusCardFor(recorded: Recorded | null, view: TripView, payInfo: PayInfo): StatusCard {
+  const live = recorded ? view.payments.find((p) => p.id === recorded.id) : undefined;
+  const status = recorded ? (live?.status ?? recorded.status) : null;
+  if (recorded && status === 'confirmed') return { kind: 'paid', amount: live?.amountConfirmed ?? recorded.amount };
+  if (recorded && status === 'says_paid') return { kind: 'sent', amount: live?.amountClaimed ?? recorded.amount };
+  if (payInfo.inFlight.length > 0) {
+    return { kind: 'sent', amount: payInfo.inFlight.reduce((sum, p) => sum + p.amountClaimed, 0) };
+  }
+  return null;
+}
 
 export function PayScreen() {
   const { tripId = '', toId = '' } = useParams<{ tripId: string; toId: string }>();
@@ -48,12 +64,13 @@ export function PayScreen() {
 
   const wide = useIsWide();
   const coarse = useIsCoarsePointer();
-  const [recorded, setRecorded] = useState<{ id: string; amount: number; status: string } | null>(null);
+  const [recorded, setRecorded] = useState<Recorded | null>(null);
   const [restOpen, setRestOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [copiedField, setCopiedField] = useState<'account' | 'note' | null>(null);
   const [remindCopied, setRemindCopied] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -77,6 +94,32 @@ export function PayScreen() {
         .catch(() => {});
     }
   };
+
+  const name = payInfo?.to.name ?? '';
+  const card = view && payInfo ? statusCardFor(recorded, view, payInfo) : null;
+  // The status card as one sentence for the live region ('' while the QR or something else is on screen).
+  let statusText = '';
+  if (card && !restOpen) {
+    statusText =
+      card.kind === 'sent'
+        ? `${t('pay.sentTitle', { amount: formatVnd(card.amount) })}. ${t('pay.sentBody', { name })}`
+        : `${t('pay.paidTitle', { amount: formatVnd(card.amount), name })}. ${t('pay.paidBody')}`;
+  }
+  // Updated only once the data is there: the region outlives the loading state a trip refetch passes through, and
+  // clearing it there would announce the same status again afterwards.
+  const loaded = !!view && !!payInfo;
+  useEffect(() => {
+    if (loaded) setAnnouncement(statusText);
+  }, [loaded, statusText]);
+  // Always rendered, next to whichever screen is showing, so screen readers see its text change.
+  const withStatus = (screen: ReactNode) => (
+    <>
+      {screen}
+      <div className="fsl-pay__sr" role="status" data-testid="pay-status">
+        {announcement}
+      </div>
+    </>
+  );
 
   const handleIPaid = async () => {
     if (!tripId || !toId || !view?.me.participantId || !payInfo) return;
@@ -114,7 +157,7 @@ export function PayScreen() {
   };
 
   if (viewError || payError) {
-    return (
+    return withStatus(
       <Screen title="" back={tripId ? `/t/${tripId}` : undefined}>
         <InlineError
           error={viewError || payError}
@@ -123,12 +166,12 @@ export function PayScreen() {
             if (payError) refetchPay();
           }}
         />
-      </Screen>
+      </Screen>,
     );
   }
 
   if (isViewLoading || (isPayLoading && !payInfo) || !payInfo || !view) {
-    return (
+    return withStatus(
       <Screen title="" back={tripId ? `/t/${tripId}` : undefined}>
         <div className="fsl-pay__loading">
           <Skeleton height={80} radius="lg" />
@@ -145,25 +188,11 @@ export function PayScreen() {
             <Skeleton height={20} radius="sm" />
           </div>
         </div>
-      </Screen>
+      </Screen>,
     );
   }
 
-  const name = payInfo.to.name;
   const archived = view.trip.archived;
-  const live = recorded ? view.payments.find((p) => p.id === recorded.id) : undefined;
-  const recordedStatus = recorded ? (live?.status ?? recorded.status) : null;
-  // A payment recorded here follows its live status (the member confirming turns "sent" into "paid"); one that
-  // was already on its way when the page opened shows as sent.
-  let card: StatusCard = null;
-  if (recorded && recordedStatus === 'confirmed') {
-    card = { kind: 'paid', amount: live?.amountConfirmed ?? recorded.amount };
-  } else if (recorded && recordedStatus === 'says_paid') {
-    card = { kind: 'sent', amount: live?.amountClaimed ?? recorded.amount };
-  } else if (payInfo.inFlight.length > 0) {
-    card = { kind: 'sent', amount: payInfo.inFlight.reduce((sum, p) => sum + p.amountClaimed, 0) };
-  }
-
   const bank = payInfo.bank;
   const stoppedCheck = stopped ? (
     <div className="fsl-pay__stopped">
@@ -198,7 +227,7 @@ export function PayScreen() {
     );
     content = (
       <>
-        <section className={`fsl-pay__card fsl-pay__card--${card.kind}`} aria-live="polite">
+        <section className={`fsl-pay__card fsl-pay__card--${card.kind}`}>
           <div className="fsl-pay__card-icon">
             <Icon name={card.kind === 'sent' ? 'clock' : 'circleCheck'} size={28} />
           </div>
@@ -247,6 +276,8 @@ export function PayScreen() {
         <EmptyState
           icon="bank"
           title={payInfo.bankState === 'pending' ? t('pay.bankPending', { name }) : t('pay.bankNone', { name })}
+          // Not for "waiting for approval": they did add them.
+          body={payInfo.bankState === 'none' ? t('pay.bankAskThem') : undefined}
           action={
             <Button variant="secondary" block onClick={handleRemind}>
               {t('pay.remindThem', { name })}
@@ -261,8 +292,10 @@ export function PayScreen() {
   } else {
     isLayout = true;
     if (!archived) {
+      // The error sits above the button, in the same place: on a phone that is the fixed bottom bar.
       footer = (
         <>
+          {submitError !== null && <InlineError error={submitError} onRetry={handleIPaid} />}
           <Button variant="secondary" block loading={isSubmitting} onClick={handleIPaid}>
             {t('pay.iPaid')}
           </Button>
@@ -316,28 +349,31 @@ export function PayScreen() {
             </span>
           </div>
           <p className="fsl-pay__keep-note">{t('pay.keepNote')}</p>
-          {!coarse && <p className="fsl-pay__scan-hint">{t('pay.scanHint')}</p>}
+          {!coarse && <p className="fsl-pay__scan-hint">{t('pay.scanWithPhone')}</p>}
           {stoppedCheck}
-          {submitError !== null && (
-            <InlineError error={submitError} onRetry={handleIPaid} />
-          )}
           {wide && footer}
         </div>
       </div>
     );
   }
 
-  return (
+  // A failed "I've paid" grows the fixed bottom bar on a phone: leave room so the content can scroll clear of it.
+  const barGrown = !wide && submitError !== null && footer !== null;
+  const pageClass = ['fsl-pay', isLayout ? '' : 'fsl-pay--narrow', barGrown ? 'fsl-pay--bar-error' : '']
+    .filter(Boolean)
+    .join(' ');
+
+  return withStatus(
     <Screen
       title={t('pay.title', { name })}
       back={`/t/${tripId}`}
       wide
       bottomBar={wide ? undefined : (footer ?? undefined)}
     >
-      <div className={`fsl-pay${isLayout ? '' : ' fsl-pay--narrow'}`}>
+      <div className={pageClass}>
         {archived && <p className="fsl-pay__notice">{t('settings.archived')}</p>}
         {content}
       </div>
-    </Screen>
+    </Screen>,
   );
 }

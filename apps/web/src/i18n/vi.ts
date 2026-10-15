@@ -328,12 +328,13 @@ export const vi: Record<MessageKey, string> = {
   'pay.paidBody': 'Được tính ngay.', // REVIEW
   'pay.stillOwed': 'Còn nợ {amount}', // REVIEW
   'pay.showQrRest': 'Hiện mã QR cho phần còn lại', // REVIEW
+  'pay.bankAskThem': 'Nhờ họ thêm thông tin, rồi quay lại đây.', // REVIEW
+  'pay.scanWithPhone': 'Quét mã QR bằng ứng dụng ngân hàng trên điện thoại của bạn.', // REVIEW
   'pay.account': 'Số tài khoản', // REVIEW
   'pay.note': 'Nội dung chuyển khoản', // REVIEW
   'pay.copyAccount': 'Sao chép số tài khoản', // REVIEW
   'pay.copyNote': 'Sao chép nội dung', // REVIEW
   'pay.copied': 'Đã sao chép', // REVIEW
-  'pay.scanHint': 'Quét bằng bất kỳ ứng dụng ngân hàng Việt Nam nào, hoặc lưu mã QR và chọn từ thư viện ảnh.', // REVIEW
   'pay.qrAlt': 'Mã VietQR thanh toán cho {name} {amount}', // REVIEW
   'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
   'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
