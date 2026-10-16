@@ -82,7 +82,7 @@ describe('member trip page', () => {
     expect(screen.getByText('Post this link in your group chat. Friends pick their name, no account needed.')).toBeInTheDocument();
     expect(screen.queryByText("You're owed")).toBeNull();
     expect(screen.queryByText("You're all settled")).toBeNull();
-    const expenses = screen.getByRole('region', { name: 'Expenses' });
+    const expenses = screen.getByRole('region', { name: 'Your expenses' });
     expect(within(expenses).getByText('Add the first expense')).toBeInTheDocument();
     expect(invite.compareDocumentPosition(expenses) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

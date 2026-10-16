@@ -163,7 +163,7 @@ describe('transaction details', () => {
     const heading = await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' });
     // Still the trip page, with the list beside the panel and the opened row marked.
     expect(screen.getByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-    const list = screen.getByRole('region', { name: 'Expenses' });
+    const list = screen.getByRole('region', { name: 'Your expenses' });
     expect(within(list).getByRole('button', { name: /^Homestay Bloom/ })).toHaveAttribute('aria-current', 'true');
     expect(within(list).getByRole('button', { name: /^Lẩu gà lá é/ })).not.toHaveAttribute('aria-current');
     expect(within(list).getByRole('link', { name: '+ Add expense' })).toBeInTheDocument();
@@ -237,7 +237,7 @@ describe('transaction details', () => {
     const view = tripView({ payments: [payment({ id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, status: 'confirmed' })] });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     renderAt(<App />, { route: '/t/t-1' });
-    const payments = await screen.findByRole('region', { name: 'Payments' });
+    const payments = await screen.findByRole('region', { name: 'Your payments' });
     await userEvent.click(within(payments).getByRole('button', { name: /^Chi → You/ }));
     expect(await screen.findByRole('heading', { name: 'Chi → You' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-1');
@@ -248,7 +248,7 @@ describe('transaction details', () => {
     const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1', path: '*' });
-    const payments = await screen.findByRole('region', { name: 'Payments' });
+    const payments = await screen.findByRole('region', { name: 'Your payments' });
     await userEvent.click(within(payments).getByRole('button', { name: /^Bình → You/ }));
     expect(await screen.findByRole('heading', { name: 'Bình → You' })).toBeInTheDocument();
     // Still the trip page, with the details in the panel beside the lists.

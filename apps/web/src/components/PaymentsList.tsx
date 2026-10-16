@@ -5,10 +5,12 @@ import { nameOf } from '../lib/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { paymentActions } from '../lib/rowActions';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { useListMode } from '../lib/useListMode';
 import { ActionRow } from './ActionRow';
 import { Amount } from './Amount';
 import { Pill } from './Pill';
 import { InlineError } from './InlineError';
+import { ListModeChip } from './ListModeChip';
 import { paymentStatus } from './PaymentDetails';
 import './PaymentsList.css';
 
@@ -39,9 +41,10 @@ function PaymentItem({
   const statusText = t(status.label);
 
   // Payment rows offer Disable / Enable (spec §4.3). Confirm and a member's "Didn't arrive" live in the approvals
-  // queue and the details; a guest receiver has no queue, so they keep "Didn't arrive" on the row.
+  // queue and the details; a guest receiver has no queue, so they keep "Didn't arrive" on the row. "It arrived" is
+  // only in the details, where the person can see what they are taking back.
   const actions = paymentActions(view, payment, { t, navigate, run: guardedRun }).filter(
-    (a) => a.id !== 'confirm' && !(a.id === 'not-arrived' && view.me.kind === 'member'),
+    (a) => a.id !== 'confirm' && a.id !== 'arrived' && !(a.id === 'not-arrived' && view.me.kind === 'member'),
   );
 
   const title = t('trip.pays', { from: who(payment.fromId), to: who(payment.toId) });
@@ -68,7 +71,10 @@ function PaymentItem({
   );
 }
 
-/** The trip's recorded payments list, with shortcut swipe and hover actions on each row. */
+/**
+ * The trip's recorded payments, with shortcut swipe and hover actions on each row. Someone in the trip sees the
+ * payments to or from them first ("Your payments") and can show them all; a view-only link sees them all.
+ */
 export function PaymentsList({
   view,
   selectedId,
@@ -81,14 +87,26 @@ export function PaymentsList({
   hintable?: boolean;
 }) {
   const t = useT();
+  const [mode, toggle] = useListMode('fsl.payments.mode');
   if (view.payments.length === 0) return null;
 
+  const me = view.me.participantId;
+  const effective = me === null ? null : mode;
+  const rows = effective === 'mine' ? view.payments.filter((p) => p.fromId === me || p.toId === me) : view.payments;
+  const title = effective === null ? t('payments.title') : effective === 'mine' ? t('payments.mine') : t('payments.all');
+
   return (
-    <section className="fsl-payments" aria-label={t('payments.title')}>
-      <h2 className="fsl-payments__heading">{t('payments.title')}</h2>
+    <section className="fsl-payments" aria-label={title}>
+      <div className="fsl-payments__top">
+        <h2 className="fsl-payments__heading">{title}</h2>
+        {effective !== null && <ListModeChip mode={effective} onToggle={toggle} />}
+      </div>
+      {rows.length === 0 ? (
+        <p className="fsl-payments__empty">{t('payments.emptyMine')}</p>
+      ) : (
       <SwipeGroupProvider>
         <ul className="fsl-payments__list">
-          {view.payments.map((p, i) => (
+          {rows.map((p, i) => (
             <PaymentItem
               key={p.id}
               view={view}
@@ -100,6 +118,7 @@ export function PaymentsList({
           ))}
         </ul>
       </SwipeGroupProvider>
+      )}
     </section>
   );
 }

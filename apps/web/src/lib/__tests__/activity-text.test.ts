@@ -32,6 +32,11 @@ describe('activityLine', () => {
     expect(activityLine(item('name_merged', { fromName: 'Chi Nguyễn', intoName: 'Chi' }, 'Minh'), view, t)).toBe('Minh merged Chi Nguyễn into Chi');
   });
 
+  it('says a payment arrived after all, with its amount', () => {
+    expect(activityLine(item('payment_arrived', { outcome: 'confirm', amount: 1245000 }, 'Minh'), view, t)).toBe('Minh said a payment arrived · 1.245.000₫');
+    expect(activityLine(item('payment_arrived', {}, 'Minh'), view, t)).toBe('Minh said a payment arrived');
+  });
+
   it('names the guest whose bank details a member saved or deleted', () => {
     expect(activityLine(item('bank_set', { participantId: PIDS.C }, 'Minh'), view, t)).toBe("Minh saved Chi's bank details");
     expect(activityLine(item('bank_removed', { participantId: PIDS.C }, 'Minh'), view, t)).toBe("Minh deleted Chi's bank details");

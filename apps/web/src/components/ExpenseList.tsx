@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router';
 import { formatVnd, type ExpenseView, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
+import { useListMode } from '../lib/useListMode';
 import { useTripAction } from '../lib/useTripAction';
 import { expenseActions } from '../lib/rowActions';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
 import { ActionRow } from './ActionRow';
-import { ExpenseRow } from './ExpenseRow';
+import { ExpenseRow, rowAmount } from './ExpenseRow';
 import { EmptyState } from './EmptyState';
 import { InlineError } from './InlineError';
+import { ListModeChip } from './ListModeChip';
 import './ExpenseList.css';
 
 const STATUS: Record<'pending' | 'rejected' | 'disabled', MessageKey> = {
@@ -38,9 +40,10 @@ function ExpenseItem({
   const guardedRun = (path: string, body?: unknown) => (busy ? Promise.resolve() : run(path, body));
   const actions = expenseActions(view, expense, { t, navigate, run: guardedRun });
 
+  const amount = rowAmount(expense, view);
   const label = [
     expense.description,
-    formatVnd(expense.amount),
+    formatVnd(amount),
     expense.status === 'approved' ? null : t(STATUS[expense.status]),
   ]
     .filter(Boolean)
@@ -73,12 +76,25 @@ export function ExpenseList({
   addInHeading?: boolean;
 }) {
   const t = useT();
+  const [mode, toggle] = useListMode('fsl.expenses.mode');
+  const me = view.me.participantId;
+  const effective = me === null ? null : mode;
+  const involves = (e: ExpenseView) => e.payerId === me || e.createdById === me || e.shares.some((s) => s.participantId === me);
+  const rows = effective === 'mine' ? view.expenses.filter(involves) : view.expenses;
+  const title = effective === null ? t('trip.expenses') : effective === 'mine' ? t('expenses.mine') : t('expenses.all');
 
   return (
-    <section className="fsl-expense-list" aria-label={t('trip.expenses')}>
+    <section className="fsl-expense-list" aria-label={title}>
       <div className="fsl-expense-list__head">
-        <h2 className="fsl-expense-list__heading">{t('trip.expenses')}</h2>
-        {addInHeading && view.expenses.length > 0 ? add : null}
+        <h2 className="fsl-expense-list__heading">{title}</h2>
+        {(effective !== null && view.expenses.length > 0) || (addInHeading && view.expenses.length > 0) ? (
+          <span className="fsl-expense-list__actions">
+            {effective !== null && view.expenses.length > 0 && (
+              <ListModeChip mode={effective} onToggle={toggle} />
+            )}
+            {addInHeading && view.expenses.length > 0 ? add : null}
+          </span>
+        ) : null}
       </div>
       {view.expenses.length === 0 ? (
         // Nobody can add here (a view-only link, an archived trip): no invitation to add the first expense.
@@ -88,10 +104,12 @@ export function ExpenseList({
           body={add ? t('expenses.emptyBody') : undefined}
           action={add ?? null}
         />
+      ) : rows.length === 0 ? (
+        <p className="fsl-expense-list__empty">{t('expenses.emptyMine')}</p>
       ) : (
         <SwipeGroupProvider>
           <ul className="fsl-expense-list__rows">
-            {view.expenses.map((e, i) => (
+            {rows.map((e, i) => (
               <ExpenseItem
                 key={e.id}
                 view={view}
@@ -107,3 +125,4 @@ export function ExpenseList({
     </section>
   );
 }
+

@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
-import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useIsWide } from '../lib/media';
-import { nameOf, splitText } from '../lib/tripText';
+import { nameOf } from '../lib/tripText';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
-import { Amount } from '../components/Amount';
 import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
@@ -58,19 +56,6 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       ).catch(() => {});
     }
   }, [becomeMemberParam, archived, view.me.kind, myId, view.trip.id]);
-
-  const approvedWithMyShare = myId
-    ? view.expenses.filter(
-        (e) =>
-          e.status === 'approved' &&
-          e.shares.some((s) => s.participantId === myId),
-      )
-    : [];
-
-  const totalMyShare = approvedWithMyShare.reduce((sum, e) => {
-    const share = e.shares.find((s) => s.participantId === myId);
-    return sum + (share ? share.amount : 0);
-  }, 0);
 
   const addLink = (block: boolean) =>
     archived ? undefined : (
@@ -124,42 +109,6 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
     />
   );
 
-  const share =
-    approvedWithMyShare.length > 0 ? (
-      <section className="fsl-guest__section">
-        <h2 className="fsl-section-heading">{t('guest.yourShare')}</h2>
-        <div className="fsl-card">
-          {approvedWithMyShare.map((e) => {
-            const myShare = e.shares.find((s) => s.participantId === myId)!;
-            const subline =
-              e.mode === 'equal'
-                ? `${formatVnd(e.amount)} ÷ ${e.shares.length}`
-                : splitText(e, t);
-            return (
-              <div key={e.id} className="fsl-guest__share-row">
-                <div className="fsl-guest__share-info">
-                  <div className="fsl-guest__share-desc">
-                    {e.description}
-                  </div>
-                  <div className="fsl-guest__share-sub">{subline}</div>
-                </div>
-                <Amount value={myShare.amount} />
-              </div>
-            );
-          })}
-          <div className="fsl-guest__share-row fsl-guest__share-row--total">
-            <span className="fsl-guest__share-total-label">
-              {t('guest.yourTotal')}
-            </span>
-            <Amount
-              value={totalMyShare}
-              className="fsl-guest__share-total-amount"
-            />
-          </div>
-        </div>
-      </section>
-    ) : null;
-
   const footer = (
     <footer className="fsl-guest__footer">
       <LanguageButton />
@@ -192,7 +141,6 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
             {bankRow}
             {transfers}
             {payments(true)}
-            {share}
             {expenses(view.payments.length === 0, false)}
           </>
         ) : (
@@ -211,7 +159,6 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
                   {balance}
                   {bankRow}
                   {transfers}
-                  {share}
                 </>
               )
             }

@@ -48,7 +48,9 @@ describe('member: payment actions (spec §9.4)', () => {
       'POST /api/trips/t-1/payments/pay-d/enable': null,
     });
     renderAt(<TripRoute />, route);
-    const list = await screen.findByRole('region', { name: 'Payments' });
+    // An → Chi doesn't involve Minh: it shows once he asks for all payments.
+    await userEvent.click(within(await screen.findByRole('region', { name: 'Your payments' })).getByRole('button', { name: 'Show all' }));
+    const list = screen.getByRole('region', { name: 'All payments' });
     await userEvent.click(within(within(list).getByTestId('payment-row-pay-g')).getByRole('button', { name: 'Disable' }));
     await userEvent.click(within(within(list).getByTestId('payment-row-pay-d')).getByRole('button', { name: 'Enable' }));
     await waitFor(() => {
@@ -104,5 +106,43 @@ describe('polling budget', () => {
       vi.advanceTimersByTime(15 * 60_000 + 1);
     });
     expect(screen.getByRole('button', { name: 'Tap to check again' })).toBeInTheDocument();
+  });
+});
+
+describe('"It arrived" undoes "Didn\'t arrive"', () => {
+  const detailsRoute = (id: string) => ({ route: `/t/t-1/payments/${id}`, path: '/t/:tripId/payments/:paymentId' });
+  const api = (view: TripView, id: string) =>
+    mockApi({ 'GET /api/trips/t-1': view, 'GET /api/trips/t-1/version': { version: 3 }, [`POST /api/trips/t-1/payments/${id}/arrived`]: null });
+  const posted = (calls: { method: string; path: string }[], id: string) =>
+    calls.some((c) => c.method === 'POST' && c.path === `/api/trips/t-1/payments/${id}/arrived`);
+
+  it('the member who said it did not arrive can say it did, from its details', async () => {
+    const { calls } = api(tripView({ payments: [payment({ id: 'pay-r', fromId: PIDS.C, toId: PIDS.M, status: 'rejected' })] }), 'pay-r');
+    renderAt(<TripRoute />, detailsRoute('pay-r'));
+    await userEvent.click(await screen.findByRole('button', { name: 'It arrived' }));
+    await waitFor(() => expect(posted(calls, 'pay-r')).toBe(true));
+  });
+
+  it('a guest receiver can take back their report', async () => {
+    const view = { ...guestChiView(), payments: [payment({ id: 'pay-f', fromId: PIDS.A, toId: PIDS.C, status: 'confirmed', notArrived: true })] };
+    const { calls } = api(view, 'pay-f');
+    renderAt(<TripRoute />, detailsRoute('pay-f'));
+    await userEvent.click(await screen.findByRole('button', { name: 'It arrived' }));
+    await waitFor(() => expect(posted(calls, 'pay-f')).toBe(true));
+  });
+
+  it('nobody else gets it, and the rows never offer it', async () => {
+    const rejected = payment({ id: 'pay-r', fromId: PIDS.C, toId: PIDS.M, status: 'rejected' });
+    const binh: TripView = { ...guestChiView(), me: { kind: 'guest', participantId: PIDS.B, participantPending: false, isOrganiser: false }, payments: [rejected] };
+    api(binh, 'pay-r');
+    const other = renderAt(<TripRoute />, detailsRoute('pay-r'));
+    await screen.findByRole('heading', { name: 'Chi → Minh' });
+    expect(screen.queryByRole('button', { name: 'It arrived' })).toBeNull();
+    other.unmount();
+
+    api(tripView({ payments: [rejected] }), 'pay-r');
+    renderAt(<TripRoute />, route);
+    const row = await screen.findByTestId('payment-row-pay-r');
+    expect(within(row).queryByRole('button', { name: 'It arrived' })).toBeNull();
   });
 });

@@ -424,5 +424,16 @@ export const vi: Record<MessageKey, string> = {
   'activity.bankRemoved': '{actor} đã xóa thông tin ngân hàng của {name}', // REVIEW
   'activity.action.bank_set': 'đã lưu thông tin ngân hàng', // REVIEW
   'activity.action.bank_removed': 'đã xóa thông tin ngân hàng', // REVIEW
+  'payments.mine': 'Khoản đã trả của bạn', // REVIEW
+  'payments.all': 'Tất cả khoản đã trả', // REVIEW
+  'payments.emptyMine': 'Chưa có khoản đã trả nào liên quan đến bạn.', // REVIEW
+  'payments.arrived': 'Đã nhận được', // REVIEW
+  'expenses.mine': 'Khoản chi của bạn', // REVIEW
+  'expenses.all': 'Tất cả khoản chi', // REVIEW
+  'expenses.emptyMine': 'Chưa có khoản chi nào liên quan đến bạn.', // REVIEW
+  'expense.youPaidTotal': 'Bạn đã trả {amount}', // REVIEW
+  'expense.personPaidTotal': '{name} đã trả {amount}', // REVIEW
+  'activity.paymentArrived': '{actor} cho biết đã nhận được một khoản thanh toán · {amount}', // REVIEW
+  'activity.action.payment_arrived': 'cho biết đã nhận được một khoản thanh toán', // REVIEW
 };
 

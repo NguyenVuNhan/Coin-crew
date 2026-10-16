@@ -102,6 +102,17 @@ describe('guest page on a phone', () => {
     expect(within(rows[0]!).getByRole('link', { name: 'Add' })).toHaveAttribute('href', '/t/t-1/bank');
   });
 
+  it('has no separate "How we got your share": the expense rows show the share', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
+    renderAt(<TripRoute />, route);
+    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
+    expect(screen.queryByText('How we got your share')).toBeNull();
+    expect(screen.queryByText('Your total')).toBeNull();
+    const homestay = within(expenses).getByText('Homestay Bloom · 2 nights').closest('li')!;
+    expect(within(homestay).getByText('800.000₫')).toBeInTheDocument();
+    expect(within(homestay).getByText('Minh paid 3.200.000₫ · split equally, 4')).toBeInTheDocument();
+  });
+
   it('offers to add bank details even when nobody owes the guest', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
     renderAt(<TripRoute />, route);
@@ -151,19 +162,17 @@ describe('guest page on a phone', () => {
     expect(screen.queryByText('Who pays you')).toBeNull();
   });
 
-  it('is laid out top to bottom: who, balance, transfers, payments, share, expenses, footer', async () => {
+  it('is laid out top to bottom: who, balance, transfers, payments, expenses, footer', async () => {
     const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     renderAt(<TripRoute />, route);
     const viewing = await screen.findByText('Viewing as Chi');
     const balance = screen.getByText('You owe Minh');
     const transfers = screen.getByRole('region', { name: 'Your transfers' });
-    const payments = screen.getByRole('region', { name: 'Payments' });
-    // The share section only lists approved expenses with a share for Chi.
-    const share = screen.getByRole('heading', { name: 'How we got your share' });
-    const expenses = screen.getByRole('region', { name: 'Expenses' });
+    const payments = screen.getByRole('region', { name: 'Your payments' });
+    const expenses = screen.getByRole('region', { name: 'Your expenses' });
     const footer = screen.getByRole('link', { name: 'Sign in with Google to become a member' });
-    const order = [viewing, balance, transfers, payments, share, expenses, footer];
+    const order = [viewing, balance, transfers, payments, expenses, footer];
     order.slice(1).forEach((el, i) => expect(follows(order[i]!, el)).toBe(true));
   });
 
@@ -192,7 +201,7 @@ describe('guest page on a phone', () => {
     };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': empty });
     renderAt(<TripRoute />, route);
-    const expenses = await screen.findByRole('region', { name: 'Expenses' });
+    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
     expect(within(expenses).getByText('Add the first expense')).toBeInTheDocument();
     const adds = screen.getAllByRole('link', { name: '+ Add expense' });
     expect(adds).toHaveLength(1);
@@ -209,7 +218,7 @@ describe('guest page on a phone', () => {
     const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     const withPayments = renderAt(<TripRoute />, route);
-    const payments = await screen.findByRole('region', { name: 'Payments' });
+    const payments = await screen.findByRole('region', { name: 'Your payments' });
     expect(within(payments).getByText('Swipe left or tap a row for options')).toBeInTheDocument();
     expect(screen.getAllByText('Swipe left or tap a row for options')).toHaveLength(1);
     withPayments.unmount();
@@ -218,7 +227,7 @@ describe('guest page on a phone', () => {
     localStorage.removeItem('fsl.swipeHintSeen');
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
     renderAt(<TripRoute />, route);
-    const expenses = await screen.findByRole('region', { name: 'Expenses' });
+    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
     expect(within(expenses).getByText('Swipe left or tap a row for options')).toBeInTheDocument();
     expect(screen.getAllByText('Swipe left or tap a row for options')).toHaveLength(1);
   });
@@ -262,7 +271,7 @@ describe('guest page on an archived trip', () => {
     mockMedia({ wide: true });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': archived(chiIsOwed()) });
     const owed = renderAt(<TripRoute />, route);
-    const expenses = await screen.findByRole('region', { name: 'Expenses' });
+    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
     expect(screen.getByText('This trip is archived. You can still look at it.')).toBeInTheDocument();
     expect(within(expenses).queryByRole('link', { name: '+ Add expense' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Your bank details' })).toBeNull();
@@ -292,17 +301,16 @@ describe('guest page on a wide screen', () => {
 
   const withPayment = (): TripView => ({ ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] });
 
-  it('has payments and expenses on the left, the balance, transfers and share on the right', async () => {
+  it('has payments and expenses on the left, the balance and transfers on the right', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': withPayment() });
     renderAt(<TripRoute />, route);
     const balance = await screen.findByText('You owe Minh');
     const side = balance.closest('.fsl-trip-layout__side') as HTMLElement;
-    const main = screen.getByRole('region', { name: 'Expenses' }).closest('.fsl-trip-layout__main') as HTMLElement;
+    const main = screen.getByRole('region', { name: 'Your expenses' }).closest('.fsl-trip-layout__main') as HTMLElement;
     expect(side).not.toBeNull();
     expect(within(side).getByRole('region', { name: 'Your transfers' })).toBeInTheDocument();
-    expect(within(side).getByRole('heading', { name: 'How we got your share' })).toBeInTheDocument();
     expect(within(side).getByRole('link', { name: 'Pay with VietQR' })).toBeInTheDocument();
-    expect(within(main).getByRole('region', { name: 'Payments' })).toBeInTheDocument();
+    expect(within(main).getByRole('region', { name: 'Your payments' })).toBeInTheDocument();
     expect(within(main).queryByRole('region', { name: 'Your transfers' })).toBeNull();
     // The "Viewing as" bar and the footer span both columns.
     expect(screen.getByText('Viewing as Chi').closest('.fsl-trip-layout')).toBeNull();
@@ -312,7 +320,7 @@ describe('guest page on a wide screen', () => {
   it('+ Add expense moves into the Expenses heading and still steps back while there is something to pay', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
     renderAt(<TripRoute />, route);
-    const expenses = await screen.findByRole('region', { name: 'Expenses' });
+    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
     const add = within(expenses).getByRole('link', { name: '+ Add expense' });
     expect(add).toHaveClass('fsl-button--secondary');
     expect(screen.getAllByRole('link', { name: '+ Add expense' })).toHaveLength(1);
@@ -348,7 +356,7 @@ describe('guest page on a wide screen', () => {
   it('a payment opens in the panel too', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': withPayment() });
     renderAt(<App />, { route: '/t/t-1' });
-    const payments = await screen.findByRole('region', { name: 'Payments' });
+    const payments = await screen.findByRole('region', { name: 'Your payments' });
     await userEvent.click(within(payments).getByRole('button', { name: /^Bình → You/ }));
     expect(await screen.findByRole('heading', { name: 'Bình → You' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Payment' })).toBeInTheDocument();

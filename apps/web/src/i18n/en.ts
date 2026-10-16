@@ -424,6 +424,17 @@ export const en = {
   'activity.bankRemoved': "{actor} deleted {name}'s bank details",
   'activity.action.bank_set': 'saved bank details',
   'activity.action.bank_removed': 'deleted bank details',
+  'payments.mine': 'Your payments',
+  'payments.all': 'All payments',
+  'payments.emptyMine': 'No payments with you yet.',
+  'payments.arrived': 'It arrived',
+  'expenses.mine': 'Your expenses',
+  'expenses.all': 'All expenses',
+  'expenses.emptyMine': 'No expenses with you yet.',
+  'expense.youPaidTotal': 'You paid {amount}',
+  'expense.personPaidTotal': '{name} paid {amount}',
+  'activity.paymentArrived': '{actor} said a payment arrived · {amount}',
+  'activity.action.payment_arrived': 'said a payment arrived',
 } as const;
 
 export type MessageKey = keyof typeof en;

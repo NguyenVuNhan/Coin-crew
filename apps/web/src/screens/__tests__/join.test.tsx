@@ -240,7 +240,7 @@ describe('TripRoute', () => {
     const paidForByChi: ExpenseView = { ...view.expenses[1]!, id: 'e-6', description: 'Taxi to the market', payerId: PIDS.C, status: 'pending' };
     mockApi({ 'GET /api/trips/t-1': { ...view, expenses: [...view.expenses, paidForByChi] }, 'GET /api/trips/t-1/version': { version: 3 } });
     renderAt(<TripRoute />, route);
-    const list = await screen.findByRole('region', { name: 'Expenses' });
+    const list = await screen.findByRole('region', { name: 'Your expenses' });
     const edits = within(list).getAllByRole('button', { name: 'Edit' });
     expect(edits).toHaveLength(1);
     expect(edits[0]!.closest('li')).toHaveTextContent('Bánh tráng nướng, chợ đêm');

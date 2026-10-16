@@ -51,6 +51,10 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         const amount = money(d.amount);
         return amount ? t('activity.paymentConfirmed', { actor, amount }) : null;
       }
+      case 'payment_arrived': {
+        const amount = money(d.amount);
+        return amount ? t('activity.paymentArrived', { actor, amount }) : null;
+      }
       case 'name_added':
       case 'name_approved':
       case 'person_removed': {

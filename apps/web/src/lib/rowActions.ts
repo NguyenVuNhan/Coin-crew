@@ -2,6 +2,7 @@ import {
   can,
   canConfirmPayment,
   notArrivedOutcome,
+  arrivedOutcome,
   type Actor,
   type ExpenseView,
   type PaymentView,
@@ -66,7 +67,8 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
 
 /**
  * What this person may do with a payment: the receiving member confirms or reports one that is waiting,
- * a guest receiver reports a confirmed one, and members disable or re-enable.
+ * a guest receiver reports a confirmed one, the receiver who reported one says it arrived after all, and members
+ * disable or re-enable.
  */
 export function paymentActions(view: TripView, p: PaymentView, deps: ActionDeps): RowAction[] {
   if (view.trip.archived) return [];
@@ -77,6 +79,10 @@ export function paymentActions(view: TripView, p: PaymentView, deps: ActionDeps)
 
   if (canConfirmPayment(actor, p, receiverIsMember)) {
     actions.push({ id: 'confirm', label: t('approvals.confirm'), icon: 'check', tone: 'success', onSelect: () => void run(`/payments/${p.id}/confirm`) });
+  }
+
+  if (arrivedOutcome(actor, p, receiverIsMember) !== 'forbidden') {
+    actions.push({ id: 'arrived', label: t('payments.arrived'), icon: 'check', tone: 'success', onSelect: () => void run(`/payments/${p.id}/arrived`) });
   }
 
   if (!p.notArrived && notArrivedOutcome(actor, p, receiverIsMember) !== 'forbidden') {
