@@ -1,42 +1,35 @@
 import type { ReactNode } from 'react';
+import { Icon, type IconName } from './icons';
 import './EmptyState.css';
 
 export interface EmptyStateProps {
-  icon?: ReactNode;
+  icon?: IconName;
   title: string;
+  /** One line under the title. */
+  body?: string;
   action: ReactNode;
   className?: string;
 }
 
-const DefaultIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
-
 export function EmptyState({
   icon,
   title,
+  body,
   action,
   className = '',
 }: EmptyStateProps) {
   return (
     <div className={`fsl-empty-state ${className}`.trim()}>
       <div className="fsl-empty-state__header">
-        <span className="fsl-empty-state__icon">
-          {icon ?? <DefaultIcon />}
-        </span>
-        <p className="fsl-empty-state__title">{title}</p>
+        {icon && (
+          <span className="fsl-empty-state__icon">
+            <Icon name={icon} size={20} />
+          </span>
+        )}
+        <div className="fsl-empty-state__text">
+          <p className="fsl-empty-state__title">{title}</p>
+          {body && <p className="fsl-empty-state__body">{body}</p>}
+        </div>
       </div>
       <div className="fsl-empty-state__action">{action}</div>
     </div>

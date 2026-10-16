@@ -14,13 +14,8 @@ export function detectLang(): Lang {
     // localStorage may be unavailable
   }
 
-  if (typeof navigator !== 'undefined' && typeof navigator.language === 'string') {
-    if (navigator.language.toLowerCase().startsWith('vi')) {
-      return 'vi';
-    }
-  }
-
-  return 'en';
+  // Vietnamese first, whatever the phone's language: English only when the person picked it.
+  return 'vi';
 }
 
 let currentLang: Lang = detectLang();

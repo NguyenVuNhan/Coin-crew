@@ -1,5 +1,6 @@
 import { useT } from '../i18n';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '../components/LanguageButton';
 import { Pill } from '../components/Pill';
 import './Privacy.css';
 
@@ -7,7 +8,7 @@ export function Privacy() {
   const t = useT();
 
   return (
-    <Screen title={t('privacy.title')} back="/">
+    <Screen title={t('privacy.title')} back="/" right={<LanguageButton />}>
       <div className="fsl-privacy">
         <div className="fsl-privacy__draft-notice">
           <Pill tone="warning">{t('privacy.draft')}</Pill>

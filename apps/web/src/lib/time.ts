@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { getLang, t } from '../i18n';
 
 export function formatAgo(iso: string, now = new Date()): string {
   const date = new Date(iso);
@@ -18,4 +18,20 @@ export function formatAgo(iso: string, now = new Date()): string {
     return t('time.hoursAgo', { n: diffHours });
   }
   return t('time.daysAgo', { n: diffDays });
+}
+
+const locale = () => (getLang() === 'vi' ? 'vi-VN' : 'en-GB');
+
+/** "14 Oct 2026" for a YYYY-MM-DD date, read as that calendar day wherever the viewer is. */
+export function formatDay(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return ymd;
+  return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(y, m - 1, d));
+}
+
+/** "12 Oct 2026, 15:04" in the viewer's time zone, for an ISO timestamp. */
+export function formatWhen(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date);
 }

@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "@fsl/web", "--", "--port", "5173", "--strictPort"],
       "port": 5173
+    },
+    {
+      "name": "api-e2e",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "e2e:server", "-w", "@fsl/api"],
+      "port": 8787
     }
   ]
 }

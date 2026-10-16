@@ -66,6 +66,14 @@ describe('member pays a guest, guest pays a guest', () => {
     expect(body?.status).toBe('confirmed');
   });
 
+  it('a member paying a member counts straight away', async () => {
+    const anSid = await linkMember(PID.A, U.an, 'An');
+    const { res, body } = await record({ Cookie: `sid=${anSid}` }, PID.A, PID.M, 100000);
+    expect(res.status).toBe(201);
+    expect(body?.status).toBe('confirmed');
+    expect((await view(await minh())).approvals.some((a) => a.kind === 'payment')).toBe(false);
+  });
+
   it('guest to guest counts straight away; "didn\'t arrive" flags it; a member disables and re-enables', async () => {
     await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', ?, 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
     await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
@@ -104,6 +112,70 @@ describe('keeping a payment flagged as not arrived', () => {
   it('guests cannot keep', async () => {
     const { body } = await record(await minh(), PID.M, PID.A, 100000);
     expect((await send(`/payments/${body!.paymentId}/keep`, await guestHeaders(PID.A))).status).toBe(403);
+  });
+});
+
+describe('"it arrived" undoes "didn\'t arrive"', () => {
+  // A guest-to-guest payment An → Chi that counts straight away.
+  async function anPaysChi() {
+    await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', ?, 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
+    await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
+    const { body } = await record(await guestHeaders(PID.A), PID.A, PID.C, 200000);
+    return body!.paymentId;
+  }
+
+  it('the receiving member counts a payment they said did not arrive', async () => {
+    const { body } = await record(await guestHeaders(PID.C), PID.C, PID.M, 1245000);
+    const headers = await minh();
+    await send(`/payments/${body!.paymentId}/not-arrived`, headers);
+    expect((await send(`/payments/${body!.paymentId}/arrived`, headers)).status).toBe(204);
+    const v = await view(headers);
+    expect(v.payments.find((p) => p.id === body!.paymentId)).toMatchObject({ status: 'confirmed', amountConfirmed: 1245000, notArrived: false });
+    expect(suggestion(v, PID.C, PID.M)).toBeUndefined();
+    expect(v.balances[PID.M]).toBe(950000);
+    expect((await send(`/payments/${body!.paymentId}/arrived`, headers)).status).toBe(409);
+  });
+
+  it('a guest receiver clears their own report', async () => {
+    const paymentId = await anPaysChi();
+    const chi = await guestHeaders(PID.C);
+    await send(`/payments/${paymentId}/not-arrived`, chi);
+    expect((await send(`/payments/${paymentId}/arrived`, chi)).status).toBe(204);
+    const v = await view(await minh());
+    expect(v.payments.find((p) => p.id === paymentId)).toMatchObject({ status: 'confirmed', notArrived: false });
+    expect(v.approvals.filter((a) => a.kind === 'not_arrived')).toHaveLength(0);
+  });
+
+  it('nobody but the receiver who reported it may', async () => {
+    const { body } = await record(await guestHeaders(PID.C), PID.C, PID.M, 1245000);
+    const id = body!.paymentId;
+    // Still waiting: nothing to undo yet.
+    expect((await send(`/payments/${id}/arrived`, await minh())).status).toBe(403);
+    await send(`/payments/${id}/not-arrived`, await minh());
+    expect((await send(`/payments/${id}/arrived`, await guestHeaders(PID.C))).status).toBe(403);
+    expect((await send(`/payments/${id}/arrived`, await guestHeaders(PID.A))).status).toBe(403);
+    const an = { Cookie: `sid=${await linkMember(PID.A, U.an, 'An')}` };
+    expect((await send(`/payments/${id}/arrived`, an)).status).toBe(403);
+
+    const paymentId = await anPaysChi();
+    await send(`/payments/${paymentId}/not-arrived`, await guestHeaders(PID.C));
+    expect((await send(`/payments/${paymentId}/arrived`, await minh())).status).toBe(403);
+  });
+
+  it('logs what happened, and an archived trip refuses it', async () => {
+    const { body } = await record(await guestHeaders(PID.C), PID.C, PID.M, 1245000);
+    const headers = await minh();
+    await send(`/payments/${body!.paymentId}/not-arrived`, headers);
+    await env.DB.prepare("UPDATE trips SET archived_at = '2026-10-13T00:00:00.000Z' WHERE id = ?").bind(T.tripId).run();
+    expect((await send(`/payments/${body!.paymentId}/arrived`, headers)).status).toBe(409);
+    await env.DB.prepare('UPDATE trips SET archived_at = NULL WHERE id = ?').bind(T.tripId).run();
+    await send(`/payments/${body!.paymentId}/arrived`, headers);
+    const row = await env.DB.prepare("SELECT details_json FROM activity WHERE trip_id = ? AND action = 'payment_arrived'").bind(T.tripId).first<{ details_json: string }>();
+    expect(JSON.parse(row!.details_json)).toEqual({ outcome: 'confirm', amount: 1245000 });
+  });
+
+  it('an unknown payment is not found', async () => {
+    expect((await send('/payments/nope/arrived', await minh())).status).toBe(404);
   });
 });
 

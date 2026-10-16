@@ -1,0 +1,137 @@
+.fsl-account-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.fsl-account-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-account-menu__trigger:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.fsl-account-menu__trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-account-menu__popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 280px;
+  max-width: calc(100vw - 2 * var(--space-4));
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
+  z-index: 30;
+  box-sizing: border-box;
+}
+
+.fsl-account-menu__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.fsl-account-menu__identity {
+  margin-bottom: var(--space-3);
+}
+
+.fsl-account-menu__name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.fsl-account-menu__email {
+  margin: var(--space-1) 0 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.fsl-account-menu__list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--color-surface);
+}
+
+.fsl-account-menu__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.fsl-account-menu__row + .fsl-account-menu__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.fsl-account-menu__row-left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fsl-account-menu__link {
+  text-decoration: none;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-account-menu__link:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.fsl-account-menu__link:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.fsl-account-menu__chevron {
+  color: var(--color-text-subtle);
+  flex-shrink: 0;
+}
+
+.fsl-account-menu__error {
+  margin-top: var(--space-4);
+}
+
+.fsl-account-menu__sign-out {
+  margin-top: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-account-menu__trigger,
+  .fsl-account-menu__link {
+    transition: none;
+  }
+}

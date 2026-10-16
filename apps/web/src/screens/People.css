@@ -5,85 +5,77 @@
   padding: var(--space-4) 0;
 }
 
-.fsl-people__explain {
+.fsl-people__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.fsl-people__item + .fsl-people__item {
+  border-top: 1px solid var(--color-border);
+}
+
+.fsl-people .fsl-action-row {
+  border-bottom: 0;
+}
+
+.fsl-people .fsl-action-row__main {
+  padding-left: var(--space-3);
+  gap: var(--space-2);
+}
+
+.fsl-people .fsl-pill {
+  flex-shrink: 0;
+}
+
+.fsl-people__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fsl-people__bank {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  margin: 0;
   line-height: var(--leading-sm);
-}
-
-.fsl-people__row {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  min-height: 44px;
-  gap: var(--space-2);
-}
-
-.fsl-people__row:last-child {
-  border-bottom: none;
-}
-
-.fsl-people__row-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: 44px;
-}
-
-.fsl-people__info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-  flex: 1;
-}
-
-.fsl-people__details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.fsl-people__name-line {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere; /* "· waiting for approval" wraps to a second line on phones instead of being cut off */
 }
 
 .fsl-people__name {
+  flex: 1;
   font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: var(--color-text);
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.fsl-people__role {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.fsl-people__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .fsl-people__row-error {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-3);
   font-family: var(--font-sans);
   font-size: var(--text-xs);
-  color: var(--color-danger);
+  line-height: var(--leading-xs);
   font-weight: var(--weight-medium);
+  color: var(--color-danger);
+}
+
+.fsl-people__explain {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
 }
 
 .fsl-people__targets {

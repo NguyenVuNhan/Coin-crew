@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI restructure wireframes</title>
+<!-- Wireframes for the 2026-10-14 UI/UX restructure design (Obsidian vault: 2026-10-14-ui-ux-restructure-design.md).
+     Low fidelity on purpose: layout, order and actions, not final styling. Colours follow apps/web/src/styles/tokens.css. -->
+<style>
+:root{--bg:#fafafa;--surface:#fff;--muted:#f4f4f5;--border:#e4e4e7;--border-strong:#d4d4d8;--text:#18181b;--text-2:#52525b;--text-3:#71717a;
+--accent:#0f766e;--accent-soft:#ccfbf1;--accent-text:#134e4a;--success:#047857;--success-soft:#d1fae5;--danger:#be123c;--danger-soft:#ffe4e6;
+--warning:#b45309;--warning-soft:#fef3c7;--warning-border:#fcd34d;--warning-text:#78350f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding:24px 16px 64px;max-width:1180px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}h2{font-size:17px;margin:36px 0 4px}
+.lead{color:var(--text-2);margin-bottom:12px;max-width:760px}
+.g{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:12px;color:var(--text-2);margin-top:6px;text-align:center;width:216px}
+.capw{font-size:12px;color:var(--text-2);margin-top:6px}
+.ph{border:1px solid var(--border-strong);border-radius:20px;background:var(--bg);padding:8px;font-size:11px;line-height:1.45;color:var(--text-2);width:216px;min-height:440px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.wide{border:1px solid var(--border-strong);border-radius:14px;background:var(--bg);padding:10px;font-size:11px;line-height:1.45;color:var(--text-2)}
+.hd{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:0 2px 6px;margin-bottom:8px;color:var(--text);gap:6px}
+.bx{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px 8px;margin-bottom:6px}
+.pad{padding:6px 8px}
+.t{color:var(--text);font-weight:600}
+.s{color:var(--text-2)}
+.m{color:var(--text-3)}
+.rw{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--border);padding:5px 0}
+.rw:first-child{border-top:0}
+.sh{font-size:11px;color:var(--text-3);margin:6px 0 3px;display:flex;justify-content:space-between;align-items:center}
+.pb{background:var(--accent);color:#fff;border-radius:6px;text-align:center;padding:5px;margin-bottom:5px;font-weight:600}
+.sb{border:1px solid var(--border-strong);color:var(--text);border-radius:6px;text-align:center;padding:4px 6px;background:var(--surface);margin-bottom:5px}
+.db{border:1px solid var(--danger);color:var(--danger);border-radius:6px;text-align:center;padding:4px 6px;background:var(--surface)}
+.mini{display:inline-block;border:1px solid var(--border-strong);border-radius:5px;padding:0 6px;color:var(--text);background:var(--surface)}
+.mini.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.av{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--muted);border:1px solid var(--border);align-items:center;justify-content:center;font-size:10px;margin-right:5px;color:var(--text);flex:none}
+.ok{color:var(--success)}.no{color:var(--danger)}
+.q{background:var(--warning-soft);border:1px solid var(--warning-border);border-radius:8px;padding:6px 8px;margin-bottom:6px;color:var(--warning-text)}
+.q .t{color:var(--text)}
+.bar{margin-top:auto;padding-top:6px;border-top:1px solid var(--border);background:var(--bg)}
+.in{border:1px solid var(--border-strong);border-radius:6px;padding:4px 6px;background:var(--surface);color:var(--text-3);margin:2px 0 5px;display:flex;justify-content:space-between;align-items:center}
+.inf{border:2px solid var(--accent);color:var(--text)}
+.lb{color:var(--text);font-weight:600}
+.ic{display:inline-flex;width:22px;height:22px;border-radius:50%;border:1px solid var(--border-strong);align-items:center;justify-content:center;font-size:11px;color:var(--text);background:var(--surface)}
+.chip{border:1px solid var(--border-strong);border-radius:999px;padding:0 7px;color:var(--text);background:var(--surface)}
+.pill{border-radius:999px;padding:0 6px;background:var(--muted);border:1px solid var(--border)}
+.pill.w{background:var(--warning-soft);border-color:var(--warning-border);color:var(--warning-text)}
+.ck{display:inline-flex;width:15px;height:15px;border-radius:50%;border:1.5px solid var(--text-3);margin-right:5px;flex:none}
+.ck.d{background:var(--success-soft);border-color:var(--success);color:var(--success);align-items:center;justify-content:center;font-size:9px}
+.sp{display:inline-block;width:15px;margin-right:5px;flex:none}
+.qr{width:84px;height:84px;margin:4px auto;background:repeating-linear-gradient(90deg,var(--text) 0 4px,transparent 4px 9px),repeating-linear-gradient(0deg,var(--text) 0 3px,transparent 3px 8px);opacity:.7;border:4px solid var(--surface);outline:1px solid var(--border)}
+.note{background:var(--warning-soft);color:var(--warning-text);border-radius:4px;padding:0 4px;font-family:ui-monospace,Consolas,monospace}
+.sel{background:var(--accent-soft)}
+.dt{background:var(--surface);border:1.5px solid var(--accent);border-radius:8px;padding:6px 8px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border-strong);border-radius:16px 16px 20px 20px;padding:10px 8px;box-shadow:0 -8px 24px rgb(0 0 0/.12)}
+.dim{opacity:.35}
+.sw{display:inline-block;width:22px;height:12px;border-radius:6px;background:var(--accent);vertical-align:-2px;position:relative}
+.sw:after{content:"";position:absolute;right:2px;top:2px;width:8px;height:8px;border-radius:50%;background:#fff}
+.seg{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--border-strong);border-radius:6px;overflow:hidden;margin:2px 0 4px}
+.seg span{text-align:center;padding:5px 0;color:var(--text);border-left:1px solid var(--border);font-size:12px;font-weight:600}
+.seg span:first-child{border-left:0}.seg .on{background:var(--accent);color:#fff}
+.dd{position:absolute;left:8px;right:8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:2px 8px;box-shadow:0 6px 16px rgb(0 0 0/.1)}
+mark{background:var(--warning-soft);color:var(--warning-text)}
+.mono{font-family:ui-monospace,Consolas,monospace;background:var(--muted);border-radius:4px;padding:0 4px}
+.lang{display:inline-flex;width:24px;height:24px;border-radius:50%;border:1px solid var(--border-strong);align-items:center;justify-content:center;font-size:12px}
+</style>
+</head>
+<body>
+<h1>UI restructure wireframes</h1>
+<p class="lead">Final choices from the 2026-10-14 brainstorm. Phones are 375px wide (drawn smaller); wide frames are 1280px. Icons are shown as text symbols here; the app uses inline SVG icons.</p>
+
+<h2>1. Member trip page</h2>
+<p class="lead">Approvals one card at a time · balance · Your transfers (only rows with you, tick where confirmation is needed) · payments · expenses · "+ Add expense" fixed at the bottom.</p>
+<div class="g">
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Đà Lạt tháng 10</span><span>⊕ Invite &nbsp;⚙</span></div>
+      <div class="q"><div style="display:flex;justify-content:space-between"><span>1 of 7 waiting</span><span>‹ ›</span></div>
+        <div style="margin:3px 0"><span class="t">Bánh tráng nướng</span><br><span class="s">Chi added · 180.000₫ · split 4 ways</span></div>
+        <span class="mini p">Approve</span> <span class="mini">Reject</span> <span style="float:right">See all 7</span></div>
+      <div class="bx pad">You're owed<br><span class="ok" style="font-size:17px;font-weight:600">937.500₫</span><br>Trip total 1.250.000₫</div>
+      <div class="sh"><span>Your transfers</span><span class="chip">Show all</span></div>
+      <div class="bx">
+        <div class="rw"><span style="display:flex;align-items:center"><span class="ck"></span><span class="av">A</span>An → You</span><span class="t">312.500₫</span></div>
+        <div class="rw"><span style="display:flex;align-items:center"><span class="sp"></span><span class="av">B</span>Bình → You</span><span class="t">312.500₫</span></div>
+      </div>
+      <div class="sh"><span>Expenses</span></div>
+      <div class="bx"><div class="rw"><span><span class="t">Homestay Bloom</span><br>You paid · split 4 ways</span><span class="t">800.000₫</span></div><div class="rw"><span><span class="t">Thuê xe máy 2 ngày</span><br>You paid · split 4 ways</span><span class="t">450.000₫</span></div></div>
+      <div class="bar"><div class="pb">+ Add expense</div></div>
+    </div>
+    <p class="cap">Phone · An is a guest (tick), Bình is a member (no tick)</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Đà Lạt tháng 10</span><span>⊕ Invite &nbsp;⚙</span></div>
+      <div class="bx pad" style="border-color:var(--accent)"><span class="t">Invite your group</span><br>Post this link in your group chat. Friends pick their name, no account needed.
+        <div class="sb" style="margin:6px 0;text-align:left;color:var(--text-3)">…/j/mv_UBQIFcHW1…</div>
+        <div style="display:flex;gap:4px"><span class="pb" style="flex:1;margin:0">Share</span><span class="sb" style="flex:1;margin:0">Copy</span></div></div>
+      <div class="sh"><span>Expenses</span></div>
+      <div class="bx pad" style="text-align:center;padding:14px 8px">🧾<br><span class="t">Add the first expense</span><br>Homestay, food, fuel: anything the group shares.<br><span class="sb" style="display:inline-block;margin-top:6px">+ Add expense</span></div>
+    </div>
+    <p class="cap">Phone · brand-new trip (no balance card yet)</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="dim"><div class="hd"><span>‹ Đà Lạt tháng 10</span><span>⊕ Invite</span></div><div class="bx pad">You're owed 937.500₫</div><div class="bx pad">Your transfers</div></div>
+      <div class="sheet"><div class="t" style="margin-bottom:6px">Invite</div>
+        <span class="t">Group link</span><br>Friends pick their name and can add expenses.
+        <div style="display:flex;gap:4px;margin:4px 0 8px"><span class="pb" style="flex:1;margin:0">Share</span><span class="sb" style="flex:1;margin:0">Copy</span></div>
+        <span class="t">View-only link</span><br>Can look, can't change anything.
+        <div style="display:flex;gap:4px;margin:4px 0 6px"><span class="sb" style="flex:1;margin:0">Share</span><span class="sb" style="flex:1;margin:0">Copy</span></div>
+        <span class="m">Make a new link</span></div>
+    </div>
+    <p class="cap">Invite sheet (header button)</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Expense</span><span></span></div>
+      <span class="t" style="font-size:13px">Homestay Bloom</span><span class="ok" style="float:right">Approved</span>
+      <div style="font-size:18px;font-weight:600;color:var(--text);margin:2px 0 6px">800.000₫</div>
+      <div class="bx"><div class="rw"><span>Date</span><span class="t">14 Oct 2026</span></div><div class="rw"><span>Paid by</span><span class="t">You</span></div><div class="rw"><span>Added by</span><span class="t">You</span></div><div class="rw"><span>Split</span><span class="t">Equally, 4 people</span></div></div>
+      <div class="bx"><div class="rw sel"><span>Minh (you)</span><span class="t">200.000₫</span></div><div class="rw"><span>An</span><span>200.000₫</span></div><div class="rw"><span>Bình</span><span>200.000₫</span></div><div class="rw"><span>Chi</span><span>200.000₫</span></div></div>
+      <div class="bar"><div class="sb">Edit</div><div class="db">Disable</div></div>
+    </div>
+    <p class="cap">Phone · tap a row: details, full screen.<br>Edit only for whoever added it.</p>
+  </div>
+</div>
+
+<h2>2. Wide screen, layout A (1280px)</h2>
+<p class="lead">List on the left. The right panel shows the balance and Your transfers, and turns into the details of the row you click. Hovering a row shows Edit and Disable after the amount.</p>
+<div class="g">
+  <div class="wide" style="flex:1;min-width:min(560px,100%)">
+    <div class="hd" style="font-size:12px"><span>‹ Đà Lạt tháng 10</span><span>⊕ Invite &nbsp;⚙</span></div>
+    <div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px">
+      <div>
+        <div class="q"><span>1 of 7 waiting ‹ ›</span> · <span class="t">Bánh tráng nướng</span> <span class="s">Chi added · 180.000₫</span> <span class="mini p">Approve</span> <span class="mini">Reject</span></div>
+        <div class="sh"><span>Expenses</span><span class="pb" style="margin:0;padding:2px 10px">+ Add expense</span></div>
+        <div class="bx">
+          <div class="rw sel"><span><span class="t">Homestay Bloom</span><br>You paid · split 4 ways</span><span><span class="t">800.000₫</span> &nbsp;<span class="ic">✎</span> <span class="ic">⊘</span></span></div>
+          <div class="rw"><span><span class="t">Thuê xe máy 2 ngày</span><br>You paid · split 4 ways</span><span class="t">450.000₫</span></div>
+          <div class="rw"><span><span class="t">Bánh tráng nướng</span><br>Chi paid · split 4 ways</span><span><span class="t">180.000₫</span> <span class="pill w">Waiting</span></span></div>
+        </div>
+        <div class="sh"><span>Payments</span></div>
+        <div class="bx"><div class="rw"><span>Chi → You</span><span>177.500₫ · <span class="ok">Paid ✓</span></span></div></div>
+      </div>
+      <div class="dt">
+        <div style="display:flex;justify-content:space-between"><span class="t">Homestay Bloom</span><span>×</span></div>
+        <div style="font-size:17px;font-weight:600;color:var(--text)">800.000₫</div>
+        14 Oct · You paid · added by you · split equally
+        <div class="rw sel" style="margin-top:4px"><span>Minh (you)</span><span>200.000₫</span></div><div class="rw"><span>An</span><span>200.000₫</span></div><div class="rw"><span>Bình</span><span>200.000₫</span></div><div class="rw"><span>Chi</span><span>200.000₫</span></div>
+        <div style="margin-top:6px"><span class="mini">Edit</span> <span class="mini" style="color:var(--danger);border-color:var(--danger)">Disable</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="wide" style="width:280px">
+    <div class="t" style="margin-bottom:6px">Right panel, nothing selected</div>
+    <div class="bx pad">You're owed<br><span class="ok" style="font-size:17px;font-weight:600">937.500₫</span><br>Trip total 1.250.000₫ · 312.500₫ received so far</div>
+    <div class="sh"><span>Your transfers</span><span class="chip">Show all</span></div>
+    <div class="bx"><div class="rw"><span style="display:flex;align-items:center"><span class="ck"></span><span class="av">A</span>An → You</span><span class="t">312.500₫</span></div><div class="rw"><span style="display:flex;align-items:center"><span class="sp"></span><span class="av">B</span>Bình → You</span><span class="t">312.500₫</span></div></div>
+  </div>
+</div>
+
+<h2>3. Your transfers</h2>
+<p class="lead">Mine by default; the chip switches to everyone's rows and renames the section. Tap a row with you in it to open its QR in place. Ticks appear where a guest pays you and on your own debts.</p>
+<div class="g">
+  <div><div class="ph" style="min-height:250px">
+    <div class="sh"><span>Your transfers</span><span class="chip">Show all</span></div>
+    <div class="bx"><div class="rw"><span style="display:flex;align-items:center"><span class="ck"></span><span class="av">A</span>An → You</span><span class="t">312.500₫</span></div><div class="rw"><span style="display:flex;align-items:center"><span class="sp"></span><span class="av">B</span>Bình → You</span><span class="t">312.500₫</span></div><div class="rw"><span style="display:flex;align-items:center"><span class="ck"></span><span class="av">Y</span>You → Minh</span><span class="t no">65.000₫</span></div></div>
+    After ticking: "An paid 312.500₫ · Undo" for 5 seconds, then it's recorded.
+  </div><p class="cap">Mine (default)</p></div>
+  <div><div class="ph" style="min-height:250px">
+    <div class="sh"><span>Who pays whom</span><span class="chip">Show mine</span></div>
+    <div class="bx"><div class="rw"><span><span class="av">A</span>An → You</span><span class="t">312.500₫</span></div><div class="rw"><span><span class="av">B</span>Bình → You</span><span class="t">312.500₫</span></div><div class="rw"><span><span class="av">Y</span>You → Minh</span><span class="t">65.000₫</span></div><div class="rw"><span><span class="av">C</span>Chi → Dũng</span><span>40.000₫</span></div><div class="rw"><span><span class="av">Đ</span>Đức → An</span><span>25.000₫</span></div></div>
+    Other people's rows are read-only.
+  </div><p class="cap">Show all</p></div>
+  <div><div class="ph" style="min-height:250px">
+    <div class="sh"><span>Your transfers</span><span class="chip">Show all</span></div>
+    <div class="bx"><div class="rw"><span style="display:flex;align-items:center"><span class="ck"></span><span class="av">A</span>An → You</span><span class="t">312.500₫ ⌃</span></div>
+      <div style="text-align:center;padding-bottom:6px">Your QR for An<div class="qr"></div><span class="t" style="font-size:13px">312.500₫</span><br>Techcombank · NGUYEN VAN MINH<br>Note <span class="note">DALAT X7KQ</span>
+      <div style="display:flex;gap:4px;margin-top:6px"><span class="pb" style="flex:1;margin:0">Share</span><span class="sb" style="flex:1;margin:0">Save</span></div></div></div>
+  </div><p class="cap">Someone owes you: your QR + Share</p></div>
+  <div><div class="ph" style="min-height:250px">
+    <div class="sh"><span>Your transfers</span><span class="chip">Show all</span></div>
+    <div class="bx"><div class="rw"><span style="display:flex;align-items:center"><span class="ck"></span><span class="av">Y</span>You → Minh</span><span class="t">65.000₫ ⌃</span></div>
+      <div style="text-align:center;padding-bottom:6px">Minh's QR<div class="qr"></div><span class="t" style="font-size:13px">65.000₫</span><br>Techcombank · NGUYEN VAN MINH<br>Note <span class="note">DALAT YFST</span>
+      <div style="display:flex;gap:4px;margin-top:6px"><span class="pb" style="flex:1;margin:0">Open bank app</span><span class="sb" style="flex:1;margin:0">Save</span></div><span class="m">Open bank app: phones only</span></div></div>
+  </div><p class="cap">You owe: their QR + bank app</p></div>
+</div>
+
+<h2>4. Row shortcuts</h2>
+<div class="g">
+  <div><div class="ph" style="min-height:200px">
+    <div class="sh"><span>Expenses</span></div>
+    <div class="bx" style="padding:0;overflow:hidden;display:flex"><span style="flex:1;padding:6px 8px;white-space:nowrap;overflow:hidden" class="t">Homestay Bl…</span><span style="background:var(--muted);padding:6px;border-left:1px solid var(--border);color:var(--text)">Edit</span><span style="background:var(--danger-soft);color:var(--danger);padding:6px">Disable</span></div>
+    <div class="bx pad"><span class="t">Thuê xe máy 2 ngày</span><span style="float:right" class="t">450.000₫</span></div>
+    <div class="m" style="margin-top:4px">Swipe left or tap a row for options</div>
+  </div><p class="cap">Phone · swipe left on an expense</p></div>
+  <div><div class="ph" style="min-height:200px">
+    <div class="sh"><span>Your transfers</span></div>
+    <div class="bx" style="padding:0;overflow:hidden;display:flex"><span style="flex:1;padding:6px 8px;white-space:nowrap;overflow:hidden"><span class="av">A</span>An → You 312…</span><span style="background:var(--success-soft);color:var(--success);padding:6px 8px;font-weight:600">✓ Received</span></div>
+    <div class="m">Swipe reveals, tap confirms. Nothing is recorded by the swipe alone.</div>
+  </div><p class="cap">Phone · swipe left to confirm</p></div>
+  <div><div class="wide" style="width:300px">
+    <div class="bx"><div class="rw" style="background:var(--muted)"><span class="t">Homestay Bloom</span><span><span class="t">800.000₫</span> <span class="ic">✎</span> <span class="ic">⊘</span></span></div><div class="rw"><span class="t">Thuê xe máy 2 ngày</span><span class="t">450.000₫</span></div></div>
+    Mouse over the row or focus it with the keyboard: Edit and Disable appear after the amount, each with a tooltip.
+  </div><p class="capw">Web · hover or keyboard focus</p></div>
+</div>
+
+<h2>5. Guest and view-only</h2>
+<div class="g">
+  <div><div class="ph">
+    <div class="hd"><span>Đà Lạt tháng 10</span><span></span></div>
+    <div style="background:var(--muted);border-radius:6px;padding:3px 6px;margin-bottom:6px">Viewing as Chi · <span style="color:var(--accent)">Not Chi? Switch</span></div>
+    <div class="bx pad">You owe Minh<br><span class="no" style="font-size:17px;font-weight:600">312.500₫</span><div class="pb" style="margin:5px 0">Pay with VietQR</div>If your expenses are approved, you'll owe 132.500₫</div>
+    <div class="sh"><span>How we got your share</span></div>
+    <div class="bx"><div class="rw"><span>Homestay Bloom ÷ 4</span><span>200.000₫</span></div><div class="rw"><span>Thuê xe máy ÷ 4</span><span>112.500₫</span></div></div>
+    <div class="sh"><span>Expenses</span></div>
+    <div class="bx"><div class="rw"><span class="t">Bánh tráng nướng</span><span>180.000₫ <span class="pill w">Waiting</span></span></div><div class="rw"><span class="t">Homestay Bloom</span><span>800.000₫</span></div></div>
+    <div style="text-align:center;margin:4px 0"><span class="lang">文A</span> · Sign in with Google to become a member</div>
+    <div class="bar"><div class="sb">+ Add expense</div></div>
+  </div><p class="cap">Guest · one teal button (Pay); Add is outline</p></div>
+  <div><div class="ph" style="min-height:300px">
+    <div class="hd"><span>Đà Lạt tháng 10</span><span class="pill">View only</span></div>
+    <div class="sh"><span>Balances</span></div>
+    <div class="bx"><div class="rw"><span><span class="av">M</span>Minh</span><span class="ok">+892.500₫</span></div><div class="rw"><span><span class="av">A</span>An</span><span class="no">−357.500₫</span></div><div class="rw"><span><span class="av">C</span>Chi</span><span class="no">−177.500₫</span></div></div>
+    <div class="sh"><span>Who pays whom</span></div>
+    <div class="bx"><div class="rw"><span>An → Minh</span><span>357.500₫</span></div></div>
+    <div class="sh"><span>Expenses</span></div>
+    <div class="bx"><div class="rw"><span class="t">Homestay Bloom</span><span>800.000₫</span></div></div>
+  </div><p class="cap">View only · no actions, ticks or QR codes</p></div>
+</div>
+
+<h2>6. Pay screen</h2>
+<div class="g">
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Pay Minh</span><span></span></div>
+    <div style="text-align:center"><span style="font-size:18px;font-weight:600;color:var(--text)">65.000₫</span><br>to NGUYEN VAN MINH · Techcombank</div>
+    <div class="bx pad" style="margin-top:6px"><div class="qr"></div><div class="rw"><span>Account</span><span class="t">1903 •••• 5678 ⧉</span></div><div class="rw"><span>Note</span><span><span class="note">DALAT YFST</span> ⧉</span></div></div>
+    Keep this note unchanged so the payment can be matched.
+    <div class="pb" style="margin-top:6px">Open bank app</div><div class="sb">Save QR</div>
+    <div class="bar"><div class="sb">I've paid</div><div style="text-align:center">Tap after the money has left your account.</div></div>
+  </div><p class="cap">Before paying</p></div>
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Pay Minh</span><span></span></div>
+    <div class="bx pad" style="text-align:center;padding:16px 8px;margin-top:20px">◷<br><span class="t" style="font-size:13px">Payment sent · 65.000₫</span><br>Waiting for Minh to confirm it arrived. This page updates by itself.</div>
+    <div class="bar"><div class="pb">Back to trip</div><div style="text-align:center">Paid by mistake? Ask Minh to tap "Didn't arrive".</div></div>
+  </div><p class="cap">Guest paid a member · no QR</p></div>
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Pay Minh</span><span></span></div>
+    <div class="bx pad" style="text-align:center;padding:16px 8px;margin-top:20px"><span class="ok">✓</span><br><span class="t" style="font-size:13px">Paid · 65.000₫ to Minh</span><br>It counts straight away.</div>
+    <div class="bx pad">Paid part? "Still owed 20.000₫" · <span style="color:var(--accent)">Show QR for the rest</span></div>
+    <div class="bar"><div class="pb">Back to trip</div></div>
+  </div><p class="cap">Member paid, or confirmed</p></div>
+  <div><div class="ph" style="min-height:300px">
+    <div class="hd"><span>‹</span><span class="t">Pay Minh</span><span></span></div>
+    <div style="text-align:center"><span style="font-size:18px;font-weight:600;color:var(--text)">65.000₫</span></div>
+    <div class="bx pad" style="text-align:center;padding:16px 8px;margin-top:8px">🏦<br><span class="t">Minh hasn't added bank details yet</span><br>Ask them to add them, then come back.</div>
+    <div class="pb">Remind Minh</div>
+  </div><p class="cap">No bank details yet</p></div>
+</div>
+<div class="wide" style="max-width:560px;margin-top:12px">
+  <div class="hd" style="font-size:12px"><span>‹ Đà Lạt tháng 10</span><span class="t">Pay Minh</span><span></span></div>
+  <div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:start"><div class="qr" style="width:104px;height:104px;margin:0"></div>
+  <div><span style="font-size:18px;font-weight:600;color:var(--text)">65.000₫</span><br>to NGUYEN VAN MINH · Techcombank<div class="rw"><span>Account</span><span class="t">1903 •••• 5678 ⧉</span></div><div class="rw"><span>Note</span><span><span class="note">DALAT YFST</span> ⧉</span></div>
+  <div style="display:flex;gap:6px;margin-top:6px"><span class="sb" style="flex:1">Save QR</span><span class="sb" style="flex:1">I've paid</span></div>Scan the QR with your phone's banking app.</div></div>
+</div>
+<p class="capw">Web pay screen · no "Open bank app"</p>
+
+<h2>7. Getting in</h2>
+<div class="g">
+  <div><div class="ph">
+    <div class="hd"><span class="t">Finance Sheet Lover</span><span class="lang" title="Tiếng Việt">文A</span></div>
+    <div style="text-align:center;margin:18px 0 10px"><div class="t" style="font-size:20px;line-height:1.25">Split trip costs.<br>Settle up with VietQR.</div><div style="margin-top:6px">Friends join from one link in the group chat, no account needed.</div></div>
+    <div class="pb">Sign in with Google</div>
+    <div class="sh"><span>How it works</span></div>
+    <div class="bx"><div class="rw"><span><span class="av">1</span><span class="t">Create a trip</span></span></div><div class="rw"><span><span class="av">2</span><span class="t">Share one link</span></span></div><div class="rw"><span><span class="av">3</span><span class="t">Settle up with VietQR</span></span></div></div>
+    <div class="bar" style="text-align:center;border:0">Privacy notice</div>
+  </div><p class="cap">Landing · centred headline, language icon</p></div>
+  <div><div class="ph">
+    <div class="hd"><span class="t">Your trips</span><span class="av" style="width:22px;height:22px">M</span></div>
+    <div class="pb">+ New trip</div>
+    <div class="bx"><div class="rw"><span><span class="t">Đà Lạt tháng 10</span><br><span class="ok">You're owed 892.500₫</span></span>›</div><div class="rw"><span><span class="t">Phú Quốc</span><br><span class="no">You owe 120.000₫</span></span>›</div><div class="rw"><span><span class="t">Hội An</span><br>Settled · archived</span>›</div></div>
+    <div class="sheet"><span class="t">Minh</span><br>minh@example.com
+      <div class="bx" style="margin-top:6px"><div class="rw"><span>Your bank details</span>›</div><div class="rw"><span>Language</span><span class="lang">文A</span></div><div class="rw"><span>Privacy notice</span>›</div></div>
+      <div class="sb">Sign out</div></div>
+  </div><p class="cap">Your trips + account menu</p></div>
+  <div><div class="ph">
+    <div class="hd"><span class="t">Who are you?</span><span class="lang">文A</span></div>
+    <div class="in inf"><span>⌕ thao|</span>×</div>
+    <div class="sh"><span>2 of 14 people</span></div>
+    <div class="bx"><div class="rw"><span><span class="av">T</span><span class="t"><mark>Thảo</mark></span></span></div><div class="rw"><span><span class="av">T</span><span class="t"><mark>Thảo</mark> Vy</span></span></div></div>
+    <div style="text-align:center;color:var(--accent)">Not on the list? Add "thao"</div>
+    <div class="m" style="margin-top:8px">Search shows from 11 people. Members' names read "Has an account · sign in with Google".</div>
+    <div class="bar"><div class="pb" style="opacity:.5">Continue</div></div>
+  </div><p class="cap">Who are you · search for big groups</p></div>
+</div>
+
+<h2>8. Forms</h2>
+<div class="g">
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">New trip</span><span></span></div>
+    <span class="lb">Trip name</span><div class="in" style="color:var(--text)">Đà Lạt tháng 10</div>
+    <span class="lb">Who else is coming?</span>
+    <div class="in" style="color:var(--text)"><span>👤✓ Chi Trần</span>×</div>
+    <div class="in" style="color:var(--text)">Bình ×</div>
+    <div class="in inf">Ch|<span class="mono">Enter ↵</span></div>
+    <div class="dd" style="top:168px"><div class="sh" style="margin:4px 0 2px"><span>From your recent trips</span></div>
+      <div class="rw"><span style="display:flex;align-items:center"><span class="av">C</span><span><mark>Ch</mark>âu<br><span class="m">Hội An</span></span></span>👤</div></div>
+    <div style="margin-top:56px">Enter adds a line. Pasting "An, Bình" fills two. A picked suggestion (👤✓) joins as a member with their account.</div>
+    <div class="bar"><div class="pb">Create trip</div></div>
+  </div><p class="cap">New trip · Enter + suggestions</p></div>
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Add expense</span><span></span></div>
+    <span class="lb">What for</span><div class="in">Bánh tráng nướng, chợ đêm</div>
+    <span class="lb">Amount</span><div class="in" style="color:var(--text)">180.000</div>
+    <div style="display:flex;gap:6px"><span style="flex:1"><span class="lb">Date</span><div class="in" style="color:var(--text)">14/10/2026</div></span><span style="flex:1"><span class="lb">Paid by</span><div class="in" style="color:var(--text)">Minh (me)</div></span></div>
+    <span class="lb">Split</span>
+    <div class="seg"><span class="on">=</span><span>1.23</span><span>%</span><span>◔</span><span>+/−</span></div>
+    <div style="margin-bottom:4px"><span class="t">Split equally</span> · 4 people · 45.000₫ each</div>
+    <div class="bx"><div class="rw"><span>☑ Minh (me)</span><span>45.000₫</span></div><div class="rw"><span>☑ An</span><span>45.000₫</span></div><div class="rw"><span>☑ Bình</span><span>45.000₫</span></div></div>
+    <div class="bar"><div class="pb">Add expense</div></div>
+  </div><p class="cap">Add expense · split icons, live shares</p></div>
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Your bank details</span><span></span></div>
+    <div style="margin-bottom:8px">Saved to your profile and used in all your trips.</div>
+    <span class="lb">Bank</span><div class="in">Choose your bank ⌄</div>
+    <span class="lb">Account number</span><div class="in">&nbsp;</div>
+    <span class="lb">Account holder name</span><br>As your bank shows it, without accents.<div class="in">&nbsp;</div>
+    <div style="display:flex;gap:6px;align-items:center"><span style="width:14px;height:14px;border:1.5px solid var(--text-3);border-radius:3px"></span><span>I agree to the <span style="color:var(--accent);text-decoration:underline">privacy notice</span></span></div>
+    <div class="bar"><div class="pb">Save bank details</div></div>
+  </div><p class="cap">Bank details · consent on one line</p></div>
+</div>
+
+<h2>9. Trip admin</h2>
+<div class="g">
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Trip settings</span><span></span></div>
+    <div class="bx"><div class="rw"><span>People</span>›</div><div class="rw"><span>Activity</span>›</div><div class="rw"><span>Your bank details</span>›</div><div class="rw"><span>Language</span><span class="lang">文A</span></div></div>
+    <div class="bx pad"><div style="display:flex;justify-content:space-between"><span class="t">Fewest transfers</span><span class="sw"></span></div>Combines debts so people make as few bank transfers as possible. What each person owes stays the same.</div>
+    <div class="bar" style="border:0"><div class="sh"><span>Danger zone</span></div><div class="db">Archive trip</div><div style="margin-top:4px">Nobody can change an archived trip. Organiser only.</div></div>
+  </div><p class="cap">Settings · Fewest lives here, on by default</p></div>
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">People</span><span></span></div>
+    <div class="bx"><div class="rw"><span><span class="av">M</span><span class="t">Minh</span></span><span class="pill">Organiser</span></div><div class="rw"><span><span class="av">A</span><span class="t">An</span></span><span class="pill">Guest</span></div>
+      <div class="rw" style="padding:0;overflow:hidden"><span style="padding:6px 0;flex:1"><span class="av">B</span><span class="t">Bình</span></span><span style="background:var(--muted);padding:6px;color:var(--text)">Merge</span><span style="background:var(--danger-soft);color:var(--danger);padding:6px">Remove</span></div>
+      <div class="rw"><span><span class="av">C</span><span class="t">Chi</span></span><span class="pill">Guest</span></div></div>
+    Swipe (phone) or hover (web) for Merge and Remove; a tap opens the same two. The organiser and you can't be removed.
+  </div><p class="cap">People · Bình swiped open</p></div>
+  <div><div class="ph">
+    <div class="hd"><span>‹</span><span class="t">Activity</span><span></span></div>
+    <div class="sh"><span>Today</span></div>
+    <div class="bx"><div class="rw"><span><span class="t">Chi paid Minh 177.500₫</span><br>21:40 · device <span class="mono">f38b7e</span></span></div><div class="rw"><span><span class="t">Minh approved Bánh tráng nướng</span><br>21:12 · device <span class="mono">73e756</span></span></div><div class="rw"><span><span class="t">Chi added Bánh tráng nướng · 180.000₫</span><br>20:58 · device <span class="mono">f38b7e</span></span></div></div>
+    <div class="sh"><span>Yesterday</span></div>
+    <div class="bx"><div class="rw"><span><span class="t">Minh created the trip</span><br>18:05 · device <span class="mono">73e756</span></span></div></div>
+  </div><p class="cap">Activity · what changed, by day</p></div>
+</div>
+</body>
+</html>

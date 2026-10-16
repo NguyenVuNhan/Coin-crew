@@ -1,10 +1,18 @@
 import { Link } from 'react-router';
-import type { ExpenseView, TripView } from '@fsl/core';
+import { formatVnd, type ExpenseView, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { nameOf, splitText } from '../lib/tripText';
 import { Amount } from './Amount';
 import { Pill } from './Pill';
 import './ExpenseRow.css';
+
+export function rowAmount(expense: ExpenseView, view: TripView): number {
+  const me = view.me.participantId;
+  if (me === null) {
+    return expense.amount;
+  }
+  return expense.shares.find((s) => s.participantId === me)?.amount ?? 0;
+}
 
 export interface ExpenseRowProps {
   expense: ExpenseView;
@@ -21,12 +29,20 @@ export function ExpenseRow({
 }: ExpenseRowProps) {
   const t = useT();
 
-  const isMe =
-    view.me.participantId !== null &&
-    expense.payerId === view.me.participantId;
-  const payerText = isMe
-    ? t('expense.youPaid')
-    : t('expense.personPaid', { name: nameOf(view, expense.payerId) });
+  const me = view.me.participantId;
+  const amount = rowAmount(expense, view);
+  const isMe = me !== null && expense.payerId === me;
+  const payerText =
+    me !== null
+      ? isMe
+        ? t('expense.youPaidTotal', { amount: formatVnd(expense.amount) })
+        : t('expense.personPaidTotal', {
+            name: nameOf(view, expense.payerId),
+            amount: formatVnd(expense.amount),
+          })
+      : isMe
+        ? t('expense.youPaid')
+        : t('expense.personPaid', { name: nameOf(view, expense.payerId) });
 
   const subline = `${payerText} · ${splitText(expense, t)}`;
 
@@ -67,9 +83,14 @@ export function ExpenseRow({
 
       <div className="fsl-expense-row__right">
         <Amount
-          value={expense.amount}
+          value={amount}
           style={isDisabled ? { textDecoration: 'line-through' } : undefined}
-          className={isDisabled ? 'fsl-expense-row__amount--disabled' : ''}
+          className={[
+            isDisabled ? 'fsl-expense-row__amount--disabled' : '',
+            amount === 0 ? 'fsl-expense-row__amount--none' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
         />
         {isPending && (
           <div className="fsl-expense-row__status">

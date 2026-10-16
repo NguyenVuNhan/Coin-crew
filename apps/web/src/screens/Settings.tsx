@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useT } from '../i18n';
@@ -8,6 +8,9 @@ import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
+import { Icon } from '../components/icons';
+import { LanguageButton } from '../components/LanguageButton';
+import { FewestSwitch } from '../components/FewestSwitch';
 import './Settings.css';
 
 export function Settings() {
@@ -15,6 +18,7 @@ export function Settings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const t = useT();
+  const headingId = useId();
 
   const { view, error, isLoading, refetch } = useTripView(tripId ?? '', 0);
   const [archiving, setArchiving] = useState(false);
@@ -24,7 +28,7 @@ export function Settings() {
     return (
       <Screen title={t('settings.title')} back={`/t/${tripId}`}>
         <div className="fsl-settings">
-          <SkeletonList rows={2} />
+          <SkeletonList rows={4} />
         </div>
       </Screen>
     );
@@ -38,9 +42,7 @@ export function Settings() {
     );
   }
 
-  if (!view) {
-    return null;
-  }
+  if (!view) return null;
 
   const handleArchive = async () => {
     if (!window.confirm(t('settings.archiveConfirm'))) return;
@@ -63,67 +65,58 @@ export function Settings() {
           <InlineError error={archiveError} onRetry={handleArchive} />
         )}
 
-        <div className="fsl-card">
-          <Link
-            to={`/t/${tripId}/people`}
-            className="fsl-settings__row"
-          >
-            <span>{t('settings.people')}</span>
-            <svg
-              className="fsl-settings__chevron"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </Link>
-          <Link
-            to={`/t/${tripId}/activity`}
-            className="fsl-settings__row"
-          >
-            <span>{t('settings.activity')}</span>
-            <svg
-              className="fsl-settings__chevron"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </Link>
-        </div>
+        <ul className="fsl-settings__list">
+          <li>
+            <Link to={`/t/${tripId}/people`} className="fsl-settings__row">
+              <span className="fsl-settings__label">{t('settings.people')}</span>
+              <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
+            </Link>
+          </li>
+          <li>
+            <Link to={`/t/${tripId}/activity`} className="fsl-settings__row">
+              <span className="fsl-settings__label">{t('settings.activity')}</span>
+              <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
+            </Link>
+          </li>
+          <li>
+            <Link to={`/t/${tripId}/bank`} className="fsl-settings__row">
+              <span className="fsl-settings__label">{t('settings.bank')}</span>
+              <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
+            </Link>
+          </li>
+          <li>
+            <div className="fsl-settings__row fsl-settings__row--static">
+              <span className="fsl-settings__label">{t('settings.language')}</span>
+              <LanguageButton />
+            </div>
+          </li>
+        </ul>
+
+        {view.me.kind === 'member' && !view.trip.archived && (
+          <FewestSwitch view={view} />
+        )}
 
         {view.trip.archived ? (
           <div className="fsl-notice fsl-notice--muted">
             {t('settings.archived')}
           </div>
-        ) : (
-          view.me.isOrganiser && (
-            <div className="fsl-settings__danger-zone">
-              <Button
-                variant="danger"
-                block
-                loading={archiving}
-                onClick={handleArchive}
-              >
-                {t('settings.archive')}
-              </Button>
-            </div>
-          )
-        )}
+        ) : view.me.isOrganiser ? (
+          <section className="fsl-settings__danger" aria-labelledby={headingId}>
+            <h2 className="fsl-settings__heading" id={headingId}>
+              {t('settings.dangerZone')}
+            </h2>
+            <Button
+              variant="secondary"
+              block
+              loading={archiving}
+              className="fsl-settings__archive"
+              onClick={handleArchive}
+            >
+              {t('settings.archive')}
+            </Button>
+            <p className="fsl-settings__hint">{t('settings.archiveHint')}</p>
+          </section>
+        ) : null}
       </div>
     </Screen>
   );

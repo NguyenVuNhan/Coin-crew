@@ -6,6 +6,11 @@ export function nameOf(view: TripView, id: string): string {
   return person?.name ?? '?';
 }
 
+/** A bank account number as the pay screen shows it: first 4 digits, " •••• ", last 4. */
+export function maskAccount(accountNumber: string): string {
+  return `${accountNumber.slice(0, 4)} •••• ${accountNumber.slice(-4)}`;
+}
+
 export function splitText(
   e: ExpenseView,
   t: (key: MessageKey, vars?: Record<string, string | number>) => string,

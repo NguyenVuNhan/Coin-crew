@@ -5,13 +5,14 @@ import type { TripListItem } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
-import { LangSwitch } from '../components/LangSwitch';
 import { ConsentSheet } from '../components/ConsentSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
 import { InlineError } from '../components/InlineError';
 import { Amount } from '../components/Amount';
-import { Pill } from '../components/Pill';
+import { AccountMenu } from '../components/AccountMenu';
+import { Button } from '../components/Button';
+import { Icon } from '../components/icons';
 import './MyTrips.css';
 
 interface MeResponse {
@@ -46,18 +47,20 @@ export function MyTrips() {
     }
   }, [meQuery.isSuccess, user, navigate]);
 
+  const isEmpty = tripsQuery.isSuccess && tripsQuery.data.length === 0;
+
   return (
-    <Screen title={t('trips.title')} right={<LangSwitch />}>
+    <Screen
+      title={t('trips.title')}
+      right={user ? <AccountMenu user={user} /> : undefined}
+    >
       <ConsentSheet />
       <div className="fsl-my-trips">
-        <div className="fsl-my-trips__header-action">
-          <Link
-            to="/trips/new"
-            className="fsl-button fsl-button--primary fsl-button--block"
-          >
+        {!isEmpty && (
+          <Button variant="primary" block href="/trips/new">
             {t('trips.new')}
-          </Link>
-        </div>
+          </Button>
+        )}
 
         {meQuery.isLoading || tripsQuery.isLoading ? (
           <SkeletonList rows={3} />
@@ -66,18 +69,29 @@ export function MyTrips() {
             error={tripsQuery.error}
             onRetry={() => tripsQuery.refetch()}
           />
-        ) : !tripsQuery.data || tripsQuery.data.length === 0 ? (
-          <EmptyState title={t('trips.empty')} action={null} />
+        ) : isEmpty ? (
+          <EmptyState
+            icon="suitcase"
+            title={t('trips.emptyTitle')}
+            action={
+              <>
+                <p className="fsl-my-trips__empty-body">{t('trips.emptyBody')}</p>
+                <Button variant="primary" block href="/trips/new">
+                  {t('trips.new')}
+                </Button>
+              </>
+            }
+          />
         ) : (
           <div className="fsl-my-trips__list">
-            {tripsQuery.data.map((trip) => {
-              const balanceTone =
+            {tripsQuery.data?.map((trip) => {
+              const tone =
                 trip.myBalance > 0
                   ? 'success'
                   : trip.myBalance < 0
                     ? 'danger'
                     : 'neutral';
-              const balanceLabel =
+              const label =
                 trip.myBalance > 0
                   ? t('trips.youreOwed')
                   : trip.myBalance < 0
@@ -92,19 +106,29 @@ export function MyTrips() {
                 >
                   <div className="fsl-my-trips__row-info">
                     <span className="fsl-my-trips__row-name">{trip.name}</span>
-                    <div className="fsl-my-trips__row-sub">
-                      <span>{balanceLabel}</span>
+                    <span className="fsl-my-trips__row-sub">
+                      <span className={`fsl-my-trips__line fsl-my-trips__line--${tone}`}>
+                        {label}
+                        {trip.myBalance !== 0 && (
+                          <>
+                            {' '}
+                            <Amount
+                              value={Math.abs(trip.myBalance)}
+                              tone={tone}
+                            />
+                          </>
+                        )}
+                      </span>
                       {trip.archived && (
-                        <Pill tone="neutral">{t('trips.archived')}</Pill>
+                        <span className="fsl-my-trips__archived"> · {t('trips.archived')}</span>
                       )}
-                    </div>
+                    </span>
                   </div>
-                  <div className="fsl-my-trips__row-amount">
-                    <Amount
-                      value={Math.abs(trip.myBalance)}
-                      tone={balanceTone}
-                    />
-                  </div>
+                  <Icon
+                    name="chevronRight"
+                    size={20}
+                    className="fsl-my-trips__chevron"
+                  />
                 </Link>
               );
             })}

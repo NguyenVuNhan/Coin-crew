@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { ActivityItem, TripListItem, TripView } from '@fsl/core';
-import { call, json, byKey, seedTrip, seedExpenses, seedMinhBank, memberSid, linkMember, guestHeaders, T, U, PID } from './helpers';
+import { call, json, byKey, seedTrip, seedUser, seedExpenses, seedMinhBank, memberSid, linkMember, guestHeaders, T, U, PID } from './helpers';
 
 const view = (headers: Record<string, string>, tripId: string = T.tripId) => json<TripView>(call(`/api/trips/${tripId}`, { headers }));
 const minh = async () => ({ Cookie: `sid=${await memberSid(U.minh, 'Minh')}` });
@@ -18,6 +18,7 @@ describe('POST /api/trips', () => {
     const v = await view(headers, tripId);
     expect(v.people.map((p) => p.name)).toEqual(['Minh', 'An', 'Bình', 'Chi']);
     expect(v.people[0]).toMatchObject({ isMember: true, bank: 'approved' });
+    expect(v.people.map((p) => p.isOrganiser)).toEqual([true, false, false, false]);
     expect(v.me).toMatchObject({ kind: 'member', isOrganiser: true });
     expect(v.links?.group).toBeTruthy();
     expect(v.links?.view).toBeTruthy();
@@ -36,6 +37,62 @@ describe('POST /api/trips', () => {
   it('needs a session', async () => {
     const res = await call('/api/trips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'X', myName: 'N', people: ['A'] }) });
     expect(res.status).toBe(401);
+  });
+
+  describe('with accounts from recent trips', () => {
+    // An shares the mockup trip with Minh, so An is one of Minh's recent people.
+    const post = async (people: unknown[]) => {
+      const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+      const res = await call('/api/trips', { method: 'POST', headers, body: JSON.stringify({ name: 'Huế', myName: 'Minh', people }) });
+      return { res, headers };
+    };
+    const tripCount = async () => (await env.DB.prepare('SELECT COUNT(*) AS n FROM trips WHERE name = ?').bind('Huế').first<{ n: number }>())!.n;
+
+    beforeEach(async () => { await seedTrip(); await linkMember(PID.A, U.an, 'An'); });
+
+    it('creates a trip with an account: they are a member straight away and see it in their trips', async () => {
+      const { res, headers } = await post([{ name: 'An', userId: U.an }, 'Bình']);
+      expect(res.status).toBe(201);
+      const { tripId } = await json<{ tripId: string }>(res);
+
+      const v = await view(headers, tripId);
+      expect(v.people.map((p) => p.name)).toEqual(['Minh', 'An', 'Bình']);
+      expect(v.people.map((p) => [p.status, p.isMember])).toEqual([['active', true], ['active', true], ['active', false]]);
+
+      const anHeaders = { Cookie: `sid=${await memberSid(U.an, 'An')}` };
+      const anTrips = await json<TripListItem[]>(call('/api/trips', { headers: anHeaders }));
+      expect(anTrips.map((t) => t.id)).toContain(tripId);
+      expect((await view(anHeaders, tripId)).me).toMatchObject({ kind: 'member', isOrganiser: false });
+
+      const acts = await json<ActivityItem[]>(call(`/api/trips/${tripId}/activity`, { headers }));
+      expect(acts.filter((a) => a.action === 'trip_created')).toHaveLength(1);
+      expect(acts[0]).toMatchObject({ action: 'trip_created', details: { name: 'Huế', addedAccounts: ['An'] } });
+    });
+
+    it('refuses an account that never shared a trip with me', async () => {
+      await seedUser('u-stranger', 'Stranger');
+      const { res } = await post([{ name: 'Stranger', userId: 'u-stranger' }]);
+      expect(res.status).toBe(422);
+      expect((await json<{ error: { code: string } }>(res)).error.code).toBe('VALIDATION');
+      expect(await tripCount()).toBe(0);
+    });
+
+    it('refuses the same account twice', async () => {
+      const { res } = await post([{ name: 'An', userId: U.an }, { name: 'An again', userId: U.an }]);
+      expect(res.status).toBe(422);
+      expect((await json<{ error: { code: string } }>(res)).error.code).toBe('VALIDATION');
+      expect(await tripCount()).toBe(0);
+    });
+
+    it('accepts plain names from older clients', async () => {
+      const { res, headers } = await post(['An', 'Bình']);
+      expect(res.status).toBe(201);
+      const { tripId } = await json<{ tripId: string }>(res);
+      const v = await view(headers, tripId);
+      expect(v.people.map((p) => [p.name, p.isMember])).toEqual([['Minh', true], ['An', false], ['Bình', false]]);
+      const acts = await json<ActivityItem[]>(call(`/api/trips/${tripId}/activity`, { headers }));
+      expect(acts[0]?.details).toMatchObject({ name: 'Huế', addedAccounts: [] });
+    });
   });
 });
 

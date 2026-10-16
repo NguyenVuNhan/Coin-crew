@@ -1,0 +1,269 @@
+.fsl-action-row {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fsl-action-row:last-child {
+  border-bottom: none;
+}
+
+.fsl-action-row__stage {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A swipe must not select the row's text; with a mouse the text stays selectable. */
+@media (pointer: coarse) {
+  .fsl-action-row__stage {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+.fsl-action-row__surface {
+  /* The row's background right now, which the hover tools repeat where they cover the row. */
+  --fsl-action-row-bg: var(--color-surface);
+  display: flex;
+  align-items: center;
+  background-color: var(--fsl-action-row-bg);
+  position: relative;
+  will-change: transform;
+}
+
+.fsl-action-row--selected .fsl-action-row__surface {
+  --fsl-action-row-bg: var(--color-surface-muted);
+}
+
+@media (hover: hover) {
+  .fsl-action-row__surface:hover {
+    --fsl-action-row-bg: var(--color-surface-muted);
+  }
+}
+
+/* An avatar is drawn in the muted colour too: on a highlighted row it would vanish. */
+.fsl-action-row--selected .fsl-avatar {
+  background-color: var(--color-surface);
+}
+
+@media (hover: hover) {
+  .fsl-action-row__surface:hover .fsl-avatar {
+    background-color: var(--color-surface);
+  }
+}
+
+.fsl-action-row__leading {
+  flex-shrink: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  align-items: center;
+}
+
+.fsl-action-row__main {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.fsl-action-row__main:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.fsl-action-row__swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  visibility: hidden;
+  transition: visibility 0s linear var(--motion-base);
+}
+
+.fsl-action-row__swipe-actions[data-revealed='true'] {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.fsl-action-row__swipe-action {
+  width: 80px;
+  min-height: 44px;
+  border: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.fsl-action-row__swipe-action:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.fsl-action-row__swipe-action--default {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.fsl-action-row__swipe-action--danger {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.fsl-action-row__swipe-action--success {
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+/* Mouse and keyboard: while the row is hovered or holds focus, its actions cover the row's right end (the amount or
+   pill), on the row's own background. They lie over the row, not in it, so nothing on the row moves when they
+   appear and rows with different actions still line up. Hidden, they can be neither clicked nor tabbed to; while
+   they fade in they can't be clicked yet, so a click meant for the amount opens the row. Keyboard focus on the row
+   shows them before Tab moves on, so they stay reachable. At least 128px wide, so a row with one action still
+   covers a whole amount or pill (a longer pill fades out under the left edge); inset 2px so the row's focus ring
+   stays whole. */
+.fsl-action-row__tools {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  min-width: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  padding-left: var(--space-8);
+  padding-right: var(--space-2);
+  background: linear-gradient(to right, transparent, var(--fsl-action-row-bg) var(--space-6));
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.fsl-action-row:hover .fsl-action-row__tools,
+.fsl-action-row:focus-within .fsl-action-row__tools {
+  visibility: visible;
+  animation: fsl-action-row-tools-in var(--motion-fast) var(--ease-out);
+}
+
+.fsl-action-row:hover .fsl-action-row__tool,
+.fsl-action-row:focus-within .fsl-action-row__tool {
+  pointer-events: auto;
+  animation: fsl-action-row-tools-armed var(--motion-fast);
+}
+
+@keyframes fsl-action-row-tools-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* For the length of the fade the tools let clicks through to the row underneath. */
+@keyframes fsl-action-row-tools-armed {
+  from,
+  to {
+    pointer-events: none;
+  }
+}
+
+.fsl-action-row__tool {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fsl-action-row__tool:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-action-row__tool--default {
+  color: var(--color-text-muted);
+}
+
+.fsl-action-row__tool--default:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.fsl-action-row__tool--danger {
+  color: var(--color-danger);
+}
+
+.fsl-action-row__tool--danger:hover {
+  background-color: var(--color-danger-soft);
+}
+
+.fsl-action-row__tool--success {
+  color: var(--color-success);
+}
+
+.fsl-action-row__tool--success:hover {
+  background-color: var(--color-success-soft);
+}
+
+.fsl-action-row__hint {
+  margin: 0;
+  padding: var(--space-1) var(--space-4) var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-text-muted);
+}
+
+@keyframes fsl-action-row-peek {
+  0% {
+    transform: translateX(0);
+  }
+  20%,
+  70% {
+    transform: translateX(-24px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.fsl-action-row__surface--peek {
+  animation: fsl-action-row-peek 1s var(--ease-out) 400ms 1 both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-action-row__surface--peek {
+    animation: none;
+  }
+
+  .fsl-action-row:hover .fsl-action-row__tools,
+  .fsl-action-row:focus-within .fsl-action-row__tools,
+  .fsl-action-row:hover .fsl-action-row__tool,
+  .fsl-action-row:focus-within .fsl-action-row__tool {
+    animation: none;
+  }
+
+  .fsl-action-row__swipe-actions {
+    transition: none;
+  }
+}

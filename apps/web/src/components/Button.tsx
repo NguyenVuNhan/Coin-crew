@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, AnchorHTMLAttributes, ReactNode } from 'react';
+import { Link } from 'react-router';
 import './Button.css';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -15,6 +16,11 @@ export interface BaseButtonProps {
 export type ButtonProps = BaseButtonProps &
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof BaseButtonProps> &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof BaseButtonProps>;
+
+/** A path inside this app (the router handles it). Server routes under /api and other sites need a real page load. */
+function isInAppPath(href: string): boolean {
+  return href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/api/');
+}
 
 export function Button({
   variant = 'primary',
@@ -36,6 +42,19 @@ export function Button({
   ]
     .filter(Boolean)
     .join(' ');
+
+  if (href !== undefined && isInAppPath(href)) {
+    return (
+      <Link
+        to={href}
+        className={classes}
+        aria-busy={loading ? 'true' : undefined}
+        {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}
+      >
+        {children}
+      </Link>
+    );
+  }
 
   if (href !== undefined) {
     return (

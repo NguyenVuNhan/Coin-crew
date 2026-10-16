@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  can, initialExpenseStatus, statusForNewPayment, canConfirmPayment, notArrivedOutcome,
+  can, initialExpenseStatus, statusForNewPayment, canConfirmPayment, notArrivedOutcome, arrivedOutcome,
   type Actor, type Action, type ActionContext,
 } from '../src/permissions';
 
@@ -26,7 +26,9 @@ const rows: Row[] = [
 ];
 for (const action of ['edit_expense', 'delete_expense'] as const) {
   rows.push(
-    [`member ${action} of someone else, approved`, M, action, { expenseCreatedById: 'X', expenseStatus: 'approved' }, true],
+    [`member ${action} of someone else, approved`, M, action, { expenseCreatedById: 'X', expenseStatus: 'approved' }, false],
+    [`member ${action} own approved`, M, action, { expenseCreatedById: 'M', expenseStatus: 'approved' }, true],
+    [`member ${action} own pending`, M, action, { expenseCreatedById: 'M', expenseStatus: 'pending' }, true],
     [`guest ${action} own pending`, G, action, { expenseCreatedById: 'G', expenseStatus: 'pending' }, true],
     [`guest ${action} own approved`, G, action, { expenseCreatedById: 'G', expenseStatus: 'approved' }, false],
     [`guest ${action} of someone else, pending`, G, action, { expenseCreatedById: 'X', expenseStatus: 'pending' }, false],
@@ -34,7 +36,7 @@ for (const action of ['edit_expense', 'delete_expense'] as const) {
     [`viewer ${action}`, viewer, action, { expenseCreatedById: 'X', expenseStatus: 'pending' }, false],
   );
 }
-for (const action of ['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest'] as const) {
+for (const action of ['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank'] as const) {
   rows.push(
     [`member ${action}`, M, action, undefined, true],
     [`guest ${action}`, G, action, undefined, false],
@@ -48,6 +50,9 @@ rows.push(
   ['guest archive', G, 'archive', undefined, false],
   ['member own bank', M, 'set_own_bank', undefined, true],
   ['guest own bank', G, 'set_own_bank', undefined, true],
+  ['guest replaces own bank while it waits', G, 'set_own_bank', { bankApproved: false }, true],
+  ['guest changes own approved bank', G, 'set_own_bank', { bankApproved: true }, false],
+  ['member changes own approved bank', M, 'set_own_bank', { bankApproved: true }, true],
   ['pending own bank', GP, 'set_own_bank', undefined, false],
   ['viewer own bank', viewer, 'set_own_bank', undefined, false],
   ['member records as payer', M, 'record_payment', { paymentFromId: 'M', paymentToId: 'G' }, true],
@@ -77,16 +82,16 @@ describe('initialExpenseStatus', () => {
 });
 
 describe('statusForNewPayment', () => {
-  const s = (actorId: string, fromId: string, toId: string, receiverIsMember: boolean) =>
-    statusForNewPayment({ actorId, fromId, toId, receiverIsMember });
+  const s = (actorId: string, fromId: string, toId: string, receiverIsMember: boolean, payerIsMember = false) =>
+    statusForNewPayment({ actorId, fromId, toId, receiverIsMember, payerIsMember });
   it('guest → member, payer records', () => expect(s('C', 'C', 'M', true)).toBe('says_paid'));
   it('member marks received', () => expect(s('M', 'C', 'M', true)).toBe('confirmed'));
   it('member → guest, payer records', () => expect(s('M', 'M', 'C', false)).toBe('confirmed'));
   it('receiving guest marks received', () => expect(s('C', 'M', 'C', false)).toBe('confirmed'));
   it('guest → guest, payer records', () => expect(s('A', 'A', 'C', false)).toBe('confirmed'));
   it('guest → guest, receiver records', () => expect(s('C', 'A', 'C', false)).toBe('confirmed'));
-  it('member → member, payer records', () => expect(s('M', 'M', 'N', true)).toBe('says_paid'));
-  it('member → member, receiver records', () => expect(s('N', 'M', 'N', true)).toBe('confirmed'));
+  it('member → member, payer records: counts straight away', () => expect(s('M', 'M', 'N', true, true)).toBe('confirmed'));
+  it('member → member, receiver records', () => expect(s('N', 'M', 'N', true, true)).toBe('confirmed'));
   it('third party', () => expect(s('B', 'A', 'M', true)).toBe('forbidden'));
 });
 
@@ -103,4 +108,15 @@ describe('notArrivedOutcome', () => {
   it('not the receiver', () => expect(notArrivedOutcome(guest('A'), { toId: 'C', status: 'confirmed' }, false)).toBe('forbidden'));
   it('member receiver on confirmed', () => expect(notArrivedOutcome(member('M'), { toId: 'M', status: 'confirmed' }, true)).toBe('forbidden'));
   it('viewer', () => expect(notArrivedOutcome(viewer, { toId: 'C', status: 'confirmed' }, false)).toBe('forbidden'));
+});
+
+describe('arrivedOutcome', () => {
+  it('member receiver counts a payment they said did not arrive', () => expect(arrivedOutcome(member('M'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('confirm'));
+  it('guest receiver clears their own report', () => expect(arrivedOutcome(guest('C'), { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('clear'));
+  it('guest receiver with nothing reported', () => expect(arrivedOutcome(guest('C'), { toId: 'C', status: 'confirmed', notArrived: false }, false)).toBe('forbidden'));
+  it('member receiver on a payment still waiting', () => expect(arrivedOutcome(member('M'), { toId: 'M', status: 'says_paid', notArrived: false }, true)).toBe('forbidden'));
+  it('another member', () => expect(arrivedOutcome(member('N'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('forbidden'));
+  it("a member on a guest's report", () => expect(arrivedOutcome(member('M'), { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('forbidden'));
+  it('the payer', () => expect(arrivedOutcome(guest('C'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('forbidden'));
+  it('viewer', () => expect(arrivedOutcome(viewer, { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('forbidden'));
 });

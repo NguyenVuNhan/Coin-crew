@@ -5,8 +5,11 @@
   padding: var(--space-4) 0;
 }
 
-.fsl-my-trips__header-action {
-  width: 100%;
+.fsl-my-trips__empty-body {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text-muted);
 }
 
 .fsl-my-trips__list {
@@ -22,11 +25,17 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  min-height: 44px;
+  min-height: 56px;
   text-decoration: none;
   color: var(--color-text);
   border-bottom: 1px solid var(--color-border);
-  transition: background-color 0.15s ease;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-my-trips__row {
+    transition: none;
+  }
 }
 
 .fsl-my-trips__row:last-child {
@@ -60,16 +69,30 @@
   text-overflow: ellipsis;
 }
 
+/* Inline flow, not flex: the space before " · archived" must survive. */
 .fsl-my-trips__row-sub {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.fsl-my-trips__line--success {
+  color: var(--color-success);
+}
+
+.fsl-my-trips__line--danger {
+  color: var(--color-danger);
+}
+
+.fsl-my-trips__line--neutral {
   color: var(--color-text-muted);
 }
 
-.fsl-my-trips__row-amount {
+.fsl-my-trips__archived {
+  color: var(--color-text-muted);
+}
+
+.fsl-my-trips__chevron {
+  color: var(--color-text-subtle);
   flex-shrink: 0;
-  text-align: right;
 }

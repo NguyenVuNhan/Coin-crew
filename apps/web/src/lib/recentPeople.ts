@@ -1,0 +1,30 @@
+import { normalizeName, type RecentPerson } from '@fsl/core';
+
+/** One line of the "Who else is coming?" list. A `userId` makes it a picked account (a locked row). */
+export type PersonEntry = { key: string; name: string; userId?: string };
+
+let lastKey = 0;
+
+/** A new line with a key that stays the same while the list changes around it. */
+export function newPersonEntry(name = '', userId?: string): PersonEntry {
+  lastKey += 1;
+  return userId === undefined ? { key: `person-${lastKey}`, name } : { key: `person-${lastKey}`, name, userId };
+}
+
+/**
+ * Up to `max` people whose name has a word that starts with what was typed, ignoring accents and capitals.
+ * A query of several words ("chi tr") matches from the start of any word of the name. Accounts in `exclude` are skipped.
+ */
+export function filterRecentPeople(query: string, people: RecentPerson[], exclude: Set<string>, max = 5): RecentPerson[] {
+  const q = normalizeName(query);
+  if (!q) return [];
+  const found: RecentPerson[] = [];
+  for (const person of people) {
+    if (exclude.has(person.userId)) continue;
+    if (` ${normalizeName(person.name)}`.includes(` ${q}`)) {
+      found.push(person);
+      if (found.length >= max) break;
+    }
+  }
+  return found;
+}

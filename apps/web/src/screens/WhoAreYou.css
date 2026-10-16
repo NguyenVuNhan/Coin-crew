@@ -5,6 +5,56 @@
   padding: var(--space-4) 0;
 }
 
+/* Before a name is picked: what a guest can and can't do on their own. */
+.fsl-who__guest-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-warning-soft);
+  color: var(--color-warning-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.fsl-who__guest-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-semibold);
+}
+
+.fsl-who__guest-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fsl-who__guest-signin {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-warning-text);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fsl-who__guest-signin:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
 .fsl-who__subtitle {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
@@ -17,6 +67,83 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.fsl-who__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fsl-who__search-icon {
+  position: absolute;
+  left: var(--space-3);
+  display: inline-flex;
+  color: var(--color-text-subtle);
+  pointer-events: none;
+}
+
+.fsl-who__search-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-3) calc(var(--space-4) * 2 + var(--space-3)) var(--space-3) calc(var(--space-6) + var(--space-3));
+  font-family: var(--font-sans);
+  font-size: var(--text-input);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  min-height: 44px;
+}
+
+.fsl-who__search-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-who__search-input::-webkit-search-cancel-button,
+.fsl-who__search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.fsl-who__search-clear {
+  position: absolute;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-who__search-clear:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.fsl-who__search-clear:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-who__count {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-who__search + .fsl-who__count {
+  margin-top: calc(var(--space-2) * -1);
 }
 
 .fsl-who__list {
@@ -98,14 +225,6 @@
   gap: var(--space-2);
 }
 
-.fsl-who__divider {
-  text-align: center;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--color-text-subtle);
-  padding: var(--space-2) 0;
-}
-
 .fsl-who__new-title {
   font-family: var(--font-sans);
   font-size: var(--text-lg);
@@ -140,7 +259,7 @@
   width: 100%;
   padding: var(--space-3) var(--space-4);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font-size: var(--text-input);
   color: var(--color-text);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -242,4 +361,16 @@
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin: 0;
+}
+
+@media (max-width: 1023px) {
+  .fsl-who--bar-error {
+    padding-bottom: calc(var(--space-8) * 3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-who__search-clear {
+    transition: none;
+  }
 }

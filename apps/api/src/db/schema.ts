@@ -90,7 +90,7 @@ export const bankDetails = sqliteTable(
     bin: text('bin').notNull(),
     accountNumber: text('account_number').notNull(),
     holderName: text('holder_name').notNull(),
-    status: text('status', { enum: ['pending', 'approved', 'replaced', 'rejected'] }).notNull(),
+    status: text('status', { enum: ['pending', 'approved', 'replaced', 'rejected', 'removed'] }).notNull(),
     approvedByUserId: text('approved_by_user_id'),
     consentAt: text('consent_at').notNull(),
     createdAt: text('created_at').notNull(),

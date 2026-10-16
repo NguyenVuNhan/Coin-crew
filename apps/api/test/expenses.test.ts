@@ -81,6 +81,19 @@ describe('editing and deleting', () => {
     expect((await send('PATCH', `/expenses/${expenseId}`, chi, equalAll(1000, PID.A))).status).toBe(403);
   });
 
+  it('a member cannot edit or delete an expense someone else added', async () => {
+    const { expenseId } = await addAs(await guestHeaders(PID.C), equalAll(180000, PID.C));
+    await send('POST', `/expenses/${expenseId}/approve`, await minh(), {});
+    expect((await send('PATCH', `/expenses/${expenseId}`, await minh(), equalAll(1000, PID.C))).status).toBe(403);
+    expect((await send('DELETE', `/expenses/${expenseId}`, await minh())).status).toBe(403);
+  });
+
+  it('a member edits an expense they added, even after it counts', async () => {
+    const headers = await minh();
+    expect((await send('PATCH', '/expenses/e-4', headers, { ...equalAll(300000, PID.M, 'Cà phê Túi Mơ To'), entries: [{ participantId: PID.M, value: 1 }, { participantId: PID.A, value: 1 }, { participantId: PID.C, value: 1 }] })).status).toBe(204);
+    expect((await view(headers)).expenses.find((e) => e.id === 'e-4')?.amount).toBe(300000);
+  });
+
   it('a member deletes an expense and the activity keeps what it was', async () => {
     const headers = await minh();
     expect((await send('DELETE', '/expenses/e-4', headers)).status).toBe(204);

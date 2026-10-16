@@ -28,6 +28,7 @@ import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, newToken, nowIso } from '../lib/ids';
+import { loadRecentPeople } from '../me/people';
 import { getSnapshot } from './snapshot';
 import { toTripView } from './view';
 
@@ -72,16 +73,44 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    const people: string[] = [];
-    for (const p of body.people) {
-      if (typeof p !== 'string') {
+    // Each entry is a plain name (older clients) or { name, userId? } for someone with an account.
+    const people: { name: string; userId: string | null }[] = [];
+    for (const p of body.people as unknown[]) {
+      let rawName: unknown;
+      let userId: string | null = null;
+      if (typeof p === 'string') {
+        rawName = p;
+      } else if (p && typeof p === 'object' && !Array.isArray(p)) {
+        const entry = p as { name?: unknown; userId?: unknown };
+        rawName = entry.name;
+        if (entry.userId !== undefined) {
+          if (typeof entry.userId !== 'string' || entry.userId.length < 1) {
+            throw new ApiError('VALIDATION', 422, 'Invalid request');
+          }
+          userId = entry.userId;
+        }
+      }
+      if (typeof rawName !== 'string') {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
-      const trimmed = p.trim();
+      const trimmed = rawName.trim();
       if (trimmed.length < 1 || trimmed.length > 40) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
-      people.push(trimmed);
+      people.push({ name: trimmed, userId });
+    }
+
+    // Only people the caller already shares a trip with can be added by account, each once.
+    const db = getDb(c.env);
+    const accountIds = people.flatMap((p) => (p.userId ? [p.userId] : []));
+    if (accountIds.length > 0) {
+      if (new Set(accountIds).size !== accountIds.length) {
+        throw new ApiError('VALIDATION', 422, 'Invalid request');
+      }
+      const recent = new Set((await loadRecentPeople(db, user.id)).map((r) => r.userId));
+      if (!accountIds.every((id) => recent.has(id))) {
+        throw new ApiError('VALIDATION', 422, 'Invalid request');
+      }
     }
 
     if (body.myBank !== undefined && body.myBank !== null) {
@@ -110,7 +139,6 @@ export function tripRoutes(): Hono<AppBindings> {
     const tripId = newId();
     const organiserParticipantId = newId();
     const now = nowIso();
-    const db = getDb(c.env);
 
     const tripInsert = db.insert(trips).values({
       id: tripId,
@@ -139,9 +167,9 @@ export function tripRoutes(): Hono<AppBindings> {
       db.insert(participants).values({
         id: newId(),
         tripId,
-        name: p,
-        normalizedName: normalizeName(p),
-        userId: null,
+        name: p.name,
+        normalizedName: normalizeName(p.name),
+        userId: p.userId,
         status: 'active',
         sortOrder: index + 1,
         createdAt: now,
@@ -184,7 +212,7 @@ export function tripRoutes(): Hono<AppBindings> {
       actorUserId: user.id,
       actorParticipantId: organiserParticipantId,
       actorDevice: c.get('deviceHash'),
-      details: { name },
+      details: { name, addedAccounts: people.filter((p) => p.userId).map((p) => p.name) },
     });
 
     return c.json({ tripId }, 201);

@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
+import { MyBankRow } from '../components/MyBankRow';
 import './BankDetails.css';
 
 export function BankDetails() {
@@ -102,11 +103,46 @@ export function BankDetails() {
   }
 
   const isGuest = tripId && view?.me.kind === 'guest';
+
+  // A guest whose details are approved (only a member changes them), or whose name still waits, gets no form.
+  const myPerson = view?.people.find((p) => p.id === view.me.participantId);
+  if (isGuest && view && !success && (view.me.participantPending || myPerson?.bank === 'approved')) {
+    return (
+      <Screen title={t('bankForm.title')} back={backLink}>
+        <div className="fsl-bank-details">
+          <MyBankRow view={view} />
+        </div>
+      </Screen>
+    );
+  }
   const successNoticeText = isGuest ? t('bankForm.pending') : t('bankForm.saved');
+  const [beforeLink = '', afterLink = ''] = t('bankForm.consentLabel').split('{link}');
 
   return (
-    <Screen title={t('bankForm.title')} back={backLink}>
-      <div className="fsl-bank-details">
+    <Screen
+      title={t('bankForm.title')}
+      back={backLink}
+      bottomBar={
+        success ? undefined : (
+          <>
+            {submitError !== null ? <InlineError error={submitError} /> : null}
+            <Button
+              type="submit"
+              form="bank-details-form"
+              variant="primary"
+              block
+              disabled={!isComplete || isSubmitting}
+              loading={isSubmitting}
+            >
+              {t('bankForm.save')}
+            </Button>
+          </>
+        )
+      }
+    >
+      <div
+        className={`fsl-bank-details${submitError !== null ? ' fsl-bank-details--bar-error' : ''}`}
+      >
         {success ? (
           <div className="fsl-bank-details__success">
             <div className="fsl-bank-details__notice fsl-bank-details__notice--accent" role="status">
@@ -117,7 +153,7 @@ export function BankDetails() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form id="bank-details-form" className="fsl-bank-details__form" onSubmit={handleSubmit}>
             <p className="fsl-bank-details__note">{note}</p>
 
             <BankFields value={value} onChange={setValue} />
@@ -131,26 +167,8 @@ export function BankDetails() {
                 className="fsl-bank-details__checkbox"
               />
               <label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label">
-                {t('consent.agree')}
+                {beforeLink}<Link to="/privacy" className="fsl-bank-details__privacy-link">{t('bankForm.privacyLink')}</Link>{afterLink}
               </label>
-              <span aria-hidden="true">·</span>
-              <Link to="/privacy" className="fsl-bank-details__privacy-link">
-                {t('consent.readNotice')}
-              </Link>
-            </div>
-
-            <div className="fsl-bank-details__actions">
-              {submitError !== null && <InlineError error={submitError} />}
-
-              <Button
-                type="submit"
-                variant="primary"
-                block
-                disabled={!isComplete || isSubmitting}
-                loading={isSubmitting}
-              >
-                {t('bankForm.save')}
-              </Button>
             </div>
           </form>
         )}

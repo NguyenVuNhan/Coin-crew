@@ -29,7 +29,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font-size: var(--text-input);
   line-height: var(--leading-base);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -40,54 +40,27 @@
   box-shadow: var(--focus-ring);
 }
 
-.fsl-create-trip__others-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.fsl-create-trip__person-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.fsl-icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.fsl-icon-button:hover {
-  background-color: var(--color-danger-soft);
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-.fsl-icon-button:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
 .fsl-create-trip__details {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
 }
 
 .fsl-create-trip__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  list-style: none;
   cursor: pointer;
   user-select: none;
+}
+
+.fsl-create-trip__summary::-webkit-details-marker {
+  display: none;
 }
 
 .fsl-create-trip__summary:focus-visible {
@@ -96,10 +69,10 @@
 }
 
 .fsl-create-trip__summary-text {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  vertical-align: middle;
+  min-width: 0;
 }
 
 .fsl-create-trip__summary-title {
@@ -115,15 +88,31 @@
   color: var(--color-text-subtle);
 }
 
+.fsl-create-trip__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.fsl-create-trip__details[open] .fsl-create-trip__chevron {
+  transform: rotate(180deg);
+}
+
 .fsl-create-trip__details-body {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
+  margin: 0 var(--space-4);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--color-border);
 }
 
-.fsl-create-trip__actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+/* The error sits in the fixed bottom bar and makes it taller, so keep the last field clear of it. */
+@media (max-width: 1023px) {
+  .fsl-create-trip__form--bar-error {
+    padding-bottom: calc(var(--space-8) * 3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-create-trip__chevron {
+    transition: none;
+  }
 }

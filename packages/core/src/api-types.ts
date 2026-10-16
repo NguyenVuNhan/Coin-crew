@@ -27,9 +27,12 @@ export type ActivityAction =
   | 'bank_submitted'
   | 'bank_approved'
   | 'bank_rejected'
+  | 'bank_set'
+  | 'bank_removed'
   | 'payment_recorded'
   | 'payment_confirmed'
   | 'payment_not_arrived'
+  | 'payment_arrived'
   | 'payment_disabled'
   | 'payment_enabled'
   | 'links_regenerated'
@@ -46,9 +49,26 @@ import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 
 export interface BankFields { bin: string; accountNumber: string; holderName: string }
-export interface CreateTripInput { name: string; myName: string; people: string[]; myBank?: BankFields }
+/** A person to add when creating a trip: a plain name, or someone with an account from the recent-people list. */
+export type CreateTripPerson = { name: string; userId?: string };
+/** Plain strings are still accepted so an older open client keeps working. */
+export interface CreateTripInput { name: string; myName: string; people: (string | CreateTripPerson)[]; myBank?: BankFields }
+/** Someone with an account who shared a trip with the caller (`GET /api/me/people`). */
+export interface RecentPerson {
+  userId: string;
+  /** Their name in the most recent shared trip. */
+  name: string;
+  /** Up to two shared trip names, newest first. */
+  trips: string[];
+}
 
-export interface PersonView { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved' }
+export interface PersonView {
+  id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
+  /** The person who created the trip. Left out by an older server. */
+  isOrganiser?: boolean;
+  /** A guest's current account (the approved one, else the one waiting). Sent only to members and to that guest. */
+  bankAccount?: { bankName: string; accountNumberMasked: string; holderName: string };
+}
 export interface ExpenseView {
   id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;
   status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;

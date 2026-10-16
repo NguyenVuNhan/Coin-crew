@@ -1,12 +1,18 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useT } from '../i18n';
-import { LangSwitch } from './LangSwitch';
+import { Icon } from './icons';
+import { BottomBar } from './BottomBar';
 import './Screen.css';
 
 export interface ScreenProps {
   title: string;
   back?: string;
+  /** Goes back by itself instead of linking to `back` (the trip details use it to return to the list in history). */
+  onBack?: () => void;
   right?: ReactNode;
+  bottomBar?: ReactNode;
+  wide?: boolean;
   children?: ReactNode;
   className?: string;
 }
@@ -14,36 +20,47 @@ export interface ScreenProps {
 export function Screen({
   title,
   back,
-  right = <LangSwitch />,
+  onBack,
+  right,
+  bottomBar,
+  wide,
   children,
-  className = '',
+  className,
 }: ScreenProps) {
   const t = useT();
 
+  const rootClass = [
+    'fsl-screen',
+    wide && 'fsl-screen--wide',
+    bottomBar && 'fsl-screen--has-bar',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={`fsl-screen ${className}`.trim()}>
+    <div className={rootClass}>
       <header className="fsl-screen__header">
         <div className="fsl-screen__header-inner">
-          {back ? (
-            <a
-              href={back}
+          {onBack ? (
+            <button
+              type="button"
               className="fsl-screen__back"
               aria-label={t('common.back')}
+              title={t('common.back')}
+              onClick={onBack}
             >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </a>
+              <Icon name="back" size={24} />
+            </button>
+          ) : back ? (
+            <Link
+              to={back}
+              className="fsl-screen__back"
+              aria-label={t('common.back')}
+              title={t('common.back')}
+            >
+              <Icon name="back" size={24} />
+            </Link>
           ) : (
             <div className="fsl-screen__header-spacer" aria-hidden="true" />
           )}
@@ -55,6 +72,9 @@ export function Screen({
       </header>
 
       <main className="fsl-screen__content">{children}</main>
+
+      {bottomBar ? <BottomBar>{bottomBar}</BottomBar> : null}
     </div>
   );
 }
+

@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import { apiFetch } from '../api/client';
 import { linkTokens } from '../lib/linkTokens';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '../components/LanguageButton';
 import { Skeleton } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 
@@ -40,14 +41,14 @@ export function Join() {
 
   if (error) {
     return (
-      <Screen title={t('join.opening')}>
+      <Screen title={t('join.opening')} right={<LanguageButton />}>
         <InlineError error={error} />
       </Screen>
     );
   }
 
   return (
-    <Screen title={t('join.opening')}>
+    <Screen title={t('join.opening')} right={<LanguageButton />}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', padding: 'var(--space-4) 0' }}>
         <Skeleton height={56} radius="lg" />
         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>

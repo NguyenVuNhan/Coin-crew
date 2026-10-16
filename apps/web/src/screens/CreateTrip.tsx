@@ -10,6 +10,9 @@ import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
+import { PeopleInput } from '../components/PeopleInput';
+import { Icon } from '../components/icons';
+import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
 import './CreateTrip.css';
 
 interface MeResponse {
@@ -41,7 +44,7 @@ export function CreateTrip() {
   const [tripName, setTripName] = useState('');
   const [userEnteredMyName, setUserEnteredMyName] = useState<string | null>(null);
   const myName = userEnteredMyName !== null ? userEnteredMyName : (user?.name ?? '');
-  const [others, setOthers] = useState<string[]>(['']);
+  const [people, setPeople] = useState<PersonEntry[]>(() => [newPersonEntry()]);
   const [bank, setBank] = useState<BankFieldsValue>({
     bin: '',
     accountNumber: '',
@@ -49,26 +52,10 @@ export function CreateTrip() {
   });
   const [submitError, setSubmitError] = useState<unknown>(null);
 
-  const handleOtherChange = (index: number, val: string) => {
-    setOthers((prev) => {
-      const copy = [...prev];
-      copy[index] = val;
-      return copy;
-    });
-  };
-
-  const handleAddPerson = () => {
-    setOthers((prev) => [...prev, '']);
-  };
-
-  const handleRemovePerson = (index: number) => {
-    setOthers((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const isFormValid =
     tripName.trim().length > 0 &&
     myName.trim().length > 0 &&
-    others.some((p) => p.trim().length > 0);
+    people.some((p) => p.name.trim().length > 0);
 
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
@@ -86,11 +73,14 @@ export function CreateTrip() {
     if (!isFormValid || createMutation.isPending) return;
 
     setSubmitError(null);
-    const people = others.map((p) => p.trim()).filter(Boolean);
     const input: CreateTripInput = {
       name: tripName.trim(),
       myName: myName.trim(),
-      people,
+      people: people.flatMap((p) => {
+        const name = p.name.trim();
+        if (name === '') return [];
+        return [p.userId ? { name, userId: p.userId } : { name }];
+      }),
     };
 
     if (
@@ -109,9 +99,31 @@ export function CreateTrip() {
   };
 
   return (
-    <Screen title={t('create.title')} back="/trips">
+    <Screen
+      title={t('create.title')}
+      back="/trips"
+      bottomBar={
+        <>
+          {submitError ? <InlineError error={submitError} /> : null}
+          <Button
+            type="submit"
+            form="create-trip-form"
+            variant="primary"
+            block
+            disabled={!isFormValid || createMutation.isPending}
+            loading={createMutation.isPending}
+          >
+            {t('create.submit')}
+          </Button>
+        </>
+      }
+    >
       <ConsentSheet />
-      <form onSubmit={handleSubmit} className="fsl-create-trip__form">
+      <form
+        id="create-trip-form"
+        onSubmit={handleSubmit}
+        className={`fsl-create-trip__form${submitError ? ' fsl-create-trip__form--bar-error' : ''}`}
+      >
         <div className="fsl-form-group">
           <label htmlFor="fsl-trip-name" className="fsl-form-label">
             {t('create.tripName')}
@@ -145,65 +157,7 @@ export function CreateTrip() {
           )}
         </div>
 
-        <div className="fsl-form-group">
-          <label htmlFor="fsl-other-0" className="fsl-form-label">
-            {t('create.others')}
-          </label>
-          <div className="fsl-create-trip__others-list">
-            {others.map((person, index) => {
-              const placeholder = t('create.otherPlaceholder');
-              const ariaLabel = `${placeholder} ${index + 1}`;
-              const removeLabel = t('create.removePerson', {
-                name: person.trim() || String(index + 1),
-              });
-
-              return (
-                <div key={index} className="fsl-create-trip__person-row">
-                  <input
-                    id={index === 0 ? 'fsl-other-0' : undefined}
-                    type="text"
-                    placeholder={placeholder}
-                    aria-label={ariaLabel}
-                    value={person}
-                    onChange={(e) => handleOtherChange(index, e.target.value)}
-                    className="fsl-input"
-                  />
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      className="fsl-icon-button"
-                      aria-label={removeLabel}
-                      onClick={() => handleRemovePerson(index)}
-                    >
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleAddPerson}
-            className="fsl-create-trip__add-person"
-          >
-            {t('create.addPerson')}
-          </Button>
-        </div>
+        <PeopleInput value={people} onChange={setPeople} />
 
         <details className="fsl-create-trip__details">
           <summary className="fsl-create-trip__summary">
@@ -215,24 +169,12 @@ export function CreateTrip() {
                 {t('create.bankHint')}
               </span>
             </span>
+            <Icon name="chevronDown" size={20} className="fsl-create-trip__chevron" />
           </summary>
           <div className="fsl-create-trip__details-body">
             <BankFields value={bank} onChange={setBank} />
           </div>
         </details>
-
-        <div className="fsl-create-trip__actions">
-          {submitError ? <InlineError error={submitError} /> : null}
-          <Button
-            type="submit"
-            variant="primary"
-            block
-            disabled={!isFormValid || createMutation.isPending}
-            loading={createMutation.isPending}
-          >
-            {t('create.submit')}
-          </Button>
-        </div>
       </form>
     </Screen>
   );

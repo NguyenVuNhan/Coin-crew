@@ -133,6 +133,7 @@ export async function buildSnapshot(
       name: p.name,
       status: p.status as 'active' | 'pending',
       isMember: p.userId !== null,
+      isOrganiser: p.userId !== null && p.userId === trip.organiserUserId,
       bank,
     };
   });

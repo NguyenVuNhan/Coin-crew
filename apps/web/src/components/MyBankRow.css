@@ -1,0 +1,90 @@
+.fsl-my-bank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+}
+
+/* Same look as the other section headings on the trip page ("Your transfers", "Payments"). */
+.fsl-my-bank__title {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+}
+
+.fsl-my-bank__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+.fsl-my-bank__row svg,
+.fsl-my-bank__icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.fsl-my-bank__icon--approved,
+.fsl-my-bank__row svg.fsl-my-bank__icon--approved {
+  color: var(--color-success);
+}
+
+.fsl-my-bank__icon--pending,
+.fsl-my-bank__row svg.fsl-my-bank__icon--pending {
+  color: var(--color-warning);
+}
+
+.fsl-my-bank__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fsl-my-bank__main {
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.fsl-my-bank__sub {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-my-bank__action {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.fsl-my-bank__action:hover {
+  text-decoration: underline;
+}
+
+.fsl-my-bank__action:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

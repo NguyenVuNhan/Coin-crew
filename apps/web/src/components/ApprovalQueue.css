@@ -1,0 +1,137 @@
+.fsl-approval-queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  overflow: hidden;
+}
+
+.fsl-approval-queue__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.fsl-approval-queue__position {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-warning-text);
+}
+
+.fsl-approval-queue__nav {
+  display: inline-flex;
+  margin-right: calc(-1 * var(--space-2));
+}
+
+.fsl-approval-queue__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-warning-text);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-approval-queue__arrow:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.fsl-approval-queue__arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fsl-approval-queue__arrow:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-approval-queue__arrow--prev svg {
+  transform: scaleX(-1);
+}
+
+.fsl-approval-queue__item {
+  min-width: 0;
+}
+
+/* The next card takes focus after Approve (the global :focus-visible ring marks it for keyboard users). */
+.fsl-approval-queue__item:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
+.fsl-approval-queue__item--next {
+  animation: fsl-approval-slide-next var(--motion-base) var(--ease-out);
+}
+
+.fsl-approval-queue__item--prev {
+  animation: fsl-approval-slide-prev var(--motion-base) var(--ease-out);
+}
+
+@keyframes fsl-approval-slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fsl-approval-slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fsl-approval-queue__all {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  margin-right: calc(-1 * var(--space-2));
+  margin-top: calc(-1 * var(--space-2));
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-warning-text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.fsl-approval-queue__all:hover {
+  text-decoration: underline;
+}
+
+.fsl-approval-queue__all:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-approval-queue__item--next,
+  .fsl-approval-queue__item--prev {
+    animation: none;
+  }
+
+  .fsl-approval-queue__arrow {
+    transition: none;
+  }
+}

@@ -3,11 +3,10 @@ import type { MessageKey } from './en';
 export const vi: Record<MessageKey, string> = {
   'common.retry': 'Thử lại', // REVIEW
   'common.cancel': 'Hủy', // REVIEW
-  'common.save': 'Lưu', // REVIEW
   'common.continue': 'Tiếp tục', // REVIEW
   'common.back': 'Quay lại', // REVIEW
   'common.close': 'Đóng', // REVIEW
-  'common.loading': 'Đang tải…', // REVIEW
+  'common.undo': 'Hoàn tác', // REVIEW
 
   'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
   'error.dailyLimit': 'Đã vượt giới hạn miễn phí hôm nay. Thử lại sau 07:00.', // REVIEW
@@ -16,6 +15,7 @@ export const vi: Record<MessageKey, string> = {
 
   'lang.vi': 'Tiếng Việt', // REVIEW
   'lang.en': 'English', // REVIEW
+  'lang.switchTo': 'Chuyển sang {lang}', // REVIEW
 
   'time.justNow': 'vừa xong', // REVIEW
   'time.minutesAgo': '{n} phút trước', // REVIEW
@@ -27,36 +27,47 @@ export const vi: Record<MessageKey, string> = {
 
   'who.lastUsedHere': 'Lần trước bạn đã chọn người này trên điện thoại này', // REVIEW
   'who.activeElsewhere': 'Đang hoạt động trên máy khác · {ago}', // REVIEW
-  'who.someoneNew': 'Tôi là người mới', // REVIEW
+  'who.someoneNew': 'Không có trong danh sách? Thêm tên của bạn', // REVIEW
   'who.areYou': 'Bạn là {name} phải không?', // REVIEW
   'who.yesIm': 'Đúng, tôi là {name}', // REVIEW
   'who.noAddMe': 'Không, thêm tôi vào', // REVIEW
 
-  'expenses.empty': 'Chưa có khoản chi nào. Hãy thêm khoản đầu tiên.', // REVIEW
   'expenses.disabledBy': 'Đã bị vô hiệu hóa bởi {name}', // REVIEW
   'expense.sendForApproval': 'Gửi để duyệt', // REVIEW
 
-  'approvals.saysPaid': '{name} báo đã chuyển khoản. Bạn đã nhận được tiền chưa?', // REVIEW
+  'approvals.paidYou': '{name} báo đã chuyển khoản cho bạn {amount}', // REVIEW
+  'approvals.didItArrive': 'Bạn đã nhận được tiền chưa?', // REVIEW
 
   'pay.payWithVietQr': 'Thanh toán bằng VietQR', // REVIEW
   'pay.keepNote': 'Giữ nguyên nội dung chuyển khoản này để đối soát thanh toán.', // REVIEW
   'pay.bankPending': 'Thông tin ngân hàng của {name} đang chờ duyệt', // REVIEW
   'pay.bankNone': '{name} chưa thêm thông tin ngân hàng', // REVIEW
-  'pay.waiting': 'Đang chờ {name} nhận được tiền. Trang này sẽ tự động cập nhật.', // REVIEW
-  'pay.alreadyPaid': 'Tôi đã chuyển tiền rồi', // REVIEW
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
   'pay.saveQr': 'Lưu mã QR', // REVIEW
 
-  'landing.tagline': 'Chia tiền chuyến đi cùng bạn bè và thanh toán bằng VietQR. Bạn bè tham gia bằng liên kết — không cần tài khoản.', // REVIEW
+  'landing.headline': 'Chia tiền chuyến đi. Thanh toán bằng VietQR.', // REVIEW
+  'landing.tagline': 'Bạn bè tham gia từ một liên kết trong nhóm chat, không cần tài khoản.', // REVIEW
   'landing.signIn': 'Đăng nhập bằng Google', // REVIEW
+  'landing.howItWorks': 'Cách hoạt động', // REVIEW
+  'landing.step1': 'Tạo chuyến đi', // REVIEW
+  'landing.step1Body': 'Thêm những người đi cùng.', // REVIEW
+  'landing.step2': 'Chia sẻ một liên kết', // REVIEW
+  'landing.step2Body': 'Mọi người tự thêm khoản đã chi.', // REVIEW
+  'landing.step3': 'Thanh toán bằng VietQR', // REVIEW
+  'landing.step3Body': 'Chuyển khoản cho nhau bằng mã VietQR.', // REVIEW
 
-  'trips.title': 'Chuyến đi của tôi', // REVIEW
+  'trips.title': 'Chuyến đi của bạn', // REVIEW
   'trips.new': 'Chuyến đi mới', // REVIEW
-  'trips.empty': 'Chưa có chuyến đi nào. Hãy tạo chuyến đi đầu tiên.', // REVIEW
+  'trips.emptyTitle': 'Lên kế hoạch cho chuyến đi đầu tiên', // REVIEW
+  'trips.emptyBody': 'Tạo chuyến đi, rồi chia sẻ một liên kết cho cả nhóm.', // REVIEW
   'trips.youreOwed': 'Bạn được nhận', // REVIEW
   'trips.youOwe': 'Bạn cần trả', // REVIEW
-  'trips.settled': 'Đã thanh toán hết', // REVIEW
-  'trips.archived': 'Đã lưu trữ', // REVIEW
+  'trips.settled': 'Đã thanh toán xong', // REVIEW
+  'trips.archived': 'đã lưu trữ', // REVIEW
+
+  'account.label': 'Tài khoản', // REVIEW
+  'account.language': 'Ngôn ngữ', // REVIEW
+  'account.signOut': 'Đăng xuất', // REVIEW
 
   'create.title': 'Chuyến đi mới', // REVIEW
   'create.tripName': 'Tên chuyến đi', // REVIEW
@@ -69,6 +80,9 @@ export const vi: Record<MessageKey, string> = {
   'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
   'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
   'create.submit': 'Tạo chuyến đi', // REVIEW
+  'create.suggestTitle': 'Từ các chuyến đi gần đây', // REVIEW
+  'create.hasAccount': '{name} · có tài khoản', // REVIEW
+  'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW
   'bank.popular': 'Phổ biến', // REVIEW
@@ -91,9 +105,12 @@ export const vi: Record<MessageKey, string> = {
   'who.title': 'Bạn là ai?', // REVIEW
   'who.subtitle': 'Chọn tên của bạn để tiếp tục.', // REVIEW
   'who.continueAs': 'Tiếp tục với tên {name}', // REVIEW
-  'who.memberHint': 'Đã đăng nhập — chạm để đăng nhập với tên {name}', // REVIEW
+  'who.hasAccount': 'Có tài khoản · đăng nhập bằng Google', // REVIEW
+  'who.search': 'Tìm tên', // REVIEW
+  'who.clearSearch': 'Xóa tìm kiếm', // REVIEW
+  'who.count': '{shown} trên {total} người', // REVIEW
+  'who.addNamed': 'Không có trong danh sách? Thêm "{name}"', // REVIEW
   'who.pending': 'Đang chờ duyệt', // REVIEW
-  'who.notOnList': 'Không có tên trong danh sách?', // REVIEW
   'who.newTitle': 'Tên của bạn là gì?', // REVIEW
   'who.newHint': 'Dùng tên mà bạn bè hay gọi bạn.', // REVIEW
   'who.nameLabel': 'Tên của bạn', // REVIEW
@@ -103,10 +120,9 @@ export const vi: Record<MessageKey, string> = {
 
   'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
   'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
-  'guest.youOwe': 'Bạn cần trả {name}', // REVIEW
-  'guest.youreOwed': 'Bạn được nhận', // REVIEW
-  'guest.settled': 'Bạn đã thanh toán hết', // REVIEW
-  'guest.dropsTo': 'Giảm xuống {amount} nếu các khoản chi của bạn được duyệt', // REVIEW
+  'guest.ifApprovedOwe': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ cần trả {amount}', // REVIEW
+  'guest.ifApprovedOwed': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ được nhận {amount}', // REVIEW
+  'guest.ifApprovedSettled': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ thanh toán hết', // REVIEW
   'guest.yourShare': 'Cách tính phần của bạn', // REVIEW
   'guest.yourTotal': 'Tổng của bạn', // REVIEW
   'guest.becomeMember': 'Đăng nhập bằng Google để trở thành thành viên', // REVIEW
@@ -115,14 +131,12 @@ export const vi: Record<MessageKey, string> = {
   'trip.total': 'Tổng chuyến đi {amount}', // REVIEW
   'trip.people': '{n} người', // REVIEW
   'trip.balances': 'Số dư', // REVIEW
-  'trip.whoPaysWhom': 'Ai trả ai', // REVIEW
   'trip.expenses': 'Khoản chi', // REVIEW
   'trip.addExpense': '+ Thêm khoản chi', // REVIEW
   'trip.pays': '{from} → {to}', // REVIEW
   'trip.viewOnly': 'Chỉ xem', // REVIEW
   'trip.you': 'Bạn', // REVIEW
   'trip.allSettled': 'Mọi người đã thanh toán hết.', // REVIEW
-  'trip.waitingConfirm': '{amount} đang chờ {name} xác nhận', // REVIEW
 
   'expense.youPaid': 'Bạn đã trả', // REVIEW
   'expense.personPaid': '{name} đã trả', // REVIEW
@@ -156,10 +170,23 @@ export const vi: Record<MessageKey, string> = {
   'expenseForm.save': 'Lưu thay đổi', // REVIEW
   'expenseForm.guestNote': 'Một thành viên trong nhóm sẽ duyệt trước khi tính.', // REVIEW
   'split.tab.equal': 'Chia đều', // REVIEW
-  'split.tab.amounts': 'Số tiền', // REVIEW
-  'split.tab.percent': '%', // REVIEW
-  'split.tab.shares': 'Số phần', // REVIEW
-  'split.tab.adjust': '± Điều chỉnh', // REVIEW
+  'split.mode.equal': 'Chia đều', // REVIEW
+  'split.mode.exact': 'Số tiền chính xác', // REVIEW
+  'split.mode.percent': 'Phần trăm', // REVIEW
+  'split.mode.shares': 'Số phần', // REVIEW
+  'split.mode.adjust': 'Điều chỉnh', // REVIEW
+  'split.captionEqual': 'Chia đều · {n} người · mỗi người {each}', // REVIEW
+  'split.captionEqualAbout': 'Chia đều · {n} người · mỗi người khoảng {each}', // REVIEW
+  'split.captionEqualNone': 'Chia đều · {n} người', // REVIEW
+  'split.captionExact': 'Số tiền chính xác · {n} người', // REVIEW
+  'split.captionExactLeft': 'Số tiền chính xác · {n} người · còn {amount} chưa chia', // REVIEW
+  'split.captionExactOver': 'Số tiền chính xác · {n} người · vượt {amount}', // REVIEW
+  'split.captionPercent': 'Theo phần trăm · {n} người', // REVIEW
+  'split.captionPercentLeft': 'Theo phần trăm · {n} người · còn {pct}%', // REVIEW
+  'split.captionPercentOver': 'Theo phần trăm · {n} người · vượt {pct}%', // REVIEW
+  'split.captionShares': 'Theo số phần · {n} người', // REVIEW
+  'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
+  'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
   'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.', // REVIEW
   'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.', // REVIEW
   'splitError.AMOUNTS_DONT_ADD_UP': 'Tổng số tiền không khớp với tổng chi phí.', // REVIEW
@@ -167,24 +194,42 @@ export const vi: Record<MessageKey, string> = {
   'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần chia phải lớn hơn 0.', // REVIEW
   'splitError.NEGATIVE_SHARE': 'Khoản điều chỉnh lớn hơn tổng số tiền.', // REVIEW
 
-  'member.stillOwed': 'Bạn vẫn được nhận', // REVIEW
-  'member.youOwe': 'Bạn cần trả', // REVIEW
-  'member.settled': 'Bạn đã thanh toán hết', // REVIEW
-  'member.ofTotal': 'trên {amount} · tổng chuyến đi {total}', // REVIEW
-  'member.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
   'member.settings': 'Cài đặt chuyến đi', // REVIEW
 
+  'balance.owed': 'Bạn được nhận', // REVIEW
+  'balance.owe': 'Bạn cần trả', // REVIEW
+  'balance.oweName': 'Bạn cần trả {name}', // REVIEW
+  'balance.settled': 'Bạn đã thanh toán xong', // REVIEW
+  'balance.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
+  'balance.received': 'đã nhận {amount}', // REVIEW
+  'balance.waitingFor': '{amount} đang chờ {name} xác nhận', // REVIEW
+
+  'invite.button': 'Mời', // REVIEW
+  'invite.title': 'Mời bạn bè', // REVIEW
+  'invite.cardTitle': 'Mời nhóm của bạn', // REVIEW
+  'invite.cardBody': 'Gửi liên kết này vào nhóm chat. Bạn bè chọn tên của mình, không cần tài khoản.', // REVIEW
+  'invite.share': 'Chia sẻ', // REVIEW
+  'invite.shareText': 'Tham gia "{trip}" để chia tiền:', // REVIEW
+
+  'expenses.emptyTitle': 'Thêm khoản chi đầu tiên', // REVIEW
+  'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.', // REVIEW
+  'expenses.emptyViewer': 'Chưa có khoản chi nào.', // REVIEW
+
   'approvals.title': 'Cần duyệt', // REVIEW
-  'approvals.fromGuest': 'từ khách', // REVIEW
-  'approvals.expense': '{name} đã thêm {description}', // REVIEW
+  'approvals.allTitle': 'Đang chờ duyệt', // REVIEW
+  'approvals.position': '{i} trên {n} đang chờ', // REVIEW
+  'approvals.previous': 'Trước', // REVIEW
+  'approvals.next': 'Tiếp', // REVIEW
+  'approvals.seeAll': 'Xem tất cả {n}', // REVIEW
+  'approvals.addedBy': '{name} đã thêm · {amount} · {split}', // REVIEW
+  'approvals.differentAmount': 'Số tiền nhận khác?', // REVIEW
   'approvals.approve': 'Duyệt', // REVIEW
   'approvals.edit': 'Chỉnh sửa', // REVIEW
   'approvals.reject': 'Từ chối', // REVIEW
   'approvals.rejectReason': 'Lý do từ chối?', // REVIEW
-  'approvals.name': 'Người mới: {name}', // REVIEW
-  'approvals.looksLike': 'Có vẻ giống {name}, người đã có trong nhóm', // REVIEW
+  'approvals.name': '{name} muốn tham gia', // REVIEW
+  'approvals.looksLike': 'Có vẻ giống {name}', // REVIEW
   'approvals.sameAs': 'Là {name}', // REVIEW
-  'approvals.newPerson': 'Người mới', // REVIEW
   'approvals.bank': '{name} đã thêm thông tin ngân hàng', // REVIEW
   'approvals.confirm': 'Xác nhận', // REVIEW
   'approvals.didntArrive': 'Chưa nhận được', // REVIEW
@@ -192,30 +237,35 @@ export const vi: Record<MessageKey, string> = {
   'approvals.notArrived': '{name} báo chưa nhận được {amount} từ {payer}', // REVIEW
   'approvals.disable': 'Vô hiệu hóa', // REVIEW
   'approvals.keep': 'Giữ lại', // REVIEW
-  'approvals.membership': '{user} ({email}) muốn tham gia với tên {name}', // REVIEW
+  'approvals.membership': '{name} muốn trở thành thành viên', // REVIEW
   'approvals.approveNameFirst': 'Duyệt {name} trước', // REVIEW
 
-  'whoPays.pay': 'Thanh toán', // REVIEW
-  'whoPays.remind': 'Nhắc', // REVIEW
   'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
-  'whoPays.toConfirm': 'Xác nhận', // REVIEW
   'whoPays.paid': 'Đã trả ✓', // REVIEW
-  'whoPays.waiting': 'Đang chờ', // REVIEW
-  'whoPays.received': 'Đã nhận', // REVIEW
+
+  'transfers.mine': 'Khoản chuyển của bạn', // REVIEW
+  'transfers.all': 'Ai trả ai', // REVIEW
+  'transfers.showAll': 'Xem tất cả', // REVIEW
+  'transfers.showMine': 'Chỉ của tôi', // REVIEW
+  'transfers.addBank': 'Thêm thông tin ngân hàng để có mã QR', // REVIEW
+  'transfers.markReceived': 'Đánh dấu đã nhận {amount} từ {name}', // REVIEW
+  'transfers.markPaid': 'Đánh dấu đã trả {amount} cho {name}', // REVIEW
+  'transfers.received': 'Đã nhận', // REVIEW
+  'transfers.paid': 'Tôi đã trả', // REVIEW
+  'transfers.receivedSnack': '{name} đã trả {amount}', // REVIEW
+  'transfers.paidSnack': 'Bạn đã trả {name} {amount}', // REVIEW
+  'transfers.waitingFor': 'Đang chờ {name}', // REVIEW
+  'transfers.nothingDue': '{name} hiện không nợ bạn khoản nào.', // REVIEW
   'payments.title': 'Các khoản đã trả', // REVIEW
   'payments.disable': 'Tắt', // REVIEW
   'payments.enable': 'Bật lại', // REVIEW
-  'payments.didntArrive': 'Chưa nhận được', // REVIEW
   'payments.reported': 'Đã báo. Một thành viên sẽ kiểm tra.', // REVIEW
   'payments.notArrivedPill': 'Chưa nhận được', // REVIEW
-  'guest.paysYou': 'Ai trả cho bạn', // REVIEW
   'remind.text': 'Chào {name}! Bạn còn {amount} cần trả {creditor} cho chuyến "{trip}". Xem chi tiết và chuyển khoản bằng VietQR: {link}', // REVIEW
 
   'expenses.disable': 'Vô hiệu hóa', // REVIEW
   'expenses.enable': 'Kích hoạt lại', // REVIEW
-  'expenses.actions': 'Thao tác cho {description}', // REVIEW
 
-  'share.title': 'Chia sẻ', // REVIEW
   'share.groupLink': 'Liên kết nhóm', // REVIEW
   'share.groupHint': 'Gửi vào nhóm chat của bạn. Bạn bè chọn tên của mình — không cần tài khoản.', // REVIEW
   'share.viewLink': 'Liên kết chỉ xem', // REVIEW
@@ -231,6 +281,10 @@ export const vi: Record<MessageKey, string> = {
   'settings.archive': 'Lưu trữ chuyến đi', // REVIEW
   'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này sau khi lưu trữ. Lưu trữ?', // REVIEW
   'settings.archived': 'Chuyến đi này đã được lưu trữ. Bạn vẫn có thể xem.', // REVIEW
+  'settings.bank': 'Thông tin ngân hàng của bạn', // REVIEW
+  'settings.language': 'Ngôn ngữ', // REVIEW
+  'settings.dangerZone': 'Vùng nguy hiểm', // REVIEW
+  'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ.', // REVIEW
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
@@ -247,6 +301,19 @@ export const vi: Record<MessageKey, string> = {
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
   'activity.someone': 'Ai đó', // REVIEW
   'activity.line': '{actor} {action}', // REVIEW
+  'activity.today': 'Hôm nay', // REVIEW
+  'activity.yesterday': 'Hôm qua', // REVIEW
+  'activity.device': 'thiết bị', // REVIEW
+  'activity.expenseAdded': '{actor} đã thêm {description} · {amount}', // REVIEW
+  'activity.expenseEdited': '{actor} đã sửa {description} · {amount}', // REVIEW
+  'activity.expenseApproved': '{actor} đã duyệt {description}', // REVIEW
+  'activity.expenseRejected': '{actor} đã từ chối {description}', // REVIEW
+  'activity.paymentRecorded': '{from} đã trả {to} {amount}', // REVIEW
+  'activity.paymentConfirmed': '{actor} đã xác nhận một khoản thanh toán · {amount}', // REVIEW
+  'activity.nameAdded': '{actor} đã thêm {name}', // REVIEW
+  'activity.nameApproved': '{actor} đã duyệt {name}', // REVIEW
+  'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
+  'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
   'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
   'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
   'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
@@ -275,23 +342,33 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW
 
   'pay.title': 'Thanh toán cho {name}', // REVIEW
-  'pay.bank': 'Ngân hàng', // REVIEW
+  'pay.toLine': 'đến {holder} · {bank}', // REVIEW
+  'pay.iPaid': 'Tôi đã chuyển', // REVIEW
+  'pay.iPaidHint': 'Chạm sau khi tiền đã rời khỏi tài khoản của bạn.', // REVIEW
+  'pay.sentTitle': 'Đã gửi thanh toán · {amount}', // REVIEW
+  'pay.sentBody': 'Đang chờ {name} xác nhận đã nhận được. Trang này sẽ tự động cập nhật.', // REVIEW
+  'pay.mistake': 'Chuyển nhầm? Nhờ {name} chạm "Chưa nhận được".', // REVIEW
+  'pay.paidTitle': 'Đã trả · {amount} cho {name}', // REVIEW
+  'pay.paidBody': 'Được tính ngay.', // REVIEW
+  'pay.stillOwed': 'Còn nợ {amount}', // REVIEW
+  'pay.showQrRest': 'Hiện mã QR cho phần còn lại', // REVIEW
+  'pay.bankAskThem': 'Nhờ họ thêm thông tin, rồi quay lại đây.', // REVIEW
+  'pay.scanWithPhone': 'Quét mã QR bằng ứng dụng ngân hàng trên điện thoại của bạn.', // REVIEW
   'pay.account': 'Số tài khoản', // REVIEW
-  'pay.name': 'Tên chủ tài khoản', // REVIEW
-  'pay.amount': 'Số tiền', // REVIEW
   'pay.note': 'Nội dung chuyển khoản', // REVIEW
   'pay.copyAccount': 'Sao chép số tài khoản', // REVIEW
   'pay.copyNote': 'Sao chép nội dung', // REVIEW
   'pay.copied': 'Đã sao chép', // REVIEW
-  'pay.scanHint': 'Quét bằng bất kỳ ứng dụng ngân hàng Việt Nam nào, hoặc lưu mã QR và chọn từ thư viện ảnh.', // REVIEW
   'pay.qrAlt': 'Mã VietQR thanh toán cho {name} {amount}', // REVIEW
   'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
   'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
-  'pay.paid': 'Đã thanh toán ✓', // REVIEW
   'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
   'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
   'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
   'pay.remindThem': 'Nhắc {name}', // REVIEW
+  'pay.share': 'Chia sẻ', // REVIEW
+  'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
+  'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.', // REVIEW
   'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
 
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
@@ -300,6 +377,63 @@ export const vi: Record<MessageKey, string> = {
   'bankForm.save': 'Lưu thông tin ngân hàng', // REVIEW
   'bankForm.saved': 'Đã lưu', // REVIEW
   'bankForm.pending': 'Đang chờ một thành viên duyệt thông tin ngân hàng của bạn.', // REVIEW
+  'bankForm.consentLabel': 'Tôi đồng ý với {link}', // REVIEW
+  'bankForm.privacyLink': 'thông báo quyền riêng tư', // REVIEW
   'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.', // REVIEW
+
+  'rows.swipeHint': 'Vuốt trái hoặc chạm vào dòng để xem tùy chọn', // REVIEW
+
+  'details.expense': 'Khoản chi', // REVIEW
+  'details.payment': 'Khoản chuyển', // REVIEW
+  'details.date': 'Ngày', // REVIEW
+  'details.paidBy': 'Người trả', // REVIEW
+  'details.addedBy': 'Người thêm', // REVIEW
+  'details.split': 'Cách chia', // REVIEW
+  'details.you': '{name} (bạn)', // REVIEW
+  'details.amountClaimed': 'Số tiền đã gửi', // REVIEW
+  'details.amountConfirmed': 'Số tiền đã nhận', // REVIEW
+  'details.recorded': 'Ghi lúc', // REVIEW
+  'details.gone': 'Mục này không còn trong chuyến đi.', // REVIEW
+  'details.backToTrip': 'Về chuyến đi', // REVIEW
+  'status.approved': 'Đã duyệt', // REVIEW
+  'who.guestTitle': 'Bạn tham gia với tư cách khách', // REVIEW
+  'who.guestExpenses': 'Khoản chi bạn thêm cần một thành viên duyệt.', // REVIEW
+  'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
+  'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ', // REVIEW
+  'myBank.title': 'Thông tin ngân hàng của bạn', // REVIEW
+  'myBank.none': 'Chưa có thông tin ngân hàng', // REVIEW
+  'myBank.add': 'Thêm', // REVIEW
+  'myBank.pending': 'Đang chờ thành viên duyệt', // REVIEW
+  'myBank.change': 'Đổi', // REVIEW
+  'myBank.locked': 'Chỉ thành viên mới đổi được', // REVIEW
+  'myBank.namePending': 'Bạn có thể thêm sau khi thành viên duyệt tên của bạn.', // REVIEW
+  'guestBank.title': 'Thông tin ngân hàng của {name}', // REVIEW
+  'guestBank.pending': 'Đang chờ thành viên duyệt.', // REVIEW
+  'guestBank.note': 'Thông tin bạn lưu được dùng ngay. Chỉ nhập thông tin do {name} đưa cho bạn.', // REVIEW
+  'guestBank.consent': '{name} đã đồng ý chia sẻ thông tin này. Xem {link}', // REVIEW
+  'guestBank.change': 'Đổi', // REVIEW
+  'guestBank.delete': 'Xóa', // REVIEW
+  'guestBank.deleteConfirm': 'Xóa thông tin ngân hàng của {name}? Sẽ không ai chuyển cho {name} bằng mã QR được cho đến khi có thông tin mới.', // REVIEW
+  'guestBank.deleted': 'Đã xóa', // REVIEW
+  'people.bank': 'Thông tin ngân hàng', // REVIEW
+  'people.bankNone': 'Chưa có thông tin ngân hàng', // REVIEW
+  'people.bankPending': 'Thông tin ngân hàng đang chờ duyệt', // REVIEW
+  'people.bankWaitingSuffix': 'đang chờ duyệt', // REVIEW
+  'transfers.addFor': 'Thêm thông tin ngân hàng cho {name}', // REVIEW
+  'activity.bankSet': '{actor} đã lưu thông tin ngân hàng của {name}', // REVIEW
+  'activity.bankRemoved': '{actor} đã xóa thông tin ngân hàng của {name}', // REVIEW
+  'activity.action.bank_set': 'đã lưu thông tin ngân hàng', // REVIEW
+  'activity.action.bank_removed': 'đã xóa thông tin ngân hàng', // REVIEW
+  'payments.mine': 'Khoản đã trả của bạn', // REVIEW
+  'payments.all': 'Tất cả khoản đã trả', // REVIEW
+  'payments.emptyMine': 'Chưa có khoản đã trả nào liên quan đến bạn.', // REVIEW
+  'payments.arrived': 'Đã nhận được', // REVIEW
+  'expenses.mine': 'Khoản chi của bạn', // REVIEW
+  'expenses.all': 'Tất cả khoản chi', // REVIEW
+  'expenses.emptyMine': 'Chưa có khoản chi nào liên quan đến bạn.', // REVIEW
+  'expense.youPaidTotal': 'Bạn đã trả {amount}', // REVIEW
+  'expense.personPaidTotal': '{name} đã trả {amount}', // REVIEW
+  'activity.paymentArrived': '{actor} cho biết đã nhận được một khoản thanh toán · {amount}', // REVIEW
+  'activity.action.payment_arrived': 'cho biết đã nhận được một khoản thanh toán', // REVIEW
 };
 

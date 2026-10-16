@@ -1,29 +1,34 @@
 import { useState } from 'react';
-import { useParams } from 'react-router';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router';
 import type { PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTripView } from '../api/hooks';
-import { apiSend, ApiClientError } from '../api/client';
+import { ApiClientError } from '../api/client';
+import { useTripAction } from '../lib/useTripAction';
+import { personActions } from '../lib/rowActions';
+import { SwipeGroupProvider } from '../lib/useSwipeReveal';
 import { Screen } from '../components/Screen';
 import { Avatar } from '../components/Avatar';
 import { Pill } from '../components/Pill';
 import { Button } from '../components/Button';
 import { Sheet } from '../components/Sheet';
+import { ActionRow } from '../components/ActionRow';
+import { ActionSheet } from '../components/ActionSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import './People.css';
 
 export function People() {
   const { tripId } = useParams<{ tripId: string }>();
-  const queryClient = useQueryClient();
   const t = useT();
+  const navigate = useNavigate();
 
-  const { view, error, isLoading, refetch } = useTripView(tripId ?? '', 0);
+  const { view, error: loadError, isLoading, refetch } = useTripView(tripId ?? '', 0);
+  const { busy, error, run } = useTripAction(tripId ?? '');
 
   const [mergeSource, setMergeSource] = useState<PersonView | null>(null);
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [menuFor, setMenuFor] = useState<PersonView | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -35,10 +40,10 @@ export function People() {
     );
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
-        <InlineError error={error} onRetry={refetch} />
+        <InlineError error={loadError} onRetry={refetch} />
       </Screen>
     );
   }
@@ -47,38 +52,38 @@ export function People() {
     return null;
   }
 
-  const handleRemove = async (person: PersonView) => {
-    setRemovingId(person.id);
-    setRowErrors((prev) => {
-      const next = { ...prev };
-      delete next[person.id];
-      return next;
+  const remove = async (person: PersonView) => {
+    if (busy) return;
+    setActingId(person.id);
+    await run(`/people/${person.id}`, undefined, 'DELETE');
+  };
+
+  /** A person who is in an expense or payment cannot be removed: the API says 409, and merging is the way. */
+  const actionErrorText = (err: unknown) =>
+    err instanceof ApiClientError && err.status === 409 ? t('people.useMerge') : (err as Error).message || t('error.generic');
+
+  const actionsFor = (person: PersonView) =>
+    personActions(view, person, {
+      t,
+      onMerge: () => setMergeSource(person),
+      onRemove: () => {
+        void remove(person);
+      },
+      onBank: () => navigate(`/t/${tripId}/people/${person.id}/bank`),
     });
 
-    try {
-      await apiSend(
-        `/api/trips/${tripId}/people/${person.id}`,
-        'DELETE',
-        undefined,
-        tripId,
-      );
-      await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-    } catch (err) {
-      if (err instanceof ApiClientError && err.status === 409) {
-        setRowErrors((prev) => ({ ...prev, [person.id]: t('people.useMerge') }));
-      } else {
-        setRowErrors((prev) => ({
-          ...prev,
-          [person.id]: (err as Error).message || t('error.generic'),
-        }));
-      }
-    } finally {
-      setRemovingId(null);
+  /** A guest's bank details under their name; members manage their own, so they get none. */
+  const bankLine = (person: PersonView): string | null => {
+    if (person.isMember) return null;
+    if (person.bankAccount) {
+      const account = `${person.bankAccount.bankName} · ${person.bankAccount.accountNumberMasked}`;
+      return person.bank === 'pending' ? `${account} · ${t('people.bankWaitingSuffix')}` : account;
     }
+    return person.bank === 'pending' ? t('people.bankPending') : t('people.bankNone');
   };
 
   const handleChooseTarget = async (target: PersonView) => {
-    if (!mergeSource) return;
+    if (!mergeSource || busy) return;
 
     const confirmed = window.confirm(
       t('people.mergeConfirm', {
@@ -88,74 +93,65 @@ export function People() {
     );
     if (!confirmed) return;
 
-    try {
-      await apiSend(
-        `/api/trips/${tripId}/people/merge`,
-        'POST',
-        { fromId: mergeSource.id, intoId: target.id },
-        tripId,
-      );
-      await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      setMergeSource(null);
-    } catch (err) {
-      alert((err as Error).message || t('error.generic'));
-    }
+    const sourceId = mergeSource.id;
+    setMergeSource(null);
+    setActingId(sourceId);
+    await run('/people/merge', { fromId: sourceId, intoId: target.id });
   };
 
   return (
     <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
       <div className="fsl-people">
-        <p className="fsl-people__explain">{t('people.mergeExplain')}</p>
+        <SwipeGroupProvider>
+          <ul className="fsl-people__list">
+            {view.people.map((person, index) => {
+              const actions = actionsFor(person);
+              const isOrganiser =
+                person.isOrganiser === true ||
+                (view.me.isOrganiser && person.id === view.me.participantId);
+              const roleText = isOrganiser
+                ? t('people.organiser')
+                : person.isMember
+                  ? t('people.member')
+                  : t('people.guest');
+              const roleTone = isOrganiser ? 'accent' : 'neutral';
+              const hasRowError = actingId === person.id && Boolean(error);
 
-        <div className="fsl-card">
-          {view.people.map((person) => {
-            const hasRowError = Boolean(rowErrors[person.id]);
-            return (
-              <div key={person.id} className="fsl-people__row">
-                <div className="fsl-people__row-main">
-                  <div className="fsl-people__info">
-                    <Avatar name={person.name} />
-                    <div className="fsl-people__details">
-                      <div className="fsl-people__name-line">
-                        <span className="fsl-people__name">{person.name}</span>
-                        {person.status === 'pending' && (
-                          <Pill tone="warning">{t('who.pending')}</Pill>
-                        )}
-                      </div>
-                      <span className="fsl-people__role">
-                        {person.isMember
-                          ? t('people.member')
-                          : t('people.guest')}
-                      </span>
-                    </div>
-                  </div>
+              return (
+                <li key={person.id} className="fsl-people__item">
+                  <ActionRow
+                    label={`${person.name}, ${roleText}`}
+                    actions={actions}
+                    onOpen={actions.length > 0 ? () => setMenuFor(person) : undefined}
+                    hintable={index === 0}
+                    leading={<Avatar name={person.name} />}
+                  >
+                    <span className="fsl-people__text">
+                      <span className="fsl-people__name">{person.name}</span>
+                      {bankLine(person) !== null && <span className="fsl-people__bank">{bankLine(person)}</span>}
+                    </span>
+                    <Pill tone={roleTone}>{roleText}</Pill>
+                    {person.status === 'pending' && (
+                      <Pill tone="warning">{t('who.pending')}</Pill>
+                    )}
+                  </ActionRow>
+                  {hasRowError && (
+                    <p className="fsl-people__row-error" role="alert">
+                      {actionErrorText(error)}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </SwipeGroupProvider>
 
-                  <div className="fsl-people__actions">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setMergeSource(person)}
-                    >
-                      {t('people.merge')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      loading={removingId === person.id}
-                      onClick={() => handleRemove(person)}
-                    >
-                      {t('people.remove')}
-                    </Button>
-                  </div>
-                </div>
-
-                {hasRowError && (
-                  <div className="fsl-people__row-error">
-                    {rowErrors[person.id]}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <ActionSheet
+          open={menuFor !== null}
+          onClose={() => setMenuFor(null)}
+          title={menuFor?.name ?? ''}
+          actions={menuFor ? actionsFor(menuFor) : []}
+        />
 
         <Sheet
           open={mergeSource !== null}
@@ -164,6 +160,7 @@ export function People() {
             mergeSource ? t('people.mergeInto', { name: mergeSource.name }) : ''
           }
         >
+          <p className="fsl-people__explain">{t('people.mergeExplain')}</p>
           <div className="fsl-people__targets">
             {mergeSource &&
               view.people
@@ -173,6 +170,7 @@ export function People() {
                     key={target.id}
                     variant="secondary"
                     block
+                    className="fsl-people__target"
                     onClick={() => handleChooseTarget(target)}
                   >
                     {target.name}

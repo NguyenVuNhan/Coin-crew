@@ -5,67 +5,100 @@
   width: 100%;
 }
 
+.fsl-pay--narrow {
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+/* A failed "I've paid" adds an error above the button in the fixed bottom bar (phones): more room to scroll clear. */
+@media (max-width: 1023px) {
+  .fsl-pay--bar-error {
+    padding-bottom: calc(var(--space-8) * 3);
+  }
+}
+
+.fsl-pay__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 1024px) {
+  .fsl-pay__layout {
+    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-areas:
+      "qr hero"
+      "qr body";
+    grid-template-rows: auto 1fr;
+    column-gap: var(--space-8);
+    align-items: start;
+  }
+}
+
+@media (min-width: 1024px) {
+  .fsl-pay__qr {
+    grid-area: qr;
+    min-width: 0;
+  }
+}
+
 .fsl-pay__hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) 0;
   text-align: center;
+  gap: var(--space-1);
 }
 
-.fsl-pay__hero-label {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
+@media (min-width: 1024px) {
+  .fsl-pay__hero {
+    grid-area: hero;
+    align-items: flex-start;
+    text-align: left;
+  }
 }
 
-.fsl-pay__qr-card {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+.fsl-pay__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-width: 0;
 }
 
-.fsl-pay__qr-wrap {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+@media (min-width: 1024px) {
+  .fsl-pay__body {
+    grid-area: body;
+  }
+}
+
+.fsl-pay__to {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.fsl-pay__rows {
   background-color: var(--color-surface);
-  padding: var(--space-2);
-}
-
-.fsl-pay__qr-image {
-  max-width: 240px;
-  max-height: 240px;
-  width: 100%;
-  aspect-ratio: 1;
-  display: block;
-  background-color: var(--color-surface);
-}
-
-.fsl-pay__qr-placeholder {
-  width: 240px;
-  height: 240px;
-  background-color: var(--color-surface);
-}
-
-.fsl-pay__details {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-3);
 }
 
 .fsl-pay__row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
   font-size: var(--text-sm);
-  min-height: 28px;
+}
+
+.fsl-pay__row + .fsl-pay__row {
+  border-top: 1px solid var(--color-border);
 }
 
 .fsl-pay__row-label {
@@ -76,21 +109,25 @@
   color: var(--color-text);
   font-weight: var(--weight-medium);
   text-align: right;
-}
-
-.fsl-pay__row-value--with-action {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+.fsl-pay__account-number {
+  font-variant-numeric: tabular-nums;
 }
 
 .fsl-pay__memo {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
   background-color: var(--color-warning-soft);
   color: var(--color-warning-text);
-  padding: 1px var(--space-2);
+  padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
 }
 
 .fsl-pay__icon-btn {
@@ -105,12 +142,14 @@
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color var(--motion-fast) var(--ease-out), background-color var(--motion-fast) var(--ease-out);
 }
 
-.fsl-pay__icon-btn:hover {
-  color: var(--color-text);
-  background-color: var(--color-surface-muted);
+@media (hover: hover) {
+  .fsl-pay__icon-btn:hover {
+    color: var(--color-text);
+    background-color: var(--color-surface-muted);
+  }
 }
 
 .fsl-pay__icon-btn:focus-visible {
@@ -118,120 +157,124 @@
   box-shadow: var(--focus-ring);
 }
 
+@media (min-width: 1024px) {
+  .fsl-pay__icon-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
 .fsl-pay__keep-note {
-  margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+  margin: 0;
 }
 
 .fsl-pay__scan-hint {
-  margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-subtle);
+  margin: 0;
 }
 
-.fsl-pay__actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.fsl-pay__actions > * {
-  flex: 1;
-}
-
-.fsl-pay__status-block {
-  width: 100%;
-}
-
-.fsl-pay__status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
+.fsl-pay__hint {
   font-size: var(--text-sm);
-  background-color: var(--color-accent-soft);
-  color: var(--color-accent-soft-text);
-}
-
-.fsl-pay__status--stopped {
-  background-color: var(--color-surface-muted);
   color: var(--color-text-muted);
-  justify-content: center;
+  margin: 0;
+  text-align: center;
 }
 
-.fsl-pay__status--confirmed {
-  background-color: var(--color-success-soft);
-  color: var(--color-success);
-  font-weight: var(--weight-semibold);
-  justify-content: center;
-}
-
-.fsl-pay__status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background-color: var(--color-accent);
-  flex-shrink: 0;
-  animation: fsl-pulse 1.4s infinite ease-in-out;
-}
-
-@keyframes fsl-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(0.85);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fsl-pay__status-dot {
-    animation: none;
-  }
-}
-
-.fsl-pay__already-paid-wrap {
+.fsl-pay__stopped {
   display: flex;
   justify-content: center;
 }
 
-.fsl-pay__already-paid {
-  color: var(--color-accent);
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
-}
-
-.fsl-pay__already-paid:hover:not(:disabled) {
-  color: var(--color-accent-strong);
-  background-color: var(--color-accent-soft);
-}
-
-.fsl-pay__notice-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+.fsl-pay__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .fsl-pay__notice {
+  margin: 0;
   padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-muted);
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
+  color: var(--color-text-muted);
 }
 
-.fsl-pay__notice--pending {
+.fsl-pay__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fsl-pay__card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fsl-pay__card--sent .fsl-pay__card-icon {
   background-color: var(--color-warning-soft);
   color: var(--color-warning-text);
-  border: 1px solid var(--color-warning-border);
 }
 
-.fsl-pay__notice--none {
-  background-color: var(--color-surface-muted);
+.fsl-pay__card--paid .fsl-pay__card-icon {
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.fsl-pay__card-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+  font-weight: var(--weight-semibold);
   color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fsl-pay__card-body {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text-muted);
+}
+
+.fsl-pay__card-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.fsl-pay__owed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fsl-pay__owed p {
+  margin: 0;
+  font-weight: var(--weight-medium);
 }
 
 .fsl-pay__loading {
@@ -264,4 +307,10 @@
   font-size: var(--text-base);
   color: var(--color-text-muted);
   margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-pay__icon-btn {
+    transition: none;
+  }
 }

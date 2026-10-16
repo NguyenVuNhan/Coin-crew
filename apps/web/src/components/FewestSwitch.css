@@ -1,0 +1,76 @@
+.fsl-fewest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+.fsl-fewest__switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.fsl-fewest__switch:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.fsl-fewest__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-fewest__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.fsl-fewest__track--on {
+  background: var(--color-accent);
+}
+
+.fsl-fewest__track--on::after {
+  transform: translateX(14px);
+}
+
+.fsl-fewest__label {
+  font-weight: var(--weight-semibold);
+}
+
+.fsl-fewest__explain {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsl-fewest__track,
+  .fsl-fewest__track::after {
+    transition: none;
+  }
+}
