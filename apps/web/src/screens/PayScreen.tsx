@@ -5,6 +5,7 @@ import { formatVnd, type PayInfo, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
+import { canManageBankOf } from '../lib/rowActions';
 import { usePayInfo } from '../api/payInfo';
 import { groupLink, remind } from '../lib/remind';
 import { useIsWide, useIsCoarsePointer } from '../lib/media';
@@ -279,9 +280,16 @@ export function PayScreen() {
           // Not for "waiting for approval": they did add them.
           body={payInfo.bankState === 'none' ? t('pay.bankAskThem') : undefined}
           action={
-            <Button variant="secondary" block onClick={handleRemind}>
-              {t('pay.remindThem', { name })}
-            </Button>
+            <>
+              <Button variant="secondary" block onClick={handleRemind}>
+                {t('pay.remindThem', { name })}
+              </Button>
+              {payInfo.bankState === 'none' && view && canManageBankOf(view, payInfo.to.id) && (
+                <Button href={`/t/${tripId}/people/${payInfo.to.id}/bank`} variant="secondary" block>
+                  {t('transfers.addFor', { name })}
+                </Button>
+              )}
+            </>
           }
         />
         <p className="fsl-pay__hint" aria-live="polite">

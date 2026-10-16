@@ -47,6 +47,19 @@ describe('WhoAreYou', () => {
     expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ participantId: PIDS.C });
   });
 
+  it('warns guests what they can do before they pick, with a way to sign in', async () => {
+    mockApi({ 'GET /api/trips/t-1/people/picker': picker() });
+    renderAt(<WhoAreYou />, route);
+    const note = await screen.findByRole('note', { name: 'Joining as a guest' });
+    expect(within(note).getByText('Expenses you add wait for a member to approve.')).toBeInTheDocument();
+    expect(within(note).getByText('Your bank details wait for a member too. After that, only a member can change them.')).toBeInTheDocument();
+    const signIn = within(note).getByRole('link', { name: 'Sign in with Google for full access' });
+    expect(signIn.getAttribute('href')).toBe(`/api/auth/google/start?returnTo=${encodeURIComponent('/t/t-1')}`);
+    // Above the list, so it is read before a name is picked.
+    const list = screen.getByRole('radiogroup', { name: 'Who are you?' });
+    expect(note.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('a member name sends you to Google sign-in', async () => {
     mockApi({ 'GET /api/trips/t-1/people/picker': picker() });
     renderAt(<WhoAreYou />, route);

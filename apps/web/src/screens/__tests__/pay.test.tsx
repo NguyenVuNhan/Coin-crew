@@ -165,6 +165,21 @@ describe('PayScreen', () => {
     expect(screen.queryByRole('button', { name: "I've paid" })).not.toBeInTheDocument();
   });
 
+  it('a member paying a guest without bank details can add them for the guest', async () => {
+    const view = tripView({ suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 300000 }] });
+    api(payInfo({ to: { id: PIDS.C, name: 'Chi' }, amount: 300000, bankState: 'none', bank: null, payload: null }), {}, view);
+    renderAt(<PayScreen />, { route: `/t/t-1/pay/${PIDS.C}`, path: '/t/:tripId/pay/:toId' });
+    expect(await screen.findByText("Chi hasn't added bank details yet")).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add bank details for Chi' })).toHaveAttribute('href', '/t/t-1/people/p-chi/bank');
+  });
+
+  it('a guest paying someone without bank details only gets Remind', async () => {
+    api(payInfo({ bankState: 'none', bank: null, payload: null }));
+    renderAt(<PayScreen />, payRoute);
+    await screen.findByText("Minh hasn't added bank details yet");
+    expect(screen.queryByRole('link', { name: /^Add bank details for/ })).toBeNull();
+  });
+
   it('nothing owed and nothing on the way: says so and goes back to the trip', async () => {
     api(payInfo({ amount: 0, payload: null }));
     renderAt(<PayScreen />, payRoute);
@@ -439,5 +454,24 @@ describe('BankDetails', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: 'I agree to the privacy notice' }));
     await userEvent.click(save);
     await waitFor(() => expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({ bin: '970422', accountNumber: '0123456789', holderName: 'NGUYEN VAN MINH', consent: true }));
+  });
+
+  it('a guest whose details are approved gets no form: only a member changes them', async () => {
+    const v = guestChiView();
+    const account = { bankName: 'VPBank', accountNumberMasked: '0123 •••• 6789', holderName: 'TRAN THI CHI' };
+    mockApi({ 'GET /api/trips/t-1': { ...v, people: v.people.map((p) => (p.id === PIDS.C ? { ...p, bank: 'approved' as const, bankAccount: account } : p)) } });
+    renderAt(<BankDetails />, route);
+    expect(await screen.findByText('Only a member can change them')).toBeInTheDocument();
+    expect(screen.getByText('VPBank · 0123 •••• 6789')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Account number')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save bank details' })).toBeNull();
+  });
+
+  it('a guest whose name waits gets no form yet', async () => {
+    const v = guestChiView();
+    mockApi({ 'GET /api/trips/t-1': { ...v, me: { ...v.me, participantPending: true } } });
+    renderAt(<BankDetails />, route);
+    expect(await screen.findByText('You can add them once a member approves your name.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Account number')).toBeNull();
   });
 });

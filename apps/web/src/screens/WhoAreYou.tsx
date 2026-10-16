@@ -24,6 +24,8 @@ export function WhoAreYou() {
 
   const nameInputId = useId();
   const listboxId = useId();
+  const guestNoteId = useId();
+  const signInHref = `/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`;
 
   const [step, setStep] = useState<'pick' | 'new'>('pick');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -214,6 +216,20 @@ export function WhoAreYou() {
       <div
         className={`fsl-who${step === 'pick' && actionError ? ' fsl-who--bar-error' : ''}`}
       >
+        <section className="fsl-who__guest-note" role="note" aria-labelledby={guestNoteId}>
+          <h2 id={guestNoteId} className="fsl-who__guest-title">
+            <Icon name="info" size={16} />
+            {t('who.guestTitle')}
+          </h2>
+          <ul className="fsl-who__guest-list">
+            <li>{t('who.guestExpenses')}</li>
+            <li>{t('who.guestBank')}</li>
+          </ul>
+          <a href={signInHref} className="fsl-who__guest-signin">
+            {t('who.guestSignIn')}
+          </a>
+        </section>
+
         <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
 
         {step === 'pick' ? (

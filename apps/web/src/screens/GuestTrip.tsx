@@ -14,6 +14,7 @@ import { TransfersSnackbar, YourTransfers, useTransfersState } from '../componen
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
+import { MyBankRow } from '../components/MyBankRow';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import './GuestTrip.css';
@@ -98,21 +99,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
 
   const balance = hasExpenses ? <BalanceCard view={view} /> : null;
 
-  const bankPrompt =
-    !archived && myBalance && myBalance.now > 0 && myPerson && myPerson.bank !== 'approved' ? (
-      <div className="fsl-notice fsl-notice--accent">
-        {myPerson.bank === 'pending' ? (
-          t('bankForm.pending')
-        ) : (
-          <>
-            <span>{t('bankForm.addPrompt')} </span>
-            <Link to={`/t/${view.trip.id}/bank`}>
-              {t('bankForm.title')}
-            </Link>
-          </>
-        )}
-      </div>
-    ) : null;
+  // Always there (not only when someone owes the guest), so they can add details early; archived trips get none.
+  const bankRow = <MyBankRow view={view} />;
 
   const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} state={transfersState} /> : null;
 
@@ -201,7 +189,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         {!wide ? (
           <>
             {balance}
-            {bankPrompt}
+            {bankRow}
             {transfers}
             {payments(true)}
             {share}
@@ -221,7 +209,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
               ) : (
                 <>
                   {balance}
-                  {bankPrompt}
+                  {bankRow}
                   {transfers}
                   {share}
                 </>

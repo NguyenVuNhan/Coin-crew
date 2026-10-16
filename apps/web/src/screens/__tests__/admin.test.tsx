@@ -127,6 +127,44 @@ describe('People', () => {
     expect(within(dialog).queryByRole('button', { name: 'Remove' })).toBeNull();
   });
 
+  it('guests show their bank details, and members manage them from the row', async () => {
+    const view = anView();
+    const account = { bankName: 'VPBank', accountNumberMasked: '0123 •••• 6789', holderName: 'TRAN THI CHI' };
+    mockApi({
+      'GET /api/trips/t-1': {
+        ...view,
+        people: view.people.map((p) =>
+          p.id === PIDS.C ? { ...p, bank: 'approved' as const, bankAccount: account } : p.id === PIDS.B ? { ...p, bank: 'pending' as const } : p,
+        ),
+      },
+    });
+    renderAt(<People />, at('people'));
+    await screen.findByRole('button', { name: /^Chi,/ });
+    expect(within(rowOf('Chi')).getByText('VPBank · 0123 •••• 6789')).toBeInTheDocument();
+    expect(within(rowOf('Bình')).getByText('Bank details waiting')).toBeInTheDocument();
+    // Members manage their own details: no bank line and no action on their rows.
+    expect(within(rowOf('Minh')).queryByText(/bank details/i)).toBeNull();
+    expect(within(rowOf('Minh')).queryByRole('button', { name: 'Bank details' })).toBeNull();
+    await userEvent.click(within(rowOf('Chi')).getByRole('button', { name: 'Bank details' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/people/p-chi/bank'));
+  });
+
+  it("a guest's waiting account says it waits", async () => {
+    const view = anView();
+    const account = { bankName: 'VPBank', accountNumberMasked: '0123 •••• 6789', holderName: 'TRAN THI CHI' };
+    mockApi({ 'GET /api/trips/t-1': { ...view, people: view.people.map((p) => (p.id === PIDS.C ? { ...p, bank: 'pending' as const, bankAccount: account } : p)) } });
+    renderAt(<People />, at('people'));
+    await screen.findByRole('button', { name: /^Chi,/ });
+    expect(within(rowOf('Chi')).getByText('VPBank · 0123 •••• 6789 · waiting for approval')).toBeInTheDocument();
+  });
+
+  it('a guest with no bank details says so', async () => {
+    mockApi({ 'GET /api/trips/t-1': anView() });
+    renderAt(<People />, at('people'));
+    await screen.findByRole('button', { name: /^Chi,/ });
+    expect(within(rowOf('Chi')).getByText('No bank details')).toBeInTheDocument();
+  });
+
   it('offers nothing to change in an archived trip', async () => {
     const view = anView();
     mockApi({ 'GET /api/trips/t-1': { ...view, trip: { ...view.trip, archived: true } } });
@@ -134,6 +172,7 @@ describe('People', () => {
     await screen.findByRole('button', { name: /^Chi,/ });
     expect(screen.queryByRole('button', { name: 'Merge' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Bank details' })).toBeNull();
   });
 
   it('a tap on a person opens the same two actions in a sheet', async () => {

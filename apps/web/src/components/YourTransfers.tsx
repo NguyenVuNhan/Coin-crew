@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type JSX } from 'react';
 import { formatVnd, type PaymentView, type Transfer, type TripView } from '@fsl/core';
 import { useT, getLang } from '../i18n';
 import { nameOf } from '../lib/tripText';
+import { canManageBankOf } from '../lib/rowActions';
 import { groupLink, remind, remindText } from '../lib/remind';
 import { usePayInfo } from '../api/payInfo';
 import { useIsCoarsePointer } from '../lib/media';
@@ -98,6 +99,11 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
         >
           {t('pay.remindThem', { name: info.to.name })}
         </Button>
+        {canManageBankOf(view, row.toId) && (
+          <Button href={`/t/${tripId}/people/${row.toId}/bank`} variant="secondary" block>
+            {t('transfers.addFor', { name: info.to.name })}
+          </Button>
+        )}
         <p className="fsl-transfers__note" aria-live="polite">{copied ? t('whoPays.remindCopied') : null}</p>
       </>
     );

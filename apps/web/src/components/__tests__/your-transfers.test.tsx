@@ -207,6 +207,33 @@ describe('Your transfers: the QR in place', () => {
     expect(share).toHaveBeenCalledWith({ text: expect.stringContaining('Please add your bank details in "Đà Lạt · Oct 2026"') });
   });
 
+  it('a member who owes a guest without bank details can add them for the guest', async () => {
+    const view = tripView({ suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 300000 }] });
+    mockApi({ 'GET /api/trips/t-1/pay/p-chi': payInfo({ to: { id: PIDS.C, name: 'Chi' }, bankState: 'none', bank: null, payload: null }) });
+    renderAt(<YourTransfers view={view} />, { route: '/t/t-1' });
+    await userEvent.click(row(/^You → Chi/));
+    expect(await screen.findByText("Chi hasn't added bank details yet")).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add bank details for Chi' })).toHaveAttribute('href', '/t/t-1/people/p-chi/bank');
+    expect(screen.getByRole('button', { name: 'Remind Chi' })).toBeInTheDocument();
+  });
+
+  it('a guest, or a member owing another member, only gets Remind', async () => {
+    mockApi({ [`GET ${PAY_TO_MINH}`]: payInfo({ bankState: 'none', bank: null, payload: null }) });
+    const guest = renderAt(<YourTransfers view={chi()} />);
+    await userEvent.click(row(/^You → Minh/));
+    await screen.findByText("Minh hasn't added bank details yet");
+    expect(screen.queryByRole('link', { name: /^Add bank details for/ })).toBeNull();
+    guest.unmount();
+
+    const base = tripView({ suggestions: [{ fromId: PIDS.M, toId: PIDS.A, amount: 300000 }] });
+    const view = { ...base, people: base.people.map((p) => (p.id === PIDS.A ? { ...p, isMember: true } : p)) };
+    mockApi({ 'GET /api/trips/t-1/pay/p-an': payInfo({ to: { id: PIDS.A, name: 'An' }, bankState: 'none', bank: null, payload: null }) });
+    renderAt(<YourTransfers view={view} />, { route: '/t/t-1' });
+    await userEvent.click(row(/^You → An/));
+    await screen.findByText("An hasn't added bank details yet");
+    expect(screen.queryByRole('link', { name: /^Add bank details for/ })).toBeNull();
+  });
+
   it('their bank details waiting for approval: no QR, no Remind', async () => {
     mockApi({ [`GET ${PAY_TO_MINH}`]: payInfo({ bankState: 'pending', bank: null, payload: null }) });
     renderAt(<YourTransfers view={chi()} />);

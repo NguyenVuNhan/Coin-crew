@@ -90,22 +90,57 @@ describe('guest page on a phone', () => {
     expect(screen.queryByText(/If your expenses are approved/)).toBeNull();
   });
 
-  it('shows what the guest is owed, and asks for bank details once', async () => {
+  it('shows what the guest is owed and one row for their bank details', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': chiIsOwed() });
     renderAt(<TripRoute />, route);
     expect(await screen.findByText("You're owed")).toBeInTheDocument();
     expect(screen.getAllByText('200.000₫').length).toBeGreaterThan(0);
     expect(screen.queryByRole('link', { name: 'Pay with VietQR' })).toBeNull();
-    const prompts = screen.getAllByText(/Add your bank details so friends can pay you with VietQR\./);
-    expect(prompts).toHaveLength(1);
-    expect(within(prompts[0]!.parentElement!).getByRole('link', { name: 'Your bank details' })).toHaveAttribute('href', '/t/t-1/bank');
+    const rows = screen.getAllByRole('region', { name: 'Your bank details' });
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]!).getByText('No bank details yet')).toBeInTheDocument();
+    expect(within(rows[0]!).getByRole('link', { name: 'Add' })).toHaveAttribute('href', '/t/t-1/bank');
   });
 
-  it('says when the bank details wait for a member', async () => {
-    const view = chiIsOwed();
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': { ...view, people: view.people.map((p) => (p.id === PIDS.C ? { ...p, bank: 'pending' as const } : p)) } });
+  it('offers to add bank details even when nobody owes the guest', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
     renderAt(<TripRoute />, route);
-    expect(await screen.findByText('Waiting for a member to approve your bank details.')).toBeInTheDocument();
+    const row = await screen.findByRole('region', { name: 'Your bank details' });
+    expect(within(row).getByRole('link', { name: 'Add' })).toHaveAttribute('href', '/t/t-1/bank');
+  });
+
+  it('shows waiting details with Change, and approved ones locked', async () => {
+    const account = { bankName: 'VPBank', accountNumberMasked: '0123 •••• 6789', holderName: 'TRAN THI CHI' };
+    const withBank = (bank: 'pending' | 'approved'): TripView => {
+      const v = chiIsOwed();
+      return { ...v, people: v.people.map((p) => (p.id === PIDS.C ? { ...p, bank, bankAccount: account } : p)) };
+    };
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': withBank('pending') });
+    const waiting = renderAt(<TripRoute />, route);
+    let row = await screen.findByRole('region', { name: 'Your bank details' });
+    expect(within(row).getByText('VPBank · 0123 •••• 6789')).toBeInTheDocument();
+    expect(within(row).getByText('Waiting for a member to approve')).toBeInTheDocument();
+    expect(within(row).getByRole('link', { name: 'Change' })).toHaveAttribute('href', '/t/t-1/bank');
+    waiting.unmount();
+
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': withBank('approved') });
+    renderAt(<TripRoute />, route);
+    row = await screen.findByRole('region', { name: 'Your bank details' });
+    expect(within(row).getByText('VPBank · 0123 •••• 6789')).toBeInTheDocument();
+    expect(within(row).getByText('Only a member can change them')).toBeInTheDocument();
+    expect(within(row).queryByRole('link')).toBeNull();
+  });
+
+  it('tells a guest whose name waits when they can add bank details', async () => {
+    const v = guestChiView();
+    mockApi({
+      ...TRIP_API,
+      'GET /api/trips/t-1': { ...v, me: { ...v.me, participantPending: true }, people: v.people.map((p) => (p.id === PIDS.C ? { ...p, status: 'pending' as const } : p)) },
+    });
+    renderAt(<TripRoute />, route);
+    const row = await screen.findByRole('region', { name: 'Your bank details' });
+    expect(within(row).getByText('You can add them once a member approves your name.')).toBeInTheDocument();
+    expect(within(row).queryByRole('link')).toBeNull();
   });
 
   it('lists the guest\'s debts and what is owed to them in Your transfers, and nothing is left of "Who pays you"', async () => {
@@ -230,7 +265,7 @@ describe('guest page on an archived trip', () => {
     const expenses = await screen.findByRole('region', { name: 'Expenses' });
     expect(screen.getByText('This trip is archived. You can still look at it.')).toBeInTheDocument();
     expect(within(expenses).queryByRole('link', { name: '+ Add expense' })).toBeNull();
-    expect(screen.queryByText(/Add your bank details so friends can pay you with VietQR\./)).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Your bank details' })).toBeNull();
     owed.unmount();
 
     const empty = archived({ ...guestChiView(), expenses: [], suggestions: [], balances: {}, payments: [], myBalance: myBalance(0, null) });

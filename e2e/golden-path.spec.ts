@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Browser, type Page } from '@playwright/test';
 
 // Golden path at 375px: Minh (member) creates a trip and adds the homestay; Chi joins from the group link
 // without an account, adds street food (waits for approval), pays Minh with VietQR and Minh confirms.
@@ -8,10 +8,26 @@ async function noSidewaysScroll(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 }
 
+/** The app starts in Vietnamese; these people picked English, so the steps read the English copy. */
+async function englishContext(browser: Browser) {
+  const context = await browser.newContext();
+  await context.addInitScript(() => localStorage.setItem('lang', 'en'));
+  return context;
+}
+
+test('a first visit is in Vietnamese, whatever the browser language', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'en-US' });
+  const page = await context.newPage();
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
+  await expect(page.getByRole('button', { name: 'Chuyển sang English' })).toBeVisible();
+  await context.close();
+});
+
 test('split a trip and settle up with VietQR', async ({ browser }) => {
-  const minhContext = await browser.newContext();
+  const minhContext = await englishContext(browser);
   const minh = await minhContext.newPage();
-  const chiContext = await browser.newContext();
+  const chiContext = await englishContext(browser);
   const chi = await chiContext.newPage();
 
   // Minh signs in (test-only route), accepts the privacy notice and creates the trip.

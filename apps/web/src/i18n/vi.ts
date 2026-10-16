@@ -396,5 +396,33 @@ export const vi: Record<MessageKey, string> = {
   'details.gone': 'Mục này không còn trong chuyến đi.', // REVIEW
   'details.backToTrip': 'Về chuyến đi', // REVIEW
   'status.approved': 'Đã duyệt', // REVIEW
+  'who.guestTitle': 'Bạn tham gia với tư cách khách', // REVIEW
+  'who.guestExpenses': 'Khoản chi bạn thêm cần một thành viên duyệt.', // REVIEW
+  'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
+  'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ', // REVIEW
+  'myBank.title': 'Thông tin ngân hàng của bạn', // REVIEW
+  'myBank.none': 'Chưa có thông tin ngân hàng', // REVIEW
+  'myBank.add': 'Thêm', // REVIEW
+  'myBank.pending': 'Đang chờ thành viên duyệt', // REVIEW
+  'myBank.change': 'Đổi', // REVIEW
+  'myBank.locked': 'Chỉ thành viên mới đổi được', // REVIEW
+  'myBank.namePending': 'Bạn có thể thêm sau khi thành viên duyệt tên của bạn.', // REVIEW
+  'guestBank.title': 'Thông tin ngân hàng của {name}', // REVIEW
+  'guestBank.pending': 'Đang chờ thành viên duyệt.', // REVIEW
+  'guestBank.note': 'Thông tin bạn lưu được dùng ngay. Chỉ nhập thông tin do {name} đưa cho bạn.', // REVIEW
+  'guestBank.consent': '{name} đã đồng ý chia sẻ thông tin này. Xem {link}', // REVIEW
+  'guestBank.change': 'Đổi', // REVIEW
+  'guestBank.delete': 'Xóa', // REVIEW
+  'guestBank.deleteConfirm': 'Xóa thông tin ngân hàng của {name}? Sẽ không ai chuyển cho {name} bằng mã QR được cho đến khi có thông tin mới.', // REVIEW
+  'guestBank.deleted': 'Đã xóa', // REVIEW
+  'people.bank': 'Thông tin ngân hàng', // REVIEW
+  'people.bankNone': 'Chưa có thông tin ngân hàng', // REVIEW
+  'people.bankPending': 'Thông tin ngân hàng đang chờ duyệt', // REVIEW
+  'people.bankWaitingSuffix': 'đang chờ duyệt', // REVIEW
+  'transfers.addFor': 'Thêm thông tin ngân hàng cho {name}', // REVIEW
+  'activity.bankSet': '{actor} đã lưu thông tin ngân hàng của {name}', // REVIEW
+  'activity.bankRemoved': '{actor} đã xóa thông tin ngân hàng của {name}', // REVIEW
+  'activity.action.bank_set': 'đã lưu thông tin ngân hàng', // REVIEW
+  'activity.action.bank_removed': 'đã xóa thông tin ngân hàng', // REVIEW
 };
 

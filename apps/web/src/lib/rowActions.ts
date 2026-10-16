@@ -94,23 +94,35 @@ export function paymentActions(view: TripView, p: PaymentView, deps: ActionDeps)
   return actions;
 }
 
+/** A member may save or delete the bank details of an active guest (members manage their own), in a live trip. */
+export function canManageBankOf(view: TripView, personId: string): boolean {
+  const person = view.people.find((p) => p.id === personId);
+  return !view.trip.archived && can(actorOf(view), 'manage_bank') && person !== undefined && !person.isMember && person.status === 'active';
+}
+
 export interface PersonActionDeps {
   t: T;
   onMerge(): void;
   onRemove(): void;
+  onBank(): void;
 }
 
 /**
- * What a member may do with a person on the People screen: merge them into another name, or remove them.
+ * What a member may do with a person on the People screen: manage a guest's bank details, merge them into another
+ * name, or remove them. Members manage their own bank details, so only guests get the bank action.
  * Only a guest who is not you can be removed: the organiser, you and every other signed-in member can be merged
  * but never removed (the API refuses with 409, and removing them would lock them out). Nothing is offered in an
  * archived trip.
  */
 export function personActions(view: TripView, person: PersonView, deps: PersonActionDeps): RowAction[] {
   if (view.trip.archived) return [];
-  const { t, onMerge, onRemove } = deps;
+  const { t, onMerge, onRemove, onBank } = deps;
   const actor = actorOf(view);
   const actions: RowAction[] = [];
+
+  if (canManageBankOf(view, person.id)) {
+    actions.push({ id: 'bank', label: t('people.bank'), icon: 'bank', onSelect: onBank });
+  }
 
   if (can(actor, 'merge')) {
     actions.push({ id: 'merge', label: t('people.merge'), icon: 'merge', onSelect: onMerge });

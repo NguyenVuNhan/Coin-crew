@@ -13,6 +13,7 @@ import { People } from './screens/People';
 import { Activity } from './screens/Activity';
 import { PayScreen } from './screens/PayScreen';
 import { BankDetails } from './screens/BankDetails';
+import { GuestBank } from './screens/GuestBank';
 
 export function App() {
   return (
@@ -33,6 +34,7 @@ export function App() {
       <Route path="/t/:tripId/pay/:toId" element={<PayScreen />} />
       <Route path="/t/:tripId/bank" element={<BankDetails />} />
       <Route path="/t/:tripId/people" element={<People />} />
+      <Route path="/t/:tripId/people/:pid/bank" element={<GuestBank />} />
       <Route path="/t/:tripId/activity" element={<Activity />} />
       <Route path="/t/:tripId/settings" element={<Settings />} />
     </Routes>

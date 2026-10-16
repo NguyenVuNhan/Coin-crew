@@ -1,0 +1,54 @@
+.fsl-guest-bank__card {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fsl-guest-bank__account {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fsl-guest-bank__holder {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-guest-bank__pending {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-warning-text);
+  background: var(--color-warning-soft);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.fsl-guest-bank__archived {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-guest-bank__buttons {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.fsl-guest-bank__buttons > * {
+  flex: 1;
+}

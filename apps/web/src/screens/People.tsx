@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import type { PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTripView } from '../api/hooks';
@@ -21,6 +21,7 @@ import './People.css';
 export function People() {
   const { tripId } = useParams<{ tripId: string }>();
   const t = useT();
+  const navigate = useNavigate();
 
   const { view, error: loadError, isLoading, refetch } = useTripView(tripId ?? '', 0);
   const { busy, error, run } = useTripAction(tripId ?? '');
@@ -68,7 +69,18 @@ export function People() {
       onRemove: () => {
         void remove(person);
       },
+      onBank: () => navigate(`/t/${tripId}/people/${person.id}/bank`),
     });
+
+  /** A guest's bank details under their name; members manage their own, so they get none. */
+  const bankLine = (person: PersonView): string | null => {
+    if (person.isMember) return null;
+    if (person.bankAccount) {
+      const account = `${person.bankAccount.bankName} · ${person.bankAccount.accountNumberMasked}`;
+      return person.bank === 'pending' ? `${account} · ${t('people.bankWaitingSuffix')}` : account;
+    }
+    return person.bank === 'pending' ? t('people.bankPending') : t('people.bankNone');
+  };
 
   const handleChooseTarget = async (target: PersonView) => {
     if (!mergeSource || busy) return;
@@ -114,7 +126,10 @@ export function People() {
                     hintable={index === 0}
                     leading={<Avatar name={person.name} />}
                   >
-                    <span className="fsl-people__name">{person.name}</span>
+                    <span className="fsl-people__text">
+                      <span className="fsl-people__name">{person.name}</span>
+                      {bankLine(person) !== null && <span className="fsl-people__bank">{bankLine(person)}</span>}
+                    </span>
                     <Pill tone={roleTone}>{roleText}</Pill>
                     {person.status === 'pending' && (
                       <Pill tone="warning">{t('who.pending')}</Pill>

@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
+import { MyBankRow } from '../components/MyBankRow';
 import './BankDetails.css';
 
 export function BankDetails() {
@@ -102,6 +103,18 @@ export function BankDetails() {
   }
 
   const isGuest = tripId && view?.me.kind === 'guest';
+
+  // A guest whose details are approved (only a member changes them), or whose name still waits, gets no form.
+  const myPerson = view?.people.find((p) => p.id === view.me.participantId);
+  if (isGuest && view && !success && (view.me.participantPending || myPerson?.bank === 'approved')) {
+    return (
+      <Screen title={t('bankForm.title')} back={backLink}>
+        <div className="fsl-bank-details">
+          <MyBankRow view={view} />
+        </div>
+      </Screen>
+    );
+  }
   const successNoticeText = isGuest ? t('bankForm.pending') : t('bankForm.saved');
   const [beforeLink = '', afterLink = ''] = t('bankForm.consentLabel').split('{link}');
 

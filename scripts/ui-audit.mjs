@@ -93,6 +93,8 @@ async function createContext() {
     deviceScaleFactor: 1
   });
   context.setDefaultTimeout(15000);
+  // The app starts in Vietnamese; the walk reads the English copy.
+  await context.addInitScript(() => localStorage.setItem('lang', 'en'));
   contexts.push(context);
   return context;
 }
@@ -322,6 +324,32 @@ async function walk() {
     // .first(): the balance card and Your transfers both say it.
     await chi.getByText("You're all settled").first().waitFor({ timeout: 15000 });
     await shot(chi, '33-guest-settled');
+  });
+
+  await step('guest bank details', async () => {
+    await chi.goto(`${BASE}/t/${tripId}/bank`);
+    await chi.getByLabel('Bank').selectOption('970432');
+    await chi.getByLabel('Account number').fill('0123456789');
+    await chi.getByLabel('Account holder name').fill('Tran Thi Chi');
+    await chi.getByRole('checkbox', { name: 'I agree to the privacy notice' }).check();
+    await chi.getByRole('button', { name: 'Save bank details' }).click();
+    await chi.getByText('Waiting for a member to approve your bank details.').waitFor({ timeout: 15000 });
+    await chi.goto(tripUrl);
+    await chi.getByRole('region', { name: 'Your bank details' }).getByText('Waiting for a member to approve').waitFor({ timeout: 15000 });
+    await shot(chi, '34-guest-bank-waiting');
+  });
+
+  await step('member manages guest bank details', async () => {
+    await minh.goto(`${BASE}/t/${tripId}/people`);
+    await minh.getByText(/0123 •••• 6789 · waiting for approval/).waitFor({ timeout: 15000 });
+    await shot(minh, '35-people-bank');
+    await minh.getByRole('button', { name: /^Chi,/ }).click();
+    await minh.getByRole('dialog').getByRole('button', { name: 'Bank details' }).click();
+    await minh.getByRole('button', { name: 'Delete' }).waitFor({ timeout: 15000 });
+    await shot(minh, '36-guest-bank-member');
+    await minh.getByRole('button', { name: 'Change' }).click();
+    await minh.getByLabel('Account number').waitFor({ timeout: 15000 });
+    await shot(minh, '37-guest-bank-form');
   });
 }
 

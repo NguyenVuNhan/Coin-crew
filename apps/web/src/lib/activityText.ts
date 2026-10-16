@@ -58,6 +58,12 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         if (!name) return null;
         return t(NAME_LINE[item.action], { actor, name });
       }
+      case 'bank_set':
+      case 'bank_removed': {
+        const participantId = text(d.participantId);
+        if (!view || !participantId || !view.people.some((p) => p.id === participantId)) return null;
+        return t(item.action === 'bank_set' ? 'activity.bankSet' : 'activity.bankRemoved', { actor, name: nameOf(view, participantId) });
+      }
       case 'name_merged': {
         const from = text(d.fromName);
         const into = text(d.intoName);
