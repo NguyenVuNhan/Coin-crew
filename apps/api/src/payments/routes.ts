@@ -5,6 +5,7 @@ import {
   MAX_AMOUNT,
   canConfirmPayment,
   notArrivedOutcome,
+  arrivedOutcome,
   statusForNewPayment,
 } from '@fsl/core';
 import type { AppBindings } from '../env';
@@ -410,6 +411,67 @@ export function paymentRoutes(): Hono<AppBindings> {
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: {},
+    });
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/payments/:pid/arrived — the receiver who said a payment didn't arrive says it did after all.
+  app.post('/trips/:id/payments/:pid/arrived', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+
+    const db = getDb(c.env);
+    const payment = await db
+      .select()
+      .from(payments)
+      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId)))
+      .get();
+
+    if (!payment) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const isMember = await receiverIsMember(db, tripId, payment.toId);
+    const outcome = arrivedOutcome(actor, { toId: payment.toId, status: payment.status, notArrived: payment.notArrivedAt !== null }, isMember);
+
+    if (outcome === 'forbidden') {
+      // The receiver pressing it again after it already counts: someone (they) already handled it.
+      const alreadyArrived = actor.participantId === payment.toId && payment.status === 'confirmed' && payment.notArrivedAt === null;
+      throw alreadyArrived ? new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.') : new ApiError('FORBIDDEN', 403);
+    }
+
+    const now = nowIso();
+    const r =
+      outcome === 'confirm'
+        ? await db
+            .update(payments)
+            .set({
+              status: 'confirmed',
+              amountConfirmed: payment.amountClaimed,
+              confirmedByParticipantId: actor.participantId,
+              updatedAt: now,
+            })
+            .where(and(eq(payments.id, pid), eq(payments.tripId, tripId), eq(payments.status, 'rejected')))
+            .run()
+        : await db
+            .update(payments)
+            .set({ notArrivedAt: null, updatedAt: now })
+            .where(and(eq(payments.id, pid), eq(payments.tripId, tripId), eq(payments.status, 'confirmed'), isNotNull(payments.notArrivedAt)))
+            .run();
+
+    if (r.meta.changes === 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+
+    await commitTripWrite(db, tripId, [], {
+      action: 'payment_arrived',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { outcome, amount: payment.amountConfirmed ?? payment.amountClaimed },
     });
 
     return c.body(null, 204);

@@ -32,6 +32,7 @@ export type ActivityAction =
   | 'payment_recorded'
   | 'payment_confirmed'
   | 'payment_not_arrived'
+  | 'payment_arrived'
   | 'payment_disabled'
   | 'payment_enabled'
   | 'links_regenerated'

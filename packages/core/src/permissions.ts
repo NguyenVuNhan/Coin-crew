@@ -64,3 +64,16 @@ export function notArrivedOutcome(actor: Actor, p: { toId: string; status: Payme
   if (!receiverIsMember && actor.kind === 'guest' && p.status === 'confirmed') return 'flag';
   return 'forbidden';
 }
+
+export type ArrivedOutcome = 'confirm' | 'clear' | 'forbidden';
+
+/**
+ * Undoing a "didn't arrive": only the receiver who reported it. A member's report rejected a waiting payment, so
+ * saying it arrived counts it; a guest's report flagged a confirmed one, so saying it arrived clears the flag.
+ */
+export function arrivedOutcome(actor: Actor, p: { toId: string; status: PaymentStatus; notArrived: boolean }, receiverIsMember: boolean): ArrivedOutcome {
+  if (actor.participantId === null || actor.participantId !== p.toId) return 'forbidden';
+  if (receiverIsMember && actor.kind === 'member' && p.status === 'rejected') return 'confirm';
+  if (!receiverIsMember && actor.kind === 'guest' && p.status === 'confirmed' && p.notArrived) return 'clear';
+  return 'forbidden';
+}

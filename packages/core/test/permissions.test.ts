@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  can, initialExpenseStatus, statusForNewPayment, canConfirmPayment, notArrivedOutcome,
+  can, initialExpenseStatus, statusForNewPayment, canConfirmPayment, notArrivedOutcome, arrivedOutcome,
   type Actor, type Action, type ActionContext,
 } from '../src/permissions';
 
@@ -108,4 +108,15 @@ describe('notArrivedOutcome', () => {
   it('not the receiver', () => expect(notArrivedOutcome(guest('A'), { toId: 'C', status: 'confirmed' }, false)).toBe('forbidden'));
   it('member receiver on confirmed', () => expect(notArrivedOutcome(member('M'), { toId: 'M', status: 'confirmed' }, true)).toBe('forbidden'));
   it('viewer', () => expect(notArrivedOutcome(viewer, { toId: 'C', status: 'confirmed' }, false)).toBe('forbidden'));
+});
+
+describe('arrivedOutcome', () => {
+  it('member receiver counts a payment they said did not arrive', () => expect(arrivedOutcome(member('M'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('confirm'));
+  it('guest receiver clears their own report', () => expect(arrivedOutcome(guest('C'), { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('clear'));
+  it('guest receiver with nothing reported', () => expect(arrivedOutcome(guest('C'), { toId: 'C', status: 'confirmed', notArrived: false }, false)).toBe('forbidden'));
+  it('member receiver on a payment still waiting', () => expect(arrivedOutcome(member('M'), { toId: 'M', status: 'says_paid', notArrived: false }, true)).toBe('forbidden'));
+  it('another member', () => expect(arrivedOutcome(member('N'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('forbidden'));
+  it("a member on a guest's report", () => expect(arrivedOutcome(member('M'), { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('forbidden'));
+  it('the payer', () => expect(arrivedOutcome(guest('C'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('forbidden'));
+  it('viewer', () => expect(arrivedOutcome(viewer, { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('forbidden'));
 });
