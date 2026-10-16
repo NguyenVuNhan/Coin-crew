@@ -36,7 +36,7 @@ for (const action of ['edit_expense', 'delete_expense'] as const) {
     [`viewer ${action}`, viewer, action, { expenseCreatedById: 'X', expenseStatus: 'pending' }, false],
   );
 }
-for (const action of ['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest'] as const) {
+for (const action of ['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank'] as const) {
   rows.push(
     [`member ${action}`, M, action, undefined, true],
     [`guest ${action}`, G, action, undefined, false],
@@ -50,6 +50,9 @@ rows.push(
   ['guest archive', G, 'archive', undefined, false],
   ['member own bank', M, 'set_own_bank', undefined, true],
   ['guest own bank', G, 'set_own_bank', undefined, true],
+  ['guest replaces own bank while it waits', G, 'set_own_bank', { bankApproved: false }, true],
+  ['guest changes own approved bank', G, 'set_own_bank', { bankApproved: true }, false],
+  ['member changes own approved bank', M, 'set_own_bank', { bankApproved: true }, true],
   ['pending own bank', GP, 'set_own_bank', undefined, false],
   ['viewer own bank', viewer, 'set_own_bank', undefined, false],
   ['member records as payer', M, 'record_payment', { paymentFromId: 'M', paymentToId: 'G' }, true],

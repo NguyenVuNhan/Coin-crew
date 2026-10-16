@@ -27,6 +27,8 @@ export type ActivityAction =
   | 'bank_submitted'
   | 'bank_approved'
   | 'bank_rejected'
+  | 'bank_set'
+  | 'bank_removed'
   | 'payment_recorded'
   | 'payment_confirmed'
   | 'payment_not_arrived'
@@ -63,6 +65,8 @@ export interface PersonView {
   id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
   /** The person who created the trip. Left out by an older server. */
   isOrganiser?: boolean;
+  /** A guest's current account (the approved one, else the one waiting). Sent only to members and to that guest. */
+  bankAccount?: { bankName: string; accountNumberMasked: string; holderName: string };
 }
 export interface ExpenseView {
   id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;

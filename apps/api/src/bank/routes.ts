@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PayInfo } from '@fsl/core';
-import { buildVietQrPayload, findBank, toTransferNote } from '@fsl/core';
+import { buildVietQrPayload, can, findBank, maskAccountNumber, toTransferNote } from '@fsl/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';
@@ -148,6 +148,36 @@ async function saveMemberBank(
   }
 }
 
+/** The guest whose bank details a member manages: an active person in this trip without an account. */
+async function guestTarget(db: Db, tripId: string, participantId: string): Promise<string> {
+  const person = await db
+    .select({ id: participants.id, userId: participants.userId })
+    .from(participants)
+    .where(
+      and(
+        eq(participants.id, participantId),
+        eq(participants.tripId, tripId),
+        eq(participants.status, 'active'),
+      ),
+    )
+    .get();
+
+  if (!person) {
+    throw new ApiError('NOT_FOUND', 404);
+  }
+  if (person.userId !== null) {
+    throw new ApiError('FORBIDDEN', 403, 'Members manage their own bank details.');
+  }
+  return person.id;
+}
+
+function liveGuestBank(participantId: string) {
+  return and(
+    eq(bankDetails.participantId, participantId),
+    inArray(bankDetails.status, ['approved', 'pending']),
+  );
+}
+
 export function bankRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -184,7 +214,21 @@ export function bankRoutes(): Hono<AppBindings> {
       return c.body(null, 204);
     }
 
-    // Guests
+    // Guests: replace details while they wait; once approved, only a member changes them.
+    const approved = await db
+      .select({ id: bankDetails.id })
+      .from(bankDetails)
+      .where(
+        and(
+          eq(bankDetails.participantId, actor.participantId),
+          eq(bankDetails.status, 'approved'),
+        ),
+      )
+      .get();
+    if (!can(actor, 'set_own_bank', { bankApproved: approved !== undefined })) {
+      throw new ApiError('FORBIDDEN', 403, 'Ask a member to change your bank details.');
+    }
+
     const now = nowIso();
     const updatePending = db
       .update(bankDetails)
@@ -214,6 +258,82 @@ export function bankRoutes(): Hono<AppBindings> {
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: { participantId: actor.participantId },
+    });
+
+    return c.body(null, 204);
+  });
+
+  // PUT /trips/:id/people/:pid/bank: a member saves a guest's details; they count straight away.
+  app.put('/trips/:id/people/:pid/bank', async (c) => {
+    const tripId = c.req.param('id');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'manage_bank');
+
+    const db = getDb(c.env);
+    const participantId = await guestTarget(db, tripId, c.req.param('pid'));
+    const input = validateBankInput(await parseJson<unknown>(c));
+    const now = nowIso();
+
+    const replaceLive = db
+      .update(bankDetails)
+      .set({ status: 'replaced' })
+      .where(liveGuestBank(participantId));
+
+    const insertApproved = db.insert(bankDetails).values({
+      id: newId(),
+      participantId,
+      userId: null,
+      bin: input.bin,
+      accountNumber: input.accountNumber,
+      holderName: input.holderName,
+      status: 'approved',
+      approvedByUserId: actor.userId,
+      consentAt: now,
+      createdAt: now,
+    });
+
+    await commitTripWrite(db, tripId, [replaceLive, insertApproved], {
+      action: 'bank_set',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { participantId },
+    });
+
+    return c.body(null, 204);
+  });
+
+  // DELETE /trips/:id/people/:pid/bank: a member removes a guest's details (approved or waiting).
+  app.delete('/trips/:id/people/:pid/bank', async (c) => {
+    const tripId = c.req.param('id');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'manage_bank');
+
+    const db = getDb(c.env);
+    const participantId = await guestTarget(db, tripId, c.req.param('pid'));
+
+    const live = await db
+      .select({ id: bankDetails.id })
+      .from(bankDetails)
+      .where(liveGuestBank(participantId))
+      .get();
+    if (!live) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const removeLive = db
+      .update(bankDetails)
+      .set({ status: 'removed' })
+      .where(liveGuestBank(participantId));
+
+    await commitTripWrite(db, tripId, [removeLive], {
+      action: 'bank_removed',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { participantId },
     });
 
     return c.body(null, 204);
@@ -456,7 +576,7 @@ export function bankRoutes(): Hono<AppBindings> {
           bin: approvedRow.bin,
           bankName: findBank(approvedRow.bin)?.shortName ?? approvedRow.bin,
           accountNumber: approvedRow.accountNumber,
-          accountNumberMasked: `${approvedRow.accountNumber.slice(0, 4)} •••• ${approvedRow.accountNumber.slice(-4)}`,
+          accountNumberMasked: maskAccountNumber(approvedRow.accountNumber),
           holderName: approvedRow.holderName,
         }
       : null;

@@ -44,14 +44,22 @@ describe('guest bank details', () => {
     expect(info.payload).toBe(buildVietQrPayload({ bin: '970422', accountNumber: '0123456789', amount: 1755000, note: info.refCode }));
   });
 
-  it('a change waits for approval and the approved account stays in use', async () => {
+  it('a guest can replace their details while they wait', async () => {
+    const chi = await guestHeaders(PID.C);
+    await send('PUT', `${base}/bank`, chi, chiBank);
+    expect((await send('PUT', `${base}/bank`, chi, { ...chiBank, accountNumber: '9999999999' })).status).toBe(204);
+    const banks = (await view(await minh())).approvals.filter((a) => a.kind === 'bank');
+    expect(banks).toEqual([expect.objectContaining({ participantId: PID.C, accountNumber: '9999999999' })]);
+  });
+
+  it('once approved, only a member can change them', async () => {
     const chi = await guestHeaders(PID.C);
     await send('PUT', `${base}/bank`, chi, chiBank);
     await approveChiBank();
-    await send('PUT', `${base}/bank`, chi, { ...chiBank, accountNumber: '9999999999' });
+    expect((await send('PUT', `${base}/bank`, chi, { ...chiBank, accountNumber: '9999999999' })).status).toBe(403);
     const info = await json<PayInfo>(pay(await guestHeaders(PID.A), PID.C));
     expect(info.bank?.accountNumber).toBe('0123456789');
-    expect((await view(await minh())).approvals.filter((a) => a.kind === 'bank')).toHaveLength(1);
+    expect((await view(await minh())).approvals.filter((a) => a.kind === 'bank')).toHaveLength(0);
   });
 
   it('approving twice is ALREADY_HANDLED', async () => {
@@ -70,6 +78,84 @@ describe('guest bank details', () => {
     const g = await guestHeaders();
     await send('POST', `${base}/people`, g, { name: 'Dũng', confirmNew: true });
     expect((await send('PUT', `${base}/bank`, g, chiBank)).status).toBe(403);
+  });
+});
+
+describe('members manage a guest\'s bank details', () => {
+  const guestBank = (pid: string) => `${base}/people/${pid}/bank`;
+  const chiPerson = async (headers: Record<string, string>) => (await view(headers)).people.find((p) => p.id === PID.C);
+
+  it('a member saves them and they count straight away', async () => {
+    expect((await send('PUT', guestBank(PID.C), await minh(), chiBank)).status).toBe(204);
+    const info = await json<PayInfo>(pay(await guestHeaders(PID.A), PID.C));
+    expect(info).toMatchObject({ bankState: 'ok', bank: { accountNumber: '0123456789', holderName: 'TRAN THI CHI' } });
+    const headers = await minh();
+    expect(await chiPerson(headers)).toMatchObject({ bank: 'approved' });
+    expect((await view(headers)).approvals.filter((a) => a.kind === 'bank')).toHaveLength(0);
+  });
+
+  it('a member\'s save replaces both a waiting and an approved account', async () => {
+    const chi = await guestHeaders(PID.C);
+    await send('PUT', `${base}/bank`, chi, chiBank);
+    await approveChiBank();
+    await env.DB.prepare("INSERT INTO bank_details (id, participant_id, bin, account_number, holder_name, status, consent_at, created_at) VALUES ('b-old-pending', ?, '970422', '5555555555', 'TRAN THI CHI', 'pending', ?, ?)")
+      .bind(PID.C, '2026-10-12T00:00:00.000Z', '2026-10-12T00:00:00.000Z').run();
+    await send('PUT', guestBank(PID.C), await minh(), { ...chiBank, accountNumber: '7777777777' });
+    const live = await env.DB.prepare("SELECT account_number FROM bank_details WHERE participant_id = ? AND status IN ('approved', 'pending')").bind(PID.C).all<{ account_number: string }>();
+    expect(live.results).toEqual([{ account_number: '7777777777' }]);
+  });
+
+  it('a member deletes them, and the guest\'s next details wait for approval again', async () => {
+    await send('PUT', guestBank(PID.C), await minh(), chiBank);
+    expect((await send('DELETE', guestBank(PID.C), await minh())).status).toBe(204);
+    expect(await chiPerson(await minh())).toMatchObject({ bank: 'none' });
+    expect((await json<PayInfo>(pay(await guestHeaders(PID.A), PID.C))).bankState).toBe('none');
+    expect((await send('PUT', `${base}/bank`, await guestHeaders(PID.C), chiBank)).status).toBe(204);
+    expect(await chiPerson(await minh())).toMatchObject({ bank: 'pending' });
+  });
+
+  it('logs who saved and who deleted them', async () => {
+    await send('PUT', guestBank(PID.C), await minh(), chiBank);
+    await send('DELETE', guestBank(PID.C), await minh());
+    const rows = await env.DB.prepare("SELECT action, details_json FROM activity WHERE trip_id = ? AND action IN ('bank_set', 'bank_removed') ORDER BY created_at").bind(T.tripId).all<{ action: string; details_json: string }>();
+    expect(rows.results.map((r) => [r.action, JSON.parse(r.details_json)])).toEqual([
+      ['bank_set', { participantId: PID.C }],
+      ['bank_removed', { participantId: PID.C }],
+    ]);
+  });
+
+  it('only members may, only for guests of this trip, and only with consent', async () => {
+    const headers = await minh();
+    expect((await send('PUT', guestBank(PID.C), await guestHeaders(PID.A), chiBank)).status).toBe(403);
+    expect((await send('DELETE', guestBank(PID.C), await guestHeaders(PID.A))).status).toBe(403);
+    expect((await send('PUT', guestBank(PID.M), headers, chiBank)).status).toBe(403);
+    expect((await send('PUT', guestBank('p-nobody'), headers, chiBank)).status).toBe(404);
+    expect((await send('PUT', guestBank(PID.C), headers, { ...chiBank, consent: false })).status).toBe(422);
+    expect((await send('DELETE', guestBank(PID.C), headers)).status).toBe(404);
+  });
+
+  it('an archived trip refuses both', async () => {
+    await env.DB.prepare("UPDATE trips SET archived_at = '2026-10-13T00:00:00.000Z' WHERE id = ?").bind(T.tripId).run();
+    expect((await send('PUT', guestBank(PID.C), await minh(), chiBank)).status).toBe(409);
+    expect((await send('DELETE', guestBank(PID.C), await minh())).status).toBe(409);
+  });
+});
+
+describe('masked bank account in the trip view', () => {
+  const chiAccount = { bankName: findBank('970422')!.shortName, accountNumberMasked: '0123 •••• 6789', holderName: 'TRAN THI CHI' };
+
+  it('members see every guest\'s account and a guest sees only their own', async () => {
+    const chi = await guestHeaders(PID.C);
+    await send('PUT', `${base}/bank`, chi, chiBank);
+    const of = async (headers: Record<string, string>) => (await view(headers)).people.find((p) => p.id === PID.C)?.bankAccount;
+    expect(await of(await minh())).toEqual(chiAccount);
+    expect(await of(chi)).toEqual(chiAccount);
+    expect(await of(await guestHeaders(PID.A))).toBeUndefined();
+    expect(await of(await guestHeaders(undefined, T.viewToken))).toBeUndefined();
+  });
+
+  it('a member\'s own account is never in it', async () => {
+    expect((await view(await minh())).people.find((p) => p.id === PID.M)?.bankAccount).toBeUndefined();
   });
 });
 

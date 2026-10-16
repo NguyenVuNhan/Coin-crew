@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm';
-import type { Approval, TripView } from '@fsl/core';
-import { computeBalances, findBank, findSimilarNames } from '@fsl/core';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
+import type { Approval, PersonView, TripView } from '@fsl/core';
+import { computeBalances, findBank, findSimilarNames, maskAccountNumber } from '@fsl/core';
 import type { Db } from '../db/client';
 import type { ResolvedActor } from '../access/actor';
 import type { TripSnapshot } from './snapshot';
@@ -149,6 +149,8 @@ export async function toTripView(
     ];
   }
 
+  const people = await withGuestBankAccounts(db, snapshot, actor);
+
   const links: TripView['links'] =
     actor.kind === 'member'
       ? { group: actor.trip.groupToken, view: actor.trip.viewToken }
@@ -157,7 +159,7 @@ export async function toTripView(
   return {
     trip: snapshot.trip,
     me,
-    people: snapshot.people,
+    people,
     balances: snapshot.balances,
     suggestions: snapshot.suggestions,
     expenses: snapshot.expenses,
@@ -166,4 +168,53 @@ export async function toTripView(
     approvals,
     links,
   };
+}
+
+/**
+ * Adds each guest's masked bank account for the people allowed to see it: members see every guest's,
+ * a guest sees only their own. The cached snapshot stays the same for everyone.
+ */
+async function withGuestBankAccounts(
+  db: Db,
+  snapshot: TripSnapshot,
+  actor: ResolvedActor,
+): Promise<PersonView[]> {
+  const onlyMine = actor.kind === 'guest' && actor.participantId !== null;
+  if (actor.kind !== 'member' && !onlyMine) {
+    return snapshot.people;
+  }
+
+  const rows = await db
+    .select({
+      participantId: bankDetails.participantId,
+      bin: bankDetails.bin,
+      accountNumber: bankDetails.accountNumber,
+      holderName: bankDetails.holderName,
+      status: bankDetails.status,
+    })
+    .from(bankDetails)
+    .innerJoin(participants, eq(bankDetails.participantId, participants.id))
+    .where(
+      and(
+        eq(participants.tripId, actor.trip.id),
+        isNull(participants.userId),
+        inArray(bankDetails.status, ['approved', 'pending']),
+        onlyMine ? eq(participants.id, actor.participantId!) : undefined,
+      ),
+    );
+
+  const accounts = new Map<string, NonNullable<PersonView['bankAccount']>>();
+  for (const row of rows) {
+    if (!row.participantId || (accounts.has(row.participantId) && row.status !== 'approved')) continue;
+    accounts.set(row.participantId, {
+      bankName: findBank(row.bin)?.shortName ?? row.bin,
+      accountNumberMasked: maskAccountNumber(row.accountNumber),
+      holderName: row.holderName,
+    });
+  }
+
+  return snapshot.people.map((p) => {
+    const bankAccount = accounts.get(p.id);
+    return bankAccount ? { ...p, bankAccount } : p;
+  });
 }

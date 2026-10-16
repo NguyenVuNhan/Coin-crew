@@ -3,13 +3,15 @@ import type { ExpenseStatus, PaymentStatus } from './balances';
 export type ActorKind = 'member' | 'guest' | 'viewer';
 export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean }
 export type Action = 'view' | 'add_expense' | 'edit_expense' | 'delete_expense' | 'approve' | 'disable' | 'merge'
-  | 'remove_person' | 'regenerate_links' | 'archive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank';
+  | 'remove_person' | 'regenerate_links' | 'archive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank';
 export interface ActionContext {
   expenseCreatedById?: string; expenseStatus?: ExpenseStatus;
   paymentFromId?: string; paymentToId?: string; owesTo?: boolean;
+  /** The actor already has approved bank details in this trip. */
+  bankApproved?: boolean;
 }
 
-const MEMBER_ONLY: ReadonlySet<Action> = new Set(['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest']);
+const MEMBER_ONLY: ReadonlySet<Action> = new Set(['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank']);
 
 // Source of truth for the permission matrix in the plan (Task 6). Every API route checks through here.
 export function can(actor: Actor, action: Action, ctx: ActionContext = {}): boolean {
@@ -29,7 +31,8 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
     case 'archive':
       return isMember && actor.isOrganiser;
     case 'set_own_bank':
-      return isMember || activeGuest;
+      // Once a member approves a guest's details, only a member changes them (manage_bank).
+      return isMember || (activeGuest && ctx.bankApproved !== true);
     case 'record_payment':
       return (isMember || activeGuest) && me !== null && (ctx.paymentFromId === me || ctx.paymentToId === me);
     case 'view_bank':
