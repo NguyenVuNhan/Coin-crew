@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/components.css';
 import { App } from './App';
 import { detectLang, setLang } from './i18n';
 

@@ -223,6 +223,7 @@ export const vi: Record<MessageKey, string> = {
   'sport.addShuttlecock': 'Thêm tiền cầu', // REVIEW
   'sport.addExtraFee': 'Thêm phụ phí', // REVIEW
   'sport.removeShuttleRow': 'Xóa dòng cầu {n}', // REVIEW
+  'sport.removeExtraFee': 'Xóa phụ phí', // REVIEW
   'sport.extra': 'Phụ phí (nước, gửi xe…)', // REVIEW
   'sport.totalBar': '{slots} suất ({f} Nữ, {m} Nam)', // REVIEW
   'sport.totalLabel': 'Tổng cộng', // REVIEW
@@ -247,6 +248,7 @@ export const vi: Record<MessageKey, string> = {
   'sport.femaleGuest': 'Khách Nữ', // REVIEW
   'sport.maleGuest': 'Khách Nam', // REVIEW
   'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}', // REVIEW
+  'sport.editGender': 'Đổi giới tính', // REVIEW
   'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
   'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
   'sport.tableColName': 'TÊN', // REVIEW
@@ -361,6 +363,8 @@ export const vi: Record<MessageKey, string> = {
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.remove': 'Xóa', // REVIEW
   'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
+  'people.genderMale': 'Nam', // REVIEW
+  'people.genderFemale': 'Nữ', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
