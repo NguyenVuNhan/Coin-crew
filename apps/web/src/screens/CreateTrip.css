@@ -5,6 +5,70 @@
   padding: var(--space-4) 0;
 }
 
+.fsl-create-trip__preset {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.fsl-create-trip__preset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-muted);
+  user-select: none;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.fsl-create-trip__preset-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-create-trip__preset-btn:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .fsl-create-trip__preset-btn:hover:not([aria-checked="true"]) {
+    color: var(--color-text);
+  }
+}
+
+.fsl-create-trip__preset-btn[aria-checked="true"],
+.fsl-create-trip__preset-btn--selected {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.fsl-create-trip__my-name-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.fsl-create-trip__my-name-row .fsl-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .fsl-form-group {
   display: flex;
   flex-direction: column;

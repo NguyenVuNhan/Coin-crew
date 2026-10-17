@@ -59,6 +59,15 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
+    const preset = body.preset ?? 'trip';
+    if (preset !== 'trip' && preset !== 'sport') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    if (body.myGender !== undefined && body.myGender !== null && body.myGender !== 'M' && body.myGender !== 'F') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
     const name = body.name.trim();
     if (name.length < 1 || name.length > 60) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -73,21 +82,28 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    // Each entry is a plain name (older clients) or { name, userId? } for someone with an account.
-    const people: { name: string; userId: string | null }[] = [];
+    // Each entry is a plain name (older clients) or { name, userId?, gender? } for someone with an account/gender.
+    const people: { name: string; userId: string | null; gender: 'M' | 'F' | null }[] = [];
     for (const p of body.people as unknown[]) {
       let rawName: unknown;
       let userId: string | null = null;
+      let gender: 'M' | 'F' | null = null;
       if (typeof p === 'string') {
         rawName = p;
       } else if (p && typeof p === 'object' && !Array.isArray(p)) {
-        const entry = p as { name?: unknown; userId?: unknown };
+        const entry = p as { name?: unknown; userId?: unknown; gender?: unknown };
         rawName = entry.name;
         if (entry.userId !== undefined) {
           if (typeof entry.userId !== 'string' || entry.userId.length < 1) {
             throw new ApiError('VALIDATION', 422, 'Invalid request');
           }
           userId = entry.userId;
+        }
+        if (entry.gender !== undefined && entry.gender !== null) {
+          if (entry.gender !== 'M' && entry.gender !== 'F') {
+            throw new ApiError('VALIDATION', 422, 'Invalid request');
+          }
+          gender = entry.gender;
         }
       }
       if (typeof rawName !== 'string') {
@@ -97,7 +113,7 @@ export function tripRoutes(): Hono<AppBindings> {
       if (trimmed.length < 1 || trimmed.length > 40) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
-      people.push({ name: trimmed, userId });
+      people.push({ name: trimmed, userId, gender });
     }
 
     // Only people the caller already shares a trip with can be added by account, each once.
@@ -143,6 +159,7 @@ export function tripRoutes(): Hono<AppBindings> {
     const tripInsert = db.insert(trips).values({
       id: tripId,
       name,
+      preset,
       currency: 'VND',
       fewestTransfers: 1,
       organiserUserId: user.id,
@@ -157,6 +174,7 @@ export function tripRoutes(): Hono<AppBindings> {
       tripId,
       name: myName,
       normalizedName: normalizeName(myName),
+      gender: body.myGender ?? null,
       userId: user.id,
       status: 'active',
       sortOrder: 0,
@@ -169,6 +187,7 @@ export function tripRoutes(): Hono<AppBindings> {
         tripId,
         name: p.name,
         normalizedName: normalizeName(p.name),
+        gender: p.gender ?? null,
         userId: p.userId,
         status: 'active',
         sortOrder: index + 1,
@@ -245,6 +264,7 @@ export function tripRoutes(): Hono<AppBindings> {
       list.push({
         id: row.trip.id,
         name: row.trip.name,
+        preset: (row.trip.preset as 'trip' | 'sport') ?? 'trip',
         archived: row.trip.archivedAt !== null,
         myBalance,
       });

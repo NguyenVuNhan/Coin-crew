@@ -1,7 +1,8 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { ExpenseView, TripView } from '@fsl/core';
-import { useT } from '../i18n';
+import { formatVnd, computeSportShares } from '@fsl/core';
+import { useT, useLang } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { nameOf, splitText } from '../lib/tripText';
 import { formatDay } from '../lib/time';
@@ -14,6 +15,9 @@ import { Button } from './Button';
 import { EmptyState } from './EmptyState';
 import { InlineError } from './InlineError';
 import { Icon } from './icons';
+import { usePayInfo } from '../api/payInfo';
+import { useQrSvg, qrSrc, shareSportBill, type SportBillCardInput } from '../lib/qr';
+import { sportShareText, groupLink } from '../lib/remind';
 import './ExpenseDetails.css';
 
 const STATUS: Record<ExpenseView['status'], { tone: PillProps['tone']; label: MessageKey }> = {
@@ -34,13 +38,25 @@ export function ExpenseDetails({
   onClose(): void;
 }) {
   const t = useT();
+  const [lang] = useLang();
   const navigate = useNavigate();
   const { busy, error, run } = useTripAction(view.trip.id);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
+  const [sharing, setSharing] = useState(false);
+  const [shareStatus, setShareStatus] = useState<'saved' | 'failed' | null>(null);
   const reasonId = useId();
 
   const e = view.expenses.find((x) => x.id === expenseId);
+
+  const { data: payInfo } = usePayInfo({
+    tripId: view.trip.id,
+    toId: e?.payerId ?? '',
+    bill: true,
+    enabled: Boolean(e?.meta?.sport),
+    version: view.trip.version,
+  });
+  const qrSvg = useQrSvg(payInfo?.payload ?? null);
 
   if (!e) {
     return (
@@ -87,6 +103,123 @@ export function ExpenseDetails({
     (a, b) => (place.get(a.participantId) ?? view.people.length) - (place.get(b.participantId) ?? view.people.length),
   );
 
+  const sportCalc = useMemo(() => {
+    if (!e.meta?.sport) return null;
+    const sport = e.meta.sport;
+    const court = sport.court ?? 0;
+    const shuttlecocksTotal =
+      sport.shuttlecocks?.reduce((acc, s) => acc + (s.qty || 0) * (s.unitPrice || 0), 0) ?? 0;
+    const extra = sport.extra ?? 0;
+
+    const participants = shares.map((s) => {
+      const person = view.people.find((p) => p.id === s.participantId);
+      const rosterGender = person?.gender ?? null;
+      const entry = sport.entries?.find((en) => en.participantId === s.participantId);
+      const maleSlots = entry ? entry.maleSlots : rosterGender === 'F' ? 0 : 1;
+      const femaleSlots = entry ? entry.femaleSlots : rosterGender === 'F' ? 1 : 0;
+      const fixedAmount = entry?.fixedAmount ?? null;
+      return {
+        participantId: s.participantId,
+        name: nameOf(view, s.participantId),
+        rosterGender,
+        maleSlots,
+        femaleSlots,
+        fixedAmount,
+        amount: s.amount,
+      };
+    });
+
+    const rule = sport.rule ?? { kind: 'equal' };
+    const calc = computeSportShares(
+      e.amount,
+      rule,
+      participants.map((p) => ({
+        participantId: p.participantId,
+        maleSlots: p.maleSlots,
+        femaleSlots: p.femaleSlots,
+        fixedAmount: p.fixedAmount,
+      })),
+    );
+
+    const totalMaleSlots = calc.ok
+      ? calc.totalMaleSlots
+      : sport.entries?.reduce((acc, x) => acc + (x.fixedAmount ? 0 : x.maleSlots), 0) ?? 0;
+    const totalFemaleSlots = calc.ok
+      ? calc.totalFemaleSlots
+      : sport.entries?.reduce((acc, x) => acc + (x.fixedAmount ? 0 : x.femaleSlots), 0) ?? 0;
+    const maleSlotRate = calc.ok ? calc.maleSlotRate : (sport.maleSlotRate ?? 0);
+    const femaleSlotRate = calc.ok ? calc.femaleSlotRate : (sport.femaleSlotRate ?? 0);
+
+    return {
+      court,
+      shuttlecocksTotal,
+      extra,
+      totalMaleSlots,
+      totalFemaleSlots,
+      maleSlotRate,
+      femaleSlotRate,
+      participants,
+    };
+  }, [e, shares, view]);
+
+  const msgText = useMemo(() => {
+    if (!sportCalc) return '';
+    const link = groupLink(view);
+    return sportShareText(lang, {
+      court: sportCalc.court,
+      shuttlecocksTotal: sportCalc.shuttlecocksTotal,
+      extra: sportCalc.extra,
+      maleSlotRate: sportCalc.maleSlotRate,
+      femaleSlotRate: sportCalc.femaleSlotRate,
+      totalMaleSlots: sportCalc.totalMaleSlots,
+      totalFemaleSlots: sportCalc.totalFemaleSlots,
+      participants: sportCalc.participants,
+      link,
+    });
+  }, [sportCalc, lang, view]);
+
+  const handleShareSportBill = async () => {
+    if (!sportCalc) return;
+    setSharing(true);
+    setShareStatus(null);
+    try {
+      const billInput: SportBillCardInput = {
+        description: e.description,
+        spentOn: formatDay(e.spentOn),
+        groupName: view.trip.name,
+        total: e.amount,
+        court: sportCalc.court,
+        shuttlecocksTotal: sportCalc.shuttlecocksTotal,
+        extra: sportCalc.extra,
+        maleSlotRate: sportCalc.maleSlotRate,
+        femaleSlotRate: sportCalc.femaleSlotRate,
+        totalMaleSlots: sportCalc.totalMaleSlots,
+        totalFemaleSlots: sportCalc.totalFemaleSlots,
+        rows: sportCalc.participants.map((p) => ({
+          name: p.name,
+          femaleSlots: p.femaleSlots,
+          maleSlots: p.maleSlots,
+          isFixed: p.fixedAmount !== null && p.fixedAmount !== undefined,
+          amount: p.amount,
+        })),
+        payerName: nameOf(view, e.payerId),
+        bank: payInfo?.bankState === 'ok' && payInfo.bank ? payInfo.bank : null,
+        qrSvg: qrSvg || undefined,
+      };
+
+      const res = await shareSportBill(billInput, msgText, payInfo?.refCode ?? e.description);
+      if (res === 'saved') {
+        setShareStatus('saved');
+      } else if (res === 'failed') {
+        setShareStatus('failed');
+      }
+    } catch {
+      setShareStatus('failed');
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <article className="fsl-details">
       <div className="fsl-details__head">
@@ -123,31 +256,144 @@ export function ExpenseDetails({
         <div className="fsl-details__fact">
           <dt>{t('details.split')}</dt>
           <dd>
-            {e.mode === 'equal'
-              ? `${t('split.tab.equal')}, ${t('trip.people', { n: e.shares.length })}`
-              : splitText(e, t)}
+            {e.meta?.sport
+              ? splitText(e, t)
+              : e.mode === 'equal'
+                ? `${t('split.tab.equal')}, ${t('trip.people', { n: e.shares.length })}`
+                : splitText(e, t)}
           </dd>
         </div>
       </dl>
 
-      <ul className="fsl-details__shares" aria-label={t('details.split')}>
-        {shares.map((s) => {
-          const isMe = s.participantId === view.me.participantId;
-          return (
-            <li
-              key={s.participantId}
-              className={`fsl-details__share${isMe ? ' fsl-details__share--me' : ''}`}
+      {sportCalc ? (
+        <>
+          <div className="fsl-sport-table-container">
+            <table className="fsl-sport-table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('sport.tableColName')}</th>
+                  <th scope="col" className="fsl-sport-table__col--center">{t('sport.tableColFemale')}</th>
+                  <th scope="col" className="fsl-sport-table__col--center">{t('sport.tableColMale')}</th>
+                  <th scope="col" className="fsl-sport-table__col--right">{t('sport.tableColAmount')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sportCalc.participants.map((p) => {
+                  const isMe = p.participantId === view.me.participantId;
+                  const displayName = isMe ? t('details.you', { name: p.name }) : p.name;
+                  const isFixed = p.fixedAmount !== null && p.fixedAmount !== undefined;
+                  return (
+                    <tr key={p.participantId}>
+                      <td>
+                        <span>{displayName}</span>
+                        {isFixed && (
+                          <span className="fsl-sport-table__fixed"> ({t('sport.fixedBadge')})</span>
+                        )}
+                      </td>
+                      <td className="fsl-sport-table__col--center fsl-num">
+                        {p.femaleSlots > 0 ? p.femaleSlots : '—'}
+                      </td>
+                      <td className="fsl-sport-table__col--center fsl-num">
+                        {p.maleSlots > 0 ? p.maleSlots : '—'}
+                      </td>
+                      <td className="fsl-sport-table__col--right fsl-num">
+                        <Amount value={p.amount} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="fsl-sport-table__row--total-slots">
+                  <th scope="row">{t('sport.tableTotalSlots')}</th>
+                  <td className="fsl-sport-table__col--center fsl-num">{sportCalc.totalFemaleSlots}</td>
+                  <td className="fsl-sport-table__col--center fsl-num">{sportCalc.totalMaleSlots}</td>
+                  <td className="fsl-sport-table__col--right fsl-num">
+                    {sportCalc.totalFemaleSlots + sportCalc.totalMaleSlots} {t('split.mode.shares').toLowerCase()}
+                  </td>
+                </tr>
+                <tr className="fsl-sport-table__row--costs">
+                  <th scope="row">{t('sport.tableCosts')}</th>
+                  <td colSpan={2} className="fsl-sport-table__col--center fsl-sport-table__cost-summary">
+                    {[
+                      sportCalc.court > 0 ? `${t('sport.court')}: ${formatVnd(sportCalc.court)}` : null,
+                      sportCalc.shuttlecocksTotal > 0 ? `${t('sport.shuttlecocks')}: ${formatVnd(sportCalc.shuttlecocksTotal)}` : null,
+                      sportCalc.extra > 0 ? `${t('sport.extra')}: ${formatVnd(sportCalc.extra)}` : null,
+                    ].filter(Boolean).join(' · ')}
+                  </td>
+                  <td className="fsl-sport-table__col--right fsl-num">
+                    <Amount value={e.amount} />
+                  </td>
+                </tr>
+                <tr className="fsl-sport-table__row--per-slot">
+                  <th scope="row">{t('sport.tablePerSlot')}</th>
+                  <td className="fsl-sport-table__col--center fsl-num">
+                    <Amount value={sportCalc.femaleSlotRate} />
+                  </td>
+                  <td className="fsl-sport-table__col--center fsl-num">
+                    <Amount value={sportCalc.maleSlotRate} />
+                  </td>
+                  <td className="fsl-sport-table__col--right">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div className="fsl-sport-preview-card">
+            <h3 className="fsl-sport-preview-title">{t('sport.zaloPreviewTitle')}</h3>
+            <p className="fsl-sport-preview-msg">{msgText}</p>
+            <Button
+              variant="primary"
+              loading={sharing}
+              onClick={handleShareSportBill}
             >
-              <span className="fsl-details__share-name">
-                {isMe
-                  ? t('details.you', { name: nameOf(view, s.participantId) })
-                  : nameOf(view, s.participantId)}
-              </span>
-              <Amount value={s.amount} />
-            </li>
-          );
-        })}
-      </ul>
+              <Icon name="share" size={18} />
+              {t('sport.shareBillQr')}
+            </Button>
+            {shareStatus === 'saved' && (
+              <p className="fsl-sport-share-status" role="status">
+                {t('pay.shareSaved')}
+              </p>
+            )}
+            {shareStatus === 'failed' && (
+              <p className="fsl-sport-share-status fsl-sport-share-status--danger" role="alert">
+                {t('pay.shareFailed')}
+              </p>
+            )}
+            {qrSvg && payInfo?.bank && (
+              <div className="fsl-sport-preview-qr">
+                <img
+                  src={qrSrc(qrSvg)}
+                  alt={t('pay.qrAlt', { name: nameOf(view, e.payerId), amount: formatVnd(e.amount) })}
+                  className="fsl-sport-preview-qr__img"
+                />
+                <p className="fsl-sport-preview-qr__bank">
+                  {payInfo.bank.bankName} · {payInfo.bank.accountNumberMasked || payInfo.bank.accountNumber} · {payInfo.bank.holderName}
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <ul className="fsl-details__shares" aria-label={t('details.split')}>
+          {shares.map((s) => {
+            const isMe = s.participantId === view.me.participantId;
+            return (
+              <li
+                key={s.participantId}
+                className={`fsl-details__share${isMe ? ' fsl-details__share--me' : ''}`}
+              >
+                <span className="fsl-details__share-name">
+                  {isMe
+                    ? t('details.you', { name: nameOf(view, s.participantId) })
+                    : nameOf(view, s.participantId)}
+                </span>
+                <Amount value={s.amount} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {errorElement}
 

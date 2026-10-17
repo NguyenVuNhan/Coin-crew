@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import type { PersonView } from '@fsl/core';
+import type { Gender, PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTripView } from '../api/hooks';
 import { ApiClientError } from '../api/client';
@@ -16,6 +16,7 @@ import { ActionRow } from '../components/ActionRow';
 import { ActionSheet } from '../components/ActionSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
+import { GenderToggle } from '../components/GenderToggle';
 import './People.css';
 
 export function People() {
@@ -29,6 +30,8 @@ export function People() {
   const [mergeSource, setMergeSource] = useState<PersonView | null>(null);
   const [menuFor, setMenuFor] = useState<PersonView | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newGender, setNewGender] = useState<Gender | null>(null);
 
   if (isLoading) {
     return (
@@ -99,6 +102,20 @@ export function People() {
     await run('/people/merge', { fromId: sourceId, intoId: target.id });
   };
 
+  const handleAddPerson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newName.trim();
+    if (!trimmed || busy) return;
+    setActingId('new-person');
+    const payload: { name: string; gender?: Gender | null } = { name: trimmed };
+    if (view.trip.preset === 'sport' && newGender) {
+      payload.gender = newGender;
+    }
+    await run('/people', payload, 'POST');
+    setNewName('');
+    setNewGender(null);
+  };
+
   return (
     <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
       <div className="fsl-people">
@@ -116,6 +133,34 @@ export function People() {
                   : t('people.guest');
               const roleTone = isOrganiser ? 'accent' : 'neutral';
               const hasRowError = actingId === person.id && Boolean(error);
+              const isSport = view.trip.preset === 'sport';
+              const canEditGender =
+                isSport &&
+                !view.trip.archived &&
+                (view.me.kind === 'member' ||
+                  (view.me.kind === 'guest' &&
+                    !view.me.participantPending &&
+                    person.id === view.me.participantId));
+
+              let trailing: React.ReactNode = undefined;
+              if (canEditGender) {
+                trailing = (
+                  <GenderToggle
+                    name={person.name}
+                    value={person.gender}
+                    onChange={(next) =>
+                      void run(`/people/${person.id}`, { gender: next }, 'PATCH')
+                    }
+                    disabled={busy}
+                  />
+                );
+              } else if (person.gender) {
+                trailing = (
+                  <Pill tone={person.gender === 'M' ? 'accent' : 'warning'}>
+                    {t(`gender.${person.gender}`)}
+                  </Pill>
+                );
+              }
 
               return (
                 <li key={person.id} className="fsl-people__item">
@@ -125,6 +170,7 @@ export function People() {
                     onOpen={actions.length > 0 ? () => setMenuFor(person) : undefined}
                     hintable={index === 0}
                     leading={<Avatar name={person.name} />}
+                    trailing={trailing}
                   >
                     <span className="fsl-people__text">
                       <span className="fsl-people__name">{person.name}</span>
@@ -145,6 +191,36 @@ export function People() {
             })}
           </ul>
         </SwipeGroupProvider>
+
+        {!view.trip.archived && view.me.kind === 'member' && (
+          <form onSubmit={handleAddPerson} className="fsl-people__add-form">
+            <input
+              type="text"
+              className="fsl-input"
+              placeholder={t('create.otherPlaceholder')}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              maxLength={40}
+              aria-label={t('create.otherPlaceholder')}
+            />
+            {view.trip.preset === 'sport' && (
+              <GenderToggle
+                name={newName.trim() || t('create.otherPlaceholder')}
+                value={newGender}
+                onChange={setNewGender}
+                disabled={busy}
+              />
+            )}
+            <Button type="submit" variant="secondary" disabled={!newName.trim() || busy}>
+              {t('create.addPerson')}
+            </Button>
+          </form>
+        )}
+        {actingId === 'new-person' && Boolean(error) && (
+          <p className="fsl-people__row-error" role="alert">
+            {actionErrorText(error)}
+          </p>
+        )}
 
         <ActionSheet
           open={menuFor !== null}

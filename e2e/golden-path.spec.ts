@@ -36,8 +36,8 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.goto('/trips');
   await minh.getByRole('checkbox', { name: 'I agree to the privacy notice' }).check();
   await minh.getByRole('button', { name: 'Continue' }).click();
-  await minh.getByRole('link', { name: 'New trip' }).click();
-  await minh.getByLabel('Trip name').fill('Đà Lạt');
+  await minh.getByRole('link', { name: 'New group' }).click();
+  await minh.getByLabel('Group name').fill('Đà Lạt');
   await expect(minh.getByLabel('Your name')).toHaveValue('Minh');
   const others = minh.getByPlaceholder('Name');
   await others.nth(0).fill('An');
@@ -50,7 +50,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.getByLabel('Account number').fill('19031234565678');
   await minh.getByLabel('Account holder name').fill('Nguyen Van Minh');
   await noSidewaysScroll(minh);
-  await minh.getByRole('button', { name: 'Create trip' }).click();
+  await minh.getByRole('button', { name: 'Create group' }).click();
   await expect(minh).toHaveURL(/\/t\/[^/]+$/);
   const tripUrl = minh.url();
 

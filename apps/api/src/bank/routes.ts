@@ -514,6 +514,7 @@ export function bankRoutes(): Hono<AppBindings> {
       payerId = fromParticipant.id;
     }
 
+    const isBill = c.req.query('bill') === '1';
     const snapshot = await getSnapshot(db, actor.trip);
     const suggestion = snapshot.suggestions.find(
       (s) => s.fromId === payerId && s.toId === toId,
@@ -522,7 +523,8 @@ export function bankRoutes(): Hono<AppBindings> {
     // A "says paid" payment removes the debt from the suggestions, but the payer still needs this screen
     // (and the receiver's details) while it waits for confirmation.
     const waiting = snapshot.payments.some((p) => p.status === 'says_paid' && p.fromId === payerId && p.toId === toId);
-    ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting });
+    const isExpensePayer = isBill && snapshot.expenses.some((e) => e.payerId === toId && (e.status === 'approved' || e.status === 'pending'));
+    ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting, isExpensePayer });
 
     const amount = self && !forPayer ? 0 : (suggestion?.amount ?? 0);
 
@@ -587,15 +589,28 @@ export function bankRoutes(): Hono<AppBindings> {
 
     // The payer's screen keeps its QR while a payment waits for confirmation (amount 0); the receiver's
     // QR only exists while something is owed.
-    const payload =
-      bankState === 'ok' && approvedRow && (forPayer ? amount > 0 : !self)
-        ? buildVietQrPayload({
-            bin: approvedRow.bin,
-            accountNumber: approvedRow.accountNumber,
-            amount,
-            note: refCode,
-          })
-        : null;
+    let payload: string | null = null;
+    if (isBill) {
+      if (bankState === 'ok' && approvedRow) {
+        const billNote = refCode || toTransferNote(actor.trip.name, 25);
+        payload = buildVietQrPayload({
+          bin: approvedRow.bin,
+          accountNumber: approvedRow.accountNumber,
+          amount: 0,
+          note: billNote,
+        });
+      }
+    } else {
+      payload =
+        bankState === 'ok' && approvedRow && (forPayer ? amount > 0 : !self)
+          ? buildVietQrPayload({
+              bin: approvedRow.bin,
+              accountNumber: approvedRow.accountNumber,
+              amount,
+              note: refCode,
+            })
+          : null;
+    }
 
     const inFlight = snapshot.payments.filter(
       (p) =>

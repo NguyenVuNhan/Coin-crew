@@ -10,18 +10,25 @@ export function usePayInfo({
   tripId,
   toId,
   fromId,
+  bill,
   enabled,
   version,
 }: {
   tripId: string;
   toId: string;
   fromId?: string;
+  bill?: boolean;
   enabled: boolean;
   version: number;
 }) {
+  const params = new URLSearchParams();
+  if (fromId) params.set('from', fromId);
+  if (bill) params.set('bill', '1');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+
   return useQuery<PayInfo>({
-    queryKey: ['pay', tripId, toId, fromId ?? 'me', version],
-    queryFn: () => apiFetch<PayInfo>(`/api/trips/${tripId}/pay/${toId}${fromId ? `?from=${fromId}` : ''}`, { tripId }),
+    queryKey: ['pay', tripId, toId, fromId ?? 'me', bill ? 'bill' : 'pair', version],
+    queryFn: () => apiFetch<PayInfo>(`/api/trips/${tripId}/pay/${toId}${qs}`, { tripId }),
     enabled,
   });
 }

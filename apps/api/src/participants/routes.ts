@@ -13,6 +13,7 @@ import {
   membershipRequests,
   participants,
   payments,
+  trips,
 } from '../db/schema';
 import { getSessionUser } from '../auth/session';
 import type { ResolvedActor } from '../access/actor';
@@ -197,9 +198,17 @@ export function participantRoutes(): Hono<AppBindings> {
     const actor = await getActor(c, tripId);
     assertWritable(actor.trip);
 
-    const body = await parseJson<{ name?: unknown; confirmNew?: unknown }>(c);
+    const body = await parseJson<{ name?: unknown; confirmNew?: unknown; gender?: unknown }>(c);
     if (typeof body?.name !== 'string') {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    let gender: 'M' | 'F' | null = null;
+    if (body.gender !== undefined && body.gender !== null) {
+      if (body.gender !== 'M' && body.gender !== 'F') {
+        throw new ApiError('VALIDATION', 422, 'Invalid request');
+      }
+      gender = body.gender;
     }
 
     const name = body.name.trim();
@@ -257,6 +266,7 @@ export function participantRoutes(): Hono<AppBindings> {
       tripId,
       name,
       normalizedName: normalizeName(name),
+      gender,
       userId: null,
       status,
       sortOrder,
@@ -294,6 +304,50 @@ export function participantRoutes(): Hono<AppBindings> {
     });
 
     return c.json({ participantId }, 201);
+  });
+
+  // PATCH /trips/:id/people/:pid
+  app.patch('/trips/:id/people/:pid', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await getActor(c, tripId);
+    assertWritable(actor.trip);
+
+    if (!(actor.kind === 'member' || (actor.kind === 'guest' && !actor.participantPending && actor.participantId === pid))) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    const body = await parseJson<{ gender?: unknown }>(c);
+    if (!body || typeof body !== 'object' || !('gender' in body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    if (body.gender !== 'M' && body.gender !== 'F' && body.gender !== null) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const db = getDb(c.env);
+    const participant = await db
+      .select({ id: participants.id })
+      .from(participants)
+      .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)))
+      .get();
+
+    if (!participant) {
+      throw new ApiError('NOT_FOUND', 404, 'Participant not found');
+    }
+
+    await db.batch([
+      db
+        .update(participants)
+        .set({ gender: body.gender as 'M' | 'F' | null })
+        .where(eq(participants.id, pid)),
+      db
+        .update(trips)
+        .set({ version: sql`${trips.version} + 1` })
+        .where(eq(trips.id, tripId)),
+    ]);
+
+    return c.body(null, 204);
   });
 
   // POST /trips/:id/people/:pid/approve

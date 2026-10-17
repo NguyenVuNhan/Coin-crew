@@ -45,15 +45,15 @@ describe('MyTrips', () => {
   it('shows the empty state with one way forward', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/trips': [] });
     renderAt(<MyTrips />);
-    expect(await screen.findByText('Plan your first trip')).toBeInTheDocument();
-    expect(screen.getByText('Create a trip, then share one link with your group.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'New trip' })).toHaveAttribute('href', '/trips/new');
+    expect(await screen.findByText('Create your first group')).toBeInTheDocument();
+    expect(screen.getByText('Create a trip or sport group, then share one link with everyone.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'New group' })).toHaveAttribute('href', '/trips/new');
   });
 
-  it('is called Your trips and keeps the account menu in the header', async () => {
+  it('is called Your groups and keeps the account menu in the header', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/trips': [] });
     renderAt(<MyTrips />);
-    expect(await screen.findByRole('heading', { name: 'Your trips' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your groups' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Account' })).toBeInTheDocument();
   });
 
@@ -77,7 +77,7 @@ describe('MyTrips', () => {
     expect(settled.getByText('Settled')).toHaveClass('fsl-my-trips__line--neutral');
     expect(settled.getByText('· archived')).toBeInTheDocument();
     expect(within(screen.getByRole('link', { name: /Đà Lạt/ })).queryByText('· archived')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'New trip' })).toHaveAttribute('href', '/trips/new');
+    expect(screen.getByRole('link', { name: 'New group' })).toHaveAttribute('href', '/trips/new');
   });
 
   it('lists trips with my balance', async () => {
@@ -104,9 +104,9 @@ describe('CreateTrip', () => {
   it('needs a trip name and at least one other person', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    const submit = await screen.findByRole('button', { name: 'Create trip' });
+    const submit = await screen.findByRole('button', { name: 'Create group' });
     expect(submit).toBeDisabled();
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     expect(submit).toBeDisabled();
     await userEvent.type(screen.getAllByPlaceholderText('Name')[0]!, 'An');
     expect(submit).toBeEnabled();
@@ -116,11 +116,11 @@ describe('CreateTrip', () => {
     const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
     expect(await screen.findByLabelText('Your name')).toHaveValue('Minh');
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt · Oct 2026');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt · Oct 2026');
     await userEvent.type(screen.getAllByPlaceholderText('Name')[0]!, 'An');
     await userEvent.click(screen.getByRole('button', { name: 'Add person' }));
     await userEvent.type(screen.getAllByPlaceholderText('Name')[1]!, 'Bình');
-    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
     expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips')?.body).toEqual({ name: 'Đà Lạt · Oct 2026', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình' }] });
   });
@@ -136,7 +136,7 @@ describe('CreateTrip people', () => {
     const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Your name');
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'An{Enter}');
     expect(nameLines()).toHaveLength(2);
     expect(nameLines()[1]!).toHaveFocus();
@@ -144,7 +144,7 @@ describe('CreateTrip people', () => {
     expect(nameLines()).toHaveLength(2);
     await userEvent.keyboard('Bình{Enter}');
     expect(nameLines().map((l) => l.value)).toEqual(['An', 'Bình', '']);
-    expect(screen.getByLabelText('Trip name')).toHaveValue('Đà Lạt');
+    expect(screen.getByLabelText('Group name')).toHaveValue('Đà Lạt');
     expect(posted(calls)).toHaveLength(0);
   });
 
@@ -216,7 +216,7 @@ describe('CreateTrip people', () => {
     });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Your name');
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'An{Enter}');
     await userEvent.type(nameLines()[1]!, 'ch');
     const list = await screen.findByRole('listbox', { name: 'From your recent trips' });
@@ -232,7 +232,7 @@ describe('CreateTrip people', () => {
     expect(nameLines().map((l) => l.value)).toEqual(['An', '']);
     expect(nameLines()[1]!).toHaveFocus();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
     expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Chi Trần', userId: 'u-chi' }] });
     expect(calls.filter((c) => c.path === '/api/me/people')).toHaveLength(1);
@@ -285,7 +285,7 @@ describe('CreateTrip people', () => {
     });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Your name');
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     // Line 1: An's account is suggested, but Enter keeps the typed name.
     await userEvent.type(nameLines()[0]!, 'An');
     await screen.findByRole('option', { name: /^An/ });
@@ -304,7 +304,7 @@ describe('CreateTrip people', () => {
     await userEvent.keyboard('{Enter}');
     expect(screen.queryByLabelText('An · has an account')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
     expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình', userId: 'u-binh' }] });
   });
@@ -386,7 +386,7 @@ describe('CreateTrip people', () => {
     });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Your name');
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
 
@@ -402,7 +402,7 @@ describe('CreateTrip people', () => {
     await userEvent.keyboard('{Backspace}');
     expect(screen.getByText(hint)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
     expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'Chi Trần', userId: 'u-chi' }, { name: 'chi tran' }] });
   });
@@ -443,11 +443,11 @@ describe('CreateTrip people', () => {
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Your name');
     await waitFor(() => expect(calls.some((c) => c.path === '/api/me/people')).toBe(true));
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'ch');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
     expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'ch' }] });
     expect(calls.filter((c) => c.path === '/api/me/people')).toHaveLength(1);
@@ -460,10 +460,10 @@ describe('CreateTrip people', () => {
     });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Your name');
-    await userEvent.type(screen.getByLabelText('Trip name'), 'Đà Lạt');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'An');
-    await userEvent.click(screen.getByRole('button', { name: 'Create trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create trip' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Create group' })).toBeEnabled();
   });
 });

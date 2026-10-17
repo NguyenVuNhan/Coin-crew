@@ -67,6 +67,8 @@ rows.push(
   ['guest views bank when not owing', G, 'view_bank', { owesTo: false }, false],
   ['pending views bank', GP, 'view_bank', { owesTo: true }, false],
   ['viewer views bank', viewer, 'view_bank', { owesTo: true }, false],
+  ['guest views bank of expense payer', G, 'view_bank', { owesTo: false, isExpensePayer: true }, true],
+  ['viewer cannot view bank of expense payer', viewer, 'view_bank', { owesTo: false, isExpensePayer: true }, false],
 );
 
 describe('can', () => {

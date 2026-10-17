@@ -150,3 +150,140 @@
   font-size: var(--text-sm);
   color: var(--color-danger);
 }
+
+/* Sport Session Breakdown Table */
+.fsl-sport-table-container {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.fsl-sport-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-align: left;
+}
+
+.fsl-sport-table th,
+.fsl-sport-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 44px;
+}
+
+.fsl-sport-table thead th {
+  background-color: var(--color-surface-muted);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+}
+
+.fsl-sport-table__col--center {
+  text-align: center;
+}
+
+.fsl-sport-table__col--right {
+  text-align: right;
+}
+
+.fsl-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.fsl-sport-table__fixed {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.fsl-sport-table tfoot th,
+.fsl-sport-table tfoot td {
+  font-weight: var(--weight-semibold);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fsl-sport-table__row--total-slots,
+.fsl-sport-table__row--per-slot {
+  background-color: var(--color-warning-soft);
+  color: var(--color-warning-text);
+}
+
+.fsl-sport-table__row--costs {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.fsl-sport-table__cost-summary {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+}
+
+/* Zalo 1-Line Message & Payer VietQR Preview Card */
+.fsl-sport-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.fsl-sport-preview-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.fsl-sport-preview-msg {
+  margin: 0;
+  padding: var(--space-3);
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-base);
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.fsl-sport-share-status {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+}
+
+.fsl-sport-share-status--danger {
+  color: var(--color-danger);
+}
+
+.fsl-sport-preview-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.fsl-sport-preview-qr__img {
+  width: 200px;
+  height: 200px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.fsl-sport-preview-qr__bank {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}

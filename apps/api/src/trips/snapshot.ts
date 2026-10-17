@@ -131,6 +131,7 @@ export async function buildSnapshot(
     return {
       id: p.id,
       name: p.name,
+      gender: (p.gender as 'M' | 'F' | null) ?? null,
       status: p.status as 'active' | 'pending',
       isMember: p.userId !== null,
       isOrganiser: p.userId !== null && p.userId === trip.organiserUserId,
@@ -195,6 +196,7 @@ export async function buildSnapshot(
     disabledByName: e.disabledByUserId ? (disabledNameMap.get(e.disabledByUserId) ?? null) : null,
     createdById: e.createdByParticipantId,
     shares: sharesByExpenseId.get(e.id) ?? [],
+    meta: e.metaJson ? (JSON.parse(e.metaJson) as ExpenseView['meta']) : null,
   }));
 
   const paymentRows = await db
@@ -218,6 +220,7 @@ export async function buildSnapshot(
     trip: {
       id: trip.id,
       name: trip.name,
+      preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
       archived: trip.archivedAt !== null,
@@ -250,6 +253,7 @@ export async function buildSnapshot(
     trip: {
       id: trip.id,
       name: trip.name,
+      preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
       archived: trip.archivedAt !== null,

@@ -64,6 +64,57 @@ describe('adding expenses', () => {
     const res = await send('POST', '/expenses', await guestHeaders(PID.C), equalAll(100000, PID.C));
     expect(res.status).toBe(429);
   });
+
+  it('persists and returns sport expense meta, and Review Focus 3 rejects mismatched meta.sport', async () => {
+    const headers = await minh();
+    const sportMeta = {
+      court: 240000,
+      shuttlecocks: [{ qty: 5, unitPrice: 23000 }],
+      extra: 25000,
+      rule: { kind: 'discount' as const, femaleDiscount: 15000 },
+      entries: [
+        { participantId: PID.M, maleSlots: 1, femaleSlots: 0 },
+        { participantId: PID.A, maleSlots: 1, femaleSlots: 0 },
+        { participantId: PID.C, maleSlots: 0, femaleSlots: 1 },
+        { participantId: PID.B, maleSlots: 1, femaleSlots: 0, fixedAmount: 55000 },
+      ],
+      maleSlotRate: 113333,
+      femaleSlotRate: 98333,
+    };
+    const res = await send('POST', '/expenses', headers, {
+      description: 'Cầu lông tối T5',
+      amount: 380000,
+      spentOn: '2026-10-16',
+      payerId: PID.M,
+      mode: 'amounts',
+      entries: [
+        { participantId: PID.M, value: 113334 },
+        { participantId: PID.A, value: 113333 },
+        { participantId: PID.C, value: 98333 },
+        { participantId: PID.B, value: 55000 },
+      ],
+      meta: { sport: sportMeta },
+    });
+    expect(res.status).toBe(201);
+    const { expenseId } = await json<{ expenseId: string }>(res);
+    const created = (await view(headers)).expenses.find((e) => e.id === expenseId);
+    expect(created?.meta?.sport).toEqual(sportMeta);
+
+    // Review Focus 3: tampered meta whose breakdown doesn't match amount/shares is rejected with 422
+    const bad = await send('POST', '/expenses', headers, {
+      description: 'Tampered',
+      amount: 380000,
+      spentOn: '2026-10-16',
+      payerId: PID.M,
+      mode: 'amounts',
+      entries: [
+        { participantId: PID.M, value: 190000 },
+        { participantId: PID.A, value: 190000 },
+      ],
+      meta: { sport: sportMeta },
+    });
+    expect(bad.status).toBe(422);
+  });
 });
 
 describe('editing and deleting', () => {

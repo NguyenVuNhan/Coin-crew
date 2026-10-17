@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import type { CreateTripInput } from '@fsl/core';
+import type { CreateTripInput, GroupPreset, Gender } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { Screen } from '../components/Screen';
@@ -12,6 +12,7 @@ import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
 import { PeopleInput } from '../components/PeopleInput';
 import { Icon } from '../components/icons';
+import { GenderToggle } from '../components/GenderToggle';
 import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
 import './CreateTrip.css';
 
@@ -41,9 +42,11 @@ export function CreateTrip() {
     }
   }, [meQuery.isSuccess, user, navigate]);
 
+  const [preset, setPreset] = useState<GroupPreset>('trip');
   const [tripName, setTripName] = useState('');
   const [userEnteredMyName, setUserEnteredMyName] = useState<string | null>(null);
   const myName = userEnteredMyName !== null ? userEnteredMyName : (user?.name ?? '');
+  const [myGender, setMyGender] = useState<Gender | null>(null);
   const [people, setPeople] = useState<PersonEntry[]>(() => [newPersonEntry()]);
   const [bank, setBank] = useState<BankFieldsValue>({
     bin: '',
@@ -79,9 +82,22 @@ export function CreateTrip() {
       people: people.flatMap((p) => {
         const name = p.name.trim();
         if (name === '') return [];
+        if (preset === 'sport') {
+          const personObj: { name: string; userId?: string; gender?: Gender } = { name };
+          if (p.userId) personObj.userId = p.userId;
+          if (p.gender) personObj.gender = p.gender;
+          return [personObj];
+        }
         return [p.userId ? { name, userId: p.userId } : { name }];
       }),
     };
+
+    if (preset === 'sport') {
+      input.preset = 'sport';
+      if (myGender) {
+        input.myGender = myGender;
+      }
+    }
 
     if (
       bank.bin.trim() !== '' &&
@@ -124,6 +140,33 @@ export function CreateTrip() {
         onSubmit={handleSubmit}
         className={`fsl-create-trip__form${submitError ? ' fsl-create-trip__form--bar-error' : ''}`}
       >
+        <div
+          role="radiogroup"
+          aria-label={t('create.presetLabel')}
+          className="fsl-create-trip__preset"
+        >
+          <button
+            type="button"
+            role="radio"
+            aria-checked={preset === 'trip'}
+            className={`fsl-create-trip__preset-btn${preset === 'trip' ? ' fsl-create-trip__preset-btn--selected' : ''}`}
+            onClick={() => setPreset('trip')}
+          >
+            <Icon name="suitcase" size={18} />
+            <span>{t('create.presetTrip')}</span>
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={preset === 'sport'}
+            className={`fsl-create-trip__preset-btn${preset === 'sport' ? ' fsl-create-trip__preset-btn--selected' : ''}`}
+            onClick={() => setPreset('sport')}
+          >
+            <Icon name="trophy" size={18} />
+            <span>{t('create.presetSport')}</span>
+          </button>
+        </div>
+
         <div className="fsl-form-group">
           <label htmlFor="fsl-trip-name" className="fsl-form-label">
             {t('create.tripName')}
@@ -131,7 +174,7 @@ export function CreateTrip() {
           <input
             id="fsl-trip-name"
             type="text"
-            placeholder={t('create.tripNamePlaceholder')}
+            placeholder={preset === 'sport' ? t('create.sportNamePlaceholder') : t('create.tripNamePlaceholder')}
             maxLength={60}
             value={tripName}
             onChange={(e) => setTripName(e.target.value)}
@@ -146,18 +189,27 @@ export function CreateTrip() {
           {meQuery.isLoading ? (
             <Skeleton height={44} radius="md" />
           ) : (
-            <input
-              id="fsl-my-name"
-              type="text"
-              maxLength={40}
-              value={myName}
-              onChange={(e) => setUserEnteredMyName(e.target.value)}
-              className="fsl-input"
-            />
+            <div className="fsl-create-trip__my-name-row">
+              <input
+                id="fsl-my-name"
+                type="text"
+                maxLength={40}
+                value={myName}
+                onChange={(e) => setUserEnteredMyName(e.target.value)}
+                className="fsl-input"
+              />
+              {preset === 'sport' && (
+                <GenderToggle
+                  name={myName.trim() || t('create.myName')}
+                  value={myGender}
+                  onChange={setMyGender}
+                />
+              )}
+            </div>
           )}
         </div>
 
-        <PeopleInput value={people} onChange={setPeople} />
+        <PeopleInput value={people} onChange={setPeople} showGender={preset === 'sport'} />
 
         <details className="fsl-create-trip__details">
           <summary className="fsl-create-trip__summary">

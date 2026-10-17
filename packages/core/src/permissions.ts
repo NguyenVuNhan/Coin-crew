@@ -9,6 +9,7 @@ export interface ActionContext {
   paymentFromId?: string; paymentToId?: string; owesTo?: boolean;
   /** The actor already has approved bank details in this trip. */
   bankApproved?: boolean;
+  isExpensePayer?: boolean;
 }
 
 const MEMBER_ONLY: ReadonlySet<Action> = new Set(['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank']);
@@ -36,7 +37,7 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
     case 'record_payment':
       return (isMember || activeGuest) && me !== null && (ctx.paymentFromId === me || ctx.paymentToId === me);
     case 'view_bank':
-      return (isMember || activeGuest) && ctx.owesTo === true;
+      return (isMember || activeGuest) && (ctx.owesTo === true || ctx.isExpensePayer === true);
     default:
       return isMember && MEMBER_ONLY.has(action);
   }

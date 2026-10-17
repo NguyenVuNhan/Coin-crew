@@ -84,3 +84,15 @@
   gap: var(--space-2);
   padding: var(--space-2) 0;
 }
+
+.fsl-people__add-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+
+.fsl-people__add-form .fsl-input {
+  flex: 1;
+  min-width: 0;
+}

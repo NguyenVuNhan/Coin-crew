@@ -152,4 +152,32 @@ describe('becoming a member', () => {
     const res = await post('/membership', { ...g, Cookie: `${g.Cookie}; sid=${otherSid}` }, { participantId: PID.A });
     expect(res.status).toBe(403);
   });
+
+  it('updates a participant gender via PATCH /people/:pid', async () => {
+    const headers = await minh();
+    const res = await call(`${base}/people/${PID.C}`, {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gender: 'F' }),
+    });
+    expect(res.status).toBe(204);
+    expect((await view(headers)).people.find((p) => p.id === PID.C)?.gender).toBe('F');
+
+    // A guest can update their own gender, but not someone else's
+    const chi = await guestHeaders(PID.C);
+    expect(
+      (await call(`${base}/people/${PID.C}`, {
+        method: 'PATCH',
+        headers: { ...chi, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gender: null }),
+      })).status,
+    ).toBe(204);
+    expect(
+      (await call(`${base}/people/${PID.A}`, {
+        method: 'PATCH',
+        headers: { ...chi, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gender: 'M' }),
+      })).status,
+    ).toBe(403);
+  });
 });
