@@ -48,6 +48,7 @@ describe('member: payment actions (spec §9.4)', () => {
       'POST /api/trips/t-1/payments/pay-d/enable': null,
     });
     renderAt(<TripRoute />, route);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Payments' }));
     // An → Chi doesn't involve Minh: it shows once he asks for all payments.
     await userEvent.click(within(await screen.findByRole('region', { name: 'Your payments' })).getByRole('button', { name: 'Show all' }));
     const list = screen.getByRole('region', { name: 'All payments' });
@@ -91,7 +92,8 @@ describe('guest: payments to me', () => {
     });
     await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/payments')?.body).toEqual({ fromId: PIDS.A, toId: PIDS.C, amount: 200000 }));
     // A confirmed payment into the guest's account can still be reported as not arrived.
-    await user.click(within(screen.getByTestId('payment-row-pay-3')).getByRole('button', { name: "Didn't arrive" }));
+    await user.click(await screen.findByRole('tab', { name: 'Payments' }));
+    await user.click(within(await screen.findByTestId('payment-row-pay-3')).getByRole('button', { name: "Didn't arrive" }));
     await waitFor(() => expect(calls.some((c) => c.path === '/api/trips/t-1/payments/pay-3/not-arrived')).toBe(true));
   });
 });
@@ -142,6 +144,7 @@ describe('"It arrived" undoes "Didn\'t arrive"', () => {
 
     api(tripView({ payments: [rejected] }), 'pay-r');
     renderAt(<TripRoute />, route);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Payments' }));
     const row = await screen.findByTestId('payment-row-pay-r');
     expect(within(row).queryByRole('button', { name: 'It arrived' })).toBeNull();
   });

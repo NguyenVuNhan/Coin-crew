@@ -39,14 +39,13 @@ describe('Settings', () => {
     await waitFor(() => expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fewestTransfers: false }));
   });
 
-  it('links to people, activity and my bank details, and switches language', async () => {
+  it('links to people and activity', async () => {
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<Settings />, at('settings'));
     expect(await screen.findByRole('link', { name: 'People' })).toHaveAttribute('href', '/t/t-1/people');
     expect(screen.getByRole('link', { name: 'Activity' })).toHaveAttribute('href', '/t/t-1/activity');
-    expect(screen.getByRole('link', { name: 'Your bank details' })).toHaveAttribute('href', '/t/t-1/bank');
-    expect(screen.getByText('Language')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Switch to Tiếng Việt' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Your bank details' })).toBeNull();
+    expect(screen.queryByText('Language')).toBeNull();
   });
 
   it('only the organiser can archive', async () => {

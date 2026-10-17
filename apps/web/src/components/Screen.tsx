@@ -7,6 +7,7 @@ import './Screen.css';
 
 export interface ScreenProps {
   title: string;
+  titleAlign?: 'left' | 'center';
   back?: string;
   /** Goes back by itself instead of linking to `back` (the trip details use it to return to the list in history). */
   onBack?: () => void;
@@ -19,6 +20,7 @@ export interface ScreenProps {
 
 export function Screen({
   title,
+  titleAlign = 'center',
   back,
   onBack,
   right,
@@ -38,9 +40,16 @@ export function Screen({
     .filter(Boolean)
     .join(' ');
 
+  const headerClass = [
+    'fsl-screen__header',
+    titleAlign === 'left' && 'fsl-screen__header--title-left',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className={rootClass}>
-      <header className="fsl-screen__header">
+      <header className={headerClass}>
         <div className="fsl-screen__header-inner">
           {onBack ? (
             <button

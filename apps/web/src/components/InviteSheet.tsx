@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TripView } from '@fsl/core';
-import { useT } from '../i18n';
+import { useT, useLang } from '../i18n';
 import { apiSend } from '../api/client';
 import { Button } from './Button';
 import { Sheet } from './Sheet';
@@ -60,11 +60,12 @@ function LinkBlock({
   primary?: boolean;
 }) {
   const t = useT();
+  const [lang] = useLang();
   const queryClient = useQueryClient();
   const legendId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const url = `${location.origin}/j/${token}`;
+  const url = `${location.origin}/j/${token}?lang=${lang}`;
   const { copied, copy, share } = useLinkActions(view, url);
 
   async function regenerate() {
@@ -153,8 +154,9 @@ export function InviteSheet({
 /** Invite card shown at the top of a brand-new trip with the group link, share, and copy. */
 export function InviteCard({ view }: { view: TripView }) {
   const t = useT();
+  const [lang] = useLang();
   const titleId = useId();
-  const url = view.links ? `${location.origin}/j/${view.links.group}` : '';
+  const url = view.links ? `${location.origin}/j/${view.links.group}?lang=${lang}` : '';
   const { copied, copy, share } = useLinkActions(view, url);
 
   if (!view.links) return null;

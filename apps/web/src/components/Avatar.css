@@ -9,6 +9,16 @@
   font-weight: var(--weight-medium);
   user-select: none;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.fsl-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
 }
 
 .fsl-avatar--sm {

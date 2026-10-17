@@ -73,6 +73,7 @@ describe('Sport group creation & People gender toggle', () => {
       myName: 'Minh',
       myGender: 'M',
       people: [{ name: 'Chi', gender: 'F' }],
+      defaultLang: 'en',
     });
   });
 
