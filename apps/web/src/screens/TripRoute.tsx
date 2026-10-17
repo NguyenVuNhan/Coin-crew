@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, useMatch, useNavigate, useParams } from 'react-router';
+import { Navigate, useMatch, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useTripView } from '../api/hooks';
 import { useIsWide } from '../lib/media';
@@ -12,7 +12,7 @@ import { InlineError } from '../components/InlineError';
 import { Button } from '../components/Button';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
-import { useT } from '../i18n';
+import { useT, applyInheritedLang } from '../i18n';
 import './TripRoute.css';
 import { GuestTrip } from './GuestTrip';
 import { ViewOnlyTrip } from './ViewOnlyTrip';
@@ -65,6 +65,7 @@ function TripSkeleton({ wide }: { wide: boolean }) {
 
 export function TripRoute() {
   const { tripId, expenseId, paymentId } = useParams<{ tripId: string; expenseId: string; paymentId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const t = useT();
   const wide = useIsWide();
@@ -73,6 +74,10 @@ export function TripRoute() {
 
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
+
+  useEffect(() => {
+    applyInheritedLang(searchParams.get('lang'), view?.trip.defaultLang);
+  }, [searchParams, view?.trip.defaultLang]);
 
   // Phones show the details, and the approvals list, as a page of their own; from 1024px every trip page (member,
   // guest and view-only) shows them in its right panel (it takes `selection`).

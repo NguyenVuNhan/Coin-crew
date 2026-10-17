@@ -1006,7 +1006,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                           }}
                         />
                       </label>
-                      <Avatar name={person.name} size="sm" />
+                      <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
                       <span className="fsl-split-row__name">
                         {person.id === me
                           ? t('expenseForm.me', { name: person.name })
@@ -1229,7 +1229,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                     </label>
                   )}
 
-                  <Avatar name={person.name} size="sm" />
+                  <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
 
                   <span className="fsl-split-row__name">
                     {person.id === me

@@ -68,6 +68,11 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
+    if (body.defaultLang !== undefined && body.defaultLang !== null && body.defaultLang !== 'en' && body.defaultLang !== 'vi') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    const defaultLang = body.defaultLang === 'en' ? 'en' : 'vi';
+
     const name = body.name.trim();
     if (name.length < 1 || name.length > 60) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -161,7 +166,8 @@ export function tripRoutes(): Hono<AppBindings> {
       name,
       preset,
       currency: 'VND',
-      fewestTransfers: 1,
+      fewestTransfers: 0,
+      defaultLang,
       organiserUserId: user.id,
       groupToken: newToken(),
       viewToken: newToken(),
@@ -169,12 +175,17 @@ export function tripRoutes(): Hono<AppBindings> {
       createdAt: now,
     });
 
+    const organiserGender =
+      body.myGender !== undefined && body.myGender !== null
+        ? body.myGender
+        : ((user.gender as 'M' | 'F' | null) ?? null);
+
     const organiserInsert = db.insert(participants).values({
       id: organiserParticipantId,
       tripId,
       name: myName,
       normalizedName: normalizeName(myName),
-      gender: body.myGender ?? null,
+      gender: organiserGender,
       userId: user.id,
       isAdmin: 1,
       status: 'active',
@@ -201,6 +212,19 @@ export function tripRoutes(): Hono<AppBindings> {
       organiserInsert,
       ...otherParticipantInserts,
     ];
+
+    const userSync: Partial<typeof users.$inferInsert> = {};
+    if (!user.gender && body.myGender) {
+      userSync.gender = body.myGender;
+      user.gender = body.myGender;
+    }
+    if (user.customProfile === 0 && myName !== user.name) {
+      userSync.name = myName;
+      user.name = myName;
+    }
+    if (Object.keys(userSync).length > 0) {
+      queries.push(db.update(users).set(userSync).where(eq(users.id, user.id)));
+    }
 
     if (body.myBank) {
       const updateBank = db

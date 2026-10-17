@@ -6,7 +6,7 @@ export type Lang = 'vi' | 'en';
 
 export function detectLang(): Lang {
   try {
-    const stored = localStorage.getItem('lang');
+    const stored = localStorage.getItem('fsl_lang') || localStorage.getItem('lang');
     if (stored === 'vi' || stored === 'en') {
       return stored;
     }
@@ -33,18 +33,39 @@ export function getLang(): Lang {
   return currentLang;
 }
 
-export function setLang(lang: Lang): void {
+export function setLang(lang: Lang, persist = true): void {
   currentLang = lang;
-  try {
-    localStorage.setItem('lang', lang);
-  } catch {
-    // ignore
+  if (persist) {
+    try {
+      localStorage.setItem('lang', lang);
+    } catch {
+      // ignore
+    }
   }
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.lang = lang;
   }
   for (const listener of listeners) {
     listener();
+  }
+}
+
+export function applyInheritedLang(urlParam?: string | null, tripDefault?: string | null): void {
+  try {
+    if (localStorage.getItem('fsl_lang')) {
+      return;
+    }
+  } catch {
+    // ignore
+  }
+  const candidate =
+    urlParam === 'en' || urlParam === 'vi'
+      ? urlParam
+      : tripDefault === 'en' || tripDefault === 'vi'
+        ? tripDefault
+        : null;
+  if (candidate && candidate !== currentLang) {
+    setLang(candidate, false);
   }
 }
 

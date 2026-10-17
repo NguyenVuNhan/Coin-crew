@@ -9,7 +9,6 @@ import { Button } from '../components/Button';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
-import { LanguageButton } from '../components/LanguageButton';
 import { FewestSwitch } from '../components/FewestSwitch';
 import './Settings.css';
 
@@ -77,18 +76,6 @@ export function Settings() {
               <span className="fsl-settings__label">{t('settings.activity')}</span>
               <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
             </Link>
-          </li>
-          <li>
-            <Link to={`/t/${tripId}/bank`} className="fsl-settings__row">
-              <span className="fsl-settings__label">{t('settings.bank')}</span>
-              <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
-            </Link>
-          </li>
-          <li>
-            <div className="fsl-settings__row fsl-settings__row--static">
-              <span className="fsl-settings__label">{t('settings.language')}</span>
-              <LanguageButton />
-            </div>
           </li>
         </ul>
 

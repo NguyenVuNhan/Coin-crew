@@ -122,7 +122,7 @@ describe('CreateTrip', () => {
     await userEvent.type(screen.getAllByPlaceholderText('Name')[1]!, 'Bình');
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
-    expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips')?.body).toEqual({ name: 'Đà Lạt · Oct 2026', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình' }] });
+    expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips')?.body).toEqual({ name: 'Đà Lạt · Oct 2026', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình' }], defaultLang: 'en' });
   });
 });
 
@@ -234,7 +234,7 @@ describe('CreateTrip people', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
-    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Chi Trần', userId: 'u-chi' }] });
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Chi Trần', userId: 'u-chi' }], defaultLang: 'en' });
     expect(calls.filter((c) => c.path === '/api/me/people')).toHaveLength(1);
   });
 
@@ -306,7 +306,7 @@ describe('CreateTrip people', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
-    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình', userId: 'u-binh' }] });
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình', userId: 'u-binh' }], defaultLang: 'en' });
   });
 
   it('a suggestion highlighted but not chosen stays with its line', async () => {
@@ -404,7 +404,7 @@ describe('CreateTrip people', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
-    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'Chi Trần', userId: 'u-chi' }, { name: 'chi tran' }] });
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'Chi Trần', userId: 'u-chi' }, { name: 'chi tran' }], defaultLang: 'en' });
   });
 
   it('the warning goes away when the account row is removed', async () => {
@@ -449,7 +449,7 @@ describe('CreateTrip people', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
-    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'ch' }] });
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'ch' }], defaultLang: 'en' });
     expect(calls.filter((c) => c.path === '/api/me/people')).toHaveLength(1);
   });
 

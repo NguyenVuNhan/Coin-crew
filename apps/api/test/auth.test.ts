@@ -15,11 +15,11 @@ function mockGoogleToken(claims: Record<string, unknown>) {
   });
 }
 
-async function signIn(sub = 'g-1', returnTo = '/trips') {
+async function signIn(sub = 'g-1', returnTo = '/trips', extraClaims: Record<string, unknown> = {}) {
   const start = await call(`/api/auth/google/start?returnTo=${encodeURIComponent(returnTo)}`);
   const startCookies = cookiesFrom(start);
   const state = new URL(start.headers.get('Location')!).searchParams.get('state')!;
-  mockGoogleToken({ sub, email: 'minh@example.com', name: 'Minh', email_verified: true });
+  mockGoogleToken({ sub, email: 'minh@example.com', name: 'Minh', email_verified: true, ...extraClaims });
   const cb = await call(`/api/auth/google/callback?code=abc&state=${state}`, { headers: { Cookie: cookieHeader(startCookies) } });
   return { start, cb, sid: cookiesFrom(cb).sid };
 }
@@ -109,3 +109,124 @@ describe('/api/me, logout, consent', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('user profile and avatar (PATCH /api/me)', () => {
+  it('populates google picture on sign-in, allows PATCH /api/me to update name/gender/avatarUrl, and preserves custom profile on next sign-in', async () => {
+    const { sid } = await signIn('g-profile-1', '/trips', {
+      name: 'Google Name',
+      picture: 'https://lh3.googleusercontent.com/a/initial-avatar',
+    });
+
+    const meRes1 = await call('/api/me', { headers: { Cookie: `sid=${sid}` } });
+    const meBody1 = (await meRes1.json()) as { user: any };
+    expect(meBody1.user).toMatchObject({
+      gender: null,
+      avatarUrl: 'https://lh3.googleusercontent.com/a/initial-avatar',
+    });
+
+    const patchRes = await call('/api/me', {
+      method: 'PATCH',
+      headers: { Cookie: `sid=${sid}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Minh Custom',
+        gender: 'M',
+        avatarUrl: 'https://images.example.com/minh-custom.png',
+      }),
+    });
+    expect(patchRes.status).toBe(200);
+    const patchBody = (await patchRes.json()) as { user: any };
+    expect(patchBody.user).toMatchObject({
+      name: 'Minh Custom',
+      gender: 'M',
+      avatarUrl: 'https://images.example.com/minh-custom.png',
+    });
+
+    const meRes2 = await call('/api/me', { headers: { Cookie: `sid=${sid}` } });
+    const meBody2 = (await meRes2.json()) as { user: any };
+    expect(meBody2.user).toMatchObject({
+      name: 'Minh Custom',
+      gender: 'M',
+      avatarUrl: 'https://images.example.com/minh-custom.png',
+    });
+
+    // Subsequent sign-in with Google claims should NOT overwrite name or avatarUrl because customProfile === 1
+    await signIn('g-profile-1', '/trips', {
+      name: 'Different Google Name',
+      picture: 'https://lh3.googleusercontent.com/a/new-google-pic',
+    });
+
+    const meRes3 = await call('/api/me', { headers: { Cookie: `sid=${sid}` } });
+    const meBody3 = (await meRes3.json()) as { user: any };
+    expect(meBody3.user.name).toBe('Minh Custom');
+    expect(meBody3.user.avatarUrl).toBe('https://images.example.com/minh-custom.png');
+    expect(meBody3.user.gender).toBe('M');
+  });
+
+  it('validates PATCH /api/me inputs', async () => {
+    const { sid } = await signIn('g-profile-2');
+    const patch = (body: any) =>
+      call('/api/me', {
+        method: 'PATCH',
+        headers: { Cookie: `sid=${sid}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    // Unauthenticated
+    const unauth = await call('/api/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Valid' }),
+    });
+    expect(unauth.status).toBe(401);
+
+    // Invalid names
+    expect((await patch({ name: '' })).status).toBe(422);
+    expect((await patch({ name: '   ' })).status).toBe(422);
+    expect((await patch({ name: 'a'.repeat(41) })).status).toBe(422);
+
+    // Invalid gender
+    expect((await patch({ gender: 'X' })).status).toBe(422);
+    expect((await patch({ gender: 123 })).status).toBe(422);
+
+    // Invalid avatarUrl
+    expect((await patch({ avatarUrl: 'http://insecure.com/a.jpg' })).status).toBe(422);
+    expect((await patch({ avatarUrl: 'javascript:alert(1)' })).status).toBe(422);
+    expect((await patch({ avatarUrl: 'data:image/png;base64,' + 'a'.repeat(150001) })).status).toBe(422);
+
+    // Valid data url and null avatar
+    expect((await patch({ avatarUrl: 'data:image/webp;base64,AAAA' })).status).toBe(200);
+    expect((await patch({ avatarUrl: null, gender: null })).status).toBe(200);
+  });
+
+  it('syncs name and gender to participants and bumps trip version', async () => {
+    const { sid } = await signIn('g-profile-3');
+    const meRes = await call('/api/me', { headers: { Cookie: `sid=${sid}` } });
+    const user = ((await meRes.json()) as { user: { id: string } }).user;
+
+    const tripId = 't-profile-sync';
+    await env.DB.prepare(
+      "INSERT INTO trips (id, name, currency, fewest_transfers, organiser_user_id, group_token, view_token, version, created_at) VALUES (?, 'Trip 1', 'VND', 0, ?, 'tok1', 'vtok1', 0, '2026-10-17T00:00:00.000Z')"
+    ).bind(tripId, user.id).run();
+    await env.DB.prepare(
+      "INSERT INTO participants (id, trip_id, name, normalized_name, user_id, status, sort_order, created_at) VALUES ('p-user-1', ?, 'Original Name', 'original name', ?, 'active', 0, '2026-10-17T00:00:00.000Z')"
+    ).bind(tripId, user.id).run();
+
+    const patchRes = await call('/api/me', {
+      method: 'PATCH',
+      headers: { Cookie: `sid=${sid}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Updated Name', gender: 'F' }),
+    });
+    expect(patchRes.status).toBe(200);
+
+    const part = await env.DB.prepare("SELECT name, normalized_name, gender FROM participants WHERE id = 'p-user-1'").first<{ name: string; normalized_name: string; gender: string }>();
+    expect(part).toEqual({
+      name: 'Updated Name',
+      normalized_name: 'updated name',
+      gender: 'F',
+    });
+
+    const trip = await env.DB.prepare("SELECT version FROM trips WHERE id = ?").bind(tripId).first<{ version: number }>();
+    expect(trip?.version).toBe(1);
+  });
+});
+

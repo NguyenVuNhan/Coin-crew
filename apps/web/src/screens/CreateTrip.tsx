@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { CreateTripInput, GroupPreset, Gender } from '@fsl/core';
-import { useT } from '../i18n';
+import { useT, useLang } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -27,6 +27,7 @@ interface MeResponse {
 
 export function CreateTrip() {
   const t = useT();
+  const [lang] = useLang();
   const navigate = useNavigate();
 
   const meQuery = useQuery<MeResponse>({
@@ -79,6 +80,7 @@ export function CreateTrip() {
     const input: CreateTripInput = {
       name: tripName.trim(),
       myName: myName.trim(),
+      defaultLang: lang,
       people: people.flatMap((p) => {
         const name = p.name.trim();
         if (name === '') return [];

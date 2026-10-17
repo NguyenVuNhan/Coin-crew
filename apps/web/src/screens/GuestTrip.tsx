@@ -15,11 +15,13 @@ import { TripLayout } from '../components/TripLayout';
 import { MyBankRow } from '../components/MyBankRow';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
+import { TripTabs } from '../components/TripTabs';
 import './GuestTrip.css';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
+  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
   // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
   const transfersState = useTransfersState(view);
@@ -140,8 +142,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
             {balance}
             {bankRow}
             {transfers}
-            {payments(true)}
-            {expenses(view.payments.length === 0, false)}
+            <TripTabs activeTab={activeTab} onChange={setActiveTab} />
+            {activeTab === 'expenses' ? expenses(true, false) : payments(true)}
           </>
         ) : (
           <TripLayout

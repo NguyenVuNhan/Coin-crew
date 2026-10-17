@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
@@ -13,11 +14,13 @@ import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
+import { TripTabs } from '../components/TripTabs';
 import './ViewOnlyTrip.css';
 
 export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
+  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
 
   const banner = (
@@ -38,7 +41,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
           return (
             <div key={person.id} className="fsl-view-only__row">
               <div className="fsl-view-only__person">
-                <Avatar name={person.name} />
+                <Avatar name={person.name} avatarUrl={person.avatarUrl} />
                 <span className="fsl-view-only__name">{person.name}</span>
               </div>
               <Amount value={balance} tone="auto" />
@@ -76,8 +79,8 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
           <>
             {balances}
             {transfers}
-            {payments()}
-            {expenses(false)}
+            <TripTabs activeTab={activeTab} onChange={setActiveTab} />
+            {activeTab === 'expenses' ? expenses(false) : payments()}
           </>
         ) : (
           <TripLayout
