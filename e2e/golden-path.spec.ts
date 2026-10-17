@@ -125,7 +125,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   // Chi is settled with Minh (while An and Bình still owe Chi 45.000₫ each from bánh tráng).
   await chi.goto(tripUrl);
   await expect(chi.getByText('You owe Minh')).toHaveCount(0);
-  await expect(chi.getByText('An owes you')).toBeVisible();
+  await expect(chi.getByText("You're owed")).toBeVisible();
   await noSidewaysScroll(chi);
 
   await minhContext.close();
