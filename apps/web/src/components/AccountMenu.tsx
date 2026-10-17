@@ -323,23 +323,23 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
       >
         {t('trips.signOut')}
       </Button>
-
-      {cropOpen && cropSrc && (
-        <AvatarCropModal
-          open={cropOpen}
-          imageSrc={cropSrc}
-          onSave={handleSaveCroppedPhoto}
-          onCancel={() => setCropOpen(false)}
-        />
-      )}
     </div>
   );
+
+  const cropModal = cropOpen && cropSrc ? (
+    <AvatarCropModal
+      open={cropOpen}
+      imageSrc={cropSrc}
+      onSave={handleSaveCroppedPhoto}
+      onCancel={() => setCropOpen(false)}
+    />
+  ) : null;
 
   if (wide) {
     return (
       <div className="fsl-account-menu" ref={wrapperRef}>
         {trigger}
-        {open && (
+        {open && !cropOpen && (
           <div
             role="dialog"
             aria-label={t('account.label')}
@@ -348,6 +348,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
             {body}
           </div>
         )}
+        {cropModal}
       </div>
     );
   }
@@ -355,9 +356,10 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
   return (
     <>
       {trigger}
-      <Sheet open={open} onClose={close} title={t('account.label')}>
+      <Sheet open={open && !cropOpen} onClose={close} title={t('account.label')}>
         {body}
       </Sheet>
+      {cropModal}
     </>
   );
 }

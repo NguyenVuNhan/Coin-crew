@@ -14,7 +14,7 @@ export function Avatar({ name, avatarUrl, size = 'md', className = '' }: AvatarP
 
   return (
     <div
-      className={`fsl-avatar fsl-avatar--${size} ${className}`.trim()}
+      className={`fsl-avatar fsl-avatar--${size}${avatarUrl ? ' fsl-avatar--has-img' : ''} ${className}`.trim()}
       aria-hidden="true"
     >
       {avatarUrl ? (

@@ -96,35 +96,36 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await approvals.getByRole('button', { name: 'Approve' }).click();
   await expect(approvals).toHaveCount(0);
 
-  // Chi pays Minh with VietQR.
+  // Chi pays Minh with VietQR (pairwise net: 200.000₫ homestay share − 45.000₫ bánh tráng share = 155.000₫).
   await chi.reload();
   await expect(chi.getByText('You owe Minh')).toBeVisible();
   await chi.getByRole('link', { name: 'Pay with VietQR' }).click();
-  await expect(chi.getByRole('img', { name: /VietQR code to pay Minh 65\.000₫/ })).toBeVisible();
+  await expect(chi.getByRole('img', { name: /VietQR code to pay Minh 155\.000₫/ })).toBeVisible();
   await expect(chi.getByText(/^DALAT [2-9A-HJ-NP-Z]{4}$/)).toBeVisible();
   await expect(chi.getByText('Keep this note unchanged so the payment can be matched.')).toBeVisible();
   await noSidewaysScroll(chi);
   await chi.getByRole('button', { name: "I've paid" }).click();
   // Exact: the status live region repeats both lines in one sentence for screen readers.
-  await expect(chi.getByText('Payment sent · 65.000₫', { exact: true })).toBeVisible();
+  await expect(chi.getByText('Payment sent · 155.000₫', { exact: true })).toBeVisible();
   await expect(chi.getByText('Waiting for Minh to confirm it arrived. This page updates by itself.', { exact: true })).toBeVisible();
   await noSidewaysScroll(chi);
 
   // Minh confirms the money arrived.
   await minh.reload();
   const confirmCard = minh.getByRole('region', { name: 'Needs approval' });
-  await expect(confirmCard.getByText('Chi says they paid you 65.000₫')).toBeVisible();
+  await expect(confirmCard.getByText('Chi says they paid you 155.000₫')).toBeVisible();
   await expect(confirmCard.getByText('Did it arrive?')).toBeVisible();
   await noSidewaysScroll(minh);
   await confirmCard.getByRole('button', { name: 'Confirm' }).click();
   await expect(confirmCard).toHaveCount(0);
+  await minh.getByRole('tab', { name: 'Payments' }).click();
   await expect(minh.getByText('Paid ✓')).toBeVisible();
   await noSidewaysScroll(minh);
 
-  // Chi is settled.
+  // Chi is settled with Minh (while An and Bình still owe Chi 45.000₫ each from bánh tráng).
   await chi.goto(tripUrl);
-  // The balance card says it, and so does Your transfers (An and Bình still owe Minh, nothing involves Chi).
-  await expect(chi.getByText("You're all settled").first()).toBeVisible();
+  await expect(chi.getByText('You owe Minh')).toHaveCount(0);
+  await expect(chi.getByText('An owes you')).toBeVisible();
   await noSidewaysScroll(chi);
 
   await minhContext.close();

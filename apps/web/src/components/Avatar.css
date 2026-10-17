@@ -13,6 +13,10 @@
   position: relative;
 }
 
+.fsl-avatar--has-img {
+  background-color: transparent;
+}
+
 .fsl-avatar__img {
   width: 100%;
   height: 100%;
