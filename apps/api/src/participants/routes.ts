@@ -426,6 +426,45 @@ export function participantRoutes(): Hono<AppBindings> {
     return c.body(null, 204);
   });
 
+  // DELETE /trips/:id/people/:pid/admin
+  app.delete('/trips/:id/people/:pid/admin', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await getActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'demote_admin');
+
+    const db = getDb(c.env);
+    const target = await db
+      .select()
+      .from(participants)
+      .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)))
+      .get();
+
+    if (!target) {
+      throw new ApiError('NOT_FOUND', 404, 'Participant not found');
+    }
+
+    if (target.userId === actor.trip.organiserUserId || target.isAdmin !== 1) {
+      throw new ApiError('VALIDATION', 422, 'Cannot demote this participant');
+    }
+
+    const updateAdmin = db
+      .update(participants)
+      .set({ isAdmin: 0 })
+      .where(eq(participants.id, pid));
+
+    await commitTripWrite(db, tripId, [updateAdmin], {
+      action: 'admin_demoted',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { participantId: pid, name: target.name },
+    });
+
+    return c.body(null, 204);
+  });
+
   // POST /trips/:id/people/:pid/approve
   app.post('/trips/:id/people/:pid/approve', async (c) => {
     const tripId = c.req.param('id');

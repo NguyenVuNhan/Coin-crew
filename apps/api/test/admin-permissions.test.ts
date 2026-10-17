@@ -200,6 +200,21 @@ describe('admin permissions and guest roster lock', () => {
 
     const vAn = await view(anHeaders);
     expect(vAn.me.isAdmin).toBe(true);
+
+    // Promoted admin An cannot demote founder Minh or another admin -> 403
+    const anDemoteMinh = await call(`${base}/people/${PID.M}/admin`, { method: 'DELETE', headers: anHeaders });
+    expect(anDemoteMinh.status).toBe(403);
+
+    // Founder Minh cannot demote themselves -> 422
+    const minhDemoteSelf = await call(`${base}/people/${PID.M}/admin`, { method: 'DELETE', headers: minhHeaders });
+    expect(minhDemoteSelf.status).toBe(422);
+
+    // Founder Minh can demote promoted admin An -> 204
+    const minhDemoteAn = await call(`${base}/people/${PID.A}/admin`, { method: 'DELETE', headers: minhHeaders });
+    expect(minhDemoteAn.status).toBe(204);
+
+    const vAnAfterDemote = await view(anHeaders);
+    expect(vAnAfterDemote.me.isAdmin).toBe(false);
   });
 
   it('enforces PATCH /people/:pid permissions', async () => {

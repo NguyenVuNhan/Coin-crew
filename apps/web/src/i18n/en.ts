@@ -506,7 +506,12 @@ export const en = {
   'activity.paymentArrived': '{actor} said a payment arrived · {amount}',
   'activity.action.payment_arrived': 'said a payment arrived',
   'activity.adminPromoted': '{actor} made {name} a group admin',
+  'activity.adminDemoted': '{actor} removed {name} as group admin',
+  'activity.action.admin_promoted': 'made someone a group admin',
+  'activity.action.admin_demoted': 'removed a group admin',
   'activity.expenseRolledBack': '{actor} rolled back "{description}"',
+  'activity.action.expense_rolled_back': 'rolled back an expense',
+  'people.removeAdmin': 'Remove admin',
 
   'updates.bannerTitle': 'Transactions involving you were updated',
   'updates.viewAll': 'View updated transactions',

@@ -71,6 +71,12 @@ export function People() {
     await run(`/people/${person.id}/admin`, undefined, 'POST');
   };
 
+  const removeAdmin = async (person: PersonView) => {
+    if (busy) return;
+    setActingId(person.id);
+    await run(`/people/${person.id}/admin`, undefined, 'DELETE');
+  };
+
   const actionsFor = (person: PersonView) =>
     personActions(view, person, {
       t,
@@ -81,6 +87,9 @@ export function People() {
       onBank: () => navigate(`/t/${tripId}/people/${person.id}/bank`),
       onMakeAdmin: () => {
         void makeAdmin(person);
+      },
+      onRemoveAdmin: () => {
+        void removeAdmin(person);
       },
     });
 

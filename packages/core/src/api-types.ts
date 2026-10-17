@@ -42,6 +42,7 @@ export type ActivityAction =
   | 'membership_approved'
   | 'membership_rejected'
   | 'admin_promoted'
+  | 'admin_demoted'
   | 'expense_rolled_back';
 
 import type { Gender, SplitEntry, SplitMode, SportParticipantEntry, SportRule } from './split';

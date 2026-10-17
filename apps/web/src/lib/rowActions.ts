@@ -115,6 +115,7 @@ export interface PersonActionDeps {
   onRemove(): void;
   onBank(): void;
   onMakeAdmin?(): void;
+  onRemoveAdmin?(): void;
 }
 
 /**
@@ -126,7 +127,7 @@ export interface PersonActionDeps {
  */
 export function personActions(view: TripView, person: PersonView, deps: PersonActionDeps): RowAction[] {
   if (view.trip.archived) return [];
-  const { t, onMerge, onRemove, onBank, onMakeAdmin } = deps;
+  const { t, onMerge, onRemove, onBank, onMakeAdmin, onRemoveAdmin } = deps;
   const actor = actorOf(view);
   const actions: RowAction[] = [];
 
@@ -143,6 +144,23 @@ export function personActions(view: TripView, person: PersonView, deps: PersonAc
       label: t('people.makeAdmin'),
       icon: 'shield',
       onSelect: onMakeAdmin,
+    });
+  }
+
+  if (
+    can(actor, 'demote_admin') &&
+    person.isMember &&
+    person.isAdmin &&
+    !person.isOrganiser &&
+    person.status === 'active' &&
+    onRemoveAdmin
+  ) {
+    actions.push({
+      id: 'remove-admin',
+      label: t('people.removeAdmin'),
+      icon: 'shield',
+      tone: 'danger',
+      onSelect: onRemoveAdmin,
     });
   }
 
