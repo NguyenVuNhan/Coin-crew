@@ -18,6 +18,7 @@ import { Icon } from './icons';
 import { usePayInfo } from '../api/payInfo';
 import { useQrSvg, qrSrc, shareSportBill, type SportBillCardInput } from '../lib/qr';
 import { sportShareText, groupLink } from '../lib/remind';
+import { ExpenseHistoryList } from './ExpenseHistoryList';
 import './ExpenseDetails.css';
 
 const STATUS: Record<ExpenseView['status'], { tone: PillProps['tone']; label: MessageKey }> = {
@@ -47,7 +48,7 @@ export function ExpenseDetails({
   const [shareStatus, setShareStatus] = useState<'saved' | 'failed' | null>(null);
   const reasonId = useId();
 
-  const e = view.expenses.find((x) => x.id === expenseId);
+  const e = view.expenses.find((x) => x.id === expenseId || x.rootId === expenseId);
 
   const { data: payInfo } = usePayInfo({
     tripId: view.trip.id,
@@ -394,6 +395,7 @@ export function ExpenseDetails({
           })}
         </ul>
       )}
+      <ExpenseHistoryList view={view} expense={e} />
 
       {errorElement}
 

@@ -15,6 +15,7 @@ import { TripLayout } from '../components/TripLayout';
 import { MyBankRow } from '../components/MyBankRow';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
+import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import './GuestTrip.css';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
@@ -135,6 +136,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       <div className="fsl-guest">
         {banner}
         {notice}
+        <UpdatedTransactionsBanner view={view} />
         {!wide ? (
           <>
             {balance}

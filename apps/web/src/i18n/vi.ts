@@ -206,6 +206,7 @@ export const vi: Record<MessageKey, string> = {
   'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
   'expense.historyTitle': 'Lịch sử chỉnh sửa', // REVIEW
   'expense.rollback': 'Khôi phục về bản cập nhật này', // REVIEW
+  'expense.editedBy': 'Chỉnh sửa bởi {name} · {date}', // REVIEW
   'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.', // REVIEW
   'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.', // REVIEW
   'splitError.AMOUNTS_DONT_ADD_UP': 'Tổng số tiền không khớp với tổng chi phí.', // REVIEW
