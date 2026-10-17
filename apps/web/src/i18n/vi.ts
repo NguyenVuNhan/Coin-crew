@@ -68,6 +68,11 @@ export const vi: Record<MessageKey, string> = {
   'account.label': 'Tài khoản', // REVIEW
   'account.language': 'Ngôn ngữ', // REVIEW
   'account.signOut': 'Đăng xuất', // REVIEW
+  'account.changePhoto': 'Đổi ảnh đại diện', // REVIEW
+  'account.cropTitle': 'Cắt & chỉnh ảnh đại diện', // REVIEW
+  'account.zoom': 'Thu phóng', // REVIEW
+  'account.saveProfile': 'Lưu hồ sơ', // REVIEW
+  'account.gender': 'Giới tính', // REVIEW
 
   'create.title': 'Tạo nhóm mới', // REVIEW
   'create.tripName': 'Tên nhóm', // REVIEW
@@ -199,6 +204,8 @@ export const vi: Record<MessageKey, string> = {
   'split.captionShares': 'Theo số phần · {n} người', // REVIEW
   'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
   'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
+  'expense.historyTitle': 'Lịch sử chỉnh sửa', // REVIEW
+  'expense.rollback': 'Khôi phục về bản cập nhật này', // REVIEW
   'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.', // REVIEW
   'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.', // REVIEW
   'splitError.AMOUNTS_DONT_ADD_UP': 'Tổng số tiền không khớp với tổng chi phí.', // REVIEW
@@ -209,10 +216,12 @@ export const vi: Record<MessageKey, string> = {
   'sport.whatForPlaceholder': 'Cầu lông tối thứ 5 · Sân 3', // REVIEW
   'sport.costsTitle': 'Chi phí buổi chơi', // REVIEW
   'sport.court': 'Tiền sân', // REVIEW
-  'sport.shuttlecocks': 'Tiền cầu / bóng', // REVIEW
+  'sport.shuttlecocks': 'Tiền cầu', // REVIEW
   'sport.qty': 'SL', // REVIEW
   'sport.unitPrice': 'Đơn giá', // REVIEW
   'sport.addShuttlePrice': '+ Thêm loại cầu', // REVIEW
+  'sport.addShuttlecock': 'Thêm tiền cầu', // REVIEW
+  'sport.addExtraFee': 'Thêm phụ phí', // REVIEW
   'sport.removeShuttleRow': 'Xóa dòng cầu {n}', // REVIEW
   'sport.extra': 'Phụ phí (nước, gửi xe…)', // REVIEW
   'sport.totalBar': '{slots} suất ({f} Nữ, {m} Nam)', // REVIEW
@@ -234,6 +243,10 @@ export const vi: Record<MessageKey, string> = {
   'sport.sameAsFemale': '= Nữ', // REVIEW
   'sport.fixedFor': 'Số tiền cố định của {name}', // REVIEW
   'sport.clearFixed': 'Bỏ cố định cho {name}', // REVIEW
+  'sport.bringsGuest': 'Người chơi này có dẫn khách?', // REVIEW
+  'sport.femaleGuest': 'Khách Nữ', // REVIEW
+  'sport.maleGuest': 'Khách Nam', // REVIEW
+  'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}', // REVIEW
   'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
   'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
   'sport.tableColName': 'TÊN', // REVIEW
@@ -325,10 +338,10 @@ export const vi: Record<MessageKey, string> = {
   'share.regenerate': 'Tạo liên kết mới', // REVIEW
   'share.regenerateConfirm': 'Liên kết cũ sẽ ngừng hoạt động. Tạo liên kết mới?', // REVIEW
 
-  'settings.title': 'Cài đặt chuyến đi', // REVIEW
+  'settings.title': 'Cài đặt nhóm', // REVIEW
   'settings.people': 'Thành viên', // REVIEW
   'settings.activity': 'Hoạt động', // REVIEW
-  'settings.archive': 'Lưu trữ chuyến đi', // REVIEW
+  'settings.archive': 'Lưu trữ nhóm', // REVIEW
   'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này sau khi lưu trữ. Lưu trữ?', // REVIEW
   'settings.archived': 'Chuyến đi này đã được lưu trữ. Bạn vẫn có thể xem.', // REVIEW
   'settings.bank': 'Thông tin ngân hàng của bạn', // REVIEW
@@ -338,6 +351,8 @@ export const vi: Record<MessageKey, string> = {
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
+  'people.admin': 'Quản trị viên', // REVIEW
+  'people.makeAdmin': 'Chỉ định quản trị viên', // REVIEW
   'people.member': 'Thành viên', // REVIEW
   'people.guest': 'Khách', // REVIEW
   'people.merge': 'Hợp nhất', // REVIEW
@@ -485,5 +500,13 @@ export const vi: Record<MessageKey, string> = {
   'expense.personPaidTotal': '{name} đã trả {amount}', // REVIEW
   'activity.paymentArrived': '{actor} cho biết đã nhận được một khoản thanh toán · {amount}', // REVIEW
   'activity.action.payment_arrived': 'cho biết đã nhận được một khoản thanh toán', // REVIEW
+  'activity.adminPromoted': '{actor} đã chỉ định {name} làm quản trị viên nhóm', // REVIEW
+  'activity.expenseRolledBack': '{actor} đã khôi phục "{description}"', // REVIEW
+
+  'updates.bannerTitle': 'Có giao dịch liên quan đến bạn vừa được cập nhật', // REVIEW
+  'updates.viewAll': 'Xem giao dịch cập nhật', // REVIEW
+  'updates.previous': 'Trước đó', // REVIEW
+  'updates.now': 'Hiện tại', // REVIEW
+  'updates.dismiss': 'Đã hiểu', // REVIEW
 };
 

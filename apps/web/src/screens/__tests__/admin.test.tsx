@@ -54,14 +54,14 @@ describe('Settings', () => {
     const { unmount } = renderAt(<Settings />, at('settings'));
     await screen.findByRole('switch', { name: 'Fewest transfers' });
     expect(screen.queryByText('Danger zone')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Archive trip' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Archive group' })).toBeNull();
     expect(screen.queryByText('Nobody can change an archived trip.')).toBeNull();
     unmount();
 
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<Settings />, at('settings'));
     expect(await screen.findByText('Danger zone')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Archive trip' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Archive group' })).toBeInTheDocument();
     expect(screen.getByText('Nobody can change an archived trip.')).toBeInTheDocument();
   });
 
@@ -69,9 +69,9 @@ describe('Settings', () => {
     const { calls } = mockApi({ 'GET /api/trips/t-1': tripView(), 'POST /api/trips/t-1/archive': null });
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
     renderAt(<Settings />, at('settings'));
-    await userEvent.click(await screen.findByRole('button', { name: 'Archive trip' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Archive group' }));
     expect(calls.some((c) => c.method === 'POST')).toBe(false);
-    await userEvent.click(screen.getByRole('button', { name: 'Archive trip' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Archive group' }));
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/archive')).toBe(true));
     expect(confirm).toHaveBeenCalledTimes(2);
   });
@@ -81,7 +81,7 @@ describe('Settings', () => {
     mockApi({ 'GET /api/trips/t-1': { ...view, trip: { ...view.trip, archived: true } } });
     renderAt(<Settings />, at('settings'));
     expect(await screen.findByText('This trip is archived. You can still look at it.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Archive trip' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Archive group' })).toBeNull();
     expect(screen.queryByRole('switch', { name: 'Fewest transfers' })).toBeNull();
   });
 });
