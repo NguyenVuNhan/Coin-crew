@@ -2,6 +2,8 @@ node_modules/
 dist/
 .wrangler/
 .superpowers/
+.worktrees/
+.agents/
 .dev.vars
 playwright-report/
 test-results/
