@@ -8,11 +8,10 @@ import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import {
   deviceParticipants,
-  expenseShares,
-  expenses,
   membershipRequests,
   participants,
-  payments,
+  transactionShares,
+  transactions,
   trips,
 } from '../db/schema';
 import { getSessionUser } from '../auth/session';
@@ -459,42 +458,31 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 409, 'Signed-in people cannot be removed.');
     }
 
-    const expensePayer = await db
-      .select({ id: expenses.id })
-      .from(expenses)
-      .where(and(eq(expenses.tripId, tripId), eq(expenses.payerId, pid)))
-      .limit(1)
-      .get();
-
-    if (expensePayer) {
-      throw new ApiError('VALIDATION', 409, 'Use merge instead');
-    }
-
-    const share = await db
-      .select({ expenseId: expenseShares.expenseId })
-      .from(expenseShares)
-      .innerJoin(expenses, eq(expenseShares.expenseId, expenses.id))
-      .where(and(eq(expenses.tripId, tripId), eq(expenseShares.participantId, pid)))
-      .limit(1)
-      .get();
-
-    if (share) {
-      throw new ApiError('VALIDATION', 409, 'Use merge instead');
-    }
-
-    const paymentRow = await db
-      .select({ id: payments.id })
-      .from(payments)
+    const txInvolved = await db
+      .select({ id: transactions.id })
+      .from(transactions)
       .where(
         and(
-          eq(payments.tripId, tripId),
-          or(eq(payments.fromId, pid), eq(payments.toId, pid)),
+          eq(transactions.tripId, tripId),
+          or(eq(transactions.payerId, pid), eq(transactions.toId, pid)),
         ),
       )
       .limit(1)
       .get();
 
-    if (paymentRow) {
+    if (txInvolved) {
+      throw new ApiError('VALIDATION', 409, 'Use merge instead');
+    }
+
+    const share = await db
+      .select({ transactionId: transactionShares.transactionId })
+      .from(transactionShares)
+      .innerJoin(transactions, eq(transactionShares.transactionId, transactions.id))
+      .where(and(eq(transactions.tripId, tripId), eq(transactionShares.participantId, pid)))
+      .limit(1)
+      .get();
+
+    if (share) {
       throw new ApiError('VALIDATION', 409, 'Use merge instead');
     }
 

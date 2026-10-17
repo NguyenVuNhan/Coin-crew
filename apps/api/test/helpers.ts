@@ -85,10 +85,10 @@ export async function seedExpenses(): Promise<void> {
     ['e-4', 'Cà phê Túi Mơ To', PID.M, 240000, [PID.M, PID.A, PID.C]],
   ];
   for (const [id, description, payer, amount, people] of rows) {
-    await sql("INSERT OR IGNORE INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, ?, ?, 'VND', '2026-10-10', ?, 'equal', 'approved', ?, ?, ?)",
-      id, T.tripId, description, amount, payer, PID.M, '2026-10-10T00:00:00.000Z', '2026-10-10T00:00:00.000Z');
+    await sql("INSERT OR IGNORE INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'expense', ?, ?, 'VND', '2026-10-10', ?, 'equal', 'approved', ?, ?, ?)",
+      id, id, T.tripId, description, amount, payer, PID.M, '2026-10-10T00:00:00.000Z', '2026-10-10T00:00:00.000Z');
     for (const p of people) {
-      await sql('INSERT OR IGNORE INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES (?, ?, 1, ?)', id, p, amount / people.length);
+      await sql('INSERT OR IGNORE INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, ?)', id, p, amount / people.length);
     }
   }
 }
@@ -122,11 +122,12 @@ export const byKey = <X extends { fromId: string; toId: string }>(ts: X[]) =>
 
 /** `n` approved 1.000₫ expenses paid by Minh and split between Minh and Bình (for size limits). */
 export async function seedManyExpenses(n: number): Promise<void> {
-  const expense = env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, 'Nước', 1000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')");
-  const share = env.DB.prepare('INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES (?, ?, 1, 500)');
+  const expense = env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'expense', 'Nước', 1000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')");
+  const share = env.DB.prepare('INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 500)');
   const stmts = [];
   for (let i = 0; i < n; i++) {
-    stmts.push(expense.bind(`e-many-${i}`, T.tripId, PID.M, PID.M), share.bind(`e-many-${i}`, PID.M), share.bind(`e-many-${i}`, PID.B));
+    const id = `e-many-${i}`;
+    stmts.push(expense.bind(id, id, T.tripId, PID.M, PID.M), share.bind(id, PID.M), share.bind(id, PID.B));
   }
   await env.DB.batch(stmts);
 }

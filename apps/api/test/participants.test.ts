@@ -86,12 +86,12 @@ describe('approving names and merging', () => {
   it('approve as "Same as Chi" merges the pending name and moves its expense', async () => {
     const g = await guestHeaders();
     const { participantId } = await json<{ participantId: string }>(await post('/people', g, { name: 'Chi Nguyễn', confirmNew: true }));
-    await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-p', ?, 'Bánh tráng nướng', 180000, 'VND', '2026-10-11', ?, 'equal', 'pending', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')")
+    await env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-p', 'e-p', NULL, 1, ?, 'expense', 'Bánh tráng nướng', 180000, 'VND', '2026-10-11', ?, 'equal', 'pending', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')")
       .bind(T.tripId, participantId, participantId).run();
-    await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-p', ?, 1, 90000), ('e-p', ?, 1, 90000)").bind(participantId, PID.M).run();
+    await env.DB.prepare("INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-p', ?, 1, 90000), ('e-p', ?, 1, 90000)").bind(participantId, PID.M).run();
     const headers = await minh();
     expect((await post(`/people/${participantId}/approve`, headers, { sameAs: PID.C })).status).toBe(204);
-    const e = await env.DB.prepare("SELECT payer_id, created_by_participant_id FROM expenses WHERE id = 'e-p'").first<{ payer_id: string; created_by_participant_id: string }>();
+    const e = await env.DB.prepare("SELECT payer_id, created_by_participant_id FROM transactions WHERE id = 'e-p'").first<{ payer_id: string; created_by_participant_id: string }>();
     expect(e).toEqual({ payer_id: PID.C, created_by_participant_id: PID.C });
     expect((await view(headers)).people.map((p) => p.id)).not.toContain(participantId);
     expect((await view(g)).me.participantId).toBe(PID.C);

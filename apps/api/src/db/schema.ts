@@ -103,40 +103,53 @@ export const bankDetails = sqliteTable(
   ],
 );
 
-export const expenses = sqliteTable(
-  'expenses',
+export const transactions = sqliteTable(
+  'transactions',
   {
     id: text('id').primaryKey(),
+    rootId: text('root_id').notNull(),
+    parentId: text('parent_id'),
+    isLatest: integer('is_latest').notNull().default(1),
     tripId: text('trip_id').notNull(),
-    description: text('description').notNull(),
+    type: text('type', { enum: ['expense', 'payment'] }).notNull(),
+    description: text('description').notNull().default(''),
     amount: integer('amount').notNull(),
+    amountConfirmed: integer('amount_confirmed'),
     currency: text('currency').notNull().default('VND'),
     spentOn: text('spent_on').notNull(),
     payerId: text('payer_id').notNull(),
-    splitMode: text('split_mode').notNull(),
-    status: text('status', { enum: ['approved', 'pending', 'rejected', 'disabled'] }).notNull(),
+    toId: text('to_id'),
+    splitMode: text('split_mode').notNull().default('equal'),
+    status: text('status', {
+      enum: ['approved', 'pending', 'rejected', 'disabled', 'superseded', 'says_paid', 'confirmed'],
+    }).notNull(),
     rejectReason: text('reject_reason'),
+    notArrivedAt: text('not_arrived_at'),
     disabledByUserId: text('disabled_by_user_id'),
     createdByParticipantId: text('created_by_participant_id').notNull(),
     createdByDevice: text('created_by_device'),
+    confirmedByParticipantId: text('confirmed_by_participant_id'),
     metaJson: text('meta_json'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
-  (t) => [index('expenses_trip_id_idx').on(t.tripId)],
+  (t) => [
+    index('transactions_trip_type_latest_idx').on(t.tripId, t.type, t.isLatest),
+    index('transactions_root_idx').on(t.rootId),
+  ],
 );
 
-export const expenseShares = sqliteTable(
-  'expense_shares',
+export const transactionShares = sqliteTable(
+  'transaction_shares',
   {
-    expenseId: text('expense_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
     participantId: text('participant_id').notNull(),
     inputValue: integer('input_value').notNull(),
     amount: integer('amount').notNull(),
   },
   (t) => [
-    primaryKey({ columns: [t.expenseId, t.participantId] }),
-    index('expense_shares_participant_id_idx').on(t.participantId),
+    primaryKey({ columns: [t.transactionId, t.participantId] }),
+    index('transaction_shares_participant_idx').on(t.participantId),
   ],
 );
 
@@ -153,27 +166,6 @@ export const paymentRefs = sqliteTable(
     index('payment_refs_trip_id_idx').on(t.tripId),
     uniqueIndex('payment_refs_trip_id_code_uidx').on(t.tripId, t.code),
   ],
-);
-
-export const payments = sqliteTable(
-  'payments',
-  {
-    id: text('id').primaryKey(),
-    tripId: text('trip_id').notNull(),
-    fromId: text('from_id').notNull(),
-    toId: text('to_id').notNull(),
-    amountClaimed: integer('amount_claimed').notNull(),
-    amountConfirmed: integer('amount_confirmed'),
-    currency: text('currency').notNull().default('VND'),
-    status: text('status', { enum: ['says_paid', 'confirmed', 'rejected', 'disabled'] }).notNull(),
-    notArrivedAt: text('not_arrived_at'),
-    recordedByParticipantId: text('recorded_by_participant_id').notNull(),
-    recordedByDevice: text('recorded_by_device'),
-    confirmedByParticipantId: text('confirmed_by_participant_id'),
-    createdAt: text('created_at').notNull(),
-    updatedAt: text('updated_at').notNull(),
-  },
-  (t) => [index('payments_trip_id_idx').on(t.tripId)],
 );
 
 export const activity = sqliteTable(

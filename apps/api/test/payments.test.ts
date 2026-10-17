@@ -75,8 +75,8 @@ describe('member pays a guest, guest pays a guest', () => {
   });
 
   it('guest to guest counts straight away; "didn\'t arrive" flags it; a member disables and re-enables', async () => {
-    await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', ?, 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
-    await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
+    await env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', 'e-c', NULL, 1, ?, 'expense', 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
+    await env.DB.prepare("INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
     const { body } = await record(await guestHeaders(PID.A), PID.A, PID.C, 200000);
     expect(body?.status).toBe('confirmed');
     const headers = await minh();
@@ -98,7 +98,7 @@ describe('member pays a guest, guest pays a guest', () => {
 describe('keeping a payment flagged as not arrived', () => {
   it('a member clears the flag and the approval goes away', async () => {
     const { body } = await record(await minh(), PID.M, PID.A, 100000);
-    await env.DB.prepare("UPDATE payments SET not_arrived_at = '2026-10-12T10:00:00.000Z' WHERE id = ?").bind(body!.paymentId).run();
+    await env.DB.prepare("UPDATE transactions SET not_arrived_at = '2026-10-12T10:00:00.000Z' WHERE id = ?").bind(body!.paymentId).run();
     await env.DB.prepare('UPDATE trips SET version = version + 1 WHERE id = ?').bind(T.tripId).run();
     const headers = await minh();
     expect((await view(headers)).approvals).toContainEqual({ kind: 'not_arrived', paymentId: body!.paymentId });
@@ -118,8 +118,8 @@ describe('keeping a payment flagged as not arrived', () => {
 describe('"it arrived" undoes "didn\'t arrive"', () => {
   // A guest-to-guest payment An → Chi that counts straight away.
   async function anPaysChi() {
-    await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', ?, 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
-    await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
+    await env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', 'e-c', NULL, 1, ?, 'expense', 'Dâu tây', 400000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')").bind(T.tripId, PID.C, PID.M).run();
+    await env.DB.prepare("INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 200000), ('e-c', ?, 1, 200000)").bind(PID.A, PID.C).run();
     const { body } = await record(await guestHeaders(PID.A), PID.A, PID.C, 200000);
     return body!.paymentId;
   }
