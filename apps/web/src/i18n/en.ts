@@ -373,8 +373,6 @@ export const en = {
   'people.mergeExplain': 'Merge moves every expense and payment from one name to another, for duplicates that slipped through.',
   'people.remove': 'Remove',
   'people.useMerge': 'Use merge instead',
-  'people.genderMale': 'Male',
-  'people.genderFemale': 'Female',
 
   'activity.title': 'Activity',
   'activity.empty': 'Nothing has happened yet.',

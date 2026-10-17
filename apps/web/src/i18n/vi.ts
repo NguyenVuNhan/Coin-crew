@@ -81,8 +81,8 @@ export const vi: Record<MessageKey, string> = {
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
   'trip.tabs': 'Các tab', // REVIEW
-  'people.genderMale': 'Nam', // REVIEW
-  'people.genderFemale': 'Nữ', // REVIEW
+  'people.genderMale': 'Nam',
+  'people.genderFemale': 'Nữ',
 
   'create.title': 'Tạo nhóm mới', // REVIEW
   'create.tripName': 'Tên nhóm', // REVIEW
@@ -373,8 +373,6 @@ export const vi: Record<MessageKey, string> = {
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.remove': 'Xóa', // REVIEW
   'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
-  'people.genderMale': 'Nam', // REVIEW
-  'people.genderFemale': 'Nữ', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
