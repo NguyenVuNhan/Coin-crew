@@ -59,6 +59,13 @@
   align-items: center;
 }
 
+.fsl-action-row__trailing {
+  flex-shrink: 0;
+  padding-right: var(--space-4);
+  display: flex;
+  align-items: center;
+}
+
 .fsl-action-row__main {
   appearance: none;
   background: transparent;

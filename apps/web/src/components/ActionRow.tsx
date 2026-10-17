@@ -24,6 +24,7 @@ export function ActionRow({
   expanded,
   controls,
   leading,
+  trailing,
   hintable,
   children,
 }: {
@@ -36,6 +37,7 @@ export function ActionRow({
   /** Id of the content the row opens in place, set as `aria-controls` while it is shown. */
   controls?: string;
   leading?: ReactNode;
+  trailing?: ReactNode;
   hintable?: boolean;
   children: ReactNode;
 }) {
@@ -113,6 +115,7 @@ export function ActionRow({
           >
             {children}
           </button>
+          {trailing && <div className="fsl-action-row__trailing">{trailing}</div>}
           {!coarse && actions.length > 0 && (
             <div className="fsl-action-row__tools">
               {actions.map((action) => (

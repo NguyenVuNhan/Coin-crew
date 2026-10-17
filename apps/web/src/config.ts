@@ -1,1 +1,1 @@
-export const APP_NAME = 'Finance Sheet Lover';
+export const APP_NAME = 'CoinCrew (Tiền Đâu)';

@@ -18,6 +18,7 @@ export const sessions = sqliteTable('sessions', {
 export const trips = sqliteTable('trips', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  preset: text('preset', { enum: ['trip', 'sport'] }).notNull().default('trip'),
   currency: text('currency').notNull().default('VND'),
   fewestTransfers: integer('fewest_transfers').notNull().default(1),
   organiserUserId: text('organiser_user_id').notNull(),
@@ -35,6 +36,7 @@ export const participants = sqliteTable(
     tripId: text('trip_id').notNull(),
     name: text('name').notNull(),
     normalizedName: text('normalized_name').notNull(),
+    gender: text('gender', { enum: ['M', 'F'] }),
     userId: text('user_id'),
     status: text('status', { enum: ['active', 'pending', 'merged'] }).notNull(),
     mergedInto: text('merged_into'),
@@ -117,6 +119,7 @@ export const expenses = sqliteTable(
     disabledByUserId: text('disabled_by_user_id'),
     createdByParticipantId: text('created_by_participant_id').notNull(),
     createdByDevice: text('created_by_device'),
+    metaJson: text('meta_json'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

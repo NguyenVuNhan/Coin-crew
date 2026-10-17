@@ -56,10 +56,10 @@ export const vi: Record<MessageKey, string> = {
   'landing.step3': 'Thanh toán bằng VietQR', // REVIEW
   'landing.step3Body': 'Chuyển khoản cho nhau bằng mã VietQR.', // REVIEW
 
-  'trips.title': 'Chuyến đi của bạn', // REVIEW
-  'trips.new': 'Chuyến đi mới', // REVIEW
-  'trips.emptyTitle': 'Lên kế hoạch cho chuyến đi đầu tiên', // REVIEW
-  'trips.emptyBody': 'Tạo chuyến đi, rồi chia sẻ một liên kết cho cả nhóm.', // REVIEW
+  'trips.title': 'Nhóm của bạn', // REVIEW
+  'trips.new': 'Tạo nhóm mới', // REVIEW
+  'trips.emptyTitle': 'Tạo nhóm đầu tiên của bạn', // REVIEW
+  'trips.emptyBody': 'Tạo nhóm chuyến đi hoặc thể thao, rồi chia sẻ một liên kết cho cả nhóm.', // REVIEW
   'trips.youreOwed': 'Bạn được nhận', // REVIEW
   'trips.youOwe': 'Bạn cần trả', // REVIEW
   'trips.settled': 'Đã thanh toán xong', // REVIEW
@@ -69,9 +69,13 @@ export const vi: Record<MessageKey, string> = {
   'account.language': 'Ngôn ngữ', // REVIEW
   'account.signOut': 'Đăng xuất', // REVIEW
 
-  'create.title': 'Chuyến đi mới', // REVIEW
-  'create.tripName': 'Tên chuyến đi', // REVIEW
+  'create.title': 'Tạo nhóm mới', // REVIEW
+  'create.tripName': 'Tên nhóm', // REVIEW
   'create.tripNamePlaceholder': 'Đà Lạt · Th10 2026', // REVIEW
+  'create.presetLabel': 'Loại nhóm', // REVIEW
+  'create.presetTrip': 'Chuyến đi / Chung', // REVIEW
+  'create.presetSport': 'Nhóm thể thao', // REVIEW
+  'create.sportNamePlaceholder': 'Cầu lông tối thứ 5', // REVIEW
   'create.myName': 'Tên của bạn', // REVIEW
   'create.others': 'Ai sẽ tham gia cùng?', // REVIEW
   'create.otherPlaceholder': 'Tên', // REVIEW
@@ -79,10 +83,15 @@ export const vi: Record<MessageKey, string> = {
   'create.removePerson': 'Xóa {name}', // REVIEW
   'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
   'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
-  'create.submit': 'Tạo chuyến đi', // REVIEW
+  'create.submit': 'Tạo nhóm', // REVIEW
   'create.suggestTitle': 'Từ các chuyến đi gần đây', // REVIEW
   'create.hasAccount': '{name} · có tài khoản', // REVIEW
   'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.', // REVIEW
+
+  'gender.label': 'Giới tính của {name}', // REVIEW
+  'gender.M': 'Nam', // REVIEW
+  'gender.F': 'Nữ', // REVIEW
+  'gender.unset': '—', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW
   'bank.popular': 'Phổ biến', // REVIEW
@@ -145,6 +154,7 @@ export const vi: Record<MessageKey, string> = {
   'split.percent': 'theo phần trăm', // REVIEW
   'split.shares': 'theo phần chia', // REVIEW
   'split.adjust': 'có điều chỉnh', // REVIEW
+  'split.sport': 'chia theo buổi chơi', // REVIEW
   'status.waiting': 'Đang chờ', // REVIEW
   'status.rejected': 'Bị từ chối', // REVIEW
   'status.disabled': 'Đã vô hiệu hóa', // REVIEW
@@ -170,11 +180,13 @@ export const vi: Record<MessageKey, string> = {
   'expenseForm.save': 'Lưu thay đổi', // REVIEW
   'expenseForm.guestNote': 'Một thành viên trong nhóm sẽ duyệt trước khi tính.', // REVIEW
   'split.tab.equal': 'Chia đều', // REVIEW
+  'split.tab.sport': 'Chia theo buổi chơi', // REVIEW
   'split.mode.equal': 'Chia đều', // REVIEW
   'split.mode.exact': 'Số tiền chính xác', // REVIEW
   'split.mode.percent': 'Phần trăm', // REVIEW
   'split.mode.shares': 'Số phần', // REVIEW
   'split.mode.adjust': 'Điều chỉnh', // REVIEW
+  'split.mode.sport': 'Thể thao', // REVIEW
   'split.captionEqual': 'Chia đều · {n} người · mỗi người {each}', // REVIEW
   'split.captionEqualAbout': 'Chia đều · {n} người · mỗi người khoảng {each}', // REVIEW
   'split.captionEqualNone': 'Chia đều · {n} người', // REVIEW
@@ -193,6 +205,44 @@ export const vi: Record<MessageKey, string> = {
   'splitError.PERCENT_NOT_100': 'Tổng phần trăm phải bằng 100%.', // REVIEW
   'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần chia phải lớn hơn 0.', // REVIEW
   'splitError.NEGATIVE_SHARE': 'Khoản điều chỉnh lớn hơn tổng số tiền.', // REVIEW
+
+  'sport.whatForPlaceholder': 'Cầu lông tối thứ 5 · Sân 3', // REVIEW
+  'sport.costsTitle': 'Chi phí buổi chơi', // REVIEW
+  'sport.court': 'Tiền sân', // REVIEW
+  'sport.shuttlecocks': 'Tiền cầu / bóng', // REVIEW
+  'sport.qty': 'SL', // REVIEW
+  'sport.unitPrice': 'Đơn giá', // REVIEW
+  'sport.addShuttlePrice': '+ Thêm loại cầu', // REVIEW
+  'sport.removeShuttleRow': 'Xóa dòng cầu {n}', // REVIEW
+  'sport.extra': 'Phụ phí (nước, gửi xe…)', // REVIEW
+  'sport.totalBar': '{slots} suất ({f} Nữ, {m} Nam)', // REVIEW
+  'sport.totalLabel': 'Tổng cộng', // REVIEW
+  'sport.ruleTitle': 'Quy tắc Nam / Nữ', // REVIEW
+  'sport.ruleEqual': 'Đều', // REVIEW
+  'sport.ruleDiscount': 'Lệch ₫', // REVIEW
+  'sport.ruleRatio': 'Tỷ lệ', // REVIEW
+  'sport.femaleDiscountLabel': 'Nữ giảm mỗi suất', // REVIEW
+  'sport.maleWeightLabel': 'Tỷ lệ Nam', // REVIEW
+  'sport.femaleWeightLabel': 'Tỷ lệ Nữ', // REVIEW
+  'sport.slotSummary': 'Nam: {m} · Nữ: {f}', // REVIEW
+  'sport.slotsBadge': '{f} Nữ · {m} Nam', // REVIEW
+  'sport.oneMale': '1 Nam', // REVIEW
+  'sport.oneFemale': '1 Nữ', // REVIEW
+  'sport.fixedBadge': 'Cố định', // REVIEW
+  'sport.femaleSlotsFor': 'Số suất Nữ của {name}', // REVIEW
+  'sport.maleSlotsFor': 'Số suất Nam của {name}', // REVIEW
+  'sport.sameAsFemale': '= Nữ', // REVIEW
+  'sport.fixedFor': 'Số tiền cố định của {name}', // REVIEW
+  'sport.clearFixed': 'Bỏ cố định cho {name}', // REVIEW
+  'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
+  'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
+  'sport.tableColName': 'TÊN', // REVIEW
+  'sport.tableColFemale': 'NỮ', // REVIEW
+  'sport.tableColMale': 'NAM', // REVIEW
+  'sport.tableColAmount': 'THÀNH TIỀN', // REVIEW
+  'sport.tableTotalSlots': 'TỔNG SUẤT', // REVIEW
+  'sport.tableCosts': 'CHI PHÍ', // REVIEW
+  'sport.tablePerSlot': 'MỖI SUẤT', // REVIEW
 
   'member.settings': 'Cài đặt chuyến đi', // REVIEW
 

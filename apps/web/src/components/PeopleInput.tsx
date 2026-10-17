@@ -1,12 +1,13 @@
 import { useState, useRef, useId, useMemo, useEffect } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
-import { normalizeName, type RecentPerson } from '@fsl/core';
+import { normalizeName, type RecentPerson, type Gender } from '@fsl/core';
 import { useT } from '../i18n';
 import { newPersonEntry, filterRecentPeople, type PersonEntry } from '../lib/recentPeople';
 import { useRecentPeople } from '../api/recentPeople';
 import { Button } from './Button';
 import { Avatar } from './Avatar';
 import { Icon } from './icons';
+import { GenderToggle } from './GenderToggle';
 import './PeopleInput.css';
 
 function withEmptyLineAfter(list: PersonEntry[], index: number): { list: PersonEntry[]; focusKey: string; added: boolean } {
@@ -19,7 +20,15 @@ function withEmptyLineAfter(list: PersonEntry[], index: number): { list: PersonE
   return { list: nextList, focusKey: fresh.key, added: true };
 }
 
-export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChange(v: PersonEntry[]): void }) {
+export function PeopleInput({
+  value,
+  onChange,
+  showGender = false,
+}: {
+  value: PersonEntry[];
+  onChange(v: PersonEntry[]): void;
+  showGender?: boolean;
+}) {
   const t = useT();
   const baseId = useId();
   const labelId = `${baseId}-label`;
@@ -75,6 +84,10 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
   const setName = (key: string, name: string) => {
     onChange(value.map((e) => (e.key === key ? { ...e, name } : e)));
     setHighlight(-1);
+  };
+
+  const setGender = (key: string, gender: Gender | null) => {
+    onChange(value.map((e) => (e.key === key ? { ...e, gender } : e)));
   };
 
   const pick = (entry: PersonEntry, person: RecentPerson) => {
@@ -193,6 +206,13 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
                   <Icon name="userCheck" size={20} className="fsl-people-input__locked-icon" />
                   <span className="fsl-people-input__locked-name">{entry.name}</span>
                 </div>
+                {showGender && (
+                  <GenderToggle
+                    name={entry.name}
+                    value={entry.gender}
+                    onChange={(g) => setGender(entry.key, g)}
+                  />
+                )}
                 <button
                   type="button"
                   className="fsl-people-input__remove"
@@ -273,6 +293,13 @@ export function PeopleInput({ value, onChange }: { value: PersonEntry[]; onChang
                     </div>
                   )}
                 </div>
+                {showGender && (
+                  <GenderToggle
+                    name={entry.name.trim() || `${t('create.otherPlaceholder')} ${index + 1}`}
+                    value={entry.gender}
+                    onChange={(g) => setGender(entry.key, g)}
+                  />
+                )}
                 {value.length > 1 && (
                   <button
                     type="button"

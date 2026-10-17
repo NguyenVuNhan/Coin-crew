@@ -27,6 +27,37 @@ describe('POST /api/trips', () => {
     expect(acts[0]?.action).toBe('trip_created');
   });
 
+  it('creates a sport group with preset and player genders', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Cầu lông tối thứ 5',
+        preset: 'sport',
+        myName: 'Minh',
+        myGender: 'M',
+        people: [
+          { name: 'An', gender: 'M' },
+          { name: 'Chi', gender: 'F' },
+          { name: 'Bình', gender: null },
+        ],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.trip.preset).toBe('sport');
+    expect(v.people.map((p) => [p.name, p.gender])).toEqual([
+      ['Minh', 'M'],
+      ['An', 'M'],
+      ['Chi', 'F'],
+      ['Bình', null],
+    ]);
+    const list = await json<TripListItem[]>(call('/api/trips', { headers }));
+    expect(list.find((t) => t.id === tripId)?.preset).toBe('sport');
+  });
+
   it('needs privacy consent first', async () => {
     const sid = await memberSid('u-new', 'New');
     await env.DB.prepare("UPDATE users SET consent_at = NULL WHERE id = 'u-new'").run();
@@ -160,7 +191,7 @@ describe('trip view', () => {
 
   it('lists my trips with my balance', async () => {
     const list = await json<TripListItem[]>(call('/api/trips', { headers: await minh() }));
-    expect(list).toContainEqual({ id: T.tripId, name: 'Đà Lạt · Oct 2026', archived: false, myBalance: 2195000 });
+    expect(list).toContainEqual({ id: T.tripId, name: 'Đà Lạt · Oct 2026', preset: 'trip', archived: false, myBalance: 2195000 });
   });
 
   it('regenerating the group link kills the old one', async () => {

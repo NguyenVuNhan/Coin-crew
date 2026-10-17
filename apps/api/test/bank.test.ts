@@ -180,6 +180,25 @@ describe('pay info', () => {
     const info = await json<PayInfo>(pay(await minh(), PID.M));
     expect(info).toMatchObject({ amount: 0, bankState: 'ok', refCode: '', payload: null });
   });
+
+  it('Review Focus 4: ?bill=1 returns static VietQR for expense payer (including self) while preserving non-bill behavior', async () => {
+    // Minh is the payer of e-1 and has approved bank details
+    const selfBill = await json<PayInfo>(call(`${base}/pay/${PID.M}?bill=1`, { headers: await minh() }));
+    expect(selfBill.bankState).toBe('ok');
+    expect(selfBill.payload).toBe(
+      buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 0, note: 'DA LAT OCT 2026' }),
+    );
+
+    // Guest B does not owe Chi (because of fewestTransfers), but Chi is the payer of e-c, so ?bill=1 works for B
+    await send('PUT', `${base}/bank`, await guestHeaders(PID.C), chiBank);
+    await approveChiBank();
+    const guestBill = await json<PayInfo>(call(`${base}/pay/${PID.C}?bill=1`, { headers: await guestHeaders(PID.B) }));
+    expect(guestBill.bankState).toBe('ok');
+    expect(guestBill.payload?.startsWith('000201010211')).toBe(true);
+
+    // View-only token is still forbidden from ?bill=1
+    expect((await call(`${base}/pay/${PID.M}?bill=1`, { headers: await guestHeaders(undefined, T.viewToken) })).status).toBe(403);
+  });
 });
 
 describe('pay info for the receiver', () => {

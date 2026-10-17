@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Finance Sheet Lover',
-        short_name: 'FSL',
+        name: 'CoinCrew (Tiền Đâu)',
+        short_name: 'CoinCrew',
         description: 'Split trip expenses and settle up with VietQR.',
         theme_color: '#0f766e',
         background_color: '#fafafa',

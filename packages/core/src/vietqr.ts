@@ -17,9 +17,16 @@ const tlv = (id: string, value: string) => `${id}${String(value.length).padStart
 export function buildVietQrPayload({ bin, accountNumber, amount, note }: VietQrInput): string {
   const beneficiary = tlv('00', bin) + tlv('01', accountNumber);
   const merchantAccount = tlv('00', 'A000000727') + tlv('01', beneficiary) + tlv('02', 'QRIBFTTA');
+  const dynamic = amount > 0;
   const body =
-    tlv('00', '01') + tlv('01', '12') + tlv('38', merchantAccount) + tlv('53', '704') +
-    tlv('54', String(amount)) + tlv('58', 'VN') + tlv('62', tlv('08', note)) + '6304';
+    tlv('00', '01') +
+    tlv('01', dynamic ? '12' : '11') +
+    tlv('38', merchantAccount) +
+    tlv('53', '704') +
+    (dynamic ? tlv('54', String(amount)) : '') +
+    tlv('58', 'VN') +
+    tlv('62', tlv('08', note)) +
+    '6304';
   return body + crc16CcittFalse(body);
 }
 

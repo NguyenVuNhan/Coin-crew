@@ -8,6 +8,12 @@ describe('VietQR payload', () => {
   it('builds the NAPAS account-transfer payload', () =>
     expect(buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 1245000, note: 'DALAT C7K2' }))
       .toBe('00020101021238580010A000000727012800069704070114190312345656780208QRIBFTTA5303704540712450005802VN62140810DALAT C7K263046572'));
+  it('builds a static NAPAS QR (tag 01=11, no tag 54) when amount is 0', () => {
+    const p = buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 0, note: 'CAU LONG T5' });
+    expect(p.startsWith('000201010211')).toBe(true);
+    expect(p).not.toContain('54010');
+    expect(p.slice(-4)).toBe(crc16CcittFalse(p.slice(0, -4)));
+  });
 });
 
 describe('toTransferNote', () => {
