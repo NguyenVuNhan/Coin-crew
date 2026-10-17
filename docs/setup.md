@@ -149,7 +149,7 @@ In **Workers & Pages → Create application**, choose **Continue with GitHub** (
 | Advanced settings → API token | Leave **Create new token**. The token it creates includes D1 Storage (edit). |
 | Advanced settings → Variable name / value | `D1_DATABASE_ID` = your database ID. It isn't a secret, so you don't need to encrypt it. |
 
-Click **Deploy**. The build page shows the log: it installs with `npm clean-install` at the repo root on Node 24, builds the web app, then `npm run deploy -w @fsl/api` writes `wrangler.deploy.jsonc` with the real ID from `D1_DATABASE_ID` and runs `wrangler deploy` with it. The log ends with the Worker's address, the hourly cron (`0 * * * *`) and "Success! Build completed."
+Click **Deploy**. The build page shows the log: it installs with `npm clean-install` at the repo root on Node 24, builds the web app, then `npm run deploy -w @fsl/api` writes `wrangler.deploy.jsonc` with the real ID from `D1_DATABASE_ID`, applies any pending D1 migrations (`wrangler d1 migrations apply fsl --remote`), and runs `wrangler deploy` with it. The log ends with the Worker's address, the hourly cron (`0 * * * *`) and "Success! Build completed."
 
 ### 4.5 Add the runtime variables and secrets
 
@@ -193,19 +193,18 @@ An hourly cron compares today's Workers requests and D1 rows with the free-plan 
 ## 5. Day to day
 
 - **Pull requests** run GitHub Actions (`.github/workflows/ci.yml`): typecheck and unit tests in one job, the end-to-end golden path in another. Failed e2e runs keep their Playwright traces as an artifact.
-- **Merging to `main`** deploys automatically through Workers Builds.
+- **Merging to `main`** automatically applies any pending D1 migrations and deploys the Worker through Workers Builds.
 - **Changing the database schema:**
   1. Edit `apps/api/src/db/schema.ts`.
   2. Generate a migration and commit it:
      ```bash
      npx -w @fsl/api drizzle-kit generate
      ```
-  3. Builds never touch the database. Apply the migration to the live database yourself, with `D1_DATABASE_ID` set:
+  3. Merging to `main` runs `npm run deploy -w @fsl/api`, which applies any unapplied migrations to the live database before deploying the new Worker. Keep migrations additive so the currently running version keeps working while the deploy completes. You can also apply migrations manually at any time with `D1_DATABASE_ID` set:
      ```bash
      npm run db:migrate:remote -w @fsl/api
      ```
-     Apply it before merging if the new code needs the new tables or columns, and keep migrations additive so the running version keeps working.
-- **Deploying by hand**, with `D1_DATABASE_ID` set:
+- **Deploying by hand**, with `D1_DATABASE_ID` set (also applies pending remote migrations first):
   ```bash
   npm run build -w @fsl/web && npm run deploy -w @fsl/api
   ```
