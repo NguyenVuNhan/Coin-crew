@@ -73,6 +73,16 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         const into = text(d.intoName);
         return from && into ? t('activity.nameMerged', { actor, from, into }) : null;
       }
+      case 'admin_promoted': {
+        const name = text(d.name);
+        if (!name) return null;
+        return t('activity.adminPromoted', { actor, name });
+      }
+      case 'expense_rolled_back': {
+        const description = text(d.description);
+        if (!description) return null;
+        return t('activity.expenseRolledBack', { actor, description });
+      }
       default:
         return null;
     }

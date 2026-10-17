@@ -40,13 +40,43 @@ export type ActivityAction =
   | 'fewest_changed'
   | 'membership_requested'
   | 'membership_approved'
-  | 'membership_rejected';
+  | 'membership_rejected'
+  | 'admin_promoted'
+  | 'expense_rolled_back';
 
 import type { Gender, SplitEntry, SplitMode, SportParticipantEntry, SportRule } from './split';
 import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
 import type { Transfer } from './transfers';
 import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
+
+export interface MeUserView {
+  id: string;
+  email: string;
+  name: string;
+  gender?: Gender | null;
+  avatarUrl?: string | null;
+  consentAt: string | null;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  gender?: Gender | null;
+  avatarUrl?: string | null;
+}
+
+export interface ExpenseHistoryItem {
+  id: string;
+  description: string;
+  amount: number;
+  spentOn: string;
+  payerId: string;
+  mode: SplitMode;
+  createdById: string;
+  createdAt: string;
+  shares: { participantId: string; amount: number; inputValue: number }[];
+  meta?: ExpenseMeta | null;
+}
 
 export type GroupPreset = 'trip' | 'sport';
 
@@ -61,6 +91,7 @@ export interface CreateTripInput {
   preset?: GroupPreset;
   people: (string | CreateTripPerson)[];
   myBank?: BankFields;
+  defaultLang?: 'en' | 'vi';
 }
 /** Someone with an account who shared a trip with the caller (`GET /api/me/people`). */
 export interface RecentPerson {
@@ -75,9 +106,11 @@ export interface PersonView {
   id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
   /** The person who created the trip. Left out by an older server. */
   isOrganiser?: boolean;
+  isAdmin?: boolean;
   /** A guest's current account (the approved one, else the one waiting). Sent only to members and to that guest. */
   bankAccount?: { bankName: string; accountNumberMasked: string; holderName: string };
   gender?: Gender | null;
+  avatarUrl?: string | null;
 }
 
 export interface ExpenseSportMeta {
@@ -99,6 +132,8 @@ export interface ExpenseView {
   status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;
   shares: { participantId: string; amount: number; inputValue: number }[];
   meta?: ExpenseMeta | null;
+  rootId?: string;
+  history?: ExpenseHistoryItem[];
 }
 export interface PaymentView {
   id: string; fromId: string; toId: string; amountClaimed: number; amountConfirmed: number | null;
@@ -112,8 +147,8 @@ export type Approval =
   | { kind: 'not_arrived'; paymentId: string }
   | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string };
 export interface TripView {
-  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset };
-  me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean };
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi' };
+  me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
   people: PersonView[];
   balances: Balances;
   suggestions: Transfer[];

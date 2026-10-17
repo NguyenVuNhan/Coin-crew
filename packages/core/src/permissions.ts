@@ -1,7 +1,7 @@
 import type { ExpenseStatus, PaymentStatus } from './balances';
 
 export type ActorKind = 'member' | 'guest' | 'viewer';
-export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean }
+export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean }
 export type Action = 'view' | 'add_expense' | 'edit_expense' | 'delete_expense' | 'approve' | 'disable' | 'merge'
   | 'remove_person' | 'regenerate_links' | 'archive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank';
 export interface ActionContext {
@@ -10,6 +10,7 @@ export interface ActionContext {
   /** The actor already has approved bank details in this trip. */
   bankApproved?: boolean;
   isExpensePayer?: boolean;
+  expenseInvolved?: boolean;
 }
 
 const MEMBER_ONLY: ReadonlySet<Action> = new Set(['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank']);
