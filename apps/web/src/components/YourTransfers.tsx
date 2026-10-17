@@ -328,7 +328,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                         leading={leading}
                         onOpen={() => setOpenKey(isOpen ? null : key)}
                       >
-                        <Avatar name={nameOf(view, s.fromId)} size="sm" />
+                        <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                         <span className={`fsl-transfers__text${done ? ' fsl-transfers__text--done' : ''}`}>{rowTitle}</span>
                         <Amount value={s.amount} />
                         <Icon
@@ -345,7 +345,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                     </>
                   ) : (
                     <div className={`fsl-transfers__plain${aligned ? ' fsl-transfers__plain--aligned' : ''}`}>
-                      <Avatar name={nameOf(view, s.fromId)} size="sm" />
+                      <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                       <span className="fsl-transfers__text">{rowTitle}</span>
                       <Amount value={s.amount} />
                     </div>
@@ -359,7 +359,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                   <span className="fsl-transfers__tick-space fsl-transfers__tick-space--waiting" aria-hidden="true">
                     <Icon name="clock" size={18} />
                   </span>
-                  <Avatar name={nameOf(view, p.fromId)} size="sm" />
+                  <Avatar name={nameOf(view, p.fromId)} avatarUrl={view.people.find((person) => person.id === p.fromId)?.avatarUrl} size="sm" />
                   <span className="fsl-transfers__text-block">
                     <span className="fsl-transfers__text">{t('trip.pays', { from: label(p.fromId), to: label(p.toId) })}</span>
                     <span className="fsl-transfers__sub">{t('transfers.waitingFor', { name: nameOf(view, p.toId) })}</span>

@@ -169,7 +169,7 @@ export function People() {
                     actions={actions}
                     onOpen={actions.length > 0 ? () => setMenuFor(person) : undefined}
                     hintable={index === 0}
-                    leading={<Avatar name={person.name} />}
+                    leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                     trailing={trailing}
                   >
                     <span className="fsl-people__text">
