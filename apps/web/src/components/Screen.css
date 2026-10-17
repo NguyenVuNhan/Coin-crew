@@ -82,6 +82,11 @@ button.fsl-screen__back {
   white-space: nowrap;
 }
 
+.fsl-screen__header--title-left .fsl-screen__title {
+  text-align: left;
+  justify-self: start;
+}
+
 .fsl-screen__right {
   display: inline-flex;
   align-items: center;

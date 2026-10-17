@@ -162,18 +162,23 @@ describe('guest page on a phone', () => {
     expect(screen.queryByText('Who pays you')).toBeNull();
   });
 
-  it('is laid out top to bottom: who, balance, transfers, payments, expenses, footer', async () => {
+  it('is laid out top to bottom: who, balance, transfers, tabs, expenses (or payments), footer', async () => {
     const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     renderAt(<TripRoute />, route);
     const viewing = await screen.findByText('Viewing as Chi');
     const balance = screen.getByText('You owe Minh');
     const transfers = screen.getByRole('region', { name: 'Your transfers' });
-    const payments = screen.getByRole('region', { name: 'Your payments' });
+    const tabs = screen.getByRole('tablist', { name: 'Trip tabs' });
     const expenses = screen.getByRole('region', { name: 'Your expenses' });
     const footer = screen.getByRole('link', { name: 'Sign in with Google to become a member' });
-    const order = [viewing, balance, transfers, payments, expenses, footer];
+    const order = [viewing, balance, transfers, tabs, expenses, footer];
     order.slice(1).forEach((el, i) => expect(follows(order[i]!, el)).toBe(true));
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Payments' }));
+    const payments = screen.getByRole('region', { name: 'Your payments' });
+    expect(follows(tabs, payments)).toBe(true);
+    expect(follows(payments, footer)).toBe(true);
   });
 
   it('the language switch sits in the footer, not the header', async () => {
@@ -218,17 +223,21 @@ describe('guest page on a phone', () => {
     const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     const withPayments = renderAt(<TripRoute />, route);
-    const payments = await screen.findByRole('region', { name: 'Your payments' });
-    expect(within(payments).getByText('Swipe left or tap a row for options')).toBeInTheDocument();
+    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
+    expect(within(expenses).getByText('Swipe left or tap a row for options')).toBeInTheDocument();
     expect(screen.getAllByText('Swipe left or tap a row for options')).toHaveLength(1);
+    // Switching to payments tab does not show it again
+    await userEvent.click(screen.getByRole('tab', { name: 'Payments' }));
+    const payments = await screen.findByRole('region', { name: 'Your payments' });
+    expect(within(payments).queryByText('Swipe left or tap a row for options')).toBeNull();
     withPayments.unmount();
 
-    // Without payments the expenses are the first list.
+    // Without payments the expenses are still the first list.
     localStorage.removeItem('fsl.swipeHintSeen');
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
     renderAt(<TripRoute />, route);
-    const expenses = await screen.findByRole('region', { name: 'Your expenses' });
-    expect(within(expenses).getByText('Swipe left or tap a row for options')).toBeInTheDocument();
+    const expensesOnly = await screen.findByRole('region', { name: 'Your expenses' });
+    expect(within(expensesOnly).getByText('Swipe left or tap a row for options')).toBeInTheDocument();
     expect(screen.getAllByText('Swipe left or tap a row for options')).toHaveLength(1);
   });
 
@@ -378,7 +387,7 @@ describe('view-only page', () => {
     payments: [payment({ id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, status: 'confirmed' })],
   });
 
-  it('on a phone shows everyone\'s balances and who pays whom first, then payments and expenses, read-only', async () => {
+  it('on a phone shows everyone\'s balances and who pays whom first, then tabs for expenses and payments, read-only', async () => {
     mockMedia({ wide: false });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': withMoney() });
     renderAt(<TripRoute />, route);
@@ -393,10 +402,15 @@ describe('view-only page', () => {
     // Read-only: no chip, no ticks, no rows to open, no QR.
     expect(within(transfers).queryAllByRole('button')).toHaveLength(0);
     expect(screen.queryByRole('img', { name: /VietQR/ })).toBeNull();
-    const payments = screen.getByRole('region', { name: 'Payments' });
+    const tablist = screen.getByRole('tablist');
     const expenses = screen.getByRole('region', { name: 'Expenses' });
-    const order = [pill, balances, transfers, payments, expenses];
+    const order = [pill, balances, transfers, tablist, expenses];
     order.slice(1).forEach((el, i) => expect(follows(order[i]!, el)).toBe(true));
+
+    // Switching to Payments tab shows Payments
+    await userEvent.click(within(tablist).getByRole('tab', { name: 'Payments' }));
+    expect(screen.getByRole('region', { name: 'Payments' })).toBeInTheDocument();
+
     // No row offers an action: the payment's Disable and the expenses' Edit are for members.
     expect(screen.queryByRole('button', { name: /^(Edit|Disable|Enable|Approve|Reject|Confirm|Didn't arrive)$/ })).toBeNull();
     expect(screen.queryByRole('link', { name: '+ Add expense' })).toBeNull();

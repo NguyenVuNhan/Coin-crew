@@ -83,6 +83,7 @@ export async function buildSnapshot(
     .map((p) => p.id);
 
   let approvedUserSet = new Set<string>();
+  const userAvatarMap = new Map<string, string | null>();
   if (memberUserIds.length > 0) {
     const memberBanks = await db
       .select({ userId: bankDetails.userId })
@@ -96,6 +97,14 @@ export async function buildSnapshot(
     approvedUserSet = new Set(
       memberBanks.map((b) => b.userId).filter((id): id is string => id !== null),
     );
+
+    const userAvatars = await db
+      .select({ id: users.id, avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(inArray(users.id, memberUserIds));
+    for (const u of userAvatars) {
+      userAvatarMap.set(u.id, u.avatarUrl ?? null);
+    }
   }
 
   const guestApprovedSet = new Set<string>();
@@ -130,13 +139,17 @@ export async function buildSnapshot(
     } else if (guestPendingSet.has(p.id)) {
       bank = 'pending';
     }
+    const isOrganiser = p.userId !== null && p.userId === trip.organiserUserId;
+    const isAdmin = p.isAdmin === 1 || isOrganiser;
     return {
       id: p.id,
       name: p.name,
       gender: (p.gender as 'M' | 'F' | null) ?? null,
+      avatarUrl: p.userId !== null ? (userAvatarMap.get(p.userId) ?? null) : null,
       status: p.status as 'active' | 'pending',
       isMember: p.userId !== null,
-      isOrganiser: p.userId !== null && p.userId === trip.organiserUserId,
+      isOrganiser,
+      isAdmin,
       bank,
     };
   });
@@ -255,6 +268,7 @@ export async function buildSnapshot(
       preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
+      defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
       version: trip.version,
       total: 0,
@@ -288,6 +302,7 @@ export async function buildSnapshot(
       preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
+      defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
       version: trip.version,
       total,

@@ -58,6 +58,65 @@ describe('POST /api/trips', () => {
     expect(list.find((t) => t.id === tripId)?.preset).toBe('sport');
   });
 
+  it('creates new groups with fewestTransfers: false (0) and defaultLang by default', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Chuyến đi mặc định',
+        myName: 'Minh',
+        people: ['An'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.trip.fewestTransfers).toBe(false);
+    expect(v.trip.defaultLang).toBe('vi');
+  });
+
+  it('respects defaultLang: en when specified on creation', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'English Group',
+        myName: 'Minh',
+        people: ['An'],
+        defaultLang: 'en',
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.trip.defaultLang).toBe('en');
+  });
+
+  it('inherits organiser gender from user profile when myGender not provided and populates member avatarUrl', async () => {
+    const sid = await memberSid('u-gender-user', 'Profile Minh');
+    await env.DB.prepare("UPDATE users SET gender = 'M', avatar_url = 'https://example.com/avatar.png' WHERE id = 'u-gender-user'").run();
+
+    const headers = { Cookie: `sid=${sid}`, 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Gender inherited trip',
+        myName: 'Profile Minh',
+        people: ['Guest A'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+
+    expect(v.people[0]?.gender).toBe('M');
+    expect(v.people[0]?.avatarUrl).toBe('https://example.com/avatar.png');
+    expect(v.people[1]?.avatarUrl).toBe(null);
+  });
+
   it('needs privacy consent first', async () => {
     const sid = await memberSid('u-new', 'New');
     await env.DB.prepare("UPDATE users SET consent_at = NULL WHERE id = 'u-new'").run();

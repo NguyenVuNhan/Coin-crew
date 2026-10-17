@@ -638,13 +638,28 @@ export function expenseRoutes(): Hono<AppBindings> {
     return c.body(null, 204);
   });
 
+async function isExpenseInvolved(db: Db, eid: string, payerId: string, participantId: string | null): Promise<boolean> {
+  if (participantId === null) return false;
+  if (payerId === participantId) return true;
+  const share = await db
+    .select({ participantId: transactionShares.participantId })
+    .from(transactionShares)
+    .where(
+      and(
+        eq(transactionShares.transactionId, eid),
+        eq(transactionShares.participantId, participantId),
+      ),
+    )
+    .get();
+  return Boolean(share);
+}
+
   // POST /trips/:id/expenses/:eid/approve
   app.post('/trips/:id/expenses/:eid/approve', async (c) => {
     const tripId = c.req.param('id');
     const eid = c.req.param('eid');
     const actor = await resolveActor(c, tripId);
     assertWritable(actor.trip);
-    ensure(actor, 'approve');
 
     const db = getDb(c.env);
     const head = await db
@@ -663,6 +678,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
+
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
+    ensure(actor, 'approve_expense', { expenseInvolved });
 
     if (head.status !== 'pending') {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
@@ -705,7 +723,6 @@ export function expenseRoutes(): Hono<AppBindings> {
     const eid = c.req.param('eid');
     const actor = await resolveActor(c, tripId);
     assertWritable(actor.trip);
-    ensure(actor, 'approve');
 
     const db = getDb(c.env);
     const head = await db
@@ -724,6 +741,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
+
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
+    ensure(actor, 'approve_expense', { expenseInvolved });
 
     if (head.status !== 'pending') {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
@@ -774,7 +794,6 @@ export function expenseRoutes(): Hono<AppBindings> {
     const eid = c.req.param('eid');
     const actor = await resolveActor(c, tripId);
     assertWritable(actor.trip);
-    ensure(actor, 'disable');
 
     const db = getDb(c.env);
     const head = await db
@@ -793,6 +812,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
+
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
+    ensure(actor, 'disable', { expenseInvolved });
 
     const now = nowIso();
     const r = await db
@@ -833,7 +855,6 @@ export function expenseRoutes(): Hono<AppBindings> {
     const eid = c.req.param('eid');
     const actor = await resolveActor(c, tripId);
     assertWritable(actor.trip);
-    ensure(actor, 'disable');
 
     const db = getDb(c.env);
     const head = await db
@@ -852,6 +873,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
+
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
+    ensure(actor, 'disable', { expenseInvolved });
 
     if (head.status === 'disabled') await assertNoPendingPeople(db, tripId, head.id, head.payerId);
 

@@ -42,18 +42,14 @@ describe('new names', () => {
     expect(await json(res)).toEqual({ matches: [{ id: PID.B, name: 'Bình', reason: 'same' }] });
   });
 
-  it('a similar name needs confirmNew; a guest name starts pending and is picked', async () => {
+  it('guests cannot add a person; admins can and similar name needs confirmNew', async () => {
     const g = await guestHeaders();
-    const refused = await post('/people', g, { name: 'Binh', confirmNew: false });
+    expect((await post('/people', g, { name: 'Binh', confirmNew: true })).status).toBe(403);
+    const m = await minh();
+    const refused = await post('/people', m, { name: 'Binh', confirmNew: false });
     expect(refused.status).toBe(422);
-    const created = await post('/people', g, { name: 'Binh', confirmNew: true });
+    const created = await post('/people', m, { name: 'Binh', confirmNew: true });
     expect(created.status).toBe(201);
-    const { participantId } = await json<{ participantId: string }>(created);
-    const v = await view(g);
-    expect(v.me).toMatchObject({ kind: 'guest', participantId, participantPending: true });
-    expect(v.people.find((p) => p.id === participantId)?.status).toBe('pending');
-    const memberView = await view(await minh());
-    expect(memberView.approvals).toContainEqual({ kind: 'name', participantId, matches: [{ id: PID.B, name: 'Bình', reason: 'same' }] });
   });
 
   it('a member adds an active name', async () => {
@@ -62,19 +58,17 @@ describe('new names', () => {
     expect((await view(await minh())).people.find((p) => p.id === participantId)?.status).toBe('active');
   });
 
-  it('one phone may hold at most 3 pending names', async () => {
+  it('guests are forbidden from adding people', async () => {
     const g = await guestHeaders();
-    for (const name of ['Dũng', 'Em', 'Giang']) expect((await post('/people', g, { name, confirmNew: true })).status).toBe(201);
-    const fourth = await post('/people', g, { name: 'Hà', confirmNew: true });
-    expect(fourth.status).toBe(429);
-    expect(await errCode(fourth)).toBe('RATE_LIMITED');
+    expect((await post('/people', g, { name: 'Dũng', confirmNew: true })).status).toBe(403);
   });
 });
 
 describe('approving names and merging', () => {
   it('approve as new person makes the name active; twice is ALREADY_HANDLED', async () => {
-    const g = await guestHeaders();
-    const { participantId } = await json<{ participantId: string }>(await post('/people', g, { name: 'Dũng', confirmNew: true }));
+    const participantId = 'p-dung-pending';
+    await env.DB.prepare("INSERT INTO participants (id, trip_id, name, normalized_name, status, sort_order, created_at) VALUES (?, ?, 'Dũng', 'dung', 'pending', 10, '2026-10-12T00:00:00.000Z')")
+      .bind(participantId, T.tripId).run();
     const headers = await minh();
     expect((await post(`/people/${participantId}/approve`, headers, {})).status).toBe(204);
     expect((await view(headers)).people.find((p) => p.id === participantId)?.status).toBe('active');
@@ -84,8 +78,10 @@ describe('approving names and merging', () => {
   });
 
   it('approve as "Same as Chi" merges the pending name and moves its expense', async () => {
-    const g = await guestHeaders();
-    const { participantId } = await json<{ participantId: string }>(await post('/people', g, { name: 'Chi Nguyễn', confirmNew: true }));
+    const participantId = 'p-chi-pending';
+    await env.DB.prepare("INSERT INTO participants (id, trip_id, name, normalized_name, status, sort_order, created_at) VALUES (?, ?, 'Chi Nguyễn', 'chi nguyen', 'pending', 10, '2026-10-12T00:00:00.000Z')")
+      .bind(participantId, T.tripId).run();
+    const g = await guestHeaders(participantId);
     await env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-p', 'e-p', NULL, 1, ?, 'expense', 'Bánh tráng nướng', 180000, 'VND', '2026-10-11', ?, 'equal', 'pending', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')")
       .bind(T.tripId, participantId, participantId).run();
     await env.DB.prepare("INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-p', ?, 1, 90000), ('e-p', ?, 1, 90000)").bind(participantId, PID.M).run();

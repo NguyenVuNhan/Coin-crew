@@ -71,8 +71,18 @@ export const vi: Record<MessageKey, string> = {
   'account.changePhoto': 'Đổi ảnh đại diện', // REVIEW
   'account.cropTitle': 'Cắt & chỉnh ảnh đại diện', // REVIEW
   'account.zoom': 'Thu phóng', // REVIEW
+  'account.savePhoto': 'Lưu ảnh', // REVIEW
+  'account.removePhoto': 'Xóa ảnh', // REVIEW
   'account.saveProfile': 'Lưu hồ sơ', // REVIEW
+  'account.displayName': 'Tên hiển thị', // REVIEW
   'account.gender': 'Giới tính', // REVIEW
+  'trips.accountAria': 'Tài khoản', // REVIEW
+  'trips.signOut': 'Đăng xuất', // REVIEW
+  'trip.tabExpenses': 'Chi tiêu', // REVIEW
+  'trip.tabPayments': 'Thanh toán', // REVIEW
+  'trip.tabs': 'Các tab', // REVIEW
+  'people.genderMale': 'Nam',
+  'people.genderFemale': 'Nữ',
 
   'create.title': 'Tạo nhóm mới', // REVIEW
   'create.tripName': 'Tên nhóm', // REVIEW
@@ -224,6 +234,7 @@ export const vi: Record<MessageKey, string> = {
   'sport.addShuttlecock': 'Thêm tiền cầu', // REVIEW
   'sport.addExtraFee': 'Thêm phụ phí', // REVIEW
   'sport.removeShuttleRow': 'Xóa dòng cầu {n}', // REVIEW
+  'sport.removeExtraFee': 'Xóa phụ phí', // REVIEW
   'sport.extra': 'Phụ phí (nước, gửi xe…)', // REVIEW
   'sport.totalBar': '{slots} suất ({f} Nữ, {m} Nam)', // REVIEW
   'sport.totalLabel': 'Tổng cộng', // REVIEW
@@ -248,6 +259,7 @@ export const vi: Record<MessageKey, string> = {
   'sport.femaleGuest': 'Khách Nữ', // REVIEW
   'sport.maleGuest': 'Khách Nam', // REVIEW
   'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}', // REVIEW
+  'sport.editGender': 'Đổi giới tính', // REVIEW
   'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
   'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
   'sport.tableColName': 'TÊN', // REVIEW
@@ -353,6 +365,7 @@ export const vi: Record<MessageKey, string> = {
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
   'people.admin': 'Quản trị viên', // REVIEW
+  'people.adminBadge': 'Quản trị viên', // REVIEW
   'people.makeAdmin': 'Chỉ định quản trị viên', // REVIEW
   'people.member': 'Thành viên', // REVIEW
   'people.guest': 'Khách', // REVIEW
@@ -502,7 +515,12 @@ export const vi: Record<MessageKey, string> = {
   'activity.paymentArrived': '{actor} cho biết đã nhận được một khoản thanh toán · {amount}', // REVIEW
   'activity.action.payment_arrived': 'cho biết đã nhận được một khoản thanh toán', // REVIEW
   'activity.adminPromoted': '{actor} đã chỉ định {name} làm quản trị viên nhóm', // REVIEW
+  'activity.adminDemoted': '{actor} đã gỡ quyền quản trị của {name}', // REVIEW
+  'activity.action.admin_promoted': 'đã chỉ định quản trị viên nhóm', // REVIEW
+  'activity.action.admin_demoted': 'đã gỡ quyền quản trị viên nhóm', // REVIEW
   'activity.expenseRolledBack': '{actor} đã khôi phục "{description}"', // REVIEW
+  'activity.action.expense_rolled_back': 'đã khôi phục một khoản chi', // REVIEW
+  'people.removeAdmin': 'Gỡ quyền quản trị', // REVIEW
 
   'updates.bannerTitle': 'Có giao dịch liên quan đến bạn vừa được cập nhật', // REVIEW
   'updates.viewAll': 'Xem giao dịch cập nhật', // REVIEW

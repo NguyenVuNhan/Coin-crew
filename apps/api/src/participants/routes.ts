@@ -13,6 +13,7 @@ import {
   transactionShares,
   transactions,
   trips,
+  users,
 } from '../db/schema';
 import { getSessionUser } from '../auth/session';
 import type { ResolvedActor } from '../access/actor';
@@ -196,6 +197,7 @@ export function participantRoutes(): Hono<AppBindings> {
     const tripId = c.req.param('id');
     const actor = await getActor(c, tripId);
     assertWritable(actor.trip);
+    ensure(actor, 'add_person');
 
     const body = await parseJson<{ name?: unknown; confirmNew?: unknown; gender?: unknown }>(c);
     if (typeof body?.name !== 'string') {
@@ -312,15 +314,50 @@ export function participantRoutes(): Hono<AppBindings> {
     const actor = await getActor(c, tripId);
     assertWritable(actor.trip);
 
-    if (!(actor.kind === 'member' || (actor.kind === 'guest' && !actor.participantPending && actor.participantId === pid))) {
+    const isGroupAdmin = Boolean(actor.isAdmin) || actor.isOrganiser;
+
+    if (actor.kind === 'guest') {
+      if (actor.participantPending || actor.participantId !== pid) {
+        throw new ApiError('FORBIDDEN', 403);
+      }
+    } else if (actor.kind === 'member') {
+      if (!isGroupAdmin && actor.participantId !== pid) {
+        throw new ApiError('FORBIDDEN', 403);
+      }
+    } else {
       throw new ApiError('FORBIDDEN', 403);
     }
 
-    const body = await parseJson<{ gender?: unknown }>(c);
-    if (!body || typeof body !== 'object' || !('gender' in body)) {
+    const body = await parseJson<{ name?: unknown; gender?: unknown }>(c);
+    if (!body || typeof body !== 'object') {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
-    if (body.gender !== 'M' && body.gender !== 'F' && body.gender !== null) {
+
+    const updates: { name?: string; normalizedName?: string; gender?: 'M' | 'F' | null } = {};
+
+    if ('name' in body) {
+      if (actor.kind === 'guest') {
+        throw new ApiError('FORBIDDEN', 403, 'Guests cannot rename');
+      }
+      if (typeof body.name !== 'string') {
+        throw new ApiError('VALIDATION', 422, 'Invalid name');
+      }
+      const trimmed = body.name.trim();
+      if (trimmed.length < 1 || trimmed.length > 40) {
+        throw new ApiError('VALIDATION', 422, 'Invalid name');
+      }
+      updates.name = trimmed;
+      updates.normalizedName = normalizeName(trimmed);
+    }
+
+    if ('gender' in body) {
+      if (body.gender !== 'M' && body.gender !== 'F' && body.gender !== null) {
+        throw new ApiError('VALIDATION', 422, 'Invalid gender');
+      }
+      updates.gender = body.gender;
+    }
+
+    if (Object.keys(updates).length === 0) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
@@ -338,13 +375,91 @@ export function participantRoutes(): Hono<AppBindings> {
     await db.batch([
       db
         .update(participants)
-        .set({ gender: body.gender as 'M' | 'F' | null })
+        .set(updates)
         .where(eq(participants.id, pid)),
       db
         .update(trips)
         .set({ version: sql`${trips.version} + 1` })
         .where(eq(trips.id, tripId)),
     ]);
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/people/:pid/admin
+  app.post('/trips/:id/people/:pid/admin', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await getActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'promote_admin');
+
+    const db = getDb(c.env);
+    const target = await db
+      .select()
+      .from(participants)
+      .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)))
+      .get();
+
+    if (!target) {
+      throw new ApiError('NOT_FOUND', 404, 'Participant not found');
+    }
+
+    if (target.status !== 'active' || target.userId === null) {
+      throw new ApiError('VALIDATION', 422, 'Only active members can be promoted to admin');
+    }
+
+    const updateAdmin = db
+      .update(participants)
+      .set({ isAdmin: 1 })
+      .where(eq(participants.id, pid));
+
+    await commitTripWrite(db, tripId, [updateAdmin], {
+      action: 'admin_promoted',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { participantId: pid, name: target.name },
+    });
+
+    return c.body(null, 204);
+  });
+
+  // DELETE /trips/:id/people/:pid/admin
+  app.delete('/trips/:id/people/:pid/admin', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await getActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'demote_admin');
+
+    const db = getDb(c.env);
+    const target = await db
+      .select()
+      .from(participants)
+      .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)))
+      .get();
+
+    if (!target) {
+      throw new ApiError('NOT_FOUND', 404, 'Participant not found');
+    }
+
+    if (target.userId === actor.trip.organiserUserId || target.isAdmin !== 1) {
+      throw new ApiError('VALIDATION', 422, 'Cannot demote this participant');
+    }
+
+    const updateAdmin = db
+      .update(participants)
+      .set({ isAdmin: 0 })
+      .where(eq(participants.id, pid));
+
+    await commitTripWrite(db, tripId, [updateAdmin], {
+      action: 'admin_demoted',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { participantId: pid, name: target.name },
+    });
 
     return c.body(null, 204);
   });
@@ -519,7 +634,7 @@ export function participantRoutes(): Hono<AppBindings> {
     }
 
     const actor = await getActor(c, tripId);
-    const body = await parseJson<{ participantId?: unknown }>(c);
+    const body = await parseJson<{ participantId?: unknown; name?: unknown; gender?: unknown }>(c);
     if (typeof body?.participantId !== 'string') {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
@@ -541,6 +656,26 @@ export function participantRoutes(): Hono<AppBindings> {
     }
 
     assertWritable(actor.trip);
+
+    if (body.name !== undefined && body.name !== null) {
+      if (typeof body.name !== 'string') {
+        throw new ApiError('VALIDATION', 422, 'Invalid name');
+      }
+      const trimmed = body.name.trim();
+      if (trimmed.length < 1 || trimmed.length > 40) {
+        throw new ApiError('VALIDATION', 422, 'Invalid name');
+      }
+      await db.update(users).set({ name: trimmed }).where(eq(users.id, user.id));
+    }
+
+    if (body.gender !== undefined && body.gender !== null) {
+      if (body.gender !== 'M' && body.gender !== 'F') {
+        throw new ApiError('VALIDATION', 422, 'Invalid gender');
+      }
+      try {
+        await db.run(sql`UPDATE users SET gender = ${body.gender} WHERE id = ${user.id}`);
+      } catch {}
+    }
 
     const requestId = newId();
     const insertRequest = db.insert(membershipRequests).values({
@@ -618,9 +753,26 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
+    const claimingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.userId))
+      .get();
+
+    const updates: { userId: string; name?: string; normalizedName?: string; gender?: 'M' | 'F' | null } = {
+      userId: req.userId,
+    };
+    if (claimingUser?.name) {
+      updates.name = claimingUser.name;
+      updates.normalizedName = normalizeName(claimingUser.name);
+    }
+    if ((claimingUser as Record<string, unknown>)?.gender) {
+      updates.gender = (claimingUser as Record<string, unknown>).gender as 'M' | 'F';
+    }
+
     const updateParticipant = db
       .update(participants)
-      .set({ userId: req.userId })
+      .set(updates)
       .where(eq(participants.id, req.participantId));
 
     await commitTripWrite(db, tripId, [updateParticipant], {

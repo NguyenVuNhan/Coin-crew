@@ -15,6 +15,8 @@ import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
+import { TripTabs } from '../components/TripTabs';
+import { AccountMenu } from '../components/AccountMenu';
 import './MemberTrip.css';
 
 /** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
@@ -22,6 +24,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const t = useT();
   const wide = useIsWide();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
 
   const tripId = view.trip.id;
   const archived = view.trip.archived;
@@ -73,12 +76,14 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       <Link className="fsl-member__settings" to={`/t/${tripId}/settings`} aria-label={t('member.settings')} title={t('member.settings')}>
         <Icon name="settings" size={20} />
       </Link>
+      <AccountMenu />
     </>
   );
 
   return (
     <Screen
       title={view.trip.name}
+      titleAlign="left"
       back="/trips"
       right={header}
       wide
@@ -107,9 +112,8 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           <ApprovalQueue view={view} />
           {balance}
           {transfers}
-          {/* Only the first swipeable list on the page shows the swipe hint. */}
-          {payments(true)}
-          {expenses(view.payments.length === 0, false)}
+          <TripTabs activeTab={activeTab} onChange={setActiveTab} />
+          {activeTab === 'expenses' ? expenses(true, false) : payments(true)}
         </div>
       )}
       {canInvite && <InviteSheet view={view} open={inviteOpen} onClose={() => setInviteOpen(false)} />}

@@ -182,8 +182,11 @@ describe('"it arrived" undoes "didn\'t arrive"', () => {
 describe('who may record a payment', () => {
   it('not a third party, not a pending name, not a viewer', async () => {
     expect((await record(await guestHeaders(PID.B), PID.A, PID.M, 1000)).res.status).toBe(403);
-    const g = await guestHeaders();
-    const { participantId } = await json<{ participantId: string }>(send('/people', g, { name: 'Dũng', confirmNew: true }));
+    const participantId = 'p-dung';
+    await env.DB.prepare(
+      "INSERT INTO participants (id, trip_id, name, normalized_name, status, sort_order, created_at) VALUES (?, ?, 'Dũng', 'dung', 'pending', 99, ?)"
+    ).bind(participantId, T.tripId, new Date().toISOString()).run();
+    const g = await guestHeaders(participantId);
     expect((await record(g, participantId, PID.M, 1000)).res.status).toBe(403);
     expect((await record(await guestHeaders(undefined, T.viewToken), PID.C, PID.M, 1000)).res.status).toBe(403);
   });
@@ -216,8 +219,10 @@ describe('enable restores the status a payment had', () => {
   it('a "says paid" payment comes back as "says paid", not confirmed', async () => {
     const { body } = await record(await guestHeaders(PID.C), PID.C, PID.M, 1245000);
     const an = { Cookie: `sid=${await linkMember(PID.A, U.an, 'An')}` };
-    expect((await send(`/payments/${body!.paymentId}/disable`, an)).status).toBe(204);
-    expect((await send(`/payments/${body!.paymentId}/enable`, an)).status).toBe(204);
+    expect((await send(`/payments/${body!.paymentId}/disable`, an)).status).toBe(403);
+    const headers = await minh();
+    expect((await send(`/payments/${body!.paymentId}/disable`, headers)).status).toBe(204);
+    expect((await send(`/payments/${body!.paymentId}/enable`, headers)).status).toBe(204);
     const v = await view(await minh());
     expect(v.payments.find((p) => p.id === body!.paymentId)?.status).toBe('says_paid');
     expect(v.balances[PID.M]).toBe(2195000);

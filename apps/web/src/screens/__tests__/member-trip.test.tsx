@@ -95,10 +95,10 @@ describe('member trip page', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Invite' }));
     const sheet = await screen.findByRole('dialog', { name: 'Invite' });
     const group = within(sheet).getByRole('group', { name: 'Group link' });
-    expect(within(group).getByLabelText('Group link')).toHaveValue(`${location.origin}/j/gtok-1`);
+    expect(within(group).getByLabelText('Group link')).toHaveValue(`${location.origin}/j/gtok-1?lang=en`);
     expect(within(sheet).getByRole('group', { name: 'View-only link' })).toBeInTheDocument();
     await userEvent.click(within(group).getByRole('button', { name: 'Share' }));
-    expect(share).toHaveBeenCalledWith({ title: 'Đà Lạt · Oct 2026', text: 'Join "Đà Lạt · Oct 2026" to split costs:', url: `${location.origin}/j/gtok-1` });
+    expect(share).toHaveBeenCalledWith({ title: 'Đà Lạt · Oct 2026', text: 'Join "Đà Lạt · Oct 2026" to split costs:', url: `${location.origin}/j/gtok-1?lang=en` });
   });
 
   it('without a share sheet, Share copies the link', async () => {
@@ -108,7 +108,7 @@ describe('member trip page', () => {
     renderAt(<TripRoute />, route);
     await screen.findByText('Invite your group');
     await userEvent.click(screen.getByRole('button', { name: 'Share' }));
-    expect(writeText).toHaveBeenCalledWith(`${location.origin}/j/gtok-1`);
+    expect(writeText).toHaveBeenCalledWith(`${location.origin}/j/gtok-1?lang=en`);
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 

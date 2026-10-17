@@ -168,8 +168,11 @@ describe('approving, rejecting, disabling', () => {
   });
 
   it('Review Focus 4: an expense that includes a name still waiting is blocked', async () => {
-    const g = await guestHeaders();
-    const { participantId } = await json<{ participantId: string }>(send('POST', '/people', g, { name: 'Dũng', confirmNew: true }));
+    const participantId = 'p-dung';
+    await env.DB.prepare(
+      "INSERT INTO participants (id, trip_id, name, normalized_name, status, sort_order, created_at) VALUES (?, ?, 'Dũng', 'dung', 'pending', 99, ?)"
+    ).bind(participantId, T.tripId, new Date().toISOString()).run();
+    const g = await guestHeaders(participantId);
     const { expenseId } = await addAs(g, { ...equalAll(100000, participantId), entries: [{ participantId, value: 1 }, { participantId: PID.M, value: 1 }] });
     const res = await send('POST', `/expenses/${expenseId}/approve`, await minh());
     expect(res.status).toBe(409);
@@ -203,8 +206,11 @@ describe('approving, rejecting, disabling', () => {
 
 describe('enable keeps the approval rules', () => {
   it('re-enabling an expense that includes a name still waiting is blocked', async () => {
-    const g = await guestHeaders();
-    const { participantId } = await json<{ participantId: string }>(send('POST', '/people', g, { name: 'Dũng', confirmNew: true }));
+    const participantId = 'p-dung';
+    await env.DB.prepare(
+      "INSERT INTO participants (id, trip_id, name, normalized_name, status, sort_order, created_at) VALUES (?, ?, 'Dũng', 'dung', 'pending', 99, ?)"
+    ).bind(participantId, T.tripId, new Date().toISOString()).run();
+    const g = await guestHeaders(participantId);
     const { expenseId } = await addAs(g, { ...equalAll(100000, participantId), entries: [{ participantId, value: 1 }, { participantId: PID.M, value: 1 }] });
     const headers = await minh();
     expect((await send('POST', `/expenses/${expenseId}/disable`, headers)).status).toBe(204);

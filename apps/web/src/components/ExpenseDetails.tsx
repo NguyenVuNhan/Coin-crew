@@ -341,8 +341,6 @@ export function ExpenseDetails({
           </div>
 
           <div className="fsl-sport-preview-card">
-            <h3 className="fsl-sport-preview-title">{t('sport.zaloPreviewTitle')}</h3>
-            <p className="fsl-sport-preview-msg">{msgText}</p>
             <Button
               variant="primary"
               loading={sharing}
@@ -360,18 +358,6 @@ export function ExpenseDetails({
               <p className="fsl-sport-share-status fsl-sport-share-status--danger" role="alert">
                 {t('pay.shareFailed')}
               </p>
-            )}
-            {qrSvg && payInfo?.bank && (
-              <div className="fsl-sport-preview-qr">
-                <img
-                  src={qrSrc(qrSvg)}
-                  alt={t('pay.qrAlt', { name: nameOf(view, e.payerId), amount: formatVnd(e.amount) })}
-                  className="fsl-sport-preview-qr__img"
-                />
-                <p className="fsl-sport-preview-qr__bank">
-                  {payInfo.bank.bankName} · {payInfo.bank.accountNumberMasked || payInfo.bank.accountNumber} · {payInfo.bank.holderName}
-                </p>
-              </div>
             )}
           </div>
         </>
