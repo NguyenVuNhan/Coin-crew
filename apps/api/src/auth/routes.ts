@@ -1,10 +1,13 @@
+import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { decodeIdToken, generateCodeVerifier, generateState } from 'arctic';
-import { eq } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
+import type { MeUserView, UpdateProfileInput } from '@fsl/core';
+import { normalizeName } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
-import { sessions, users } from '../db/schema';
+import { participants, sessions, trips, users } from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
@@ -16,6 +19,14 @@ export function safeReturnTo(raw: string | undefined): string {
   const base = 'https://app.invalid';
   const url = new URL(raw, base);
   return url.origin === base ? url.pathname + url.search + url.hash : '/trips';
+}
+
+async function parseJson<T>(c: Context): Promise<T> {
+  try {
+    return await c.req.json<T>();
+  } catch {
+    throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
 }
 
 export function authRoutes(): Hono<AppBindings> {
@@ -55,7 +66,12 @@ export function authRoutes(): Hono<AppBindings> {
     }
 
     const tokens = await googleClient(c.env).validateAuthorizationCode(code, oauthVerifier);
-    const claims = decodeIdToken(tokens.idToken()) as { sub: string; email: string; name?: string };
+    const claims = decodeIdToken(tokens.idToken()) as {
+      sub: string;
+      email: string;
+      name?: string;
+      picture?: string;
+    };
 
     const db = getDb(c.env);
     const existingUser = await db
@@ -67,12 +83,18 @@ export function authRoutes(): Hono<AppBindings> {
     let userId: string;
     if (existingUser) {
       userId = existingUser.id;
+      const updates: Partial<typeof users.$inferInsert> = {
+        email: claims.email,
+      };
+      if (existingUser.customProfile === 0) {
+        updates.name = claims.name ?? claims.email;
+      }
+      if ((existingUser.customProfile === 0 || !existingUser.avatarUrl) && claims.picture) {
+        updates.avatarUrl = claims.picture;
+      }
       await db
         .update(users)
-        .set({
-          email: claims.email,
-          name: claims.name ?? claims.email,
-        })
+        .set(updates)
         .where(eq(users.id, userId));
     } else {
       userId = newId();
@@ -81,6 +103,8 @@ export function authRoutes(): Hono<AppBindings> {
         googleSub: claims.sub,
         email: claims.email,
         name: claims.name ?? claims.email,
+        avatarUrl: claims.picture ?? null,
+        customProfile: 0,
         createdAt: nowIso(),
       });
     }
@@ -112,16 +136,116 @@ export function authRoutes(): Hono<AppBindings> {
 
   app.get('/me', async (c) => {
     const user = await getSessionUser(c);
-    return c.json({
-      user: user
-        ? {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            consentAt: user.consentAt,
-          }
-        : null,
-    });
+    const userView: MeUserView | null = user
+      ? {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          gender: (user.gender as 'M' | 'F' | null) ?? null,
+          avatarUrl: user.avatarUrl ?? null,
+          consentAt: user.consentAt,
+        }
+      : null;
+    return c.json({ user: userView });
+  });
+
+  app.patch('/me', requireUser, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const body = await parseJson<UpdateProfileInput>(c);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    let trimmedName: string | undefined;
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string') {
+        throw new ApiError('VALIDATION', 422, 'Invalid request');
+      }
+      trimmedName = body.name.trim();
+      if (trimmedName.length < 1 || trimmedName.length > 40) {
+        throw new ApiError('VALIDATION', 422, 'Name must be between 1 and 40 characters');
+      }
+    }
+
+    if (body.gender !== undefined && body.gender !== null) {
+      if (body.gender !== 'M' && body.gender !== 'F') {
+        throw new ApiError('VALIDATION', 422, 'Invalid request');
+      }
+    }
+
+    if (body.avatarUrl !== undefined && body.avatarUrl !== null) {
+      if (
+        typeof body.avatarUrl !== 'string' ||
+        body.avatarUrl.length > 150000 ||
+        (!body.avatarUrl.startsWith('data:image/') && !body.avatarUrl.startsWith('https://'))
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Invalid request');
+      }
+    }
+
+    const db = getDb(c.env);
+    const updates: Partial<typeof users.$inferInsert> = {};
+    if (trimmedName !== undefined) {
+      updates.name = trimmedName;
+    }
+    if (body.gender !== undefined) {
+      updates.gender = body.gender;
+    }
+    if (body.avatarUrl !== undefined) {
+      updates.avatarUrl = body.avatarUrl;
+    }
+    if (body.name !== undefined || body.avatarUrl !== undefined) {
+      updates.customProfile = 1;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(users).set(updates).where(eq(users.id, user.id));
+    }
+
+    if (trimmedName !== undefined || body.gender !== undefined) {
+      const pUpdates: Partial<typeof participants.$inferInsert> = {};
+      if (trimmedName !== undefined) {
+        pUpdates.name = trimmedName;
+        pUpdates.normalizedName = normalizeName(trimmedName);
+      }
+      if (body.gender !== undefined) {
+        pUpdates.gender = body.gender;
+      }
+
+      const userParticipants = await db
+        .select({ id: participants.id, tripId: participants.tripId })
+        .from(participants)
+        .where(eq(participants.userId, user.id));
+
+      if (userParticipants.length > 0) {
+        await db
+          .update(participants)
+          .set(pUpdates)
+          .where(eq(participants.userId, user.id));
+
+        const affectedTripIds = Array.from(new Set(userParticipants.map((p) => p.tripId)));
+        if (affectedTripIds.length > 0) {
+          await db
+            .update(trips)
+            .set({ version: sql`${trips.version} + 1` })
+            .where(inArray(trips.id, affectedTripIds));
+        }
+      }
+    }
+
+    const updatedUser = await db.select().from(users).where(eq(users.id, user.id)).get();
+    c.set('user', updatedUser ?? null);
+
+    const userView: MeUserView = {
+      id: updatedUser!.id,
+      email: updatedUser!.email,
+      name: updatedUser!.name,
+      gender: (updatedUser!.gender as 'M' | 'F' | null) ?? null,
+      avatarUrl: updatedUser!.avatarUrl ?? null,
+      consentAt: updatedUser!.consentAt,
+    };
+
+    return c.json({ user: userView }, 200);
   });
 
   app.post('/me/consent', requireUser, async (c) => {
