@@ -18,17 +18,33 @@ export function AvatarCropModal({
   onCancel,
 }: AvatarCropModalProps) {
   const t = useT();
+  const VIEWPORT_SIZE = 220;
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [naturalSize, setNaturalSize] = useState({ w: VIEWPORT_SIZE, h: VIEWPORT_SIZE });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; startPanX: number; startPanY: number } | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+
+  const baseScale = Math.max(VIEWPORT_SIZE / naturalSize.w, VIEWPORT_SIZE / naturalSize.h);
+  const baseWidth = naturalSize.w * baseScale;
+  const baseHeight = naturalSize.h * baseScale;
+
+  const clampPan = (x: number, y: number, currentZoom: number) => {
+    const maxPanX = Math.max(VIEWPORT_SIZE / 2, (baseWidth * currentZoom - VIEWPORT_SIZE) / 2);
+    const maxPanY = Math.max(VIEWPORT_SIZE / 2, (baseHeight * currentZoom - VIEWPORT_SIZE) / 2);
+    return {
+      x: Math.max(-maxPanX, Math.min(maxPanX, x)),
+      y: Math.max(-maxPanY, Math.min(maxPanY, y)),
+    };
+  };
 
   // Reset when dialog opens with a new image
   useEffect(() => {
     if (open) {
       setZoom(1);
       setPan({ x: 0, y: 0 });
+      setNaturalSize({ w: VIEWPORT_SIZE, h: VIEWPORT_SIZE });
     }
   }, [open, imageSrc]);
 
@@ -48,10 +64,13 @@ export function AvatarCropModal({
     if (!isDragging || !dragStartRef.current) return;
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
-    setPan({
-      x: dragStartRef.current.startPanX + dx,
-      y: dragStartRef.current.startPanY + dy,
-    });
+    setPan(
+      clampPan(
+        dragStartRef.current.startPanX + dx,
+        dragStartRef.current.startPanY + dy,
+        zoom,
+      ),
+    );
   };
 
   const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -83,7 +102,6 @@ export function AvatarCropModal({
         return;
       }
 
-      const VIEWPORT_SIZE = 220;
       const OUTPUT_SIZE = 256;
       const scaleToCanvas = OUTPUT_SIZE / VIEWPORT_SIZE;
 
@@ -97,9 +115,9 @@ export function AvatarCropModal({
 
       const nw = img.naturalWidth;
       const nh = img.naturalHeight;
-      const baseScale = Math.max(VIEWPORT_SIZE / nw, VIEWPORT_SIZE / nh);
-      const dw = nw * baseScale;
-      const dh = nh * baseScale;
+      const exportBaseScale = Math.max(VIEWPORT_SIZE / nw, VIEWPORT_SIZE / nh);
+      const dw = nw * exportBaseScale;
+      const dh = nh * exportBaseScale;
 
       ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
@@ -130,7 +148,16 @@ export function AvatarCropModal({
             src={imageSrc}
             alt=""
             className="fsl-crop__image"
+            onLoad={(e) => {
+              const nw = e.currentTarget.naturalWidth;
+              const nh = e.currentTarget.naturalHeight;
+              if (nw > 0 && nh > 0) {
+                setNaturalSize({ w: nw, h: nh });
+              }
+            }}
             style={{
+              width: `${baseWidth}px`,
+              height: `${baseHeight}px`,
               transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})`,
             }}
             draggable={false}
