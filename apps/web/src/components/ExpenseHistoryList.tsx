@@ -1,5 +1,6 @@
+import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ExpenseView, TripView } from '@fsl/core';
+import type { ExpenseHistoryItem, ExpenseView, TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
@@ -14,21 +15,44 @@ export interface ExpenseHistoryListProps {
   expense: ExpenseView;
 }
 
+function isSameState(item: ExpenseHistoryItem, current: ExpenseView): boolean {
+  if (
+    item.amount !== current.amount ||
+    item.description !== current.description ||
+    item.payerId !== current.payerId ||
+    item.spentOn !== current.spentOn
+  ) {
+    return false;
+  }
+  const itemShares = item.shares ?? [];
+  const currentShares = current.shares ?? [];
+  if (itemShares.length !== currentShares.length) return false;
+  for (const s of currentShares) {
+    const match = itemShares.find((x) => x.participantId === s.participantId);
+    if (!match || match.amount !== s.amount) return false;
+  }
+  return true;
+}
+
 export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
   const t = useT();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const rollbackMutation = useMutation({
     mutationFn: async (targetHistoryId: string) => {
-      return apiSend(
+      return apiSend<{ expenseId: string; rootId: string }>(
         `/api/trips/${view.trip.id}/expenses/${expense.id}/rollback`,
         'POST',
         { targetHistoryId },
         view.trip.id,
       );
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['trip', view.trip.id] });
+      if (data?.expenseId) {
+        navigate(`/t/${view.trip.id}/expenses/${data.expenseId}`, { replace: true });
+      }
     },
   });
 
@@ -49,14 +73,15 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
       {rollbackMutation.error && <InlineError error={rollbackMutation.error} />}
       <ul className="fsl-history__list">
         {expense.history.map((item) => {
-          const sharesSummary = item.shares
+          const sharesSummary = (item.shares ?? [])
             .map((s) => `${nameOf(view, s.participantId)}: ${formatVnd(s.amount)}`)
             .join(' · ');
-          const dateStr = item.createdAt.slice(0, 10);
+          const dateStr = item.createdAt ? item.createdAt.slice(0, 10) : '';
           const editedBy = t('expense.editedBy', {
             name: nameOf(view, item.createdById),
             date: dateStr,
           });
+          const itemCanRollback = canRollback && !isSameState(item, expense);
 
           return (
             <li key={item.id} className="fsl-history-item">
@@ -75,7 +100,7 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
                 )}
                 <div className="fsl-history-item__edited">{editedBy}</div>
               </div>
-              {canRollback && (
+              {itemCanRollback && (
                 <button
                   type="button"
                   className="fsl-history-item__rollback-btn"

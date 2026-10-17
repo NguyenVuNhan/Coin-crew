@@ -125,6 +125,25 @@ describe('ExpenseHistoryList', () => {
     renderAt(<ExpenseHistoryList view={guestView} expense={expenseWithHistory} />);
     expect(screen.queryByRole('button', { name: 'Roll back to this update' })).toBeNull();
   });
+
+  it('hides rollback button on a history entry that already matches the current active expense values', () => {
+    const view = tripView();
+    const identicalHistoryExpense: ExpenseView = {
+      ...expenseWithHistory,
+      amount: 150000,
+      description: 'Bánh tráng nướng ban đầu',
+      spentOn: '2026-10-10',
+      shares: [
+        { participantId: PIDS.M, amount: 75000, inputValue: 1 },
+        { participantId: PIDS.A, amount: 75000, inputValue: 1 },
+      ],
+      history: sampleHistory, // sampleHistory has 150000, spentOn 2026-10-10, same description and shares
+    };
+
+    renderAt(<ExpenseHistoryList view={view} expense={identicalHistoryExpense} />);
+    expect(screen.getByText('Bánh tráng nướng ban đầu')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Roll back to this update' })).toBeNull();
+  });
 });
 
 describe('UpdatedTransactionsBanner', () => {
@@ -200,6 +219,29 @@ describe('Integration in ExpenseDetails, MemberTrip, and GuestTrip', () => {
 
     // Lookup with rootId 'e-100'
     renderAt(<ExpenseDetails view={view} expenseId="e-100" onClose={() => {}} />);
+
+    expect(screen.getByRole('heading', { name: 'Edit history' })).toBeInTheDocument();
+    expect(screen.getByText('Bánh tráng nướng ban đầu')).toBeInTheDocument();
+  });
+
+  it('resolves expense in ExpenseDetails by historical revision id in history', () => {
+    const view = tripView({
+      expenses: [
+        {
+          ...expenseWithHistory,
+          id: 'e-head-v3',
+          rootId: 'e-100',
+          history: [
+            {
+              ...sampleHistory[0]!,
+              id: 'e-historical-v2',
+            },
+          ],
+        },
+      ],
+    });
+
+    renderAt(<ExpenseDetails view={view} expenseId="e-historical-v2" onClose={() => {}} />);
 
     expect(screen.getByRole('heading', { name: 'Edit history' })).toBeInTheDocument();
     expect(screen.getByText('Bánh tráng nướng ban đầu')).toBeInTheDocument();

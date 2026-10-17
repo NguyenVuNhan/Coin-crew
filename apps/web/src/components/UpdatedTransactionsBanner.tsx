@@ -49,9 +49,9 @@ export function UpdatedTransactionsBanner({ view }: UpdatedTransactionsBannerPro
       if (e.createdById === myId) return false;
       if (seenIds.includes(e.id)) return false;
 
-      const involvedNow = e.payerId === myId || e.shares.some((s) => s.participantId === myId);
+      const involvedNow = e.payerId === myId || (e.shares ?? []).some((s) => s.participantId === myId);
       const involvedBefore = e.history.some(
-        (h) => h.payerId === myId || h.shares.some((s) => s.participantId === myId),
+        (h) => h.payerId === myId || (h.shares ?? []).some((s) => s.participantId === myId),
       );
       return involvedNow || involvedBefore;
     });

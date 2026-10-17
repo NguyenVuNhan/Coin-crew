@@ -48,7 +48,9 @@ export function ExpenseDetails({
   const [shareStatus, setShareStatus] = useState<'saved' | 'failed' | null>(null);
   const reasonId = useId();
 
-  const e = view.expenses.find((x) => x.id === expenseId || x.rootId === expenseId);
+  const e = view.expenses.find(
+    (x) => x.id === expenseId || x.rootId === expenseId || x.history?.some((h) => h.id === expenseId),
+  );
 
   const { data: payInfo } = usePayInfo({
     tripId: view.trip.id,
