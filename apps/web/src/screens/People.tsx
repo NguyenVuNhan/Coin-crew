@@ -65,6 +65,12 @@ export function People() {
   const actionErrorText = (err: unknown) =>
     err instanceof ApiClientError && err.status === 409 ? t('people.useMerge') : (err as Error).message || t('error.generic');
 
+  const makeAdmin = async (person: PersonView) => {
+    if (busy) return;
+    setActingId(person.id);
+    await run(`/people/${person.id}/admin`, undefined, 'POST');
+  };
+
   const actionsFor = (person: PersonView) =>
     personActions(view, person, {
       t,
@@ -73,6 +79,9 @@ export function People() {
         void remove(person);
       },
       onBank: () => navigate(`/t/${tripId}/people/${person.id}/bank`),
+      onMakeAdmin: () => {
+        void makeAdmin(person);
+      },
     });
 
   /** A guest's bank details under their name; members manage their own, so they get none. */
@@ -126,12 +135,15 @@ export function People() {
               const isOrganiser =
                 person.isOrganiser === true ||
                 (view.me.isOrganiser && person.id === view.me.participantId);
+              const isAdmin = person.isAdmin === true;
               const roleText = isOrganiser
                 ? t('people.organiser')
-                : person.isMember
-                  ? t('people.member')
-                  : t('people.guest');
-              const roleTone = isOrganiser ? 'accent' : 'neutral';
+                : isAdmin
+                  ? t('people.adminBadge')
+                  : person.isMember
+                    ? t('people.member')
+                    : t('people.guest');
+              const roleTone = isOrganiser || isAdmin ? 'accent' : 'neutral';
               const hasRowError = actingId === person.id && Boolean(error);
               const isSport = view.trip.preset === 'sport';
               const canEditGender =
@@ -192,7 +204,9 @@ export function People() {
           </ul>
         </SwipeGroupProvider>
 
-        {!view.trip.archived && view.me.kind === 'member' && (
+        {!view.trip.archived &&
+          view.me.kind === 'member' &&
+          (view.me.isAdmin || view.me.isOrganiser) && (
           <form onSubmit={handleAddPerson} className="fsl-people__add-form">
             <input
               type="text"

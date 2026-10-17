@@ -354,6 +354,7 @@ export const vi: Record<MessageKey, string> = {
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
   'people.admin': 'Quản trị viên', // REVIEW
+  'people.adminBadge': 'Quản trị viên', // REVIEW
   'people.makeAdmin': 'Chỉ định quản trị viên', // REVIEW
   'people.member': 'Thành viên', // REVIEW
   'people.guest': 'Khách', // REVIEW

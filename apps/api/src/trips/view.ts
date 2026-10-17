@@ -17,11 +17,13 @@ export async function toTripView(
   snapshot: TripSnapshot,
   actor: ResolvedActor,
 ): Promise<TripView> {
+  const isAdmin = Boolean(actor.isAdmin) || actor.isOrganiser;
   const me: TripView['me'] = {
     kind: actor.kind,
     participantId: actor.participantId,
     participantPending: actor.participantPending,
     isOrganiser: actor.isOrganiser,
+    isAdmin,
   };
 
   let myBalance: TripView['myBalance'] = null;
@@ -59,47 +61,21 @@ export async function toTripView(
 
   let approvals: Approval[] = [];
   if (actor.kind === 'member') {
-    const expenseApprovals: Approval[] = snapshot.expenses
-      .filter((e) => e.status === 'pending')
-      .map((e) => ({
-        kind: 'expense',
-        expenseId: e.id,
-      }));
+    const isGroupAdmin = isAdmin;
 
-    const activePeople = snapshot.people
-      .filter((p) => p.status === 'active')
-      .map((p) => ({ id: p.id, name: p.name }));
-    const nameApprovals: Approval[] = snapshot.people
-      .filter((p) => p.status === 'pending')
-      .map((p) => ({
-        kind: 'name',
-        participantId: p.id,
-        matches: findSimilarNames(p.name, activePeople),
-      }));
-
-    const pendingBankRows = await db
-      .select({
-        id: bankDetails.id,
-        participantId: bankDetails.participantId,
-        bin: bankDetails.bin,
-        accountNumber: bankDetails.accountNumber,
-        holderName: bankDetails.holderName,
-      })
-      .from(bankDetails)
-      .innerJoin(participants, eq(bankDetails.participantId, participants.id))
-      .where(
-        and(
-          eq(participants.tripId, actor.trip.id),
-          eq(bankDetails.status, 'pending'),
-        ),
+    const pendingExpenses = snapshot.expenses.filter((e) => {
+      if (e.status !== 'pending') return false;
+      if (isGroupAdmin) return true;
+      if (actor.participantId === null) return false;
+      return (
+        e.payerId === actor.participantId ||
+        e.shares.some((s) => s.participantId === actor.participantId)
       );
-    const bankApprovals: Approval[] = pendingBankRows.map((b) => ({
-      kind: 'bank',
-      bankId: b.id,
-      participantId: b.participantId!,
-      bankName: findBank(b.bin)?.shortName ?? b.bin,
-      accountNumber: b.accountNumber,
-      holderName: b.holderName,
+    });
+
+    const expenseApprovals: Approval[] = pendingExpenses.map((e) => ({
+      kind: 'expense',
+      expenseId: e.id,
     }));
 
     const paymentApprovals: Approval[] = snapshot.payments
@@ -110,34 +86,80 @@ export async function toTripView(
       }));
 
     const notArrivedApprovals: Approval[] = snapshot.payments
-      .filter((p) => p.status === 'confirmed' && p.notArrived)
+      .filter((p) => {
+        if (p.status !== 'confirmed' || !p.notArrived) return false;
+        if (isGroupAdmin) return true;
+        return p.toId === actor.participantId;
+      })
       .map((p) => ({
         kind: 'not_arrived',
         paymentId: p.id,
       }));
 
-    const pendingMembershipRows = await db
-      .select({
-        id: membershipRequests.id,
-        participantId: membershipRequests.participantId,
-        userName: users.name,
-        userEmail: users.email,
-      })
-      .from(membershipRequests)
-      .innerJoin(users, eq(membershipRequests.userId, users.id))
-      .where(
-        and(
-          eq(membershipRequests.tripId, actor.trip.id),
-          eq(membershipRequests.status, 'pending'),
-        ),
-      );
-    const membershipApprovals: Approval[] = pendingMembershipRows.map((r) => ({
-      kind: 'membership',
-      requestId: r.id,
-      participantId: r.participantId,
-      userName: r.userName,
-      userEmail: r.userEmail,
-    }));
+    let nameApprovals: Approval[] = [];
+    let bankApprovals: Approval[] = [];
+    let membershipApprovals: Approval[] = [];
+
+    if (isGroupAdmin) {
+      const activePeople = snapshot.people
+        .filter((p) => p.status === 'active')
+        .map((p) => ({ id: p.id, name: p.name }));
+      nameApprovals = snapshot.people
+        .filter((p) => p.status === 'pending')
+        .map((p) => ({
+          kind: 'name',
+          participantId: p.id,
+          matches: findSimilarNames(p.name, activePeople),
+        }));
+
+      const pendingBankRows = await db
+        .select({
+          id: bankDetails.id,
+          participantId: bankDetails.participantId,
+          bin: bankDetails.bin,
+          accountNumber: bankDetails.accountNumber,
+          holderName: bankDetails.holderName,
+        })
+        .from(bankDetails)
+        .innerJoin(participants, eq(bankDetails.participantId, participants.id))
+        .where(
+          and(
+            eq(participants.tripId, actor.trip.id),
+            eq(bankDetails.status, 'pending'),
+          ),
+        );
+      bankApprovals = pendingBankRows.map((b) => ({
+        kind: 'bank',
+        bankId: b.id,
+        participantId: b.participantId!,
+        bankName: findBank(b.bin)?.shortName ?? b.bin,
+        accountNumber: b.accountNumber,
+        holderName: b.holderName,
+      }));
+
+      const pendingMembershipRows = await db
+        .select({
+          id: membershipRequests.id,
+          participantId: membershipRequests.participantId,
+          userName: users.name,
+          userEmail: users.email,
+        })
+        .from(membershipRequests)
+        .innerJoin(users, eq(membershipRequests.userId, users.id))
+        .where(
+          and(
+            eq(membershipRequests.tripId, actor.trip.id),
+            eq(membershipRequests.status, 'pending'),
+          ),
+        );
+      membershipApprovals = pendingMembershipRows.map((r) => ({
+        kind: 'membership',
+        requestId: r.id,
+        participantId: r.participantId,
+        userName: r.userName,
+        userEmail: r.userEmail,
+      }));
+    }
 
     approvals = [
       ...expenseApprovals,

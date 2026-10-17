@@ -176,6 +176,7 @@ export function tripRoutes(): Hono<AppBindings> {
       normalizedName: normalizeName(myName),
       gender: body.myGender ?? null,
       userId: user.id,
+      isAdmin: 1,
       status: 'active',
       sortOrder: 0,
       createdAt: now,

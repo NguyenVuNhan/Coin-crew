@@ -354,6 +354,7 @@ export const en = {
   'people.title': 'People',
   'people.organiser': 'Organiser',
   'people.admin': 'Admin',
+  'people.adminBadge': 'Admin',
   'people.makeAdmin': 'Make admin',
   'people.member': 'Member',
   'people.guest': 'Guest',

@@ -4,11 +4,12 @@ import {
   type Actor, type Action, type ActionContext,
 } from '../src/permissions';
 
-const member = (id: string, isOrganiser = false): Actor => ({ kind: 'member', participantId: id, participantPending: false, isOrganiser });
+const member = (id: string, isOrganiser = false, isAdmin = false): Actor => ({ kind: 'member', participantId: id, participantPending: false, isOrganiser, isAdmin });
 const guest = (id: string, participantPending = false): Actor => ({ kind: 'guest', participantId: id, participantPending, isOrganiser: false });
 const viewer: Actor = { kind: 'viewer', participantId: null, participantPending: false, isOrganiser: false };
 
 const M = member('M');
+const ADM = member('A', false, true);
 const ORG = member('O', true);
 const G = guest('G');
 const GP = guest('GP', true);
@@ -36,12 +37,26 @@ for (const action of ['edit_expense', 'delete_expense'] as const) {
     [`viewer ${action}`, viewer, action, { expenseCreatedById: 'X', expenseStatus: 'pending' }, false],
   );
 }
-for (const action of ['approve', 'disable', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank'] as const) {
+// Admin-only member actions: non-admin member gets false; admin and organiser get true
+for (const action of ['approve', 'merge', 'remove_person', 'regenerate_links', 'set_fewest', 'manage_bank', 'add_person', 'promote_admin'] as const) {
   rows.push(
-    [`member ${action}`, M, action, undefined, true],
-    [`guest ${action}`, G, action, undefined, false],
-    [`pending ${action}`, GP, action, undefined, false],
-    [`viewer ${action}`, viewer, action, undefined, false],
+    [`non-admin member ${action}`, M, action as Action, undefined, false],
+    [`admin member ${action}`, ADM, action as Action, undefined, true],
+    [`organiser ${action}`, ORG, action as Action, undefined, true],
+    [`guest ${action}`, G, action as Action, undefined, false],
+    [`pending ${action}`, GP, action as Action, undefined, false],
+    [`viewer ${action}`, viewer, action as Action, undefined, false],
+  );
+}
+// approve_expense and disable: allowed for admins, or members involved in the expense
+for (const action of ['approve_expense', 'disable'] as const) {
+  rows.push(
+    [`non-admin member ${action} without involvement`, M, action as Action, undefined, false],
+    [`non-admin member ${action} with involvement`, M, action as Action, { expenseInvolved: true }, true],
+    [`admin member ${action} without involvement`, ADM, action as Action, undefined, true],
+    [`organiser ${action} without involvement`, ORG, action as Action, undefined, true],
+    [`guest ${action} with involvement`, G, action as Action, { expenseInvolved: true }, false],
+    [`viewer ${action} with involvement`, viewer, action as Action, { expenseInvolved: true }, false],
   );
 }
 rows.push(

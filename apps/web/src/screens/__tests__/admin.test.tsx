@@ -16,15 +16,15 @@ afterEach(() => {
 
 const at = (screenName: string) => ({ route: `/t/t-1/${screenName}`, path: `/t/:tripId/${screenName}` });
 
-/** A member who is not the organiser: An, signed in. Minh created the trip. */
+/** A member who is a Group Admin but not the organiser: An, signed in. Minh created the trip. */
 function anView(): TripView {
   const base = tripView();
   return {
     ...base,
-    me: { kind: 'member', participantId: PIDS.A, participantPending: false, isOrganiser: false },
+    me: { kind: 'member', participantId: PIDS.A, participantPending: false, isOrganiser: false, isAdmin: true },
     people: base.people.map((p) => {
-      if (p.id === PIDS.M) return { ...p, isOrganiser: true };
-      if (p.id === PIDS.A) return { ...p, isMember: true };
+      if (p.id === PIDS.M) return { ...p, isOrganiser: true, isAdmin: true };
+      if (p.id === PIDS.A) return { ...p, isMember: true, isAdmin: true };
       return p;
     }),
   };
@@ -94,7 +94,7 @@ describe('People', () => {
     renderAt(<People />, at('people'));
     await screen.findByRole('button', { name: /^Minh,/ });
     expect(within(rowOf('Minh')).getByText('Organiser')).toBeInTheDocument();
-    expect(within(rowOf('An')).getByText('Member')).toBeInTheDocument();
+    expect(within(rowOf('An')).getByText('Admin')).toBeInTheDocument();
     expect(within(rowOf('Chi')).getByText('Guest')).toBeInTheDocument();
   });
 
@@ -228,6 +228,45 @@ describe('People', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/trips/t-1/people/p-binh')).toBe(true));
     // The next try clears the old message; only the row that was just acted on can show one.
     await waitFor(() => expect(screen.queryByText('Use merge instead')).toBeNull());
+  });
+
+  it('promotes an active member to admin', async () => {
+    const view = anView();
+    const { calls } = mockApi({
+      'GET /api/trips/t-1': {
+        ...view,
+        people: view.people.map((p) => (p.id === PIDS.B ? { ...p, isMember: true, isAdmin: false } : p)),
+      },
+      'POST /api/trips/t-1/people/p-binh/admin': null,
+    });
+    renderAt(<People />, at('people'));
+    await screen.findByRole('button', { name: /^Bình,/ });
+    expect(within(rowOf('Bình')).getByText('Member')).toBeInTheDocument();
+    await userEvent.click(within(rowOf('Bình')).getByRole('button', { name: 'Make admin' }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/people/p-binh/admin')).toBe(true),
+    );
+  });
+
+  it('non-admin members do not see add-person form, merge, or remove', async () => {
+    const base = tripView();
+    const nonAdminView: TripView = {
+      ...base,
+      me: { kind: 'member', participantId: PIDS.A, participantPending: false, isOrganiser: false, isAdmin: false },
+      people: base.people.map((p) => {
+        if (p.id === PIDS.M) return { ...p, isOrganiser: true, isAdmin: true };
+        if (p.id === PIDS.A) return { ...p, isMember: true, isAdmin: false };
+        return p;
+      }),
+    };
+    mockApi({ 'GET /api/trips/t-1': nonAdminView });
+    renderAt(<People />, at('people'));
+    await screen.findByRole('button', { name: /^An,/ });
+    expect(within(rowOf('An')).getByText('Member')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Add someone else')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Merge' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
   });
 });
 

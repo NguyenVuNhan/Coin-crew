@@ -44,6 +44,7 @@ export async function resolveActor(c: Context<AppBindings>, tripId: string): Pro
         participantId: participant.id,
         participantPending: false,
         isOrganiser: trip.organiserUserId === user.id,
+        isAdmin: participant.isAdmin === 1 || trip.organiserUserId === user.id,
         userId: user.id,
         deviceHash,
         trip,
