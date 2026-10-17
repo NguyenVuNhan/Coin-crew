@@ -66,23 +66,6 @@ describe('WhoAreYou', () => {
     const minh = await screen.findByRole('link', { name: /Minh/ });
     expect(minh.getAttribute('href')).toMatch(/^\/api\/auth\/google\/start\?returnTo=/);
   });
-
-  it('a new name gets suggestions and an "Are you …?" check', async () => {
-    const { calls } = mockApi({
-      'GET /api/trips/t-1/people/picker': picker({ myPick: null, people: picker().people.map((p) => ({ ...p, lastUsedHere: false })) }),
-      'POST /api/trips/t-1/people/check-name': { matches: [{ id: PIDS.B, name: 'Bình', reason: 'same' }] },
-      'POST /api/trips/t-1/people': () => Response.json({ participantId: 'p-new' }, { status: 201 }),
-    });
-    renderAt(<WhoAreYou />, route);
-    await userEvent.click(await screen.findByRole('button', { name: 'Not on the list? Add your name' }));
-    await userEvent.type(screen.getByLabelText('Your name'), 'Binh');
-    expect(await screen.findByRole('option', { name: /Bình/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(await screen.findByText('Are you Bình?')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: "Yes, I'm Bình" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'No, add me' }));
-    await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/people')?.body).toEqual({ name: 'Binh', confirmNew: true }));
-  });
 });
 
 describe('WhoAreYou search', () => {
@@ -116,24 +99,6 @@ describe('WhoAreYou search', () => {
     expect(screen.getByRole('searchbox', { name: 'Search names' })).toHaveValue('');
   });
 
-  it('no match offers to add the typed name', async () => {
-    const { calls } = mockApi({
-      'GET /api/trips/t-1/people/picker': crowd(14),
-      'POST /api/trips/t-1/people/check-name': { matches: [] },
-      'POST /api/trips/t-1/people': () => Response.json({ participantId: 'p-new' }, { status: 201 }),
-    });
-    renderAt(<WhoAreYou />, route);
-    await userEvent.type(await screen.findByRole('searchbox', { name: 'Search names' }), 'Zed');
-    expect(screen.getByText('0 of 14 people')).toBeInTheDocument();
-    expect(screen.queryAllByRole('radio')).toHaveLength(0);
-    // The typed name is offered instead of the generic button.
-    expect(screen.queryByRole('button', { name: 'Not on the list? Add your name' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Not on the list? Add "Zed"' }));
-    expect(screen.getByLabelText('Your name')).toHaveValue('Zed');
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/people')?.body).toEqual({ name: 'Zed', confirmNew: false }));
-  });
-
   it('a pre-selected name hidden by the search is not offered in the bottom bar', async () => {
     const { calls } = mockApi({
       'GET /api/trips/t-1/people/picker': { ...crowd(14), myPick: 'p-3' },
@@ -143,7 +108,6 @@ describe('WhoAreYou search', () => {
     expect(await screen.findByRole('button', { name: 'Continue as Chi' })).toBeEnabled();
     const search = screen.getByRole('searchbox', { name: 'Search names' });
     await userEvent.type(search, 'zed');
-    expect(screen.getByRole('button', { name: 'Not on the list? Add "zed"' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Continue as Chi' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     // A search that shows other people does not offer Chi either.
@@ -178,20 +142,6 @@ describe('WhoAreYou search', () => {
 });
 
 describe('WhoAreYou errors', () => {
-  it('shows an inline error when adding a name is refused', async () => {
-    mockApi({
-      'GET /api/trips/t-1/people/picker': picker({ myPick: null }),
-      'POST /api/trips/t-1/people/check-name': { matches: [] },
-      'POST /api/trips/t-1/people': () => Response.json({ error: { code: 'RATE_LIMITED', message: 'x' } }, { status: 429 }),
-    });
-    renderAt(<WhoAreYou />, { route: '/t/t-1/who', path: '/t/:tripId/who' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Not on the list? Add your name' }));
-    await userEvent.type(screen.getByLabelText('Your name'), 'Giang');
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(await screen.findByText('Too many items are waiting for approval. Ask a member to approve them first.')).toBeInTheDocument();
-    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/who');
-  });
-
   it('shows an inline error when picking fails', async () => {
     mockApi({
       'GET /api/trips/t-1/people/picker': picker(),

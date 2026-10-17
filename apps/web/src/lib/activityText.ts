@@ -78,6 +78,11 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         if (!name) return null;
         return t('activity.adminPromoted', { actor, name });
       }
+      case 'admin_demoted': {
+        const name = text(d.name);
+        if (!name) return null;
+        return t('activity.adminDemoted', { actor, name });
+      }
       case 'expense_rolled_back': {
         const description = text(d.description);
         if (!description) return null;

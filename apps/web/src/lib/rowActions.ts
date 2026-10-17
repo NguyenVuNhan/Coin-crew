@@ -28,8 +28,8 @@ export interface ActionDeps {
 
 /** The signed-in person as the permission rules in `@fsl/core` see them. */
 export function actorOf(view: TripView): Actor {
-  const { kind, participantId, participantPending, isOrganiser } = view.me;
-  return { kind, participantId, participantPending, isOrganiser };
+  const { kind, participantId, participantPending, isOrganiser, isAdmin } = view.me;
+  return { kind, participantId, participantPending, isOrganiser, isAdmin };
 }
 
 /**
@@ -41,8 +41,11 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
   const { t, navigate, run, onReject } = deps;
   const actor = actorOf(view);
   const actions: RowAction[] = [];
+  const expenseInvolved =
+    actor.participantId === e.payerId ||
+    (e.shares ?? []).some((s) => s.participantId === actor.participantId);
 
-  if (onReject && e.status === 'pending' && can(actor, 'approve')) {
+  if (onReject && e.status === 'pending' && can(actor, 'approve_expense', { expenseInvolved })) {
     actions.push(
       { id: 'approve', label: t('approvals.approve'), icon: 'check', tone: 'success', onSelect: () => void run(`/expenses/${e.id}/approve`) },
       { id: 'reject', label: t('approvals.reject'), icon: 'x', tone: 'danger', onSelect: onReject },
@@ -53,7 +56,7 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
     actions.push({ id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`/t/${view.trip.id}/expenses/${e.id}/edit`) });
   }
 
-  if (can(actor, 'disable')) {
+  if (can(actor, 'disable', { expenseInvolved })) {
     if (e.status === 'disabled') {
       actions.push({ id: 'enable', label: t('expenses.enable'), icon: 'circleCheck', onSelect: () => void run(`/expenses/${e.id}/enable`) });
     } else if (e.status === 'approved' || e.status === 'pending') {
@@ -111,6 +114,8 @@ export interface PersonActionDeps {
   onMerge(): void;
   onRemove(): void;
   onBank(): void;
+  onMakeAdmin?(): void;
+  onRemoveAdmin?(): void;
 }
 
 /**
@@ -122,9 +127,42 @@ export interface PersonActionDeps {
  */
 export function personActions(view: TripView, person: PersonView, deps: PersonActionDeps): RowAction[] {
   if (view.trip.archived) return [];
-  const { t, onMerge, onRemove, onBank } = deps;
+  const { t, onMerge, onRemove, onBank, onMakeAdmin, onRemoveAdmin } = deps;
   const actor = actorOf(view);
   const actions: RowAction[] = [];
+
+  if (
+    can(actor, 'promote_admin') &&
+    person.isMember &&
+    !person.isAdmin &&
+    !person.isOrganiser &&
+    person.status === 'active' &&
+    onMakeAdmin
+  ) {
+    actions.push({
+      id: 'make-admin',
+      label: t('people.makeAdmin'),
+      icon: 'shield',
+      onSelect: onMakeAdmin,
+    });
+  }
+
+  if (
+    can(actor, 'demote_admin') &&
+    person.isMember &&
+    person.isAdmin &&
+    !person.isOrganiser &&
+    person.status === 'active' &&
+    onRemoveAdmin
+  ) {
+    actions.push({
+      id: 'remove-admin',
+      label: t('people.removeAdmin'),
+      icon: 'shield',
+      tone: 'danger',
+      onSelect: onRemoveAdmin,
+    });
+  }
 
   if (canManageBankOf(view, person.id)) {
     actions.push({ id: 'bank', label: t('people.bank'), icon: 'bank', onSelect: onBank });

@@ -364,6 +364,7 @@ export const vi: Record<MessageKey, string> = {
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
   'people.admin': 'Quản trị viên', // REVIEW
+  'people.adminBadge': 'Quản trị viên', // REVIEW
   'people.makeAdmin': 'Chỉ định quản trị viên', // REVIEW
   'people.member': 'Thành viên', // REVIEW
   'people.guest': 'Khách', // REVIEW
@@ -513,7 +514,12 @@ export const vi: Record<MessageKey, string> = {
   'activity.paymentArrived': '{actor} cho biết đã nhận được một khoản thanh toán · {amount}', // REVIEW
   'activity.action.payment_arrived': 'cho biết đã nhận được một khoản thanh toán', // REVIEW
   'activity.adminPromoted': '{actor} đã chỉ định {name} làm quản trị viên nhóm', // REVIEW
+  'activity.adminDemoted': '{actor} đã gỡ quyền quản trị của {name}', // REVIEW
+  'activity.action.admin_promoted': 'đã chỉ định quản trị viên nhóm', // REVIEW
+  'activity.action.admin_demoted': 'đã gỡ quyền quản trị viên nhóm', // REVIEW
   'activity.expenseRolledBack': '{actor} đã khôi phục "{description}"', // REVIEW
+  'activity.action.expense_rolled_back': 'đã khôi phục một khoản chi', // REVIEW
+  'people.removeAdmin': 'Gỡ quyền quản trị', // REVIEW
 
   'updates.bannerTitle': 'Có giao dịch liên quan đến bạn vừa được cập nhật', // REVIEW
   'updates.viewAll': 'Xem giao dịch cập nhật', // REVIEW

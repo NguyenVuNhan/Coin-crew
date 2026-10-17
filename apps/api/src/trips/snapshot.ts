@@ -137,6 +137,8 @@ export async function buildSnapshot(
     } else if (guestPendingSet.has(p.id)) {
       bank = 'pending';
     }
+    const isOrganiser = p.userId !== null && p.userId === trip.organiserUserId;
+    const isAdmin = p.isAdmin === 1 || isOrganiser;
     return {
       id: p.id,
       name: p.name,
@@ -144,7 +146,8 @@ export async function buildSnapshot(
       avatarUrl: p.userId !== null ? (userAvatarMap.get(p.userId) ?? null) : null,
       status: p.status as 'active' | 'pending',
       isMember: p.userId !== null,
-      isOrganiser: p.userId !== null && p.userId === trip.organiserUserId,
+      isOrganiser,
+      isAdmin,
       bank,
     };
   });
