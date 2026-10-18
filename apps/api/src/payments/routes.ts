@@ -10,7 +10,7 @@ import {
 } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
-import { participants, payments } from '../db/schema';
+import { participants, transactions, transactionShares } from '../db/schema';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
@@ -134,23 +134,41 @@ export function paymentRoutes(): Hono<AppBindings> {
     const paymentId = newId();
     const now = nowIso();
 
-    const insertPayment = db.insert(payments).values({
+    const insertPayment = db.insert(transactions).values({
       id: paymentId,
+      rootId: paymentId,
+      parentId: null,
+      isLatest: 1,
       tripId,
-      fromId,
-      toId,
-      amountClaimed: amount,
+      type: 'payment',
+      description: '',
+      amount,
       amountConfirmed: status === 'confirmed' ? amount : null,
       currency: 'VND',
+      spentOn: now.slice(0, 10),
+      payerId: fromId,
+      toId,
+      splitMode: 'equal',
       status,
-      recordedByParticipantId: actor.participantId!,
-      recordedByDevice: actor.deviceHash,
+      rejectReason: null,
+      notArrivedAt: null,
+      disabledByUserId: null,
+      createdByParticipantId: actor.participantId!,
+      createdByDevice: actor.deviceHash,
       confirmedByParticipantId: status === 'confirmed' ? actor.participantId : null,
+      metaJson: null,
       createdAt: now,
       updatedAt: now,
     });
 
-    await commitTripWrite(db, tripId, [insertPayment], {
+    const insertShare = db.insert(transactionShares).values({
+      transactionId: paymentId,
+      participantId: toId,
+      inputValue: amount,
+      amount: status === 'confirmed' ? amount : amount,
+    });
+
+    await commitTripWrite(db, tripId, [insertPayment, insertShare], {
       action: 'payment_recorded',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -176,11 +194,18 @@ export function paymentRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const payment = await db
       .select()
-      .from(payments)
-      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
       .get();
 
-    if (!payment) {
+    if (!payment || !payment.toId) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
@@ -195,7 +220,7 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     const body = await parseOptionalJson<{ amount?: unknown }>(c);
     const amount = body?.amount;
-    const confirmed = amount ?? payment.amountClaimed;
+    const confirmed = amount ?? payment.amount;
 
     if (!isValidAmount(confirmed)) {
       throw new ApiError('VALIDATION', 422, 'Invalid amount');
@@ -203,7 +228,7 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     const now = nowIso();
     const r = await db
-      .update(payments)
+      .update(transactions)
       .set({
         status: 'confirmed',
         amountConfirmed: confirmed,
@@ -212,9 +237,11 @@ export function paymentRoutes(): Hono<AppBindings> {
       })
       .where(
         and(
-          eq(payments.id, pid),
-          eq(payments.tripId, tripId),
-          eq(payments.status, 'says_paid'),
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'says_paid'),
         ),
       )
       .run();
@@ -223,7 +250,19 @@ export function paymentRoutes(): Hono<AppBindings> {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
-    await commitTripWrite(db, tripId, [], {
+    const updateShare = db
+      .update(transactionShares)
+      .set({
+        amount: confirmed,
+      })
+      .where(
+        and(
+          eq(transactionShares.transactionId, pid),
+          eq(transactionShares.participantId, payment.toId),
+        ),
+      );
+
+    await commitTripWrite(db, tripId, [updateShare], {
       action: 'payment_confirmed',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -244,16 +283,23 @@ export function paymentRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const payment = await db
       .select()
-      .from(payments)
-      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
       .get();
 
-    if (!payment) {
+    if (!payment || !payment.toId) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
     const isMember = await receiverIsMember(db, tripId, payment.toId);
-    const outcome = notArrivedOutcome(actor, payment, isMember);
+    const outcome = notArrivedOutcome(actor, { toId: payment.toId, status: payment.status as any }, isMember);
 
     if (outcome === 'forbidden') {
       throw new ApiError('FORBIDDEN', 403);
@@ -263,16 +309,18 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     if (outcome === 'reject') {
       const r = await db
-        .update(payments)
+        .update(transactions)
         .set({
           status: 'rejected',
           updatedAt: now,
         })
         .where(
           and(
-            eq(payments.id, pid),
-            eq(payments.tripId, tripId),
-            eq(payments.status, 'says_paid'),
+            eq(transactions.id, pid),
+            eq(transactions.tripId, tripId),
+            eq(transactions.type, 'payment'),
+            eq(transactions.isLatest, 1),
+            eq(transactions.status, 'says_paid'),
           ),
         )
         .run();
@@ -282,17 +330,19 @@ export function paymentRoutes(): Hono<AppBindings> {
       }
     } else if (outcome === 'flag') {
       const r = await db
-        .update(payments)
+        .update(transactions)
         .set({
           notArrivedAt: now,
           updatedAt: now,
         })
         .where(
           and(
-            eq(payments.id, pid),
-            eq(payments.tripId, tripId),
-            eq(payments.status, 'confirmed'),
-            isNull(payments.notArrivedAt),
+            eq(transactions.id, pid),
+            eq(transactions.tripId, tripId),
+            eq(transactions.type, 'payment'),
+            eq(transactions.isLatest, 1),
+            eq(transactions.status, 'confirmed'),
+            isNull(transactions.notArrivedAt),
           ),
         )
         .run();
@@ -324,8 +374,15 @@ export function paymentRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const payment = await db
       .select()
-      .from(payments)
-      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
       .get();
 
     if (!payment) {
@@ -334,16 +391,18 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     const now = nowIso();
     const r = await db
-      .update(payments)
+      .update(transactions)
       .set({
         status: 'disabled',
         updatedAt: now,
       })
       .where(
         and(
-          eq(payments.id, pid),
-          eq(payments.tripId, tripId),
-          inArray(payments.status, ['confirmed', 'says_paid']),
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+          inArray(transactions.status, ['confirmed', 'says_paid']),
         ),
       )
       .run();
@@ -374,8 +433,15 @@ export function paymentRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const payment = await db
       .select()
-      .from(payments)
-      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
       .get();
 
     if (!payment) {
@@ -384,19 +450,21 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     const now = nowIso();
     const r = await db
-      .update(payments)
+      .update(transactions)
       // Back to what it was before disabling: a payment nobody confirmed yet waits for its receiver again (spec §9.4).
       .set({
-        status: sql<'says_paid' | 'confirmed'>`CASE WHEN ${payments.confirmedByParticipantId} IS NULL THEN 'says_paid' ELSE 'confirmed' END`,
-        amountConfirmed: sql<number | null>`CASE WHEN ${payments.confirmedByParticipantId} IS NULL THEN NULL ELSE coalesce(${payments.amountConfirmed}, ${payments.amountClaimed}) END`,
+        status: sql<'says_paid' | 'confirmed'>`CASE WHEN ${transactions.confirmedByParticipantId} IS NULL THEN 'says_paid' ELSE 'confirmed' END`,
+        amountConfirmed: sql<number | null>`CASE WHEN ${transactions.confirmedByParticipantId} IS NULL THEN NULL ELSE coalesce(${transactions.amountConfirmed}, ${transactions.amount}) END`,
         notArrivedAt: null,
         updatedAt: now,
       })
       .where(
         and(
-          eq(payments.id, pid),
-          eq(payments.tripId, tripId),
-          eq(payments.status, 'disabled'),
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'disabled'),
         ),
       )
       .run();
@@ -426,16 +494,27 @@ export function paymentRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const payment = await db
       .select()
-      .from(payments)
-      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
       .get();
 
-    if (!payment) {
+    if (!payment || !payment.toId) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
     const isMember = await receiverIsMember(db, tripId, payment.toId);
-    const outcome = arrivedOutcome(actor, { toId: payment.toId, status: payment.status, notArrived: payment.notArrivedAt !== null }, isMember);
+    const outcome = arrivedOutcome(
+      actor,
+      { toId: payment.toId, status: payment.status as any, notArrived: payment.notArrivedAt !== null },
+      isMember,
+    );
 
     if (outcome === 'forbidden') {
       // The receiver pressing it again after it already counts: someone (they) already handled it.
@@ -447,31 +526,63 @@ export function paymentRoutes(): Hono<AppBindings> {
     const r =
       outcome === 'confirm'
         ? await db
-            .update(payments)
+            .update(transactions)
             .set({
               status: 'confirmed',
-              amountConfirmed: payment.amountClaimed,
+              amountConfirmed: payment.amount,
               confirmedByParticipantId: actor.participantId,
               updatedAt: now,
             })
-            .where(and(eq(payments.id, pid), eq(payments.tripId, tripId), eq(payments.status, 'rejected')))
+            .where(
+              and(
+                eq(transactions.id, pid),
+                eq(transactions.tripId, tripId),
+                eq(transactions.type, 'payment'),
+                eq(transactions.isLatest, 1),
+                eq(transactions.status, 'rejected'),
+              ),
+            )
             .run()
         : await db
-            .update(payments)
+            .update(transactions)
             .set({ notArrivedAt: null, updatedAt: now })
-            .where(and(eq(payments.id, pid), eq(payments.tripId, tripId), eq(payments.status, 'confirmed'), isNotNull(payments.notArrivedAt)))
+            .where(
+              and(
+                eq(transactions.id, pid),
+                eq(transactions.tripId, tripId),
+                eq(transactions.type, 'payment'),
+                eq(transactions.isLatest, 1),
+                eq(transactions.status, 'confirmed'),
+                isNotNull(transactions.notArrivedAt),
+              ),
+            )
             .run();
 
     if (r.meta.changes === 0) {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
-    await commitTripWrite(db, tripId, [], {
+    const extraQueries = [];
+    if (outcome === 'confirm') {
+      extraQueries.push(
+        db
+          .update(transactionShares)
+          .set({ amount: payment.amount })
+          .where(
+            and(
+              eq(transactionShares.transactionId, pid),
+              eq(transactionShares.participantId, payment.toId),
+            ),
+          ),
+      );
+    }
+
+    await commitTripWrite(db, tripId, extraQueries, {
       action: 'payment_arrived',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
-      details: { outcome, amount: payment.amountConfirmed ?? payment.amountClaimed },
+      details: { outcome, amount: payment.amountConfirmed ?? payment.amount },
     });
 
     return c.body(null, 204);
@@ -487,9 +598,18 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     const db = getDb(c.env);
     const r = await db
-      .update(payments)
+      .update(transactions)
       .set({ notArrivedAt: null, updatedAt: nowIso() })
-      .where(and(eq(payments.id, pid), eq(payments.tripId, tripId), eq(payments.status, 'confirmed'), isNotNull(payments.notArrivedAt)))
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'confirmed'),
+          isNotNull(transactions.notArrivedAt),
+        ),
+      )
       .run();
     if (r.meta.changes === 0) {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');

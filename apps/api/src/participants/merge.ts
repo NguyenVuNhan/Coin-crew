@@ -5,12 +5,11 @@ import type { ResolvedActor } from '../access/actor';
 import {
   bankDetails,
   deviceParticipants,
-  expenseShares,
-  expenses,
   membershipRequests,
   participants,
   paymentRefs,
-  payments,
+  transactions,
+  transactionShares,
 } from '../db/schema';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
@@ -76,52 +75,52 @@ export async function mergeParticipants(
 
   queries.push(
     db
-      .update(expenses)
+      .update(transactions)
       .set({ payerId: intoId })
-      .where(and(eq(expenses.tripId, tripId), eq(expenses.payerId, fromId))),
+      .where(and(eq(transactions.tripId, tripId), eq(transactions.payerId, fromId))),
     db
-      .update(expenses)
+      .update(transactions)
       .set({ createdByParticipantId: intoId })
       .where(
         and(
-          eq(expenses.tripId, tripId),
-          eq(expenses.createdByParticipantId, fromId),
+          eq(transactions.tripId, tripId),
+          eq(transactions.createdByParticipantId, fromId),
         ),
       ),
   );
 
   // Subqueries, not lists of ids: D1 allows only 100 bound parameters per query.
-  const tripExpenseIds = db.select({ id: expenses.id }).from(expenses).where(eq(expenses.tripId, tripId));
-  const fromExpenseIdsQuery = db
-    .select({ id: expenseShares.expenseId })
-    .from(expenseShares)
-    .where(and(inArray(expenseShares.expenseId, tripExpenseIds), eq(expenseShares.participantId, fromId)));
+  const tripTxIds = db.select({ id: transactions.id }).from(transactions).where(eq(transactions.tripId, tripId));
+  const fromTxIdsQuery = db
+    .select({ id: transactionShares.transactionId })
+    .from(transactionShares)
+    .where(and(inArray(transactionShares.transactionId, tripTxIds), eq(transactionShares.participantId, fromId)));
 
   {
     const fromShares = await db
       .select()
-      .from(expenseShares)
-      .where(and(inArray(expenseShares.expenseId, tripExpenseIds), eq(expenseShares.participantId, fromId)));
+      .from(transactionShares)
+      .where(and(inArray(transactionShares.transactionId, tripTxIds), eq(transactionShares.participantId, fromId)));
 
-    const fromExpenseIds = fromShares.map((s) => s.expenseId);
-    if (fromExpenseIds.length > 0) {
+    const fromTxIds = fromShares.map((s) => s.transactionId);
+    if (fromTxIds.length > 0) {
       const relevantShares = await db
         .select()
-        .from(expenseShares)
-        .where(inArray(expenseShares.expenseId, fromExpenseIdsQuery));
+        .from(transactionShares)
+        .where(inArray(transactionShares.transactionId, fromTxIdsQuery));
 
-      const sharesByExpense = new Map<string, typeof relevantShares>();
+      const sharesByTx = new Map<string, typeof relevantShares>();
       for (const s of relevantShares) {
-        let list = sharesByExpense.get(s.expenseId);
+        let list = sharesByTx.get(s.transactionId);
         if (!list) {
           list = [];
-          sharesByExpense.set(s.expenseId, list);
+          sharesByTx.set(s.transactionId, list);
         }
         list.push(s);
       }
 
-      for (const expId of fromExpenseIds) {
-        const shares = sharesByExpense.get(expId) ?? [];
+      for (const txId of fromTxIds) {
+        const shares = sharesByTx.get(txId) ?? [];
         const fromRow = shares.find((s) => s.participantId === fromId);
         const intoRow = shares.find((s) => s.participantId === intoId);
 
@@ -131,20 +130,20 @@ export async function mergeParticipants(
           const newIntoAmount = intoRow.amount + fromRow.amount;
           queries.push(
             db
-              .update(expenseShares)
+              .update(transactionShares)
               .set({ amount: newIntoAmount, inputValue: newIntoAmount })
               .where(
                 and(
-                  eq(expenseShares.expenseId, expId),
-                  eq(expenseShares.participantId, intoId),
+                  eq(transactionShares.transactionId, txId),
+                  eq(transactionShares.participantId, intoId),
                 ),
               ),
             db
-              .delete(expenseShares)
+              .delete(transactionShares)
               .where(
                 and(
-                  eq(expenseShares.expenseId, expId),
-                  eq(expenseShares.participantId, fromId),
+                  eq(transactionShares.transactionId, txId),
+                  eq(transactionShares.participantId, fromId),
                 ),
               ),
           );
@@ -153,12 +152,12 @@ export async function mergeParticipants(
             if (other.participantId !== fromId && other.participantId !== intoId) {
               queries.push(
                 db
-                  .update(expenseShares)
+                  .update(transactionShares)
                   .set({ inputValue: other.amount })
                   .where(
                     and(
-                      eq(expenseShares.expenseId, expId),
-                      eq(expenseShares.participantId, other.participantId),
+                      eq(transactionShares.transactionId, txId),
+                      eq(transactionShares.participantId, other.participantId),
                     ),
                   ),
               );
@@ -167,19 +166,19 @@ export async function mergeParticipants(
 
           queries.push(
             db
-              .update(expenses)
+              .update(transactions)
               .set({ splitMode: 'amounts' })
-              .where(eq(expenses.id, expId)),
+              .where(and(eq(transactions.id, txId), eq(transactions.type, 'expense'))),
           );
         } else {
           queries.push(
             db
-              .update(expenseShares)
+              .update(transactionShares)
               .set({ participantId: intoId })
               .where(
                 and(
-                  eq(expenseShares.expenseId, expId),
-                  eq(expenseShares.participantId, fromId),
+                  eq(transactionShares.transactionId, txId),
+                  eq(transactionShares.participantId, fromId),
                 ),
               ),
           );
@@ -190,27 +189,28 @@ export async function mergeParticipants(
 
   const tripPayments = await db
     .select()
-    .from(payments)
+    .from(transactions)
     .where(
       and(
-        eq(payments.tripId, tripId),
-        or(eq(payments.fromId, fromId), eq(payments.toId, fromId)),
+        eq(transactions.tripId, tripId),
+        eq(transactions.type, 'payment'),
+        or(eq(transactions.payerId, fromId), eq(transactions.toId, fromId)),
       ),
     );
 
   for (const p of tripPayments) {
-    const newFrom = p.fromId === fromId ? intoId : p.fromId;
+    const newFrom = p.payerId === fromId ? intoId : p.payerId;
     const newTo = p.toId === fromId ? intoId : p.toId;
     const isDisabled = newFrom === newTo;
     queries.push(
       db
-        .update(payments)
+        .update(transactions)
         .set({
-          fromId: newFrom,
+          payerId: newFrom,
           toId: newTo,
           ...(isDisabled ? { status: 'disabled' } : {}),
         })
-        .where(eq(payments.id, p.id)),
+        .where(eq(transactions.id, p.id)),
     );
   }
 

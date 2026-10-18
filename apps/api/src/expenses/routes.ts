@@ -5,6 +5,7 @@ import type {
   ExpenseInput,
   ExpenseMeta,
   ExpenseSportMeta,
+  ExpenseStatus,
   SplitEntry,
   SplitMode,
   SportParticipantEntry,
@@ -17,7 +18,7 @@ import {
 } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
-import { expenses, expenseShares, participants } from '../db/schema';
+import { participants, transactions, transactionShares } from '../db/schema';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
@@ -247,7 +248,7 @@ async function assertNoPendingPeople(db: Db, tripId: string, expenseId: string, 
         eq(participants.status, 'pending'),
         or(
           eq(participants.id, payerId),
-          inArray(participants.id, db.select({ id: expenseShares.participantId }).from(expenseShares).where(eq(expenseShares.expenseId, expenseId))),
+          inArray(participants.id, db.select({ id: transactionShares.participantId }).from(transactionShares).where(eq(transactionShares.transactionId, expenseId))),
         ),
       ),
     )
@@ -275,11 +276,13 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (actor.kind === 'guest') {
       const pendingCount = await db
         .select({ count: sql<number>`count(*)` })
-        .from(expenses)
+        .from(transactions)
         .where(
           and(
-            eq(expenses.tripId, tripId),
-            eq(expenses.status, 'pending'),
+            eq(transactions.tripId, tripId),
+            eq(transactions.type, 'expense'),
+            eq(transactions.isLatest, 1),
+            eq(transactions.status, 'pending'),
           ),
         )
         .get();
@@ -296,28 +299,36 @@ export function expenseRoutes(): Hono<AppBindings> {
     const expenseId = newId();
     const now = nowIso();
 
-    const insertExpense = db.insert(expenses).values({
+    const insertExpense = db.insert(transactions).values({
       id: expenseId,
+      rootId: expenseId,
+      parentId: null,
+      isLatest: 1,
       tripId,
+      type: 'expense',
       description: validated.description,
       amount: validated.amount,
+      amountConfirmed: null,
       currency: 'VND',
       spentOn: validated.spentOn,
       payerId: validated.payerId,
+      toId: null,
       splitMode: validated.mode,
       status,
       rejectReason: null,
+      notArrivedAt: null,
       disabledByUserId: null,
       createdByParticipantId: participantId,
       createdByDevice: actor.deviceHash,
+      confirmedByParticipantId: null,
       metaJson: validated.meta ? JSON.stringify(validated.meta) : null,
       createdAt: now,
       updatedAt: now,
     });
 
     const insertShares = validated.shares.map((sh) =>
-      db.insert(expenseShares).values({
-        expenseId,
+      db.insert(transactionShares).values({
+        transactionId: expenseId,
         participantId: sh.participantId,
         inputValue: sh.inputValue,
         amount: sh.amount,
@@ -346,53 +357,86 @@ export function expenseRoutes(): Hono<AppBindings> {
     assertWritable(actor.trip);
 
     const db = getDb(c.env);
-    const e = await db
+    const head = await db
       .select()
-      .from(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
       .get();
 
-    if (!e) {
+    if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
     ensure(actor, 'edit_expense', {
-      expenseCreatedById: e.createdByParticipantId,
-      expenseStatus: e.status,
+      expenseCreatedById: head.createdByParticipantId,
+      expenseStatus: head.status as ExpenseStatus,
     });
 
     const body = await parseJson<ExpenseInput>(c);
     const validated = await validateExpenseInput(db, tripId, body);
 
+    const newHeadId = newId();
     const now = nowIso();
 
-    const updateExpense = db
-      .update(expenses)
+    const supersedeOld = db
+      .update(transactions)
       .set({
-        description: validated.description,
-        amount: validated.amount,
-        spentOn: validated.spentOn,
-        payerId: validated.payerId,
-        splitMode: validated.mode,
-        metaJson: validated.meta ? JSON.stringify(validated.meta) : null,
+        status: 'superseded',
+        isLatest: 0,
         updatedAt: now,
       })
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)));
+      .where(
+        and(
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+        ),
+      );
 
-    const deleteShares = db
-      .delete(expenseShares)
-      .where(eq(expenseShares.expenseId, eid));
+    const insertNewHead = db.insert(transactions).values({
+      id: newHeadId,
+      rootId: head.rootId,
+      parentId: head.id,
+      isLatest: 1,
+      tripId,
+      type: 'expense',
+      description: validated.description,
+      amount: validated.amount,
+      amountConfirmed: null,
+      currency: 'VND',
+      spentOn: validated.spentOn,
+      payerId: validated.payerId,
+      toId: null,
+      splitMode: validated.mode,
+      status: head.status,
+      rejectReason: head.rejectReason,
+      notArrivedAt: null,
+      disabledByUserId: head.disabledByUserId,
+      createdByParticipantId: actor.participantId!,
+      createdByDevice: actor.deviceHash,
+      confirmedByParticipantId: head.confirmedByParticipantId,
+      metaJson: validated.meta ? JSON.stringify(validated.meta) : null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const insertShares = validated.shares.map((sh) =>
-      db.insert(expenseShares).values({
-        expenseId: eid,
+      db.insert(transactionShares).values({
+        transactionId: newHeadId,
         participantId: sh.participantId,
         inputValue: sh.inputValue,
         amount: sh.amount,
       }),
     );
 
-    await commitTripWrite(db, tripId, [updateExpense, deleteShares, ...insertShares], {
+    await commitTripWrite(db, tripId, [supersedeOld, insertNewHead, ...insertShares], {
       action: 'expense_edited',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -403,7 +447,135 @@ export function expenseRoutes(): Hono<AppBindings> {
       },
     });
 
-    return c.body(null, 204);
+    return c.json({ expenseId: newHeadId, rootId: head.rootId }, 200);
+  });
+
+  // POST /trips/:id/expenses/:eid/rollback
+  app.post('/trips/:id/expenses/:eid/rollback', async (c) => {
+    const tripId = c.req.param('id');
+    const eid = c.req.param('eid');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+
+    const db = getDb(c.env);
+    const head = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
+      .get();
+
+    if (!head) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    ensure(actor, 'edit_expense', {
+      expenseCreatedById: head.createdByParticipantId,
+      expenseStatus: head.status as ExpenseStatus,
+    });
+
+    const body = await parseJson<{ targetHistoryId?: unknown }>(c);
+    if (!body || typeof body.targetHistoryId !== 'string') {
+      throw new ApiError('VALIDATION', 422, 'Invalid targetHistoryId');
+    }
+    const targetHistoryId = body.targetHistoryId;
+
+    const targetRow = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.id, targetHistoryId),
+          eq(transactions.rootId, head.rootId),
+          eq(transactions.isLatest, 0),
+        ),
+      )
+      .get();
+
+    if (!targetRow) {
+      throw new ApiError('NOT_FOUND', 404, 'Historical version not found');
+    }
+
+    const targetShares = await db
+      .select()
+      .from(transactionShares)
+      .where(eq(transactionShares.transactionId, targetHistoryId));
+
+    const newHeadId = newId();
+    const now = nowIso();
+
+    const supersedeOld = db
+      .update(transactions)
+      .set({
+        status: 'superseded',
+        isLatest: 0,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+        ),
+      );
+
+    const insertNewHead = db.insert(transactions).values({
+      id: newHeadId,
+      rootId: head.rootId,
+      parentId: head.id,
+      isLatest: 1,
+      tripId,
+      type: 'expense',
+      description: targetRow.description,
+      amount: targetRow.amount,
+      amountConfirmed: null,
+      currency: targetRow.currency,
+      spentOn: targetRow.spentOn,
+      payerId: targetRow.payerId,
+      toId: null,
+      splitMode: targetRow.splitMode,
+      status: head.status,
+      rejectReason: head.rejectReason,
+      notArrivedAt: null,
+      disabledByUserId: head.disabledByUserId,
+      createdByParticipantId: actor.participantId!,
+      createdByDevice: actor.deviceHash,
+      confirmedByParticipantId: head.confirmedByParticipantId,
+      metaJson: targetRow.metaJson,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const insertNewShares = targetShares.map((sh) =>
+      db.insert(transactionShares).values({
+        transactionId: newHeadId,
+        participantId: sh.participantId,
+        inputValue: sh.inputValue,
+        amount: sh.amount,
+      }),
+    );
+
+    await commitTripWrite(db, tripId, [supersedeOld, insertNewHead, ...insertNewShares], {
+      action: 'expense_rolled_back',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: {
+        description: targetRow.description,
+        amount: targetRow.amount,
+        targetHistoryId,
+      },
+    });
+
+    return c.json({ expenseId: newHeadId, rootId: head.rootId }, 200);
   });
 
   // DELETE /trips/:id/expenses/:eid
@@ -414,40 +586,52 @@ export function expenseRoutes(): Hono<AppBindings> {
     assertWritable(actor.trip);
 
     const db = getDb(c.env);
-    const e = await db
+    const head = await db
       .select()
-      .from(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
       .get();
 
-    if (!e) {
+    if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
     ensure(actor, 'delete_expense', {
-      expenseCreatedById: e.createdByParticipantId,
-      expenseStatus: e.status,
+      expenseCreatedById: head.createdByParticipantId,
+      expenseStatus: head.status as ExpenseStatus,
     });
 
+    const rootTxIds = db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(and(eq(transactions.tripId, tripId), eq(transactions.rootId, head.rootId)));
+
     const deleteShares = db
-      .delete(expenseShares)
-      .where(eq(expenseShares.expenseId, eid));
+      .delete(transactionShares)
+      .where(inArray(transactionShares.transactionId, rootTxIds));
 
-    const deleteExpense = db
-      .delete(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)));
+    const deleteTransactions = db
+      .delete(transactions)
+      .where(and(eq(transactions.tripId, tripId), eq(transactions.rootId, head.rootId)));
 
-    await commitTripWrite(db, tripId, [deleteShares, deleteExpense], {
+    await commitTripWrite(db, tripId, [deleteShares, deleteTransactions], {
       action: 'expense_deleted',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: {
-        description: e.description,
-        amount: e.amount,
-        payerId: e.payerId,
-        spentOn: e.spentOn,
-        status: e.status,
+        description: head.description,
+        amount: head.amount,
+        payerId: head.payerId,
+        spentOn: head.spentOn,
+        status: head.status,
       },
     });
 
@@ -458,12 +642,12 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
   if (participantId === null) return false;
   if (payerId === participantId) return true;
   const share = await db
-    .select({ participantId: expenseShares.participantId })
-    .from(expenseShares)
+    .select({ participantId: transactionShares.participantId })
+    .from(transactionShares)
     .where(
       and(
-        eq(expenseShares.expenseId, eid),
-        eq(expenseShares.participantId, participantId),
+        eq(transactionShares.transactionId, eid),
+        eq(transactionShares.participantId, participantId),
       ),
     )
     .get();
@@ -478,34 +662,42 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     assertWritable(actor.trip);
 
     const db = getDb(c.env);
-    const e = await db
+    const head = await db
       .select()
-      .from(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
       .get();
 
-    if (!e) {
+    if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const expenseInvolved = await isExpenseInvolved(db, eid, e.payerId, actor.participantId);
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'approve_expense', { expenseInvolved });
 
-    if (e.status !== 'pending') {
+    if (head.status !== 'pending') {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
-    await assertNoPendingPeople(db, tripId, eid, e.payerId);
+    await assertNoPendingPeople(db, tripId, head.id, head.payerId);
 
     const now = nowIso();
     const r = await db
-      .update(expenses)
+      .update(transactions)
       .set({ status: 'approved', updatedAt: now })
       .where(
         and(
-          eq(expenses.id, eid),
-          eq(expenses.tripId, tripId),
-          eq(expenses.status, 'pending'),
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'pending'),
         ),
       )
       .run();
@@ -519,7 +711,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
-      details: { description: e.description },
+      details: { description: head.description },
     });
 
     return c.body(null, 204);
@@ -533,20 +725,27 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     assertWritable(actor.trip);
 
     const db = getDb(c.env);
-    const e = await db
+    const head = await db
       .select()
-      .from(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
       .get();
 
-    if (!e) {
+    if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const expenseInvolved = await isExpenseInvolved(db, eid, e.payerId, actor.participantId);
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'approve_expense', { expenseInvolved });
 
-    if (e.status !== 'pending') {
+    if (head.status !== 'pending') {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
@@ -562,13 +761,14 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
 
     const now = nowIso();
     const r = await db
-      .update(expenses)
+      .update(transactions)
       .set({ status: 'rejected', rejectReason: reason, updatedAt: now })
       .where(
         and(
-          eq(expenses.id, eid),
-          eq(expenses.tripId, tripId),
-          eq(expenses.status, 'pending'),
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'pending'),
         ),
       )
       .run();
@@ -582,7 +782,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
-      details: { description: e.description, reason },
+      details: { description: head.description, reason },
     });
 
     return c.body(null, 204);
@@ -596,22 +796,29 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     assertWritable(actor.trip);
 
     const db = getDb(c.env);
-    const e = await db
+    const head = await db
       .select()
-      .from(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
       .get();
 
-    if (!e) {
+    if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const expenseInvolved = await isExpenseInvolved(db, eid, e.payerId, actor.participantId);
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'disable', { expenseInvolved });
 
     const now = nowIso();
     const r = await db
-      .update(expenses)
+      .update(transactions)
       .set({
         status: 'disabled',
         disabledByUserId: actor.userId,
@@ -619,9 +826,10 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       })
       .where(
         and(
-          eq(expenses.id, eid),
-          eq(expenses.tripId, tripId),
-          inArray(expenses.status, ['approved', 'pending']),
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+          inArray(transactions.status, ['approved', 'pending']),
         ),
       )
       .run();
@@ -649,24 +857,31 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     assertWritable(actor.trip);
 
     const db = getDb(c.env);
-    const e = await db
+    const head = await db
       .select()
-      .from(expenses)
-      .where(and(eq(expenses.id, eid), eq(expenses.tripId, tripId)))
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'expense'),
+          eq(transactions.isLatest, 1),
+          or(eq(transactions.id, eid), eq(transactions.rootId, eid)),
+        ),
+      )
       .get();
 
-    if (!e) {
+    if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const expenseInvolved = await isExpenseInvolved(db, eid, e.payerId, actor.participantId);
+    const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'disable', { expenseInvolved });
 
-    if (e.status === 'disabled') await assertNoPendingPeople(db, tripId, eid, e.payerId);
+    if (head.status === 'disabled') await assertNoPendingPeople(db, tripId, head.id, head.payerId);
 
     const now = nowIso();
     const r = await db
-      .update(expenses)
+      .update(transactions)
       .set({
         status: 'approved',
         disabledByUserId: null,
@@ -674,9 +889,10 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       })
       .where(
         and(
-          eq(expenses.id, eid),
-          eq(expenses.tripId, tripId),
-          eq(expenses.status, 'disabled'),
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'disabled'),
         ),
       )
       .run();

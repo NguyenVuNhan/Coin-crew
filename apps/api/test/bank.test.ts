@@ -13,9 +13,9 @@ const chiBank = { bin: '970422', accountNumber: '0123456789', holderName: 'Trầ
 
 // Chi paid 3.000.000 for An and Bình, so with fewest transfers An owes Chi 1.755.000 and Bình owes Minh.
 async function seedChiIsOwed() {
-  await env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', ?, 'Vé cáp treo', 3000000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')")
+  await env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-c', 'e-c', NULL, 1, ?, 'expense', 'Vé cáp treo', 3000000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')")
     .bind(T.tripId, PID.C, PID.M).run();
-  await env.DB.prepare("INSERT INTO expense_shares (expense_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 1500000), ('e-c', ?, 1, 1500000)").bind(PID.A, PID.B).run();
+  await env.DB.prepare("INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-c', ?, 1, 1500000), ('e-c', ?, 1, 1500000)").bind(PID.A, PID.B).run();
 }
 
 async function approveChiBank() {
@@ -206,8 +206,8 @@ describe('pay info for the receiver', () => {
 
   // Without Chi's 3.000.000 expense Chi owes Minh her 1.245.000 share of the first four expenses.
   async function chiOwesMinh() {
-    await env.DB.prepare("DELETE FROM expense_shares WHERE expense_id = 'e-c'").run();
-    await env.DB.prepare("DELETE FROM expenses WHERE id = 'e-c'").run();
+    await env.DB.prepare("DELETE FROM transaction_shares WHERE transaction_id = 'e-c'").run();
+    await env.DB.prepare("DELETE FROM transactions WHERE id = 'e-c'").run();
   }
 
   it('the receiver gets their own QR for a payer with the same note the payer sees', async () => {

@@ -59,8 +59,8 @@ describe('adding expenses', () => {
   });
 
   it('a trip holds at most 50 pending guest expenses', async () => {
-    const stmt = env.DB.prepare("INSERT INTO expenses (id, trip_id, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, 'x', 1000, 'VND', '2026-10-11', ?, 'equal', 'pending', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')");
-    await env.DB.batch(Array.from({ length: 50 }, (_, i) => stmt.bind(`e-bulk-${i}`, T.tripId, PID.C, PID.C)));
+    const stmt = env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'expense', 'x', 1000, 'VND', '2026-10-11', ?, 'equal', 'pending', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z')");
+    await env.DB.batch(Array.from({ length: 50 }, (_, i) => stmt.bind(`e-bulk-${i}`, `e-bulk-${i}`, T.tripId, PID.C, PID.C)));
     const res = await send('POST', '/expenses', await guestHeaders(PID.C), equalAll(100000, PID.C));
     expect(res.status).toBe(429);
   });
@@ -121,8 +121,8 @@ describe('editing and deleting', () => {
   it('a guest edits their own pending expense', async () => {
     const g = await guestHeaders(PID.C);
     const { expenseId } = await addAs(g, equalAll(180000, PID.C));
-    expect((await send('PATCH', `/expenses/${expenseId}`, g, equalAll(200000, PID.C))).status).toBe(204);
-    expect((await view(g)).expenses.find((e) => e.id === expenseId)?.amount).toBe(200000);
+    expect((await send('PATCH', `/expenses/${expenseId}`, g, equalAll(200000, PID.C))).status).toBe(200);
+    expect((await view(g)).expenses.find((e) => e.rootId === expenseId)?.amount).toBe(200000);
   });
 
   it('a guest cannot edit an approved expense or someone else\'s', async () => {
@@ -141,8 +141,8 @@ describe('editing and deleting', () => {
 
   it('a member edits an expense they added, even after it counts', async () => {
     const headers = await minh();
-    expect((await send('PATCH', '/expenses/e-4', headers, { ...equalAll(300000, PID.M, 'Cà phê Túi Mơ To'), entries: [{ participantId: PID.M, value: 1 }, { participantId: PID.A, value: 1 }, { participantId: PID.C, value: 1 }] })).status).toBe(204);
-    expect((await view(headers)).expenses.find((e) => e.id === 'e-4')?.amount).toBe(300000);
+    expect((await send('PATCH', '/expenses/e-4', headers, { ...equalAll(300000, PID.M, 'Cà phê Túi Mơ To'), entries: [{ participantId: PID.M, value: 1 }, { participantId: PID.A, value: 1 }, { participantId: PID.C, value: 1 }] })).status).toBe(200);
+    expect((await view(headers)).expenses.find((e) => e.rootId === 'e-4')?.amount).toBe(300000);
   });
 
   it('a member deletes an expense and the activity keeps what it was', async () => {

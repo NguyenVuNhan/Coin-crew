@@ -216,6 +216,7 @@ export const en = {
   'expense.notYours': 'Only the person who added this expense can edit it.',
   'expense.historyTitle': 'Edit history',
   'expense.rollback': 'Roll back to this update',
+  'expense.editedBy': 'Edited by {name} · {date}',
   'splitError.NO_PARTICIPANTS': 'Choose at least one person.',
   'splitError.INVALID_AMOUNT': 'Enter the amount first.',
   'splitError.AMOUNTS_DONT_ADD_UP': "The amounts don't add up to the total.",

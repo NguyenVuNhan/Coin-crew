@@ -1,8 +1,11 @@
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type {
+  ExpenseHistoryItem,
+  ExpenseStatus,
   ExpenseView,
   LedgerExpense,
   LedgerPayment,
+  PaymentStatus,
   PaymentView,
   PersonView,
   SplitMode,
@@ -18,10 +21,9 @@ import type { Db } from '../db/client';
 import type { TripRow } from '../access/actor';
 import {
   bankDetails,
-  expenseShares,
-  expenses,
   participants,
-  payments,
+  transactionShares,
+  transactions,
   tripViews,
   users,
 } from '../db/schema';
@@ -152,16 +154,70 @@ export async function buildSnapshot(
     };
   });
 
-  const expenseRows = await db
+  const txRows = await db
     .select()
-    .from(expenses)
-    .where(eq(expenses.tripId, trip.id))
-    .orderBy(desc(expenses.createdAt));
+    .from(transactions)
+    .where(eq(transactions.tripId, trip.id))
+    .orderBy(desc(transactions.createdAt));
 
-  const expenseIds = expenseRows.map((e) => e.id);
+  const sharesByTxId = new Map<string, ExpenseView['shares']>();
+  if (txRows.length > 0) {
+    // A subquery, not a list of ids: D1 allows only 100 bound parameters per query.
+    const shareRows = await db
+      .select()
+      .from(transactionShares)
+      .where(
+        inArray(
+          transactionShares.transactionId,
+          db.select({ id: transactions.id }).from(transactions).where(eq(transactions.tripId, trip.id)),
+        ),
+      );
+    for (const s of shareRows) {
+      let list = sharesByTxId.get(s.transactionId);
+      if (!list) {
+        list = [];
+        sharesByTxId.set(s.transactionId, list);
+      }
+      list.push({
+        participantId: s.participantId,
+        amount: s.amount,
+        inputValue: s.inputValue,
+      });
+    }
+  }
+
+  const historyByRootId = new Map<string, ExpenseHistoryItem[]>();
+  for (const tx of txRows) {
+    if (tx.type === 'expense' && tx.isLatest === 0) {
+      let list = historyByRootId.get(tx.rootId);
+      if (!list) {
+        list = [];
+        historyByRootId.set(tx.rootId, list);
+      }
+      list.push({
+        id: tx.id,
+        description: tx.description,
+        amount: tx.amount,
+        spentOn: tx.spentOn,
+        payerId: tx.payerId,
+        mode: tx.splitMode as SplitMode,
+        createdById: tx.createdByParticipantId,
+        createdAt: tx.createdAt,
+        shares: sharesByTxId.get(tx.id) ?? [],
+        meta: tx.metaJson ? (JSON.parse(tx.metaJson) as ExpenseView['meta']) : null,
+      });
+    }
+  }
+
+  // Ensure history items are sorted newest-first (createdAt DESC)
+  for (const list of historyByRootId.values()) {
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const activeExpenseRows = txRows.filter((tx) => tx.type === 'expense' && tx.isLatest === 1);
   const disabledUserIds = Array.from(
     new Set(
-      expenseRows.map((e) => e.disabledByUserId).filter((id): id is string => id !== null),
+      activeExpenseRows.map((e) => e.disabledByUserId).filter((id): id is string => id !== null),
     ),
   );
 
@@ -176,55 +232,31 @@ export async function buildSnapshot(
     }
   }
 
-  const sharesByExpenseId = new Map<string, ExpenseView['shares']>();
-  if (expenseIds.length > 0) {
-    // A subquery, not a list of ids: D1 allows only 100 bound parameters per query.
-    const shareRows = await db
-      .select()
-      .from(expenseShares)
-      .where(inArray(expenseShares.expenseId, db.select({ id: expenses.id }).from(expenses).where(eq(expenses.tripId, trip.id))));
-    for (const s of shareRows) {
-      let list = sharesByExpenseId.get(s.expenseId);
-      if (!list) {
-        list = [];
-        sharesByExpenseId.set(s.expenseId, list);
-      }
-      list.push({
-        participantId: s.participantId,
-        amount: s.amount,
-        inputValue: s.inputValue,
-      });
-    }
-  }
-
-  const expenseViews: ExpenseView[] = expenseRows.map((e) => ({
+  const expenseViews: ExpenseView[] = activeExpenseRows.map((e) => ({
     id: e.id,
+    rootId: e.rootId,
     description: e.description,
     amount: e.amount,
     spentOn: e.spentOn,
     payerId: e.payerId,
     mode: e.splitMode as SplitMode,
-    status: e.status,
+    status: e.status as ExpenseStatus,
     rejectReason: e.rejectReason,
     disabledByName: e.disabledByUserId ? (disabledNameMap.get(e.disabledByUserId) ?? null) : null,
     createdById: e.createdByParticipantId,
-    shares: sharesByExpenseId.get(e.id) ?? [],
+    shares: sharesByTxId.get(e.id) ?? [],
     meta: e.metaJson ? (JSON.parse(e.metaJson) as ExpenseView['meta']) : null,
+    history: historyByRootId.get(e.rootId) ?? [],
   }));
 
-  const paymentRows = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.tripId, trip.id))
-    .orderBy(desc(payments.createdAt));
-
-  const paymentViews: PaymentView[] = paymentRows.map((p) => ({
+  const activePaymentRows = txRows.filter((tx) => tx.type === 'payment' && tx.isLatest === 1);
+  const paymentViews: PaymentView[] = activePaymentRows.map((p) => ({
     id: p.id,
-    fromId: p.fromId,
-    toId: p.toId,
-    amountClaimed: p.amountClaimed,
+    fromId: p.payerId,
+    toId: p.toId!,
+    amountClaimed: p.amount,
     amountConfirmed: p.amountConfirmed,
-    status: p.status,
+    status: p.status as PaymentStatus,
     notArrived: p.notArrivedAt !== null,
     createdAt: p.createdAt,
   }));

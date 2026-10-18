@@ -14,6 +14,7 @@ import { ExpenseList } from '../components/ExpenseList';
 import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
+import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import { TripTabs } from '../components/TripTabs';
 import { AccountMenu } from '../components/AccountMenu';
 import './MemberTrip.css';
@@ -91,6 +92,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
     >
       {wide ? (
         <div className="fsl-member">
+          <UpdatedTransactionsBanner view={view} />
           <TripLayout
             left={
               <>
@@ -106,6 +108,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       ) : (
         <div className="fsl-member">
           {notice}
+          <UpdatedTransactionsBanner view={view} />
           <ApprovalQueue view={view} />
           {balance}
           {transfers}
