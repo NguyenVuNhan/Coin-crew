@@ -16,7 +16,7 @@ export function Privacy() {
 
         <h2>Who runs the service</h2>
         <p>
-          Finance Sheet Lover is operated as an independent group expense splitting
+          Coin Crew is operated as an independent group expense splitting
           service.
         </p>
 

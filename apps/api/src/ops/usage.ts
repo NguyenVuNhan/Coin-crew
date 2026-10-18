@@ -89,7 +89,7 @@ export async function checkUsage(env: Env, now: Date): Promise<UsageLine[]> {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: `Finance Sheet Lover: ${line.metric} is at ${Math.round(line.ratio * 100)}% of the Cloudflare free daily limit (${line.used} of ${limit}). Upgrade before users see errors.`,
+            text: `Coin Crew: ${line.metric} is at ${Math.round(line.ratio * 100)}% of the Cloudflare free daily limit (${line.used} of ${limit}). Upgrade before users see errors.`,
           }),
         });
       }

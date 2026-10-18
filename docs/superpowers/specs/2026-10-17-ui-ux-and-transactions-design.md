@@ -1,6 +1,6 @@
 # User Profile, Group Admin Permissions, Sport Expense UX & Unified Transactions Ledger — Design
 
-Date: 2026-10-17 · Status: draft for review · Builds on: [[2026-10-12-group-split-vietqr-design]] · [[2026-10-14-ui-ux-restructure-design]] · [[2026-10-16-sport-group-splitting-design]] · Overview: [[2026-10-13-idea-discussion-next-steps]] · Code: https://github.com/NguyenVuNhan/finance-sheet-lover (local `C:\repo\experience\finance-sheet-lover`)
+Date: 2026-10-17 · Status: draft for review · Builds on: [[2026-10-12-group-split-vietqr-design]] · [[2026-10-14-ui-ux-restructure-design]] · [[2026-10-16-sport-group-splitting-design]] · Overview: [[2026-10-13-idea-discussion-next-steps]] · Code: https://github.com/NguyenVuNhan/coin-crew (local `C:\repo\experience\coin-crew`)
 
 ---
 

@@ -1,4 +1,4 @@
-// Walks the Finance Sheet Lover web app through its main screens with Playwright, once per width (375, 768 and
+// Walks the Coin Crew web app through its main screens with Playwright, once per width (375, 768 and
 // 1280px), capturing a full-page screenshot of each screen and asserting no sideways scroll. Each walk starts with the
 // viewport already at its width, so open rows, pending ticks and sheets are created where they are photographed
 // (resizing a live page across 1024px would show a re-rendered page instead).

@@ -1,4 +1,4 @@
-# Setting up Finance Sheet Lover from scratch
+# Setting up Coin Crew from scratch
 
 This guide takes you from an empty machine to the app running on your computer and live on Cloudflare, deployed from GitHub on every push to `main`. Everything fits in the free plans of Cloudflare, Google Cloud and GitHub.
 
@@ -19,11 +19,11 @@ The live deployment's own values (database ID, public address, Google credential
 - **Google Chrome**, only for the end-to-end test. Playwright uses your installed Chrome instead of downloading a browser.
 
 ```bash
-git clone https://github.com/NguyenVuNhan/finance-sheet-lover.git
+git clone https://github.com/NguyenVuNhan/coin-crew.git
 ```
 
 ```bash
-cd finance-sheet-lover && npm install
+cd coin-crew && npm install
 ```
 
 ## 2. Google sign-in (OAuth client)
@@ -100,10 +100,10 @@ Leave `apps/api/wrangler.jsonc` as it is. It keeps the placeholder ID `00000000-
 Open **Workers & Pages**. The overview shows your account's `<subdomain>.workers.dev`. The app will run at:
 
 ```
-https://finance-sheet-lover.<subdomain>.workers.dev
+https://coin-crew.<subdomain>.workers.dev
 ```
 
-This is your `APP_ORIGIN`: `https`, no trailing slash. Go back to the Google OAuth client (step 2.5) and add `https://finance-sheet-lover.<subdomain>.workers.dev/api/auth/google/callback` as a redirect URI.
+This is your `APP_ORIGIN`: `https`, no trailing slash. Go back to the Google OAuth client (step 2.5) and add `https://coin-crew.<subdomain>.workers.dev/api/auth/google/callback` as a redirect URI.
 
 ### 4.3 Create the tables
 
@@ -139,7 +139,7 @@ In **Workers & Pages → Create application**, choose **Continue with GitHub** (
 
 | Field | Value |
 |---|---|
-| Project name | `finance-sheet-lover`. It must match `name` in `apps/api/wrangler.jsonc`; if you choose another name, change it there too, and your address in 4.2 changes with it. |
+| Project name | `coin-crew`. It must match `name` in `apps/api/wrangler.jsonc`; if you choose another name, change it there too, and your address in 4.2 changes with it. |
 | Build command | `npm run build -w @fsl/web` |
 | Deploy command | `npm run deploy -w @fsl/api` (replace the default `npx wrangler deploy`) |
 | Preview command | Leave it; it's unused with preview builds off. |
@@ -157,7 +157,7 @@ Open the Worker, go to **Settings → Runtime variables and secrets → Add vari
 
 | Key | Secret box | Value |
 |---|---|---|
-| `APP_ORIGIN` | unticked | `https://finance-sheet-lover.<subdomain>.workers.dev` |
+| `APP_ORIGIN` | unticked | `https://coin-crew.<subdomain>.workers.dev` |
 | `GOOGLE_CLIENT_ID` | ticked | From step 2.6 |
 | `GOOGLE_CLIENT_SECRET` | ticked | From step 2.6 |
 
@@ -177,8 +177,8 @@ Never add `E2E_LOGIN`. It turns on a sign-in shortcut meant only for local test 
 
 ### 4.6 Check it works
 
-1. `https://finance-sheet-lover.<subdomain>.workers.dev/api/health` returns `{"ok":true}`.
-2. `https://finance-sheet-lover.<subdomain>.workers.dev/api/auth/google/start` redirects to `accounts.google.com` with your `client_id` (not `undefined`) and `redirect_uri` set to your address plus `/api/auth/google/callback`.
+1. `https://coin-crew.<subdomain>.workers.dev/api/health` returns `{"ok":true}`.
+2. `https://coin-crew.<subdomain>.workers.dev/api/auth/google/start` redirects to `accounts.google.com` with your `client_id` (not `undefined`) and `redirect_uri` set to your address plus `/api/auth/google/callback`.
 3. Open the app, sign in with Google, and create a trip.
 4. Open the trip's group link in a private window and pick a name, as a guest would.
 

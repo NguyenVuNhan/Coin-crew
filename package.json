@@ -1,5 +1,5 @@
 {
-  "name": "finance-sheet-lover",
+  "name": "coin-crew",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -8,12 +8,13 @@
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "dev": "npm run build -w @fsl/web && npm run dev -w @fsl/api",
+    "dev": "concurrently --kill-others \"npm run dev -w @fsl/web\" \"npm run dev -w @fsl/api\"",
     "e2e": "npm run build -w @fsl/web && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
+    "concurrently": "^10.0.6",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
