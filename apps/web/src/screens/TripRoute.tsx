@@ -35,9 +35,9 @@ function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<S
   return (
     <Screen title={selection.kind === 'expense' ? t('details.expense') : t('details.payment')} onBack={goBack}>
       {selection.kind === 'expense' ? (
-        <ExpenseDetails view={view} expenseId={selection.id} onClose={goBack} />
+        <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={goBack} />
       ) : (
-        <PaymentDetails view={view} paymentId={selection.id} onClose={goBack} />
+        <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={goBack} />
       )}
     </Screen>
   );

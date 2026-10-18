@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -245,6 +246,44 @@ describe('Integration in ExpenseDetails, MemberTrip, and GuestTrip', () => {
 
     expect(screen.getByRole('heading', { name: 'Edit history' })).toBeInTheDocument();
     expect(screen.getByText('Bánh tráng nướng ban đầu')).toBeInTheDocument();
+  });
+
+  it('does not violate rules of hooks when transitioning from missing expense to found expense', async () => {
+    const emptyView = tripView({ expenses: [] });
+    const fullView = tripView({
+      expenses: [
+        {
+          ...expenseWithHistory,
+          meta: {
+            sport: {
+              court: 100000,
+              shuttlecocks: [],
+              extra: 0,
+              rule: { kind: 'equal' },
+              entries: [],
+              maleSlotRate: 0,
+              femaleSlotRate: 0,
+            },
+          },
+        },
+      ],
+    });
+
+    function TestHarness() {
+      const [currentView, setCurrentView] = useState(emptyView);
+      return (
+        <>
+          <button type="button" onClick={() => setCurrentView(fullView)}>Load</button>
+          <ExpenseDetails view={currentView} expenseId="e-100" onClose={() => {}} />
+        </>
+      );
+    }
+
+    renderAt(<TestHarness />);
+    expect(screen.getByText("This isn't in the trip any more.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Load' }));
+    expect(screen.getByText('Bánh tráng nướng cập nhật')).toBeInTheDocument();
   });
 
   it('renders UpdatedTransactionsBanner in MemberTrip and GuestTrip', async () => {

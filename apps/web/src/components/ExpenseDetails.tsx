@@ -61,53 +61,16 @@ export function ExpenseDetails({
   });
   const qrSvg = useQrSvg(payInfo?.payload ?? null);
 
-  if (!e) {
-    return (
-      <EmptyState
-        icon="receipt"
-        title={t('details.gone')}
-        action={<Button onClick={onClose}>{t('details.backToTrip')}</Button>}
-      />
+  const place = useMemo(() => new Map(view.people.map((p, i) => [p.id, i])), [view.people]);
+  const shares = useMemo(() => {
+    if (!e) return [];
+    return [...e.shares].sort(
+      (a, b) => (place.get(a.participantId) ?? view.people.length) - (place.get(b.participantId) ?? view.people.length),
     );
-  }
-
-  const status = STATUS[e.status];
-
-  const whoText = (id: string) => (id === view.me.participantId ? t('trip.you') : nameOf(view, id));
-
-  let errorElement = null;
-  if (error instanceof ApiClientError && error.code === 'PERSON_PENDING') {
-    const pendingId = [e.payerId, ...e.shares.map((s) => s.participantId)].find(
-      (id) => view.people.find((p) => p.id === id)?.status === 'pending',
-    );
-    if (pendingId) {
-      errorElement = (
-        <p className="fsl-details__error" role="alert">
-          {t('approvals.approveNameFirst', { name: nameOf(view, pendingId) })}
-        </p>
-      );
-    } else {
-      errorElement = <InlineError error={error} />;
-    }
-  } else if (error) {
-    errorElement = <InlineError error={error} />;
-  }
-
-  const actions = expenseActions(view, e, {
-    t,
-    navigate,
-    run,
-    onReject: () => setRejecting(true),
-  });
-  const showReason = rejecting && e.status === 'pending';
-  // The API sends shares in storage order; list them in the trip's order of people, like every other list.
-  const place = new Map(view.people.map((p, i) => [p.id, i]));
-  const shares = [...e.shares].sort(
-    (a, b) => (place.get(a.participantId) ?? view.people.length) - (place.get(b.participantId) ?? view.people.length),
-  );
+  }, [e, place, view.people.length]);
 
   const sportCalc = useMemo(() => {
-    if (!e.meta?.sport) return null;
+    if (!e?.meta?.sport) return null;
     const sport = e.meta.sport;
     const court = sport.court ?? 0;
     const shuttlecocksTotal =
@@ -180,6 +143,46 @@ export function ExpenseDetails({
       link,
     });
   }, [sportCalc, lang, view]);
+
+  if (!e) {
+    return (
+      <EmptyState
+        icon="receipt"
+        title={t('details.gone')}
+        action={<Button onClick={onClose}>{t('details.backToTrip')}</Button>}
+      />
+    );
+  }
+
+  const status = STATUS[e.status];
+
+  const whoText = (id: string) => (id === view.me.participantId ? t('trip.you') : nameOf(view, id));
+
+  let errorElement = null;
+  if (error instanceof ApiClientError && error.code === 'PERSON_PENDING') {
+    const pendingId = [e.payerId, ...e.shares.map((s) => s.participantId)].find(
+      (id) => view.people.find((p) => p.id === id)?.status === 'pending',
+    );
+    if (pendingId) {
+      errorElement = (
+        <p className="fsl-details__error" role="alert">
+          {t('approvals.approveNameFirst', { name: nameOf(view, pendingId) })}
+        </p>
+      );
+    } else {
+      errorElement = <InlineError error={error} />;
+    }
+  } else if (error) {
+    errorElement = <InlineError error={error} />;
+  }
+
+  const actions = expenseActions(view, e, {
+    t,
+    navigate,
+    run,
+    onReject: () => setRejecting(true),
+  });
+  const showReason = rejecting && e.status === 'pending';
 
   const handleShareSportBill = async () => {
     if (!sportCalc) return;
