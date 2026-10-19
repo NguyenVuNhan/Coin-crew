@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiSend } from '../api/client';
+import { ApiClientError, apiSend } from '../api/client';
 
 export interface PendingPayment {
   fromId: string;
@@ -42,7 +42,7 @@ const isInFlight = (tripId: string, p: PendingPayment) =>
  * A tick that is recorded only once Undo has had its 5 seconds (spec §5.4), so an undone tick leaves no trace on the
  * server. The payment goes out at once if the page is hidden or left or the component goes away first, and every
  * send uses `fetch` keepalive (the body is tiny), so closing the tab mid-request never loses a tick. Ticking a
- * second row sends the first one straight away.
+ * second row sends the first one straight away. Ticks send `settles: true` to prevent recording stale debts.
  *
  * `sending` holds this trip's payments sent but not yet in the reloaded trip, so their rows can stay done in the
  * meantime, even across a remount; `error` is the last failed send (cleared after a while, or by the next tick).
@@ -72,10 +72,14 @@ export function usePendingPayment(tripId: string): {
     if (mounted.current) setPending(null);
     const entry: InFlight = { ...payment, tripId: id };
     setInFlight([...inFlight, entry]);
-    apiSend(`/api/trips/${id}/payments`, 'POST', payment, id, { keepalive: true })
+    apiSend(`/api/trips/${id}/payments`, 'POST', { ...payment, settles: true }, id, { keepalive: true })
       // Reload the trip even if nothing shows it now, so a screen that comes back finds the debt gone.
       .then(() => queryClient.invalidateQueries({ queryKey: ['trip', id], refetchType: 'all' }))
       .catch((err: unknown) => {
+        // Someone recorded it first: reload so the row goes away, and say so.
+        if (err instanceof ApiClientError && err.code === 'ALREADY_HANDLED') {
+          void queryClient.invalidateQueries({ queryKey: ['trip', id], refetchType: 'all' });
+        }
         if (mounted.current) setError(err);
       })
       .finally(() => setInFlight(inFlight.filter((p) => p !== entry)));
