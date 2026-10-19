@@ -241,11 +241,10 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
 
   // Ticks confirm that money moved: only for someone who can record payments right now.
   const canTick = me !== null && !view.trip.archived && view.me.kind !== 'viewer' && !view.me.participantPending;
-  const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
-  /** Someone paying me ('received') or my own debt ('paid'). A guest only gets 'received' when another guest pays. */
+  /** Someone paying me ('received') or my own debt ('paid'). */
   const tickOf = (s: Transfer): 'received' | 'paid' | null => {
     if (!canTick) return null;
-    if (s.toId === me && (view.me.kind === 'member' || !isMember(s.fromId))) return 'received';
+    if (s.toId === me) return 'received';
     if (s.fromId === me) return 'paid';
     return null;
   };

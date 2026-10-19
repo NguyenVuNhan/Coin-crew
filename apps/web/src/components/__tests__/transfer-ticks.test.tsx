@@ -69,14 +69,14 @@ describe('Your transfers: tick to confirm', () => {
     expect(screen.getByRole('button', { name: CHI_PAYS_MINH })).toHaveAttribute('title', CHI_PAYS_MINH);
   });
 
-  it('a guest gets no tick when a member pays them', () => {
+  it('a guest can also tick received when a member pays them', () => {
     const chiWithMemberPaying: TripView = {
       ...guestChiView(),
       suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 100000 }],
     };
     renderAt(<YourTransfers view={chiWithMemberPaying} />);
     const row = screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`);
-    expect(within(row).queryByRole('button', { name: /^Mark .* from Minh as received$/ })).toBeNull();
+    expect(within(row).getByRole('button', { name: /^Mark 100.000₫ from Minh as received$/ })).toBeInTheDocument();
   });
 
   it("ticking a member's debt records it after Undo", async () => {
@@ -395,7 +395,7 @@ describe('Your transfers: tick to confirm', () => {
     expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     phone.unmount();
 
-    // A guest on phone gets no swipe action when a member pays them.
+    // A guest on phone gets a swipe action when a member pays them too.
     const guestPhone = renderAt(
       <YourTransfers
         view={{
@@ -404,7 +404,7 @@ describe('Your transfers: tick to confirm', () => {
         }}
       />,
     );
-    expect(within(screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`)).queryByRole('button', { name: 'Received' })).toBeNull();
+    expect(within(screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`)).getByRole('button', { name: 'Received' })).toBeInTheDocument();
     guestPhone.unmount();
 
     // With a mouse the tick is the only way: no hover tool on the row.
