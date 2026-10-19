@@ -489,3 +489,83 @@ describe('Your transfers: open rows and initials', () => {
     expect(row.querySelector('.fsl-avatar')).toHaveTextContent(/^C$/);
   });
 });
+
+describe('Your transfers: multiple incoming transfers (member and guest payers)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const memberAndGuestPayersView = (kind: 'member' | 'guest' = 'member'): TripView => {
+    const base = tripView();
+    const meId = 'p-me';
+    const memberPayerId = 'p-member-payer';
+    const guestPayer1Id = 'p-guest-1';
+    const guestPayer2Id = 'p-guest-2';
+    return {
+      ...base,
+      me: { ...base.me, kind, participantId: meId },
+      people: [
+        { id: meId, name: 'You Person', isMember: kind === 'member', status: 'active', bank: 'none' },
+        { id: memberPayerId, name: 'Nguyen Vu Nhan', isMember: true, status: 'active', bank: 'none' },
+        { id: guestPayer1Id, name: 'Thủy', isMember: false, status: 'active', bank: 'none' },
+        { id: guestPayer2Id, name: 'Huyền', isMember: false, status: 'active', bank: 'none' },
+      ],
+      suggestions: [
+        { fromId: memberPayerId, toId: meId, amount: 1000000 },
+        { fromId: guestPayer1Id, toId: meId, amount: 1000000 },
+        { fromId: guestPayer2Id, toId: meId, amount: 1000000 },
+      ],
+      balances: {
+        [meId]: 3000000,
+        [memberPayerId]: -1000000,
+        [guestPayer1Id]: -1000000,
+        [guestPayer2Id]: -1000000,
+      },
+    };
+  };
+
+  it('renders a Received tick on EVERY row when both members and guests owe me', async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    renderAt(<YourTransfers view={memberAndGuestPayersView('member')} />);
+
+    const memberTick = screen.getByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' });
+    const thuyTick = screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' });
+    const huyenTick = screen.getByRole('button', { name: 'Mark 1.000.000₫ from Huyền as received' });
+
+    expect(memberTick).toBeInTheDocument();
+    expect(thuyTick).toBeInTheDocument();
+    expect(huyenTick).toBeInTheDocument();
+    expect(ticks()).toHaveLength(3);
+    // Crucial check: none of the rows should fall back to the empty tick-space placeholder!
+    expect(document.querySelectorAll('.fsl-transfers__tick-space')).toHaveLength(0);
+
+    // Ticking the member payer marks it received and posts settles: true
+    await user().click(memberTick);
+    expect(screen.getByRole('status')).toHaveTextContent('Nguyen Vu Nhan paid 1.000.000₫');
+    expect(memberTick).toHaveAttribute('aria-pressed', 'true');
+    await later(5_000);
+    expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true }]);
+  });
+
+  it('renders a Received tick on EVERY row even when I am viewing as a guest', async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    renderAt(<YourTransfers view={memberAndGuestPayersView('guest')} />);
+
+    expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Huyền as received' })).toBeInTheDocument();
+    expect(ticks()).toHaveLength(3);
+    expect(document.querySelectorAll('.fsl-transfers__tick-space')).toHaveLength(0);
+
+    await user().click(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Nguyen Vu Nhan paid 1.000.000₫');
+    await later(5_000);
+    expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true }]);
+  });
+});
