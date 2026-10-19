@@ -69,14 +69,23 @@ describe('Your transfers: tick to confirm', () => {
     expect(screen.getByRole('button', { name: CHI_PAYS_MINH })).toHaveAttribute('title', CHI_PAYS_MINH);
   });
 
-  it('a guest can also tick received when a member pays them', () => {
+  it('a guest cannot tick received when a member pays them, but can when another guest pays them', () => {
     const chiWithMemberPaying: TripView = {
       ...guestChiView(),
       suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 100000 }],
     };
-    renderAt(<YourTransfers view={chiWithMemberPaying} />);
-    const row = screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`);
-    expect(within(row).getByRole('button', { name: /^Mark 100.000₫ from Minh as received$/ })).toBeInTheDocument();
+    const { unmount } = renderAt(<YourTransfers view={chiWithMemberPaying} />);
+    const memberRow = screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`);
+    expect(within(memberRow).queryByRole('button', { name: /^Mark/ })).toBeNull();
+    unmount();
+
+    const chiWithGuestPaying: TripView = {
+      ...guestChiView(),
+      suggestions: [{ fromId: PIDS.A, toId: PIDS.C, amount: 100000 }],
+    };
+    renderAt(<YourTransfers view={chiWithGuestPaying} />);
+    const guestRow = screen.getByTestId(`transfer-${PIDS.A}-${PIDS.C}`);
+    expect(within(guestRow).getByRole('button', { name: /^Mark 100.000₫ from An as received$/ })).toBeInTheDocument();
   });
 
   it("ticking a member's debt records it after Undo", async () => {
@@ -395,8 +404,8 @@ describe('Your transfers: tick to confirm', () => {
     expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     phone.unmount();
 
-    // A guest on phone gets a swipe action when a member pays them too.
-    const guestPhone = renderAt(
+    // On phones, a guest does not get a swipe action when a member pays them, but does when a guest pays them.
+    const guestMemberPhone = renderAt(
       <YourTransfers
         view={{
           ...guestChiView(),
@@ -404,8 +413,19 @@ describe('Your transfers: tick to confirm', () => {
         }}
       />,
     );
-    expect(within(screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`)).getByRole('button', { name: 'Received' })).toBeInTheDocument();
-    guestPhone.unmount();
+    expect(within(screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`)).queryByRole('button', { name: 'Received' })).toBeNull();
+    guestMemberPhone.unmount();
+
+    const guestGuestPhone = renderAt(
+      <YourTransfers
+        view={{
+          ...guestChiView(),
+          suggestions: [{ fromId: PIDS.A, toId: PIDS.C, amount: 100000 }],
+        }}
+      />,
+    );
+    expect(within(screen.getByTestId(`transfer-${PIDS.A}-${PIDS.C}`)).getByRole('button', { name: 'Received' })).toBeInTheDocument();
+    guestGuestPhone.unmount();
 
     // With a mouse the tick is the only way: no hover tool on the row.
     mockMedia({ coarse: false });
@@ -553,19 +573,22 @@ describe('Your transfers: multiple incoming transfers (member and guest payers)'
     expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true }]);
   });
 
-  it('renders a Received tick on EVERY row even when I am viewing as a guest', async () => {
+  it('a guest sees ticks for guest debts to them, but not member debts to them', async () => {
     const { calls } = mockApi({ [PAYMENTS]: recorded() });
     renderAt(<YourTransfers view={memberAndGuestPayersView('guest')} />);
 
-    expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' })).toBeInTheDocument();
+    // Member payer row has no tick button for a guest viewer
+    expect(screen.queryByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' })).toBeNull();
+    // But guest payers have tick buttons
     expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Huyền as received' })).toBeInTheDocument();
-    expect(ticks()).toHaveLength(3);
-    expect(document.querySelectorAll('.fsl-transfers__tick-space')).toHaveLength(0);
+    expect(ticks()).toHaveLength(2);
+    // Member row keeps tick-space placeholder to align with the other ticked rows
+    expect(document.querySelectorAll('.fsl-transfers__tick-space')).toHaveLength(1);
 
-    await user().click(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Nguyen Vu Nhan paid 1.000.000₫');
+    await user().click(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Thủy paid 1.000.000₫');
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-guest-1', toId: 'p-me', amount: 1000000, settles: true }]);
   });
 });
