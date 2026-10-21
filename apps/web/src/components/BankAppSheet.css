@@ -40,3 +40,10 @@
   color: var(--color-text-muted);
   margin-top: var(--space-1);
 }
+
+.fsl-bank-app-sheet__zalo-hint {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}

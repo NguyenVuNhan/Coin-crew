@@ -450,6 +450,7 @@ export const en = {
   'pay.nothingOwed': "You don't owe {name} anything right now.",
   'pay.chooseApp': 'Choose your bank app',
   'pay.fillsIn': 'fills in the payment',
+  'pay.zaloBankHint': "Bank app didn't open? Save the QR, then in your bank app choose Scan QR → pick the picture. Or tap ⋯ → Open in browser.",
   'pay.remindThem': 'Remind {name}',
   'pay.share': 'Share',
   'pay.shareSaved': 'QR saved and message copied.',

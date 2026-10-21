@@ -450,6 +450,7 @@ export const vi: Record<MessageKey, string> = {
   'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
   'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
   'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
+  'pay.zaloBankHint': 'Ứng dụng ngân hàng không mở? Lưu mã QR, rồi trong app ngân hàng chọn Quét QR → chọn ảnh. Hoặc nhấn ⋯ → Mở bằng trình duyệt.', // REVIEW
   'pay.remindThem': 'Nhắc {name}', // REVIEW
   'pay.share': 'Chia sẻ', // REVIEW
   'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW

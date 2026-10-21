@@ -1,6 +1,7 @@
 import { Sheet } from './Sheet';
 import { BANK_APPS, bankAppLink, PREFILL_VERIFIED } from '@fsl/core';
 import { useT } from '../i18n';
+import { isZaloWebView } from '../lib/zaloEnv';
 import './BankAppSheet.css';
 
 export interface BankAppSheetProps {
@@ -37,6 +38,7 @@ export function BankAppSheet({ open, onClose }: BankAppSheetProps) {
           </a>
         ))}
       </div>
+      {isZaloWebView() && <p className="fsl-bank-app-sheet__zalo-hint">{t('pay.zaloBankHint')}</p>}
     </Sheet>
   );
 }
