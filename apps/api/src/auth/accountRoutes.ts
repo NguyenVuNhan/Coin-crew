@@ -117,12 +117,8 @@ export function accountRoutes(): Hono<AppBindings> {
       throw new ApiError('MERGE_STALE', 409, 'This merge request is out of date.');
     }
 
-    await mergeUsers(db, request, c.get('deviceHash'));
-
-    const merged = await db.select().from(users).where(eq(users.id, request.survivorUserId)).get();
-    if (!merged) {
-      throw new ApiError('NOT_FOUND', 404);
-    }
+    // No query after this: phase 2 may have spent the invocation's query budget, and phase 1 has committed.
+    const merged = await mergeUsers(db, request, c.get('deviceHash'));
     c.set('user', merged);
     return c.json({ user: toMeUserView(merged) }, 200);
   });

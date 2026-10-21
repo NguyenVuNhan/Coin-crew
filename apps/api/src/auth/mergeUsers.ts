@@ -49,9 +49,11 @@ function mergedUserFields(a: UserRow, b: UserRow, provider: AuthProvider, provid
  * Merge account B (`request.mergedUserId`) into account A (`request.survivorUserId`), spec §4.5.5.
  * The caller has already checked the request is B's, pending, unexpired and not stale.
  *
- * Phase 1 is one atomic batch with a constant number of set-based statements.
- * Phase 2 merges the two names in each group both accounts were in; a failure there is logged and the
- * account merge still stands (both names stay in that group, linked to A, and an admin can merge them).
+ * Phase 1 is one atomic batch with a constant number of set-based statements; its last statement reads A back,
+ * and that row is returned, so the caller can answer without another query.
+ * Phase 2 merges the two names in each group both accounts were in; a failure there (including running out of
+ * D1's per-invocation query budget) is logged and the account merge still stands (both names stay in that group,
+ * linked to A, and an admin can merge them).
  * `deps` exists only so tests can make a group merge fail.
  */
 export async function mergeUsers(
@@ -59,7 +61,7 @@ export async function mergeUsers(
   request: MergeRequestRow,
   deviceHash: string,
   deps: { mergeParticipants: typeof mergeParticipants } = { mergeParticipants },
-): Promise<void> {
+): Promise<UserRow> {
   const aId = request.survivorUserId;
   const bId = request.mergedUserId;
 
@@ -148,8 +150,15 @@ export async function mergeUsers(
           db.select({ id: participants.tripId }).from(participants).where(eq(participants.userId, aId)),
         ),
       ),
+    // 7. A as committed, for the response: phase 2 may spend the rest of the query budget.
+    db.select().from(users).where(eq(users.id, aId)),
   ];
-  await db.batch(phase1 as unknown as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
+  const results = await db.batch(phase1 as unknown as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
+  const merged = (results[results.length - 1] as UserRow[] | undefined)?.[0];
+  if (!merged) {
+    // Only if A was deleted between the checks and this batch.
+    throw new Error(`mergeUsers: survivor ${aId} missing after phase 1`);
+  }
 
   // Phase 2: one name per shared group. Each merge is its own batch (version bump + `name_merged` activity).
   for (const group of shared) {
@@ -174,4 +183,6 @@ export async function mergeUsers(
       console.error('mergeUsers: group merge failed', { tripId: group.trip.id, fromId: group.fromId, intoId: group.intoId }, err);
     }
   }
+
+  return merged;
 }

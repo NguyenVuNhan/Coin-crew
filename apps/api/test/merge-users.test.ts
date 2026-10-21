@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import type { MeResponse } from '@fsl/core';
-import { call, json } from './helpers';
+import { app, call, json } from './helpers';
 import { sha256Hex } from '../src/lib/ids';
 import { getDb } from '../src/db/client';
 import { accountMergeRequests } from '../src/db/schema';
@@ -40,20 +40,72 @@ const accept = (id: string, sid?: string) => post(`/api/me/merge-requests/${id}/
 const decline = (id: string, sid?: string) => post(`/api/me/merge-requests/${id}/decline`, sid);
 const cancel = (id: string, sid?: string) => post(`/api/me/merge-requests/${id}/cancel`, sid);
 
+/**
+ * A D1 binding whose per-invocation query budget runs out right after the merge's phase-1 batch
+ * (the batch that deletes the merged user): every later prepare or batch throws, as D1 does past its limit.
+ */
+function budgetSpentAfterPhase1(real: D1Database): D1Database {
+  let deletesUser = false;
+  let spent = false;
+  const guard = (): void => {
+    if (spent) throw new Error('Too many API requests by single worker invocation.');
+  };
+  const wrapped = {
+    prepare(query: string): D1PreparedStatement {
+      guard();
+      if (/^delete from "users"/i.test(query)) deletesUser = true;
+      return real.prepare(query);
+    },
+    async batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]> {
+      guard();
+      const results = await real.batch<T>(statements);
+      if (deletesUser) spent = true;
+      return results;
+    },
+  };
+  return wrapped as unknown as D1Database;
+}
+
+async function readRow<T>(table: string, id: string, columns: string): Promise<T> {
+  return (await row<T>(`SELECT ${columns} FROM ${table} WHERE id = ?`, id))!;
+}
+
+/** A's identity columns; by default Google `g-a` with `a@x.com` and consent given. */
+interface AIdentity {
+  googleSub: string | null;
+  zaloSub: string | null;
+  email: string | null;
+  consentAt: string | null;
+}
+
 async function seedMergeCase(
-  opts: { aCustom?: 0 | 1; bGoogleSub?: string | null; aBank?: boolean } = {},
+  opts: {
+    aCustom?: 0 | 1;
+    bGoogleSub?: string | null;
+    aBank?: boolean;
+    a?: Partial<AIdentity>;
+    request?: { provider: 'google' | 'zalo'; providerSub: string };
+  } = {},
 ): Promise<void> {
+  const a: AIdentity = {
+    googleSub: 'g-a',
+    zaloSub: null,
+    email: 'a@x.com',
+    consentAt: '2026-10-12T00:00:00.000Z',
+    ...opts.a,
+  };
+  const request = opts.request ?? { provider: 'zalo', providerSub: 'z-b' };
   await run(
     'INSERT INTO users (id, google_sub, zalo_sub, email, name, gender, avatar_url, custom_profile, consent_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     'u-a',
-    'g-a',
-    null,
-    'a@x.com',
+    a.googleSub,
+    a.zaloSub,
+    a.email,
     'Anh A',
     'M',
     'https://p/a.png',
     opts.aCustom ?? 0,
-    '2026-10-12T00:00:00.000Z',
+    a.consentAt,
     CREATED,
   );
   await run(
@@ -202,6 +254,17 @@ async function seedMergeCase(
     CREATED,
   );
 
+  // B's other footprints: an expense B disabled, and B's own activity line (both in t-2, which only B is in).
+  await run(
+    "INSERT INTO transactions (id, root_id, trip_id, type, description, amount, spent_on, payer_id, status, disabled_by_user_id, created_by_participant_id, created_at, updated_at) VALUES ('e-dis', 'e-dis', 't-2', 'expense', 'Nước', 1000, '2026-10-10', 'p-b2', 'disabled', 'u-b', 'p-b2', ?, ?)",
+    CREATED,
+    CREATED,
+  );
+  await run(
+    "INSERT INTO activity (id, trip_id, actor_participant_id, actor_user_id, actor_device, action, details_json, created_at) VALUES ('act-b', 't-2', 'p-b2', 'u-b', NULL, 'expense_disabled', '{}', ?)",
+    CREATED,
+  );
+
   if (opts.aBank !== false) {
     await run(
       'INSERT INTO bank_details (id, user_id, participant_id, bin, account_number, holder_name, status, approved_by_user_id, consent_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -237,8 +300,8 @@ async function seedMergeCase(
     'mr-1',
     'u-a',
     'u-b',
-    'zalo',
-    'z-b',
+    request.provider,
+    request.providerSub,
     'pending',
     now,
     inDays(7),
@@ -347,6 +410,54 @@ describe('account merge', () => {
     ))!;
     expect(t1.version).toBeGreaterThan(0);
     expect(t2.version).toBeGreaterThan(0);
+
+    expect((await readRow<{ disabled_by_user_id: string | null }>('transactions', 'e-dis', 'disabled_by_user_id')).disabled_by_user_id).toBe('u-a');
+    expect((await readRow<{ actor_user_id: string | null }>('activity', 'act-b', 'actor_user_id')).actor_user_id).toBe('u-a');
+  });
+
+  it('A proves B\'s Google: A takes it with its email, keeps its own Zalo, and takes B\'s consent', async () => {
+    // A: Zalo only, never consented. B: Google g-b (b@x.com) + Zalo z-b. A proved g-b.
+    await seedMergeCase({
+      a: { googleSub: null, zaloSub: 'z-a', email: null, consentAt: null },
+      bGoogleSub: 'g-b',
+      request: { provider: 'google', providerSub: 'g-b' },
+    });
+
+    // B's confirm screen lists the Zalo it will lose (A keeps its own Zalo).
+    const meB = await json<MeResponse>(call('/api/me', { headers: { Cookie: 'sid=sid-b1' } }));
+    expect(meB.mergeRequests.incoming.find((r) => r.id === 'mr-1')?.released).toEqual([{ provider: 'zalo', email: null }]);
+
+    const res = await accept('mr-1', 'sid-b1');
+    expect(res.status).toBe(200);
+    const body = await json<{ user: { id: string; email: string | null; providers: string[]; consentAt: string | null } }>(res);
+    expect(body.user).toMatchObject({ id: 'u-a', email: 'b@x.com', providers: ['google', 'zalo'], consentAt: '2026-10-01T00:00:00.000Z' });
+
+    const ua = await readRow<{ google_sub: string | null; zalo_sub: string | null; email: string | null; consent_at: string | null }>(
+      'users', 'u-a', 'google_sub, zalo_sub, email, consent_at',
+    );
+    expect(ua).toEqual({ google_sub: 'g-b', zalo_sub: 'z-a', email: 'b@x.com', consent_at: '2026-10-01T00:00:00.000Z' });
+    expect((await row<{ n: number }>("SELECT COUNT(*) AS n FROM users WHERE zalo_sub = 'z-b'"))!.n).toBe(0);
+  });
+
+  it('A without the other identity takes B\'s, with its email', async () => {
+    // A: Zalo z-a only. B: Google g-b (b@x.com) + Zalo z-b. A proved z-b, so A's own z-a goes and B's Google comes along.
+    await seedMergeCase({
+      a: { googleSub: null, zaloSub: 'z-a', email: null },
+      bGoogleSub: 'g-b',
+      request: { provider: 'zalo', providerSub: 'z-b' },
+    });
+
+    // B keeps both of its identities in A, so nothing is listed as released.
+    const meB = await json<MeResponse>(call('/api/me', { headers: { Cookie: 'sid=sid-b1' } }));
+    expect(meB.mergeRequests.incoming.find((r) => r.id === 'mr-1')?.released).toEqual([]);
+
+    expect((await accept('mr-1', 'sid-b1')).status).toBe(200);
+
+    const ua = await readRow<{ google_sub: string | null; zalo_sub: string | null; email: string | null; consent_at: string | null }>(
+      'users', 'u-a', 'google_sub, zalo_sub, email, consent_at',
+    );
+    expect(ua).toEqual({ google_sub: 'g-b', zalo_sub: 'z-b', email: 'b@x.com', consent_at: '2026-10-12T00:00:00.000Z' });
+    expect((await row<{ n: number }>("SELECT COUNT(*) AS n FROM users WHERE zalo_sub = 'z-a'"))!.n).toBe(0);
   });
 
   it('a group both were in ends with one name, admin kept', async () => {
@@ -531,6 +642,9 @@ describe('account merge', () => {
     ))!;
     expect(bankB.status).toBe('approved');
     expect(bankB.user_id).toBe('u-b');
+
+    expect((await readRow<{ disabled_by_user_id: string | null }>('transactions', 'e-dis', 'disabled_by_user_id')).disabled_by_user_id).toBe('u-b');
+    expect((await readRow<{ actor_user_id: string | null }>('activity', 'act-b', 'actor_user_id')).actor_user_id).toBe('u-b');
   });
 
   it('stale when A no longer exists', async () => {
@@ -606,6 +720,21 @@ describe('account merge', () => {
     expect(ub).not.toBeNull();
   });
 
+  it('decline and cancel refuse the wrong side and expired requests', async () => {
+    await seedMergeCase();
+
+    expect((await cancel('mr-1', 'sid-b1')).status).toBe(404);
+
+    await run("UPDATE account_merge_requests SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = 'mr-1'");
+    expect((await decline('mr-1', 'sid-b1')).status).toBe(404);
+    expect((await cancel('mr-1', 'sid-a')).status).toBe(404);
+
+    expect((await readRow<{ status: string; decided_at: string | null }>('account_merge_requests', 'mr-1', 'status, decided_at'))).toEqual({
+      status: 'pending',
+      decided_at: null,
+    });
+  });
+
   it('merge-request endpoints need a session', async () => {
     await seedMergeCase();
 
@@ -620,13 +749,14 @@ describe('account merge', () => {
     const db = getDb(env);
     const request = (await db.select().from(accountMergeRequests).where(eq(accountMergeRequests.id, 'mr-1')).get())!;
 
-    await expect(
-      mergeUsers(db, request, 'dev', {
-        mergeParticipants: async () => {
-          throw new Error('boom');
-        },
-      }),
-    ).resolves.toBeUndefined();
+    const merged = await mergeUsers(db, request, 'dev', {
+      mergeParticipants: async () => {
+        throw new Error('boom');
+      },
+    });
+
+    // The returned row is A as phase 1 committed it.
+    expect(merged).toMatchObject({ id: 'u-a', googleSub: 'g-a', zaloSub: 'z-b', name: 'Bé Chi', customProfile: 1 });
 
     expect(await row<{ id: string }>('SELECT id FROM users WHERE id = ?', 'u-b')).toBeNull();
 
@@ -641,5 +771,24 @@ describe('account merge', () => {
     ))!;
     expect(mr1.status).toBe('accepted');
     expect(errSpy).toHaveBeenCalled();
+  });
+
+  it('accept still answers when the query budget runs out after phase 1', async () => {
+    await seedMergeCase();
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await app.request(
+      '/api/me/merge-requests/mr-1/accept',
+      { method: 'POST', headers: { Cookie: 'sid=sid-b1' } },
+      { ...env, DB: budgetSpentAfterPhase1(env.DB) },
+    );
+
+    expect(res.status).toBe(200);
+    const body = await json<{ user: { id: string; providers: string[] } }>(res);
+    expect(body.user).toMatchObject({ id: 'u-a', providers: ['google', 'zalo'] });
+    // The group merge in t-1 could not run: logged, and both names stay with A.
+    expect(errSpy).toHaveBeenCalled();
+    expect((await row<{ n: number }>("SELECT COUNT(*) AS n FROM participants WHERE trip_id = 't-1' AND user_id = 'u-a' AND status = 'active'"))!.n).toBe(2);
+    expect(await row<{ id: string }>('SELECT id FROM users WHERE id = ?', 'u-b')).toBeNull();
   });
 });
