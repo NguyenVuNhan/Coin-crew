@@ -1,30 +1,19 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useT } from '../i18n';
-import { apiFetch, apiSend } from '../api/client';
+import { useMe } from '../api/hooks';
+import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';
 import { Button } from './Button';
 import './ConsentSheet.css';
-
-interface MeResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    consentAt: string | null;
-  } | null;
-}
 
 export function ConsentSheet() {
   const t = useT();
   const queryClient = useQueryClient();
   const [agreed, setAgreed] = useState(false);
 
-  const meQuery = useQuery<MeResponse>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<MeResponse>('/api/me'),
-  });
+  const meQuery = useMe();
 
   const consentMutation = useMutation({
     mutationFn: () => apiSend<void>('/api/me/consent', 'POST'),

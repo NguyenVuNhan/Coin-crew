@@ -534,6 +534,12 @@ export const en = {
   'updates.previous': 'Previous',
   'updates.now': 'Now',
   'updates.dismiss': 'Got it',
+  'auth.failed': "Sign-in didn't finish — try again",
+  'auth.linked': '{provider} is now linked',
+  'auth.mergeRequested': 'This {provider} account already has its own CoinCrew account. Sign in to that account to confirm the merge (expires in 7 days).',
+  'account.zaloAccount': 'Zalo account',
+  'error.lastIdentity': 'Link another way to sign in first.',
+  'error.mergeStale': 'This merge request is no longer valid.',
 } as const;
 
 export type MessageKey = keyof typeof en;

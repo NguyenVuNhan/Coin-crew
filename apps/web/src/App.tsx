@@ -14,9 +14,12 @@ import { Activity } from './screens/Activity';
 import { PayScreen } from './screens/PayScreen';
 import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
+import { AuthNotice } from './components/AuthNotice';
 
 export function App() {
   return (
+    <>
+      <AuthNotice />
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/trips" element={<MyTrips />} />
@@ -39,5 +42,6 @@ export function App() {
       <Route path="/t/:tripId/activity" element={<Activity />} />
       <Route path="/t/:tripId/settings" element={<Settings />} />
     </Routes>
+    </>
   );
 }

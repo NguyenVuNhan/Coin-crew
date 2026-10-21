@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TripView } from '@fsl/core';
+import type { TripView, MeResponse } from '@fsl/core';
 import { apiFetch, ApiClientError } from './client';
 
 function useIsDocumentVisible(): boolean {
@@ -120,4 +120,24 @@ export function useTripView(
     resume,
     refetch,
   };
+}
+
+/** The signed-in user plus sign-in options and merge requests; fills in what an older API leaves out. */
+export function useMe(opts?: { enabled?: boolean }) {
+  return useQuery<MeResponse, Error, MeResponse>({
+    enabled: opts?.enabled ?? true,
+    queryKey: ['me'],
+    queryFn: () => apiFetch<MeResponse>('/api/me'),
+    select: (d) => {
+      const p = d as Partial<MeResponse>;
+      return {
+        user: p.user ?? null,
+        signIn: { zalo: p.signIn?.zalo === true },
+        mergeRequests: {
+          incoming: p.mergeRequests?.incoming ?? [],
+          outgoing: p.mergeRequests?.outgoing ?? [],
+        },
+      };
+    },
+  });
 }

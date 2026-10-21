@@ -534,5 +534,11 @@ export const vi: Record<MessageKey, string> = {
   'updates.previous': 'Trước đó', // REVIEW
   'updates.now': 'Hiện tại', // REVIEW
   'updates.dismiss': 'Đã hiểu', // REVIEW
+  'auth.failed': 'Đăng nhập chưa xong — thử lại', // REVIEW
+  'auth.linked': 'Đã liên kết {provider}', // REVIEW
+  'auth.mergeRequested': 'Tài khoản {provider} này đã có tài khoản CoinCrew riêng. Đăng nhập vào tài khoản đó để xác nhận gộp (hết hạn sau 7 ngày).', // REVIEW
+  'account.zaloAccount': 'Tài khoản Zalo', // REVIEW
+  'error.lastIdentity': 'Liên kết thêm một cách đăng nhập trước.', // REVIEW
+  'error.mergeStale': 'Yêu cầu gộp này không còn hiệu lực.', // REVIEW
 };
 

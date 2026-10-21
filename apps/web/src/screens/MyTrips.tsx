@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { TripListItem } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -15,23 +16,11 @@ import { Button } from '../components/Button';
 import { Icon } from '../components/icons';
 import './MyTrips.css';
 
-interface MeResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    consentAt: string | null;
-  } | null;
-}
-
 export function MyTrips() {
   const t = useT();
   const navigate = useNavigate();
 
-  const meQuery = useQuery<MeResponse>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<MeResponse>('/api/me'),
-  });
+  const meQuery = useMe();
 
   const tripsQuery = useQuery<TripListItem[]>({
     queryKey: ['trips'],

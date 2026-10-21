@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import type { MeUserView, Gender } from '@fsl/core';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
-import { apiFetch, apiSend } from '../api/client';
+import { apiSend } from '../api/client';
+import { useMe } from '../api/hooks';
 import { Sheet } from './Sheet';
 import { Avatar } from './Avatar';
 import { LanguageButton } from './LanguageButton';
@@ -33,11 +34,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const meQuery = useQuery<{ user: MeUserView | null }>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<{ user: MeUserView | null }>('/api/me'),
-    enabled: propUser === undefined,
-  });
+  const meQuery = useMe({ enabled: propUser === undefined });
 
   const u = propUser !== undefined ? propUser : meQuery.data?.user;
 
@@ -225,7 +222,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
 
         <div className="fsl-account-menu__info">
           <p className="fsl-account-menu__name">{u.name}</p>
-          <p className="fsl-account-menu__email">{u.email}</p>
+          <p className="fsl-account-menu__email">{u.email ?? t('account.zaloAccount')}</p>
         </div>
       </div>
 
