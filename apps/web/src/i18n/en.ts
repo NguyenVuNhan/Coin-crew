@@ -348,6 +348,12 @@ export const en = {
   'share.viewHint': 'People with this link can look but not change anything.',
   'share.copy': 'Copy',
   'share.copied': 'Copied',
+  'share.imageTitle': 'Save the picture',
+  'share.longPress': 'Press and hold the picture (2 seconds) to save it or share it straight to your Zalo group',
+  'share.messageCopied': 'Message copied — paste it in the Zalo group',
+  'share.copyMessage': 'Copy message',
+  'share.openInBrowser': "Can't save? Tap ⋯ → Open in browser",
+  'share.imageFailed': "Couldn't make the picture.",
   'share.regenerate': 'Make a new link',
   'share.regenerateConfirm': 'The old link will stop working. Make a new one?',
 

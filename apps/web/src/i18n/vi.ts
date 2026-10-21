@@ -348,6 +348,12 @@ export const vi: Record<MessageKey, string> = {
   'share.viewHint': 'Những người có liên kết này có thể xem nhưng không thể thay đổi.', // REVIEW
   'share.copy': 'Sao chép', // REVIEW
   'share.copied': 'Đã sao chép', // REVIEW
+  'share.imageTitle': 'Lưu ảnh', // REVIEW
+  'share.longPress': 'Nhấn giữ ảnh (2 giây) để Lưu về máy hoặc Chia sẻ ngay vào nhóm Zalo', // REVIEW
+  'share.messageCopied': 'Đã sao chép tin nhắn — dán vào nhóm Zalo', // REVIEW
+  'share.copyMessage': 'Sao chép tin nhắn', // REVIEW
+  'share.openInBrowser': 'Không lưu được? Nhấn ⋯ → Mở bằng trình duyệt', // REVIEW
+  'share.imageFailed': 'Không tạo được ảnh.', // REVIEW
   'share.regenerate': 'Tạo liên kết mới', // REVIEW
   'share.regenerateConfirm': 'Liên kết cũ sẽ ngừng hoạt động. Tạo liên kết mới?', // REVIEW
 
