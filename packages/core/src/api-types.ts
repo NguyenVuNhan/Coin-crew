@@ -9,6 +9,8 @@ export type ApiErrorCode =
   | 'TRIP_ARCHIVED'
   | 'DAILY_LIMIT'
   | 'RATE_LIMITED'
+  | 'LAST_IDENTITY'
+  | 'MERGE_STALE'
   | 'INTERNAL';
 
 export type ActivityAction =
@@ -51,6 +53,8 @@ import type { Transfer } from './transfers';
 import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 
+export type AuthProvider = 'google' | 'zalo';
+
 export interface MeUserView {
   id: string;
   email: string | null;
@@ -58,6 +62,32 @@ export interface MeUserView {
   gender?: Gender | null;
   avatarUrl?: string | null;
   consentAt: string | null;
+  providers: AuthProvider[];
+}
+
+export interface IncomingMergeRequest {
+  id: string;
+  provider: AuthProvider;
+  expiresAt: string;
+  survivor: { name: string; avatarUrl: string | null; email: string | null; providers: AuthProvider[] };
+  /** Active memberships of each account. */
+  groups: { survivor: number; merged: number };
+  released: { provider: AuthProvider; email: string | null }[];
+}
+
+export interface OutgoingMergeRequest {
+  id: string;
+  provider: AuthProvider;
+  status: 'pending' | 'accepted' | 'declined';
+  expiresAt: string;
+}
+
+export interface MeResponse {
+  user: MeUserView | null;
+  /** False when ZALO_APP_ID or ZALO_APP_SECRET is missing. */
+  signIn: { zalo: boolean };
+  /** Both empty when signed out. */
+  mergeRequests: { incoming: IncomingMergeRequest[]; outgoing: OutgoingMergeRequest[] };
 }
 
 export interface UpdateProfileInput {

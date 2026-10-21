@@ -14,6 +14,8 @@ export default defineConfig(async () => {
             GOOGLE_CLIENT_ID: 'test-client-id',
             GOOGLE_CLIENT_SECRET: 'test-client-secret',
             APP_ORIGIN: 'http://localhost:8787',
+            ZALO_APP_ID: 'test-zalo-app',
+            ZALO_APP_SECRET: 'test-zalo-secret',
           },
         },
       }),

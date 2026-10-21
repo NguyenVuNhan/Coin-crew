@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { decodeIdToken, generateCodeVerifier, generateState } from 'arctic';
 import { eq, inArray, sql } from 'drizzle-orm';
-import type { MeUserView, UpdateProfileInput } from '@fsl/core';
+import type { UpdateProfileInput } from '@fsl/core';
 import { normalizeName } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
@@ -11,6 +11,7 @@ import { participants, sessions, trips, users } from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
+import { buildMeResponse, toMeUserView } from './me';
 import { createSession, getSessionUser, requireUser, setSessionCookie } from './session';
 
 /** Only same-site paths: "/x" but not "//host" or "/\host" (browsers read a backslash as a slash). */
@@ -136,17 +137,7 @@ export function authRoutes(): Hono<AppBindings> {
 
   app.get('/me', async (c) => {
     const user = await getSessionUser(c);
-    const userView: MeUserView | null = user
-      ? {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          gender: (user.gender as 'M' | 'F' | null) ?? null,
-          avatarUrl: user.avatarUrl ?? null,
-          consentAt: user.consentAt,
-        }
-      : null;
-    return c.json({ user: userView });
+    return c.json(await buildMeResponse(getDb(c.env), c.env, user));
   });
 
   app.patch('/me', requireUser, async (c) => {
@@ -236,14 +227,7 @@ export function authRoutes(): Hono<AppBindings> {
     const updatedUser = await db.select().from(users).where(eq(users.id, user.id)).get();
     c.set('user', updatedUser ?? null);
 
-    const userView: MeUserView = {
-      id: updatedUser!.id,
-      email: updatedUser!.email,
-      name: updatedUser!.name,
-      gender: (updatedUser!.gender as 'M' | 'F' | null) ?? null,
-      avatarUrl: updatedUser!.avatarUrl ?? null,
-      consentAt: updatedUser!.consentAt,
-    };
+    const userView = toMeUserView(updatedUser!);
 
     return c.json({ user: userView }, 200);
   });
