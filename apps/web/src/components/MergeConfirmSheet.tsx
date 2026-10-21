@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IncomingMergeRequest } from '@fsl/core';
 import { useT } from '../i18n';
@@ -18,8 +17,6 @@ export interface MergeConfirmSheetProps {
 export function MergeConfirmSheet({ request, open, onClose }: MergeConfirmSheetProps) {
   const t = useT();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -28,14 +25,7 @@ export function MergeConfirmSheet({ request, open, onClose }: MergeConfirmSheetP
     setError(null);
     try {
       await apiSend(`/api/me/merge-requests/${request.id}/accept`, 'POST');
-      // This session now belongs to the other account: drop everything cached for this one.
-      // clear() detaches the mounted queries, so re-navigate to the same page to re-render them;
-      // they then fetch /api/me and the rest again.
-      queryClient.clear();
-      navigate(`${location.pathname}${location.search}`, {
-        replace: true,
-        state: { mergedAt: Date.now() },
-      });
+      await queryClient.resetQueries();
       onClose();
     } catch (e) {
       setError(e);

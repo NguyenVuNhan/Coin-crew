@@ -122,6 +122,8 @@ describe('merge request', () => {
     expect(acceptCall).toBeDefined();
     const meCalls = calls.filter((c) => c.method === 'GET' && c.path === '/api/me');
     expect(meCalls.length).toBeGreaterThanOrEqual(2);
+    const tripsCalls = calls.filter((c) => c.method === 'GET' && c.path === '/api/trips');
+    expect(tripsCalls.length).toBeGreaterThanOrEqual(2);
   });
 
   it('declining removes the banner', async () => {
