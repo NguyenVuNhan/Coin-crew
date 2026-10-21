@@ -378,6 +378,23 @@ describe('Identity linking and unlinking', () => {
     });
   });
 
+  it('Google link with a wrong state redirects with auth=failed and clears cookies', async () => {
+    const sid = await createZaloUser('u-zalo-gf', 'z-gf', 'Zalo GF');
+    const start = await call(
+      `/api/auth/google/start?returnTo=${encodeURIComponent('/trips')}&intent=link`,
+      { headers: { Cookie: `sid=${sid}` } },
+    );
+    const cookies = cookiesFrom(start);
+
+    const cb = await call('/api/auth/google/callback?code=abc&state=wrong', {
+      headers: { Cookie: cookieHeader({ ...cookies, sid }) },
+    });
+
+    expect(cb.status).toBe(302);
+    expect(cb.headers.get('Location')).toBe('/trips?auth=failed');
+    expect(cb.headers.get('Set-Cookie') ?? '').toContain('oauth_state=');
+  });
+
   it('unlink works when another identity stays', async () => {
     const userId = 'u-dual-9';
     const sid = await createDualUser(userId, 'g-9', 'z-9', 'dual9@example.com', 'Dual User 9');

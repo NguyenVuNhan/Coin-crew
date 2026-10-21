@@ -110,7 +110,7 @@
   font-size: var(--text-sm);
   line-height: var(--leading-sm);
   border-left: 3px solid var(--color-warning);
-  margin: var(--space-2) 0 0;
+  margin: var(--space-2) 0 var(--space-4);
 }
 
 .fsl-linked__merge {

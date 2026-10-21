@@ -162,4 +162,12 @@ describe('Zalo OAuth helpers', () => {
 
     await expect(fetchZaloProfile('bad-token')).rejects.toThrow(ZaloError);
   });
+
+  it('a numeric id is rejected (precision loss)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      return Response.json({ id: 1234567890123456789, name: 'X' });
+    });
+
+    await expect(fetchZaloProfile('at')).rejects.toThrow(ZaloError);
+  });
 });

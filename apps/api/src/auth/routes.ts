@@ -90,6 +90,14 @@ export function authRoutes(): Hono<AppBindings> {
     const oauthVerifier = getCookie(c, 'oauth_verifier');
 
     if (!code || !state || !oauthVerifier || state !== oauthState) {
+      if (getCookie(c, 'oauth_intent') === 'link') {
+        const linkReturn = getCookie(c, 'oauth_return');
+        clearOauthCookies(c, 'oauth');
+        return c.redirect(
+          withQuery(linkReturn ? safeReturnTo(linkReturn) : '/', 'auth', 'failed'),
+          302,
+        );
+      }
       throw new ApiError('VALIDATION', 400, 'Sign-in expired. Please try again.');
     }
 

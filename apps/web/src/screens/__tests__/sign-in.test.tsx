@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { focusManager } from '@tanstack/react-query';
 import { renderAt, mockApi } from '../../test/render';
 import { picker, guestChiView, PIDS } from '../../test/fixtures';
 import { mockMedia } from '../../test/media';
@@ -64,6 +65,34 @@ describe('GuestTrip sign-in', () => {
     expect(zalo).toHaveAttribute('href', '/api/auth/zalo/start?returnTo=%2Ft%2Ft-1%3FbecomeMember%3D1');
     expect(google.closest('footer')).not.toBeNull();
     expect(zalo.closest('footer')).not.toBeNull();
+  });
+});
+
+describe('Zalo inline button', () => {
+  it('inside Zalo the GuestTrip Zalo link is a secondary button', async () => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Linux; Android 13) Zalo/22.1 Chrome/110');
+    mockMedia({ wide: false });
+    vi.stubGlobal('scrollTo', vi.fn());
+    mockApi({
+      'GET /api/trips/t-1/version': { version: 3 },
+      'GET /api/trips/t-1': guestChiView(),
+      'GET /api/me': { user: null, signIn: { zalo: true } },
+    });
+    renderAt(<TripRoute />, { route: '/t/t-1', path: '/t/:tripId' });
+    const zalo = await screen.findByRole('link', { name: 'Sign in with Zalo to become a member' });
+    expect(zalo).toHaveClass('fsl-button--secondary');
+  });
+
+  it('inside Zalo the WhoAreYou Zalo link is a secondary button', async () => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Linux; Android 13) Zalo/22.1 Chrome/110');
+    mockApi({
+      'GET /api/trips/t-1/people/picker': picker(),
+      'GET /api/me': { user: null, signIn: { zalo: true } },
+    });
+    renderAt(<WhoAreYou />, { route: '/t/t-1/who', path: '/t/:tripId/who' });
+    await screen.findByRole('radiogroup');
+    const note = screen.getByRole('note', { name: 'Joining as a guest' });
+    expect(within(note).getByRole('link')).toHaveClass('fsl-button--secondary');
   });
 });
 
@@ -222,6 +251,57 @@ describe('Smart Name Match', () => {
       expect(screen.getByRole('radio', { name: /^Bình/ })).toHaveAttribute('aria-checked', 'true');
     });
     expect(screen.getByRole('radio', { name: /^Chi($|(?!\s*Mai\b))/ })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByText(/Is this you/)).toBeNull();
+  });
+
+  it('a manual pick survives a picker refetch', async () => {
+    const user = userEvent.setup();
+    let n = 0;
+    const { calls } = mockApi({
+      // second response differs (lastUsedHere flag) so the query data is not structurally shared
+      'GET /api/trips/t-1/people/picker': () => {
+        const v = matchPicker();
+        if (++n > 1) v.people[1]!.activeElsewhere = '2026-10-01T00:00:00.000Z';
+        return Response.json(v);
+      },
+      'GET /api/me': meWithName('Nguyễn Văn Chi'),
+    });
+    renderAt(<WhoAreYou />, whoRoute);
+    await screen.findByRole('radiogroup');
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /^Chi/ })).toHaveAttribute('aria-checked', 'true'),
+    );
+    await user.click(screen.getByRole('radio', { name: /^An/ }));
+    expect(screen.getByRole('radio', { name: /^An/ })).toHaveAttribute('aria-checked', 'true');
+    const before = calls.filter((c) => c.path.endsWith('/people/picker')).length;
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    await waitFor(() =>
+      expect(calls.filter((c) => c.path.endsWith('/people/picker')).length).toBeGreaterThan(before),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('radio', { name: /^An/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: /^Chi/ })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('a manual pick made before /api/me arrives survives its arrival', async () => {
+    const user = userEvent.setup();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => { release = r; });
+    mockApi({
+      'GET /api/trips/t-1/people/picker': matchPicker(),
+      'GET /api/me': async () => {
+        await gate;
+        return Response.json(meWithName('Nguyễn Văn Chi'));
+      },
+    });
+    renderAt(<WhoAreYou />, whoRoute);
+    await screen.findByRole('radiogroup');
+    await user.click(screen.getByRole('radio', { name: /^An/ }));
+    release();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('radio', { name: /^An/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: /^Chi/ })).toHaveAttribute('aria-checked', 'false');
     expect(screen.queryByText(/Is this you/)).toBeNull();
   });
 

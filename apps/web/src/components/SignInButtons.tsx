@@ -44,8 +44,8 @@ export function SignInButtons({
       <div className={`fsl-signin fsl-signin--${layout}`}>
         {zaloOn && (
           <Button
-            variant={layout === 'stack' ? 'primary' : 'ghost'}
-            block={layout === 'stack'}
+            variant={layout === 'stack' ? 'primary' : 'secondary'}
+            block
             href={signInHref('zalo', returnTo, intent)}
           >
             <Icon name="zalo" size={18} />

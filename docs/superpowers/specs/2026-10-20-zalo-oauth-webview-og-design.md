@@ -463,6 +463,9 @@ Typecheck (`npm run typecheck`) and the full suite (`npm test`) run after every 
 - **Mobile-browser Zalo hand-off.** Starting Zalo sign-in from Safari or Chrome may hand off to the Zalo app and return in a different browser without the state cookies; the result is a clear `auth=failed`, never a wrong account.
 - **Zalo preview cache.** Zalo caches a card per URL. The group card's "Đến {date}" makes an old card self-explaining; expense links are unique per expense.
 - **Zalo API details.** Endpoint shapes follow the brief (OAuth v4 + Graph v2.0) and community usage; the defensive error rule (§4.4.1) covers HTTP-200 errors. Confirm against the Zalo app console during setup.
+- **Phase-2 query budget.** `mergeParticipants` adds one statement per shared transaction; if D1 counts batch statements individually, one busy shared sport group can exhaust the free plan's ~50 queries per invocation. The account merge still completes and the leftover duplicate names stay mergeable from People.
+- **Pending names and requests.** B's pending names / pending membership requests in groups where A is active move to A without being merged; approving one later gives A two names in that group (same state as the degrade path above).
+- **Migration dry run.** Before the first production deploy, dry-run migration 0005 against a local import of a `wrangler d1 export` of production.
 
 ---
 

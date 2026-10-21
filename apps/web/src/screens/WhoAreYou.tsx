@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView } from '@fsl/core';
@@ -48,6 +48,7 @@ export function WhoAreYou() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nameMatchId, setNameMatchId] = useState<string | null>(null);
+  const userTouched = useRef(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
@@ -66,6 +67,8 @@ export function WhoAreYou() {
   });
 
   useEffect(() => {
+    // Auto-select only until the user has chosen a row themselves.
+    if (userTouched.current) return;
     if (picker) {
       const initial =
         picker.myPick ??
@@ -259,10 +262,14 @@ export function WhoAreYou() {
                     role="radio"
                     aria-checked={isSelected}
                     className={`fsl-who__row fsl-who__row--radio ${isSelected ? 'fsl-who__row--selected' : ''}`}
-                    onClick={() => setSelectedId(person.id)}
+                    onClick={() => {
+                      userTouched.current = true;
+                      setSelectedId(person.id);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === ' ' || e.key === 'Enter') {
                         e.preventDefault();
+                        userTouched.current = true;
                         setSelectedId(person.id);
                       }
                     }}

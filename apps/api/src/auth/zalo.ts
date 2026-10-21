@@ -162,11 +162,12 @@ export async function fetchZaloProfile(
     throw new ZaloError(`Zalo profile error: ${message}`);
   }
 
-  if (data.id == null || data.id === '') {
+  // A JSON number would lose precision for ~19-digit ids; only accept strings.
+  if (typeof data.id !== 'string' || data.id === '') {
     throw new ZaloError('Zalo profile response missing id');
   }
 
-  const sub = String(data.id);
+  const sub = data.id;
   const rawName = typeof data.name === 'string' ? data.name.trim() : '';
   const name = rawName.length > 0 ? rawName : 'Zalo';
   const rawAvatarUrl = data.picture?.data?.url;
