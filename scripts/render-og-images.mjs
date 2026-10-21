@@ -1,3 +1,4 @@
+// The committed PNGs in apps/web/public/og are the source of truth: the SVGs use system fonts, so re-rendering on another machine may differ.
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
