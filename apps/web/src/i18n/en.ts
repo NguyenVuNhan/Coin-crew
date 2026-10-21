@@ -546,6 +546,20 @@ export const en = {
   'account.zaloAccount': 'Zalo account',
   'error.lastIdentity': 'Link another way to sign in first.',
   'error.mergeStale': 'This merge request is no longer valid.',
+  'account.methods': 'Sign-in methods',
+  'account.notLinked': 'Not linked',
+  'account.linked': 'Linked',
+  'account.link': 'Link',
+  'account.change': 'Change',
+  'account.unlink': 'Unlink',
+  'account.unlinkConfirm': 'Unlink {provider}? You will sign in with the other method.',
+  'account.unlinkLast': 'Link another way to sign in first',
+  'account.backupNudgeZalo': 'Link Google too so you don\'t lose this account if your Zalo changes',
+  'account.backupNudgeGoogle': 'Link Zalo too so you can sign in from the Zalo app',
+  'merge.outgoingPending': 'Waiting for the other account to confirm the merge',
+  'merge.outgoingAccepted': 'Accounts merged',
+  'merge.outgoingDeclined': 'The other account declined the merge',
+  'merge.cancel': 'Cancel',
 } as const;
 
 export type MessageKey = keyof typeof en;

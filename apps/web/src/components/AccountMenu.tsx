@@ -13,6 +13,7 @@ import { InlineError } from './InlineError';
 import { Button } from './Button';
 import { Icon } from './icons';
 import { AvatarCropModal } from './AvatarCropModal';
+import { LinkedAccounts } from './LinkedAccounts';
 import './AccountMenu.css';
 
 export type AccountMenuUser = {
@@ -278,6 +279,8 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
           {t('account.saveProfile')}
         </Button>
       </div>
+
+      {meQuery.data && <LinkedAccounts me={meQuery.data} />}
 
       <div className="fsl-account-menu__list">
         <Link
