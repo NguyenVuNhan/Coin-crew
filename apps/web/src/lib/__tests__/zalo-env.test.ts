@@ -31,6 +31,12 @@ describe('isZaloWebView', () => {
     expect(isZaloWebView(desktopChrome)).toBe(false);
   });
 
+  it('is true when only a ZaloTheme or ZaloLanguage token is present', () => {
+    const ua =
+      'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36 ZaloTheme/light ZaloLanguage/vi';
+    expect(isZaloWebView(ua)).toBe(true);
+  });
+
   it('reads navigator.userAgent by default', () => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('… Zalo android/1');
     expect(isZaloWebView()).toBe(true);
