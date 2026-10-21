@@ -14,6 +14,7 @@ import { Button } from './Button';
 import { Icon } from './icons';
 import { AvatarCropModal } from './AvatarCropModal';
 import { LinkedAccounts } from './LinkedAccounts';
+import { MergeRequestBanner } from './MergeRequestBanner';
 import './AccountMenu.css';
 
 export type AccountMenuUser = {
@@ -38,6 +39,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
   const meQuery = useMe({ enabled: propUser === undefined });
 
   const u = propUser !== undefined ? propUser : meQuery.data?.user;
+  const incomingMerge = meQuery.data?.mergeRequests.incoming[0];
 
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -185,6 +187,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
       onClick={() => setOpen((prev) => !prev)}
     >
       <Avatar name={u.name} avatarUrl={u.avatarUrl} size="sm" />
+      {incomingMerge && (<span className="fsl-account-menu__dot" role="img" aria-label={t('merge.dot')} />)}
     </button>
   );
 
@@ -279,6 +282,8 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
           {t('account.saveProfile')}
         </Button>
       </div>
+
+      {incomingMerge && <MergeRequestBanner request={incomingMerge} />}
 
       {meQuery.data && <LinkedAccounts me={meQuery.data} />}
 

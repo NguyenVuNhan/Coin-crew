@@ -560,6 +560,14 @@ export const en = {
   'merge.outgoingAccepted': 'Accounts merged',
   'merge.outgoingDeclined': 'The other account declined the merge',
   'merge.cancel': 'Cancel',
+  'merge.incoming': '{name} ({who}) wants to merge this account into theirs',
+  'merge.review': 'Review & merge',
+  'merge.decline': 'Decline',
+  'merge.confirmTitle': 'Merge accounts?',
+  'merge.moves': "Your {groups} groups, bank details and history move to {name}'s account.",
+  'merge.released': '{provider} {email} will no longer sign in here',
+  'merge.confirm': 'Merge accounts',
+  'merge.dot': 'A merge request is waiting',
 } as const;
 
 export type MessageKey = keyof typeof en;

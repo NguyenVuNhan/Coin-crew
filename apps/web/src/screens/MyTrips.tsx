@@ -13,6 +13,7 @@ import { InlineError } from '../components/InlineError';
 import { Amount } from '../components/Amount';
 import { AccountMenu } from '../components/AccountMenu';
 import { Button } from '../components/Button';
+import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { Icon } from '../components/icons';
 import './MyTrips.css';
 
@@ -29,6 +30,7 @@ export function MyTrips() {
   });
 
   const user = meQuery.data?.user;
+  const incomingMerge = meQuery.data?.mergeRequests.incoming[0];
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
@@ -45,6 +47,7 @@ export function MyTrips() {
     >
       <ConsentSheet />
       <div className="fsl-my-trips">
+        {incomingMerge && <MergeRequestBanner request={incomingMerge} />}
         {!isEmpty && (
           <Button variant="primary" block href="/trips/new">
             {t('trips.new')}

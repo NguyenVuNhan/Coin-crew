@@ -560,5 +560,13 @@ export const vi: Record<MessageKey, string> = {
   'merge.outgoingAccepted': 'Đã gộp tài khoản', // REVIEW
   'merge.outgoingDeclined': 'Tài khoản kia đã từ chối gộp', // REVIEW
   'merge.cancel': 'Huỷ', // REVIEW
+  'merge.incoming': '{name} ({who}) muốn gộp tài khoản này vào tài khoản của họ', // REVIEW
+  'merge.review': 'Xem & gộp', // REVIEW
+  'merge.decline': 'Từ chối', // REVIEW
+  'merge.confirmTitle': 'Gộp tài khoản?', // REVIEW
+  'merge.moves': '{groups} nhóm, tài khoản ngân hàng và lịch sử của bạn sẽ chuyển sang tài khoản của {name}.', // REVIEW
+  'merge.released': '{provider} {email} sẽ không còn đăng nhập vào đây', // REVIEW
+  'merge.confirm': 'Gộp tài khoản', // REVIEW
+  'merge.dot': 'Có yêu cầu gộp tài khoản', // REVIEW
 };
 

@@ -4,6 +4,7 @@
 }
 
 .fsl-account-menu__trigger {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15,6 +16,17 @@
   background: transparent;
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.fsl-account-menu__dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-danger);
+  box-shadow: 0 0 0 2px var(--color-surface);
 }
 
 .fsl-account-menu__trigger:hover {
