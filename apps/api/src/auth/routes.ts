@@ -9,10 +9,19 @@ import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { participants, sessions, trips, users } from '../db/schema';
 import { ApiError } from '../lib/errors';
-import { newId, nowIso, sha256Hex } from '../lib/ids';
+import { nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
+import { upsertIdentity } from './identity';
 import { buildMeResponse, toMeUserView } from './me';
 import { createSession, getSessionUser, requireUser, setSessionCookie } from './session';
+import {
+  exchangeZaloCode,
+  fetchZaloProfile,
+  zaloAuthorizeUrl,
+  zaloConfigured,
+  zaloPkce,
+  ZaloError,
+} from './zalo';
 
 /** Only same-site paths: "/x" but not "//host" or "/\host" (browsers read a backslash as a slash). */
 export function safeReturnTo(raw: string | undefined): string {
@@ -20,6 +29,14 @@ export function safeReturnTo(raw: string | undefined): string {
   const base = 'https://app.invalid';
   const url = new URL(raw, base);
   return url.origin === base ? url.pathname + url.search + url.hash : '/trips';
+}
+
+export function withQuery(path: string, key: string, value: string): string {
+  const hashIndex = path.indexOf('#');
+  const base = hashIndex === -1 ? path : path.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? '' : path.slice(hashIndex);
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}${key}=${encodeURIComponent(value)}${hash}`;
 }
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -33,10 +50,12 @@ async function parseJson<T>(c: Context): Promise<T> {
 export function authRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
-  app.get('/auth/google/start', (c) => {
+  app.get('/auth/google/start', async (c) => {
     const rawReturnTo = c.req.query('returnTo');
     const returnTo =
       safeReturnTo(rawReturnTo);
+    const user = await getSessionUser(c);
+    const intent = c.req.query('intent') === 'link' && user ? 'link' : 'signin';
 
     const state = generateState();
     const verifier = generateCodeVerifier();
@@ -51,6 +70,7 @@ export function authRoutes(): Hono<AppBindings> {
     setCookie(c, 'oauth_state', state, cookieOpts);
     setCookie(c, 'oauth_verifier', verifier, cookieOpts);
     setCookie(c, 'oauth_return', returnTo, cookieOpts);
+    setCookie(c, 'oauth_intent', intent, cookieOpts);
 
     const url = googleClient(c.env).createAuthorizationURL(state, verifier, GOOGLE_SCOPES);
     return c.redirect(url.toString(), 302);
@@ -75,40 +95,12 @@ export function authRoutes(): Hono<AppBindings> {
     };
 
     const db = getDb(c.env);
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.googleSub, claims.sub))
-      .get();
-
-    let userId: string;
-    if (existingUser) {
-      userId = existingUser.id;
-      const updates: Partial<typeof users.$inferInsert> = {
-        email: claims.email,
-      };
-      if (existingUser.customProfile === 0) {
-        updates.name = claims.name ?? claims.email;
-      }
-      if ((existingUser.customProfile === 0 || !existingUser.avatarUrl) && claims.picture) {
-        updates.avatarUrl = claims.picture;
-      }
-      await db
-        .update(users)
-        .set(updates)
-        .where(eq(users.id, userId));
-    } else {
-      userId = newId();
-      await db.insert(users).values({
-        id: userId,
-        googleSub: claims.sub,
-        email: claims.email,
-        name: claims.name ?? claims.email,
-        avatarUrl: claims.picture ?? null,
-        customProfile: 0,
-        createdAt: nowIso(),
-      });
-    }
+    const userId = await upsertIdentity(db, 'google', {
+      sub: claims.sub,
+      email: claims.email,
+      name: claims.name ?? claims.email,
+      avatarUrl: claims.picture ?? null,
+    });
 
     const token = await createSession(db, userId);
     setSessionCookie(c, token);
@@ -120,8 +112,85 @@ export function authRoutes(): Hono<AppBindings> {
     deleteCookie(c, 'oauth_state', { path: '/' });
     deleteCookie(c, 'oauth_verifier', { path: '/' });
     deleteCookie(c, 'oauth_return', { path: '/' });
+    deleteCookie(c, 'oauth_intent', { path: '/' });
 
     return c.redirect(returnTo, 302);
+  });
+
+  app.get('/auth/zalo/start', async (c) => {
+    if (!zaloConfigured(c.env)) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+    const rawReturnTo = c.req.query('returnTo');
+    const returnTo = safeReturnTo(rawReturnTo);
+    const user = await getSessionUser(c);
+    const intent = c.req.query('intent') === 'link' && user ? 'link' : 'signin';
+
+    const state = generateState();
+    const { verifier, challenge } = await zaloPkce();
+
+    const cookieOpts = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax' as const,
+      path: '/',
+      maxAge: 600,
+    };
+    setCookie(c, 'zalo_oauth_state', state, cookieOpts);
+    setCookie(c, 'zalo_oauth_verifier', verifier, cookieOpts);
+    setCookie(c, 'zalo_oauth_return', returnTo, cookieOpts);
+    setCookie(c, 'zalo_oauth_intent', intent, cookieOpts);
+
+    return c.redirect(zaloAuthorizeUrl(c.env, state, challenge).toString(), 302);
+  });
+
+  app.get('/auth/zalo/callback', async (c) => {
+    const oauthState = getCookie(c, 'zalo_oauth_state');
+    const oauthVerifier = getCookie(c, 'zalo_oauth_verifier');
+    const oauthReturn = getCookie(c, 'zalo_oauth_return');
+
+    const failure = () => {
+      deleteCookie(c, 'zalo_oauth_state', { path: '/' });
+      deleteCookie(c, 'zalo_oauth_verifier', { path: '/' });
+      deleteCookie(c, 'zalo_oauth_return', { path: '/' });
+      deleteCookie(c, 'zalo_oauth_intent', { path: '/' });
+      return c.redirect(
+        withQuery(oauthReturn ? safeReturnTo(oauthReturn) : '/', 'auth', 'failed'),
+        302,
+      );
+    };
+
+    const error = c.req.query('error');
+    const code = c.req.query('code');
+    const state = c.req.query('state');
+
+    if (error || !code || !state || !oauthVerifier || state !== oauthState) {
+      return failure();
+    }
+
+    let profile: { sub: string; name: string; avatarUrl: string | null };
+    try {
+      const accessToken = await exchangeZaloCode(c.env, code, oauthVerifier);
+      profile = await fetchZaloProfile(accessToken);
+    } catch (e) {
+      if (e instanceof ZaloError) {
+        return failure();
+      }
+      throw e;
+    }
+
+    // Every intent is treated as signin for now; link branch is added in Task 13.
+    const db = getDb(c.env);
+    const userId = await upsertIdentity(db, 'zalo', profile);
+    const token = await createSession(db, userId);
+    setSessionCookie(c, token);
+
+    deleteCookie(c, 'zalo_oauth_state', { path: '/' });
+    deleteCookie(c, 'zalo_oauth_verifier', { path: '/' });
+    deleteCookie(c, 'zalo_oauth_return', { path: '/' });
+    deleteCookie(c, 'zalo_oauth_intent', { path: '/' });
+
+    return c.redirect(safeReturnTo(oauthReturn), 302);
   });
 
   app.post('/auth/logout', async (c) => {
