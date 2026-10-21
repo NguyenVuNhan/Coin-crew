@@ -24,6 +24,7 @@ export function App() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
       <Route path="/j/:token" element={<Join />} />
+      <Route path="/j/:token/e/:expenseId" element={<Join />} />
       <Route path="/t/:tripId" element={<TripRoute />} />
       <Route path="/t/:tripId/who" element={<WhoAreYou />} />
       <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />

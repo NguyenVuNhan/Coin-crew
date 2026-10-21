@@ -1,5 +1,5 @@
 import { useState, useEffect, useId } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView } from '@fsl/core';
 import { normalizeName } from '@fsl/core';
@@ -16,14 +16,29 @@ import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
 import './WhoAreYou.css';
 
+export function safeTripPath(next: string | null, tripId: string): string {
+  const fallback = `/t/${tripId}`;
+  if (!next) return fallback;
+  if (next !== fallback && !next.startsWith(`${fallback}/`)) return fallback;
+  if (next.includes('//') || next.includes('\\')) return fallback;
+  for (let i = 0; i < next.length; i++) {
+    const code = next.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return fallback;
+  }
+  return next;
+}
+
 export function WhoAreYou() {
   const { tripId } = useParams<{ tripId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const t = useT();
 
+  const target = safeTripPath(searchParams.get('next'), tripId ?? '');
+
   const guestNoteId = useId();
-  const signInHref = `/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`;
+  const signInHref = `/api/auth/google/start?returnTo=${encodeURIComponent(target)}`;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -66,7 +81,7 @@ export function WhoAreYou() {
         tripId,
       );
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      navigate(`/t/${tripId}`);
+      navigate(target);
     } catch (err) {
       setActionError(err);
     } finally {
@@ -180,7 +195,7 @@ export function WhoAreYou() {
                   return (
                     <a
                       key={person.id}
-                      href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`}
+                      href={`/api/auth/google/start?returnTo=${encodeURIComponent(target)}`}
                       className="fsl-who__row fsl-who__row--member"
                     >
                       <Avatar name={person.name} />

@@ -19,7 +19,7 @@ import { usePayInfo } from '../api/payInfo';
 import { useQrSvg, qrSrc, shareSportBill, renderSportBillPng, type SportBillCardInput } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useImageSheet } from './SaveImageSheet';
-import { sportShareText, groupLink } from '../lib/remind';
+import { sportShareText, expenseLink } from '../lib/remind';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import './ExpenseDetails.css';
 
@@ -132,8 +132,8 @@ export function ExpenseDetails({
   }, [e, shares, view]);
 
   const msgText = useMemo(() => {
-    if (!sportCalc) return '';
-    const link = groupLink(view);
+    if (!sportCalc || !e) return '';
+    const link = expenseLink(view, e.rootId ?? e.id);
     return sportShareText(lang, {
       court: sportCalc.court,
       shuttlecocksTotal: sportCalc.shuttlecocksTotal,
@@ -145,7 +145,7 @@ export function ExpenseDetails({
       participants: sportCalc.participants,
       link,
     });
-  }, [sportCalc, lang, view]);
+  }, [sportCalc, lang, view, e]);
 
   if (!e) {
     return (
