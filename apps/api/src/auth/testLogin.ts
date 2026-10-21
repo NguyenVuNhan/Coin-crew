@@ -12,11 +12,17 @@ export function testLoginRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
   app.post('/test/login', async (c) => {
     if (c.env.E2E_LOGIN !== '1') throw new ApiError('NOT_FOUND', 404, 'Not found');
-    const { sub, name, email } = await c.req.json<{ sub: string; name: string; email: string }>();
+    const { sub, name, email, provider = 'google' } = await c.req.json<{ sub: string; name: string; email?: string; provider?: 'google' | 'zalo' }>();
     const db = getDb(c.env);
-    const existing = await db.select().from(users).where(eq(users.googleSub, sub)).get();
+    const existing = await db.select().from(users).where(eq(provider === 'zalo' ? users.zaloSub : users.googleSub, sub)).get();
     const userId = existing?.id ?? newId();
-    if (!existing) await db.insert(users).values({ id: userId, googleSub: sub, email, name, createdAt: nowIso() });
+    if (!existing) await db.insert(users).values({
+      id: userId,
+      ...(provider === 'zalo' ? { zaloSub: sub } : { googleSub: sub }),
+      email: email ?? null,
+      name,
+      createdAt: nowIso(),
+    });
     setSessionCookie(c, await createSession(db, userId));
     return c.json({ userId });
   });

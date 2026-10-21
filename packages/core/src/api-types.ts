@@ -53,7 +53,7 @@ import type { MatchReason, NameCandidate } from './names';
 
 export interface MeUserView {
   id: string;
-  email: string;
+  email: string | null;
   name: string;
   gender?: Gender | null;
   avatarUrl?: string | null;
@@ -146,7 +146,7 @@ export type Approval =
   | { kind: 'bank'; bankId: string; participantId: string; bankName: string; accountNumber: string; holderName: string }
   | { kind: 'payment'; paymentId: string }
   | { kind: 'not_arrived'; paymentId: string }
-  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string };
+  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null };
 export interface TripView {
   trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi' };
   me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
