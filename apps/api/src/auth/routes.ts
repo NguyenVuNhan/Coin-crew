@@ -11,7 +11,7 @@ import { participants, sessions, trips, users } from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
-import { upsertIdentity } from './identity';
+import { linkIdentity, upsertIdentity } from './identity';
 import { buildMeResponse, toMeUserView } from './me';
 import { createSession, getSessionUser, requireUser, setSessionCookie } from './session';
 import {
@@ -45,6 +45,13 @@ async function parseJson<T>(c: Context): Promise<T> {
   } catch {
     throw new ApiError('VALIDATION', 422, 'Invalid request');
   }
+}
+
+function clearOauthCookies(c: Context, prefix: 'oauth' | 'zalo_oauth'): void {
+  deleteCookie(c, `${prefix}_state`, { path: '/' });
+  deleteCookie(c, `${prefix}_verifier`, { path: '/' });
+  deleteCookie(c, `${prefix}_return`, { path: '/' });
+  deleteCookie(c, `${prefix}_intent`, { path: '/' });
 }
 
 export function authRoutes(): Hono<AppBindings> {
@@ -95,6 +102,30 @@ export function authRoutes(): Hono<AppBindings> {
     };
 
     const db = getDb(c.env);
+    const oauthReturn = getCookie(c, 'oauth_return');
+    const intent = getCookie(c, 'oauth_intent');
+
+    if (intent === 'link') {
+      const user = await getSessionUser(c);
+      if (!user) {
+        clearOauthCookies(c, 'oauth');
+        return c.redirect(withQuery(safeReturnTo(oauthReturn), 'auth', 'failed'), 302);
+      }
+      const outcome = await linkIdentity(db, user.id, 'google', {
+        sub: claims.sub,
+        email: claims.email,
+        name: claims.name ?? claims.email,
+        avatarUrl: claims.picture ?? null,
+      });
+      clearOauthCookies(c, 'oauth');
+      const target = safeReturnTo(oauthReturn);
+      const destination =
+        outcome.result === 'linked'
+          ? withQuery(target, 'linked', 'google')
+          : withQuery(withQuery(target, 'merge', 'requested'), 'provider', 'google');
+      return c.redirect(destination, 302);
+    }
+
     const userId = await upsertIdentity(db, 'google', {
       sub: claims.sub,
       email: claims.email,
@@ -105,14 +136,8 @@ export function authRoutes(): Hono<AppBindings> {
     const token = await createSession(db, userId);
     setSessionCookie(c, token);
 
-    const oauthReturn = getCookie(c, 'oauth_return');
-    const returnTo =
-      safeReturnTo(oauthReturn);
-
-    deleteCookie(c, 'oauth_state', { path: '/' });
-    deleteCookie(c, 'oauth_verifier', { path: '/' });
-    deleteCookie(c, 'oauth_return', { path: '/' });
-    deleteCookie(c, 'oauth_intent', { path: '/' });
+    const returnTo = safeReturnTo(oauthReturn);
+    clearOauthCookies(c, 'oauth');
 
     return c.redirect(returnTo, 302);
   });
@@ -150,10 +175,7 @@ export function authRoutes(): Hono<AppBindings> {
     const oauthReturn = getCookie(c, 'zalo_oauth_return');
 
     const failure = () => {
-      deleteCookie(c, 'zalo_oauth_state', { path: '/' });
-      deleteCookie(c, 'zalo_oauth_verifier', { path: '/' });
-      deleteCookie(c, 'zalo_oauth_return', { path: '/' });
-      deleteCookie(c, 'zalo_oauth_intent', { path: '/' });
+      clearOauthCookies(c, 'zalo_oauth');
       return c.redirect(
         withQuery(oauthReturn ? safeReturnTo(oauthReturn) : '/', 'auth', 'failed'),
         302,
@@ -176,19 +198,33 @@ export function authRoutes(): Hono<AppBindings> {
       if (e instanceof ZaloError) {
         return failure();
       }
+      clearOauthCookies(c, 'zalo_oauth');
       throw e;
     }
 
-    // Every intent is treated as signin for now; link branch is added in Task 13.
     const db = getDb(c.env);
+    const intent = getCookie(c, 'zalo_oauth_intent');
+
+    if (intent === 'link') {
+      const user = await getSessionUser(c);
+      if (!user) {
+        return failure();
+      }
+      const outcome = await linkIdentity(db, user.id, 'zalo', profile);
+      clearOauthCookies(c, 'zalo_oauth');
+      const target = safeReturnTo(oauthReturn);
+      const destination =
+        outcome.result === 'linked'
+          ? withQuery(target, 'linked', 'zalo')
+          : withQuery(withQuery(target, 'merge', 'requested'), 'provider', 'zalo');
+      return c.redirect(destination, 302);
+    }
+
     const userId = await upsertIdentity(db, 'zalo', profile);
     const token = await createSession(db, userId);
     setSessionCookie(c, token);
 
-    deleteCookie(c, 'zalo_oauth_state', { path: '/' });
-    deleteCookie(c, 'zalo_oauth_verifier', { path: '/' });
-    deleteCookie(c, 'zalo_oauth_return', { path: '/' });
-    deleteCookie(c, 'zalo_oauth_intent', { path: '/' });
+    clearOauthCookies(c, 'zalo_oauth');
 
     return c.redirect(safeReturnTo(oauthReturn), 302);
   });

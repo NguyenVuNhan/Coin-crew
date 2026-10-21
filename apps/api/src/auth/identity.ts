@@ -1,7 +1,7 @@
 import type { AuthProvider } from '@fsl/core';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { users } from '../db/schema';
+import { accountMergeRequests, users } from '../db/schema';
 import { newId, nowIso } from '../lib/ids';
 
 export async function upsertIdentity(
@@ -44,4 +44,60 @@ export async function upsertIdentity(
     createdAt: nowIso(),
   });
   return id;
+}
+
+export async function linkIdentity(
+  db: Db,
+  userId: string,
+  provider: AuthProvider,
+  profile: { sub: string; name: string; avatarUrl: string | null; email?: string },
+): Promise<{ result: 'linked' } | { result: 'merge_requested'; requestId: string }> {
+  const owner = await db
+    .select()
+    .from(users)
+    .where(provider === 'google' ? eq(users.googleSub, profile.sub) : eq(users.zaloSub, profile.sub))
+    .get();
+
+  if (owner) {
+    if (owner.id === userId) {
+      return { result: 'linked' };
+    }
+
+    const now = nowIso();
+    await db
+      .update(accountMergeRequests)
+      .set({ status: 'cancelled', decidedAt: now })
+      .where(
+        and(
+          eq(accountMergeRequests.survivorUserId, userId),
+          eq(accountMergeRequests.mergedUserId, owner.id),
+          eq(accountMergeRequests.status, 'pending'),
+        ),
+      );
+
+    const requestId = newId();
+    const expiresAt = new Date(Date.parse(now) + 7 * 86400000).toISOString();
+    await db.insert(accountMergeRequests).values({
+      id: requestId,
+      survivorUserId: userId,
+      mergedUserId: owner.id,
+      provider,
+      providerSub: profile.sub,
+      status: 'pending',
+      createdAt: now,
+      expiresAt,
+    });
+
+    return { result: 'merge_requested', requestId };
+  }
+
+  const updates: Partial<typeof users.$inferInsert> = {
+    ...(provider === 'google' ? { googleSub: profile.sub } : { zaloSub: profile.sub }),
+  };
+  if (provider === 'google' && profile.email && profile.email.trim() !== '') {
+    updates.email = profile.email.trim();
+  }
+
+  await db.update(users).set(updates).where(eq(users.id, userId));
+  return { result: 'linked' };
 }
