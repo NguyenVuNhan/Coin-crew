@@ -134,10 +134,10 @@ describe('WhoAreYou search', () => {
     mockApi({ 'GET /api/trips/t-1/people/picker': picker() });
     renderAt(<WhoAreYou />, route);
     const minh = await screen.findByRole('link', { name: /Minh/ });
-    expect(within(minh).getByText('Has an account · sign in with Google')).toBeInTheDocument();
+    expect(within(minh).getByText('Has an account · tap to sign in')).toBeInTheDocument();
     expect(screen.queryByText(/Signed in/)).toBeNull();
     // Only members get the line.
-    expect(screen.getAllByText('Has an account · sign in with Google')).toHaveLength(1);
+    expect(screen.getAllByText('Has an account · tap to sign in')).toHaveLength(1);
   });
 });
 

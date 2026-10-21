@@ -17,6 +17,7 @@ import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import { TripTabs } from '../components/TripTabs';
+import { SignInButtons } from '../components/SignInButtons';
 import './GuestTrip.css';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
@@ -122,12 +123,11 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       ) : (
         view.me.kind === 'guest' &&
         !archived && (
-          <a
-            href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${view.trip.id}?becomeMember=1`)}`}
-            className="fsl-button fsl-button--ghost"
-          >
-            {t('guest.becomeMember')}
-          </a>
+          <SignInButtons
+            layout="inline"
+            returnTo={`/t/${view.trip.id}?becomeMember=1`}
+            labels={{ google: 'guest.becomeMember', zalo: 'guest.becomeMemberZalo' }}
+          />
         )
       )}
     </footer>

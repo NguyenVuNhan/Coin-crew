@@ -129,7 +129,7 @@ export const vi: Record<MessageKey, string> = {
   'who.title': 'Bạn là ai?', // REVIEW
   'who.subtitle': 'Chọn tên của bạn để tiếp tục.', // REVIEW
   'who.continueAs': 'Tiếp tục với tên {name}', // REVIEW
-  'who.hasAccount': 'Có tài khoản · đăng nhập bằng Google', // REVIEW
+  'who.hasAccount': 'Đã có tài khoản · nhấn để đăng nhập', // REVIEW
   'who.search': 'Tìm tên', // REVIEW
   'who.clearSearch': 'Xóa tìm kiếm', // REVIEW
   'who.count': '{shown} trên {total} người', // REVIEW
@@ -485,6 +485,12 @@ export const vi: Record<MessageKey, string> = {
   'who.guestTitle': 'Bạn tham gia với tư cách khách', // REVIEW
   'who.guestExpenses': 'Khoản chi bạn thêm cần một thành viên duyệt.', // REVIEW
   'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
+  'signIn.zalo': 'Đăng nhập bằng Zalo', // REVIEW
+  'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.', // REVIEW
+  'guest.becomeMemberZalo': 'Đăng nhập bằng Zalo để trở thành thành viên', // REVIEW
+  'who.guestSignInZalo': 'Đăng nhập bằng Zalo để dùng đầy đủ', // REVIEW
+  'who.nameMatch': 'Có phải bạn là {name}? Đã chọn sẵn theo tên tài khoản của bạn.', // REVIEW
+  'who.signInTitle': 'Đăng nhập', // REVIEW
   'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ', // REVIEW
   'myBank.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'myBank.none': 'Chưa có thông tin ngân hàng', // REVIEW

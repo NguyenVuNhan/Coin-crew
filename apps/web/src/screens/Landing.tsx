@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useMe } from '../api/hooks';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
+import { SignInButtons } from '../components/SignInButtons';
 import { Icon, type IconName } from '../components/icons';
 import { LanguageButton } from '../components/LanguageButton';
 import './Landing.css';
@@ -34,8 +34,6 @@ export function Landing() {
     return null;
   }
 
-  const signInUrl = `/api/auth/google/start?returnTo=${encodeURIComponent('/trips')}`;
-
   return (
     <Screen title={APP_NAME} right={<LanguageButton />}>
       <div className="fsl-landing">
@@ -54,9 +52,7 @@ export function Landing() {
           <p className="fsl-landing__tagline">{t('landing.tagline')}</p>
         </section>
 
-        <Button variant="primary" block href={signInUrl}>
-          {t('landing.signIn')}
-        </Button>
+        <SignInButtons layout="stack" returnTo="/trips" />
 
         <section className="fsl-landing__how">
           <h2 className="fsl-landing__section-title">{t('landing.howItWorks')}</h2>
