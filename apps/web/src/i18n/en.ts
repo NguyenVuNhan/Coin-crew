@@ -141,6 +141,10 @@ export const en = {
   'who.inTrip': 'Already in this trip',
   'who.similar': '"{typed}" looks like "{name}", who\'s already in this trip.',
   'who.newPendingNote': 'A member checks new names before they show up in the trip.',
+  'who.joinAs': 'Not on the list? Join as {name}',
+  'who.joinButton': 'Join as {name}',
+  'who.rejoinAs': 'Rejoin as {name}',
+  'who.rejoinHint': 'You left this group · your past expenses are still here',
 
   'guest.viewingAs': 'Viewing as {name}',
   'guest.switch': 'Not {name}? Switch',

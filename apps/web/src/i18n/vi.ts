@@ -141,6 +141,10 @@ export const vi: Record<MessageKey, string> = {
   'who.inTrip': 'Đã có trong chuyến đi này', // REVIEW
   'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong chuyến đi này.', // REVIEW
   'who.newPendingNote': 'Một thành viên sẽ kiểm tra tên mới trước khi xuất hiện trong chuyến đi.', // REVIEW
+  'who.joinAs': 'Không có trong danh sách? Tham gia với tên {name}', // REVIEW
+  'who.joinButton': 'Tham gia với tên {name}', // REVIEW
+  'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
+  'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn', // REVIEW
 
   'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
   'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
