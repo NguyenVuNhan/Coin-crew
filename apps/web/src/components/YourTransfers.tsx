@@ -15,6 +15,7 @@ import { Button } from './Button';
 import { Icon } from './icons';
 import { InlineError } from './InlineError';
 import { PayQr } from './PayQr';
+import { Pill } from './Pill';
 import { Skeleton } from './Skeleton';
 import { Snackbar } from './Snackbar';
 import './YourTransfers.css';
@@ -237,6 +238,9 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
   // Ticks confirm that money moved: only for someone who can record payments right now.
   const canTick = me !== null && !view.trip.archived && view.me.kind !== 'viewer' && !view.me.participantPending;
   const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
+  // Someone who left still shows here until settled, marked so nobody wonders why they are not in the group.
+  const leftIn = (s: Transfer) => [s.fromId, s.toId].some((id) => view.people.find((p) => p.id === id)?.status === 'left');
+  const leftPill = <Pill tone="neutral">{t('people.leftBadge')}</Pill>;
   /** A guest paying me ('received') or my own debt ('paid'). A member paying me marks it themselves, so no tick. */
   const tickOf = (s: Transfer): 'received' | 'paid' | null => {
     if (!canTick) return null;
@@ -330,6 +334,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                       >
                         <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                         <span className={`fsl-transfers__text${done ? ' fsl-transfers__text--done' : ''}`}>{rowTitle}</span>
+                        {leftIn(s) && leftPill}
                         <Amount value={s.amount} />
                         <Icon
                           name={isOpen ? 'chevronUp' : 'chevronDown'}
@@ -347,6 +352,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                     <div className={`fsl-transfers__plain${aligned ? ' fsl-transfers__plain--aligned' : ''}`}>
                       <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                       <span className="fsl-transfers__text">{rowTitle}</span>
+                      {leftIn(s) && leftPill}
                       <Amount value={s.amount} />
                     </div>
                   )}

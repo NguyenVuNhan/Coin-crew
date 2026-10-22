@@ -408,6 +408,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.nameApproved': '{actor} đã duyệt {name}', // REVIEW
   'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
   'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
+  'activity.personRestored': '{actor} đã thêm lại {name}', // REVIEW
   'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
   'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
   'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
@@ -420,6 +421,10 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.name_approved': 'đã duyệt tên mới', // REVIEW
   'activity.action.name_merged': 'đã hợp nhất hai tên', // REVIEW
   'activity.action.person_removed': 'đã xóa một người', // REVIEW
+  'activity.action.person_left': 'đã rời nhóm', // REVIEW
+  'activity.action.person_restored': 'đã thêm lại một người', // REVIEW
+  'activity.action.member_joined': 'đã tham gia', // REVIEW
+  'activity.action.member_rejoined': 'đã vào lại', // REVIEW
   'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng', // REVIEW
   'activity.action.bank_approved': 'đã duyệt thông tin ngân hàng', // REVIEW
   'activity.action.bank_rejected': 'đã từ chối thông tin ngân hàng', // REVIEW
