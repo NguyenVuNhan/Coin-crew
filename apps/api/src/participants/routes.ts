@@ -103,9 +103,42 @@ export function participantRoutes(): Hono<AppBindings> {
       };
     });
 
+    const user = await getSessionUser(c);
+    const account =
+      user && actor.kind !== 'member'
+        ? {
+            name: user.name,
+            needsGender:
+              actor.trip.preset === 'sport' &&
+              user.gender !== 'M' &&
+              user.gender !== 'F',
+          }
+        : null;
+
+    let myLeftName: { id: string; name: string } | null = null;
+    if (account) {
+      const left = await db
+        .select({ id: participants.id, name: participants.name })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.tripId, tripId),
+            eq(participants.userId, user!.id),
+            eq(participants.status, 'left'),
+          ),
+        )
+        .get();
+
+      if (left) {
+        myLeftName = { id: left.id, name: left.name };
+      }
+    }
+
     const view: PickerView = {
       people,
       myPick: actor.participantId,
+      account,
+      myLeftName,
     };
 
     return c.json(view);
@@ -761,6 +794,22 @@ export function participantRoutes(): Hono<AppBindings> {
 
     if (!req) {
       throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const existingActive = await db
+      .select({ id: participants.id })
+      .from(participants)
+      .where(
+        and(
+          eq(participants.tripId, tripId),
+          eq(participants.userId, req.userId),
+          eq(participants.status, 'active'),
+        ),
+      )
+      .get();
+
+    if (existingActive) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
     const r = await db
