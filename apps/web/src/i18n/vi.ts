@@ -361,6 +361,9 @@ export const vi: Record<MessageKey, string> = {
   'settings.language': 'Ngôn ngữ', // REVIEW
   'settings.dangerZone': 'Vùng nguy hiểm', // REVIEW
   'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ.', // REVIEW
+  'settings.leave': 'Rời nhóm', // REVIEW
+  'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.', // REVIEW
+  'settings.leaveConfirm': 'Rời {group}?', // REVIEW
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW

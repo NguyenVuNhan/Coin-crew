@@ -361,6 +361,9 @@ export const en = {
   'settings.language': 'Language',
   'settings.dangerZone': 'Danger zone',
   'settings.archiveHint': 'Nobody can change an archived trip.',
+  'settings.leave': 'Leave group',
+  'settings.leaveHint': 'The group leaves your list. Your past expenses stay, and you can rejoin from the group link.',
+  'settings.leaveConfirm': 'Leave {group}?',
 
   'people.title': 'People',
   'people.organiser': 'Organiser',

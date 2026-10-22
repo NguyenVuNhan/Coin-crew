@@ -48,11 +48,12 @@ describe('Settings', () => {
     expect(screen.queryByText('Language')).toBeNull();
   });
 
-  it('only the organiser can archive', async () => {
+  it('only the organiser can archive; other members can leave', async () => {
     mockApi({ 'GET /api/trips/t-1': anView() });
     const { unmount } = renderAt(<Settings />, at('settings'));
     await screen.findByRole('switch', { name: 'Fewest transfers' });
-    expect(screen.queryByText('Danger zone')).toBeNull();
+    expect(screen.getByText('Danger zone')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Leave group' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Archive group' })).toBeNull();
     expect(screen.queryByText('Nobody can change an archived trip.')).toBeNull();
     unmount();
