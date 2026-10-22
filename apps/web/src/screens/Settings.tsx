@@ -43,12 +43,15 @@ export function Settings() {
 
   if (!view) return null;
 
+  const archived = view.trip.archived;
+
+  // Archiving asks first; unarchiving loses nothing, so it doesn't.
   const handleArchive = async () => {
-    if (!window.confirm(t('settings.archiveConfirm'))) return;
+    if (!archived && !window.confirm(t('settings.archiveConfirm'))) return;
     setArchiving(true);
     setArchiveError(null);
     try {
-      await apiSend(`/api/trips/${tripId}/archive`, 'POST', undefined, tripId);
+      await apiSend(`/api/trips/${tripId}/${archived ? 'unarchive' : 'archive'}`, 'POST', undefined, tripId);
       await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
       navigate(`/t/${tripId}`);
     } catch (err) {
@@ -83,10 +86,20 @@ export function Settings() {
           <FewestSwitch view={view} />
         )}
 
-        {view.trip.archived ? (
-          <div className="fsl-notice fsl-notice--muted">
-            {t('settings.archived')}
-          </div>
+        {archived ? (
+          <>
+            <div className="fsl-notice fsl-notice--muted">
+              {t('settings.archived')}
+            </div>
+            {view.me.isOrganiser && (
+              <div className="fsl-settings__restore">
+                <Button variant="secondary" block loading={archiving} onClick={handleArchive}>
+                  {t('settings.unarchive')}
+                </Button>
+                <p className="fsl-settings__hint">{t('settings.unarchiveHint')}</p>
+              </div>
+            )}
+          </>
         ) : view.me.isOrganiser ? (
           <section className="fsl-settings__danger" aria-labelledby={headingId}>
             <h2 className="fsl-settings__heading" id={headingId}>

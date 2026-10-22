@@ -283,4 +283,26 @@ describe('trip view', () => {
     expect((await call(`/api/trips/${T.tripId}`, { headers: await guestHeaders(undefined, T.viewToken) })).status).toBe(200);
     expect((await view(headers)).trip.archived).toBe(true);
   });
+
+  it('only the organiser unarchives, and writes work again', async () => {
+    const anSid = await linkMember(PID.A, U.an, 'An');
+    const headers = await minh();
+    expect((await call(`/api/trips/${T.tripId}/archive`, { method: 'POST', headers })).status).toBe(204);
+    expect((await call(`/api/trips/${T.tripId}/unarchive`, { method: 'POST', headers: { Cookie: `sid=${anSid}` } })).status).toBe(403);
+    expect((await call(`/api/trips/${T.tripId}/unarchive`, { method: 'POST', headers })).status).toBe(204);
+    expect((await view(headers)).trip.archived).toBe(false);
+    const patch = await call(`/api/trips/${T.tripId}`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ fewestTransfers: false }) });
+    expect(patch.status).toBe(204);
+    const acts = await json<ActivityItem[]>(call(`/api/trips/${T.tripId}/activity`, { headers }));
+    expect(acts.map((a) => a.action).slice(0, 3)).toEqual(['fewest_changed', 'trip_unarchived', 'trip_archived']);
+  });
+
+  it('unarchiving a live trip changes nothing', async () => {
+    const headers = await minh();
+    const before = (await view(headers)).trip.version;
+    expect((await call(`/api/trips/${T.tripId}/unarchive`, { method: 'POST', headers })).status).toBe(204);
+    expect((await view(headers)).trip.version).toBe(before);
+    const acts = await json<ActivityItem[]>(call(`/api/trips/${T.tripId}/activity`, { headers }));
+    expect(acts.some((a) => a.action === 'trip_unarchived')).toBe(false);
+  });
 });
