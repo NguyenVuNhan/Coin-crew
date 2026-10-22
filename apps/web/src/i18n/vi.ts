@@ -375,6 +375,14 @@ export const vi: Record<MessageKey, string> = {
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.remove': 'Xóa', // REVIEW
   'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
+  'people.removeConfirm': 'Xóa {name} khỏi nhóm? Các khoản chi và thanh toán trước đây vẫn được giữ.', // REVIEW
+  'people.cannotRemove': 'Bạn không thể xóa người này.', // REVIEW
+  'people.leftTitle': 'Đã rời nhóm', // REVIEW
+  'people.leftBadge': 'Đã rời', // REVIEW
+  'people.leftOwes': 'Còn nợ {amount}', // REVIEW
+  'people.leftOwed': 'Cần nhận {amount}', // REVIEW
+  'people.leftSettled': 'Đã thanh toán xong', // REVIEW
+  'people.restore': 'Thêm lại', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
