@@ -442,6 +442,30 @@ export function tripRoutes(): Hono<AppBindings> {
     return c.body(null, 204);
   });
 
+  // POST /trips/:id/unarchive: the one write an archived trip accepts, so no assertWritable.
+  app.post('/trips/:id/unarchive', async (c) => {
+    const tripId = c.req.param('id');
+    const actor = await resolveActor(c, tripId);
+    ensure(actor, 'unarchive');
+    if (!actor.trip.archivedAt) return c.body(null, 204);
+
+    const db = getDb(c.env);
+    const updateQuery = db
+      .update(trips)
+      .set({ archivedAt: null })
+      .where(eq(trips.id, tripId));
+
+    await commitTripWrite(db, tripId, [updateQuery], {
+      action: 'trip_unarchived',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: {},
+    });
+
+    return c.body(null, 204);
+  });
+
   // PATCH /trips/:id
   app.patch('/trips/:id', async (c) => {
     const tripId = c.req.param('id');
