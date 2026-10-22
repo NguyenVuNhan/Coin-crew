@@ -24,6 +24,7 @@ import { SplitModePicker } from '../components/SplitModePicker';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
+import { Pill } from '../components/Pill';
 import { InlineError } from '../components/InlineError';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { Icon } from '../components/icons';
@@ -118,13 +119,19 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   const isEdit = Boolean(expenseId);
   const me = view.me.participantId;
 
+  // People who left stay only on an expense they are already on; a new expense never offers them.
+  const formPeople = useMemo(() => {
+    const onExpense = new Set(expense ? [expense.payerId, ...expense.shares.map((s) => s.participantId)] : []);
+    return view.people.filter((p) => p.status !== 'left' || onExpense.has(p.id));
+  }, [view.people, expense]);
+
   // Form field states
   const [description, setDescription] = useState(() => expense?.description ?? '');
   const [amountText, setAmountText] = useState(() =>
     expense ? fromEntryValue('amounts', expense.amount) : '',
   );
   const [spentOn, setSpentOn] = useState(() => expense?.spentOn ?? getTodayLocalDate());
-  const [payerId, setPayerId] = useState(() => expense?.payerId ?? (me ?? view.people[0]?.id ?? ''));
+  const [payerId, setPayerId] = useState(() => expense?.payerId ?? (me ?? formPeople[0]?.id ?? ''));
   const [mode, setMode] = useState<SplitMode>(() => expense?.mode ?? 'equal');
 
   // Sport mode toggle
@@ -217,7 +224,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     const metaEntries = expense?.meta?.sport?.entries;
     const metaMap = metaEntries ? new Map(metaEntries.map((e) => [e.participantId, e])) : null;
 
-    for (const person of view.people) {
+    for (const person of formPeople) {
       const metaEntry = metaMap?.get(person.id);
       if (metaEntry) {
         const baseFemale = person.gender === 'F' ? 1 : 0;
@@ -248,12 +255,12 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     if (expense) {
       return new Set(expense.shares.map((s) => s.participantId));
     }
-    return new Set(view.people.map((p) => p.id));
+    return new Set(formPeople.map((p) => p.id));
   });
 
   const [amountsInputs, setAmountsInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of view.people) init[p.id] = '';
+    for (const p of formPeople) init[p.id] = '';
     if (expense && expense.mode === 'amounts') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('amounts', s.inputValue);
@@ -264,7 +271,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [percentInputs, setPercentInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of view.people) init[p.id] = '';
+    for (const p of formPeople) init[p.id] = '';
     if (expense && expense.mode === 'percent') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('percent', s.inputValue);
@@ -275,7 +282,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [sharesInputs, setSharesInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of view.people) init[p.id] = '1';
+    for (const p of formPeople) init[p.id] = '1';
     if (expense && expense.mode === 'shares') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('shares', s.inputValue);
@@ -286,7 +293,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [adjustInputs, setAdjustInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of view.people) init[p.id] = '0';
+    for (const p of formPeople) init[p.id] = '0';
     if (expense && expense.mode === 'adjust') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('adjust', s.inputValue);
@@ -306,7 +313,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     const errors: Record<string, boolean> = {};
     const resultEntries: SplitEntry[] = [];
 
-    for (const person of view.people) {
+    for (const person of formPeople) {
       const pId = person.id;
       if (mode === 'equal') {
         if (included.has(pId)) {
@@ -364,7 +371,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     }
 
     return { entries: resultEntries, hasInvalidInput: invalid, inputErrors: errors };
-  }, [mode, included, adjustInputs, amountsInputs, percentInputs, sharesInputs, view.people]);
+  }, [mode, included, adjustInputs, amountsInputs, percentInputs, sharesInputs, formPeople]);
 
   const parsedCourt = useMemo(() => parseVnd(courtText) || 0, [courtText]);
   const parsedExtra = useMemo(() => (showExtra ? parseVnd(extraText) || 0 : 0), [showExtra, extraText]);
@@ -392,7 +399,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     let fTotal = 0;
     const list: SportParticipantEntry[] = [];
 
-    for (const person of view.people) {
+    for (const person of formPeople) {
       if (!included.has(person.id)) continue;
       const effectiveGender = getEffectiveGender(person.id, person.gender);
       const baseFemale = effectiveGender === 'F' ? 1 : 0;
@@ -425,7 +432,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     }
 
     return { sportEntries: list, totalMaleSlots: mTotal, totalFemaleSlots: fTotal };
-  }, [view.people, included, sportGuests, genderOverrides]);
+  }, [formPeople, included, sportGuests, genderOverrides]);
 
   const sportResult = useMemo(() => {
     if (!sportSelected) return null;
@@ -440,7 +447,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   }, [sportSelected, parsedAmount, mode, entries]);
 
   // Percent and exact amounts have no ticks: until someone is given a value, everyone listed is still to be given one.
-  const captionPeople = (mode === 'amounts' || mode === 'percent') && entries.length === 0 ? view.people.length : entries.length;
+  const captionPeople = (mode === 'amounts' || mode === 'percent') && entries.length === 0 ? formPeople.length : entries.length;
   const assigned = entries.reduce((sum, e) => sum + e.value, 0);
   const caption = splitCaption(t, mode, captionPeople, splitResult, parsedAmount, assigned);
 
@@ -831,7 +838,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
               value={payerId}
               onChange={(e) => setPayerId(e.target.value)}
             >
-              {view.people.map((person) => (
+              {formPeople.map((person) => (
                 <option key={person.id} value={person.id}>
                   {person.id === me
                     ? t('expenseForm.me', { name: person.name })
@@ -955,7 +962,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
           )}
 
           <div className="fsl-card">
-            {view.people.map((person) => {
+            {formPeople.map((person) => {
               const shareAmount = liveShares.get(person.id);
               const isIncluded = included.has(person.id);
               const isInputInvalid = Boolean(inputErrors[person.id]);
@@ -1012,6 +1019,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                           ? t('expenseForm.me', { name: person.name })
                           : person.name}
                       </span>
+                      {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
 
                       {isAdminOrOrganiser ? (
                         <div className="fsl-gender-popover-anchor">
@@ -1236,6 +1244,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                       ? t('expenseForm.me', { name: person.name })
                       : person.name}
                   </span>
+                  {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
 
                   {mode === 'adjust' && (
                     <div className="fsl-split-row__control">
