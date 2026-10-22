@@ -106,18 +106,19 @@ describe('approving names and merging', () => {
     expect(v.balances).toEqual({ [PID.M]: 2195000, [PID.A]: -950000, [PID.C]: -1245000 });
   });
 
-  it('removing a person: only when they have nothing', async () => {
+  it('removing a person: history makes them Left, nothing deletes them', async () => {
     await seedExpenses();
     const headers = await minh();
     const busy = await call(`${base}/people/${PID.C}`, { method: 'DELETE', headers });
-    expect(busy.status).toBe(409);
+    expect(busy.status).toBe(204);
+    expect((await view(headers)).people.find((p) => p.id === PID.C)?.status).toBe('left');
     const { participantId } = await json<{ participantId: string }>(await post('/people', headers, { name: 'Giang', confirmNew: false }));
     expect((await call(`${base}/people/${participantId}`, { method: 'DELETE', headers })).status).toBe(204);
   });
 
-  it('signed-in people (like the organiser) cannot be removed', async () => {
+  it('the organiser cannot be removed', async () => {
     const res = await call(`${base}/people/${PID.M}`, { method: 'DELETE', headers: await minh() });
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(403);
     expect((await view(await minh())).me.kind).toBe('member');
   });
 

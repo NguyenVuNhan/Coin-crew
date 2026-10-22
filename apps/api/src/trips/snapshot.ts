@@ -69,7 +69,8 @@ export async function buildSnapshot(
     .where(
       and(
         eq(participants.tripId, trip.id),
-        inArray(participants.status, ['active', 'pending']),
+        // People who left stay in balances and on past expenses.
+        inArray(participants.status, ['active', 'pending', 'left']),
       ),
     )
     .orderBy(asc(participants.sortOrder));
@@ -146,8 +147,8 @@ export async function buildSnapshot(
       name: p.name,
       gender: (p.gender as 'M' | 'F' | null) ?? null,
       avatarUrl: p.userId !== null ? (userAvatarMap.get(p.userId) ?? null) : null,
-      status: p.status as 'active' | 'pending',
-      isMember: p.userId !== null,
+      status: p.status as 'active' | 'pending' | 'left',
+      isMember: p.userId !== null && p.status !== 'left',
       isOrganiser,
       isAdmin,
       bank,
