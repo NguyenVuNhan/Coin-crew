@@ -683,6 +683,24 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    // The same account may have claimed another name while away: one user keeps one name per group.
+    if (target.userId !== null) {
+      const otherName = await db
+        .select({ id: participants.id })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.tripId, tripId),
+            eq(participants.userId, target.userId),
+            eq(participants.status, 'active'),
+          ),
+        )
+        .get();
+      if (otherName) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'This person is already in the group under another name.');
+      }
+    }
+
     await commitTripWrite(
       db,
       tripId,

@@ -82,7 +82,8 @@ export function WhoAreYou() {
         { participantId },
         tripId,
       );
-      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+      // Drop the cached "no name yet" view: the trip page would otherwise send us straight back here.
+      queryClient.removeQueries({ queryKey: ['trip', tripId] });
       navigate(becomeMember ? `/t/${tripId}?becomeMember=1` : `/t/${tripId}`);
     } catch (err) {
       setActionError(err);
@@ -97,7 +98,7 @@ export function WhoAreYou() {
     setIsSubmitting(true);
     try {
       await apiSend(`/api/trips/${tripId}/join`, 'POST', body, tripId);
-      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+      queryClient.removeQueries({ queryKey: ['trip', tripId] });
       queryClient.invalidateQueries({ queryKey: ['picker', tripId] });
       queryClient.invalidateQueries({ queryKey: ['me'] });
       navigate(`/t/${tripId}`);

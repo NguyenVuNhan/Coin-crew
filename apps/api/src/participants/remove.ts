@@ -1,6 +1,7 @@
 import type { BatchItem } from 'drizzle-orm/batch';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
+import { nowIso } from '../lib/ids';
 import {
   bankDetails,
   deviceParticipants,
@@ -102,6 +103,24 @@ export async function takeOutOfTrip(
           and(
             eq(bankDetails.participantId, participantId),
             eq(bankDetails.status, 'pending'),
+          ),
+        ),
+      // Nobody can confirm a payment waiting for someone who left, and a left person counts as a guest receiver,
+      // so what was said paid to them counts now (as if they had confirmed it).
+      db
+        .update(transactions)
+        .set({
+          status: 'confirmed',
+          amountConfirmed: sql`${transactions.amount}`,
+          confirmedByParticipantId: participantId,
+          updatedAt: nowIso(),
+        })
+        .where(
+          and(
+            eq(transactions.tripId, tripId),
+            eq(transactions.type, 'payment'),
+            eq(transactions.toId, participantId),
+            eq(transactions.status, 'says_paid'),
           ),
         ),
     ],
