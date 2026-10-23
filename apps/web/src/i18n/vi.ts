@@ -336,6 +336,7 @@ export const vi: Record<MessageKey, string> = {
   'transfers.paidSnack': 'Bạn đã trả {name} {amount}', // REVIEW
   'transfers.waitingFor': 'Đang chờ {name}', // REVIEW
   'transfers.nothingDue': '{name} hiện không nợ bạn khoản nào.', // REVIEW
+  'transfers.alreadySettled': 'Khoản này đã được ghi nhận. Danh sách đã được cập nhật.', // REVIEW
   'payments.title': 'Các khoản đã trả', // REVIEW
   'payments.disable': 'Tắt', // REVIEW
   'payments.enable': 'Bật lại', // REVIEW

@@ -13,6 +13,10 @@ const record = async (headers: Record<string, string>, fromId: string, toId: str
   return { res, body: res.status === 201 ? await json<{ paymentId: string; status: string }>(res) : null };
 };
 const suggestion = (v: TripView, fromId: string, toId: string) => v.suggestions.find((s) => s.fromId === fromId && s.toId === toId);
+/** A transfer tick: records the suggestion it showed, and only if that pair still owes at least this much. */
+const settle = (headers: Record<string, string>, fromId: string, toId: string, amount: number, settles: unknown = true) =>
+  send('/payments', headers, { fromId, toId, amount, settles });
+const errCode = async (res: Response) => (await json<{ error: { code: string } }>(res)).error.code;
 
 beforeEach(async () => { await seedTrip(); await seedExpenses(); });
 
@@ -92,6 +96,57 @@ describe('member pays a guest, guest pays a guest', () => {
     expect(v.balances).toMatchObject({ [PID.A]: -585000, [PID.C]: -1045000 });
     expect((await send(`/payments/${body!.paymentId}/enable`, headers)).status).toBe(204);
     expect((await view(headers)).balances).toMatchObject({ [PID.A]: -385000, [PID.C]: -1245000 });
+  });
+});
+
+// The seed suggests C→M 1.245.000, B→M 565.000 and A→M 385.000.
+describe('settling a suggested transfer (settles: true)', () => {
+  it('the receiving member records a member\'s debt, and it counts straight away', async () => {
+    await linkMember(PID.A, U.an, 'An');
+    const headers = await minh();
+    const res = await settle(headers, PID.A, PID.M, 385000);
+    expect(res.status).toBe(201);
+    expect((await json<{ status: string }>(res)).status).toBe('confirmed');
+    expect(suggestion(await view(headers), PID.A, PID.M)).toBeUndefined();
+  });
+
+  it('settling the same pair twice records it once', async () => {
+    const headers = await minh();
+    const first = await settle(headers, PID.A, PID.M, 385000);
+    const second = await settle(headers, PID.A, PID.M, 385000);
+    expect([first.status, second.status]).toEqual([201, 409]);
+    expect(await errCode(second)).toBe('ALREADY_HANDLED');
+    expect((await view(headers)).balances[PID.A]).toBe(0);
+  });
+
+  it('refuses more than the pair owes, and records nothing', async () => {
+    const headers = await minh();
+    const res = await settle(headers, PID.A, PID.M, 400000);
+    expect(res.status).toBe(409);
+    expect(await errCode(res)).toBe('ALREADY_HANDLED');
+    expect((await view(headers)).payments).toHaveLength(0);
+  });
+
+  it('refuses a pair that is not suggested', async () => {
+    const res = await settle(await minh(), PID.M, PID.A, 1000);
+    expect(res.status).toBe(409);
+    expect(await errCode(res)).toBe('ALREADY_HANDLED');
+  });
+
+  it('accepts less than the pair owes (the debt grew after the tick)', async () => {
+    const headers = await minh();
+    expect((await settle(headers, PID.A, PID.M, 300000)).status).toBe(201);
+    expect(suggestion(await view(headers), PID.A, PID.M)?.amount).toBe(85000);
+  });
+
+  it('settles must be a boolean', async () => {
+    const res = await settle(await minh(), PID.A, PID.M, 385000, 'yes');
+    expect(res.status).toBe(422);
+    expect(await errCode(res)).toBe('VALIDATION');
+  });
+
+  it('without settles nothing is checked', async () => {
+    expect((await record(await minh(), PID.A, PID.M, 400000)).res.status).toBe(201);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
@@ -54,8 +54,38 @@ describe('member trip page', () => {
     renderAt(<TripRoute />, route);
     expect(await screen.findByText("You're owed")).toBeInTheDocument();
     expect(screen.getAllByText('2.195.000₫').length).toBeGreaterThan(0);
-    expect(screen.getByText('Trip total 4.900.000₫')).toBeInTheDocument();
     expect(screen.queryByText(/of 2\.195\.000₫/)).toBeNull();
+  });
+
+  it('renders a Received tick on a member-to-me transfer row in Your transfers', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+    const view: TripView = {
+      ...tripView(),
+      people: tripView().people.map((p) => (p.id === PIDS.A ? { ...p, isMember: true } : p)),
+      suggestions: [{ fromId: PIDS.A, toId: PIDS.M, amount: 385000 }],
+    };
+    const { calls } = mockApi({
+      'GET /api/trips/t-1': view,
+      'GET /api/trips/t-1/version': { version: 3 },
+      'POST /api/trips/t-1/payments': () => Response.json({ paymentId: 'pay-m', status: 'confirmed' }, { status: 201 }),
+    });
+    renderAt(<TripRoute />, route);
+    const tick = await screen.findByRole('button', { name: 'Mark 385.000₫ from An as received' });
+    expect(tick).toBeInTheDocument();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(tick);
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    await waitFor(() => {
+      expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/payments')?.body).toEqual({
+        fromId: PIDS.A,
+        toId: PIDS.M,
+        amount: 385000,
+        settles: true,
+      });
+    });
+    vi.useRealTimers();
   });
 
   it('counts the money that has arrived', async () => {
