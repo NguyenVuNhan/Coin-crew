@@ -41,6 +41,7 @@ export type ActivityAction =
   | 'payment_enabled'
   | 'links_regenerated'
   | 'trip_archived'
+  | 'trip_unarchived'
   | 'fewest_changed'
   | 'membership_requested'
   | 'membership_approved'

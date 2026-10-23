@@ -51,7 +51,8 @@
   flex-shrink: 0;
 }
 
-.fsl-settings__danger {
+.fsl-settings__danger,
+.fsl-settings__restore {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

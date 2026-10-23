@@ -359,12 +359,14 @@ export const vi: Record<MessageKey, string> = {
   'settings.people': 'Thành viên', // REVIEW
   'settings.activity': 'Hoạt động', // REVIEW
   'settings.archive': 'Lưu trữ nhóm', // REVIEW
-  'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này sau khi lưu trữ. Lưu trữ?', // REVIEW
+  'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này cho đến khi bạn bỏ lưu trữ. Lưu trữ?', // REVIEW
   'settings.archived': 'Chuyến đi này đã được lưu trữ. Bạn vẫn có thể xem.', // REVIEW
+  'settings.unarchive': 'Bỏ lưu trữ nhóm', // REVIEW
+  'settings.unarchiveHint': 'Mọi người có thể thay đổi trở lại.', // REVIEW
   'settings.bank': 'Thông tin ngân hàng của bạn', // REVIEW
   'settings.language': 'Ngôn ngữ', // REVIEW
   'settings.dangerZone': 'Vùng nguy hiểm', // REVIEW
-  'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ.', // REVIEW
+  'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ cho đến khi người tổ chức bỏ lưu trữ.', // REVIEW
   'settings.leave': 'Rời nhóm', // REVIEW
   'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.', // REVIEW
   'settings.leaveConfirm': 'Rời {group}?', // REVIEW
@@ -435,6 +437,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.payment_enabled': 'đã kích hoạt lại thanh toán', // REVIEW
   'activity.action.links_regenerated': 'đã tạo lại liên kết', // REVIEW
   'activity.action.trip_archived': 'đã lưu trữ chuyến đi', // REVIEW
+  'activity.action.trip_unarchived': 'đã bỏ lưu trữ chuyến đi', // REVIEW
   'activity.action.fewest_changed': 'đã thay đổi cài đặt ít lần chuyển khoản nhất', // REVIEW
   'activity.action.membership_requested': 'đã yêu cầu trở thành thành viên', // REVIEW
   'activity.action.membership_approved': 'đã duyệt thành viên mới', // REVIEW

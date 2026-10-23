@@ -55,14 +55,14 @@ describe('Settings', () => {
     expect(screen.getByText('Danger zone')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Leave group' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Archive group' })).toBeNull();
-    expect(screen.queryByText('Nobody can change an archived trip.')).toBeNull();
+    expect(screen.queryByText('Nobody can change an archived trip until the organiser unarchives it.')).toBeNull();
     unmount();
 
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<Settings />, at('settings'));
     expect(await screen.findByText('Danger zone')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Archive group' })).toBeInTheDocument();
-    expect(screen.getByText('Nobody can change an archived trip.')).toBeInTheDocument();
+    expect(screen.getByText('Nobody can change an archived trip until the organiser unarchives it.')).toBeInTheDocument();
   });
 
   it('asks before archiving', async () => {
@@ -83,6 +83,25 @@ describe('Settings', () => {
     expect(await screen.findByText('This trip is archived. You can still look at it.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Archive group' })).toBeNull();
     expect(screen.queryByRole('switch', { name: 'Fewest transfers' })).toBeNull();
+  });
+
+  it('the organiser unarchives without being asked twice', async () => {
+    const view = tripView();
+    const { calls } = mockApi({ 'GET /api/trips/t-1': { ...view, trip: { ...view.trip, archived: true } }, 'POST /api/trips/t-1/unarchive': null });
+    const confirm = vi.spyOn(window, 'confirm');
+    renderAt(<Settings />, at('settings'));
+    expect(await screen.findByText('Everyone can make changes again.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Unarchive group' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-1/unarchive')).toBe(true));
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('only the organiser sees Unarchive', async () => {
+    const view = anView();
+    mockApi({ 'GET /api/trips/t-1': { ...view, trip: { ...view.trip, archived: true } } });
+    renderAt(<Settings />, at('settings'));
+    await screen.findByText('This trip is archived. You can still look at it.');
+    expect(screen.queryByRole('button', { name: 'Unarchive group' })).toBeNull();
   });
 });
 
