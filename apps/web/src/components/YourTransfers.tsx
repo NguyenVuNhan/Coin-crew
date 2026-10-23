@@ -8,6 +8,7 @@ import { usePayInfo } from '../api/payInfo';
 import { useIsCoarsePointer } from '../lib/media';
 import { usePendingPayment, type PendingPayment } from '../lib/usePendingPayment';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { ApiClientError } from '../api/client';
 import { ActionRow, type RowAction } from './ActionRow';
 import { Amount } from './Amount';
 import { Avatar } from './Avatar';
@@ -170,7 +171,11 @@ export function TransfersSnackbar({ view, state }: { view: TripView; state: Tran
       />
     );
   }
-  return error !== null ? <Snackbar message={t('error.generic')} /> : null;
+  if (error !== null) {
+    const settled = error instanceof ApiClientError && error.code === 'ALREADY_HANDLED';
+    return <Snackbar message={t(settled ? 'transfers.alreadySettled' : 'error.generic')} />;
+  }
+  return null;
 }
 
 /**
@@ -234,13 +239,14 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
   const uid = useId();
   const { pending, sending, schedule, undo } = state.ticks;
 
+  const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
+
   // Ticks confirm that money moved: only for someone who can record payments right now.
   const canTick = me !== null && !view.trip.archived && view.me.kind !== 'viewer' && !view.me.participantPending;
-  const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
-  /** A guest paying me ('received') or my own debt ('paid'). A member paying me marks it themselves, so no tick. */
+  /** Someone paying me ('received') or my own debt ('paid'). Signed-in members can tick incoming debts from anyone; guests cannot tick when paid by a member. */
   const tickOf = (s: Transfer): 'received' | 'paid' | null => {
     if (!canTick) return null;
-    if (s.toId === me && !isMember(s.fromId)) return 'received';
+    if (s.toId === me && (view.me.kind === 'member' || !isMember(s.fromId))) return 'received';
     if (s.fromId === me) return 'paid';
     return null;
   };

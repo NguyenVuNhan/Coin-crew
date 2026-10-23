@@ -332,6 +332,7 @@ export const en = {
   'transfers.paidSnack': 'You paid {name} {amount}',
   'transfers.waitingFor': 'Waiting for {name}',
   'transfers.nothingDue': "{name} doesn't owe you anything right now.",
+  'transfers.alreadySettled': 'Already recorded. The list is up to date.',
   'payments.title': 'Payments',
   'payments.disable': 'Disable',
   'payments.enable': 'Enable',

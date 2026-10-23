@@ -55,19 +55,47 @@ describe('Your transfers: tick to confirm', () => {
     vi.restoreAllMocks();
   });
 
-  it('ticks only where a guest pays me and on my own debts', () => {
+  it('a member ticks every row they are in', () => {
     const { unmount } = renderAt(<YourTransfers view={withMemberBinh()} />);
     expect(screen.getByRole('button', { name: CHI })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: AN })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mark 50.000₫ to Bình as paid' })).toBeInTheDocument();
-    // Bình is a member: they mark it paid themselves and it counts straight away.
-    expect(within(screen.getByTestId(`transfer-${PIDS.B}-${PIDS.M}`)).queryByRole('button', { name: /^Mark / })).toBeNull();
-    expect(ticks()).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Mark 565.000₫ from Bình as received' })).toBeInTheDocument();
+    expect(ticks()).toHaveLength(4);
     unmount();
 
     renderAt(<YourTransfers view={guestChiView()} />);
     expect(ticks().map((b) => b.getAttribute('aria-label'))).toEqual([CHI_PAYS_MINH]);
     expect(screen.getByRole('button', { name: CHI_PAYS_MINH })).toHaveAttribute('title', CHI_PAYS_MINH);
+  });
+
+  it('a guest cannot tick received when a member pays them, but can when another guest pays them', () => {
+    const chiWithMemberPaying: TripView = {
+      ...guestChiView(),
+      suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 100000 }],
+    };
+    const { unmount } = renderAt(<YourTransfers view={chiWithMemberPaying} />);
+    const memberRow = screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`);
+    expect(within(memberRow).queryByRole('button', { name: /^Mark/ })).toBeNull();
+    unmount();
+
+    const chiWithGuestPaying: TripView = {
+      ...guestChiView(),
+      suggestions: [{ fromId: PIDS.A, toId: PIDS.C, amount: 100000 }],
+    };
+    renderAt(<YourTransfers view={chiWithGuestPaying} />);
+    const guestRow = screen.getByTestId(`transfer-${PIDS.A}-${PIDS.C}`);
+    expect(within(guestRow).getByRole('button', { name: /^Mark 100.000₫ from An as received$/ })).toBeInTheDocument();
+  });
+
+  it("ticking a member's debt records it after Undo", async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    renderAt(<YourTransfers view={withMemberBinh()} />);
+    const tick = screen.getByRole('button', { name: 'Mark 565.000₫ from Bình as received' });
+    await user().click(tick);
+    expect(screen.getByRole('status')).toHaveTextContent('Bình paid 565.000₫');
+    await later(5_000);
+    expect(posted(calls)).toEqual([{ fromId: PIDS.B, toId: PIDS.M, amount: 565000, settles: true }]);
   });
 
   it('records a tick after 5 seconds', async () => {
@@ -88,7 +116,7 @@ describe('Your transfers: tick to confirm', () => {
     expect(snack).toHaveTextContent('An paid 385.000₫');
     expect(within(snack).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     await later(100);
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     // Sent with keepalive like every tick: closing the tab while the request is out must not lose it.
     expect(keepalives(fetchMock)).toEqual([true]);
     expect(screen.queryByRole('status')).toBeNull();
@@ -157,7 +185,7 @@ describe('Your transfers: tick to confirm', () => {
     act(() => setView({ ...tripView(), suggestions: tripView().suggestions.filter((s) => s.fromId !== PIDS.B) }));
     expect(screen.getByRole('status')).toHaveTextContent('An paid 385.000₫');
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
   });
 
   it('flushes a pending tick when the component unmounts', async () => {
@@ -168,7 +196,7 @@ describe('Your transfers: tick to confirm', () => {
     expect(posted(calls)).toEqual([]);
 
     unmount();
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     expect(keepalives(fetchMock)).toEqual([true]);
     await later(10_000);
     expect(posted(calls)).toHaveLength(1);
@@ -183,7 +211,7 @@ describe('Your transfers: tick to confirm', () => {
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     visibility.mockReturnValue('visible');
 
     await user().click(screen.getByRole('button', { name: CHI }));
@@ -191,7 +219,7 @@ describe('Your transfers: tick to confirm', () => {
       window.dispatchEvent(new Event('pagehide'));
     });
     expect(posted(calls)).toHaveLength(2);
-    expect(posted(calls)[1]).toEqual({ fromId: 'p-chi', toId: 'p-minh', amount: 1245000 });
+    expect(posted(calls)[1]).toEqual({ fromId: 'p-chi', toId: 'p-minh', amount: 1245000, settles: true });
     expect(keepalives(fetchMock)).toEqual([true, true]);
     await later(10_000);
     expect(posted(calls)).toHaveLength(2);
@@ -204,12 +232,12 @@ describe('Your transfers: tick to confirm', () => {
     await later(1_000);
     await user().click(screen.getByRole('button', { name: CHI }));
 
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     expect(screen.getByRole('status')).toHaveTextContent('Chi paid 1.245.000₫');
     await later(5_000);
     expect(posted(calls)).toEqual([
-      { fromId: 'p-an', toId: 'p-minh', amount: 385000 },
-      { fromId: 'p-chi', toId: 'p-minh', amount: 1245000 },
+      { fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true },
+      { fromId: 'p-chi', toId: 'p-minh', amount: 1245000, settles: true },
     ]);
     expect(keepalives(fetchMock)).toEqual([true, true]);
   });
@@ -331,7 +359,7 @@ describe('Your transfers: tick to confirm', () => {
     await later(5_000);
 
     const waiting = (await screen.findByText('Waiting for Minh')).closest('li')!;
-    expect(posted(calls)).toEqual([{ fromId: PIDS.C, toId: PIDS.M, amount: 1245000 }]);
+    expect(posted(calls)).toEqual([{ fromId: PIDS.C, toId: PIDS.M, amount: 1245000, settles: true }]);
     expect(waiting).toHaveTextContent('You → Minh');
     expect(waiting).toHaveTextContent('1.245.000₫');
     // Nothing left to tick or open: Minh confirms it.
@@ -363,8 +391,8 @@ describe('Your transfers: tick to confirm', () => {
     const { calls } = mockApi({ [PAYMENTS]: recorded() });
     const phone = renderAt(<YourTransfers view={withMemberBinh()} />);
     const anRow = screen.getByTestId(`transfer-${PIDS.A}-${PIDS.M}`);
-    // The member's row has nothing behind it.
-    expect(within(screen.getByTestId(`transfer-${PIDS.B}-${PIDS.M}`)).queryByRole('button', { name: 'Received' })).toBeNull();
+    // Member paying me has Received behind it too; debts of mine have I've paid.
+    expect(within(screen.getByTestId(`transfer-${PIDS.B}-${PIDS.M}`)).getByRole('button', { name: 'Received' })).toBeInTheDocument();
     expect(within(screen.getByTestId(`transfer-${PIDS.M}-${PIDS.B}`)).getByRole('button', { name: "I've paid" })).toBeInTheDocument();
 
     await user().click(within(anRow).getByRole('button', { name: 'Received' }));
@@ -373,14 +401,62 @@ describe('Your transfers: tick to confirm', () => {
     // Already ticked: the swipe action is gone, so it can't be recorded twice.
     expect(within(anRow).queryByRole('button', { name: 'Received' })).toBeNull();
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
     phone.unmount();
+
+    // On phones, a guest does not get a swipe action when a member pays them, but does when a guest pays them.
+    const guestMemberPhone = renderAt(
+      <YourTransfers
+        view={{
+          ...guestChiView(),
+          suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 100000 }],
+        }}
+      />,
+    );
+    expect(within(screen.getByTestId(`transfer-${PIDS.M}-${PIDS.C}`)).queryByRole('button', { name: 'Received' })).toBeNull();
+    guestMemberPhone.unmount();
+
+    const guestGuestPhone = renderAt(
+      <YourTransfers
+        view={{
+          ...guestChiView(),
+          suggestions: [{ fromId: PIDS.A, toId: PIDS.C, amount: 100000 }],
+        }}
+      />,
+    );
+    expect(within(screen.getByTestId(`transfer-${PIDS.A}-${PIDS.C}`)).getByRole('button', { name: 'Received' })).toBeInTheDocument();
+    guestGuestPhone.unmount();
 
     // With a mouse the tick is the only way: no hover tool on the row.
     mockMedia({ coarse: false });
     renderAt(<YourTransfers view={withMemberBinh()} />);
     expect(screen.queryByRole('button', { name: 'Received' })).toBeNull();
     expect(screen.queryByRole('button', { name: "I've paid" })).toBeNull();
+  });
+
+  it('a tick someone else already recorded says so and reloads the trip', async () => {
+    let reloaded = false;
+    mockApi({
+      [PAYMENTS]: () =>
+        Response.json(
+          { error: { code: 'ALREADY_HANDLED', message: 'Someone already handled this.' } },
+          { status: 409 },
+        ),
+      'GET /api/trips/t-1': () => {
+        reloaded = true;
+        return Response.json(tripView());
+      },
+    });
+    function Live() {
+      const { data } = useQuery({ queryKey: ['trip', 't-1'], queryFn: () => apiFetch<TripView>('/api/trips/t-1', { tripId: 't-1' }) });
+      return data ? <YourTransfers view={data} /> : null;
+    }
+    renderAt(<Live />);
+    await user().click(await screen.findByRole('button', { name: AN }));
+    await later(5_000);
+    expect(await screen.findByText('Already recorded. The list is up to date.')).toBeInTheDocument();
+    expect(screen.queryByText('Something went wrong. Try again.')).toBeNull();
+    expect(reloaded).toBe(true);
   });
 });
 
@@ -431,5 +507,88 @@ describe('Your transfers: open rows and initials', () => {
     const row = screen.getByRole('button', { name: /^You → Minh/ });
     expect(row).toHaveTextContent('You → Minh');
     expect(row.querySelector('.fsl-avatar')).toHaveTextContent(/^C$/);
+  });
+});
+
+describe('Your transfers: multiple incoming transfers (member and guest payers)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const memberAndGuestPayersView = (kind: 'member' | 'guest' = 'member'): TripView => {
+    const base = tripView();
+    const meId = 'p-me';
+    const memberPayerId = 'p-member-payer';
+    const guestPayer1Id = 'p-guest-1';
+    const guestPayer2Id = 'p-guest-2';
+    return {
+      ...base,
+      me: { ...base.me, kind, participantId: meId },
+      people: [
+        { id: meId, name: 'You Person', isMember: kind === 'member', status: 'active', bank: 'none' },
+        { id: memberPayerId, name: 'Nguyen Vu Nhan', isMember: true, status: 'active', bank: 'none' },
+        { id: guestPayer1Id, name: 'Thủy', isMember: false, status: 'active', bank: 'none' },
+        { id: guestPayer2Id, name: 'Huyền', isMember: false, status: 'active', bank: 'none' },
+      ],
+      suggestions: [
+        { fromId: memberPayerId, toId: meId, amount: 1000000 },
+        { fromId: guestPayer1Id, toId: meId, amount: 1000000 },
+        { fromId: guestPayer2Id, toId: meId, amount: 1000000 },
+      ],
+      balances: {
+        [meId]: 3000000,
+        [memberPayerId]: -1000000,
+        [guestPayer1Id]: -1000000,
+        [guestPayer2Id]: -1000000,
+      },
+    };
+  };
+
+  it('renders a Received tick on EVERY row when both members and guests owe me', async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    renderAt(<YourTransfers view={memberAndGuestPayersView('member')} />);
+
+    const memberTick = screen.getByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' });
+    const thuyTick = screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' });
+    const huyenTick = screen.getByRole('button', { name: 'Mark 1.000.000₫ from Huyền as received' });
+
+    expect(memberTick).toBeInTheDocument();
+    expect(thuyTick).toBeInTheDocument();
+    expect(huyenTick).toBeInTheDocument();
+    expect(ticks()).toHaveLength(3);
+    // Crucial check: none of the rows should fall back to the empty tick-space placeholder!
+    expect(document.querySelectorAll('.fsl-transfers__tick-space')).toHaveLength(0);
+
+    // Ticking the member payer marks it received and posts settles: true
+    await user().click(memberTick);
+    expect(screen.getByRole('status')).toHaveTextContent('Nguyen Vu Nhan paid 1.000.000₫');
+    expect(memberTick).toHaveAttribute('aria-pressed', 'true');
+    await later(5_000);
+    expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true }]);
+  });
+
+  it('a guest sees ticks for guest debts to them, but not member debts to them', async () => {
+    const { calls } = mockApi({ [PAYMENTS]: recorded() });
+    renderAt(<YourTransfers view={memberAndGuestPayersView('guest')} />);
+
+    // Member payer row has no tick button for a guest viewer
+    expect(screen.queryByRole('button', { name: 'Mark 1.000.000₫ from Nguyen Vu Nhan as received' })).toBeNull();
+    // But guest payers have tick buttons
+    expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Huyền as received' })).toBeInTheDocument();
+    expect(ticks()).toHaveLength(2);
+    // Member row keeps tick-space placeholder to align with the other ticked rows
+    expect(document.querySelectorAll('.fsl-transfers__tick-space')).toHaveLength(1);
+
+    await user().click(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Thủy paid 1.000.000₫');
+    await later(5_000);
+    expect(posted(calls)).toEqual([{ fromId: 'p-guest-1', toId: 'p-me', amount: 1000000, settles: true }]);
   });
 });

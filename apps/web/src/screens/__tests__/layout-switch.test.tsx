@@ -56,7 +56,7 @@ describe('crossing 1024px with a tick pending', () => {
     await later(2_800);
     expect(posted(calls)).toEqual([]);
     await later(200);
-    expect(posted(calls)).toEqual([{ fromId: PIDS.A, toId: PIDS.M, amount: 385000 }]);
+    expect(posted(calls)).toEqual([{ fromId: PIDS.A, toId: PIDS.M, amount: 385000, settles: true }]);
     expect(screen.queryByRole('status')).toBeNull();
   });
 
