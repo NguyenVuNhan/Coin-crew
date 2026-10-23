@@ -364,3 +364,13 @@ export async function shareSportBill(
   }
   return saved ? 'saved' : 'failed';
 }
+
+/** The blob as a `data:` URL (some webviews cannot long-press-save `blob:` URLs). */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+    reader.readAsDataURL(blob);
+  });
+}

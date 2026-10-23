@@ -43,6 +43,15 @@ Members sign in with Google; guests never do. The app asks only for `openid`, `e
      - `https://<your app address>/api/auth/google/callback` (the live app; add it once you know the address in step 4.2)
 6. Copy the **Client ID** and **Client secret** straight away. Google may not show the secret again; if you lose it, add a new secret to the client.
 
+### 2.1 Zalo sign-in (optional)
+
+The Zalo buttons stay hidden until both secrets exist, so you can deploy first and set Zalo up later.
+
+1. Create an app at [developers.zalo.me](https://developers.zalo.me/) and enable Social API / "Đăng nhập với Zalo".
+2. Register the callback URL `<your app address>/api/auth/zalo/callback` (for example `http://localhost:8787/api/auth/zalo/callback` on your machine) and verify the domain.
+3. Activate the app for public use. In development mode only the app's admins and testers can sign in.
+4. Run `wrangler secret put ZALO_APP_ID` and `wrangler secret put ZALO_APP_SECRET` for the live app, and add `ZALO_APP_ID` and `ZALO_APP_SECRET` to `apps/api/.dev.vars` for your machine.
+
 ## 3. Run it on your machine
 
 Create `apps/api/.dev.vars` (git-ignored; `wrangler dev` reads it):

@@ -16,7 +16,7 @@ interface LinkResponse {
 }
 
 export function Join() {
-  const { token } = useParams<{ token: string }>();
+  const { token, expenseId } = useParams<{ token?: string; expenseId?: string }>();
   const navigate = useNavigate();
   const t = useT();
 
@@ -31,13 +31,15 @@ export function Join() {
   useEffect(() => {
     if (data && token) {
       linkTokens.set(data.tripId, token);
-      if (data.access === 'group') {
+      if (expenseId) {
+        navigate(`/t/${data.tripId}/expenses/${encodeURIComponent(expenseId)}`, { replace: true });
+      } else if (data.access === 'group') {
         navigate(`/t/${data.tripId}/who`, { replace: true });
       } else {
         navigate(`/t/${data.tripId}`, { replace: true });
       }
     }
-  }, [data, token, navigate]);
+  }, [data, token, expenseId, navigate]);
 
   if (error) {
     return (

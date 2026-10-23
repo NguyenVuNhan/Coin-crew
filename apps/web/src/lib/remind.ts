@@ -90,6 +90,12 @@ export function groupLink(view: TripView): string {
   return `${typeof window !== 'undefined' ? window.location.origin : ''}/j/${token}`;
 }
 
+export function expenseLink(view: TripView, id: string): string {
+  const token = view.links?.group ?? linkTokens.get(view.trip.id);
+  if (!token) return groupLink(view);
+  return `${groupLink(view)}/e/${encodeURIComponent(id)}`;
+}
+
 export function remindText(
   lang: Lang,
   vars: { name: string; creditor: string; amount: string; trip: string; link: string },

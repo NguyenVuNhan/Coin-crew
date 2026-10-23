@@ -1,12 +1,14 @@
 import { useState, type JSX } from 'react';
 import { formatVnd, type PayInfo } from '@fsl/core';
 import { useT } from '../i18n';
-import { qrSrc, saveQr, shareQr, useQrSvg } from '../lib/qr';
+import { qrPngBlob, qrSrc, saveQr, shareQr, useQrSvg } from '../lib/qr';
+import { isZaloWebView } from '../lib/zaloEnv';
 import { useIsCoarsePointer } from '../lib/media';
 import { Skeleton } from './Skeleton';
 import { Amount } from './Amount';
 import { Button } from './Button';
 import { BankAppSheet } from './BankAppSheet';
+import { useImageSheet } from './SaveImageSheet';
 import './PayQr.css';
 
 export type PayQrProps = {
@@ -27,12 +29,17 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<'saved' | 'failed' | null>(null);
+  const { sheet: imageSheet, show: showImage } = useImageSheet();
 
   if (info.amount === 0 || info.payload === null) {
     return null;
   }
 
   async function share(text: string) {
+    if (isZaloWebView()) {
+      showImage(() => qrPngBlob(svg), text);
+      return;
+    }
     setBusy(true);
     try {
       const result = await shareQr(svg, text, info.refCode);
@@ -81,7 +88,13 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
           variant={props.variant === 'pay' && !coarse ? 'primary' : 'secondary'}
           block
           disabled={!svg}
-          onClick={() => void saveQr(svg, info.refCode)}
+          onClick={() => {
+            if (isZaloWebView()) {
+              showImage(() => qrPngBlob(svg));
+              return;
+            }
+            void saveQr(svg, info.refCode);
+          }}
         >
           {t('pay.saveQr')}
         </Button>
@@ -89,6 +102,7 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
       <p className="fsl-pay-qr__status" aria-live="polite">
         {status === 'saved' ? t('pay.shareSaved') : status === 'failed' ? t('pay.shareFailed') : null}
       </p>
+      {imageSheet}
       {props.variant === 'pay' && coarse && <BankAppSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />}
     </div>
   );

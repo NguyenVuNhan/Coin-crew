@@ -280,7 +280,7 @@ function MembershipApproval({ view, a }: { view: TripView; a: Extract<Approval, 
     <div className="fsl-approval">
       <div className="fsl-approval__content">
         <p className="fsl-approval__title">{t('approvals.membership', { name: nameOf(view, a.participantId) })}</p>
-        <p className="fsl-approval__sub">{`${a.userName} · ${a.userEmail}`}</p>
+        <p className="fsl-approval__sub">{`${a.userName} · ${a.userEmail ?? 'Zalo'}`}</p>
       </div>
       <div className="fsl-approval__actions">
         <Button loading={busy} onClick={() => run(`/membership/${a.requestId}/approve`)}>

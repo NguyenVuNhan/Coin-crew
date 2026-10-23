@@ -1,11 +1,13 @@
-import { useState, useEffect, useId } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useState, useEffect, useId, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView } from '@fsl/core';
-import { normalizeName } from '@fsl/core';
+import { normalizeName, findSimilarNames } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
 import { apiFetch, apiSend } from '../api/client';
 import { formatAgo } from '../lib/time';
+import { isZaloWebView } from '../lib/zaloEnv';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Avatar } from '../components/Avatar';
@@ -14,18 +16,40 @@ import { Button } from '../components/Button';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
+import { SignInButtons, signInHref } from '../components/SignInButtons';
+import { SignInSheet } from '../components/SignInSheet';
 import './WhoAreYou.css';
+
+export function safeTripPath(next: string | null, tripId: string): string {
+  const fallback = `/t/${tripId}`;
+  if (!next) return fallback;
+  if (next !== fallback && !next.startsWith(`${fallback}/`)) return fallback;
+  if (next.includes('//') || next.includes('\\')) return fallback;
+  for (let i = 0; i < next.length; i++) {
+    const code = next.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return fallback;
+  }
+  return next;
+}
 
 export function WhoAreYou() {
   const { tripId } = useParams<{ tripId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const t = useT();
 
+  const me = useMe().data;
+  const signedIn = Boolean(me?.user);
+
+  const target = safeTripPath(searchParams.get('next'), tripId ?? '');
+
   const guestNoteId = useId();
-  const signInHref = `/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [nameMatchId, setNameMatchId] = useState<string | null>(null);
+  const userTouched = useRef(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,14 +67,35 @@ export function WhoAreYou() {
   });
 
   useEffect(() => {
+    // Auto-select only until the user has chosen a row themselves.
+    if (userTouched.current) return;
     if (picker) {
       const initial =
         picker.myPick ??
         picker.people.find((p) => p.lastUsedHere)?.id ??
         null;
-      setSelectedId(initial);
+      if (initial) {
+        setSelectedId(initial);
+        setNameMatchId(null);
+      } else if (me?.user) {
+        const rows = picker.people.filter((p) => !p.isMember);
+        const matches = findSimilarNames(me.user.name, rows);
+        const bestRank = matches[0]?.reason;
+        const bestMatches = bestRank ? matches.filter((m) => m.reason === bestRank) : [];
+        if (bestMatches.length === 1) {
+          const match = bestMatches[0]!;
+          setSelectedId(match.id);
+          setNameMatchId(match.id);
+        } else {
+          setSelectedId(initial);
+          setNameMatchId(null);
+        }
+      } else {
+        setSelectedId(initial);
+        setNameMatchId(null);
+      }
     }
-  }, [picker]);
+  }, [picker, me?.user?.name]);
 
   const selectedPerson = picker?.people.find((p) => p.id === selectedId);
 
@@ -66,7 +111,7 @@ export function WhoAreYou() {
         tripId,
       );
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      navigate(`/t/${tripId}`);
+      navigate(target);
     } catch (err) {
       setActionError(err);
     } finally {
@@ -120,19 +165,23 @@ export function WhoAreYou() {
       <div
         className={`fsl-who${actionError ? ' fsl-who--bar-error' : ''}`}
       >
-        <section className="fsl-who__guest-note" role="note" aria-labelledby={guestNoteId}>
-          <h2 id={guestNoteId} className="fsl-who__guest-title">
-            <Icon name="info" size={16} />
-            {t('who.guestTitle')}
-          </h2>
-          <ul className="fsl-who__guest-list">
-            <li>{t('who.guestExpenses')}</li>
-            <li>{t('who.guestBank')}</li>
-          </ul>
-          <a href={signInHref} className="fsl-who__guest-signin">
-            {t('who.guestSignIn')}
-          </a>
-        </section>
+        {!signedIn && (
+          <section className="fsl-who__guest-note" role="note" aria-labelledby={guestNoteId}>
+            <h2 id={guestNoteId} className="fsl-who__guest-title">
+              <Icon name="info" size={16} />
+              {t('who.guestTitle')}
+            </h2>
+            <ul className="fsl-who__guest-list">
+              <li>{t('who.guestExpenses')}</li>
+              <li>{t('who.guestBank')}</li>
+            </ul>
+            <SignInButtons
+              returnTo={target}
+              layout="inline"
+              labels={{ google: 'who.guestSignIn', zalo: 'who.guestSignInZalo' }}
+            />
+          </section>
+        )}
 
         <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
 
@@ -169,6 +218,12 @@ export function WhoAreYou() {
             </>
           )}
 
+          {nameMatchId && selectedId === nameMatchId && selectedPerson && (
+            <p className="fsl-who__subtitle" role="status">
+              {t('who.nameMatch', { name: selectedPerson.name })}
+            </p>
+          )}
+
           {visible.length > 0 && (
             <div
               role="radiogroup"
@@ -180,8 +235,12 @@ export function WhoAreYou() {
                   return (
                     <a
                       key={person.id}
-                      href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${tripId}`)}`}
+                      href={signInHref(isZaloWebView() && me?.signIn.zalo ? 'zalo' : 'google', target)}
                       className="fsl-who__row fsl-who__row--member"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setSignInOpen(true);
+                      }}
                     >
                       <Avatar name={person.name} />
                       <div className="fsl-who__row-info">
@@ -203,10 +262,14 @@ export function WhoAreYou() {
                     role="radio"
                     aria-checked={isSelected}
                     className={`fsl-who__row fsl-who__row--radio ${isSelected ? 'fsl-who__row--selected' : ''}`}
-                    onClick={() => setSelectedId(person.id)}
+                    onClick={() => {
+                      userTouched.current = true;
+                      setSelectedId(person.id);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === ' ' || e.key === 'Enter') {
                         e.preventDefault();
+                        userTouched.current = true;
                         setSelectedId(person.id);
                       }
                     }}
@@ -237,6 +300,7 @@ export function WhoAreYou() {
           )}
         </div>
       </div>
+      <SignInSheet open={signInOpen} onClose={() => setSignInOpen(false)} returnTo={target} />
     </Screen>
   );
 }

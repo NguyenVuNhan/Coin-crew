@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { TripListItem } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -12,26 +13,15 @@ import { InlineError } from '../components/InlineError';
 import { Amount } from '../components/Amount';
 import { AccountMenu } from '../components/AccountMenu';
 import { Button } from '../components/Button';
+import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { Icon } from '../components/icons';
 import './MyTrips.css';
-
-interface MeResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    consentAt: string | null;
-  } | null;
-}
 
 export function MyTrips() {
   const t = useT();
   const navigate = useNavigate();
 
-  const meQuery = useQuery<MeResponse>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<MeResponse>('/api/me'),
-  });
+  const meQuery = useMe();
 
   const tripsQuery = useQuery<TripListItem[]>({
     queryKey: ['trips'],
@@ -40,6 +30,7 @@ export function MyTrips() {
   });
 
   const user = meQuery.data?.user;
+  const incomingMerge = meQuery.data?.mergeRequests.incoming[0];
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
@@ -56,6 +47,7 @@ export function MyTrips() {
     >
       <ConsentSheet />
       <div className="fsl-my-trips">
+        {incomingMerge && <MergeRequestBanner request={incomingMerge} />}
         {!isEmpty && (
           <Button variant="primary" block href="/trips/new">
             {t('trips.new')}

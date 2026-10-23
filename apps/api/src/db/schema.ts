@@ -1,16 +1,46 @@
+import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { check } from 'drizzle-orm/sqlite-core/checks';
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-  googleSub: text('google_sub').notNull().unique(),
-  email: text('email').notNull(),
-  name: text('name').notNull(),
-  gender: text('gender'),
-  avatarUrl: text('avatar_url'),
-  customProfile: integer('custom_profile').notNull().default(0),
-  consentAt: text('consent_at'),
-  createdAt: text('created_at').notNull(),
-});
+export const users = sqliteTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    googleSub: text('google_sub'),
+    zaloSub: text('zalo_sub'),
+    email: text('email'),
+    name: text('name').notNull(),
+    gender: text('gender'),
+    avatarUrl: text('avatar_url'),
+    customProfile: integer('custom_profile').notNull().default(0),
+    consentAt: text('consent_at'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('users_google_sub_unique').on(t.googleSub).where(sql`${t.googleSub} IS NOT NULL`),
+    uniqueIndex('users_zalo_sub_unique').on(t.zaloSub).where(sql`${t.zaloSub} IS NOT NULL`),
+    check('users_identity_check', sql`${t.googleSub} IS NOT NULL OR ${t.zaloSub} IS NOT NULL`),
+  ],
+);
+
+export const accountMergeRequests = sqliteTable(
+  'account_merge_requests',
+  {
+    id: text('id').primaryKey(),
+    survivorUserId: text('survivor_user_id').notNull(),
+    mergedUserId: text('merged_user_id').notNull(),
+    provider: text('provider', { enum: ['google', 'zalo'] }).notNull(),
+    providerSub: text('provider_sub').notNull(),
+    status: text('status', { enum: ['pending', 'accepted', 'declined', 'cancelled'] }).notNull(),
+    createdAt: text('created_at').notNull(),
+    expiresAt: text('expires_at').notNull(),
+    decidedAt: text('decided_at'),
+  },
+  (t) => [
+    index('account_merge_requests_merged_idx').on(t.mergedUserId, t.status),
+    index('account_merge_requests_survivor_idx').on(t.survivorUserId, t.status),
+  ],
+);
 
 export const sessions = sqliteTable('sessions', {
   idHash: text('id_hash').primaryKey(),

@@ -1,8 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import type { CreateTripInput, GroupPreset, Gender } from '@fsl/core';
 import { useT, useLang } from '../i18n';
+import { useMe } from '../api/hooks';
 import { apiFetch, apiSend } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -16,24 +17,12 @@ import { GenderToggle } from '../components/GenderToggle';
 import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
 import './CreateTrip.css';
 
-interface MeResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    consentAt: string | null;
-  } | null;
-}
-
 export function CreateTrip() {
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
 
-  const meQuery = useQuery<MeResponse>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<MeResponse>('/api/me'),
-  });
+  const meQuery = useMe();
 
   const user = meQuery.data?.user;
 

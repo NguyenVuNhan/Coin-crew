@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import type { MeUserView, Gender } from '@fsl/core';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
-import { apiFetch, apiSend } from '../api/client';
+import { apiSend } from '../api/client';
+import { useMe } from '../api/hooks';
 import { Sheet } from './Sheet';
 import { Avatar } from './Avatar';
 import { LanguageButton } from './LanguageButton';
@@ -12,6 +13,8 @@ import { InlineError } from './InlineError';
 import { Button } from './Button';
 import { Icon } from './icons';
 import { AvatarCropModal } from './AvatarCropModal';
+import { LinkedAccounts } from './LinkedAccounts';
+import { MergeRequestBanner } from './MergeRequestBanner';
 import './AccountMenu.css';
 
 export type AccountMenuUser = {
@@ -33,13 +36,10 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const meQuery = useQuery<{ user: MeUserView | null }>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<{ user: MeUserView | null }>('/api/me'),
-    enabled: propUser === undefined,
-  });
+  const meQuery = useMe({ enabled: propUser === undefined });
 
   const u = propUser !== undefined ? propUser : meQuery.data?.user;
+  const incomingMerge = meQuery.data?.mergeRequests.incoming[0];
 
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -187,6 +187,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
       onClick={() => setOpen((prev) => !prev)}
     >
       <Avatar name={u.name} avatarUrl={u.avatarUrl} size="sm" />
+      {incomingMerge && (<span className="fsl-account-menu__dot" role="img" aria-label={t('merge.dot')} />)}
     </button>
   );
 
@@ -225,7 +226,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
 
         <div className="fsl-account-menu__info">
           <p className="fsl-account-menu__name">{u.name}</p>
-          <p className="fsl-account-menu__email">{u.email}</p>
+          <p className="fsl-account-menu__email">{u.email ?? t('account.zaloAccount')}</p>
         </div>
       </div>
 
@@ -281,6 +282,10 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
           {t('account.saveProfile')}
         </Button>
       </div>
+
+      {incomingMerge && <MergeRequestBanner request={incomingMerge} />}
+
+      {meQuery.data && <LinkedAccounts me={meQuery.data} />}
 
       <div className="fsl-account-menu__list">
         <Link

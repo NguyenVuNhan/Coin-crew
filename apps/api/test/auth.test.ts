@@ -83,17 +83,17 @@ describe('/api/me, logout, consent', () => {
     const out = await call('/api/auth/logout', { method: 'POST', headers: { Cookie: `sid=${sid}` } });
     expect(out.status).toBe(204);
     const after = await call('/api/me', { headers: { Cookie: `sid=${sid}` } });
-    expect(await after.json()).toEqual({ user: null });
+    expect(await after.json()).toEqual(expect.objectContaining({ user: null }));
   });
 
   it('returns null without a session', async () => {
-    expect(await (await call('/api/me')).json()).toEqual({ user: null });
+    expect(await (await call('/api/me')).json()).toEqual(expect.objectContaining({ user: null }));
   });
 
   it('returns null for an expired session', async () => {
     const { sid } = await signIn('g-5');
     await env.DB.prepare("UPDATE sessions SET expires_at = '2000-01-01T00:00:00.000Z'").run();
-    expect(await (await call('/api/me', { headers: { Cookie: `sid=${sid}` } })).json()).toEqual({ user: null });
+    expect(await (await call('/api/me', { headers: { Cookie: `sid=${sid}` } })).json()).toEqual(expect.objectContaining({ user: null }));
   });
 
   it('consent sets consentAt', async () => {
