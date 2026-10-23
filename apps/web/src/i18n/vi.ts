@@ -141,6 +141,10 @@ export const vi: Record<MessageKey, string> = {
   'who.inTrip': 'Đã có trong chuyến đi này', // REVIEW
   'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong chuyến đi này.', // REVIEW
   'who.newPendingNote': 'Một thành viên sẽ kiểm tra tên mới trước khi xuất hiện trong chuyến đi.', // REVIEW
+  'who.joinAs': 'Không có trong danh sách? Tham gia với tên {name}', // REVIEW
+  'who.joinButton': 'Tham gia với tên {name}', // REVIEW
+  'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
+  'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn', // REVIEW
 
   'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
   'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
@@ -364,6 +368,9 @@ export const vi: Record<MessageKey, string> = {
   'settings.language': 'Ngôn ngữ', // REVIEW
   'settings.dangerZone': 'Vùng nguy hiểm', // REVIEW
   'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ cho đến khi người tổ chức bỏ lưu trữ.', // REVIEW
+  'settings.leave': 'Rời nhóm', // REVIEW
+  'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.', // REVIEW
+  'settings.leaveConfirm': 'Rời {group}?', // REVIEW
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
@@ -378,6 +385,14 @@ export const vi: Record<MessageKey, string> = {
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.remove': 'Xóa', // REVIEW
   'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
+  'people.removeConfirm': 'Xóa {name} khỏi nhóm? Các khoản chi và thanh toán trước đây vẫn được giữ.', // REVIEW
+  'people.cannotRemove': 'Bạn không thể xóa người này.', // REVIEW
+  'people.leftTitle': 'Đã rời nhóm', // REVIEW
+  'people.leftBadge': 'Đã rời', // REVIEW
+  'people.leftOwes': 'Còn nợ {amount}', // REVIEW
+  'people.leftOwed': 'Cần nhận {amount}', // REVIEW
+  'people.leftSettled': 'Đã thanh toán xong', // REVIEW
+  'people.restore': 'Thêm lại', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
@@ -396,6 +411,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.nameApproved': '{actor} đã duyệt {name}', // REVIEW
   'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
   'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
+  'activity.personRestored': '{actor} đã thêm lại {name}', // REVIEW
   'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
   'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
   'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
@@ -408,6 +424,10 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.name_approved': 'đã duyệt tên mới', // REVIEW
   'activity.action.name_merged': 'đã hợp nhất hai tên', // REVIEW
   'activity.action.person_removed': 'đã xóa một người', // REVIEW
+  'activity.action.person_left': 'đã rời nhóm', // REVIEW
+  'activity.action.person_restored': 'đã thêm lại một người', // REVIEW
+  'activity.action.member_joined': 'đã tham gia', // REVIEW
+  'activity.action.member_rejoined': 'đã vào lại', // REVIEW
   'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng', // REVIEW
   'activity.action.bank_approved': 'đã duyệt thông tin ngân hàng', // REVIEW
   'activity.action.bank_rejected': 'đã từ chối thông tin ngân hàng', // REVIEW

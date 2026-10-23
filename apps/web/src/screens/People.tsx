@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import type { Gender, PersonView } from '@fsl/core';
+import { formatVnd, type Gender, type PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTripView } from '../api/hooks';
 import { ApiClientError } from '../api/client';
@@ -23,6 +23,7 @@ export function People() {
   const { tripId } = useParams<{ tripId: string }>();
   const t = useT();
   const navigate = useNavigate();
+  const leftHeadingId = useId();
 
   const { view, error: loadError, isLoading, refetch } = useTripView(tripId ?? '', 0);
   const { busy, error, run } = useTripAction(tripId ?? '');
@@ -57,13 +58,16 @@ export function People() {
 
   const remove = async (person: PersonView) => {
     if (busy) return;
+    if (!window.confirm(t('people.removeConfirm', { name: person.name }))) return;
     setActingId(person.id);
     await run(`/people/${person.id}`, undefined, 'DELETE');
   };
 
-  /** A person who is in an expense or payment cannot be removed: the API says 409, and merging is the way. */
+  /** A refused action (e.g. removing someone not allowed) shows a plain message. */
   const actionErrorText = (err: unknown) =>
-    err instanceof ApiClientError && err.status === 409 ? t('people.useMerge') : (err as Error).message || t('error.generic');
+    err instanceof ApiClientError && err.status === 403
+      ? t('people.cannotRemove')
+      : (err as Error).message || t('error.generic');
 
   const makeAdmin = async (person: PersonView) => {
     if (busy) return;
@@ -75,6 +79,12 @@ export function People() {
     if (busy) return;
     setActingId(person.id);
     await run(`/people/${person.id}/admin`, undefined, 'DELETE');
+  };
+
+  const restore = async (person: PersonView) => {
+    if (busy) return;
+    setActingId(person.id);
+    await run(`/people/${person.id}/restore`, undefined, 'POST');
   };
 
   const actionsFor = (person: PersonView) =>
@@ -90,6 +100,9 @@ export function People() {
       },
       onRemoveAdmin: () => {
         void removeAdmin(person);
+      },
+      onRestore: () => {
+        void restore(person);
       },
     });
 
@@ -134,12 +147,15 @@ export function People() {
     setNewGender(null);
   };
 
+  const mainPeople = view.people.filter((p) => p.status !== 'left');
+  const leftPeople = view.people.filter((p) => p.status === 'left');
+
   return (
     <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
       <div className="fsl-people">
         <SwipeGroupProvider>
           <ul className="fsl-people__list">
-            {view.people.map((person, index) => {
+            {mainPeople.map((person, index) => {
               const actions = actionsFor(person);
               const isOrganiser =
                 person.isOrganiser === true ||
@@ -213,6 +229,52 @@ export function People() {
           </ul>
         </SwipeGroupProvider>
 
+        {leftPeople.length > 0 && (
+          <section className="fsl-people__left" aria-labelledby={leftHeadingId}>
+            <h2 id={leftHeadingId} className="fsl-people__left-title">
+              {t('people.leftTitle')}
+            </h2>
+            <SwipeGroupProvider>
+              <ul className="fsl-people__list">
+                {leftPeople.map((person) => {
+                  const actions = actionsFor(person);
+                  const hasRowError = actingId === person.id && Boolean(error);
+                  const b = view.balances[person.id] ?? 0;
+                  const balanceLine =
+                    b < 0
+                      ? t('people.leftOwes', { amount: formatVnd(-b) })
+                      : b > 0
+                        ? t('people.leftOwed', { amount: formatVnd(b) })
+                        : t('people.leftSettled');
+
+                  return (
+                    <li key={person.id} className="fsl-people__item">
+                      <ActionRow
+                        label={`${person.name}, ${t('people.leftBadge')}`}
+                        actions={actions}
+                        onOpen={actions.length > 0 ? () => setMenuFor(person) : undefined}
+                        hintable={false}
+                        leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
+                      >
+                        <span className="fsl-people__text">
+                          <span className="fsl-people__name">{person.name}</span>
+                          <span className="fsl-people__bank">{balanceLine}</span>
+                        </span>
+                        <Pill tone="neutral">{t('people.leftBadge')}</Pill>
+                      </ActionRow>
+                      {hasRowError && (
+                        <p className="fsl-people__row-error" role="alert">
+                          {actionErrorText(error)}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </SwipeGroupProvider>
+          </section>
+        )}
+
         {!view.trip.archived &&
           view.me.kind === 'member' &&
           (view.me.isAdmin || view.me.isOrganiser) && (
@@ -263,7 +325,7 @@ export function People() {
           <div className="fsl-people__targets">
             {mergeSource &&
               view.people
-                .filter((p) => p.id !== mergeSource.id)
+                .filter((p) => p.id !== mergeSource.id && p.status !== 'left')
                 .map((target) => (
                   <Button
                     key={target.id}

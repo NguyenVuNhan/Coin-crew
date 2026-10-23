@@ -24,6 +24,10 @@ export type ActivityAction =
   | 'name_approved'
   | 'name_merged'
   | 'person_removed'
+  | 'person_left'
+  | 'person_restored'
+  | 'member_joined'
+  | 'member_rejoined'
   | 'bank_submitted'
   | 'bank_approved'
   | 'bank_rejected'
@@ -105,7 +109,7 @@ export interface RecentPerson {
 }
 
 export interface PersonView {
-  id: string; name: string; status: 'active' | 'pending'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
+  id: string; name: string; status: 'active' | 'pending' | 'left'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
   /** The person who created the trip. Left out by an older server. */
   isOrganiser?: boolean;
   isAdmin?: boolean;
@@ -171,7 +175,13 @@ export interface ActivityItem {
 export interface PickerView {
   people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
   myPick: string | null;
+  /** The signed-in viewer when they are not a member here. Left out by an older server. */
+  account?: { name: string; needsGender: boolean } | null;
+  /** That viewer's own name in this group, if they left it. */
+  myLeftName?: { id: string; name: string } | null;
 }
+
+export interface JoinResponse { participantId: string; rejoined: boolean }
 
 export interface ExpenseInput {
   /** 1–80 characters. */
