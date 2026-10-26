@@ -1,4 +1,5 @@
 import { normalizeName, type RecentPerson, type Gender } from '@fsl/core';
+import { matchesWordStart } from './nameSearch';
 
 /** One line of the "Who else is coming?" list. A `userId` makes it a picked account (a locked row). */
 export type PersonEntry = { key: string; name: string; userId?: string; gender?: Gender | null };
@@ -30,7 +31,7 @@ export function filterRecentPeople(query: string, people: RecentPerson[], exclud
   const found: RecentPerson[] = [];
   for (const person of people) {
     if (exclude.has(person.userId)) continue;
-    if (` ${normalizeName(person.name)}`.includes(` ${q}`)) {
+    if (matchesWordStart(query, person.name)) {
       found.push(person);
       if (found.length >= max) break;
     }
