@@ -445,6 +445,10 @@ export function expenseRoutes(): Hono<AppBindings> {
     const validated = await validateExpenseInput(db, tripId, body, onExpense);
     const fundPaid = isFundPaid(validated);
     if (fundPaid) ensureFundWrite(actor);
+    // The new version keeps the head's status, and fund-paid expenses are never pending (spec §3).
+    if (fundPaid && head.status === 'pending') {
+      throw new ApiError('VALIDATION', 422, 'A pending expense cannot be paid from the group fund.');
+    }
 
     // The expense's own amount is available again, so editing it within that is fine (spec §9.2).
     if (fundPaid || isFundPaid(headItem)) {
@@ -582,6 +586,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     // The new latest copies the target (its meta included) but keeps the current status.
     const targetItem = fundItemOf(targetRow, head.status);
     if (isFundPaid(targetItem)) ensureFundWrite(actor);
+    if (isFundPaid(targetItem) && head.status === 'pending') {
+      throw new ApiError('VALIDATION', 422, 'A pending expense cannot be paid from the group fund.');
+    }
     if (isFundPaid(headItem) || isFundPaid(targetItem)) {
       assertFundCovers(await currentFundBalance(db, tripId), headItem, targetItem);
     }
@@ -765,6 +772,10 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    // Fund-paid expenses are never pending now, but older data could hold one: approving it spends from the fund.
+    const headItem = fundItemOf(head);
+    if (isFundPaid(headItem)) ensureFundWrite(actor);
+
     const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'approve_expense', { expenseInvolved });
 
@@ -773,6 +784,9 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     }
 
     await assertNoPendingPeople(db, tripId, head.id, head.payerId);
+    if (isFundPaid(headItem)) {
+      assertFundCovers(await currentFundBalance(db, tripId), null, fundItemOf(head, 'approved'));
+    }
 
     const now = nowIso();
     const r = await db

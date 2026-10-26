@@ -63,13 +63,18 @@ export async function currentFundBalance(db: Db, tripId: string): Promise<number
   return fundSummary(incomes, expenses).balance;
 }
 
+/**
+ * Replacing `before` with `after` (either may be nothing) is refused only when it takes money out of the fund
+ * and leaves it below 0₫. A write that keeps or raises the fund always passes, so a fund already below 0₫
+ * after a race can still be fixed (spec §9.10).
+ */
 export function assertFundCovers(
   balance: number,
   before: FundItem | null,
   after: FundItem | null,
 ): void {
-  const diff = balance - (before ? fundEffect(before) : 0) + (after ? fundEffect(after) : 0);
-  if (diff < 0) {
+  const delta = (after ? fundEffect(after) : 0) - (before ? fundEffect(before) : 0);
+  if (delta < 0 && balance + delta < 0) {
     throw new ApiError('FUND_SHORT', 409, 'Not enough in the group fund.');
   }
 }
