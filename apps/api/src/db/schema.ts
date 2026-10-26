@@ -116,7 +116,7 @@ export const transactions = sqliteTable(
     parentId: text('parent_id'),
     isLatest: integer('is_latest').notNull().default(1),
     tripId: text('trip_id').notNull(),
-    type: text('type', { enum: ['expense', 'payment'] }).notNull(),
+    type: text('type', { enum: ['expense', 'payment', 'income'] }).notNull(),
     description: text('description').notNull().default(''),
     amount: integer('amount').notNull(),
     amountConfirmed: integer('amount_confirmed'),
