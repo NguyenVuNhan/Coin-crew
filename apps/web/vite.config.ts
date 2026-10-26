@@ -23,7 +23,22 @@ export default defineConfig({
     }),
   ],
   // The Worker in apps/api serves the built app as static assets.
-  build: { outDir: '../api/public', emptyOutDir: true },
+  build: {
+    outDir: '../api/public',
+    emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        // Libraries change far less often than the app, so they get chunks of their own: a deploy only
+        // re-downloads the app's code, and no chunk passes Vite's 500 kB warning.
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 2 },
+            { name: 'vendor', test: /node_modules[\\/]/, priority: 1 },
+          ],
+        },
+      },
+    },
+  },
   server: { proxy: { '/api': 'http://localhost:8787' } },
   test: {
     environment: 'jsdom',
