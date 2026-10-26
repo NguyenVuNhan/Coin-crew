@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "e2e:server", "-w", "@fsl/api"],
       "port": 8788
+    },
+    {
+      "name": "api-tunnel",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "tunnel:server", "-w", "@fsl/api"],
+      "port": 8789
     }
   ]
 }

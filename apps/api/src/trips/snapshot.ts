@@ -182,7 +182,7 @@ export async function buildSnapshot(
       list.push({
         participantId: s.participantId,
         amount: s.amount,
-        inputValue: s.inputValue,
+        inputValue: s.inputAuto === 1 ? null : s.inputValue,
       });
     }
   }

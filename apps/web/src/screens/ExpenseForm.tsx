@@ -17,7 +17,10 @@ import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
 import { apiSend, ApiClientError } from '../api/client';
-import { toEntryValue, fromEntryValue } from '../lib/splitInput';
+import { readSplitInput, fromEntryValue } from '../lib/splitInput';
+import { recentGroups } from '../lib/recentGroups';
+import { SplitBetween } from '../components/SplitBetween';
+import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
 import { useLeaveForm } from '../lib/detailsNav';
 import { actorOf } from '../lib/rowActions';
 import { SplitModePicker } from '../components/SplitModePicker';
@@ -42,9 +45,10 @@ type T = ReturnType<typeof useT>;
 
 /**
  * The line under the split picker: the mode in words, how many people it counts and the result so far. An equal
- * split says what each pays; exact amounts and percentages say what is left (or over) until they add up.
- * `total` is the amount being split (null until it is typed); `assigned` is the sum of the values typed (hundredths of a
- * percent for percentages, dong for exact amounts).
+ * split says what each pays; exact amounts and percentages say what is left (or over), and with blank boxes how many
+ * share what is left, naming the person when only one does.
+ * `total` is the amount being split (null until it is typed); `assigned` is the sum of the typed values (hundredths of a
+ * percent for percentages, dong for exact amounts); `autoCount` and `autoName` describe the blank boxes.
  */
 function splitCaption(
   t: T,
@@ -53,6 +57,8 @@ function splitCaption(
   result: SplitResult | null,
   total: number | null,
   assigned: number,
+  autoCount: number,
+  autoName: string,
 ): string {
   switch (mode) {
     case 'equal': {
@@ -63,17 +69,36 @@ function splitCaption(
       return t(allEqual ? 'split.captionEqual' : 'split.captionEqualAbout', { n: people, each: formatVnd(each) });
     }
     case 'amounts': {
-      const left = total === null ? 0 : total - assigned;
-      if (left === 0) return t('split.captionExact', { n: people });
-      return t(left > 0 ? 'split.captionExactLeft' : 'split.captionExactOver', { n: people, amount: formatVnd(Math.abs(left)) });
+      if (total === null) return t('split.captionExact', { n: people });
+      const left = total - assigned;
+      if (left < 0) return t('split.captionExactOver', { n: people, amount: formatVnd(-left) });
+      if (autoCount === 0) {
+        return left === 0 ? t('split.captionExact', { n: people }) : t('split.captionExactLeft', { n: people, amount: formatVnd(left) });
+      }
+      if (left === 0) {
+        return autoCount === 1
+          ? t('split.captionExactNothingOne', { n: people, name: autoName })
+          : t('split.captionExactNothing', { n: people, k: autoCount });
+      }
+      return autoCount === 1
+        ? t('split.captionExactLeftFor', { n: people, amount: formatVnd(left), name: autoName })
+        : t('split.captionExactShare', { n: people, k: autoCount, amount: formatVnd(left) });
     }
     case 'percent': {
       const left = 10000 - assigned;
-      if (left === 0) return t('split.captionPercent', { n: people });
-      return t(left > 0 ? 'split.captionPercentLeft' : 'split.captionPercentOver', {
-        n: people,
-        pct: fromEntryValue('percent', Math.abs(left)),
-      });
+      const pct = fromEntryValue('percent', Math.abs(left));
+      if (left < 0) return t('split.captionPercentOver', { n: people, pct });
+      if (autoCount === 0) {
+        return left === 0 ? t('split.captionPercent', { n: people }) : t('split.captionPercentLeft', { n: people, pct });
+      }
+      if (left === 0) {
+        return autoCount === 1
+          ? t('split.captionPercentNothingOne', { n: people, name: autoName })
+          : t('split.captionPercentNothing', { n: people, k: autoCount });
+      }
+      return autoCount === 1
+        ? t('split.captionPercentLeftFor', { n: people, pct, name: autoName })
+        : t('split.captionPercentShare', { n: people, k: autoCount, pct });
     }
     case 'shares':
       return t('split.captionShares', { n: people });
@@ -261,6 +286,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     }
     return new Set(formPeople.map((p) => p.id));
   });
+  const [peopleSheetOpen, setPeopleSheetOpen] = useState(false);
 
   const [amountsInputs, setAmountsInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
@@ -286,7 +312,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [sharesInputs, setSharesInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of formPeople) init[p.id] = '1';
+    for (const p of formPeople) init[p.id] = '';
     if (expense && expense.mode === 'shares') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('shares', s.inputValue);
@@ -297,7 +323,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [adjustInputs, setAdjustInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of formPeople) init[p.id] = '0';
+    for (const p of formPeople) init[p.id] = '';
     if (expense && expense.mode === 'adjust') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('adjust', s.inputValue);
@@ -312,69 +338,26 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   const parsedAmount = useMemo(() => parseVnd(amountText), [amountText]);
   const isAmountInvalid = amountText.trim() !== '' && parsedAmount === null;
 
+  // Who is in comes from the Split between sheet: one entry each, in group order. A blank exact-amount or percent box
+  // is automatic (null), and core gives it an equal part of what the typed boxes leave.
   const { entries, hasInvalidInput, inputErrors } = useMemo(() => {
-    let invalid = false;
+    const inputsByMode: Record<SplitMode, Record<string, string> | null> = {
+      equal: null,
+      amounts: amountsInputs,
+      percent: percentInputs,
+      shares: sharesInputs,
+      adjust: adjustInputs,
+    };
+    const inputs = inputsByMode[mode];
     const errors: Record<string, boolean> = {};
     const resultEntries: SplitEntry[] = [];
-
     for (const person of formPeople) {
-      const pId = person.id;
-      if (mode === 'equal') {
-        if (included.has(pId)) {
-          resultEntries.push({ participantId: pId, value: 1 });
-        }
-      } else if (mode === 'adjust') {
-        if (included.has(pId)) {
-          const text = adjustInputs[pId] ?? '0';
-          const trimmed = text.trim();
-          const val = toEntryValue('adjust', trimmed);
-          if (trimmed !== '' && val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else {
-            resultEntries.push({ participantId: pId, value: val ?? 0 });
-          }
-        }
-      } else if (mode === 'amounts') {
-        const text = amountsInputs[pId] ?? '';
-        const trimmed = text.trim();
-        if (trimmed !== '') {
-          const val = toEntryValue('amounts', trimmed);
-          if (val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else if (val > 0) {
-            resultEntries.push({ participantId: pId, value: val });
-          }
-        }
-      } else if (mode === 'percent') {
-        const text = percentInputs[pId] ?? '';
-        const trimmed = text.trim();
-        if (trimmed !== '') {
-          const val = toEntryValue('percent', trimmed);
-          if (val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else if (val > 0) {
-            resultEntries.push({ participantId: pId, value: val });
-          }
-        }
-      } else if (mode === 'shares') {
-        const text = sharesInputs[pId] ?? '';
-        const trimmed = text.trim();
-        if (trimmed !== '') {
-          const val = toEntryValue('shares', trimmed);
-          if (val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else if (val > 0) {
-            resultEntries.push({ participantId: pId, value: val });
-          }
-        }
-      }
+      if (!included.has(person.id)) continue;
+      const read = readSplitInput(mode, inputs?.[person.id] ?? '');
+      if (read.ok) resultEntries.push({ participantId: person.id, value: read.value });
+      else errors[person.id] = true;
     }
-
-    return { entries: resultEntries, hasInvalidInput: invalid, inputErrors: errors };
+    return { entries: resultEntries, hasInvalidInput: Object.keys(errors).length > 0, inputErrors: errors };
   }, [mode, included, adjustInputs, amountsInputs, percentInputs, sharesInputs, formPeople]);
 
   const parsedCourt = useMemo(() => parseVnd(courtText) || 0, [courtText]);
@@ -450,10 +433,32 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     return computeShares(parsedAmount, mode, entries);
   }, [sportSelected, parsedAmount, mode, entries]);
 
-  // Percent and exact amounts have no ticks: until someone is given a value, everyone listed is still to be given one.
-  const captionPeople = (mode === 'amounts' || mode === 'percent') && entries.length === 0 ? formPeople.length : entries.length;
-  const assigned = entries.reduce((sum, e) => sum + e.value, 0);
-  const caption = splitCaption(t, mode, captionPeople, splitResult, parsedAmount, assigned);
+  const autoEntries = entries.filter((e) => e.value === null);
+  const autoCount = autoEntries.length;
+  const autoName = autoCount === 1 ? (formPeople.find((p) => p.id === autoEntries[0]!.participantId)?.name ?? '') : '';
+  const assigned = entries.reduce((sum, e) => sum + (e.value ?? 0), 0);
+  const caption = splitCaption(t, mode, entries.length, splitResult, parsedAmount, assigned, autoCount, autoName);
+  const recent = useMemo(
+    () => recentGroups(view.expenses, formPeople, included, expenseId),
+    [view.expenses, formPeople, included, expenseId],
+  );
+
+  // The grey hint in an empty box: what that person gets. An exact amount shows their share once the split works out;
+  // a percentage is what is left of 100% over the blank boxes; a blank share is one share and a blank adjustment none.
+  function placeholderFor(personId: string): string {
+    switch (mode) {
+      case 'amounts': {
+        const share = splitResult?.ok ? splitResult.shares.find((s) => s.participantId === personId)?.amount : undefined;
+        return share === undefined ? '0' : fromEntryValue('amounts', share);
+      }
+      case 'percent':
+        return autoCount > 0 && assigned < 10000 ? fromEntryValue('percent', Math.round((10000 - assigned) / autoCount)) : '0';
+      case 'shares':
+        return '1';
+      default:
+        return '0';
+    }
+  }
 
   // Each person's share as the amount and the split are typed. Once the split adds up it is core's result (which
   // places the leftover dong); before that, exact amounts are what was typed and a percentage is its part of the
@@ -469,9 +474,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     if (splitResult?.ok) {
       for (const s of splitResult.shares) map.set(s.participantId, s.amount);
     } else if (mode === 'amounts') {
-      for (const e of entries) map.set(e.participantId, e.value);
+      for (const e of entries) if (e.value !== null) map.set(e.participantId, e.value);
     } else if (mode === 'percent' && parsedAmount !== null) {
       for (const e of entries) {
+        if (e.value === null) continue;
         const share = Math.round((parsedAmount * e.value) / 10000);
         if (Number.isSafeInteger(share)) map.set(e.participantId, share);
       }
@@ -875,6 +881,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
         <div className="fsl-expense-form__split-section">
           <h2 className="fsl-section-heading">{t('expenseForm.split')}</h2>
+          <SplitBetween people={formPeople} chosen={included} me={me} onOpen={() => setPeopleSheetOpen(true)} />
 
           <SplitModePicker
             value={mode}
@@ -986,9 +993,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
           )}
 
           <div className="fsl-card">
-            {formPeople.map((person) => {
+            {formPeople.filter((person) => included.has(person.id)).map((person) => {
               const shareAmount = liveShares.get(person.id);
-              const isIncluded = included.has(person.id);
               const isInputInvalid = Boolean(inputErrors[person.id]);
 
               if (sportSelected) {
@@ -1023,20 +1029,6 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                     data-testid={`split-row-${person.name}`}
                   >
                     <div className="fsl-split-row__main">
-                      <label className="fsl-split-row__check-label">
-                        <input
-                          type="checkbox"
-                          className="fsl-split-row__checkbox"
-                          aria-label={t('expenseForm.include', { name: person.name })}
-                          checked={isIncluded}
-                          onChange={(e) => {
-                            const next = new Set(included);
-                            if (e.target.checked) next.add(person.id);
-                            else next.delete(person.id);
-                            setIncluded(next);
-                          }}
-                        />
-                      </label>
                       <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
                       <span className="fsl-split-row__name">
                         {person.id === me
@@ -1097,7 +1089,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                       </button>
                     </div>
 
-                    {openDrawerId === person.id && isIncluded && (
+                    {openDrawerId === person.id && (
                       <div className="fsl-sport-drawer">
                         <div className="fsl-sport-drawer__guest-section">
                           <div className="fsl-sport-drawer__title">{t('sport.bringsGuest')}</div>
@@ -1244,23 +1236,6 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                   className="fsl-split-row"
                   data-testid={`split-row-${person.name}`}
                 >
-                  {(mode === 'equal' || mode === 'adjust') && (
-                    <label className="fsl-split-row__check-label">
-                      <input
-                        type="checkbox"
-                        className="fsl-split-row__checkbox"
-                        aria-label={t('expenseForm.include', { name: person.name })}
-                        checked={isIncluded}
-                        onChange={(e) => {
-                          const next = new Set(included);
-                          if (e.target.checked) next.add(person.id);
-                          else next.delete(person.id);
-                          setIncluded(next);
-                        }}
-                      />
-                    </label>
-                  )}
-
                   <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
 
                   <span className="fsl-split-row__name">
@@ -1277,8 +1252,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                         inputMode="decimal"
                         className="fsl-input fsl-split-row__input"
                         aria-label={t('expenseForm.adjustFor', { name: person.name })}
-                        value={adjustInputs[person.id] ?? '0'}
-                        disabled={!isIncluded}
+                        value={adjustInputs[person.id] ?? ''}
+                        placeholder={placeholderFor(person.id)}
                         onChange={(e) =>
                           setAdjustInputs((prev) => ({
                             ...prev,
@@ -1302,7 +1277,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                         className="fsl-input fsl-split-row__input"
                         aria-label={t('expenseForm.amountFor', { name: person.name })}
                         value={amountsInputs[person.id] ?? ''}
-                        placeholder="0"
+                        placeholder={placeholderFor(person.id)}
                         onChange={(e) =>
                           setAmountsInputs((prev) => ({
                             ...prev,
@@ -1326,7 +1301,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                         className="fsl-input fsl-split-row__input"
                         aria-label={t('expenseForm.percentFor', { name: person.name })}
                         value={percentInputs[person.id] ?? ''}
-                        placeholder="0"
+                        placeholder={placeholderFor(person.id)}
                         onChange={(e) =>
                           setPercentInputs((prev) => ({
                             ...prev,
@@ -1349,8 +1324,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                         inputMode="decimal"
                         className="fsl-input fsl-split-row__input"
                         aria-label={t('expenseForm.sharesFor', { name: person.name })}
-                        value={sharesInputs[person.id] ?? '1'}
-                        placeholder="1"
+                        value={sharesInputs[person.id] ?? ''}
+                        placeholder={placeholderFor(person.id)}
                         onChange={(e) =>
                           setSharesInputs((prev) => ({
                             ...prev,
@@ -1381,6 +1356,16 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
               {t(`splitError.${splitResult.error}` as MessageKey)}
             </div>
           )}
+
+          <SplitPeopleSheet
+            open={peopleSheetOpen}
+            onClose={() => setPeopleSheetOpen(false)}
+            people={formPeople}
+            chosen={included}
+            onChange={setIncluded}
+            me={me}
+            recent={recent}
+          />
         </div>
 
         {view.me.kind === 'guest' && (

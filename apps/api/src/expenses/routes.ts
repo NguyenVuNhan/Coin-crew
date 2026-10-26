@@ -47,7 +47,7 @@ interface ValidatedExpense {
   spentOn: string;
   payerId: string;
   mode: SplitMode;
-  shares: { participantId: string; inputValue: number; amount: number }[];
+  shares: { participantId: string; inputValue: number; inputAuto: 0 | 1; amount: number }[];
   meta?: ExpenseMeta | null;
 }
 
@@ -104,7 +104,8 @@ async function validateExpenseInput(
     }
     const pid = (entry as Record<string, unknown>).participantId;
     const val = (entry as Record<string, unknown>).value;
-    if (typeof pid !== 'string' || typeof val !== 'number') {
+    // A null value is a blank box; core says which split modes allow one.
+    if (typeof pid !== 'string' || (typeof val !== 'number' && val !== null)) {
       throw new ApiError('VALIDATION', 422, 'Invalid entry');
     }
     if (seenIds.has(pid)) {
@@ -229,11 +230,12 @@ async function validateExpenseInput(
   }
 
   const entryValueMap = new Map(sortedEntries.map((e) => [e.participantId, e.value]));
-  const shares = r.shares.map((sh) => ({
-    participantId: sh.participantId,
-    inputValue: mode === 'equal' ? 1 : (entryValueMap.get(sh.participantId) ?? 1),
-    amount: sh.amount,
-  }));
+  const shares = r.shares.map((sh) => {
+    const value = entryValueMap.get(sh.participantId);
+    // A blank box is kept as automatic, so editing opens it blank and re-divides what is left.
+    if (value === null) return { participantId: sh.participantId, inputValue: 0, inputAuto: 1 as const, amount: sh.amount };
+    return { participantId: sh.participantId, inputValue: mode === 'equal' ? 1 : (value ?? 1), inputAuto: 0 as const, amount: sh.amount };
+  });
 
   return {
     description,
@@ -340,6 +342,7 @@ export function expenseRoutes(): Hono<AppBindings> {
         transactionId: expenseId,
         participantId: sh.participantId,
         inputValue: sh.inputValue,
+        inputAuto: sh.inputAuto,
         amount: sh.amount,
       }),
     );
@@ -446,6 +449,7 @@ export function expenseRoutes(): Hono<AppBindings> {
         transactionId: newHeadId,
         participantId: sh.participantId,
         inputValue: sh.inputValue,
+        inputAuto: sh.inputAuto,
         amount: sh.amount,
       }),
     );
@@ -573,6 +577,7 @@ export function expenseRoutes(): Hono<AppBindings> {
         transactionId: newHeadId,
         participantId: sh.participantId,
         inputValue: sh.inputValue,
+        inputAuto: sh.inputAuto,
         amount: sh.amount,
       }),
     );
