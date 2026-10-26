@@ -191,6 +191,9 @@ export interface IncomeView {
   history: IncomeHistoryItem[];
 }
 
+// ExpenseView gains (set by the snapshot; the merged feed sorts by it):
+createdAt?: string;
+
 // TripView gains:
 /** Sport groups only; null otherwise. Left out by an older server: read it as null. */
 fund?: { balance: number; added: number; spent: number; incomes: IncomeView[] } | null;
@@ -210,8 +213,8 @@ Every route: `resolveActor`, `assertWritable` (archived groups refuse writes), t
 |---|---|---|---|
 | `POST /trips/:id/fund/incomes` | Inserts an approved income (`payer_id` = actor) | none (only adds) | `201 { incomeId }` |
 | `PATCH /trips/:id/fund/incomes/:iid` | New version with the new amount, date and note; keeps status and `payer_id` | yes | `200 { incomeId, rootId }` |
-| `POST …/:iid/disable` | `approved` → `disabled`, records `disabled_by_user_id` | yes | `200 { ok: true }` |
-| `POST …/:iid/enable` | `disabled` → `approved` | none (only adds) | `200 { ok: true }` |
+| `POST …/:iid/disable` | `approved` → `disabled`, records `disabled_by_user_id` | yes | `204` (as expense disable) |
+| `POST …/:iid/enable` | `disabled` → `approved` | none (only adds) | `204` (as expense enable) |
 | `POST …/:iid/rollback` `{ targetHistoryId }` | Copies an older version (amount, date, note, meta) as the new latest; keeps status and `payer_id` | yes | `200 { incomeId, rootId }` |
 
 - **Validation** (`422 VALIDATION`): `amount` a safe integer from 1 to `MAX_AMOUNT`; `spentOn` matches `YYYY-MM-DD`; `description` 1–80 characters after trimming; `category` absent or `null`.
@@ -232,6 +235,7 @@ Every route: `resolveActor`, `assertWritable` (archived groups refuse writes), t
 
 ### 6.3 Snapshot (`apps/api/src/trips/snapshot.ts`)
 
+- Each `ExpenseView` gets `createdAt` from its row, so the web can merge expenses and income into one feed.
 - `type = 'income'` rows: the latest versions become `IncomeView`s (newest first by `createdAt`); older versions become `history`, grouped by `root_id`, newest first. `addedById` comes from `payer_id`.
 - `disabledByName` for income uses the same user lookup as expenses (the income rows' `disabled_by_user_id`s join the list).
 - `toLedger` skips expenses where `isFundPaid(e)`, whatever the group's preset. This one filter keeps balances, suggestions, `myBalance` (`view.ts`) and the trip list's balance (`GET /trips`) free of fund-paid expenses.
@@ -276,7 +280,7 @@ Wireframes for every item: [v5-group-fund.html](superpowers/mockups/v5-group-fun
 - Editing a fund-paid expense needs `edit_expense` **and** `manage_fund`; without both the form shows the existing "not yours" screen.
 
 ### 7.4 Expense list (`ExpenseList.tsx`)
-- One feed: `view.expenses` and `view.fund.incomes` merged, newest first by `createdAt`.
+- One feed: `view.expenses` and `view.fund.incomes` merged, newest first by `createdAt` (an expense without `createdAt`, from an older server, sorts as the oldest).
 - **New `IncomeRow`:** note; subline "Added to fund · by {name}" ("by you" for me); amount "+200.000₫" in `--color-success`, tabular, right-aligned. Disabled: struck through with the *Disabled* pill and "Disabled by {name}", like expenses. The "+" and the words carry the meaning, not the colour alone.
 - **Fund-paid expense row** (`ExpenseRow.tsx`): subline "Paid from group fund"; the full amount in `--color-text-subtle`, because it is nobody's share.
 - **Mine** filter: income I added; fund-paid expenses I recorded.
