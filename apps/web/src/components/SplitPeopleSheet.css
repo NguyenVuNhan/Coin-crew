@@ -249,6 +249,11 @@
   line-height: var(--leading-base);
 }
 
+/* The field around the chips shows focus (:focus-within); a second ring on the text box inside would double it. */
+.fsl-split-sheet__input:focus-visible {
+  box-shadow: none;
+}
+
 .fsl-split-sheet__input::placeholder {
   color: var(--color-text-subtle);
 }
