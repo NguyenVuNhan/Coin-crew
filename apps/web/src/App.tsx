@@ -30,6 +30,7 @@ export function App() {
       <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
       <Route path="/t/:tripId/expenses/:expenseId" element={<TripRoute />} />
       <Route path="/t/:tripId/payments/:paymentId" element={<TripRoute />} />
+      <Route path="/t/:tripId/fund/:incomeId" element={<TripRoute />} />
       <Route path="/t/:tripId/approvals" element={<TripRoute />} />
       <Route path="/t/:tripId/pay/:toId" element={<PayScreen />} />
       <Route path="/t/:tripId/bank" element={<BankDetails />} />
