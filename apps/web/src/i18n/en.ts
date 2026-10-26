@@ -247,7 +247,7 @@ export const en = {
   'splitSheet.searchPlaceholder': 'Add people…',
   'splitSheet.remove': 'Remove {name}',
   'splitSheet.add': 'Add {name}',
-  'splitSheet.you': '{name} (you)',
+  'splitSheet.alreadyIn': 'Already in: {names}',
   'splitSheet.noMatch': 'No one called "{q}" in this group.',
   'splitSheet.allChosen': 'Everyone in the group is already chosen.',
   'splitSheet.matches': '{n} matches',

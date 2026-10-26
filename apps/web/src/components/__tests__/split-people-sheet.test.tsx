@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -15,24 +15,29 @@ const small = ['Minh', 'An', 'Bình', 'Chi', 'Dũng'].map(person);
 const big = [...small, ...['Long', 'Loan', 'Hà Lộc', 'Đức', 'Thảo', 'Khoa', 'Vy', 'Phúc', 'Quân'].map(person)];
 const idOf = (people: PersonView[], name: string) => people.find((p) => p.name === name)!.id;
 
-function Harness({ people, start, recent = [], onClose = () => {} }: {
-  people: PersonView[]; start: string[]; recent?: RecentGroup[]; onClose?: () => void;
+function Harness({ people, start, recent = [], onClose = () => {}, open = true }: {
+  people: PersonView[]; start: string[]; recent?: RecentGroup[]; onClose?: () => void; open?: boolean;
 }) {
   const [chosen, setChosen] = useState<Set<string>>(() => new Set(start.map((name) => idOf(people, name))));
-  return <SplitPeopleSheet open onClose={onClose} people={people} chosen={chosen} onChange={setChosen} me={idOf(people, 'Minh')} recent={recent} />;
+  return <SplitPeopleSheet open={open} onClose={onClose} people={people} chosen={chosen} onChange={setChosen} me={idOf(people, 'Minh')} recent={recent} />;
 }
 
 const everyone = (people: PersonView[]) => people.map((p) => p.name);
 const addPeople = () => screen.getByRole('textbox', { name: 'Add people' });
+const chipNames = () => [...document.querySelectorAll('.fsl-split-sheet__chip-name')].map((c) => c.textContent);
 
 beforeEach(() => setLang('en'));
 
-describe('SplitPeopleSheet, a small group', () => {
-  it('ticks show who is in, and unticking takes them out', async () => {
+describe('SplitPeopleSheet, any group size', () => {
+  it('a small group gets the search field too, with no tick boxes', () => {
     render(<Harness people={small} start={everyone(small)} />);
-    const an = screen.getByRole('checkbox', { name: 'An' });
-    expect(an).toBeChecked();
-    await userEvent.click(an);
+    expect(addPeople()).toBeInTheDocument();
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  });
+
+  it('removing a chip takes the person out', async () => {
+    render(<Harness people={small} start={everyone(small)} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Remove An' }));
     expect(screen.getByText('4 of 5')).toBeInTheDocument();
   });
 
@@ -46,23 +51,9 @@ describe('SplitPeopleSheet, a small group', () => {
     expect(screen.getByText('5 of 5')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add everyone' })).toBeNull();
   });
-
-  it('12 people still get the tick list', () => {
-    const twelve = big.slice(0, 12);
-    render(<Harness people={twelve} start={everyone(twelve)} />);
-    expect(screen.queryByRole('textbox', { name: 'Add people' })).toBeNull();
-    expect(screen.getAllByRole('checkbox')).toHaveLength(12);
-  });
 });
 
-describe('SplitPeopleSheet, a big group', () => {
-  it('13 people get the search field', () => {
-    const thirteen = big.slice(0, 13);
-    render(<Harness people={thirteen} start={['Minh']} />);
-    expect(addPeople()).toBeInTheDocument();
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
-  });
-
+describe('SplitPeopleSheet, searching', () => {
   it('typing suggests only people not chosen, by word start', async () => {
     render(<Harness people={big} start={['Minh']} />);
     await userEvent.type(addPeople(), 'lo');
@@ -78,6 +69,26 @@ describe('SplitPeopleSheet, a big group', () => {
     expect(screen.getByRole('button', { name: 'Remove Long' })).toBeInTheDocument();
     expect(addPeople()).toHaveValue('');
     expect(addPeople()).toHaveFocus();
+  });
+
+  it('tapping a suggestion or a chip never takes focus from the search box (the phone keyboard stays up)', async () => {
+    render(<Harness people={big} start={['Minh', 'Vy']} />);
+    const onBlur = vi.fn();
+    addPeople().addEventListener('blur', onBlur);
+    await userEvent.type(addPeople(), 'lo');
+    await userEvent.click(screen.getByRole('button', { name: 'Add Long' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Vy' }));
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(addPeople()).toHaveFocus();
+  });
+
+  it('chips are in the order people were added, and Backspace removes the latest', async () => {
+    render(<Harness people={big} start={['Minh']} />);
+    await userEvent.type(addPeople(), 'vy{Enter}');
+    await userEvent.type(addPeople(), 'an{Enter}');
+    expect(chipNames()).toEqual(['You', 'Vy', 'An']);
+    await userEvent.keyboard('{Backspace}');
+    expect(chipNames()).toEqual(['You', 'Vy']);
   });
 
   it('× removes the chip and the person is suggested again', async () => {
@@ -117,6 +128,13 @@ describe('SplitPeopleSheet, a big group', () => {
     expect(screen.getByText('0 of 14')).toBeInTheDocument();
   });
 
+  it('a name that is already chosen says so, instead of "no one called"', async () => {
+    render(<Harness people={big} start={['Minh', 'An']} />);
+    await userEvent.type(addPeople(), 'an');
+    expect(screen.getByText('Already in: An')).toBeInTheDocument();
+    expect(screen.queryByText(/No one called/)).toBeNull();
+  });
+
   it('no match, and everyone chosen', async () => {
     const { unmount } = render(<Harness people={big} start={['Minh']} />);
     await userEvent.type(addPeople(), 'xyz');
@@ -126,9 +144,42 @@ describe('SplitPeopleSheet, a big group', () => {
     expect(screen.getByText('Everyone in the group is already chosen.')).toBeInTheDocument();
   });
 
+  it('closing the sheet clears the search', async () => {
+    const { rerender } = render(<Harness people={big} start={['Minh']} />);
+    await userEvent.type(addPeople(), 'lo');
+    rerender(<Harness people={big} start={['Minh']} open={false} />);
+    rerender(<Harness people={big} start={['Minh']} open />);
+    expect(addPeople()).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Add An' })).toBeInTheDocument();
+  });
+
   it('the viewer chip reads You', () => {
     render(<Harness people={big} start={['Minh']} />);
     expect(screen.getByRole('button', { name: 'Remove Minh' }).closest('.fsl-split-sheet__chip')).toHaveTextContent('You');
+  });
+});
+
+describe('SplitPeopleSheet, keeping the search box in view', () => {
+  const scrollTop = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
+  const scrollHeight = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight');
+  afterEach(() => {
+    if (scrollTop) Object.defineProperty(Element.prototype, 'scrollTop', scrollTop);
+    if (scrollHeight) Object.defineProperty(Element.prototype, 'scrollHeight', scrollHeight);
+  });
+
+  it('the chip area scrolls to its end on open and after each change, where the text box is', async () => {
+    const scrolledTo: number[] = [];
+    Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => 480 });
+    Object.defineProperty(Element.prototype, 'scrollTop', {
+      configurable: true,
+      get: () => 0,
+      set(this: Element, v: number) { if (this.classList.contains('fsl-split-sheet__field')) scrolledTo.push(v); },
+    });
+    render(<Harness people={big} start={everyone(big)} />);
+    expect(scrolledTo).toContain(480);
+    scrolledTo.length = 0;
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Vy' }));
+    expect(scrolledTo).toContain(480);
   });
 });
 

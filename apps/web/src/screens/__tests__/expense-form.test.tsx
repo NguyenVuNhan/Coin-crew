@@ -17,7 +17,7 @@ const rowOf = (name: string) => screen.getByTestId(`split-row-${name}`);
 /** Takes someone off the expense the way a person does: through the Split between sheet. */
 async function untick(name: string) {
   await userEvent.click(screen.getByRole('button', { name: /^Split between/ }));
-  await userEvent.click(screen.getByRole('checkbox', { name }));
+  await userEvent.click(screen.getByRole('button', { name: `Remove ${name}` }));
   await userEvent.click(screen.getByRole('button', { name: 'Done' }));
 }
 

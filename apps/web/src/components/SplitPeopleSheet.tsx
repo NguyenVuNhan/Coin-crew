@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import type { JSX, KeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { Sheet } from './Sheet';
@@ -12,8 +12,6 @@ import { matchesWordStart } from '../lib/nameSearch';
 import type { RecentGroup } from '../lib/recentGroups';
 import './SplitPeopleSheet.css';
 
-export const SEARCH_ABOVE = 12;
-
 export interface SplitPeopleSheetProps {
   open: boolean;
   onClose(): void;
@@ -23,6 +21,9 @@ export interface SplitPeopleSheetProps {
   me: string | null;
   recent: readonly RecentGroup[];
 }
+
+/** Tapping these must not move focus off the search box: on a phone that would close the keyboard and reopen it. */
+const keepSearchFocus = (e: MouseEvent) => e.preventDefault();
 
 /** The sheet behind the Split between line; every change applies at once, Done only closes it. */
 export function SplitPeopleSheet({
@@ -37,9 +38,13 @@ export function SplitPeopleSheet({
   const t = useT();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
 
-  const inGroup = people.filter((p) => chosen.has(p.id));
-  const n = inGroup.length;
+  const byId = new Map(people.map((p) => [p.id, p]));
+  // Chips follow the order people were added (a Set keeps insertion order), so the newest sits next to the text box
+  // and Backspace takes it off. Ids of people no longer offered are skipped.
+  const chips = [...chosen].map((id) => byId.get(id)).filter((p): p is PersonView => p !== undefined);
+  const n = chips.length;
   const total = people.length;
 
   const shown = (p: PersonView) => (p.id === me ? t('splitBetween.you') : p.name);
@@ -55,11 +60,12 @@ export function SplitPeopleSheet({
   };
 
   const clearAll = () => onChange(new Set());
-  const addEveryone = () => onChange(new Set(people.map((p) => p.id)));
+  const addEveryone = () => onChange(new Set([...chips.map((p) => p.id), ...people.map((p) => p.id)]));
   const applyGroup = (g: RecentGroup) => onChange(new Set(g.people));
 
-  const search = people.length > SEARCH_ABOVE;
+  const typed = query.trim() !== '';
   const suggestions = people.filter((p) => !chosen.has(p.id) && matchesWordStart(query, p.name));
+  const alreadyIn = typed ? chips.filter((p) => matchesWordStart(query, p.name)) : [];
 
   const add = (id: string) => {
     toggle(id, true);
@@ -72,15 +78,27 @@ export function SplitPeopleSheet({
       e.preventDefault();
       // Only a typed name picks someone: Enter on an empty field is the phone keyboard closing, and Enter while a
       // Vietnamese input method is still composing a word is not a choice yet.
-      if (query.trim() !== '' && !e.nativeEvent.isComposing && suggestions[0]) {
+      if (typed && !e.nativeEvent.isComposing && suggestions[0]) {
         add(suggestions[0].id);
       }
-    } else if (e.key === 'Backspace' && query === '' && inGroup.length > 0) {
-      toggle(inGroup[inGroup.length - 1]!.id, false);
+    } else if (e.key === 'Backspace' && query === '' && n > 0) {
+      toggle(chips[n - 1]!.id, false);
     }
   };
 
-  const peopleMap = new Map(people.map((p) => [p.id, p]));
+  // A new search each time the sheet opens.
+  useEffect(() => {
+    if (!open) setQuery('');
+  }, [open]);
+
+  // The text box comes after the chips in a field that stops at about three lines: keep it scrolled to the end so the
+  // text box is always in view, on open and whenever a chip comes or goes.
+  const chipKey = chips.map((p) => p.id).join(' ');
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (field) field.scrollTop = field.scrollHeight;
+  }, [open, chipKey]);
+
   const displayedRecent = recent.slice(0, 3);
 
   return (
@@ -91,7 +109,7 @@ export function SplitPeopleSheet({
           <ul className="fsl-split-sheet__recent-list">
             {displayedRecent.map((g) => {
               const groupPeople = g.people
-                .map((id) => peopleMap.get(id))
+                .map((id) => byId.get(id))
                 .filter((p): p is PersonView => p !== undefined);
               const rest = groupPeople.length - 3;
               const names =
@@ -130,110 +148,88 @@ export function SplitPeopleSheet({
         </section>
       )}
 
-      <div className="fsl-split-sheet__toolbar">
-        <span className="fsl-split-sheet__count">{t('splitSheet.count', { n, total })}</span>
-        <span className="fsl-split-sheet__actions">
-          {n > 0 && (
-            <button type="button" className="fsl-split-sheet__link" onClick={clearAll}>
-              {t('splitSheet.clearAll')}
-            </button>
-          )}
-          {n < total && (
-            <button type="button" className="fsl-split-sheet__link" onClick={addEveryone}>
-              {t('splitSheet.addEveryone')}
-            </button>
-          )}
-        </span>
+      <div className="fsl-split-sheet__search">
+        <div className="fsl-split-sheet__toolbar">
+          <span className="fsl-split-sheet__count">{t('splitSheet.count', { n, total })}</span>
+          <span className="fsl-split-sheet__actions">
+            {n > 0 && (
+              <button type="button" className="fsl-split-sheet__link" onClick={clearAll}>
+                {t('splitSheet.clearAll')}
+              </button>
+            )}
+            {n < total && (
+              <button type="button" className="fsl-split-sheet__link" onClick={addEveryone}>
+                {t('splitSheet.addEveryone')}
+              </button>
+            )}
+          </span>
+        </div>
+
+        <div ref={fieldRef} className="fsl-split-sheet__field" onClick={() => inputRef.current?.focus()}>
+          {chips.map((p) => (
+            <span key={p.id} className="fsl-split-sheet__chip">
+              <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
+              <span className="fsl-split-sheet__chip-name">{shown(p)}</span>
+              <button
+                type="button"
+                className="fsl-split-sheet__chip-remove"
+                aria-label={t('splitSheet.remove', { name: p.name })}
+                onMouseDown={keepSearchFocus}
+                onClick={() => toggle(p.id, false)}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </span>
+          ))}
+          <input
+            ref={inputRef}
+            type="text"
+            className="fsl-split-sheet__input"
+            aria-label={t('splitSheet.searchLabel')}
+            placeholder={t('splitSheet.searchPlaceholder')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+            autoComplete="off"
+          />
+        </div>
+
+        {n === 0 && (
+          <p role="alert" className="fsl-split-sheet__error">
+            {t('splitError.NO_PARTICIPANTS')}
+          </p>
+        )}
       </div>
 
-      {n === 0 && (
-        <p role="alert" className="fsl-split-sheet__error">
-          {t('splitError.NO_PARTICIPANTS')}
-        </p>
-      )}
+      <p role="status" aria-live="polite" className="fsl-split-sheet__sr-only">
+        {typed ? t('splitSheet.matches', { n: suggestions.length }) : ''}
+      </p>
 
-      {!search && (
-        <ul className="fsl-split-sheet__list">
-          {people.map((p) => (
+      {suggestions.length > 0 ? (
+        <ul className="fsl-split-sheet__suggestions">
+          {suggestions.map((p) => (
             <li key={p.id}>
-              <label className="fsl-split-sheet__tick-row">
-                <input
-                  type="checkbox"
-                  className="fsl-split-sheet__checkbox"
-                  checked={chosen.has(p.id)}
-                  onChange={(e) => toggle(p.id, e.target.checked)}
-                />
+              <button
+                type="button"
+                className="fsl-split-sheet__suggestion"
+                aria-label={t('splitSheet.add', { name: p.name })}
+                onMouseDown={keepSearchFocus}
+                onClick={() => add(p.id)}
+              >
                 <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
-                <span className="fsl-split-sheet__name">
-                  {p.id === me ? t('splitSheet.you', { name: p.name }) : p.name}
-                </span>
+                <span className="fsl-split-sheet__name">{p.name}</span>
                 {p.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
-              </label>
+                <Icon name="plus" size={18} />
+              </button>
             </li>
           ))}
         </ul>
-      )}
-
-      {search && (
-        <>
-          <div className="fsl-split-sheet__field" onClick={() => inputRef.current?.focus()}>
-            {inGroup.map((p) => (
-              <span key={p.id} className="fsl-split-sheet__chip">
-                <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
-                <span className="fsl-split-sheet__chip-name">{shown(p)}</span>
-                <button
-                  type="button"
-                  className="fsl-split-sheet__chip-remove"
-                  aria-label={t('splitSheet.remove', { name: p.name })}
-                  onClick={() => toggle(p.id, false)}
-                >
-                  <Icon name="x" size={14} />
-                </button>
-              </span>
-            ))}
-            <input
-              ref={inputRef}
-              type="text"
-              className="fsl-split-sheet__input"
-              aria-label={t('splitSheet.searchLabel')}
-              placeholder={t('splitSheet.searchPlaceholder')}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={onKeyDown}
-              autoComplete="off"
-            />
-          </div>
-
-          <p role="status" aria-live="polite" className="fsl-split-sheet__sr-only">
-            {query.trim() !== '' ? t('splitSheet.matches', { n: suggestions.length }) : ''}
-          </p>
-
-          {suggestions.length > 0 ? (
-            <ul className="fsl-split-sheet__suggestions">
-              {suggestions.map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    className="fsl-split-sheet__suggestion"
-                    aria-label={t('splitSheet.add', { name: p.name })}
-                    onClick={() => add(p.id)}
-                  >
-                    <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
-                    <span className="fsl-split-sheet__name">{p.name}</span>
-                    {p.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
-                    <Icon name="plus" size={18} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : n === total ? (
-            <p className="fsl-split-sheet__empty">{t('splitSheet.allChosen')}</p>
-          ) : (
-            <p className="fsl-split-sheet__empty">
-              {t('splitSheet.noMatch', { q: query.trim() })}
-            </p>
-          )}
-        </>
+      ) : alreadyIn.length > 0 ? (
+        <p className="fsl-split-sheet__empty">{t('splitSheet.alreadyIn', { names: alreadyIn.map(shown).join(', ') })}</p>
+      ) : n === total ? (
+        <p className="fsl-split-sheet__empty">{t('splitSheet.allChosen')}</p>
+      ) : (
+        <p className="fsl-split-sheet__empty">{t('splitSheet.noMatch', { q: query.trim() })}</p>
       )}
 
       <div className="fsl-split-sheet__footer">

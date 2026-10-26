@@ -158,7 +158,7 @@ describe('ExpenseForm, choosing who is in', () => {
     renderAt(<ExpenseForm />, newRoute);
     await screen.findByLabelText('Amount');
     await openSheet();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Bình' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Bình' }));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.queryByTestId('split-row-Bình')).toBeNull();
     expect(screen.getByText('Split between · 3 of 4')).toBeInTheDocument();
@@ -181,11 +181,11 @@ describe('ExpenseForm, choosing who is in', () => {
     await start('100.000', 'Exact amounts');
     await userEvent.type(screen.getByLabelText('Amount for An'), '30.000');
     await openSheet();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'An' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove An' }));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.getByText('Exact amounts · 3 people · 3 share 100.000₫ left')).toBeInTheDocument();
     await openSheet();
-    await userEvent.click(screen.getByRole('checkbox', { name: 'An' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Add people' }), 'an{Enter}');
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.getByLabelText('Amount for An')).toHaveValue('30.000');
   });

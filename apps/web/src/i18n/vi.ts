@@ -247,7 +247,7 @@ export const vi: Record<MessageKey, string> = {
   'splitSheet.searchPlaceholder': 'Thêm người…', // REVIEW
   'splitSheet.remove': 'Bỏ {name}', // REVIEW
   'splitSheet.add': 'Thêm {name}', // REVIEW
-  'splitSheet.you': '{name} (bạn)', // REVIEW
+  'splitSheet.alreadyIn': 'Đã có: {names}', // REVIEW
   'splitSheet.noMatch': 'Không có ai tên "{q}" trong nhóm.', // REVIEW
   'splitSheet.allChosen': 'Đã chọn tất cả mọi người trong nhóm.', // REVIEW
   'splitSheet.matches': '{n} kết quả', // REVIEW
