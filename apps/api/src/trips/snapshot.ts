@@ -375,7 +375,9 @@ export async function getSnapshot(db: Db, trip: TripRow): Promise<TripSnapshot> 
     .get();
 
   if (row && row.version === trip.version) {
-    return JSON.parse(row.json) as TripSnapshot;
+    const cached = JSON.parse(row.json) as TripSnapshot;
+    // Views cached before the group fund have no `fund` (nor expense createdAt): rebuild them once.
+    if ('fund' in cached) return cached;
   }
 
   let previous: Transfer[] | undefined;
