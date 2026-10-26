@@ -226,6 +226,24 @@ export const vi: Record<MessageKey, string> = {
   'splitBetween.change': 'Đổi', // REVIEW
   'splitBetween.you': 'Bạn', // REVIEW
   'splitBetween.aria': 'Chia cho {names}. Đổi', // REVIEW
+  'splitSheet.title': 'Chia cho', // REVIEW
+  'splitSheet.count': '{n}/{total} người', // REVIEW
+  'splitSheet.recent': 'Giống nhóm người ở', // REVIEW
+  'splitSheet.recentMeta': '{date} · {n} người · {names}', // REVIEW
+  'splitSheet.more': '+{n}', // REVIEW
+  'splitSheet.use': 'Dùng', // REVIEW
+  'splitSheet.useAria': 'Dùng nhóm người của {description}', // REVIEW
+  'splitSheet.clearAll': 'Bỏ chọn hết', // REVIEW
+  'splitSheet.addEveryone': 'Chọn mọi người', // REVIEW
+  'splitSheet.searchLabel': 'Thêm người', // REVIEW
+  'splitSheet.searchPlaceholder': 'Thêm người…', // REVIEW
+  'splitSheet.remove': 'Bỏ {name}', // REVIEW
+  'splitSheet.add': 'Thêm {name}', // REVIEW
+  'splitSheet.you': '{name} (bạn)', // REVIEW
+  'splitSheet.noMatch': 'Không có ai tên "{q}" trong nhóm.', // REVIEW
+  'splitSheet.allChosen': 'Đã chọn tất cả mọi người trong nhóm.', // REVIEW
+  'splitSheet.matches': '{n} kết quả', // REVIEW
+  'splitSheet.done': 'Xong', // REVIEW
   'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
   'expense.historyTitle': 'Lịch sử chỉnh sửa', // REVIEW
   'expense.rollback': 'Khôi phục về bản cập nhật này', // REVIEW
