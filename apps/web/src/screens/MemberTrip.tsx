@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
+import { FundPill } from '../components/FundPill';
 import { InviteCard, InviteSheet } from '../components/InviteSheet';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
@@ -44,6 +45,8 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
+  // Under the balance (or invite) card; with no card on a fund-only trip it still shows, since the income counts as history.
+  const fund = <FundPill view={view} />;
   const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} state={transfersState} /> : null;
   const payments = (hintable: boolean) => (
     <PaymentsList
@@ -99,6 +102,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
               <>
                 {notice}
                 <ApprovalQueue view={view} switching={selection !== null} />
+                {fund}
                 {expenses(true, true)}
                 {payments(false)}
               </>
@@ -112,6 +116,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           <UpdatedTransactionsBanner view={view} />
           <ApprovalQueue view={view} />
           {balance}
+          {fund}
           {transfers}
           <TripTabs activeTab={activeTab} onChange={setActiveTab} />
           {activeTab === 'expenses' ? expenses(true, false) : payments(true)}

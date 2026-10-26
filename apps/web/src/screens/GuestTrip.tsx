@@ -8,6 +8,7 @@ import { nameOf } from '../lib/tripText';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
+import { FundPill } from '../components/FundPill';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
@@ -86,6 +87,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   );
 
   const balance = hasExpenses ? <BalanceCard view={view} /> : null;
+  const fund = <FundPill view={view} />;
 
   // Always there (not only when someone owes the guest), so they can add details early; archived trips get none.
   const bankRow = <MyBankRow view={view} />;
@@ -143,6 +145,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         {!wide ? (
           <>
             {balance}
+            {fund}
             {bankRow}
             {transfers}
             <TripTabs activeTab={activeTab} onChange={setActiveTab} />
@@ -152,6 +155,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
           <TripLayout
             left={
               <>
+                {fund}
                 {expenses(true, true)}
                 {payments(false)}
               </>

@@ -17,6 +17,7 @@ export function sportFundView(overrides: Partial<TripView> = {}): TripView {
   return {
     ...base,
     trip: { ...base.trip, preset: 'sport' },
+    people: base.people.map((p) => (p.id === PIDS.M ? { ...p, isOrganiser: true, isAdmin: true } : p)),
     fund: {
       balance: 400000, added: 650000, spent: 250000,
       incomes: [
