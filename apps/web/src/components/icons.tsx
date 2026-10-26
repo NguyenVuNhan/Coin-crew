@@ -5,7 +5,7 @@ export type IconName =
   | 'back' | 'settings' | 'userPlus' | 'userCheck' | 'share' | 'copy' | 'download' | 'check' | 'circleCheck'
   | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
-  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield';
+  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'piggyBank';
 
 const SHAPES: Record<IconName, ReactNode> = {
   back: <><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></>,
@@ -50,6 +50,7 @@ const SHAPES: Record<IconName, ReactNode> = {
   rotateCcw: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></>,
   camera: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></>,
   shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />,
+  piggyBank: <><path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z" /><path d="M16 10h.01" /><path d="M2 8v1a2 2 0 0 0 2 2h1" /></>,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

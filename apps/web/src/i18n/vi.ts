@@ -586,5 +586,47 @@ export const vi: Record<MessageKey, string> = {
   'updates.previous': 'Trước đó', // REVIEW
   'updates.now': 'Hiện tại', // REVIEW
   'updates.dismiss': 'Đã hiểu', // REVIEW
+  'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
+  'entry.expense': 'Chi tiêu', // REVIEW
+  'entry.income': 'Quỹ thu', // REVIEW
+  'fund.title': 'Quỹ nhóm', // REVIEW
+  'fund.pillLabel': 'Quỹ nhóm, {amount}', // REVIEW
+  'fund.addTitle': 'Thêm vào quỹ', // REVIEW
+  'fund.editTitle': 'Sửa khoản thu quỹ', // REVIEW
+  'fund.add': 'Thêm vào quỹ', // REVIEW
+  'fund.note': 'Ghi chú', // REVIEW
+  'fund.notePlaceholder': 'VD: Thu 2 khách vãng lai', // REVIEW
+  'fund.keepAtLeast': 'Giữ ít nhất {amount}: phần còn lại đã được chi.', // REVIEW
+  'fund.payerOption': 'Quỹ nhóm · {amount}', // REVIEW
+  'fund.paidTitle': 'Chi từ quỹ nhóm', // REVIEW
+  'fund.noShares': 'Không ai phải góp.', // REVIEW
+  'fund.after': 'Quỹ còn lại: {amount}', // REVIEW
+  'fund.overLimit': 'Quỹ chỉ còn {amount}. Giảm số tiền hoặc chọn người trả.', // REVIEW
+  'fund.rowIncome': 'Quỹ thu · {name} thêm', // REVIEW
+  'fund.rowIncomeMe': 'Quỹ thu · bạn thêm', // REVIEW
+  'fund.rowPaid': 'Chi từ quỹ nhóm', // REVIEW
+  'fund.added': 'Đã thu', // REVIEW
+  'fund.spent': 'Đã chi', // REVIEW
+  'fund.keptBy': 'Quản trị viên giữ', // REVIEW
+  'fund.adminsOnly': 'Chỉ quản trị viên được thêm hoặc chi tiền quỹ.', // REVIEW
+  'fund.emptyTitle': 'Quỹ đang trống.', // REVIEW
+  'fund.emptyBody': 'Tiền khách vãng lai hoặc tài trợ sẽ hiện ở đây.', // REVIEW
+  'fund.addedBy': 'Người thêm', // REVIEW
+  'fund.readOnly': 'Chỉ quản trị viên được sửa khoản thu quỹ.', // REVIEW
+  'fund.cantDisable': 'Không thể tắt: {amount} trong khoản này đã được chi.', // REVIEW
+  'fund.expenseNote': 'Không ai phải góp. Tiền được chi từ quỹ nhóm.', // REVIEW
+  'details.income': 'Khoản thu quỹ', // REVIEW
+  'error.fundShort': 'Quỹ nhóm không đủ cho khoản này. Kiểm tra quỹ rồi thử lại.', // REVIEW
+  'activity.incomeAdded': '{actor} thêm {amount} vào quỹ · {description}', // REVIEW
+  'activity.incomeEdited': '{actor} sửa khoản thu quỹ · {description} · {amount}', // REVIEW
+  'activity.incomeDisabled': '{actor} tắt khoản thu quỹ · {description}', // REVIEW
+  'activity.incomeEnabled': '{actor} bật khoản thu quỹ · {description}', // REVIEW
+  'activity.incomeRolledBack': '{actor} khôi phục khoản thu quỹ · {description}', // REVIEW
+  'activity.fundExpenseAdded': '{actor} chi {amount} từ quỹ · {description}', // REVIEW
+  'activity.action.income_added': 'thêm tiền vào quỹ', // REVIEW
+  'activity.action.income_edited': 'sửa khoản thu quỹ', // REVIEW
+  'activity.action.income_disabled': 'tắt khoản thu quỹ', // REVIEW
+  'activity.action.income_enabled': 'bật khoản thu quỹ', // REVIEW
+  'activity.action.income_rolled_back': 'khôi phục khoản thu quỹ', // REVIEW
 };
 
