@@ -150,6 +150,8 @@ export const transactionShares = sqliteTable(
     transactionId: text('transaction_id').notNull(),
     participantId: text('participant_id').notNull(),
     inputValue: integer('input_value').notNull(),
+    /** 1 when the box was left blank and the share is what the typed boxes left (exact amounts and percent). */
+    inputAuto: integer('input_auto').notNull().default(0),
     amount: integer('amount').notNull(),
   },
   (t) => [

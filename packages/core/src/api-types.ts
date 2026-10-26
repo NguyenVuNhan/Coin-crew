@@ -81,7 +81,8 @@ export interface ExpenseHistoryItem {
   mode: SplitMode;
   createdById: string;
   createdAt: string;
-  shares: { participantId: string; amount: number; inputValue: number }[];
+  /** `inputValue: null` is a blank (automatic) box. */
+  shares: { participantId: string; amount: number; inputValue: number | null }[];
   meta?: ExpenseMeta | null;
 }
 
@@ -137,7 +138,8 @@ export interface ExpenseMeta {
 export interface ExpenseView {
   id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;
   status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;
-  shares: { participantId: string; amount: number; inputValue: number }[];
+  /** `inputValue: null` is a blank (automatic) box. */
+  shares: { participantId: string; amount: number; inputValue: number | null }[];
   meta?: ExpenseMeta | null;
   rootId?: string;
   history?: ExpenseHistoryItem[];
