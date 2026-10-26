@@ -70,7 +70,9 @@ export function SplitPeopleSheet({
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (suggestions[0]) {
+      // Only a typed name picks someone: Enter on an empty field is the phone keyboard closing, and Enter while a
+      // Vietnamese input method is still composing a word is not a choice yet.
+      if (query.trim() !== '' && !e.nativeEvent.isComposing && suggestions[0]) {
         add(suggestions[0].id);
       }
     } else if (e.key === 'Backspace' && query === '' && inGroup.length > 0) {

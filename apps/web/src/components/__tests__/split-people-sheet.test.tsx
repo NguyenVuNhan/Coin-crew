@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PersonView } from '@fsl/core';
 import { setLang } from '../../i18n';
@@ -91,6 +91,20 @@ describe('SplitPeopleSheet, a big group', () => {
     render(<Harness people={big} start={['Minh']} />);
     await userEvent.type(addPeople(), 'duc{Enter}');
     expect(screen.getByRole('button', { name: 'Remove Đức' })).toBeInTheDocument();
+  });
+
+  it('Enter in an empty field adds no one (the phone keyboard return key)', async () => {
+    render(<Harness people={big} start={['Minh']} />);
+    await userEvent.click(addPeople());
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByText('1 of 14')).toBeInTheDocument();
+  });
+
+  it('Enter while a word is still being composed adds no one', () => {
+    render(<Harness people={big} start={['Minh']} />);
+    fireEvent.change(addPeople(), { target: { value: 'duc' } });
+    fireEvent.keyDown(addPeople(), { key: 'Enter', isComposing: true });
+    expect(screen.queryByRole('button', { name: 'Remove Đức' })).toBeNull();
   });
 
   it('Backspace in an empty field removes the last chip, and does nothing with no chips', async () => {

@@ -36,7 +36,12 @@ describe('SplitBetween', () => {
   it('is one button that opens the sheet', async () => {
     const onOpen = vi.fn();
     render(<SplitBetween people={people} chosen={new Set(['p-minh', 'p-an', 'p-chi'])} me="p-minh" onOpen={onOpen} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Split between You, An, Chi. Change' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Split between · 3 of 4. You, An, Chi. Change' }));
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('its accessible name keeps the visible count (label in name)', () => {
+    render(<SplitBetween people={people} chosen={new Set(people.map((p) => p.id))} me="p-minh" onOpen={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Split between · Everyone (4). You, An, Bình, Chi. Change' })).toBeInTheDocument();
   });
 });

@@ -233,7 +233,7 @@ export const en = {
   'splitBetween.none': 'No one yet',
   'splitBetween.change': 'Change',
   'splitBetween.you': 'You',
-  'splitBetween.aria': 'Split between {names}. Change',
+  'splitBetween.aria': '{label}. {names}. Change',
   'splitSheet.title': 'Split between',
   'splitSheet.count': '{n} of {total}',
   'splitSheet.recent': 'Same people as',

@@ -25,7 +25,7 @@ export function SplitBetween({ people, chosen, me, onOpen }: SplitBetweenProps):
       <button
         type="button"
         className="fsl-split-between__button"
-        aria-label={t('splitBetween.aria', { names: names || t('splitBetween.none') })}
+        aria-label={t('splitBetween.aria', { label, names: names || t('splitBetween.none') })}
         onClick={onOpen}
       >
         <span className="fsl-split-between__avatars" aria-hidden="true">

@@ -233,7 +233,7 @@ export const vi: Record<MessageKey, string> = {
   'splitBetween.none': 'Chưa có ai', // REVIEW
   'splitBetween.change': 'Đổi', // REVIEW
   'splitBetween.you': 'Bạn', // REVIEW
-  'splitBetween.aria': 'Chia cho {names}. Đổi', // REVIEW
+  'splitBetween.aria': '{label}. {names}. Đổi', // REVIEW
   'splitSheet.title': 'Chia cho', // REVIEW
   'splitSheet.count': '{n}/{total} người', // REVIEW
   'splitSheet.recent': 'Giống nhóm người ở', // REVIEW
