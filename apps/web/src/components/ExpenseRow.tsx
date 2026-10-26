@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { formatVnd, type ExpenseView, type TripView } from '@fsl/core';
+import { formatVnd, isFundPaid, type ExpenseView, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { nameOf, splitText } from '../lib/tripText';
 import { Amount } from './Amount';
@@ -8,7 +8,7 @@ import './ExpenseRow.css';
 
 export function rowAmount(expense: ExpenseView, view: TripView): number {
   const me = view.me.participantId;
-  if (me === null) {
+  if (me === null || isFundPaid(expense)) {
     return expense.amount;
   }
   return expense.shares.find((s) => s.participantId === me)?.amount ?? 0;
@@ -44,7 +44,7 @@ export function ExpenseRow({
         ? t('expense.youPaid')
         : t('expense.personPaid', { name: nameOf(view, expense.payerId) });
 
-  const subline = `${payerText} · ${splitText(expense, t)}`;
+  const subline = isFundPaid(expense) ? t('fund.rowPaid') : `${payerText} · ${splitText(expense, t)}`;
 
   const isDisabled = expense.status === 'disabled';
   const isPending = expense.status === 'pending';
@@ -87,6 +87,7 @@ export function ExpenseRow({
           style={isDisabled ? { textDecoration: 'line-through' } : undefined}
           className={[
             isDisabled ? 'fsl-expense-row__amount--disabled' : '',
+            isFundPaid(expense) ? 'fsl-expense-row__amount--fund' : '',
             amount === 0 ? 'fsl-expense-row__amount--none' : '',
           ]
             .filter(Boolean)

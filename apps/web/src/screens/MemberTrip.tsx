@@ -58,6 +58,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       view={view}
       selectedId={detail?.kind === 'expense' ? detail.id : undefined}
       onOpen={(id) => open('expense', id)}
+      onOpenIncome={(id) => open('income', id)}
       hintable={hintable}
       // On a new trip the invite card's Share is the one primary button, so the empty state's add steps back.
       add={addLink(false, !hasExpenses && canInvite ? 'secondary' : 'primary')}

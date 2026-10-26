@@ -67,6 +67,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
       view={view}
       selectedId={detail?.kind === 'expense' ? detail.id : undefined}
       onOpen={(id) => open('expense', id)}
+      onOpenIncome={(id) => open('income', id)}
       addInHeading={inHeading}
     />
   );

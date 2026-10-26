@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ExpenseView, TripView } from '@fsl/core';
-import { formatVnd } from '@fsl/core';
+import { formatVnd, isFundPaid } from '@fsl/core';
 import { useT } from '../i18n';
 import { Button } from './Button';
 import { Icon } from './icons';
@@ -44,6 +44,7 @@ export function UpdatedTransactionsBanner({ view }: UpdatedTransactionsBannerPro
     if (!myId) return [];
     const seenIds = getSeenIds(view.trip.id);
     return view.expenses.filter((e) => {
+      if (isFundPaid(e)) return false;
       if (!e.history || e.history.length === 0) return false;
       if (e.status === 'rejected' || e.status === 'disabled') return false;
       if (e.createdById === myId) return false;

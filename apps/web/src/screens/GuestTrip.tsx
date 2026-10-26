@@ -106,6 +106,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       view={view}
       selectedId={detail?.kind === 'expense' ? detail.id : undefined}
       onOpen={(id) => open('expense', id)}
+      onOpenIncome={(id) => open('income', id)}
       hintable={hintable}
       add={addLink(false)}
       addInHeading={inHeading}
