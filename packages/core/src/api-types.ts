@@ -147,6 +147,8 @@ export interface ExpenseMeta {
 export interface ExpenseView {
   id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;
   status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;
+  /** Set by the snapshot; the merged feed sorts by it. */
+  createdAt?: string;
   /** `inputValue: null` is a blank (automatic) box. */
   shares: { participantId: string; amount: number; inputValue: number | null }[];
   meta?: ExpenseMeta | null;
