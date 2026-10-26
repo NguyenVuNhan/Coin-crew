@@ -73,7 +73,7 @@ export const participants = sqliteTable(
     gender: text('gender', { enum: ['M', 'F'] }),
     userId: text('user_id'),
     isAdmin: integer('is_admin').notNull().default(0),
-    status: text('status', { enum: ['active', 'pending', 'merged'] }).notNull(),
+    status: text('status', { enum: ['active', 'pending', 'merged', 'left'] }).notNull(),
     mergedInto: text('merged_into'),
     sortOrder: integer('sort_order').notNull(),
     createdByDevice: text('created_by_device'),

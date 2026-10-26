@@ -10,6 +10,7 @@ const NAME_LINE = {
   name_added: 'activity.nameAdded',
   name_approved: 'activity.nameApproved',
   person_removed: 'activity.personRemoved',
+  person_restored: 'activity.personRestored',
 } as const satisfies Record<string, MessageKey>;
 
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null);
@@ -57,7 +58,8 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
       }
       case 'name_added':
       case 'name_approved':
-      case 'person_removed': {
+      case 'person_removed':
+      case 'person_restored': {
         const name = text(d.name);
         if (!name) return null;
         return t(NAME_LINE[item.action], { actor, name });

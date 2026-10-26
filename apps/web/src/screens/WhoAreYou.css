@@ -373,3 +373,56 @@
     transition: none;
   }
 }
+
+/* A signed-in user who is not on the list joins with their account name. */
+.fsl-who__join {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--color-accent-strong);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.fsl-who__join:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+}
+
+.fsl-who__join:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.fsl-who__join:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.fsl-who__join-gender {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.fsl-who__similar {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text);
+}
+
+.fsl-who__similar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

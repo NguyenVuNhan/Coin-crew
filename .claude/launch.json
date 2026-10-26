@@ -11,7 +11,7 @@
       "name": "api-e2e",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "e2e:server", "-w", "@fsl/api"],
-      "port": 8787
+      "port": 8788
     }
   ]
 }

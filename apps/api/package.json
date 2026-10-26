@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "deploy": "node scripts/write-deploy-config.mjs && wrangler d1 migrations apply fsl --remote --config wrangler.deploy.jsonc && wrangler deploy --config wrangler.deploy.jsonc",
     "db:migrate:remote": "node scripts/write-deploy-config.mjs && wrangler d1 migrations apply fsl --remote --config wrangler.deploy.jsonc",
-    "e2e:server": "node ../../e2e/reset-state.mjs && wrangler d1 migrations apply fsl --local --persist-to .wrangler/e2e && wrangler dev --local --port 8787 --persist-to .wrangler/e2e --var E2E_LOGIN:1 --var GOOGLE_CLIENT_ID:e2e --var GOOGLE_CLIENT_SECRET:e2e"
+    "e2e:server": "node ../../e2e/reset-state.mjs && wrangler d1 migrations apply fsl --local --persist-to .wrangler/e2e && wrangler dev --local --port 8788 --inspector-port 9230 --persist-to .wrangler/e2e --var E2E_LOGIN:1 --var APP_ORIGIN:http://localhost:8788 --var GOOGLE_CLIENT_ID:e2e --var GOOGLE_CLIENT_SECRET:e2e"
   },
   "dependencies": {
     "@fsl/core": "*",

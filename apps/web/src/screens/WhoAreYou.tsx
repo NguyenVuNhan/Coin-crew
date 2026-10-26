@@ -1,7 +1,7 @@
 import { useState, useEffect, useId, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PickerView } from '@fsl/core';
+import type { PickerView, Gender } from '@fsl/core';
 import { normalizeName, findSimilarNames } from '@fsl/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
@@ -16,9 +16,12 @@ import { Button } from '../components/Button';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
+import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
 import './WhoAreYou.css';
+
+const REJOIN = 'rejoin';
 
 export function safeTripPath(next: string | null, tripId: string): string {
   const fallback = `/t/${tripId}`;
@@ -53,6 +56,9 @@ export function WhoAreYou() {
   const [query, setQuery] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [joinStep, setJoinStep] = useState<'none' | 'gender' | 'similar'>('none');
+  const [joinGender, setJoinGender] = useState<Gender | null>(null);
+  const [similarMatch, setSimilarMatch] = useState<{ id: string; name: string } | null>(null);
 
   const {
     data: picker,
@@ -66,14 +72,19 @@ export function WhoAreYou() {
     enabled: Boolean(tripId),
   });
 
+  const account = picker?.account ?? null;
+  const myLeft = picker?.myLeftName ?? null;
+
   useEffect(() => {
     // Auto-select only until the user has chosen a row themselves.
     if (userTouched.current) return;
     if (picker) {
       const initial =
-        picker.myPick ??
-        picker.people.find((p) => p.lastUsedHere)?.id ??
-        null;
+        myLeft
+          ? REJOIN
+          : (picker.myPick ??
+            picker.people.find((p) => p.lastUsedHere)?.id ??
+            null);
       if (initial) {
         setSelectedId(initial);
         setNameMatchId(null);
@@ -95,11 +106,18 @@ export function WhoAreYou() {
         setNameMatchId(null);
       }
     }
-  }, [picker, me?.user?.name]);
+  }, [picker, myLeft, me?.user?.name]);
 
   const selectedPerson = picker?.people.find((p) => p.id === selectedId);
 
-  async function handlePickPerson(participantId: string) {
+  function selectRadio(id: string) {
+    userTouched.current = true;
+    setSelectedId(id);
+    setJoinStep('none');
+    setSimilarMatch(null);
+  }
+
+  async function handlePickPerson(participantId: string, becomeMember = false) {
     if (!tripId) return;
     setActionError(null);
     setIsSubmitting(true);
@@ -110,13 +128,77 @@ export function WhoAreYou() {
         { participantId },
         tripId,
       );
-      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+      // Drop the cached "no name yet" view: the trip page would otherwise send us straight back here.
+      queryClient.removeQueries({ queryKey: ['trip', tripId] });
+      navigate(becomeMember ? `${target}${target.includes('?') ? '&' : '?'}becomeMember=1` : target);
+    } catch (err) {
+      setActionError(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function join(body: Record<string, unknown>) {
+    if (!tripId) return;
+    setActionError(null);
+    setIsSubmitting(true);
+    try {
+      await apiSend(`/api/trips/${tripId}/join`, 'POST', body, tripId);
+      queryClient.removeQueries({ queryKey: ['trip', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['picker', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['me'] });
       navigate(target);
     } catch (err) {
       setActionError(err);
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function genderBody(): { gender?: Gender } {
+    if (account?.needsGender && joinGender) {
+      return { gender: joinGender };
+    }
+    return {};
+  }
+
+  async function startJoin() {
+    if (!account || !tripId) return;
+    setActionError(null);
+    setIsSubmitting(true);
+    let matches: { id: string; name: string }[] = [];
+    try {
+      const res = await apiSend<{ matches: { id: string; name: string }[] }>(
+        `/api/trips/${tripId}/people/check-name`,
+        'POST',
+        { name: account.name },
+        tripId,
+      );
+      matches = res.matches ?? [];
+    } catch (err) {
+      setActionError(err);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const [first] = matches;
+    if (first) {
+      setSimilarMatch({ id: first.id, name: first.name });
+      setJoinStep('similar');
+      setIsSubmitting(false);
+      return;
+    }
+
+    await join(genderBody());
+  }
+
+  function onJoinRow() {
+    if (!account) return;
+    if (account.needsGender && joinGender === null) {
+      setJoinStep('gender');
+      return;
+    }
+    void startJoin();
   }
 
   if (isLoading) {
@@ -149,23 +231,67 @@ export function WhoAreYou() {
       bottomBar={
         <>
           {actionError ? <InlineError error={actionError} /> : null}
-          <Button
-            variant="primary"
-            block
-            disabled={!chosen || isSubmitting}
-            onClick={() => chosen && handlePickPerson(chosen.id)}
-          >
-            {chosen
-              ? t('who.continueAs', { name: chosen.name })
-              : t('common.continue')}
-          </Button>
+          {joinStep === 'similar' && similarMatch && account ? (
+            <>
+              <p className="fsl-who__similar">
+                {t('who.similar', { typed: account.name, name: similarMatch.name })}
+              </p>
+              <div className="fsl-who__similar-actions">
+                <Button
+                  variant="primary"
+                  block
+                  disabled={isSubmitting}
+                  onClick={() => handlePickPerson(similarMatch.id, true)}
+                >
+                  {t('who.yesIm', { name: similarMatch.name })}
+                </Button>
+                <Button
+                  variant="secondary"
+                  block
+                  disabled={isSubmitting}
+                  onClick={() => join({ confirmNew: true, ...genderBody() })}
+                >
+                  {t('who.noAddMe')}
+                </Button>
+              </div>
+            </>
+          ) : joinStep === 'gender' && account ? (
+            <Button
+              variant="primary"
+              block
+              disabled={joinGender === null || isSubmitting}
+              onClick={startJoin}
+            >
+              {t('who.joinButton', { name: account.name })}
+            </Button>
+          ) : selectedId === REJOIN && myLeft ? (
+            <Button
+              variant="primary"
+              block
+              disabled={isSubmitting}
+              onClick={() => join({})}
+            >
+              {t('who.rejoinAs', { name: myLeft.name })}
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              block
+              disabled={!chosen || isSubmitting}
+              onClick={() => chosen && handlePickPerson(chosen.id)}
+            >
+              {chosen
+                ? t('who.continueAs', { name: chosen.name })
+                : t('common.continue')}
+            </Button>
+          )}
         </>
       }
     >
       <div
         className={`fsl-who${actionError ? ' fsl-who--bar-error' : ''}`}
       >
-        {!signedIn && (
+        {!signedIn && account === null && (
           <section className="fsl-who__guest-note" role="note" aria-labelledby={guestNoteId}>
             <h2 id={guestNoteId} className="fsl-who__guest-title">
               <Icon name="info" size={16} />
@@ -224,12 +350,37 @@ export function WhoAreYou() {
             </p>
           )}
 
-          {visible.length > 0 && (
+          {(visible.length > 0 || myLeft !== null) && (
             <div
               role="radiogroup"
               aria-label={t('who.title')}
               className="fsl-who__list"
             >
+              {myLeft && (
+                <button
+                  key="rejoin"
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedId === REJOIN}
+                  className={`fsl-who__row fsl-who__row--radio ${selectedId === REJOIN ? 'fsl-who__row--selected' : ''}`}
+                  onClick={() => selectRadio(REJOIN)}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      selectRadio(REJOIN);
+                    }
+                  }}
+                >
+                  <Avatar name={myLeft.name} />
+                  <div className="fsl-who__row-info">
+                    <div className="fsl-who__row-name">{myLeft.name}</div>
+                    <div className="fsl-who__row-sub">
+                      {t('who.rejoinHint')}
+                    </div>
+                  </div>
+                </button>
+              )}
+
               {visible.map((person) => {
                 if (person.isMember) {
                   return (
@@ -262,15 +413,11 @@ export function WhoAreYou() {
                     role="radio"
                     aria-checked={isSelected}
                     className={`fsl-who__row fsl-who__row--radio ${isSelected ? 'fsl-who__row--selected' : ''}`}
-                    onClick={() => {
-                      userTouched.current = true;
-                      setSelectedId(person.id);
-                    }}
+                    onClick={() => selectRadio(person.id)}
                     onKeyDown={(e) => {
                       if (e.key === ' ' || e.key === 'Enter') {
                         e.preventDefault();
-                        userTouched.current = true;
-                        setSelectedId(person.id);
+                        selectRadio(person.id);
                       }
                     }}
                   >
@@ -297,6 +444,29 @@ export function WhoAreYou() {
                 );
               })}
             </div>
+          )}
+
+          {account && !myLeft && (
+            <>
+              <button
+                type="button"
+                className="fsl-who__join"
+                disabled={isSubmitting}
+                onClick={onJoinRow}
+              >
+                {t('who.joinAs', { name: account.name })}
+              </button>
+              {joinStep === 'gender' && (
+                <div className="fsl-who__join-gender">
+                  <GenderToggle
+                    name={account.name}
+                    value={joinGender}
+                    onChange={setJoinGender}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

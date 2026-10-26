@@ -32,7 +32,7 @@ describe('member: payment actions (spec §9.4)', () => {
     await act(async () => {
       vi.advanceTimersByTime(5_000);
     });
-    await waitFor(() => expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 1245000 }));
+    await waitFor(() => expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 1245000, settles: true }));
   });
 
   it('lists every payment and can disable or re-enable any of them', async () => {
@@ -90,7 +90,7 @@ describe('guest: payments to me', () => {
     await act(async () => {
       vi.advanceTimersByTime(5_000);
     });
-    await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/payments')?.body).toEqual({ fromId: PIDS.A, toId: PIDS.C, amount: 200000 }));
+    await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips/t-1/payments')?.body).toEqual({ fromId: PIDS.A, toId: PIDS.C, amount: 200000, settles: true }));
     // A confirmed payment into the guest's account can still be reported as not arrived.
     await user.click(await screen.findByRole('tab', { name: 'Payments' }));
     await user.click(within(await screen.findByTestId('payment-row-pay-3')).getByRole('button', { name: "Didn't arrive" }));

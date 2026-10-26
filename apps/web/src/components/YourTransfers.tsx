@@ -8,6 +8,7 @@ import { usePayInfo } from '../api/payInfo';
 import { useIsCoarsePointer } from '../lib/media';
 import { usePendingPayment, type PendingPayment } from '../lib/usePendingPayment';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { ApiClientError } from '../api/client';
 import { ActionRow, type RowAction } from './ActionRow';
 import { Amount } from './Amount';
 import { Avatar } from './Avatar';
@@ -15,6 +16,7 @@ import { Button } from './Button';
 import { Icon } from './icons';
 import { InlineError } from './InlineError';
 import { PayQr } from './PayQr';
+import { Pill } from './Pill';
 import { Skeleton } from './Skeleton';
 import { Snackbar } from './Snackbar';
 import './YourTransfers.css';
@@ -170,7 +172,11 @@ export function TransfersSnackbar({ view, state }: { view: TripView; state: Tran
       />
     );
   }
-  return error !== null ? <Snackbar message={t('error.generic')} /> : null;
+  if (error !== null) {
+    const settled = error instanceof ApiClientError && error.code === 'ALREADY_HANDLED';
+    return <Snackbar message={t(settled ? 'transfers.alreadySettled' : 'error.generic')} />;
+  }
+  return null;
 }
 
 /**
@@ -234,13 +240,17 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
   const uid = useId();
   const { pending, sending, schedule, undo } = state.ticks;
 
+  const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
+
   // Ticks confirm that money moved: only for someone who can record payments right now.
   const canTick = me !== null && !view.trip.archived && view.me.kind !== 'viewer' && !view.me.participantPending;
-  const isMember = (id: string) => view.people.find((p) => p.id === id)?.isMember === true;
-  /** A guest paying me ('received') or my own debt ('paid'). A member paying me marks it themselves, so no tick. */
+  // Someone who left still shows here until settled, marked so nobody wonders why they are not in the group.
+  const leftIn = (s: Transfer) => [s.fromId, s.toId].some((id) => view.people.find((p) => p.id === id)?.status === 'left');
+  const leftPill = <Pill tone="neutral">{t('people.leftBadge')}</Pill>;
+  /** Someone paying me ('received') or my own debt ('paid'). Signed-in members can tick incoming debts from anyone; guests cannot tick when paid by a member. */
   const tickOf = (s: Transfer): 'received' | 'paid' | null => {
     if (!canTick) return null;
-    if (s.toId === me && !isMember(s.fromId)) return 'received';
+    if (s.toId === me && (view.me.kind === 'member' || !isMember(s.fromId))) return 'received';
     if (s.fromId === me) return 'paid';
     return null;
   };
@@ -330,6 +340,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                       >
                         <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                         <span className={`fsl-transfers__text${done ? ' fsl-transfers__text--done' : ''}`}>{rowTitle}</span>
+                        {leftIn(s) && leftPill}
                         <Amount value={s.amount} />
                         <Icon
                           name={isOpen ? 'chevronUp' : 'chevronDown'}
@@ -347,6 +358,7 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                     <div className={`fsl-transfers__plain${aligned ? ' fsl-transfers__plain--aligned' : ''}`}>
                       <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                       <span className="fsl-transfers__text">{rowTitle}</span>
+                      {leftIn(s) && leftPill}
                       <Amount value={s.amount} />
                     </div>
                   )}

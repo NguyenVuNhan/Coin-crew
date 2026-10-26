@@ -8,6 +8,7 @@ import { deviceMiddleware } from './access/device';
 import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
 import { participantRoutes } from './participants/routes';
+import { joinRoutes } from './participants/join';
 import { expenseRoutes } from './expenses/routes';
 import { bankRoutes } from './bank/routes';
 import { paymentRoutes } from './payments/routes';
@@ -29,6 +30,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', accessRoutes());
   app.route('/api', tripRoutes());
   app.route('/api', participantRoutes());
+  app.route('/api', joinRoutes());
   app.route('/api', expenseRoutes());
   app.route('/api', bankRoutes());
   app.route('/api', paymentRoutes());

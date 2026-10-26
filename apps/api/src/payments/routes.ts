@@ -16,6 +16,7 @@ import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
+import { getSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -71,6 +72,8 @@ export function paymentRoutes(): Hono<AppBindings> {
       fromId?: unknown;
       toId?: unknown;
       amount?: unknown;
+      /** Sent by a transfer tick: record it only if this pair still owes at least `amount`. */
+      settles?: unknown;
     }>(c);
 
     if (
@@ -89,6 +92,10 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
     const amount = body.amount;
 
+    if (body.settles !== undefined && typeof body.settles !== 'boolean') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
     if (fromId === toId) {
       throw new ApiError('VALIDATION', 422, 'Cannot pay oneself');
     }
@@ -106,7 +113,8 @@ export function paymentRoutes(): Hono<AppBindings> {
         and(
           eq(participants.tripId, tripId),
           inArray(participants.id, [fromId, toId]),
-          eq(participants.status, 'active'),
+          // Someone who left can still be paid, or pay what they owe.
+          inArray(participants.status, ['active', 'left']),
         ),
       );
 
@@ -117,18 +125,30 @@ export function paymentRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Participants must be active members of the trip');
     }
 
-    const toIsMember = toP.userId !== null;
+    // A member who left cannot confirm anything, so they count as a guest here.
+    const toIsMember = toP.userId !== null && toP.status === 'active';
 
     const status = statusForNewPayment({
       actorId: actor.participantId!,
       fromId,
       toId,
       receiverIsMember: toIsMember,
-      payerIsMember: fromP.userId !== null,
+      payerIsMember: fromP.userId !== null && fromP.status === 'active',
     });
 
     if (status === 'forbidden') {
       throw new ApiError('FORBIDDEN', 403);
+    }
+
+    // A tick settles the transfer it showed. If that pair no longer owes this much, someone recorded it in the
+    // meantime (the other side ticked it too): refuse, so it isn't counted twice. The check and the write are
+    // separate steps, so the race is narrowed to milliseconds, not closed.
+    if (body.settles === true) {
+      const snapshot = await getSnapshot(db, actor.trip);
+      const open = snapshot.suggestions.find((s) => s.fromId === fromId && s.toId === toId);
+      if (!open || open.amount < amount) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+      }
     }
 
     const paymentId = newId();

@@ -7,8 +7,10 @@ import './styles/base.css';
 import './styles/components.css';
 import { App } from './App';
 import { detectLang, setLang } from './i18n';
+import { refetchOnWindowFocus } from './api/focus';
 
 setLang(detectLang());
+refetchOnWindowFocus();
 
 const queryClient = new QueryClient({
   defaultOptions: {

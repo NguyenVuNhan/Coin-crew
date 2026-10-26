@@ -389,6 +389,9 @@ export function ExpenseDetails({
                     ? t('details.you', { name: nameOf(view, s.participantId) })
                     : nameOf(view, s.participantId)}
                 </span>
+                {view.people.find((p) => p.id === s.participantId)?.status === 'left' && (
+                  <Pill tone="neutral">{t('people.leftBadge')}</Pill>
+                )}
                 <Amount value={s.amount} />
               </li>
             );

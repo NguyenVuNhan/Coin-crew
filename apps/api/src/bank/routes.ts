@@ -477,7 +477,8 @@ export function bankRoutes(): Hono<AppBindings> {
         and(
           eq(participants.id, toId),
           eq(participants.tripId, tripId),
-          inArray(participants.status, ['active', 'pending']),
+          // Someone who left can still be paid what they are owed.
+          inArray(participants.status, ['active', 'pending', 'left']),
         ),
       )
       .get();
@@ -504,7 +505,7 @@ export function bankRoutes(): Hono<AppBindings> {
           and(
             eq(participants.id, fromParam),
             eq(participants.tripId, tripId),
-            inArray(participants.status, ['active', 'pending']),
+            inArray(participants.status, ['active', 'pending', 'left']),
           ),
         )
         .get();
