@@ -220,6 +220,12 @@ export const vi: Record<MessageKey, string> = {
   'split.captionPercentOver': 'Theo phần trăm · {n} người · vượt {pct}%', // REVIEW
   'split.captionShares': 'Theo số phần · {n} người', // REVIEW
   'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
+  'splitBetween.label': 'Chia cho · {n}/{total} người', // REVIEW
+  'splitBetween.everyone': 'Chia cho · Mọi người ({n})', // REVIEW
+  'splitBetween.none': 'Chưa có ai', // REVIEW
+  'splitBetween.change': 'Đổi', // REVIEW
+  'splitBetween.you': 'Bạn', // REVIEW
+  'splitBetween.aria': 'Chia cho {names}. Đổi', // REVIEW
   'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
   'expense.historyTitle': 'Lịch sử chỉnh sửa', // REVIEW
   'expense.rollback': 'Khôi phục về bản cập nhật này', // REVIEW
