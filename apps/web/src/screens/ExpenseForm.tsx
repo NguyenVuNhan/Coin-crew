@@ -16,7 +16,7 @@ import { can, computeShares, computeSportShares, formatVnd, parseVnd } from '@fs
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
-import { apiSend } from '../api/client';
+import { apiSend, ApiClientError } from '../api/client';
 import { toEntryValue, fromEntryValue } from '../lib/splitInput';
 import { useLeaveForm } from '../lib/detailsNav';
 import { actorOf } from '../lib/rowActions';
@@ -124,6 +124,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     const onExpense = new Set(expense ? [expense.payerId, ...expense.shares.map((s) => s.participantId)] : []);
     return view.people.filter((p) => p.status !== 'left' || onExpense.has(p.id));
   }, [view.people, expense]);
+
+  // The trip refreshes while the form is open: someone removed or leaving meanwhile drops off the split, and is named.
+  const [openedWith] = useState(() => new Map(formPeople.map((p) => [p.id, p.name])));
+  const goneNames = [...openedWith].filter(([id]) => !formPeople.some((p) => p.id === id)).map(([, name]) => name);
 
   // Form field states
   const [description, setDescription] = useState(() => expense?.description ?? '');
@@ -476,7 +480,9 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   }, [sportSelected, sportResult, splitResult, mode, entries, parsedAmount]);
 
   const isDescriptionValid = description.trim().length > 0;
-  const isPayerValid = Boolean(payerId);
+  // A payer who left while the form was open is not offered any more: the form asks who paid instead.
+  const payer = formPeople.some((p) => p.id === payerId) ? payerId : '';
+  const isPayerValid = payer !== '';
   const isAmountValid = parsedAmount !== null;
   const isSplitValid = Boolean(splitResult?.ok && !hasInvalidInput);
 
@@ -503,6 +509,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     if (!err) return null;
     if (typeof err === 'object' && err !== null && 'code' in err) {
       const apiErr = err as { code: string; message?: string };
+      if (apiErr.code === 'PERSON_LEFT') {
+        // InlineError shows a form's own message for a validation error.
+        return { code: 'VALIDATION', message: t('expenseForm.personLeft') };
+      }
       if (apiErr.code === 'VALIDATION' && apiErr.message && SPLIT_ERRORS.has(apiErr.message)) {
         return {
           ...apiErr,
@@ -576,6 +586,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
       }
     } catch (err) {
       setSubmitError(err);
+      // The trip changed under the form: fetch it again so whoever left drops off the split.
+      if (err instanceof ApiClientError && err.code === 'PERSON_LEFT') {
+        void queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -594,6 +608,11 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
       bottomBar={
         <>
           {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
+          {goneNames.length > 0 && (
+            <p className="fsl-expense-form__gone" role="status">
+              {t('expenseForm.peopleLeft', { names: goneNames.join(', ') })}
+            </p>
+          )}
           <Button
             type="submit"
             form="expense-form"
@@ -610,7 +629,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
       <form
         id="expense-form"
         onSubmit={handleSubmit}
-        className={`fsl-expense-form${submitError ? ' fsl-expense-form--bar-error' : ''}`}
+        className={`fsl-expense-form${submitError || goneNames.length > 0 ? ' fsl-expense-form--bar-error' : ''}`}
       >
         <div className="fsl-field">
           <label htmlFor="expense-what-for" className="fsl-field-label">
@@ -835,9 +854,14 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
             <select
               id="expense-paid-by"
               className="fsl-select"
-              value={payerId}
+              value={payer}
               onChange={(e) => setPayerId(e.target.value)}
             >
+              {payer === '' && (
+                <option value="" disabled>
+                  {t('expenseForm.choosePayer')}
+                </option>
+              )}
               {formPeople.map((person) => (
                 <option key={person.id} value={person.id}>
                   {person.id === me
@@ -1373,7 +1397,8 @@ export function ExpenseForm() {
   const { tripId = '', expenseId } = useParams<{ tripId: string; expenseId?: string }>();
   const t = useT();
   const leave = useLeaveForm(tripId);
-  const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 0);
+  // Polls like the trip page, so someone removed elsewhere drops off the split before it is saved.
+  const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
 
   const isEdit = Boolean(expenseId);
   const title = isEdit ? t('expenseForm.titleEdit') : t('expenseForm.titleNew');

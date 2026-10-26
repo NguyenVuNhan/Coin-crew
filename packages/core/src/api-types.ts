@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | 'VALIDATION'
   | 'ALREADY_HANDLED'
   | 'PERSON_PENDING'
+  | 'PERSON_LEFT'
   | 'TRIP_ARCHIVED'
   | 'DAILY_LIMIT'
   | 'RATE_LIMITED'

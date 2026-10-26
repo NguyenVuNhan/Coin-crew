@@ -127,13 +127,18 @@ async function validateExpenseInput(
   const participantMap = new Map(
     tripParticipants.filter((p) => p.status !== 'left' || allowedLeftIds.has(p.id)).map((p) => [p.id, p]),
   );
+  // Someone who left can't be put on an expense. Usually the form was opened before they left, so say so plainly.
+  const leftIds = new Set(tripParticipants.filter((p) => !participantMap.has(p.id)).map((p) => p.id));
+  const personLeft = () => new ApiError('PERSON_LEFT', 409, 'Someone on this expense has left the group.');
 
   if (!participantMap.has(payerId)) {
+    if (leftIds.has(payerId)) throw personLeft();
     throw new ApiError('VALIDATION', 422, 'Invalid payer');
   }
 
   for (const entry of entries) {
     if (!participantMap.has(entry.participantId)) {
+      if (leftIds.has(entry.participantId)) throw personLeft();
       throw new ApiError('VALIDATION', 422, 'Invalid participant in entries');
     }
   }

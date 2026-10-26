@@ -25,7 +25,8 @@ export function People() {
   const navigate = useNavigate();
   const leftHeadingId = useId();
 
-  const { view, error: loadError, isLoading, refetch } = useTripView(tripId ?? '', 0);
+  // Polls like the trip page: someone may be removed, leave or join from another phone while this list is open.
+  const { view, error: loadError, isLoading, refetch } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
   const { busy, error, run } = useTripAction(tripId ?? '');
 
   const [mergeSource, setMergeSource] = useState<PersonView | null>(null);
@@ -116,6 +117,11 @@ export function People() {
     return person.bank === 'pending' ? t('people.bankPending') : t('people.bankNone');
   };
 
+  /** Your own row says so on its own line, which a long name can't push out: two look-alike names stay apart. */
+  const isMe = (person: PersonView) => person.id === view.me.participantId;
+  const subLine = (person: PersonView): string | null =>
+    [isMe(person) ? t('trip.you') : null, bankLine(person)].filter((part) => part !== null).join(' · ') || null;
+
   const handleChooseTarget = async (target: PersonView) => {
     if (!mergeSource || busy) return;
 
@@ -202,7 +208,7 @@ export function People() {
               return (
                 <li key={person.id} className="fsl-people__item">
                   <ActionRow
-                    label={`${person.name}, ${roleText}`}
+                    label={`${person.name}, ${roleText}${isMe(person) ? `, ${t('trip.you')}` : ''}`}
                     actions={actions}
                     onOpen={actions.length > 0 ? () => setMenuFor(person) : undefined}
                     hintable={index === 0}
@@ -211,7 +217,7 @@ export function People() {
                   >
                     <span className="fsl-people__text">
                       <span className="fsl-people__name">{person.name}</span>
-                      {bankLine(person) !== null && <span className="fsl-people__bank">{bankLine(person)}</span>}
+                      {subLine(person) !== null && <span className="fsl-people__bank">{subLine(person)}</span>}
                     </span>
                     <Pill tone={roleTone}>{roleText}</Pill>
                     {person.status === 'pending' && (

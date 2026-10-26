@@ -39,15 +39,24 @@ describe('money with people who left', () => {
     expect(body?.status).toBe('confirmed');
   });
 
-  it('a new expense cannot include a left person', async () => {
-    expect((await send('POST', '/expenses', await minh(), equalAll(100000, PID.M))).status).toBe(422);
-    expect((await send('POST', '/expenses', await minh(), { ...equalAll(100000, PID.C), entries: [{ participantId: PID.M, value: 1 }] })).status).toBe(422);
+  it('a new expense cannot include a left person, and says so plainly', async () => {
+    const shared = await send('POST', '/expenses', await minh(), equalAll(100000, PID.M));
+    expect(shared.status).toBe(409);
+    expect((await json<{ error: { code: string } }>(shared)).error.code).toBe('PERSON_LEFT');
+    const paidBy = await send('POST', '/expenses', await minh(), { ...equalAll(100000, PID.C), entries: [{ participantId: PID.M, value: 1 }] });
+    expect(paidBy.status).toBe(409);
+    expect((await json<{ error: { code: string } }>(paidBy)).error.code).toBe('PERSON_LEFT');
+  });
+
+  it('someone who was never in the group is still a plain validation error', async () => {
+    const res = await send('POST', '/expenses', await minh(), { ...equalAll(100000, PID.M), entries: [{ participantId: 'p-nobody', value: 1 }] });
+    expect(res.status).toBe(422);
   });
 
   it('editing an expense keeps a left person already on it, but cannot put them back once taken off', async () => {
     expect((await send('PATCH', '/expenses/e-1', await minh(), equalAll(3300000, PID.M, 'Homestay Bloom · 2 nights'))).status).toBe(200);
     const without = { ...equalAll(3300000, PID.M, 'Homestay Bloom · 2 nights'), entries: [PID.M, PID.A, PID.B].map((participantId) => ({ participantId, value: 1 })) };
     expect((await send('PATCH', '/expenses/e-1', await minh(), without)).status).toBe(200);
-    expect((await send('PATCH', '/expenses/e-1', await minh(), equalAll(3300000, PID.M, 'Homestay Bloom · 2 nights'))).status).toBe(422);
+    expect((await send('PATCH', '/expenses/e-1', await minh(), equalAll(3300000, PID.M, 'Homestay Bloom · 2 nights'))).status).toBe(409);
   });
 });

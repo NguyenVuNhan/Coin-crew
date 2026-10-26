@@ -189,6 +189,9 @@ export const vi: Record<MessageKey, string> = {
   'expenseForm.date': 'Ngày', // REVIEW
   'expenseForm.paidBy': 'Người trả', // REVIEW
   'expenseForm.me': '{name} (tôi)', // REVIEW
+  'expenseForm.choosePayer': 'Chọn người trả', // REVIEW
+  'expenseForm.peopleLeft': '{names} đã rời nhóm nên không còn trong khoản chi này.', // REVIEW
+  'expenseForm.personLeft': 'Có người trong khoản chi này đã rời nhóm. Kiểm tra lại cách chia rồi thử lại.', // REVIEW
   'expenseForm.split': 'Chia tiền', // REVIEW
   'expenseForm.include': 'Bao gồm {name}', // REVIEW
   'expenseForm.amountFor': 'Số tiền của {name}', // REVIEW
