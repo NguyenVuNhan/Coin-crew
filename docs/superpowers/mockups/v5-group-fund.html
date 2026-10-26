@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Group fund wireframes</title>
+<!-- Wireframes for the 2026-10-26 sport group fund design (docs/2026-10-26-sport-group-fund-design.md).
+     Low fidelity on purpose: layout, order, copy and actions, not final styling. Colours follow apps/web/src/styles/tokens.css. -->
+<style>
+:root{--bg:#fafafa;--surface:#fff;--muted:#f4f4f5;--border:#e4e4e7;--border-strong:#d4d4d8;--text:#18181b;--text-2:#52525b;--text-3:#71717a;
+--accent:#0f766e;--accent-soft:#ccfbf1;--accent-text:#134e4a;--success:#047857;--success-soft:#d1fae5;--danger:#be123c;--danger-soft:#ffe4e6;
+--warning:#b45309;--warning-soft:#fef3c7;--warning-border:#fcd34d;--warning-text:#78350f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding:24px 16px 64px;max-width:1180px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}h2{font-size:17px;margin:36px 0 4px}
+.lead{color:var(--text-2);margin-bottom:12px;max-width:760px}
+.g{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:12px;color:var(--text-2);margin-top:6px;width:260px}
+.capw{font-size:12px;color:var(--text-2);margin-top:6px}
+.ph{border:1px solid var(--border-strong);border-radius:20px;background:var(--bg);padding:8px;font-size:11px;line-height:1.45;color:var(--text-2);width:260px;min-height:500px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.wide{border:1px solid var(--border-strong);border-radius:14px;background:var(--bg);padding:10px;font-size:11px;line-height:1.45;color:var(--text-2);width:100%;max-width:1000px}
+.hd{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:0 2px 6px;margin-bottom:8px;color:var(--text);gap:6px}
+.bx{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px 8px;margin-bottom:6px}
+.pad{padding:6px 8px}
+.t{color:var(--text);font-weight:600}
+.s{color:var(--text-2)}
+.m{color:var(--text-3)}
+.rw{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--border);padding:5px 0}
+.rw:first-child{border-top:0}
+.rw .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sh{font-size:11px;color:var(--text-3);margin:6px 0 3px;display:flex;justify-content:space-between;align-items:center}
+.pb{background:var(--accent);color:#fff;border-radius:6px;text-align:center;padding:6px;margin-bottom:5px;font-weight:600}
+.pb.off{background:var(--border-strong);color:var(--text-3)}
+.sb{border:1px solid var(--border-strong);color:var(--text);border-radius:6px;text-align:center;padding:4px 6px;background:var(--surface);margin-bottom:5px}
+.mini{display:inline-block;border:1px solid var(--border-strong);border-radius:5px;padding:0 6px;color:var(--text);background:var(--surface)}
+.av{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--muted);border:1px solid var(--border);align-items:center;justify-content:center;font-size:10px;margin-right:5px;color:var(--text);flex:none}
+.plus{color:var(--success);font-weight:600}
+.bar{margin-top:auto;padding-top:6px;border-top:1px solid var(--border);background:var(--bg)}
+.in{border:1px solid var(--border-strong);border-radius:6px;padding:5px 6px;background:var(--surface);color:var(--text);margin:2px 0 5px;display:flex;justify-content:space-between;align-items:center}
+.in .m{font-weight:400}
+.inf{border:2px solid var(--accent)}
+.ine{border:2px solid var(--danger)}
+.lb{color:var(--text);font-weight:600}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pill{border-radius:999px;padding:0 6px;background:var(--muted);border:1px solid var(--border);font-size:10px}
+.tabs2{display:grid;grid-template-columns:1fr 1fr;background:var(--muted);border-radius:8px;padding:2px;gap:2px;margin-bottom:8px}
+.tabs2 span{text-align:center;padding:6px 0;border-radius:6px;font-weight:600;color:var(--text-2)}
+.tabs2 .on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+.seg6{display:grid;grid-template-columns:repeat(6,1fr);background:var(--muted);border-radius:8px;padding:2px;gap:2px;margin:2px 0 4px}
+.seg6 span{text-align:center;padding:6px 0;color:var(--text-2);font-size:11px;font-weight:600;border-radius:6px}
+.seg6 .on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+.fund{display:flex;align-items:center;gap:6px;background:var(--muted);border-radius:8px;padding:8px;margin-bottom:6px;color:var(--text)}
+.fund b{margin-left:auto;font-variant-numeric:tabular-nums}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:6px}
+.err{color:var(--danger);margin:2px 0 5px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border-strong);border-radius:16px 16px 20px 20px;padding:10px 10px;box-shadow:0 -8px 24px rgb(0 0 0/.12)}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--border-strong);margin:0 auto 8px}
+.dim{opacity:.35}
+.strike{text-decoration:line-through}
+.sk{background:var(--muted);border-radius:6px;height:10px;margin:4px 0}
+.sk.h{height:26px}
+.dd{position:absolute;left:8px;right:8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:2px 0;box-shadow:0 6px 16px rgb(0 0 0/.12);color:var(--text)}
+.dd div{padding:6px 10px;display:flex;justify-content:space-between}
+.dd .on{background:var(--accent-soft);color:var(--accent-text);font-weight:600}
+.dd .sep{border-top:1px solid var(--border)}
+.swipe{display:flex;overflow:hidden;border-radius:8px;margin-bottom:6px}
+.swipe .body{flex:none;width:72%;background:var(--surface);border:1px solid var(--border);border-radius:8px 0 0 8px;padding:5px 8px;margin-left:-14%}
+.swipe .act{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:10px}
+.ack{background:var(--accent)}.adis{background:var(--text-2)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{border-collapse:collapse;font-size:12px;margin-top:6px;width:100%;max-width:900px}
+th,td{border-bottom:1px solid var(--border);padding:5px 8px;text-align:left;vertical-align:top}
+th{color:var(--text-2);font-weight:600}
+.k{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--text-2)}
+</style>
+</head>
+<body>
+<h1>Group fund wireframes</h1>
+<p class="lead">Sport group <b>Cầu lông Thứ 5</b>. Xanh and Lan are admins; Xanh is the person looking unless a caption says otherwise.
+The fund is one shared pool the admins keep: <b>400.000₫</b> = 650.000₫ added (200k walk-ins + 300k Minh's gift + 150k Lan) − 250.000₫ spent (150k drinks + 100k shuttlecocks).
+Phones are 375px wide (drawn smaller). 🐷 stands for the Lucide piggy-bank icon added to icons.tsx.</p>
+
+<h2>1. Adding to the fund: switcher and IncomeForm</h2>
+<p class="lead">New EntryTypeSwitch at the top of the add screen (sport group, admin, new item only). Its tab lives in the URL: <span class="k">/t/:id/expenses/new?type=income</span>. No "Held by": the fund is shared, and the row records who added it.</p>
+<div class="g">
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add to fund</span><span></span></div>
+      <div class="tabs2"><span>Expense</span><span class="on">Fund income</span></div>
+      <span class="lb">Amount</span>
+      <div class="in inf"><span>200k</span><span class="m">= 200.000₫</span></div>
+      <span class="lb">Date</span>
+      <div class="in"><span>26/10/2026</span></div>
+      <span class="lb">Note</span>
+      <div class="in"><span>Thu 2 khách vãng lai</span></div>
+      <div class="bar"><div class="pb">Add to fund</div></div>
+    </div>
+    <p class="cap"><b>Default.</b> Amount (16px input, parseVnd preview), Date, Note (1–80 characters). That is the whole form.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add to fund</span><span></span></div>
+      <div class="tabs2"><span>Expense</span><span class="on">Fund income</span></div>
+      <span class="lb">Amount</span>
+      <div class="in ine"><span>2 trăm</span><span></span></div>
+      <div class="err">Type an amount like 100k or 1.5tr.</div>
+      <span class="lb">Date</span>
+      <div class="in"><span>26/10/2026</span></div>
+      <span class="lb">Note</span>
+      <div class="in"><span class="m">e.g. Thu 2 khách vãng lai</span></div>
+      <div class="bar"><div class="pb off">Add to fund</div></div>
+    </div>
+    <p class="cap"><b>Invalid.</b> Amount that parseVnd rejects: inline hint under the field, button disabled until amount and note are valid.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Edit fund income</span><span></span></div>
+      <span class="lb">Amount</span>
+      <div class="in ine"><span>200k</span><span class="m">= 200.000₫</span></div>
+      <div class="err">Keep at least 250.000₫: the rest is already spent.</div>
+      <span class="lb">Date</span>
+      <div class="in"><span>25/10/2026</span></div>
+      <span class="lb">Note</span>
+      <div class="in"><span>Anh Minh donate quỹ</span></div>
+      <div class="bar"><div class="pb off">Save changes</div></div>
+    </div>
+    <p class="cap"><b>Edit, too low.</b> Drawn as if only 50.000₫ were left in the fund. No switcher when editing. The form checks view.fund before sending; the server's FUND_SHORT is the backstop.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add to fund</span><span></span></div>
+      <div class="sk h" style="margin-bottom:8px"></div>
+      <div class="sk" style="width:30%"></div><div class="sk h"></div>
+      <div class="sk" style="width:25%"></div><div class="sk h"></div>
+      <div class="sk" style="width:25%"></div><div class="sk h"></div>
+      <div class="bar"><div class="sk h"></div></div>
+    </div>
+    <p class="cap"><b>Loading.</b> Skeleton in the shape of the real form, the same way ExpenseForm loads today.</p>
+  </div>
+</div>
+
+<h2>2. Spending from the fund: "Group fund" in Paid by</h2>
+<p class="lead">Admins in sport groups see <b>Group fund</b> as the first choice in Paid by, with what it holds. Choosing it replaces the split section with one line: nobody owes a share. A sport cost card turns into a plain Amount field.</p>
+<div class="g">
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add expense</span><span></span></div>
+      <div class="tabs2"><span class="on">Expense</span><span>Fund income</span></div>
+      <span class="lb">What for</span>
+      <div class="in"><span>Nước sau trận</span></div>
+      <span class="lb">Amount</span>
+      <div class="in"><span>150k</span><span class="m">= 150.000₫</span></div>
+      <div class="row2">
+        <div><span class="lb">Date</span><div class="in"><span>26/10/2026</span></div></div>
+        <div><span class="lb">Paid by</span><div class="in inf"><span>Xanh (me)</span><span class="m">▴</span></div></div>
+      </div>
+      <div class="dd" style="top:218px">
+        <div class="on"><span>🐷 Group fund</span><span>400.000₫</span></div>
+        <div class="sep"><span>Xanh (me)</span></div>
+        <div><span>Lan</span></div>
+        <div><span>Minh</span></div>
+        <div><span>Hùng</span></div>
+        <div><span>Trang</span></div>
+      </div>
+    </div>
+    <p class="cap"><b>Paid by, open (admin).</b> Group fund comes first and shows its balance. It is a native select on phones; the option text is "Group fund · 400.000₫".</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add expense</span><span></span></div>
+      <div class="tabs2"><span class="on">Expense</span><span>Fund income</span></div>
+      <span class="lb">What for</span>
+      <div class="in"><span>Nước sau trận</span></div>
+      <span class="lb">Amount</span>
+      <div class="in"><span>150k</span><span class="m">= 150.000₫</span></div>
+      <div class="row2">
+        <div><span class="lb">Date</span><div class="in"><span>26/10/2026</span></div></div>
+        <div><span class="lb">Paid by</span><div class="in"><span>Group fund</span><span class="m">▾</span></div></div>
+      </div>
+      <span class="lb">Split</span>
+      <div class="panel"><span class="t">🐷 Paid from the group fund</span><br><span class="s">Nobody owes a share.</span><br><span class="s">Fund after this: 250.000₫</span></div>
+      <div class="bar"><div class="pb">Add expense</div></div>
+    </div>
+    <p class="cap"><b>Group fund chosen.</b> No split picker, no people list. The panel says what the fund will hold after saving.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add expense</span><span></span></div>
+      <div class="tabs2"><span class="on">Expense</span><span>Fund income</span></div>
+      <span class="lb">What for</span>
+      <div class="in"><span>Liên hoan cuối tháng</span></div>
+      <span class="lb">Amount</span>
+      <div class="in ine"><span>500k</span><span class="m">= 500.000₫</span></div>
+      <div class="row2">
+        <div><span class="lb">Date</span><div class="in"><span>26/10/2026</span></div></div>
+        <div><span class="lb">Paid by</span><div class="in"><span>Group fund</span><span class="m">▾</span></div></div>
+      </div>
+      <span class="lb">Split</span>
+      <div class="panel"><span class="t">🐷 Paid from the group fund</span><br><span class="s">Nobody owes a share.</span>
+        <div class="err">The fund has only 400.000₫. Lower the amount or choose who paid.</div></div>
+      <div class="bar"><div class="pb off">Add expense</div></div>
+    </div>
+    <p class="cap"><b>Over the limit.</b> Amount is more than the fund: inline fix-it text, Save disabled.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Add expense</span><span></span></div>
+      <span class="lb">What for</span>
+      <div class="in"><span class="m">e.g. Sân + cầu</span></div>
+      <div class="panel dim"><span class="t">Sport costs</span><br>Court · Shuttlecocks · Extra</div>
+      <div class="row2">
+        <div><span class="lb">Date</span><div class="in"><span>26/10/2026</span></div></div>
+        <div><span class="lb">Paid by</span><div class="in inf"><span>Minh (me)</span><span class="m">▴</span></div></div>
+      </div>
+      <div class="dd" style="top:192px">
+        <div><span>Xanh</span></div>
+        <div><span>Lan</span></div>
+        <div class="on"><span>Minh (me)</span></div>
+        <div><span>Hùng</span></div>
+        <div><span>Trang</span></div>
+      </div>
+    </div>
+    <p class="cap"><b>Not an admin (Minh).</b> No switcher and no Group fund in Paid by: the form is exactly today's sport expense form.</p>
+  </div>
+</div>
+
+<h2>3. Group page: fund pill and the merged list</h2>
+<p class="lead">FundPill sits directly under BalanceCard (member and guest pages) and at the top of the view-only page. Income rows and fund-paid expenses join the Expenses feed, newest first.</p>
+<div class="g">
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+      <div class="bx pad"><span class="s">You're owed</span><br><span class="plus" style="font-size:16px">525.000₫</span><br><span class="m">Group total 850.000₫</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="tabs2" style="margin-top:2px"><span class="on">Expenses</span><span>Payments</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Nước sau trận</span><br><span class="s">Paid from group fund</span></div><span class="r m">150.000₫</span></div>
+        <div class="rw"><div><span class="t">Thu 2 khách vãng lai</span><br><span class="s">Added to fund · by you</span></div><span class="r plus">+200.000₫</span></div>
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span><br><span class="s">You paid 600.000₫ · sport split, 8</span></div><span class="r t">75.000₫</span></div>
+        <div class="rw"><div><span class="t">Hộp cầu mới</span><br><span class="s">Paid from group fund</span></div><span class="r m">100.000₫</span></div>
+        <div class="rw"><div><span class="t">Lan đóng quỹ</span><br><span class="s">Added to fund · by Lan</span></div><span class="r plus">+150.000₫</span></div>
+        <div class="rw"><div><span class="t">Anh Minh donate quỹ</span><br><span class="s">Added to fund · by you</span></div><span class="r plus">+300.000₫</span></div>
+        <div class="rw"><div><span class="t strike">Thu vãng lai (nhập trùng)</span><br><span class="s">Disabled by Xanh</span></div><span class="r"><span class="plus strike m">+100.000₫</span><br><span class="pill">Disabled</span></span></div>
+      </div>
+      <div class="bar"><div class="pb">+ Add</div></div>
+    </div>
+    <p class="cap"><b>Member page (Xanh).</b> Pill is a flat 48px bar, not a second card. Income: "+" and green. Fund-paid expense: total in muted grey, since it is nobody's share. Disabled income: struck through with the pill.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+      <div class="bx pad"><span class="s">You're owed</span><br><span class="plus" style="font-size:16px">525.000₫</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="tabs2"><span class="on">Expenses</span><span>Payments</span></div>
+      <div class="swipe">
+        <div class="body"><span class="t">Thu 2 khách vãng lai</span><br><span class="s">Added to fund · by you</span></div>
+        <div class="act ack">✎<br>Edit</div><div class="act adis">⊘<br>Disable</div>
+      </div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span><br><span class="s">You paid 600.000₫ · sport split, 8</span></div><span class="r t">75.000₫</span></div>
+      </div>
+    </div>
+    <p class="cap"><b>Row shortcuts.</b> Swiping an income row (hover on wide screens) shows Edit and Disable for admins, from incomeActions() in rowActions.ts. Others get no actions; tapping opens details.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>Cầu lông Thứ 5</span><span class="pill">View only</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="sh"><span>Expenses</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Nước sau trận</span><br><span class="s">Paid from group fund</span></div><span class="r m">150.000₫</span></div>
+        <div class="rw"><div><span class="t">Thu 2 khách vãng lai</span><br><span class="s">Added to fund · by Xanh</span></div><span class="r plus">+200.000₫</span></div>
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span><br><span class="s">Xanh paid · sport split, 8</span></div><span class="r t">600.000₫</span></div>
+      </div>
+    </div>
+    <p class="cap"><b>View-only link.</b> No balance card here, so the pill leads the page. Sheet opens read-only.</p>
+  </div>
+</div>
+
+<h2>4. Fund sheet</h2>
+<p class="lead">Tapping the pill opens the existing Sheet component: the balance, what went in and out, and who keeps it.</p>
+<div class="g">
+  <div>
+    <div class="ph">
+      <div class="hd dim"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+      <div class="bx pad dim">You're owed 525.000₫</div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span class="t" style="font-size:13px">Group fund</span><span>✕</span></div>
+        <div class="t" style="font-size:20px;font-variant-numeric:tabular-nums;margin:4px 0 8px">400.000₫</div>
+        <div class="rw"><span class="s">Added</span><span class="r plus">+650.000₫</span></div>
+        <div class="rw"><span class="s">Spent</span><span class="r t">−250.000₫</span></div>
+        <div class="rw"><span class="s">Kept by the admins</span><span class="t">Xanh, Lan</span></div>
+        <p class="m" style="margin:8px 0">Only admins add or spend fund money.</p>
+        <div class="pb">Add to fund</div>
+      </div>
+    </div>
+    <p class="cap"><b>Admin.</b> Added and Spent count approved items only. Add to fund opens the Fund income tab.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd dim"><span>‹ Cầu lông Thứ 5</span><span></span></div>
+      <div class="bx pad dim">You owe 75.000₫</div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span class="t" style="font-size:13px">Group fund</span><span>✕</span></div>
+        <div class="t" style="font-size:20px;font-variant-numeric:tabular-nums;margin:4px 0 8px">400.000₫</div>
+        <div class="rw"><span class="s">Added</span><span class="r plus">+650.000₫</span></div>
+        <div class="rw"><span class="s">Spent</span><span class="r t">−250.000₫</span></div>
+        <div class="rw"><span class="s">Kept by the admins</span><span class="t">Xanh, Lan</span></div>
+        <p class="m" style="margin:8px 0">Only admins add or spend fund money.</p>
+      </div>
+    </div>
+    <p class="cap"><b>Member, guest or viewer.</b> Same sheet without the button.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd dim"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+      <div class="bx pad dim">Settled</div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span class="t" style="font-size:13px">Group fund</span><span>✕</span></div>
+        <div class="t m" style="font-size:20px;font-variant-numeric:tabular-nums;margin:4px 0 8px">0₫</div>
+        <div style="text-align:center;padding:10px 0"><div style="font-size:20px">🐷</div><span class="t">The fund is empty right now.</span><br><span class="s">Money added by walk-ins or gifts shows here.</span></div>
+        <div class="pb">Add to fund</div>
+      </div>
+    </div>
+    <p class="cap"><b>Empty.</b> The fund has history but every đồng is spent (or the income was disabled). One call to action, for admins only.</p>
+  </div>
+</div>
+
+<h2>5. Details</h2>
+<p class="lead">New IncomeDetails at <span class="k">/t/:id/fund/:incomeId</span> (full page on phones, right panel from 1024px). Fund-paid expenses keep ExpenseDetails with the split list swapped out.</p>
+<div class="g">
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Fund income</span><span></span></div>
+      <div class="bx pad">
+        <span class="t" style="font-size:13px">Anh Minh donate quỹ</span><br>
+        <span class="plus" style="font-size:18px">+300.000₫</span> <span class="pill">Added to fund</span>
+        <div class="rw" style="margin-top:6px"><span class="s">Date</span><span class="t">25 Oct 2026</span></div>
+        <div class="rw"><span class="s">Added by</span><span class="t">Xanh · 25 Oct</span></div>
+      </div>
+      <div class="row2"><div class="sb">✎ Edit</div><div class="sb">⊘ Disable</div></div>
+      <div class="err">Can't disable: 250.000₫ of this money is already spent.</div>
+      <div class="sh"><span>History</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Edited by Xanh · 25 Oct</span><br><span class="s">200.000₫ → 300.000₫</span></div><span class="mini">↺ Roll back</span></div>
+        <div class="rw"><div><span class="t">Added by Xanh · 25 Oct</span><br><span class="s">200.000₫</span></div><span></span></div>
+      </div>
+    </div>
+    <p class="cap"><b>Admin, with FUND_SHORT.</b> Drawn as if only 50.000₫ were left. The error sits right under the button that caused it. Roll back runs the same fund check before it is sent.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Fund income</span><span></span></div>
+      <div class="bx pad">
+        <span class="t" style="font-size:13px">Thu 2 khách vãng lai</span><br>
+        <span class="plus" style="font-size:18px">+200.000₫</span>
+        <div class="rw" style="margin-top:6px"><span class="s">Date</span><span class="t">26 Oct 2026</span></div>
+        <div class="rw"><span class="s">Added by</span><span class="t">Xanh · 26 Oct</span></div>
+      </div>
+      <p class="m">Only admins can change fund income.</p>
+    </div>
+    <p class="cap"><b>Not an admin.</b> Read-only: no buttons, no roll back.</p>
+  </div>
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Expense</span><span></span></div>
+      <div class="bx pad">
+        <span class="t" style="font-size:13px">Nước sau trận</span><br>
+        <span class="t" style="font-size:18px">150.000₫</span>
+        <div class="rw" style="margin-top:6px"><span class="s">Paid by</span><span class="t">🐷 Group fund</span></div>
+        <div class="rw"><span class="s">Date</span><span class="t">26 Oct 2026</span></div>
+        <div class="rw"><span class="s">Added by</span><span class="t">Xanh · 26 Oct</span></div>
+      </div>
+      <div class="panel"><span class="s">Nobody owes a share. The money came out of the group fund.</span></div>
+      <div class="row2"><div class="sb">✎ Edit</div><div class="sb">⊘ Disable</div></div>
+    </div>
+    <p class="cap"><b>Fund-paid expense.</b> Paid by reads Group fund; the panel replaces the split list. Edit stays with whoever added it; disabling puts the money back in the fund.</p>
+  </div>
+</div>
+
+<h2>6. Wide screen, layout A (1280px)</h2>
+<div class="wide">
+  <div class="hd"><span>‹ Cầu lông Thứ 5</span><span>⊕ Invite &nbsp;⚙</span></div>
+  <div class="cols">
+    <div>
+      <div class="bx pad"><span class="s">You're owed</span> <span class="plus">525.000₫</span> <span class="m">· Group total 850.000₫</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Nước sau trận</span> <span class="s">· Paid from group fund</span></div><span class="r m">150.000₫</span></div>
+        <div class="rw" style="background:var(--accent-soft);margin:0 -8px;padding:5px 8px"><div><span class="t">Lan đóng quỹ</span> <span class="s">· Added to fund · by Lan</span></div><span class="r plus">+150.000₫</span></div>
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span> <span class="s">· You paid 600.000₫ · sport split, 8</span></div><span class="r t">75.000₫</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="bx pad" style="border:1.5px solid var(--accent)">
+        <div class="sh"><span>Fund income</span><span>✕</span></div>
+        <span class="t" style="font-size:13px">Lan đóng quỹ</span> <span class="plus" style="font-size:15px">+150.000₫</span>
+        <div class="rw" style="margin-top:6px"><span class="s">Date</span><span class="t">24 Oct 2026</span></div>
+        <div class="rw"><span class="s">Added by</span><span class="t">Lan · 24 Oct</span></div>
+        <div style="margin-top:6px"><span class="mini">✎ Edit</span> <span class="mini">⊘ Disable</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="capw">The pill stays in the left column under the balance; IncomeDetails opens in the existing right-hand DetailsPanel like expenses and payments.</p>
+
+<h2>7. Activity and copy</h2>
+<div class="g">
+  <div>
+    <div class="ph" style="min-height:220px">
+      <div class="hd"><span>‹ Activity</span><span></span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Xanh added 200.000₫ to the fund</span><br><span class="s">Thu 2 khách vãng lai · 5 min ago</span></div></div>
+        <div class="rw"><div><span class="t">Xanh paid 150.000₫ from the fund</span><br><span class="s">Nước sau trận · 1 hour ago</span></div></div>
+        <div class="rw"><div><span class="t">Xanh disabled fund income</span><br><span class="s">Thu vãng lai (nhập trùng) · 24 Oct</span></div></div>
+      </div>
+    </div>
+    <p class="cap">Five new activity actions: income_added, income_edited, income_disabled, income_enabled, income_rolled_back. A fund-paid expense keeps expense_added; its line says "from the fund".</p>
+  </div>
+  <div style="flex:1;min-width:300px">
+    <table>
+      <tr><th>Where</th><th>English</th><th>Tiếng Việt (draft, // REVIEW)</th></tr>
+      <tr><td>Switcher</td><td>Expense · Fund income</td><td>Chi tiêu · Quỹ thu</td></tr>
+      <tr><td>Title / button</td><td>Add to fund</td><td>Thêm vào quỹ</td></tr>
+      <tr><td>Field</td><td>Note</td><td>Ghi chú</td></tr>
+      <tr><td>Paid by option</td><td>Group fund · 400.000₫</td><td>Quỹ nhóm · 400.000₫</td></tr>
+      <tr><td>Income row</td><td>Added to fund · by Xanh</td><td>Quỹ thu · Xanh thêm</td></tr>
+      <tr><td>Fund-paid row</td><td>Paid from group fund</td><td>Chi từ quỹ nhóm</td></tr>
+      <tr><td>Split panel</td><td>Paid from the group fund. Nobody owes a share.</td><td>Chi từ quỹ nhóm. Không ai phải góp.</td></tr>
+      <tr><td>Split panel</td><td>Fund after this: 250.000₫</td><td>Quỹ còn lại: 250.000₫</td></tr>
+      <tr><td>Over limit</td><td>The fund has only 400.000₫. Lower the amount or choose who paid.</td><td>Quỹ chỉ còn 400.000₫. Giảm số tiền hoặc chọn người trả.</td></tr>
+      <tr><td>Edit too low</td><td>Keep at least 250.000₫: the rest is already spent.</td><td>Giữ ít nhất 250.000₫: phần còn lại đã được chi.</td></tr>
+      <tr><td>FUND_SHORT</td><td>Can't disable: 250.000₫ of this money is already spent.</td><td>Không thể tắt: 250.000₫ trong khoản này đã được chi.</td></tr>
+      <tr><td>Pill / sheet</td><td>Group fund</td><td>Quỹ nhóm</td></tr>
+      <tr><td>Sheet</td><td>Added · Spent · Kept by the admins</td><td>Đã thu · Đã chi · Quản trị viên giữ</td></tr>
+      <tr><td>Sheet footnote</td><td>Only admins add or spend fund money.</td><td>Chỉ quản trị viên được thêm hoặc chi tiền quỹ.</td></tr>
+    </table>
+  </div>
+</div>
+</body>
+</html>
