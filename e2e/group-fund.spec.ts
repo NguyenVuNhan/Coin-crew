@@ -1,7 +1,8 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 
 // Group fund at 375px: Xanh (organiser of a badminton group) puts 200.000₫ from two walk-ins into the fund,
-// then pays 150.000₫ of drinks from it. The fund pill drops to 50.000₫ and the drinks row reads "Paid from group fund".
+// then pays 150.000₫ of drinks from it. The fund pill drops to 50.000₫ and the drinks row reads "Paid from group fund",
+// while Xanh's own balance stays settled.
 
 async function noSidewaysScroll(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
@@ -58,6 +59,8 @@ test('an admin fills and spends the group fund', async ({ browser }) => {
   await expect(page).toHaveURL(tripUrl);
   await expect(page.getByRole('button', { name: 'Group fund, 50.000₫' })).toBeVisible();
   await expect(page.getByText('Paid from group fund')).toBeVisible();
+  // The fund paid, not Xanh: their balance doesn't move.
+  await expect(page.getByText("You're all settled")).toBeVisible();
   await noSidewaysScroll(page);
 
   await context.close();
