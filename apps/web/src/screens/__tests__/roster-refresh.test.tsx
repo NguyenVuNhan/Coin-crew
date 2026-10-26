@@ -97,6 +97,7 @@ describe('the roster catches up with changes made in another window', () => {
     expect(await screen.findByText('Someone on this expense left the group. Check the split and try again.')).toBeInTheDocument();
     expect(await screen.findByText("Chi left the group, so they're off this expense.")).toBeInTheDocument();
     expect(screen.queryByTestId('split-row-Chi')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Split between You, An, Bình. Change' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Add expense' }));
     await waitFor(() => expect(posts).toBe(2));
