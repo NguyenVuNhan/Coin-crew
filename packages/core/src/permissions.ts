@@ -4,7 +4,7 @@ export type ActorKind = 'member' | 'guest' | 'viewer';
 export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean }
 export type Action = 'view' | 'add_expense' | 'edit_expense' | 'delete_expense' | 'approve' | 'disable' | 'merge'
   | 'remove_person' | 'regenerate_links' | 'archive' | 'unarchive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank'
-  | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin' | 'leave' | 'restore_person';
+  | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin' | 'leave' | 'restore_person' | 'manage_fund';
 export interface ActionContext {
   expenseCreatedById?: string; expenseStatus?: ExpenseStatus;
   paymentFromId?: string; paymentToId?: string; owesTo?: boolean;
@@ -60,6 +60,7 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
     case 'add_person':
     case 'promote_admin':
     case 'restore_person':
+    case 'manage_fund':
       return isMember && isAdmin;
     default:
       return false;
