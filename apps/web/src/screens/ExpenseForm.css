@@ -84,6 +84,10 @@
   min-width: 0;
 }
 
+.fsl-expense-form__row--stack {
+  grid-template-columns: 1fr;
+}
+
 /* A date field and a dropdown differ by a pixel in height on their own; side by side they must line up. */
 .fsl-expense-form__row .fsl-input,
 .fsl-expense-form__row .fsl-select {

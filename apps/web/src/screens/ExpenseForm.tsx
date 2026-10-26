@@ -891,7 +891,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
           </div>
         )}
 
-        <div className="fsl-expense-form__row">
+        {/* "Group fund · 500.000₫" is too long for half the row on a phone: paid from the fund, Paid by gets the full width. */}
+        <div className={`fsl-expense-form__row${fromFund ? ' fsl-expense-form__row--stack' : ''}`}>
           <div className="fsl-field">
             <label htmlFor="expense-date" className="fsl-field-label">
               {t('expenseForm.date')}
