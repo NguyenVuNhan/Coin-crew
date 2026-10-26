@@ -163,6 +163,11 @@
   font-size: var(--text-input);
 }
 
+/* A blank box shows what it will get (an automatic share, one share, no adjustment) in grey. */
+.fsl-split-row__input::placeholder {
+  color: var(--color-text-subtle);
+}
+
 .fsl-split-row__share {
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);

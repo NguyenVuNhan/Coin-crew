@@ -14,6 +14,12 @@ afterEach(() => {
 const newRoute = { route: '/t/t-1/expenses/new', path: '/t/:tripId/expenses/new' };
 const editRoute = { route: '/t/t-1/expenses/e-5/edit', path: '/t/:tripId/expenses/:expenseId/edit' };
 const rowOf = (name: string) => screen.getByTestId(`split-row-${name}`);
+/** Takes someone off the expense the way a person does: through the Split between sheet. */
+async function untick(name: string) {
+  await userEvent.click(screen.getByRole('button', { name: /^Split between/ }));
+  await userEvent.click(screen.getByRole('button', { name: `Remove ${name}` }));
+  await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+}
 
 describe('splitInput', () => {
   it('turns what people type into entry values', () => {
@@ -55,8 +61,9 @@ describe('ExpenseForm', () => {
     await userEvent.type(await screen.findByLabelText('What for'), 'Lẩu');
     await userEvent.type(screen.getByLabelText('Amount'), '100.000');
     await userEvent.click(screen.getByRole('radio', { name: 'Exact amounts' }));
-    await userEvent.type(screen.getByLabelText('Amount for Minh'), '50.000');
-    await userEvent.type(screen.getByLabelText('Amount for An'), '20.000');
+    // Blank boxes share what is left, so only typing more than the total fails to add up.
+    await userEvent.type(screen.getByLabelText('Amount for Minh'), '80.000');
+    await userEvent.type(screen.getByLabelText('Amount for An'), '30.000');
     expect(screen.getByText("The amounts don't add up to the total.")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add expense' })).toBeDisabled();
   });
@@ -83,9 +90,9 @@ describe('ExpenseForm', () => {
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<ExpenseForm />, newRoute);
     await userEvent.type(await screen.findByLabelText('Amount'), '90.000');
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Include Bình' }));
+    await untick('Bình');
     expect(within(rowOf('Minh')).getByText('30.000₫')).toBeInTheDocument();
-    expect(within(rowOf('Bình')).queryByText(/₫/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('split-row-Bình')).toBeNull();
   });
 
   it('edit mode fills the form and saves with PATCH', async () => {
@@ -115,7 +122,7 @@ describe('ExpenseForm', () => {
     await userEvent.type(await screen.findByLabelText('Amount'), '180.000');
     expect(screen.getByText('Split equally · 4 people · 45.000₫ each')).toBeInTheDocument();
     expect(screen.getAllByText('45.000₫')).toHaveLength(4);
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Include Bình' }));
+    await untick('Bình');
     expect(screen.getByText('Split equally · 3 people · 60.000₫ each')).toBeInTheDocument();
   });
 
@@ -123,7 +130,7 @@ describe('ExpenseForm', () => {
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<ExpenseForm />, newRoute);
     await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Include Chi' }));
+    await untick('Chi');
     expect(screen.getByText('Split equally · 3 people · about 33.333₫ each')).toBeInTheDocument();
   });
 
@@ -132,19 +139,19 @@ describe('ExpenseForm', () => {
     renderAt(<ExpenseForm />, newRoute);
     await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
     await userEvent.click(screen.getByRole('radio', { name: 'Percent' }));
-    // Nothing typed yet: everyone is still to be given a share, never "0 people".
-    expect(screen.getByText('By percent · 4 people · 100% left')).toBeInTheDocument();
+    // Nothing typed yet: every blank box shares the whole 100%.
+    expect(screen.getByText('By percent · 4 people · 4 share the 100% left')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Percent for Minh'), '60');
     expect(within(rowOf('Minh')).getByText('60.000₫')).toBeInTheDocument();
-    expect(screen.getByText(/^By percent · .* · 40% left$/)).toBeInTheDocument();
+    expect(screen.getByText('By percent · 4 people · 3 share the 40% left')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Percent for An'), '40');
     expect(within(rowOf('Minh')).getByText('60.000₫')).toBeInTheDocument();
     expect(within(rowOf('An')).getByText('40.000₫')).toBeInTheDocument();
-    expect(screen.getByText('By percent · 2 people')).toBeInTheDocument();
+    expect(screen.getByText('By percent · 4 people · 2 owe nothing')).toBeInTheDocument();
     await userEvent.clear(screen.getByLabelText('Percent for An'));
     await userEvent.type(screen.getByLabelText('Percent for An'), '50');
     expect(within(rowOf('An')).getByText('50.000₫')).toBeInTheDocument();
-    expect(screen.getByText('By percent · 2 people · 10% over')).toBeInTheDocument();
+    expect(screen.getByText('By percent · 4 people · 10% over')).toBeInTheDocument();
   });
 
   it('rounds a percent share to whole dong while you type', async () => {
@@ -153,8 +160,11 @@ describe('ExpenseForm', () => {
     await userEvent.type(await screen.findByLabelText('Amount'), '1.000');
     await userEvent.click(screen.getByRole('radio', { name: 'Percent' }));
     await userEvent.type(screen.getByLabelText('Percent for Minh'), '33,33');
+    expect(screen.getByText('By percent · 4 people · 3 share the 66.67% left')).toBeInTheDocument();
+    // While the split does not work out (here: over 100%), a typed percentage is its part of the total, rounded.
+    await userEvent.type(screen.getByLabelText('Percent for An'), '70');
     expect(within(rowOf('Minh')).getByText('333₫')).toBeInTheDocument();
-    expect(screen.getByText(/^By percent · .* · 66\.67% left$/)).toBeInTheDocument();
+    expect(screen.getByText('By percent · 4 people · 3.33% over')).toBeInTheDocument();
   });
 
   it('exact amounts say what is left to assign, then balance', async () => {
@@ -162,15 +172,15 @@ describe('ExpenseForm', () => {
     renderAt(<ExpenseForm />, newRoute);
     await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
     await userEvent.click(screen.getByRole('radio', { name: 'Exact amounts' }));
-    expect(screen.getByText('Exact amounts · 4 people · 100.000₫ left to assign')).toBeInTheDocument();
+    expect(screen.getByText('Exact amounts · 4 people · 4 share 100.000₫ left')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Amount for Minh'), '50.000');
     expect(within(rowOf('Minh')).getByText('50.000₫')).toBeInTheDocument();
-    expect(screen.getByText(/^Exact amounts · .* · 50\.000₫ left to assign$/)).toBeInTheDocument();
+    expect(screen.getByText('Exact amounts · 4 people · 3 share 50.000₫ left')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Amount for An'), '50.000');
-    expect(screen.getByText('Exact amounts · 2 people')).toBeInTheDocument();
+    expect(screen.getByText('Exact amounts · 4 people · 2 owe nothing')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add expense' })).toBeDisabled(); // no "What for" yet
     await userEvent.type(screen.getByLabelText('Amount for Bình'), '10.000');
-    expect(screen.getByText('Exact amounts · 3 people · 10.000₫ over')).toBeInTheDocument();
+    expect(screen.getByText('Exact amounts · 4 people · 10.000₫ over')).toBeInTheDocument();
     expect(within(rowOf('Bình')).getByText('10.000₫')).toBeInTheDocument();
   });
 

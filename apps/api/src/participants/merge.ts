@@ -131,7 +131,7 @@ export async function mergeParticipants(
           queries.push(
             db
               .update(transactionShares)
-              .set({ amount: newIntoAmount, inputValue: newIntoAmount })
+              .set({ amount: newIntoAmount, inputValue: newIntoAmount, inputAuto: 0 })
               .where(
                 and(
                   eq(transactionShares.transactionId, txId),
@@ -153,7 +153,7 @@ export async function mergeParticipants(
               queries.push(
                 db
                   .update(transactionShares)
-                  .set({ inputValue: other.amount })
+                  .set({ inputValue: other.amount, inputAuto: 0 })
                   .where(
                     and(
                       eq(transactionShares.transactionId, txId),
