@@ -3,10 +3,12 @@ import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
+import { fundOf } from '../lib/fund';
 import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
+import { FundPill } from '../components/FundPill';
 import { InviteCard, InviteSheet } from '../components/InviteSheet';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
@@ -29,6 +31,8 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const tripId = view.trip.id;
   const archived = view.trip.archived;
   const hasExpenses = view.expenses.length > 0;
+  // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
+  const hasFeed = hasExpenses || (fundOf(view)?.incomes.length ?? 0) > 0;
   const canInvite = !archived && view.links !== null;
   const { detail, open } = useDetailsSelection(tripId, selection);
   // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
@@ -41,9 +45,14 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       </Link>
     );
 
+  // While the invite card shows (no expenses yet) its Share is the one primary button, so every add steps back.
+  const addVariant = !hasExpenses && canInvite ? 'secondary' : 'primary';
+
   const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
+  // Under the balance (or invite) card; with no card on a fund-only trip it still shows, since the income counts as history.
+  const fund = <FundPill view={view} />;
   const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} state={transfersState} /> : null;
   const payments = (hintable: boolean) => (
     <PaymentsList
@@ -58,9 +67,9 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       view={view}
       selectedId={detail?.kind === 'expense' ? detail.id : undefined}
       onOpen={(id) => open('expense', id)}
+      onOpenIncome={(id) => open('income', id)}
       hintable={hintable}
-      // On a new trip the invite card's Share is the one primary button, so the empty state's add steps back.
-      add={addLink(false, !hasExpenses && canInvite ? 'secondary' : 'primary')}
+      add={addLink(false, addVariant)}
       addInHeading={inHeading}
     />
   );
@@ -88,7 +97,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       right={header}
       wide
       // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
-      bottomBar={!wide && hasExpenses ? addLink(true) : undefined}
+      bottomBar={!wide && hasFeed ? addLink(true, addVariant) : undefined}
     >
       {wide ? (
         <div className="fsl-member">
@@ -98,6 +107,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
               <>
                 {notice}
                 <ApprovalQueue view={view} switching={selection !== null} />
+                {fund}
                 {expenses(true, true)}
                 {payments(false)}
               </>
@@ -111,6 +121,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           <UpdatedTransactionsBanner view={view} />
           <ApprovalQueue view={view} />
           {balance}
+          {fund}
           {transfers}
           <TripTabs activeTab={activeTab} onChange={setActiveTab} />
           {activeTab === 'expenses' ? expenses(true, false) : payments(true)}

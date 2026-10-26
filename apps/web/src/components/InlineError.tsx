@@ -25,6 +25,8 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
     message = t('error.rateLimited');
   } else if (code === 'LINK_DEAD') {
     message = t('error.linkDead');
+  } else if (code === 'FUND_SHORT') {
+    message = t('error.fundShort');
   } else if (code === 'VALIDATION') {
     if (error instanceof Error && error.message) {
       message = error.message;

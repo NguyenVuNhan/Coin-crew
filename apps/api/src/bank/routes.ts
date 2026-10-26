@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PayInfo } from '@fsl/core';
-import { buildVietQrPayload, can, findBank, maskAccountNumber, toTransferNote } from '@fsl/core';
+import { buildVietQrPayload, can, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@fsl/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';
@@ -524,7 +524,8 @@ export function bankRoutes(): Hono<AppBindings> {
     // A "says paid" payment removes the debt from the suggestions, but the payer still needs this screen
     // (and the receiver's details) while it waits for confirmation.
     const waiting = snapshot.payments.some((p) => p.status === 'says_paid' && p.fromId === payerId && p.toId === toId);
-    const isExpensePayer = isBill && snapshot.expenses.some((e) => e.payerId === toId && (e.status === 'approved' || e.status === 'pending'));
+    // A fund-paid expense names the admin who recorded it, but nobody owes them for it.
+    const isExpensePayer = isBill && snapshot.expenses.some((e) => e.payerId === toId && (e.status === 'approved' || e.status === 'pending') && !isFundPaid(e));
     ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting, isExpensePayer });
 
     const amount = self && !forPayer ? 0 : (suggestion?.amount ?? 0);

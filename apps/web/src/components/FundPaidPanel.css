@@ -1,0 +1,49 @@
+.fsl-fund-paid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.fsl-fund-paid__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.fsl-fund-paid__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.fsl-fund-paid__line {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-fund-paid__line--after {
+  font-variant-numeric: tabular-nums;
+}
+
+.fsl-fund-paid__over {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-danger);
+  margin: var(--space-1) 0 0;
+}

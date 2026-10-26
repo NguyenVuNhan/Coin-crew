@@ -7,4 +7,5 @@ export * from './vietqr';
 export * from './refcode';
 export * from './banks';
 export * from './permissions';
+export * from './fund';
 export * from './api-types';

@@ -186,6 +186,7 @@ export async function toTripView(
     suggestions: snapshot.suggestions,
     expenses: snapshot.expenses,
     payments: snapshot.payments,
+    fund: snapshot.fund,
     myBalance,
     approvals,
     links,

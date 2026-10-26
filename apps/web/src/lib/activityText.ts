@@ -13,6 +13,12 @@ const NAME_LINE = {
   person_restored: 'activity.personRestored',
 } as const satisfies Record<string, MessageKey>;
 
+const INCOME_LINE = {
+  income_disabled: 'activity.incomeDisabled',
+  income_enabled: 'activity.incomeEnabled',
+  income_rolled_back: 'activity.incomeRolledBack',
+} as const satisfies Record<string, MessageKey>;
+
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null);
 const money = (v: unknown): string | null => (typeof v === 'number' && Number.isFinite(v) ? formatVnd(v) : null);
 
@@ -31,6 +37,7 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         const description = text(d.description);
         const amount = money(d.amount);
         if (!description || !amount) return null;
+        if (item.action === 'expense_added' && d.paidFromFund === true) return t('activity.fundExpenseAdded', { actor, description, amount });
         return t(item.action === 'expense_added' ? 'activity.expenseAdded' : 'activity.expenseEdited', { actor, description, amount });
       }
       case 'expense_approved':
@@ -89,6 +96,20 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         const description = text(d.description);
         if (!description) return null;
         return t('activity.expenseRolledBack', { actor, description });
+      }
+      case 'income_added':
+      case 'income_edited': {
+        const description = text(d.description);
+        const amount = money(d.amount);
+        if (!description || !amount) return null;
+        return t(item.action === 'income_added' ? 'activity.incomeAdded' : 'activity.incomeEdited', { actor, description, amount });
+      }
+      case 'income_disabled':
+      case 'income_enabled':
+      case 'income_rolled_back': {
+        const description = text(d.description);
+        if (!description) return null;
+        return t(INCOME_LINE[item.action], { actor, description });
       }
       default:
         return null;

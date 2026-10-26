@@ -3,6 +3,9 @@ import type {
   ExpenseHistoryItem,
   ExpenseStatus,
   ExpenseView,
+  IncomeHistoryItem,
+  IncomeStatus,
+  IncomeView,
   LedgerExpense,
   LedgerPayment,
   PaymentStatus,
@@ -14,6 +17,8 @@ import type {
 } from '@fsl/core';
 import {
   computeBalances,
+  fundSummary,
+  isFundPaid,
   pairwiseTransfers,
   suggestTransfers,
 } from '@fsl/core';
@@ -37,7 +42,7 @@ export function toLedger(s: TripSnapshot): {
   payments: LedgerPayment[];
 } {
   const order = s.people.map((p) => p.id);
-  const ledgerExpenses: LedgerExpense[] = s.expenses.map((e) => ({
+  const ledgerExpenses: LedgerExpense[] = s.expenses.filter((e) => !isFundPaid(e)).map((e) => ({
     id: e.id,
     payerId: e.payerId,
     amount: e.amount,
@@ -215,10 +220,33 @@ export async function buildSnapshot(
     list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  const incomeHistoryByRootId = new Map<string, IncomeHistoryItem[]>();
+  for (const tx of txRows) {
+    if (tx.type === 'income' && tx.isLatest === 0) {
+      let list = incomeHistoryByRootId.get(tx.rootId);
+      if (!list) {
+        list = [];
+        incomeHistoryByRootId.set(tx.rootId, list);
+      }
+      list.push({
+        id: tx.id,
+        amount: tx.amount,
+        spentOn: tx.spentOn,
+        description: tx.description,
+        createdById: tx.createdByParticipantId,
+        createdAt: tx.createdAt,
+      });
+    }
+  }
+  for (const list of incomeHistoryByRootId.values()) {
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
   const activeExpenseRows = txRows.filter((tx) => tx.type === 'expense' && tx.isLatest === 1);
+  const activeIncomeRows = txRows.filter((tx) => tx.type === 'income' && tx.isLatest === 1);
   const disabledUserIds = Array.from(
     new Set(
-      activeExpenseRows.map((e) => e.disabledByUserId).filter((id): id is string => id !== null),
+      [...activeExpenseRows, ...activeIncomeRows].map((e) => e.disabledByUserId).filter((id): id is string => id !== null),
     ),
   );
 
@@ -245,9 +273,25 @@ export async function buildSnapshot(
     rejectReason: e.rejectReason,
     disabledByName: e.disabledByUserId ? (disabledNameMap.get(e.disabledByUserId) ?? null) : null,
     createdById: e.createdByParticipantId,
+    createdAt: e.createdAt,
     shares: sharesByTxId.get(e.id) ?? [],
     meta: e.metaJson ? (JSON.parse(e.metaJson) as ExpenseView['meta']) : null,
     history: historyByRootId.get(e.rootId) ?? [],
+  }));
+
+  const incomes: IncomeView[] = activeIncomeRows.map((i) => ({
+    id: i.id,
+    rootId: i.rootId,
+    amount: i.amount,
+    spentOn: i.spentOn,
+    description: i.description,
+    addedById: i.payerId,
+    createdById: i.createdByParticipantId,
+    createdAt: i.createdAt,
+    status: i.status as IncomeStatus,
+    disabledByName: i.disabledByUserId ? (disabledNameMap.get(i.disabledByUserId) ?? null) : null,
+    meta: i.metaJson ? (JSON.parse(i.metaJson) as IncomeView['meta']) : { category: null },
+    history: incomeHistoryByRootId.get(i.rootId) ?? [],
   }));
 
   const activePaymentRows = txRows.filter((tx) => tx.type === 'payment' && tx.isLatest === 1);
@@ -279,6 +323,7 @@ export async function buildSnapshot(
     suggestions: [],
     expenses: expenseViews,
     payments: paymentViews,
+    fund: null,
   };
 
   const ledger = toLedger(partialSnapshot);
@@ -295,6 +340,11 @@ export async function buildSnapshot(
   const total = expenseViews
     .filter((e) => e.status === 'approved')
     .reduce((sum, e) => sum + e.amount, 0);
+
+  const fund =
+    trip.preset === 'sport'
+      ? { ...fundSummary(incomes, expenseViews), incomes }
+      : null;
 
   return {
     trip: {
@@ -313,6 +363,7 @@ export async function buildSnapshot(
     suggestions,
     expenses: expenseViews,
     payments: paymentViews,
+    fund,
   };
 }
 
@@ -324,7 +375,9 @@ export async function getSnapshot(db: Db, trip: TripRow): Promise<TripSnapshot> 
     .get();
 
   if (row && row.version === trip.version) {
-    return JSON.parse(row.json) as TripSnapshot;
+    const cached = JSON.parse(row.json) as TripSnapshot;
+    // Views cached before the group fund have no `fund` (nor expense createdAt): rebuild them once.
+    if ('fund' in cached) return cached;
   }
 
   let previous: Transfer[] | undefined;

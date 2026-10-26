@@ -41,7 +41,9 @@
   border-bottom: 0;
 }
 
-.fsl-expense-list .fsl-expense-row {
+/* The row inside ActionRow: the action row's button already pads it and draws the dividers. */
+.fsl-expense-list .fsl-expense-row,
+.fsl-expense-list .fsl-income-row {
   flex: 1;
   min-width: 0;
   padding: 0;

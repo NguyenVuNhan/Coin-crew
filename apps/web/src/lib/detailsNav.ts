@@ -16,16 +16,17 @@ function entryOptions(state: unknown, switching: boolean): { replace?: true; sta
 }
 
 /**
- * Opens the details of an expense or payment from a trip list. Opening marks the entry `fromList`, so leaving
+ * Opens the details of an expense, payment or fund income from a trip list. Opening marks the entry `fromList`, so leaving
  * it can go back in history. Switching to another row while details are showing (the wide panel) replaces
  * that entry and keeps its state: an entry reached from a shared link stays unmarked, one opened from the list stays marked.
  */
-export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment', id: string, switching?: boolean) => void {
+export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment' | 'income', id: string, switching?: boolean) => void {
   const navigate = useNavigate();
   const { state } = useLocation();
   return useCallback(
     (kind, id, switching = false) => {
-      navigate(`/t/${tripId}/${kind === 'expense' ? 'expenses' : 'payments'}/${id}`, entryOptions(state, switching));
+      const segment = kind === 'expense' ? 'expenses' : kind === 'payment' ? 'payments' : 'fund';
+      navigate(`/t/${tripId}/${segment}/${id}`, entryOptions(state, switching));
     },
     [navigate, state, tripId],
   );

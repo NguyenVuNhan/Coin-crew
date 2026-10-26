@@ -1,16 +1,19 @@
 import {
   can,
   canConfirmPayment,
+  isFundPaid,
   notArrivedOutcome,
   arrivedOutcome,
   type Actor,
   type ExpenseView,
+  type IncomeView,
   type PaymentView,
   type PersonView,
   type TripView,
 } from '@fsl/core';
 import type { RowAction } from '../components/ActionRow';
 import type { useT } from '../i18n';
+import { isFundAdmin } from './fund';
 
 type T = ReturnType<typeof useT>;
 
@@ -40,6 +43,8 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
   if (view.trip.archived) return [];
   const { t, navigate, run, onReject } = deps;
   const actor = actorOf(view);
+  // Nobody owes a share of a fund-paid expense: only the fund's admins touch it.
+  if (isFundPaid(e) && !can(actor, 'manage_fund')) return [];
   const actions: RowAction[] = [];
   const expenseInvolved =
     actor.participantId === e.payerId ||
@@ -66,6 +71,18 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
   }
 
   return actions;
+}
+
+/** Fund admins edit, disable or re-enable fund income; everyone else gets no shortcuts. */
+export function incomeActions(view: TripView, income: IncomeView, deps: ActionDeps): RowAction[] {
+  if (!isFundAdmin(view)) return [];
+  const { t, navigate, run } = deps;
+  return [
+    { id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`/t/${view.trip.id}/fund/${income.id}/edit`) },
+    income.status === 'disabled'
+      ? { id: 'enable', label: t('expenses.enable'), icon: 'circleCheck', onSelect: () => void run(`/fund/incomes/${income.id}/enable`) }
+      : { id: 'disable', label: t('expenses.disable'), icon: 'ban', tone: 'danger', onSelect: () => void run(`/fund/incomes/${income.id}/disable`) },
+  ];
 }
 
 /**
