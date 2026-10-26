@@ -30,7 +30,7 @@ This design adds Zalo sign-in with account linking and a confirmed merge, rich l
 
 1. **Stage 1 — Zalo webview bridge (web only):** detect the Zalo webview; replace download/share attempts there with a long-press "save picture" sheet; copy the message synchronously in the tap; add bank hand-off guidance.
 2. **Stage 2 — Link preview cards (API + small web change):** inject Open Graph meta tags into the served `index.html` for `/j/:token` and the new `/j/:token/e/:rootId`; serve static branded 1200×630 PNG images; use per-expense links in sport-bill messages.
-3. **Stage 3 — Zalo sign-in, linking, merge (migration `0005_zalo_oauth.sql`):** Zalo OAuth v4 with PKCE; nullable `google_sub` and `email`; link, unlink and change a provider identity from the account menu; merge two accounts after the other account confirms; Smart Name Match on "Who are you?".
+3. **Stage 3 — Zalo sign-in, linking, merge (migration `0006_zalo_oauth.sql`):** Zalo OAuth v4 with PKCE; nullable `google_sub` and `email`; link, unlink and change a provider identity from the account menu; merge two accounts after the other account confirms; Smart Name Match on "Who are you?".
 
 Each stage ships on its own and ends with typecheck and the full test suite green.
 
@@ -197,7 +197,7 @@ The cards contain the group name, the expense description and amounts only, neve
 - `lib/remind.ts`: `expenseLink(view, id) = groupLink(view) + '/e/' + encodeURIComponent(id)`; when there is no token it returns `groupLink(view)` unchanged.
 - `ExpenseDetails.tsx`: `msgText` passes `link: expenseLink(view, e.rootId ?? e.id)`. `rootId` survives edits, and `ExpenseDetails` already finds an expense by `id`, `rootId` or a history id.
 
-### 4.3 Stage 3 — Data model (`apps/api/migrations/0005_zalo_oauth.sql`)
+### 4.3 Stage 3 — Data model (`apps/api/migrations/0006_zalo_oauth.sql`)
 
 #### 4.3.1 `users` rebuild
 
@@ -440,7 +440,7 @@ Typecheck (`npm run typecheck`) and the full suite (`npm test`) run after every 
 
 1. **Stage 1** ships alone (web only).
 2. **Stage 2** ships with the `run_worker_first` change. After deploying, check real cards with Zalo's sharing debugger (`developers.zalo.me/tools/debug-sharing`, which also re-crawls a cached URL), the Facebook Sharing Debugger, and a Telegram paste.
-3. **Stage 3** ships with migration 0005 (applied automatically on deploy). The Zalo buttons stay hidden until the secrets exist, so the code can ship before the Zalo app is approved. Add to `docs/setup.md`:
+3. **Stage 3** ships with migration 0006 (applied automatically on deploy). The Zalo buttons stay hidden until the secrets exist, so the code can ship before the Zalo app is approved. Add to `docs/setup.md`:
    1. Create an app at `developers.zalo.me` and enable Social API / "Đăng nhập với Zalo".
    2. Register the callback URL `{APP_ORIGIN}/api/auth/zalo/callback` and verify the domain.
    3. Activate the app for public use (in development mode only the app's admins and testers can sign in).
@@ -465,7 +465,7 @@ Typecheck (`npm run typecheck`) and the full suite (`npm test`) run after every 
 - **Zalo API details.** Endpoint shapes follow the brief (OAuth v4 + Graph v2.0) and community usage; the defensive error rule (§4.4.1) covers HTTP-200 errors. Confirm against the Zalo app console during setup.
 - **Phase-2 query budget.** `mergeParticipants` adds one statement per shared transaction; if D1 counts batch statements individually, one busy shared sport group can exhaust the free plan's ~50 queries per invocation. The account merge still completes and the leftover duplicate names stay mergeable from People.
 - **Pending names and requests.** B's pending names / pending membership requests in groups where A is active move to A without being merged; approving one later gives A two names in that group (same state as the degrade path above).
-- **Migration dry run.** Before the first production deploy, dry-run migration 0005 against a local import of a `wrangler d1 export` of production.
+- **Migration dry run.** Before the first production deploy, dry-run migration 0006 against a local import of a `wrangler d1 export` of production.
 
 ---
 
@@ -475,4 +475,4 @@ Typecheck (`npm run typecheck`) and the full suite (`npm test`) run after every 
 |---|---|
 | 1 | new `apps/web/src/lib/zaloEnv.ts`, `lib/clipboard.ts`, `components/SaveImageSheet.tsx` + `.css`; edit `lib/qr.ts` (`blobToDataUrl`), `components/PayQr.tsx`, `components/ExpenseDetails.tsx`, `components/BankAppSheet.tsx` (+ `.css`), `i18n/en.ts`, `i18n/vi.ts` |
 | 2 | new `apps/api/src/og/text.ts`, `og/html.ts`, `og/routes.ts`, `scripts/render-og-images.mjs`, `scripts/og/trip.svg`, `scripts/og/sport.svg`, `apps/web/public/og/trip.png`, `apps/web/public/og/sport.png`; edit `apps/api/src/app.ts`, `apps/api/wrangler.jsonc`, `apps/web/index.html`, `apps/web/src/App.tsx`, `screens/Join.tsx`, `screens/TripRoute.tsx`, `screens/WhoAreYou.tsx`, `lib/remind.ts`, `components/ExpenseDetails.tsx` |
-| 3 | new `apps/api/migrations/0005_zalo_oauth.sql`, `apps/api/src/auth/zalo.ts`, `auth/identity.ts`, `auth/accountRoutes.ts`, `auth/mergeUsers.ts`, `apps/web/src/components/SignInButtons.tsx` (+ `.css`), `SignInSheet.tsx`, `AuthNotice.tsx`, `LinkedAccounts.tsx` (+ `.css`), `MergeRequestBanner.tsx` (+ `.css`), `MergeConfirmSheet.tsx`; edit `apps/api/src/db/schema.ts`, `env.ts`, `auth/routes.ts`, `auth/testLogin.ts`, `trips/view.ts`, `app.ts`, `packages/core/src/api-types.ts`, `apps/web/src/api/hooks.ts`, `components/icons.tsx`, `components/AccountMenu.tsx` (+ `.css`, incl. the badge dot on its trigger), `components/ApprovalsCard.tsx`, `components/ConsentSheet.tsx`, `components/InlineError.tsx`, `screens/Landing.tsx`, `screens/MyTrips.tsx`, `screens/CreateTrip.tsx`, `screens/GuestTrip.tsx`, `screens/WhoAreYou.tsx`, `screens/Privacy.tsx`, `App.tsx`, `i18n/en.ts`, `i18n/vi.ts`, `docs/setup.md` |
+| 3 | new `apps/api/migrations/0006_zalo_oauth.sql`, `apps/api/src/auth/zalo.ts`, `auth/identity.ts`, `auth/accountRoutes.ts`, `auth/mergeUsers.ts`, `apps/web/src/components/SignInButtons.tsx` (+ `.css`), `SignInSheet.tsx`, `AuthNotice.tsx`, `LinkedAccounts.tsx` (+ `.css`), `MergeRequestBanner.tsx` (+ `.css`), `MergeConfirmSheet.tsx`; edit `apps/api/src/db/schema.ts`, `env.ts`, `auth/routes.ts`, `auth/testLogin.ts`, `trips/view.ts`, `app.ts`, `packages/core/src/api-types.ts`, `apps/web/src/api/hooks.ts`, `components/icons.tsx`, `components/AccountMenu.tsx` (+ `.css`, incl. the badge dot on its trigger), `components/ApprovalsCard.tsx`, `components/ConsentSheet.tsx`, `components/InlineError.tsx`, `screens/Landing.tsx`, `screens/MyTrips.tsx`, `screens/CreateTrip.tsx`, `screens/GuestTrip.tsx`, `screens/WhoAreYou.tsx`, `screens/Privacy.tsx`, `App.tsx`, `i18n/en.ts`, `i18n/vi.ts`, `docs/setup.md` |

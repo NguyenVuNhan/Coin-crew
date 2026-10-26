@@ -1,7 +1,8 @@
 import { MAX_AMOUNT } from './money';
 
 export type SplitMode = 'equal' | 'amounts' | 'percent' | 'shares' | 'adjust';
-export interface SplitEntry { participantId: string; value: number }
+/** `value: null` is a blank box: in exact amounts and percent it shares what the typed entries leave. */
+export interface SplitEntry { participantId: string; value: number | null }
 export type SplitError = 'NO_PARTICIPANTS' | 'INVALID_AMOUNT' | 'AMOUNTS_DONT_ADD_UP' | 'PERCENT_NOT_100' | 'SHARES_NOT_POSITIVE' | 'NEGATIVE_SHARE' | 'INVALID_VALUE';
 export type SplitResult = { ok: true; shares: { participantId: string; amount: number }[] } | { ok: false; error: SplitError };
 
@@ -81,6 +82,10 @@ export function computeShares(total: number, mode: SplitMode, entries: SplitEntr
   }
 
   const n = entries.length;
+  const autoCount = entries.filter((e) => e.value === null).length;
+  if (autoCount > 0 && mode !== 'amounts' && mode !== 'percent') {
+    return { ok: false, error: 'INVALID_VALUE' };
+  }
 
   switch (mode) {
     case 'equal': {
@@ -95,33 +100,40 @@ export function computeShares(total: number, mode: SplitMode, entries: SplitEntr
     case 'amounts': {
       let sum = 0;
       for (const entry of entries) {
+        if (entry.value === null) continue;
         if (!Number.isSafeInteger(entry.value) || entry.value < 0) {
           return { ok: false, error: 'AMOUNTS_DONT_ADD_UP' };
         }
         sum += entry.value;
       }
-      if (sum !== total) {
+      if (sum > total || (autoCount === 0 && sum !== total)) {
         return { ok: false, error: 'AMOUNTS_DONT_ADD_UP' };
       }
+      // The blank boxes split what is left equally, the few leftover dong going to the earliest.
+      const autoAmounts = distributeWeighted(total - sum, new Array(autoCount).fill(1));
+      let autoIdx = 0;
       return {
         ok: true,
-        shares: entries.map((e) => ({ participantId: e.participantId, amount: e.value })),
+        shares: entries.map((e) => ({ participantId: e.participantId, amount: e.value ?? autoAmounts[autoIdx++]! })),
       };
     }
 
     case 'percent': {
       let sum = 0;
-      const weights: number[] = [];
       for (const entry of entries) {
+        if (entry.value === null) continue;
         if (!Number.isSafeInteger(entry.value) || entry.value < 0) {
           return { ok: false, error: 'PERCENT_NOT_100' };
         }
         sum += entry.value;
-        weights.push(entry.value);
       }
-      if (sum !== 10000) {
+      if (sum > 10000 || (autoCount === 0 && sum !== 10000)) {
         return { ok: false, error: 'PERCENT_NOT_100' };
       }
+      // Scaled by the number of blank boxes so each blank weighs (100% − typed) / k without fractions: the weights
+      // total 10000 × k, typed people get exactly their percent and the blanks split the rest of the money.
+      const k = Math.max(autoCount, 1);
+      const weights = entries.map((e) => (e.value === null ? 10000 - sum : e.value * k));
       const amounts = distributeWeighted(total, weights);
       return {
         ok: true,
@@ -132,10 +144,10 @@ export function computeShares(total: number, mode: SplitMode, entries: SplitEntr
     case 'shares': {
       const weights: number[] = [];
       for (const entry of entries) {
-        if (!Number.isSafeInteger(entry.value) || entry.value <= 0) {
+        if (!Number.isSafeInteger(entry.value) || entry.value! <= 0) {
           return { ok: false, error: 'SHARES_NOT_POSITIVE' };
         }
-        weights.push(entry.value);
+        weights.push(entry.value!);
       }
       const amounts = distributeWeighted(total, weights);
       return {
@@ -150,7 +162,7 @@ export function computeShares(total: number, mode: SplitMode, entries: SplitEntr
         if (!Number.isSafeInteger(entry.value)) {
           return { ok: false, error: 'NEGATIVE_SHARE' };
         }
-        sumAdjustments += entry.value;
+        sumAdjustments += entry.value!;
       }
       const pool = total - sumAdjustments;
       if (pool < 0) {
@@ -161,7 +173,7 @@ export function computeShares(total: number, mode: SplitMode, entries: SplitEntr
       const shares: { participantId: string; amount: number }[] = [];
 
       for (let i = 0; i < n; i++) {
-        const participantShare = equalPoolAmounts[i]! + entries[i]!.value;
+        const participantShare = equalPoolAmounts[i]! + entries[i]!.value!;
         if (participantShare < 0) {
           return { ok: false, error: 'NEGATIVE_SHARE' };
         }

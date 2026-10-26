@@ -220,6 +220,38 @@ export const vi: Record<MessageKey, string> = {
   'split.captionPercentOver': 'Theo phần trăm · {n} người · vượt {pct}%', // REVIEW
   'split.captionShares': 'Theo số phần · {n} người', // REVIEW
   'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
+  'split.captionPercentShare': 'Theo phần trăm · {n} người · {k} người chia {pct}% còn lại', // REVIEW
+  'split.captionPercentLeftFor': 'Theo phần trăm · {n} người · còn {pct}% cho {name}', // REVIEW
+  'split.captionPercentNothing': 'Theo phần trăm · {n} người · {k} người không phải trả', // REVIEW
+  'split.captionPercentNothingOne': 'Theo phần trăm · {n} người · {name} không phải trả', // REVIEW
+  'split.captionExactShare': 'Số tiền chính xác · {n} người · {k} người chia {amount} còn lại', // REVIEW
+  'split.captionExactLeftFor': 'Số tiền chính xác · {n} người · còn {amount} cho {name}', // REVIEW
+  'split.captionExactNothing': 'Số tiền chính xác · {n} người · {k} người không phải trả', // REVIEW
+  'split.captionExactNothingOne': 'Số tiền chính xác · {n} người · {name} không phải trả', // REVIEW
+  'splitBetween.label': 'Chia cho · {n}/{total} người', // REVIEW
+  'splitBetween.everyone': 'Chia cho · Mọi người ({n})', // REVIEW
+  'splitBetween.none': 'Chưa có ai', // REVIEW
+  'splitBetween.change': 'Đổi', // REVIEW
+  'splitBetween.you': 'Bạn', // REVIEW
+  'splitBetween.aria': '{label}. {names}. Đổi', // REVIEW
+  'splitSheet.title': 'Chia cho', // REVIEW
+  'splitSheet.count': '{n}/{total} người', // REVIEW
+  'splitSheet.recent': 'Giống nhóm người ở', // REVIEW
+  'splitSheet.recentMeta': '{date} · {n} người · {names}', // REVIEW
+  'splitSheet.more': '+{n}', // REVIEW
+  'splitSheet.use': 'Dùng', // REVIEW
+  'splitSheet.useAria': 'Dùng nhóm người của {description}', // REVIEW
+  'splitSheet.clearAll': 'Bỏ chọn hết', // REVIEW
+  'splitSheet.addEveryone': 'Chọn mọi người', // REVIEW
+  'splitSheet.searchLabel': 'Thêm người', // REVIEW
+  'splitSheet.searchPlaceholder': 'Thêm người…', // REVIEW
+  'splitSheet.remove': 'Bỏ {name}', // REVIEW
+  'splitSheet.add': 'Thêm {name}', // REVIEW
+  'splitSheet.alreadyIn': 'Đã có: {names}', // REVIEW
+  'splitSheet.noMatch': 'Không có ai tên "{q}" trong nhóm.', // REVIEW
+  'splitSheet.allChosen': 'Đã chọn tất cả mọi người trong nhóm.', // REVIEW
+  'splitSheet.matches': '{n} kết quả', // REVIEW
+  'splitSheet.done': 'Xong', // REVIEW
   'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
   'expense.historyTitle': 'Lịch sử chỉnh sửa', // REVIEW
   'expense.rollback': 'Khôi phục về bản cập nhật này', // REVIEW
@@ -595,5 +627,47 @@ export const vi: Record<MessageKey, string> = {
   'merge.released': '{provider} {email} sẽ không còn đăng nhập vào đây', // REVIEW
   'merge.confirm': 'Gộp tài khoản', // REVIEW
   'merge.dot': 'Có yêu cầu gộp tài khoản', // REVIEW
+  'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
+  'entry.expense': 'Chi tiêu', // REVIEW
+  'entry.income': 'Quỹ thu', // REVIEW
+  'fund.title': 'Quỹ nhóm', // REVIEW
+  'fund.pillLabel': 'Quỹ nhóm, {amount}', // REVIEW
+  'fund.addTitle': 'Thêm vào quỹ', // REVIEW
+  'fund.editTitle': 'Sửa khoản thu quỹ', // REVIEW
+  'fund.add': 'Thêm vào quỹ', // REVIEW
+  'fund.note': 'Ghi chú', // REVIEW
+  'fund.notePlaceholder': 'VD: Thu 2 khách vãng lai', // REVIEW
+  'fund.keepAtLeast': 'Giữ ít nhất {amount}: phần còn lại đã được chi.', // REVIEW
+  'fund.payerOption': 'Quỹ nhóm · {amount}', // REVIEW
+  'fund.paidTitle': 'Chi từ quỹ nhóm', // REVIEW
+  'fund.noShares': 'Không ai phải góp.', // REVIEW
+  'fund.after': 'Quỹ còn lại: {amount}', // REVIEW
+  'fund.overLimit': 'Quỹ chỉ còn {amount}. Giảm số tiền hoặc chọn người trả.', // REVIEW
+  'fund.rowIncome': 'Quỹ thu · {name} thêm', // REVIEW
+  'fund.rowIncomeMe': 'Quỹ thu · bạn thêm', // REVIEW
+  'fund.rowPaid': 'Chi từ quỹ nhóm', // REVIEW
+  'fund.added': 'Đã thu', // REVIEW
+  'fund.spent': 'Đã chi', // REVIEW
+  'fund.keptBy': 'Quản trị viên giữ', // REVIEW
+  'fund.adminsOnly': 'Chỉ quản trị viên được thêm hoặc chi tiền quỹ.', // REVIEW
+  'fund.emptyTitle': 'Quỹ đang trống.', // REVIEW
+  'fund.emptyBody': 'Tiền khách vãng lai hoặc tài trợ sẽ hiện ở đây.', // REVIEW
+  'fund.addedBy': 'Người thêm', // REVIEW
+  'fund.readOnly': 'Chỉ quản trị viên được sửa khoản thu quỹ.', // REVIEW
+  'fund.cantDisable': 'Không thể tắt: {amount} trong khoản này đã được chi.', // REVIEW
+  'fund.expenseNote': 'Không ai phải góp. Tiền được chi từ quỹ nhóm.', // REVIEW
+  'details.income': 'Khoản thu quỹ', // REVIEW
+  'error.fundShort': 'Quỹ nhóm không đủ cho khoản này. Kiểm tra quỹ rồi thử lại.', // REVIEW
+  'activity.incomeAdded': '{actor} thêm {amount} vào quỹ · {description}', // REVIEW
+  'activity.incomeEdited': '{actor} sửa khoản thu quỹ · {description} · {amount}', // REVIEW
+  'activity.incomeDisabled': '{actor} tắt khoản thu quỹ · {description}', // REVIEW
+  'activity.incomeEnabled': '{actor} bật khoản thu quỹ · {description}', // REVIEW
+  'activity.incomeRolledBack': '{actor} khôi phục khoản thu quỹ · {description}', // REVIEW
+  'activity.fundExpenseAdded': '{actor} chi {amount} từ quỹ · {description}', // REVIEW
+  'activity.action.income_added': 'thêm tiền vào quỹ', // REVIEW
+  'activity.action.income_edited': 'sửa khoản thu quỹ', // REVIEW
+  'activity.action.income_disabled': 'tắt khoản thu quỹ', // REVIEW
+  'activity.action.income_enabled': 'bật khoản thu quỹ', // REVIEW
+  'activity.action.income_rolled_back': 'khôi phục khoản thu quỹ', // REVIEW
 };
 

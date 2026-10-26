@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { ExpenseView, TripView } from '@fsl/core';
-import { formatVnd, computeSportShares } from '@fsl/core';
+import { formatVnd, computeSportShares, isFundPaid } from '@fsl/core';
 import { useT, useLang } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { nameOf, splitText } from '../lib/tripText';
@@ -158,6 +158,7 @@ export function ExpenseDetails({
   }
 
   const status = STATUS[e.status];
+  const fromFund = isFundPaid(e);
 
   const whoText = (id: string) => (id === view.me.participantId ? t('trip.you') : nameOf(view, id));
 
@@ -262,25 +263,29 @@ export function ExpenseDetails({
         </div>
         <div className="fsl-details__fact">
           <dt>{t('details.paidBy')}</dt>
-          <dd>{whoText(e.payerId)}</dd>
+          <dd>{fromFund ? t('fund.title') : whoText(e.payerId)}</dd>
         </div>
         <div className="fsl-details__fact">
           <dt>{t('details.addedBy')}</dt>
-          <dd>{whoText(e.createdById)}</dd>
+          <dd>{fromFund ? `${whoText(e.createdById)} · ${formatDay(e.spentOn)}` : whoText(e.createdById)}</dd>
         </div>
-        <div className="fsl-details__fact">
-          <dt>{t('details.split')}</dt>
-          <dd>
-            {e.meta?.sport
-              ? splitText(e, t)
-              : e.mode === 'equal'
-                ? `${t('split.tab.equal')}, ${t('trip.people', { n: e.shares.length })}`
-                : splitText(e, t)}
-          </dd>
-        </div>
+        {!fromFund && (
+          <div className="fsl-details__fact">
+            <dt>{t('details.split')}</dt>
+            <dd>
+              {e.meta?.sport
+                ? splitText(e, t)
+                : e.mode === 'equal'
+                  ? `${t('split.tab.equal')}, ${t('trip.people', { n: e.shares.length })}`
+                  : splitText(e, t)}
+            </dd>
+          </div>
+        )}
       </dl>
 
-      {sportCalc ? (
+      {fromFund ? (
+        <p className="fsl-details__note">{t('fund.expenseNote')}</p>
+      ) : sportCalc ? (
         <>
           <div className="fsl-sport-table-container">
             <table className="fsl-sport-table">

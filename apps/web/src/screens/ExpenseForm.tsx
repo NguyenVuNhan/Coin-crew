@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useState, useMemo, type ReactNode } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type {
   TripView,
@@ -12,14 +12,21 @@ import type {
   SportParticipantEntry,
   SportRule,
 } from '@fsl/core';
-import { can, computeShares, computeSportShares, formatVnd, parseVnd } from '@fsl/core';
+import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
 import { apiSend, ApiClientError } from '../api/client';
-import { toEntryValue, fromEntryValue } from '../lib/splitInput';
+import { readSplitInput, fromEntryValue } from '../lib/splitInput';
+import { recentGroups } from '../lib/recentGroups';
+import { SplitBetween } from '../components/SplitBetween';
+import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
 import { useLeaveForm } from '../lib/detailsNav';
 import { actorOf } from '../lib/rowActions';
+import { fundAvailable, fundPaidCheck, isFundAdmin } from '../lib/fund';
+import { EntryTypeSwitch, type EntryType } from '../components/EntryTypeSwitch';
+import { IncomeForm } from '../components/IncomeForm';
+import { FundPaidPanel } from '../components/FundPaidPanel';
 import { SplitModePicker } from '../components/SplitModePicker';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
@@ -42,9 +49,10 @@ type T = ReturnType<typeof useT>;
 
 /**
  * The line under the split picker: the mode in words, how many people it counts and the result so far. An equal
- * split says what each pays; exact amounts and percentages say what is left (or over) until they add up.
- * `total` is the amount being split (null until it is typed); `assigned` is the sum of the values typed (hundredths of a
- * percent for percentages, dong for exact amounts).
+ * split says what each pays; exact amounts and percentages say what is left (or over), and with blank boxes how many
+ * share what is left, naming the person when only one does.
+ * `total` is the amount being split (null until it is typed); `assigned` is the sum of the typed values (hundredths of a
+ * percent for percentages, dong for exact amounts); `autoCount` and `autoName` describe the blank boxes.
  */
 function splitCaption(
   t: T,
@@ -53,6 +61,8 @@ function splitCaption(
   result: SplitResult | null,
   total: number | null,
   assigned: number,
+  autoCount: number,
+  autoName: string,
 ): string {
   switch (mode) {
     case 'equal': {
@@ -63,17 +73,36 @@ function splitCaption(
       return t(allEqual ? 'split.captionEqual' : 'split.captionEqualAbout', { n: people, each: formatVnd(each) });
     }
     case 'amounts': {
-      const left = total === null ? 0 : total - assigned;
-      if (left === 0) return t('split.captionExact', { n: people });
-      return t(left > 0 ? 'split.captionExactLeft' : 'split.captionExactOver', { n: people, amount: formatVnd(Math.abs(left)) });
+      if (total === null) return t('split.captionExact', { n: people });
+      const left = total - assigned;
+      if (left < 0) return t('split.captionExactOver', { n: people, amount: formatVnd(-left) });
+      if (autoCount === 0) {
+        return left === 0 ? t('split.captionExact', { n: people }) : t('split.captionExactLeft', { n: people, amount: formatVnd(left) });
+      }
+      if (left === 0) {
+        return autoCount === 1
+          ? t('split.captionExactNothingOne', { n: people, name: autoName })
+          : t('split.captionExactNothing', { n: people, k: autoCount });
+      }
+      return autoCount === 1
+        ? t('split.captionExactLeftFor', { n: people, amount: formatVnd(left), name: autoName })
+        : t('split.captionExactShare', { n: people, k: autoCount, amount: formatVnd(left) });
     }
     case 'percent': {
       const left = 10000 - assigned;
-      if (left === 0) return t('split.captionPercent', { n: people });
-      return t(left > 0 ? 'split.captionPercentLeft' : 'split.captionPercentOver', {
-        n: people,
-        pct: fromEntryValue('percent', Math.abs(left)),
-      });
+      const pct = fromEntryValue('percent', Math.abs(left));
+      if (left < 0) return t('split.captionPercentOver', { n: people, pct });
+      if (autoCount === 0) {
+        return left === 0 ? t('split.captionPercent', { n: people }) : t('split.captionPercentLeft', { n: people, pct });
+      }
+      if (left === 0) {
+        return autoCount === 1
+          ? t('split.captionPercentNothingOne', { n: people, name: autoName })
+          : t('split.captionPercentNothing', { n: people, k: autoCount });
+      }
+      return autoCount === 1
+        ? t('split.captionPercentLeftFor', { n: people, pct, name: autoName })
+        : t('split.captionPercentShare', { n: people, k: autoCount, pct });
     }
     case 'shares':
       return t('split.captionShares', { n: people });
@@ -91,12 +120,17 @@ const SPLIT_ERRORS = new Set<string>([
   'NEGATIVE_SHARE',
 ]);
 
+/** The Paid by choice for the group fund. It only lives in the form: a fund-paid expense is sent with its recorder as payer. */
+const FUND_PAYER = '__fund__';
+
 interface ExpenseFormContentProps {
   view: TripView;
   tripId: string;
   expenseId?: string;
   expense?: ExpenseView;
   title: string;
+  /** The Expense / Fund income switcher, shown first in the form (fund admins on a new entry). */
+  switcher?: ReactNode;
   leave: () => void;
 }
 
@@ -111,13 +145,19 @@ interface SportGuestState {
   fixedText: string;
 }
 
-function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: ExpenseFormContentProps) {
+function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher, leave }: ExpenseFormContentProps) {
   const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const isEdit = Boolean(expenseId);
   const me = view.me.participantId;
+
+  // Fund admins may pay from the group fund. A fund-paid expense keeps the choice while it is edited (the route lets
+  // only fund admins open it), and may spend its own amount again on top of the balance.
+  const editingFundPaid = expense !== undefined && isFundPaid(expense);
+  const offerFund = isFundAdmin(view) || editingFundPaid;
+  const available = fundAvailable(view, expense);
 
   // People who left stay only on an expense they are already on; a new expense never offers them.
   const formPeople = useMemo(() => {
@@ -135,7 +175,9 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     expense ? fromEntryValue('amounts', expense.amount) : '',
   );
   const [spentOn, setSpentOn] = useState(() => expense?.spentOn ?? getTodayLocalDate());
-  const [payerId, setPayerId] = useState(() => expense?.payerId ?? (me ?? formPeople[0]?.id ?? ''));
+  const [payerId, setPayerId] = useState(() =>
+    editingFundPaid ? FUND_PAYER : (expense?.payerId ?? (me ?? formPeople[0]?.id ?? '')),
+  );
   const [mode, setMode] = useState<SplitMode>(() => expense?.mode ?? 'equal');
 
   // Sport mode toggle
@@ -256,11 +298,13 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   // Split states
   const [included, setIncluded] = useState<Set<string>>(() => {
-    if (expense) {
+    // A fund-paid expense has no shares: choosing a person on it starts from everyone, as a new expense does.
+    if (expense && !editingFundPaid) {
       return new Set(expense.shares.map((s) => s.participantId));
     }
     return new Set(formPeople.map((p) => p.id));
   });
+  const [peopleSheetOpen, setPeopleSheetOpen] = useState(false);
 
   const [amountsInputs, setAmountsInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
@@ -286,7 +330,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [sharesInputs, setSharesInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of formPeople) init[p.id] = '1';
+    for (const p of formPeople) init[p.id] = '';
     if (expense && expense.mode === 'shares') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('shares', s.inputValue);
@@ -297,7 +341,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   const [adjustInputs, setAdjustInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const p of formPeople) init[p.id] = '0';
+    for (const p of formPeople) init[p.id] = '';
     if (expense && expense.mode === 'adjust') {
       for (const s of expense.shares) {
         init[s.participantId] = fromEntryValue('adjust', s.inputValue);
@@ -312,69 +356,26 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   const parsedAmount = useMemo(() => parseVnd(amountText), [amountText]);
   const isAmountInvalid = amountText.trim() !== '' && parsedAmount === null;
 
+  // Who is in comes from the Split between sheet: one entry each, in group order. A blank exact-amount or percent box
+  // is automatic (null), and core gives it an equal part of what the typed boxes leave.
   const { entries, hasInvalidInput, inputErrors } = useMemo(() => {
-    let invalid = false;
+    const inputsByMode: Record<SplitMode, Record<string, string> | null> = {
+      equal: null,
+      amounts: amountsInputs,
+      percent: percentInputs,
+      shares: sharesInputs,
+      adjust: adjustInputs,
+    };
+    const inputs = inputsByMode[mode];
     const errors: Record<string, boolean> = {};
     const resultEntries: SplitEntry[] = [];
-
     for (const person of formPeople) {
-      const pId = person.id;
-      if (mode === 'equal') {
-        if (included.has(pId)) {
-          resultEntries.push({ participantId: pId, value: 1 });
-        }
-      } else if (mode === 'adjust') {
-        if (included.has(pId)) {
-          const text = adjustInputs[pId] ?? '0';
-          const trimmed = text.trim();
-          const val = toEntryValue('adjust', trimmed);
-          if (trimmed !== '' && val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else {
-            resultEntries.push({ participantId: pId, value: val ?? 0 });
-          }
-        }
-      } else if (mode === 'amounts') {
-        const text = amountsInputs[pId] ?? '';
-        const trimmed = text.trim();
-        if (trimmed !== '') {
-          const val = toEntryValue('amounts', trimmed);
-          if (val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else if (val > 0) {
-            resultEntries.push({ participantId: pId, value: val });
-          }
-        }
-      } else if (mode === 'percent') {
-        const text = percentInputs[pId] ?? '';
-        const trimmed = text.trim();
-        if (trimmed !== '') {
-          const val = toEntryValue('percent', trimmed);
-          if (val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else if (val > 0) {
-            resultEntries.push({ participantId: pId, value: val });
-          }
-        }
-      } else if (mode === 'shares') {
-        const text = sharesInputs[pId] ?? '';
-        const trimmed = text.trim();
-        if (trimmed !== '') {
-          const val = toEntryValue('shares', trimmed);
-          if (val === null) {
-            invalid = true;
-            errors[pId] = true;
-          } else if (val > 0) {
-            resultEntries.push({ participantId: pId, value: val });
-          }
-        }
-      }
+      if (!included.has(person.id)) continue;
+      const read = readSplitInput(mode, inputs?.[person.id] ?? '');
+      if (read.ok) resultEntries.push({ participantId: person.id, value: read.value });
+      else errors[person.id] = true;
     }
-
-    return { entries: resultEntries, hasInvalidInput: invalid, inputErrors: errors };
+    return { entries: resultEntries, hasInvalidInput: Object.keys(errors).length > 0, inputErrors: errors };
   }, [mode, included, adjustInputs, amountsInputs, percentInputs, sharesInputs, formPeople]);
 
   const parsedCourt = useMemo(() => parseVnd(courtText) || 0, [courtText]);
@@ -450,10 +451,32 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     return computeShares(parsedAmount, mode, entries);
   }, [sportSelected, parsedAmount, mode, entries]);
 
-  // Percent and exact amounts have no ticks: until someone is given a value, everyone listed is still to be given one.
-  const captionPeople = (mode === 'amounts' || mode === 'percent') && entries.length === 0 ? formPeople.length : entries.length;
-  const assigned = entries.reduce((sum, e) => sum + e.value, 0);
-  const caption = splitCaption(t, mode, captionPeople, splitResult, parsedAmount, assigned);
+  const autoEntries = entries.filter((e) => e.value === null);
+  const autoCount = autoEntries.length;
+  const autoName = autoCount === 1 ? (formPeople.find((p) => p.id === autoEntries[0]!.participantId)?.name ?? '') : '';
+  const assigned = entries.reduce((sum, e) => sum + (e.value ?? 0), 0);
+  const caption = splitCaption(t, mode, entries.length, splitResult, parsedAmount, assigned, autoCount, autoName);
+  const recent = useMemo(
+    () => recentGroups(view.expenses, formPeople, included, expenseId),
+    [view.expenses, formPeople, included, expenseId],
+  );
+
+  // The grey hint in an empty box: what that person gets. An exact amount shows their share once the split works out;
+  // a percentage is what is left of 100% over the blank boxes; a blank share is one share and a blank adjustment none.
+  function placeholderFor(personId: string): string {
+    switch (mode) {
+      case 'amounts': {
+        const share = splitResult?.ok ? splitResult.shares.find((s) => s.participantId === personId)?.amount : undefined;
+        return share === undefined ? '0' : fromEntryValue('amounts', share);
+      }
+      case 'percent':
+        return autoCount > 0 && assigned < 10000 ? fromEntryValue('percent', Math.round((10000 - assigned) / autoCount)) : '0';
+      case 'shares':
+        return '1';
+      default:
+        return '0';
+    }
+  }
 
   // Each person's share as the amount and the split are typed. Once the split adds up it is core's result (which
   // places the leftover dong); before that, exact amounts are what was typed and a percentage is its part of the
@@ -469,9 +492,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     if (splitResult?.ok) {
       for (const s of splitResult.shares) map.set(s.participantId, s.amount);
     } else if (mode === 'amounts') {
-      for (const e of entries) map.set(e.participantId, e.value);
+      for (const e of entries) if (e.value !== null) map.set(e.participantId, e.value);
     } else if (mode === 'percent' && parsedAmount !== null) {
       for (const e of entries) {
+        if (e.value === null) continue;
         const share = Math.round((parsedAmount * e.value) / 10000);
         if (Number.isSafeInteger(share)) map.set(e.participantId, share);
       }
@@ -480,11 +504,22 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   }, [sportSelected, sportResult, splitResult, mode, entries, parsedAmount]);
 
   const isDescriptionValid = description.trim().length > 0;
-  // A payer who left while the form was open is not offered any more: the form asks who paid instead.
-  const payer = formPeople.some((p) => p.id === payerId) ? payerId : '';
+  // A payer who left while the form was open is not offered any more, nor the fund to someone who stopped being an
+  // admin: the form asks who paid instead.
+  const payer =
+    payerId === FUND_PAYER
+      ? (offerFund ? FUND_PAYER : '')
+      : formPeople.some((p) => p.id === payerId) ? payerId : '';
+  const fromFund = payer === FUND_PAYER;
+  // Paid from the fund there is nothing to split: the sport cost card gives way to the plain Amount field.
+  const sportShown = sportSelected && !fromFund;
   const isPayerValid = payer !== '';
   const isAmountValid = parsedAmount !== null;
   const isSplitValid = Boolean(splitResult?.ok && !hasInvalidInput);
+  // Checked as the API checks it. With no amount yet 1₫ stands in, so a fund with nothing to spend says so as soon as
+  // it is chosen (spec §9.1).
+  const fundCheck = fundPaidCheck(view, expense, parsedAmount ?? 1);
+  const isFundAmountValid = parsedAmount !== null && !fundCheck.over;
 
   const isSportAmountValid = sportTotal > 0;
   const isSportSplitValid = Boolean(sportResult?.ok);
@@ -492,7 +527,11 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
   const canSubmit =
     isDescriptionValid &&
     isPayerValid &&
-    (sportSelected ? isSportAmountValid && isSportSplitValid : isAmountValid && isSplitValid);
+    (fromFund
+      ? isFundAmountValid
+      : sportSelected
+        ? isSportAmountValid && isSportSplitValid
+        : isAmountValid && isSplitValid);
 
   async function handleUpdateGender(personId: string, gender: 'M' | 'F') {
     setGenderOverrides((prev) => ({ ...prev, [personId]: gender }));
@@ -531,7 +570,27 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     setSubmitError(null);
 
     try {
-      if (sportSelected) {
+      if (fromFund) {
+        if (parsedAmount === null || me === null) return;
+        // Nobody owes a share: no entries, and whoever records it is the payer (the API sets that too).
+        const body: ExpenseInput = {
+          description: description.trim(),
+          amount: parsedAmount,
+          spentOn,
+          payerId: me,
+          mode: 'equal',
+          entries: [],
+          meta: { paidFromFund: true },
+        };
+
+        if (isEdit && expenseId) {
+          await apiSend(`/api/trips/${tripId}/expenses/${expenseId}`, 'PATCH', body, tripId);
+        } else {
+          await apiSend(`/api/trips/${tripId}/expenses`, 'POST', body, tripId);
+        }
+        await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+        leave();
+      } else if (sportSelected) {
         if (!sportResult || !sportResult.ok || sportTotal <= 0) return;
         const body: ExpenseInput = {
           description: description.trim(),
@@ -631,6 +690,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
         onSubmit={handleSubmit}
         className={`fsl-expense-form${submitError || goneNames.length > 0 ? ' fsl-expense-form--bar-error' : ''}`}
       >
+        {switcher}
+
         <div className="fsl-field">
           <label htmlFor="expense-what-for" className="fsl-field-label">
             {t('expenseForm.whatFor')}
@@ -639,14 +700,14 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
             id="expense-what-for"
             type="text"
             className="fsl-input"
-            placeholder={sportSelected ? t('sport.whatForPlaceholder') : t('expenseForm.whatForPlaceholder')}
+            placeholder={sportShown ? t('sport.whatForPlaceholder') : t('expenseForm.whatForPlaceholder')}
             maxLength={80}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
 
-        {sportSelected ? (
+        {sportShown ? (
           <div className="fsl-sport-costs-card">
             <h3 className="fsl-sport-costs-title">{t('sport.costsTitle')}</h3>
 
@@ -833,7 +894,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
           </div>
         )}
 
-        <div className="fsl-expense-form__row">
+        {/* "Group fund · 500.000₫" is too long for half the row on a phone: paid from the fund, Paid by gets the full width. */}
+        <div className={`fsl-expense-form__row${fromFund ? ' fsl-expense-form__row--stack' : ''}`}>
           <div className="fsl-field">
             <label htmlFor="expense-date" className="fsl-field-label">
               {t('expenseForm.date')}
@@ -855,12 +917,22 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
               id="expense-paid-by"
               className="fsl-select"
               value={payer}
-              onChange={(e) => setPayerId(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                // The sport cost card turns into the plain Amount field: a total typed there carries over.
+                if (next === FUND_PAYER && sportSelected && sportTotal > 0) {
+                  setAmountText(fromEntryValue('amounts', sportTotal));
+                }
+                setPayerId(next);
+              }}
             >
               {payer === '' && (
                 <option value="" disabled>
                   {t('expenseForm.choosePayer')}
                 </option>
+              )}
+              {offerFund && (
+                <option value={FUND_PAYER}>{t('fund.payerOption', { amount: formatVnd(available) })}</option>
               )}
               {formPeople.map((person) => (
                 <option key={person.id} value={person.id}>
@@ -875,169 +947,367 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
         <div className="fsl-expense-form__split-section">
           <h2 className="fsl-section-heading">{t('expenseForm.split')}</h2>
-
-          <SplitModePicker
-            value={mode}
-            onChange={(m) => {
-              setSportSelected(false);
-              setMode(m);
-            }}
-            showSport={view.trip.preset === 'sport' || Boolean(expense?.meta?.sport)}
-            sportSelected={sportSelected}
-            onSelectSport={() => setSportSelected(true)}
-          />
-
-          {sportSelected ? (
-            <div className="fsl-sport-rule-section">
-              <div
-                role="radiogroup"
-                aria-label={t('sport.ruleTitle')}
-                className="fsl-sport-rule-picker"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={ruleKind === 'equal'}
-                  className={`fsl-sport-rule-btn${ruleKind === 'equal' ? ' fsl-sport-rule-btn--active' : ''}`}
-                  onClick={() => setRuleKind('equal')}
-                >
-                  <span aria-hidden="true">=</span>
-                  <span>{t('sport.ruleEqual')}</span>
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={ruleKind === 'discount'}
-                  className={`fsl-sport-rule-btn${ruleKind === 'discount' ? ' fsl-sport-rule-btn--active' : ''}`}
-                  onClick={() => setRuleKind('discount')}
-                >
-                  <span aria-hidden="true">+/−</span>
-                  <span>{t('sport.ruleDiscount')}</span>
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={ruleKind === 'ratio'}
-                  className={`fsl-sport-rule-btn${ruleKind === 'ratio' ? ' fsl-sport-rule-btn--active' : ''}`}
-                  onClick={() => setRuleKind('ratio')}
-                >
-                  <Icon name="pie" size={16} />
-                  <span>{t('sport.ruleRatio')}</span>
-                </button>
-              </div>
-
-              {ruleKind === 'discount' && (
-                <div className="fsl-sport-rule-input-row">
-                  <Icon name="venus" size={16} className="fsl-sport-rule-icon--female" />
-                  <label htmlFor="sport-female-discount" className="fsl-sport-rule-label">
-                    {t('sport.femaleDiscountLabel')}
-                  </label>
-                  <input
-                    id="sport-female-discount"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="15k"
-                    className="fsl-input fsl-input--discount"
-                    value={discountText}
-                    onChange={(e) => setDiscountText(e.target.value)}
-                  />
-                </div>
-              )}
-
-              {ruleKind === 'ratio' && (
-                <div className="fsl-sport-rule-input-row">
-                  <Icon name="mars" size={16} className="fsl-sport-rule-icon--male" />
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    aria-label={t('sport.maleWeightLabel')}
-                    className="fsl-input fsl-input--ratio"
-                    value={maleWeightText}
-                    onChange={(e) => setMaleWeightText(e.target.value)}
-                  />
-                  <span aria-hidden="true">:</span>
-                  <Icon name="venus" size={16} className="fsl-sport-rule-icon--female" />
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    aria-label={t('sport.femaleWeightLabel')}
-                    className="fsl-input fsl-input--ratio"
-                    value={femaleWeightText}
-                    onChange={(e) => setFemaleWeightText(e.target.value)}
-                  />
-                </div>
-              )}
-
-              <div className="fsl-sport-slot-summary">
-                {t('sport.slotSummary', {
-                  m: formatVnd(sportResult?.ok ? sportResult.maleSlotRate : 0),
-                  f: formatVnd(sportResult?.ok ? sportResult.femaleSlotRate : 0),
-                })}
-              </div>
-            </div>
+          {fromFund ? (
+            <FundPaidPanel available={available} after={parsedAmount === null ? null : fundCheck.after} over={fundCheck.over} />
           ) : (
-            <p className="fsl-split-caption">{caption}</p>
-          )}
+            <>
+              <SplitBetween people={formPeople} chosen={included} me={me} onOpen={() => setPeopleSheetOpen(true)} />
 
-          {sportSelected && sportResult && !sportResult.ok && (
-            <div role="alert" className="fsl-split-error">
-              {t(`splitError.${sportResult.error}` as MessageKey)}
-            </div>
-          )}
+              <SplitModePicker
+                value={mode}
+                onChange={(m) => {
+                  setSportSelected(false);
+                  setMode(m);
+                }}
+                showSport={view.trip.preset === 'sport' || Boolean(expense?.meta?.sport)}
+                sportSelected={sportSelected}
+                onSelectSport={() => setSportSelected(true)}
+              />
 
-          <div className="fsl-card">
-            {formPeople.map((person) => {
-              const shareAmount = liveShares.get(person.id);
-              const isIncluded = included.has(person.id);
-              const isInputInvalid = Boolean(inputErrors[person.id]);
-
-              if (sportSelected) {
-                const effectiveGender = getEffectiveGender(person.id, person.gender);
-                const baseFemale = effectiveGender === 'F' ? 1 : 0;
-                const baseMale = effectiveGender === 'F' ? 0 : 1;
-                const guest = sportGuests[person.id] ?? {
-                  guestFemaleSlots: 0,
-                  guestMaleSlots: 0,
-                  fixedText: '',
-                };
-                const fSlots = baseFemale + guest.guestFemaleSlots;
-                const mSlots = baseMale + guest.guestMaleSlots;
-                const isFixed = guest.fixedText.trim() !== '' && parseVnd(guest.fixedText) !== null;
-                const isAdminOrOrganiser = Boolean(view.me.isAdmin || view.me.isOrganiser);
-
-                let badgeText = '';
-                if (isFixed) {
-                  badgeText = t('sport.fixedBadge');
-                } else if (mSlots === 1 && fSlots === 0) {
-                  badgeText = t('sport.oneMale');
-                } else if (fSlots === 1 && mSlots === 0) {
-                  badgeText = t('sport.oneFemale');
-                } else {
-                  badgeText = t('sport.slotsBadge', { f: fSlots, m: mSlots });
-                }
-
-                return (
+              {sportSelected ? (
+                <div className="fsl-sport-rule-section">
                   <div
-                    key={person.id}
-                    className="fsl-split-row fsl-split-row--sport"
-                    data-testid={`split-row-${person.name}`}
+                    role="radiogroup"
+                    aria-label={t('sport.ruleTitle')}
+                    className="fsl-sport-rule-picker"
                   >
-                    <div className="fsl-split-row__main">
-                      <label className="fsl-split-row__check-label">
-                        <input
-                          type="checkbox"
-                          className="fsl-split-row__checkbox"
-                          aria-label={t('expenseForm.include', { name: person.name })}
-                          checked={isIncluded}
-                          onChange={(e) => {
-                            const next = new Set(included);
-                            if (e.target.checked) next.add(person.id);
-                            else next.delete(person.id);
-                            setIncluded(next);
-                          }}
-                        />
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={ruleKind === 'equal'}
+                      className={`fsl-sport-rule-btn${ruleKind === 'equal' ? ' fsl-sport-rule-btn--active' : ''}`}
+                      onClick={() => setRuleKind('equal')}
+                    >
+                      <span aria-hidden="true">=</span>
+                      <span>{t('sport.ruleEqual')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={ruleKind === 'discount'}
+                      className={`fsl-sport-rule-btn${ruleKind === 'discount' ? ' fsl-sport-rule-btn--active' : ''}`}
+                      onClick={() => setRuleKind('discount')}
+                    >
+                      <span aria-hidden="true">+/−</span>
+                      <span>{t('sport.ruleDiscount')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={ruleKind === 'ratio'}
+                      className={`fsl-sport-rule-btn${ruleKind === 'ratio' ? ' fsl-sport-rule-btn--active' : ''}`}
+                      onClick={() => setRuleKind('ratio')}
+                    >
+                      <Icon name="pie" size={16} />
+                      <span>{t('sport.ruleRatio')}</span>
+                    </button>
+                  </div>
+
+                  {ruleKind === 'discount' && (
+                    <div className="fsl-sport-rule-input-row">
+                      <Icon name="venus" size={16} className="fsl-sport-rule-icon--female" />
+                      <label htmlFor="sport-female-discount" className="fsl-sport-rule-label">
+                        {t('sport.femaleDiscountLabel')}
                       </label>
+                      <input
+                        id="sport-female-discount"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="15k"
+                        className="fsl-input fsl-input--discount"
+                        value={discountText}
+                        onChange={(e) => setDiscountText(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {ruleKind === 'ratio' && (
+                    <div className="fsl-sport-rule-input-row">
+                      <Icon name="mars" size={16} className="fsl-sport-rule-icon--male" />
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        aria-label={t('sport.maleWeightLabel')}
+                        className="fsl-input fsl-input--ratio"
+                        value={maleWeightText}
+                        onChange={(e) => setMaleWeightText(e.target.value)}
+                      />
+                      <span aria-hidden="true">:</span>
+                      <Icon name="venus" size={16} className="fsl-sport-rule-icon--female" />
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        aria-label={t('sport.femaleWeightLabel')}
+                        className="fsl-input fsl-input--ratio"
+                        value={femaleWeightText}
+                        onChange={(e) => setFemaleWeightText(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="fsl-sport-slot-summary">
+                    {t('sport.slotSummary', {
+                      m: formatVnd(sportResult?.ok ? sportResult.maleSlotRate : 0),
+                      f: formatVnd(sportResult?.ok ? sportResult.femaleSlotRate : 0),
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <p className="fsl-split-caption">{caption}</p>
+              )}
+
+              {sportSelected && sportResult && !sportResult.ok && (
+                <div role="alert" className="fsl-split-error">
+                  {t(`splitError.${sportResult.error}` as MessageKey)}
+                </div>
+              )}
+
+              <div className="fsl-card">
+                {formPeople.filter((person) => included.has(person.id)).map((person) => {
+                  const shareAmount = liveShares.get(person.id);
+                  const isInputInvalid = Boolean(inputErrors[person.id]);
+
+                  if (sportSelected) {
+                    const effectiveGender = getEffectiveGender(person.id, person.gender);
+                    const baseFemale = effectiveGender === 'F' ? 1 : 0;
+                    const baseMale = effectiveGender === 'F' ? 0 : 1;
+                    const guest = sportGuests[person.id] ?? {
+                      guestFemaleSlots: 0,
+                      guestMaleSlots: 0,
+                      fixedText: '',
+                    };
+                    const fSlots = baseFemale + guest.guestFemaleSlots;
+                    const mSlots = baseMale + guest.guestMaleSlots;
+                    const isFixed = guest.fixedText.trim() !== '' && parseVnd(guest.fixedText) !== null;
+                    const isAdminOrOrganiser = Boolean(view.me.isAdmin || view.me.isOrganiser);
+
+                    let badgeText = '';
+                    if (isFixed) {
+                      badgeText = t('sport.fixedBadge');
+                    } else if (mSlots === 1 && fSlots === 0) {
+                      badgeText = t('sport.oneMale');
+                    } else if (fSlots === 1 && mSlots === 0) {
+                      badgeText = t('sport.oneFemale');
+                    } else {
+                      badgeText = t('sport.slotsBadge', { f: fSlots, m: mSlots });
+                    }
+
+                    return (
+                      <div
+                        key={person.id}
+                        className="fsl-split-row fsl-split-row--sport"
+                        data-testid={`split-row-${person.name}`}
+                      >
+                        <div className="fsl-split-row__main">
+                          <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
+                          <span className="fsl-split-row__name">
+                            {person.id === me
+                              ? t('expenseForm.me', { name: person.name })
+                              : person.name}
+                          </span>
+                          {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
+
+                          {isAdminOrOrganiser ? (
+                            <div className="fsl-gender-popover-anchor">
+                              <button
+                                type="button"
+                                className="fsl-sport-badge fsl-sport-badge--interactive"
+                                data-testid={`gender-badge-${person.id}`}
+                                aria-label={t('sport.editGender')}
+                                onClick={() =>
+                                  setGenderPopoverId(genderPopoverId === person.id ? null : person.id)
+                                }
+                              >
+                                {badgeText}
+                              </button>
+                              {genderPopoverId === person.id && (
+                                <div className="fsl-gender-popover" role="dialog" aria-label={t('sport.editGender')}>
+                                  <button
+                                    type="button"
+                                    className="fsl-gender-popover__btn"
+                                    onClick={() => handleUpdateGender(person.id, 'M')}
+                                  >
+                                    <Icon name="mars" size={14} />
+                                    <span>{t('people.genderMale')}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="fsl-gender-popover__btn"
+                                    onClick={() => handleUpdateGender(person.id, 'F')}
+                                  >
+                                    <Icon name="venus" size={14} />
+                                    <span>{t('people.genderFemale')}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="fsl-sport-badge">{badgeText}</span>
+                          )}
+
+                          <button
+                            type="button"
+                            className="fsl-sport-share-btn"
+                            data-testid={`sport-share-btn-${person.id}`}
+                            aria-expanded={openDrawerId === person.id}
+                            onClick={() =>
+                              setOpenDrawerId(openDrawerId === person.id ? null : person.id)
+                            }
+                          >
+                            <span>{formatVnd(shareAmount ?? 0)}</span>
+                            <Icon name="edit" size={14} />
+                          </button>
+                        </div>
+
+                        {openDrawerId === person.id && (
+                          <div className="fsl-sport-drawer">
+                            <div className="fsl-sport-drawer__guest-section">
+                              <div className="fsl-sport-drawer__title">{t('sport.bringsGuest')}</div>
+                              <div className="fsl-sport-drawer__stepper-row">
+                                <div className="fsl-sport-drawer__stepper-label">
+                                  <Icon name="venus" size={16} className="fsl-sport-rule-icon--female" />
+                                  <span>{t('sport.femaleGuest')}</span>
+                                </div>
+                                <div className="fsl-sport-drawer__stepper">
+                                  <button
+                                    type="button"
+                                    className="fsl-stepper-btn"
+                                    aria-label={`Decrease female guest for ${person.name}`}
+                                    disabled={guest.guestFemaleSlots <= 0}
+                                    onClick={() => {
+                                      setSportGuests((prev) => ({
+                                        ...prev,
+                                        [person.id]: {
+                                          ...prev[person.id]!,
+                                          guestFemaleSlots: Math.max(0, prev[person.id]!.guestFemaleSlots - 1),
+                                        },
+                                      }));
+                                    }}
+                                  >
+                                    −
+                                  </button>
+                                  <span className="fsl-stepper-count" data-testid={`guest-f-${person.id}`}>
+                                    {guest.guestFemaleSlots}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="fsl-stepper-btn"
+                                    aria-label={`Increase female guest for ${person.name}`}
+                                    disabled={guest.guestFemaleSlots >= 20}
+                                    onClick={() => {
+                                      setSportGuests((prev) => ({
+                                        ...prev,
+                                        [person.id]: {
+                                          ...prev[person.id]!,
+                                          guestFemaleSlots: Math.min(20, prev[person.id]!.guestFemaleSlots + 1),
+                                        },
+                                      }));
+                                    }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="fsl-sport-drawer__stepper-row">
+                                <div className="fsl-sport-drawer__stepper-label">
+                                  <Icon name="mars" size={16} className="fsl-sport-rule-icon--male" />
+                                  <span>{t('sport.maleGuest')}</span>
+                                </div>
+                                <div className="fsl-sport-drawer__stepper">
+                                  <button
+                                    type="button"
+                                    className="fsl-stepper-btn"
+                                    aria-label={`Decrease male guest for ${person.name}`}
+                                    disabled={guest.guestMaleSlots <= 0}
+                                    onClick={() => {
+                                      setSportGuests((prev) => ({
+                                        ...prev,
+                                        [person.id]: {
+                                          ...prev[person.id]!,
+                                          guestMaleSlots: Math.max(0, prev[person.id]!.guestMaleSlots - 1),
+                                        },
+                                      }));
+                                    }}
+                                  >
+                                    −
+                                  </button>
+                                  <span className="fsl-stepper-count" data-testid={`guest-m-${person.id}`}>
+                                    {guest.guestMaleSlots}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="fsl-stepper-btn"
+                                    aria-label={`Increase male guest for ${person.name}`}
+                                    disabled={guest.guestMaleSlots >= 20}
+                                    onClick={() => {
+                                      setSportGuests((prev) => ({
+                                        ...prev,
+                                        [person.id]: {
+                                          ...prev[person.id]!,
+                                          guestMaleSlots: Math.min(20, prev[person.id]!.guestMaleSlots + 1),
+                                        },
+                                      }));
+                                    }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="fsl-sport-drawer__fixed-section">
+                              <label htmlFor={`sport-fixed-${person.id}`} className="fsl-sport-drawer__subtitle">
+                                {t('sport.orFixedAmount', { name: person.name })}
+                              </label>
+                              <div className="fsl-sport-drawer__fixed-row">
+                                <input
+                                  id={`sport-fixed-${person.id}`}
+                                  type="text"
+                                  inputMode="decimal"
+                                  aria-label={t('sport.orFixedAmount', { name: person.name })}
+                                  placeholder={t('sport.fixedFor', { name: person.name })}
+                                  className="fsl-input fsl-input--fixed"
+                                  value={guest.fixedText}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSportGuests((prev) => ({
+                                      ...prev,
+                                      [person.id]: { ...prev[person.id]!, fixedText: val },
+                                    }));
+                                  }}
+                                />
+                                {guest.fixedText !== '' && (
+                                  <button
+                                    type="button"
+                                    className="fsl-sport-drawer__clear-btn"
+                                    aria-label={t('sport.clearFixed', { name: person.name })}
+                                    onClick={() => {
+                                      setSportGuests((prev) => ({
+                                        ...prev,
+                                        [person.id]: { ...prev[person.id]!, fixedText: '' },
+                                      }));
+                                    }}
+                                  >
+                                    <Icon name="x" size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={person.id}
+                      className="fsl-split-row"
+                      data-testid={`split-row-${person.name}`}
+                    >
                       <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
+
                       <span className="fsl-split-row__name">
                         {person.id === me
                           ? t('expenseForm.me', { name: person.name })
@@ -1045,341 +1315,128 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
                       </span>
                       {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
 
-                      {isAdminOrOrganiser ? (
-                        <div className="fsl-gender-popover-anchor">
-                          <button
-                            type="button"
-                            className="fsl-sport-badge fsl-sport-badge--interactive"
-                            data-testid={`gender-badge-${person.id}`}
-                            aria-label={t('sport.editGender')}
-                            onClick={() =>
-                              setGenderPopoverId(genderPopoverId === person.id ? null : person.id)
+                      {mode === 'adjust' && (
+                        <div className="fsl-split-row__control">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="fsl-input fsl-split-row__input"
+                            aria-label={t('expenseForm.adjustFor', { name: person.name })}
+                            value={adjustInputs[person.id] ?? ''}
+                            placeholder={placeholderFor(person.id)}
+                            onChange={(e) =>
+                              setAdjustInputs((prev) => ({
+                                ...prev,
+                                [person.id]: e.target.value,
+                              }))
                             }
-                          >
-                            {badgeText}
-                          </button>
-                          {genderPopoverId === person.id && (
-                            <div className="fsl-gender-popover" role="dialog" aria-label={t('sport.editGender')}>
-                              <button
-                                type="button"
-                                className="fsl-gender-popover__btn"
-                                onClick={() => handleUpdateGender(person.id, 'M')}
-                              >
-                                <Icon name="mars" size={14} />
-                                <span>{t('people.genderMale')}</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="fsl-gender-popover__btn"
-                                onClick={() => handleUpdateGender(person.id, 'F')}
-                              >
-                                <Icon name="venus" size={14} />
-                                <span>{t('people.genderFemale')}</span>
-                              </button>
-                            </div>
+                          />
+                          {isInputInvalid && (
+                            <span role="alert" className="fsl-field-error">
+                              {t('expenseForm.amountInvalid')}
+                            </span>
                           )}
                         </div>
-                      ) : (
-                        <span className="fsl-sport-badge">{badgeText}</span>
                       )}
 
-                      <button
-                        type="button"
-                        className="fsl-sport-share-btn"
-                        data-testid={`sport-share-btn-${person.id}`}
-                        aria-expanded={openDrawerId === person.id}
-                        onClick={() =>
-                          setOpenDrawerId(openDrawerId === person.id ? null : person.id)
-                        }
-                      >
-                        <span>{formatVnd(shareAmount ?? 0)}</span>
-                        <Icon name="edit" size={14} />
-                      </button>
-                    </div>
-
-                    {openDrawerId === person.id && isIncluded && (
-                      <div className="fsl-sport-drawer">
-                        <div className="fsl-sport-drawer__guest-section">
-                          <div className="fsl-sport-drawer__title">{t('sport.bringsGuest')}</div>
-                          <div className="fsl-sport-drawer__stepper-row">
-                            <div className="fsl-sport-drawer__stepper-label">
-                              <Icon name="venus" size={16} className="fsl-sport-rule-icon--female" />
-                              <span>{t('sport.femaleGuest')}</span>
-                            </div>
-                            <div className="fsl-sport-drawer__stepper">
-                              <button
-                                type="button"
-                                className="fsl-stepper-btn"
-                                aria-label={`Decrease female guest for ${person.name}`}
-                                disabled={guest.guestFemaleSlots <= 0}
-                                onClick={() => {
-                                  setSportGuests((prev) => ({
-                                    ...prev,
-                                    [person.id]: {
-                                      ...prev[person.id]!,
-                                      guestFemaleSlots: Math.max(0, prev[person.id]!.guestFemaleSlots - 1),
-                                    },
-                                  }));
-                                }}
-                              >
-                                −
-                              </button>
-                              <span className="fsl-stepper-count" data-testid={`guest-f-${person.id}`}>
-                                {guest.guestFemaleSlots}
-                              </span>
-                              <button
-                                type="button"
-                                className="fsl-stepper-btn"
-                                aria-label={`Increase female guest for ${person.name}`}
-                                disabled={guest.guestFemaleSlots >= 20}
-                                onClick={() => {
-                                  setSportGuests((prev) => ({
-                                    ...prev,
-                                    [person.id]: {
-                                      ...prev[person.id]!,
-                                      guestFemaleSlots: Math.min(20, prev[person.id]!.guestFemaleSlots + 1),
-                                    },
-                                  }));
-                                }}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="fsl-sport-drawer__stepper-row">
-                            <div className="fsl-sport-drawer__stepper-label">
-                              <Icon name="mars" size={16} className="fsl-sport-rule-icon--male" />
-                              <span>{t('sport.maleGuest')}</span>
-                            </div>
-                            <div className="fsl-sport-drawer__stepper">
-                              <button
-                                type="button"
-                                className="fsl-stepper-btn"
-                                aria-label={`Decrease male guest for ${person.name}`}
-                                disabled={guest.guestMaleSlots <= 0}
-                                onClick={() => {
-                                  setSportGuests((prev) => ({
-                                    ...prev,
-                                    [person.id]: {
-                                      ...prev[person.id]!,
-                                      guestMaleSlots: Math.max(0, prev[person.id]!.guestMaleSlots - 1),
-                                    },
-                                  }));
-                                }}
-                              >
-                                −
-                              </button>
-                              <span className="fsl-stepper-count" data-testid={`guest-m-${person.id}`}>
-                                {guest.guestMaleSlots}
-                              </span>
-                              <button
-                                type="button"
-                                className="fsl-stepper-btn"
-                                aria-label={`Increase male guest for ${person.name}`}
-                                disabled={guest.guestMaleSlots >= 20}
-                                onClick={() => {
-                                  setSportGuests((prev) => ({
-                                    ...prev,
-                                    [person.id]: {
-                                      ...prev[person.id]!,
-                                      guestMaleSlots: Math.min(20, prev[person.id]!.guestMaleSlots + 1),
-                                    },
-                                  }));
-                                }}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
+                      {mode === 'amounts' && (
+                        <div className="fsl-split-row__control">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="fsl-input fsl-split-row__input"
+                            aria-label={t('expenseForm.amountFor', { name: person.name })}
+                            value={amountsInputs[person.id] ?? ''}
+                            placeholder={placeholderFor(person.id)}
+                            onChange={(e) =>
+                              setAmountsInputs((prev) => ({
+                                ...prev,
+                                [person.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          {isInputInvalid && (
+                            <span role="alert" className="fsl-field-error">
+                              {t('expenseForm.amountInvalid')}
+                            </span>
+                          )}
                         </div>
+                      )}
 
-                        <div className="fsl-sport-drawer__fixed-section">
-                          <label htmlFor={`sport-fixed-${person.id}`} className="fsl-sport-drawer__subtitle">
-                            {t('sport.orFixedAmount', { name: person.name })}
-                          </label>
-                          <div className="fsl-sport-drawer__fixed-row">
-                            <input
-                              id={`sport-fixed-${person.id}`}
-                              type="text"
-                              inputMode="decimal"
-                              aria-label={t('sport.orFixedAmount', { name: person.name })}
-                              placeholder={t('sport.fixedFor', { name: person.name })}
-                              className="fsl-input fsl-input--fixed"
-                              value={guest.fixedText}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setSportGuests((prev) => ({
-                                  ...prev,
-                                  [person.id]: { ...prev[person.id]!, fixedText: val },
-                                }));
-                              }}
-                            />
-                            {guest.fixedText !== '' && (
-                              <button
-                                type="button"
-                                className="fsl-sport-drawer__clear-btn"
-                                aria-label={t('sport.clearFixed', { name: person.name })}
-                                onClick={() => {
-                                  setSportGuests((prev) => ({
-                                    ...prev,
-                                    [person.id]: { ...prev[person.id]!, fixedText: '' },
-                                  }));
-                                }}
-                              >
-                                <Icon name="x" size={16} />
-                              </button>
-                            )}
-                          </div>
+                      {mode === 'percent' && (
+                        <div className="fsl-split-row__control">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="fsl-input fsl-split-row__input"
+                            aria-label={t('expenseForm.percentFor', { name: person.name })}
+                            value={percentInputs[person.id] ?? ''}
+                            placeholder={placeholderFor(person.id)}
+                            onChange={(e) =>
+                              setPercentInputs((prev) => ({
+                                ...prev,
+                                [person.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          {isInputInvalid && (
+                            <span role="alert" className="fsl-field-error">
+                              {t('expenseForm.amountInvalid')}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
+                      )}
 
-              return (
-                <div
-                  key={person.id}
-                  className="fsl-split-row"
-                  data-testid={`split-row-${person.name}`}
-                >
-                  {(mode === 'equal' || mode === 'adjust') && (
-                    <label className="fsl-split-row__check-label">
-                      <input
-                        type="checkbox"
-                        className="fsl-split-row__checkbox"
-                        aria-label={t('expenseForm.include', { name: person.name })}
-                        checked={isIncluded}
-                        onChange={(e) => {
-                          const next = new Set(included);
-                          if (e.target.checked) next.add(person.id);
-                          else next.delete(person.id);
-                          setIncluded(next);
-                        }}
-                      />
-                    </label>
-                  )}
+                      {mode === 'shares' && (
+                        <div className="fsl-split-row__control">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="fsl-input fsl-split-row__input"
+                            aria-label={t('expenseForm.sharesFor', { name: person.name })}
+                            value={sharesInputs[person.id] ?? ''}
+                            placeholder={placeholderFor(person.id)}
+                            onChange={(e) =>
+                              setSharesInputs((prev) => ({
+                                ...prev,
+                                [person.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          {isInputInvalid && (
+                            <span role="alert" className="fsl-field-error">
+                              {t('expenseForm.amountInvalid')}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
-                  <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />
-
-                  <span className="fsl-split-row__name">
-                    {person.id === me
-                      ? t('expenseForm.me', { name: person.name })
-                      : person.name}
-                  </span>
-                  {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
-
-                  {mode === 'adjust' && (
-                    <div className="fsl-split-row__control">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className="fsl-input fsl-split-row__input"
-                        aria-label={t('expenseForm.adjustFor', { name: person.name })}
-                        value={adjustInputs[person.id] ?? '0'}
-                        disabled={!isIncluded}
-                        onChange={(e) =>
-                          setAdjustInputs((prev) => ({
-                            ...prev,
-                            [person.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      {isInputInvalid && (
-                        <span role="alert" className="fsl-field-error">
-                          {t('expenseForm.amountInvalid')}
+                      {shareAmount !== undefined && (
+                        <span className="fsl-split-row__share">
+                          {formatVnd(shareAmount)}
                         </span>
                       )}
                     </div>
-                  )}
+                  );
+                })}
+              </div>
 
-                  {mode === 'amounts' && (
-                    <div className="fsl-split-row__control">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className="fsl-input fsl-split-row__input"
-                        aria-label={t('expenseForm.amountFor', { name: person.name })}
-                        value={amountsInputs[person.id] ?? ''}
-                        placeholder="0"
-                        onChange={(e) =>
-                          setAmountsInputs((prev) => ({
-                            ...prev,
-                            [person.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      {isInputInvalid && (
-                        <span role="alert" className="fsl-field-error">
-                          {t('expenseForm.amountInvalid')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {mode === 'percent' && (
-                    <div className="fsl-split-row__control">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className="fsl-input fsl-split-row__input"
-                        aria-label={t('expenseForm.percentFor', { name: person.name })}
-                        value={percentInputs[person.id] ?? ''}
-                        placeholder="0"
-                        onChange={(e) =>
-                          setPercentInputs((prev) => ({
-                            ...prev,
-                            [person.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      {isInputInvalid && (
-                        <span role="alert" className="fsl-field-error">
-                          {t('expenseForm.amountInvalid')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {mode === 'shares' && (
-                    <div className="fsl-split-row__control">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className="fsl-input fsl-split-row__input"
-                        aria-label={t('expenseForm.sharesFor', { name: person.name })}
-                        value={sharesInputs[person.id] ?? '1'}
-                        placeholder="1"
-                        onChange={(e) =>
-                          setSharesInputs((prev) => ({
-                            ...prev,
-                            [person.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      {isInputInvalid && (
-                        <span role="alert" className="fsl-field-error">
-                          {t('expenseForm.amountInvalid')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {shareAmount !== undefined && (
-                    <span className="fsl-split-row__share">
-                      {formatVnd(shareAmount)}
-                    </span>
-                  )}
+              {!sportSelected && parsedAmount !== null && splitResult && !splitResult.ok && (
+                <div role="alert" className="fsl-split-error">
+                  {t(`splitError.${splitResult.error}` as MessageKey)}
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {!sportSelected && parsedAmount !== null && splitResult && !splitResult.ok && (
-            <div role="alert" className="fsl-split-error">
-              {t(`splitError.${splitResult.error}` as MessageKey)}
-            </div>
+              <SplitPeopleSheet
+                open={peopleSheetOpen}
+                onClose={() => setPeopleSheetOpen(false)}
+                people={formPeople}
+                chosen={included}
+                onChange={setIncluded}
+                me={me}
+                recent={recent}
+              />
+            </>
           )}
         </div>
 
@@ -1394,16 +1451,37 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 }
 
 export function ExpenseForm() {
-  const { tripId = '', expenseId } = useParams<{ tripId: string; expenseId?: string }>();
+  const { tripId = '', expenseId, incomeId } = useParams<{ tripId: string; expenseId?: string; incomeId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
   const leave = useLeaveForm(tripId);
   // Polls like the trip page, so someone removed elsewhere drops off the split before it is saved.
   const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
 
   const isEdit = Boolean(expenseId);
-  const title = isEdit ? t('expenseForm.titleEdit') : t('expenseForm.titleNew');
+  const title = incomeId
+    ? t('fund.editTitle')
+    : isEdit
+      ? t('expenseForm.titleEdit')
+      : t('expenseForm.titleNew');
+  const wantsIncome = searchParams.get('type') === 'income';
 
   if (isLoading || !view) {
+    if (incomeId || wantsIncome) {
+      return (
+        <Screen title={incomeId ? title : t('fund.addTitle')} onBack={leave}>
+          <div className="fsl-expense-form">
+            {[30, 20, 25].map((w) => (
+              <div className="fsl-field" key={w}>
+                <Skeleton width={`${w}%`} height={14} />
+                <Skeleton width="100%" height={44} radius="md" />
+              </div>
+            ))}
+            <Skeleton width="100%" height={48} radius="md" />
+          </div>
+        </Screen>
+      );
+    }
     return (
       <Screen title={title} onBack={leave}>
         <div className="fsl-expense-form">
@@ -1444,6 +1522,48 @@ export function ExpenseForm() {
     );
   }
 
+  if (incomeId) {
+    const income = view.fund?.incomes.find((i) => i.id === incomeId);
+    if (!income) {
+      return (
+        <Screen title={title} onBack={leave}>
+          <div className="fsl-expense-form">
+            <InlineError error={{ code: 'NOT_FOUND' }} />
+          </div>
+        </Screen>
+      );
+    }
+    if (!isFundAdmin(view)) {
+      return (
+        <Screen title={title} onBack={leave}>
+          <div className="fsl-expense-form">
+            <p className="fsl-expense-form__not-yours">{t('fund.readOnly')}</p>
+            <Button variant="secondary" onClick={leave}>{t('common.back')}</Button>
+          </div>
+        </Screen>
+      );
+    }
+    return <IncomeForm view={view} tripId={tripId} income={income} leave={leave} />;
+  }
+
+  // Fund admins adding a new entry choose between an expense and fund income; everyone else just gets the expense form.
+  const showSwitcher = isFundAdmin(view) && !expenseId;
+  const entryType: EntryType = showSwitcher && wantsIncome ? 'income' : 'expense';
+  const switcher = showSwitcher ? (
+    <EntryTypeSwitch
+      value={entryType}
+      onChange={(next) => {
+        const params = new URLSearchParams(searchParams);
+        if (next === 'income') params.set('type', 'income');
+        else params.delete('type');
+        setSearchParams(params, { replace: true });
+      }}
+    />
+  ) : undefined;
+  if (entryType === 'income') {
+    return <IncomeForm view={view} tripId={tripId} switcher={switcher} leave={leave} />;
+  }
+
   const expense = expenseId ? view.expenses.find((e) => e.id === expenseId) : undefined;
   if (expenseId && !expense) {
     return (
@@ -1455,7 +1575,13 @@ export function ExpenseForm() {
     );
   }
 
-  if (expense && !can(actorOf(view), 'edit_expense', { expenseCreatedById: expense.createdById, expenseStatus: expense.status })) {
+  // An expense paid from the fund also needs a fund admin, even to edit one they added.
+  const actor = actorOf(view);
+  if (
+    expense &&
+    (!can(actor, 'edit_expense', { expenseCreatedById: expense.createdById, expenseStatus: expense.status }) ||
+      (isFundPaid(expense) && !can(actor, 'manage_fund')))
+  ) {
     return (
       <Screen title={title} onBack={leave}>
         <div className="fsl-expense-form">
@@ -1473,6 +1599,7 @@ export function ExpenseForm() {
       expenseId={expenseId}
       expense={expense}
       title={title}
+      switcher={switcher}
       leave={leave}
     />
   );

@@ -8,6 +8,7 @@ import { LanguageButton } from '../components/LanguageButton';
 import { Pill } from '../components/Pill';
 import { Avatar } from '../components/Avatar';
 import { Amount } from '../components/Amount';
+import { FundPill } from '../components/FundPill';
 import { YourTransfers } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
@@ -67,6 +68,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
       view={view}
       selectedId={detail?.kind === 'expense' ? detail.id : undefined}
       onOpen={(id) => open('expense', id)}
+      onOpenIncome={(id) => open('income', id)}
       addInHeading={inHeading}
     />
   );
@@ -77,6 +79,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
         {banner}
         {!wide ? (
           <>
+            <FundPill view={view} />
             {balances}
             {transfers}
             <TripTabs activeTab={activeTab} onChange={setActiveTab} />
@@ -86,6 +89,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
           <TripLayout
             left={
               <>
+                <FundPill view={view} />
                 {expenses(true)}
                 {payments()}
               </>

@@ -84,6 +84,10 @@
   min-width: 0;
 }
 
+.fsl-expense-form__row--stack {
+  grid-template-columns: 1fr;
+}
+
 /* A date field and a dropdown differ by a pixel in height on their own; side by side they must line up. */
 .fsl-expense-form__row .fsl-input,
 .fsl-expense-form__row .fsl-select {
@@ -161,6 +165,11 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: var(--text-input);
+}
+
+/* A blank box shows what it will get (an automatic share, one share, no adjustment) in grey. */
+.fsl-split-row__input::placeholder {
+  color: var(--color-text-subtle);
 }
 
 .fsl-split-row__share {

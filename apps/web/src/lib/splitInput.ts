@@ -39,7 +39,30 @@ export function toEntryValue(mode: SplitMode, display: string): number | null {
   }
 }
 
-export function fromEntryValue(mode: SplitMode, value: number): string {
+/**
+ * What one split box means. A blank exact-amount or percent box is automatic (`value: null`: it shares what the typed
+ * boxes leave); a blank shares box is one share and a blank adjustment none. `ok: false` is text that doesn't parse.
+ */
+export function readSplitInput(mode: SplitMode, text: string): { ok: true; value: number | null } | { ok: false } {
+  if (text.trim() === '') {
+    switch (mode) {
+      case 'amounts':
+      case 'percent':
+        return { ok: true, value: null };
+      case 'shares':
+        return { ok: true, value: 100 };
+      case 'adjust':
+        return { ok: true, value: 0 };
+      case 'equal':
+        return { ok: true, value: 1 };
+    }
+  }
+  const value = toEntryValue(mode, text);
+  return value === null ? { ok: false } : { ok: true, value };
+}
+
+export function fromEntryValue(mode: SplitMode, value: number | null): string {
+  if (value === null) return '';
   switch (mode) {
     case 'equal':
       return '';

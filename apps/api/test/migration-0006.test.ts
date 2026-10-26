@@ -4,7 +4,7 @@ import { createApp } from '../src/app';
 
 const CREATED_AT = '2026-10-12T00:00:00.000Z';
 
-describe('migration 0005', () => {
+describe('migration 0006 (Zalo sign-in)', () => {
   it('keeps google_sub unique', async () => {
     await env.DB.prepare(
       'INSERT INTO users (id, google_sub, zalo_sub, email, name, created_at) VALUES (?, ?, ?, ?, ?, ?)',

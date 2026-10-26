@@ -1,0 +1,193 @@
+.fsl-fund-pill {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  background: var(--color-surface-muted);
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.fsl-fund-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.fsl-fund-pill__icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.fsl-fund-pill__title {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.fsl-fund-pill__balance {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.fsl-fund-pill__balance--zero {
+  color: var(--color-text-muted); /* text-subtle is under 4.5:1 on the muted bar */
+}
+
+.fsl-fund-pill__balance--negative {
+  color: var(--color-danger);
+}
+
+.fsl-fund-pill__chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.fsl-fund-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  text-align: left;
+}
+
+.fsl-fund-sheet__balance {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.fsl-fund-sheet__balance--zero {
+  color: var(--color-text-subtle);
+}
+
+.fsl-fund-sheet__balance--negative {
+  color: var(--color-danger);
+}
+
+.fsl-fund-sheet__stats {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fsl-fund-sheet__stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.fsl-fund-sheet__stat-row:first-child {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fsl-fund-sheet__stat-label {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text);
+}
+
+.fsl-fund-sheet__stat-value {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.fsl-fund-sheet__stat-value--added {
+  color: var(--color-success);
+}
+
+.fsl-fund-sheet__stat-value--spent {
+  color: var(--color-text);
+}
+
+.fsl-fund-sheet__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.fsl-fund-sheet__empty-icon {
+  color: var(--color-text-muted);
+}
+
+.fsl-fund-sheet__empty-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.fsl-fund-sheet__empty-body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}
+
+.fsl-fund-sheet__keepers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fsl-fund-sheet__keepers-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.fsl-fund-sheet__keepers-line {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+  overflow-wrap: break-word;
+}
+
+.fsl-fund-sheet__keeper-name {
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+
+.fsl-fund-sheet__footnote {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-text-muted);
+}

@@ -43,7 +43,7 @@
 | `apps/api/src/og/html.ts` | `escapeHtml`, `metaTagsHtml`, `injectMeta` (HTMLRewriter) |
 | `apps/api/src/og/routes.ts` | `pageRoutes()`: `GET /j/*`, `GET /t/*` |
 | `scripts/og/*.svg`, `scripts/render-og-images.mjs`, `apps/web/public/og/*.png` | Static card images |
-| `apps/api/migrations/0005_zalo_oauth.sql` | `users` rebuild + `account_merge_requests` |
+| `apps/api/migrations/0006_zalo_oauth.sql` | `users` rebuild + `account_merge_requests` |
 | `apps/api/src/auth/zalo.ts` | Zalo OAuth v4 HTTP helpers and PKCE |
 | `apps/api/src/auth/identity.ts` | `upsertIdentity`, `linkIdentity` |
 | `apps/api/src/auth/me.ts` | `toMeUserView`, `buildMeResponse` |
@@ -443,14 +443,14 @@ Expected: PASS. The existing `join.test.tsx` cases stay green, because with no `
 
 # Stage 3 — Zalo sign-in, linking, merging
 
-### Task 9: Migration 0005 and schema
+### Task 9: Migration 0006 and schema
 
 **Lane:** small build.
 
 **Files:**
-- Create: `apps/api/migrations/0005_zalo_oauth.sql`
+- Create: `apps/api/migrations/0006_zalo_oauth.sql`
 - Modify: `apps/api/src/db/schema.ts`, `apps/api/src/auth/testLogin.ts`, `packages/core/src/api-types.ts` (only `MeUserView.email: string | null` and the membership `Approval`'s `userEmail: string | null`, so typecheck stays green)
-- Test: `apps/api/test/migration-0005.test.ts`
+- Test: `apps/api/test/migration-0006.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -471,7 +471,7 @@ All against `env.DB` (migrations are applied by `test/setup.ts`):
 
 - [ ] **Step 2: Run them and see them fail**
 
-Run: `npm run test -w @fsl/api -- test/migration-0005.test.ts`
+Run: `npm run test -w @fsl/api -- test/migration-0006.test.ts`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement**

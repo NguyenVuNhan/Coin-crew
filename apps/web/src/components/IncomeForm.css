@@ -1,0 +1,12 @@
+.fsl-income-form__min {
+  margin: 0;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+@media (max-width: 1023px) {
+  .fsl-income-form--bar-error {
+    padding-bottom: calc(var(--space-8) * 3);
+  }
+}

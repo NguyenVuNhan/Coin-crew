@@ -12,6 +12,7 @@ import { InlineError } from '../components/InlineError';
 import { Button } from '../components/Button';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
+import { IncomeDetails } from '../components/IncomeDetails';
 import { useT, applyInheritedLang } from '../i18n';
 import './TripRoute.css';
 import { GuestTrip } from './GuestTrip';
@@ -20,22 +21,32 @@ import { MemberTrip } from './MemberTrip';
 import { Approvals } from './Approvals';
 
 /** What the address points at inside the trip: the transaction whose details are open, or the approvals list. */
-export type Selection = { kind: 'expense'; id: string } | { kind: 'payment'; id: string } | { kind: 'approvals' };
+export type Selection =
+  | { kind: 'expense'; id: string }
+  | { kind: 'payment'; id: string }
+  | { kind: 'income'; id: string }
+  | { kind: 'approvals' };
 
-function selectionFrom(params: { expenseId?: string; paymentId?: string }): Selection | null {
+function selectionFrom(params: { expenseId?: string; paymentId?: string; incomeId?: string }): Selection | null {
   if (params.expenseId) return { kind: 'expense', id: params.expenseId };
   if (params.paymentId) return { kind: 'payment', id: params.paymentId };
+  if (params.incomeId) return { kind: 'income', id: params.incomeId };
   return null;
 }
 
-/** The details of one expense or payment as a page of its own (phones); back returns to the list where it was left. */
+/** The details of one expense, payment or fund income as a page of its own (phones); back returns to the list where it was left. */
 function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<Selection, { kind: 'approvals' }> }) {
   const t = useT();
   const goBack = useBackToTrip(view.trip.id);
   return (
-    <Screen title={selection.kind === 'expense' ? t('details.expense') : t('details.payment')} onBack={goBack}>
+    <Screen
+      title={selection.kind === 'expense' ? t('details.expense') : selection.kind === 'income' ? t('details.income') : t('details.payment')}
+      onBack={goBack}
+    >
       {selection.kind === 'expense' ? (
         <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={goBack} />
+      ) : selection.kind === 'income' ? (
+        <IncomeDetails key={selection.id} view={view} incomeId={selection.id} onClose={goBack} />
       ) : (
         <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={goBack} />
       )}
@@ -64,14 +75,14 @@ function TripSkeleton({ wide }: { wide: boolean }) {
 }
 
 export function TripRoute() {
-  const { tripId, expenseId, paymentId } = useParams<{ tripId: string; expenseId: string; paymentId: string }>();
+  const { tripId, expenseId, paymentId, incomeId } = useParams<{ tripId: string; expenseId: string; paymentId: string; incomeId: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const t = useT();
   const wide = useIsWide();
   const onApprovals = useMatch('/t/:tripId/approvals') !== null;
-  const selection: Selection | null = onApprovals ? { kind: 'approvals' } : selectionFrom({ expenseId, paymentId });
+  const selection: Selection | null = onApprovals ? { kind: 'approvals' } : selectionFrom({ expenseId, paymentId, incomeId });
 
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });

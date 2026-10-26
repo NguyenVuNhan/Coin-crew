@@ -81,6 +81,10 @@
   color: var(--color-text-subtle);
 }
 
+.fsl-expense-row__amount--fund {
+  color: var(--color-text-subtle);
+}
+
 .fsl-expense-row__amount--none {
   color: var(--color-text-subtle);
 }

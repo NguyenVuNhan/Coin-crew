@@ -5,15 +5,16 @@ import { useBackToTrip, useOpenDetails } from '../lib/detailsNav';
 import { Icon } from '../components/icons';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
+import { IncomeDetails } from '../components/IncomeDetails';
 import type { Selection } from './TripRoute';
 import { ApprovalList } from './Approvals';
 import './DetailsPanel.css';
 
-/** The expense or payment whose details are open (the approvals list is not one). */
+/** The expense, payment or fund income whose details are open (the approvals list is not one). */
 export type Detail = Exclude<Selection, { kind: 'approvals' }>;
 
 /**
- * The wide screen's right panel showing one expense or payment, or the full approvals list (members only).
+ * The wide screen's right panel showing one expense, payment or fund income, or the full approvals list (members only).
  * Not modal: it takes focus when it opens, × and Esc close it (back in history, or to the trip for a shared link),
  * and nothing else is trapped.
  */
@@ -21,7 +22,11 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
   const t = useT();
   const close = useBackToTrip(view.trip.id);
   const panel = useRef<HTMLElement>(null);
-  const label = selection.kind === 'expense' ? t('details.expense') : selection.kind === 'payment' ? t('details.payment') : t('approvals.allTitle');
+  const label =
+    selection.kind === 'expense' ? t('details.expense')
+    : selection.kind === 'payment' ? t('details.payment')
+    : selection.kind === 'income' ? t('details.income')
+    : t('approvals.allTitle');
   const selectedId = selection.kind === 'approvals' ? null : selection.id;
 
   useEffect(() => {
@@ -60,6 +65,8 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
         <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={close} />
       ) : selection.kind === 'payment' ? (
         <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={close} />
+      ) : selection.kind === 'income' ? (
+        <IncomeDetails key={selection.id} view={view} incomeId={selection.id} onClose={close} />
       ) : (
         <ApprovalList view={view} onClose={close} switching />
       )}

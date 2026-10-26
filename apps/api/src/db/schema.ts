@@ -146,7 +146,7 @@ export const transactions = sqliteTable(
     parentId: text('parent_id'),
     isLatest: integer('is_latest').notNull().default(1),
     tripId: text('trip_id').notNull(),
-    type: text('type', { enum: ['expense', 'payment'] }).notNull(),
+    type: text('type', { enum: ['expense', 'payment', 'income'] }).notNull(),
     description: text('description').notNull().default(''),
     amount: integer('amount').notNull(),
     amountConfirmed: integer('amount_confirmed'),
@@ -180,6 +180,8 @@ export const transactionShares = sqliteTable(
     transactionId: text('transaction_id').notNull(),
     participantId: text('participant_id').notNull(),
     inputValue: integer('input_value').notNull(),
+    /** 1 when the box was left blank and the share is what the typed boxes left (exact amounts and percent). */
+    inputAuto: integer('input_auto').notNull().default(0),
     amount: integer('amount').notNull(),
   },
   (t) => [

@@ -12,6 +12,7 @@ export type ApiErrorCode =
   | 'RATE_LIMITED'
   | 'LAST_IDENTITY'
   | 'MERGE_STALE'
+  | 'FUND_SHORT'
   | 'INTERNAL';
 
 export type ActivityAction =
@@ -51,13 +52,19 @@ export type ActivityAction =
   | 'membership_rejected'
   | 'admin_promoted'
   | 'admin_demoted'
-  | 'expense_rolled_back';
+  | 'expense_rolled_back'
+  | 'income_added'
+  | 'income_edited'
+  | 'income_disabled'
+  | 'income_enabled'
+  | 'income_rolled_back';
 
 import type { Gender, SplitEntry, SplitMode, SportParticipantEntry, SportRule } from './split';
 import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
 import type { Transfer } from './transfers';
 import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
+import type { IncomeStatus } from './fund';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -111,7 +118,8 @@ export interface ExpenseHistoryItem {
   mode: SplitMode;
   createdById: string;
   createdAt: string;
-  shares: { participantId: string; amount: number; inputValue: number }[];
+  /** `inputValue: null` is a blank (automatic) box. */
+  shares: { participantId: string; amount: number; inputValue: number | null }[];
   meta?: ExpenseMeta | null;
 }
 
@@ -162,16 +170,52 @@ export interface ExpenseSportMeta {
 
 export interface ExpenseMeta {
   sport?: ExpenseSportMeta;
+  /** The whole expense came out of the group fund: no shares, and it stays off the personal ledger. */
+  paidFromFund?: boolean;
 }
 
 export interface ExpenseView {
   id: string; description: string; amount: number; spentOn: string; payerId: string; mode: SplitMode;
   status: ExpenseStatus; rejectReason: string | null; disabledByName: string | null; createdById: string;
-  shares: { participantId: string; amount: number; inputValue: number }[];
+  /** Set by the snapshot; the merged feed sorts by it. */
+  createdAt?: string;
+  /** `inputValue: null` is a blank (automatic) box. */
+  shares: { participantId: string; amount: number; inputValue: number | null }[];
   meta?: ExpenseMeta | null;
   rootId?: string;
   history?: ExpenseHistoryItem[];
 }
+export interface IncomeInput {
+  amount: number;
+  /** YYYY-MM-DD */
+  spentOn: string;
+  /** 1–80 characters. */
+  description: string;
+  /** Reserved for categories; v1 accepts only null or leaving it out. */
+  category?: null;
+}
+
+export interface IncomeHistoryItem {
+  id: string; amount: number; spentOn: string; description: string;
+  /** Who wrote this version. */
+  createdById: string;
+  createdAt: string;
+}
+
+export interface IncomeView {
+  id: string; rootId: string; amount: number; spentOn: string; description: string;
+  /** The admin who first added it. */
+  addedById: string;
+  /** Who wrote the latest version. */
+  createdById: string;
+  createdAt: string;
+  status: IncomeStatus;
+  disabledByName: string | null;
+  meta: { category: string | null };
+  /** Older versions, newest first. */
+  history: IncomeHistoryItem[];
+}
+
 export interface PaymentView {
   id: string; fromId: string; toId: string; amountClaimed: number; amountConfirmed: number | null;
   status: PaymentStatus; notArrived: boolean; createdAt: string;
@@ -196,6 +240,8 @@ export interface TripView {
   approvals: Approval[];
   /** Members only. */
   links: { group: string; view: string } | null;
+  /** Sport groups only; null otherwise. Left out by an older server: read it as null. */
+  fund?: { balance: number; added: number; spent: number; incomes: IncomeView[] } | null;
 }
 export interface TripListItem { id: string; name: string; archived: boolean; myBalance: number; preset?: GroupPreset }
 export interface ActivityItem {
