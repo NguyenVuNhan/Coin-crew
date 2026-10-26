@@ -9,7 +9,8 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev": "concurrently --kill-others \"npm run dev -w @fsl/web\" \"npm run dev -w @fsl/api\"",
-    "e2e": "npm run build -w @fsl/web && playwright test"
+    "e2e": "npm run build -w @fsl/web && playwright test",
+    "tunnel": "npm run build -w @fsl/web && concurrently --kill-others --names api,tunnel \"npm run tunnel:server -w @fsl/api\" \"npm run tunnel -w @fsl/api\""
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
