@@ -6,6 +6,7 @@ import type {
   ExpenseMeta,
   ExpenseSportMeta,
   ExpenseStatus,
+  FundItem,
   SplitEntry,
   SplitMode,
   SportParticipantEntry,
@@ -15,12 +16,15 @@ import {
   computeShares,
   computeSportShares,
   initialExpenseStatus,
+  isFundPaid,
+  MAX_AMOUNT,
 } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { participants, transactions, transactionShares } from '../db/schema';
-import { assertWritable, resolveActor } from '../access/actor';
+import { assertWritable, resolveActor, type ResolvedActor } from '../access/actor';
 import { ensure } from '../access/guard';
+import { assertFundCovers, assertSportGroup, currentFundBalance } from '../fund/check';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
@@ -113,6 +117,25 @@ async function validateExpenseInput(
     }
     seenIds.add(pid);
     entries.push({ participantId: pid, value: val });
+  }
+
+  // Paid from the group fund: the whole amount came out of group money, so there is no split and nobody gets a share (spec §6.2).
+  const paidFromFund =
+    input.meta && typeof input.meta === 'object' ? (input.meta as Record<string, unknown>).paidFromFund : undefined;
+  if (paidFromFund !== undefined && paidFromFund !== true) {
+    throw new ApiError('VALIDATION', 422, 'Invalid paidFromFund');
+  }
+  if (paidFromFund === true) {
+    const sport = (input.meta as Record<string, unknown>).sport;
+    if (entries.length > 0 || mode !== 'equal' || (sport !== undefined && sport !== null)) {
+      throw new ApiError('VALIDATION', 422, 'A fund-paid expense has no split');
+    }
+    // computeShares is skipped, so the amount gets its check here.
+    if (!Number.isSafeInteger(amount) || amount < 1 || amount > MAX_AMOUNT) {
+      throw new ApiError('VALIDATION', 422, 'INVALID_AMOUNT');
+    }
+    // The request's payerId is ignored: the handler records the admin who wrote it.
+    return { description, amount, spentOn, payerId, mode, shares: [], meta: { paidFromFund: true } };
   }
 
   const tripParticipants = await db
@@ -267,6 +290,17 @@ async function assertNoPendingPeople(db: Db, tripId: string, expenseId: string, 
   if (pending.length > 0) throw new ApiError('PERSON_PENDING', 409, 'Approve the new name first.');
 }
 
+/** Every write on a fund-paid expense needs a sport group and `manage_fund`, on top of the usual rules (spec §6.2). */
+function ensureFundWrite(actor: ResolvedActor): void {
+  assertSportGroup(actor.trip);
+  ensure(actor, 'manage_fund');
+}
+
+/** A stored expense row as the fund sees it; `status` is the one it is about to take, if that differs. */
+function fundItemOf(row: { amount: number; status: string; metaJson: string | null }, status = row.status): FundItem {
+  return { kind: 'expense', amount: row.amount, status, meta: row.metaJson ? (JSON.parse(row.metaJson) as ExpenseMeta) : null };
+}
+
 export function expenseRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -305,8 +339,14 @@ export function expenseRoutes(): Hono<AppBindings> {
 
     const body = await parseJson<ExpenseInput>(c);
     const validated = await validateExpenseInput(db, tripId, body, new Set());
+    const fundPaid = isFundPaid(validated);
+    if (fundPaid) ensureFundWrite(actor);
 
     const status = initialExpenseStatus(actor);
+    if (fundPaid) {
+      const after: FundItem = { kind: 'expense', amount: validated.amount, status, meta: validated.meta };
+      assertFundCovers(await currentFundBalance(db, tripId), null, after);
+    }
     const expenseId = newId();
     const now = nowIso();
 
@@ -322,7 +362,8 @@ export function expenseRoutes(): Hono<AppBindings> {
       amountConfirmed: null,
       currency: 'VND',
       spentOn: validated.spentOn,
-      payerId: validated.payerId,
+      // Nobody paid a fund-paid expense personally; the column holds the admin who recorded it.
+      payerId: fundPaid ? participantId : validated.payerId,
       toId: null,
       splitMode: validated.mode,
       status,
@@ -355,6 +396,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       details: {
         description: validated.description,
         amount: validated.amount,
+        ...(fundPaid ? { paidFromFund: true } : {}),
       },
     });
 
@@ -386,6 +428,9 @@ export function expenseRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    const headItem = fundItemOf(head);
+    if (isFundPaid(headItem)) ensureFundWrite(actor);
+
     ensure(actor, 'edit_expense', {
       expenseCreatedById: head.createdByParticipantId,
       expenseStatus: head.status as ExpenseStatus,
@@ -398,6 +443,14 @@ export function expenseRoutes(): Hono<AppBindings> {
       .where(eq(transactionShares.transactionId, head.id));
     const onExpense = new Set([head.payerId, ...currentShares.map((s) => s.participantId)]);
     const validated = await validateExpenseInput(db, tripId, body, onExpense);
+    const fundPaid = isFundPaid(validated);
+    if (fundPaid) ensureFundWrite(actor);
+
+    // The expense's own amount is available again, so editing it within that is fine (spec §9.2).
+    if (fundPaid || isFundPaid(headItem)) {
+      const after: FundItem = { kind: 'expense', amount: validated.amount, status: head.status, meta: validated.meta };
+      assertFundCovers(await currentFundBalance(db, tripId), headItem, after);
+    }
 
     const newHeadId = newId();
     const now = nowIso();
@@ -429,7 +482,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       amountConfirmed: null,
       currency: 'VND',
       spentOn: validated.spentOn,
-      payerId: validated.payerId,
+      payerId: fundPaid ? actor.participantId! : validated.payerId,
       toId: null,
       splitMode: validated.mode,
       status: head.status,
@@ -462,6 +515,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       details: {
         description: validated.description,
         amount: validated.amount,
+        ...(fundPaid ? { paidFromFund: true } : {}),
       },
     });
 
@@ -493,6 +547,9 @@ export function expenseRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    const headItem = fundItemOf(head);
+    if (isFundPaid(headItem)) ensureFundWrite(actor);
+
     ensure(actor, 'edit_expense', {
       expenseCreatedById: head.createdByParticipantId,
       expenseStatus: head.status as ExpenseStatus,
@@ -520,6 +577,13 @@ export function expenseRoutes(): Hono<AppBindings> {
 
     if (!targetRow) {
       throw new ApiError('NOT_FOUND', 404, 'Historical version not found');
+    }
+
+    // The new latest copies the target (its meta included) but keeps the current status.
+    const targetItem = fundItemOf(targetRow, head.status);
+    if (isFundPaid(targetItem)) ensureFundWrite(actor);
+    if (isFundPaid(headItem) || isFundPaid(targetItem)) {
+      assertFundCovers(await currentFundBalance(db, tripId), headItem, targetItem);
     }
 
     const targetShares = await db
@@ -621,6 +685,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (!head) {
       throw new ApiError('NOT_FOUND', 404);
     }
+
+    // Deleting only returns money to the fund, so it needs no fund check.
+    if (isFundPaid(fundItemOf(head))) ensureFundWrite(actor);
 
     ensure(actor, 'delete_expense', {
       expenseCreatedById: head.createdByParticipantId,
@@ -832,6 +899,9 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    // Disabling only returns money to the fund, so it needs no fund check.
+    if (isFundPaid(fundItemOf(head))) ensureFundWrite(actor);
+
     const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'disable', { expenseInvolved });
 
@@ -893,10 +963,17 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    const headItem = fundItemOf(head);
+    if (isFundPaid(headItem)) ensureFundWrite(actor);
+
     const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'disable', { expenseInvolved });
 
     if (head.status === 'disabled') await assertNoPendingPeople(db, tripId, head.id, head.payerId);
+    // Enabling spends from the fund again, so it is checked like a new one (spec §9.3).
+    if (head.status === 'disabled' && isFundPaid(headItem)) {
+      assertFundCovers(await currentFundBalance(db, tripId), null, fundItemOf(head, 'approved'));
+    }
 
     const now = nowIso();
     const r = await db
