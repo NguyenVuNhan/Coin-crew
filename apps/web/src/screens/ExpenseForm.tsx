@@ -452,7 +452,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 
   // Percent and exact amounts have no ticks: until someone is given a value, everyone listed is still to be given one.
   const captionPeople = (mode === 'amounts' || mode === 'percent') && entries.length === 0 ? formPeople.length : entries.length;
-  const assigned = entries.reduce((sum, e) => sum + e.value, 0);
+  const assigned = entries.reduce((sum, e) => sum + (e.value ?? 0), 0);
   const caption = splitCaption(t, mode, captionPeople, splitResult, parsedAmount, assigned);
 
   // Each person's share as the amount and the split are typed. Once the split adds up it is core's result (which
@@ -469,10 +469,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
     if (splitResult?.ok) {
       for (const s of splitResult.shares) map.set(s.participantId, s.amount);
     } else if (mode === 'amounts') {
-      for (const e of entries) map.set(e.participantId, e.value);
+      for (const e of entries) map.set(e.participantId, e.value ?? 0);
     } else if (mode === 'percent' && parsedAmount !== null) {
       for (const e of entries) {
-        const share = Math.round((parsedAmount * e.value) / 10000);
+        const share = Math.round((parsedAmount * (e.value ?? 0)) / 10000);
         if (Number.isSafeInteger(share)) map.set(e.participantId, share);
       }
     }
