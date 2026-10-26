@@ -45,6 +45,9 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       </Link>
     );
 
+  // While the invite card shows (no expenses yet) its Share is the one primary button, so every add steps back.
+  const addVariant = !hasExpenses && canInvite ? 'secondary' : 'primary';
+
   const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
@@ -66,8 +69,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       onOpen={(id) => open('expense', id)}
       onOpenIncome={(id) => open('income', id)}
       hintable={hintable}
-      // On a new trip the invite card's Share is the one primary button, so the empty state's add steps back.
-      add={addLink(false, !hasExpenses && canInvite ? 'secondary' : 'primary')}
+      add={addLink(false, addVariant)}
       addInHeading={inHeading}
     />
   );
@@ -95,7 +97,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       right={header}
       wide
       // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
-      bottomBar={!wide && hasFeed ? addLink(true) : undefined}
+      bottomBar={!wide && hasFeed ? addLink(true, addVariant) : undefined}
     >
       {wide ? (
         <div className="fsl-member">
