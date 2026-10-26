@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useState, useMemo, type ReactNode } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type {
   TripView,
@@ -23,6 +23,9 @@ import { SplitBetween } from '../components/SplitBetween';
 import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
 import { useLeaveForm } from '../lib/detailsNav';
 import { actorOf } from '../lib/rowActions';
+import { isFundAdmin } from '../lib/fund';
+import { EntryTypeSwitch, type EntryType } from '../components/EntryTypeSwitch';
+import { IncomeForm } from '../components/IncomeForm';
 import { SplitModePicker } from '../components/SplitModePicker';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
@@ -122,6 +125,8 @@ interface ExpenseFormContentProps {
   expenseId?: string;
   expense?: ExpenseView;
   title: string;
+  /** The Expense / Fund income switcher, shown first in the form (fund admins on a new entry). */
+  switcher?: ReactNode;
   leave: () => void;
 }
 
@@ -136,7 +141,7 @@ interface SportGuestState {
   fixedText: string;
 }
 
-function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: ExpenseFormContentProps) {
+function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher, leave }: ExpenseFormContentProps) {
   const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -637,6 +642,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
         onSubmit={handleSubmit}
         className={`fsl-expense-form${submitError || goneNames.length > 0 ? ' fsl-expense-form--bar-error' : ''}`}
       >
+        {switcher}
+
         <div className="fsl-field">
           <label htmlFor="expense-what-for" className="fsl-field-label">
             {t('expenseForm.whatFor')}
@@ -1379,16 +1386,37 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, leave }: 
 }
 
 export function ExpenseForm() {
-  const { tripId = '', expenseId } = useParams<{ tripId: string; expenseId?: string }>();
+  const { tripId = '', expenseId, incomeId } = useParams<{ tripId: string; expenseId?: string; incomeId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
   const leave = useLeaveForm(tripId);
   // Polls like the trip page, so someone removed elsewhere drops off the split before it is saved.
   const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
 
   const isEdit = Boolean(expenseId);
-  const title = isEdit ? t('expenseForm.titleEdit') : t('expenseForm.titleNew');
+  const title = incomeId
+    ? t('fund.editTitle')
+    : isEdit
+      ? t('expenseForm.titleEdit')
+      : t('expenseForm.titleNew');
+  const wantsIncome = searchParams.get('type') === 'income';
 
   if (isLoading || !view) {
+    if (incomeId || wantsIncome) {
+      return (
+        <Screen title={incomeId ? title : t('fund.addTitle')} onBack={leave}>
+          <div className="fsl-expense-form">
+            {[30, 20, 25].map((w) => (
+              <div className="fsl-field" key={w}>
+                <Skeleton width={`${w}%`} height={14} />
+                <Skeleton width="100%" height={44} radius="md" />
+              </div>
+            ))}
+            <Skeleton width="100%" height={48} radius="md" />
+          </div>
+        </Screen>
+      );
+    }
     return (
       <Screen title={title} onBack={leave}>
         <div className="fsl-expense-form">
@@ -1429,6 +1457,48 @@ export function ExpenseForm() {
     );
   }
 
+  if (incomeId) {
+    const income = view.fund?.incomes.find((i) => i.id === incomeId);
+    if (!income) {
+      return (
+        <Screen title={title} onBack={leave}>
+          <div className="fsl-expense-form">
+            <InlineError error={{ code: 'NOT_FOUND' }} />
+          </div>
+        </Screen>
+      );
+    }
+    if (!isFundAdmin(view)) {
+      return (
+        <Screen title={title} onBack={leave}>
+          <div className="fsl-expense-form">
+            <p className="fsl-expense-form__not-yours">{t('fund.readOnly')}</p>
+            <Button variant="secondary" onClick={leave}>{t('common.back')}</Button>
+          </div>
+        </Screen>
+      );
+    }
+    return <IncomeForm view={view} tripId={tripId} income={income} leave={leave} />;
+  }
+
+  // Fund admins adding a new entry choose between an expense and fund income; everyone else just gets the expense form.
+  const showSwitcher = isFundAdmin(view) && !expenseId;
+  const entryType: EntryType = showSwitcher && wantsIncome ? 'income' : 'expense';
+  const switcher = showSwitcher ? (
+    <EntryTypeSwitch
+      value={entryType}
+      onChange={(next) => {
+        const params = new URLSearchParams(searchParams);
+        if (next === 'income') params.set('type', 'income');
+        else params.delete('type');
+        setSearchParams(params, { replace: true });
+      }}
+    />
+  ) : undefined;
+  if (entryType === 'income') {
+    return <IncomeForm view={view} tripId={tripId} switcher={switcher} leave={leave} />;
+  }
+
   const expense = expenseId ? view.expenses.find((e) => e.id === expenseId) : undefined;
   if (expenseId && !expense) {
     return (
@@ -1458,6 +1528,7 @@ export function ExpenseForm() {
       expenseId={expenseId}
       expense={expense}
       title={title}
+      switcher={switcher}
       leave={leave}
     />
   );
