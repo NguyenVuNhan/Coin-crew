@@ -6,8 +6,9 @@ import type { MessageKey } from '../i18n/en';
 import { useListMode } from '../lib/useListMode';
 import { useTripAction } from '../lib/useTripAction';
 import { expenseActions, incomeActions } from '../lib/rowActions';
-import { fundOf, mergeFeed } from '../lib/fund';
+import { fundOf, incomeMinimum, mergeFeed } from '../lib/fund';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { ApiClientError } from '../api/client';
 import { ActionRow } from './ActionRow';
 import { ExpenseRow, rowAmount } from './ExpenseRow';
 import { EmptyState } from './EmptyState';
@@ -86,12 +87,20 @@ function IncomeItem({
     .filter(Boolean)
     .join(', ');
 
+  // A Disable the fund can't cover says how much is already spent, as the details do (only Disable lowers the fund
+  // here). InlineError shows our own message for a validation error.
+  const spent = incomeMinimum(view, income);
+  const shown =
+    error instanceof ApiClientError && error.code === 'FUND_SHORT' && spent > 0
+      ? { code: 'VALIDATION', message: t('fund.cantDisable', { amount: formatVnd(spent) }) }
+      : error;
+
   return (
     <li className="fsl-expense-list__item">
       <ActionRow label={label} actions={actions} onOpen={onOpen} hintable={hintable}>
         <IncomeRow income={income} view={view} />
       </ActionRow>
-      {error ? <InlineError error={error} className="fsl-expense-list__error" /> : null}
+      {shown ? <InlineError error={shown} className="fsl-expense-list__error" /> : null}
     </li>
   );
 }

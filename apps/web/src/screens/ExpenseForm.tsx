@@ -23,7 +23,7 @@ import { SplitBetween } from '../components/SplitBetween';
 import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
 import { useLeaveForm } from '../lib/detailsNav';
 import { actorOf } from '../lib/rowActions';
-import { fundAvailable, isFundAdmin } from '../lib/fund';
+import { fundAvailable, fundPaidCheck, isFundAdmin } from '../lib/fund';
 import { EntryTypeSwitch, type EntryType } from '../components/EntryTypeSwitch';
 import { IncomeForm } from '../components/IncomeForm';
 import { FundPaidPanel } from '../components/FundPaidPanel';
@@ -516,7 +516,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
   const isPayerValid = payer !== '';
   const isAmountValid = parsedAmount !== null;
   const isSplitValid = Boolean(splitResult?.ok && !hasInvalidInput);
-  const isFundAmountValid = parsedAmount !== null && parsedAmount <= available;
+  // Checked as the API checks it. With no amount yet 1₫ stands in, so a fund with nothing to spend says so as soon as
+  // it is chosen (spec §9.1).
+  const fundCheck = fundPaidCheck(view, expense, parsedAmount ?? 1);
+  const isFundAmountValid = parsedAmount !== null && !fundCheck.over;
 
   const isSportAmountValid = sportTotal > 0;
   const isSportSplitValid = Boolean(sportResult?.ok);
@@ -945,7 +948,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         <div className="fsl-expense-form__split-section">
           <h2 className="fsl-section-heading">{t('expenseForm.split')}</h2>
           {fromFund ? (
-            <FundPaidPanel available={available} amount={parsedAmount} />
+            <FundPaidPanel available={available} after={parsedAmount === null ? null : fundCheck.after} over={fundCheck.over} />
           ) : (
             <>
               <SplitBetween people={formPeople} chosen={included} me={me} onOpen={() => setPeopleSheetOpen(true)} />

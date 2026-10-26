@@ -1,4 +1,4 @@
-import { can, isFundPaid, type ExpenseView, type IncomeView, type TripView } from '@fsl/core';
+import { can, fundEffect, isFundPaid, type ExpenseView, type IncomeView, type TripView } from '@fsl/core';
 import { actorOf } from './rowActions';
 
 /** The group fund of a sport group; null for any other kind of group. */
@@ -22,9 +22,25 @@ export function fundAvailable(view: TripView, editing?: ExpenseView): number {
   return editing && editing.status === 'approved' && isFundPaid(editing) ? balance + editing.amount : balance;
 }
 
-/** The least an income can be lowered to: what the fund has already spent of it. */
+/**
+ * Paying `amount` from the fund, for a new expense or for `editing` (whose new version keeps its status, so a disabled
+ * one takes nothing): the fund once saved, and whether the API turns the save down. Like `assertFundCovers` it refuses
+ * only a save that lowers the fund and leaves it below 0₫, so a fund below 0₫ after a race (spec §9.10) can still be
+ * fixed.
+ */
+export function fundPaidCheck(view: TripView, editing: ExpenseView | undefined, amount: number): { after: number; over: boolean } {
+  const balance = fundOf(view)?.balance ?? 0;
+  const before = editing ? fundEffect({ kind: 'expense', amount: editing.amount, status: editing.status, meta: editing.meta }) : 0;
+  const delta = fundEffect({ kind: 'expense', amount, status: editing?.status ?? 'approved', meta: { paidFromFund: true } }) - before;
+  return { after: balance + delta, over: delta < 0 && balance + delta < 0 };
+}
+
+/**
+ * The least an income can be lowered to (the API refuses less): what the fund has already spent of it, which is all
+ * of it while the fund is below 0₫.
+ */
 export function incomeMinimum(view: TripView, income: IncomeView): number {
-  return income.status === 'approved' ? Math.max(0, income.amount - (fundOf(view)?.balance ?? 0)) : 0;
+  return income.status === 'approved' ? Math.max(0, income.amount - Math.max(0, fundOf(view)?.balance ?? 0)) : 0;
 }
 
 export type FeedItem = { kind: 'expense'; item: ExpenseView } | { kind: 'income'; item: IncomeView };

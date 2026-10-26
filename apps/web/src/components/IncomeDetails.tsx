@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { formatDay } from '../lib/time';
 import { useTripAction } from '../lib/useTripAction';
-import { fundOf, isFundAdmin } from '../lib/fund';
+import { fundOf, incomeMinimum, isFundAdmin } from '../lib/fund';
 import { ApiClientError } from '../api/client';
 import { Pill } from './Pill';
 import { Button } from './Button';
@@ -54,13 +54,14 @@ export function IncomeDetails({ view, incomeId, onClose }: IncomeDetailsProps) {
     );
   }
 
+  // What the fund has already spent of this income, from the trip refreshed after the error. If that says nothing is
+  // (the fund moved again), the general fund message shows instead.
+  const spent = incomeMinimum(view, income);
   let errorElement = null;
-  if (error instanceof ApiClientError && error.code === 'FUND_SHORT' && lastActionDisable) {
-    const fundBalance = fundOf(view)?.balance ?? 0;
-    const shortAmount = income.amount - fundBalance;
+  if (error instanceof ApiClientError && error.code === 'FUND_SHORT' && lastActionDisable && spent > 0) {
     errorElement = (
       <p className="fsl-details__error" role="alert">
-        {t('fund.cantDisable', { amount: formatVnd(shortAmount) })}
+        {t('fund.cantDisable', { amount: formatVnd(spent) })}
       </p>
     );
   } else if (error) {
@@ -190,7 +191,8 @@ export function IncomeDetails({ view, incomeId, onClose }: IncomeDetailsProps) {
             </Button>
           )}
         </div>
-      ) : (
+      ) : view.trip.archived ? null : (
+        // An archived group changes for nobody: as on expense details, no actions and nothing to explain.
         <p className="fsl-details__note">{t('fund.readOnly')}</p>
       )}
     </article>

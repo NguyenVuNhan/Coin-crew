@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ExpenseHistoryItem, ExpenseView, TripView } from '@fsl/core';
-import { formatVnd } from '@fsl/core';
+import { can, formatVnd, isFundPaid } from '@fsl/core';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
+import { actorOf } from '../lib/rowActions';
 import { formatDay } from '../lib/time';
 import { apiSend } from '../api/client';
 import { Icon } from './icons';
@@ -64,6 +65,8 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
     !view.trip.archived &&
     (view.me.kind === 'member' ||
       (view.me.participantId === expense.createdById && expense.status === 'pending'));
+  // A roll back to or from a fund-paid version is a fund write (spec §9.4).
+  const fundWriter = can(actorOf(view), 'manage_fund');
 
   return (
     <section className="fsl-history" aria-labelledby="fsl-history-title">
@@ -81,7 +84,8 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
             name: nameOf(view, item.createdById),
             date: dateStr,
           });
-          const itemCanRollback = canRollback && !isSameState(item, expense);
+          const itemCanRollback =
+            canRollback && !isSameState(item, expense) && (fundWriter || (!isFundPaid(expense) && !isFundPaid(item)));
 
           return (
             <li key={item.id} className="fsl-history-item">
@@ -91,7 +95,8 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
                   <span className="fsl-history-item__amount">{formatVnd(item.amount)}</span>
                 </div>
                 <div className="fsl-history-item__meta">
-                  <span>{nameOf(view, item.payerId)}</span>
+                  {/* A fund-paid version names the admin who recorded it, never shown as the payer (spec §4.2). */}
+                  <span>{isFundPaid(item) ? t('fund.title') : nameOf(view, item.payerId)}</span>
                   <span>·</span>
                   <span>{formatDay(item.spentOn)}</span>
                 </div>
