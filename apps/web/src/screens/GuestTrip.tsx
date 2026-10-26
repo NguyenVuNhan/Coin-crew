@@ -4,6 +4,7 @@ import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useIsWide } from '../lib/media';
+import { fundOf } from '../lib/fund';
 import { nameOf } from '../lib/tripText';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
@@ -28,6 +29,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
   const transfersState = useTransfersState(view);
   const hasExpenses = view.expenses.length > 0;
+  // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
+  const hasFeed = hasExpenses || (fundOf(view)?.incomes.length ?? 0) > 0;
   // The API refuses every write on an archived trip, so the page offers none (no add, pay, bank prompt or membership request).
   const archived = view.trip.archived;
   const showsPay = hasExpenses && guestPayTarget(view) !== null && !(wide && detail !== null);
@@ -137,7 +140,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   );
 
   return (
-    <Screen title={view.trip.name} wide bottomBar={!wide && hasExpenses ? addLink(true) : undefined}>
+    <Screen title={view.trip.name} wide bottomBar={!wide && hasFeed ? addLink(true) : undefined}>
       <div className="fsl-guest">
         {banner}
         {notice}

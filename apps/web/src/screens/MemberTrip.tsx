@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
+import { fundOf } from '../lib/fund';
 import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
@@ -30,6 +31,8 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const tripId = view.trip.id;
   const archived = view.trip.archived;
   const hasExpenses = view.expenses.length > 0;
+  // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
+  const hasFeed = hasExpenses || (fundOf(view)?.incomes.length ?? 0) > 0;
   const canInvite = !archived && view.links !== null;
   const { detail, open } = useDetailsSelection(tripId, selection);
   // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
@@ -92,7 +95,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       right={header}
       wide
       // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
-      bottomBar={!wide && hasExpenses ? addLink(true) : undefined}
+      bottomBar={!wide && hasFeed ? addLink(true) : undefined}
     >
       {wide ? (
         <div className="fsl-member">
