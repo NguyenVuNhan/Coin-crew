@@ -116,20 +116,27 @@ export interface PersonActionDeps {
   onBank(): void;
   onMakeAdmin?(): void;
   onRemoveAdmin?(): void;
+  onRestore?(): void;
 }
 
 /**
  * What a member may do with a person on the People screen: manage a guest's bank details, merge them into another
  * name, or remove them. Members manage their own bank details, so only guests get the bank action.
- * Only a guest who is not you can be removed: the organiser, you and every other signed-in member can be merged
- * but never removed (the API refuses with 409, and removing them would lock them out). Nothing is offered in an
- * archived trip.
+ * Admins remove anyone but the organiser and themselves (they leave from Settings instead); only the organiser
+ * removes another admin. Someone who left can only be brought back. Nothing is offered in an archived trip.
  */
 export function personActions(view: TripView, person: PersonView, deps: PersonActionDeps): RowAction[] {
   if (view.trip.archived) return [];
-  const { t, onMerge, onRemove, onBank, onMakeAdmin, onRemoveAdmin } = deps;
+  const { t, onMerge, onRemove, onBank, onMakeAdmin, onRemoveAdmin, onRestore } = deps;
   const actor = actorOf(view);
   const actions: RowAction[] = [];
+
+  if (person.status === 'left') {
+    if (can(actor, 'restore_person') && onRestore) {
+      actions.push({ id: 'restore', label: t('people.restore'), icon: 'rotateCcw', onSelect: onRestore });
+    }
+    return actions;
+  }
 
   if (
     can(actor, 'promote_admin') &&
@@ -172,7 +179,11 @@ export function personActions(view: TripView, person: PersonView, deps: PersonAc
     actions.push({ id: 'merge', label: t('people.merge'), icon: 'merge', onSelect: onMerge });
   }
 
-  if (can(actor, 'remove_person') && !person.isMember && person.isOrganiser !== true && person.id !== view.me.participantId) {
+  if (
+    can(actor, 'remove_person', { targetIsAdmin: person.isAdmin === true }) &&
+    person.isOrganiser !== true &&
+    person.id !== view.me.participantId
+  ) {
     actions.push({ id: 'remove', label: t('people.remove'), icon: 'trash', tone: 'danger', onSelect: onRemove });
   }
 

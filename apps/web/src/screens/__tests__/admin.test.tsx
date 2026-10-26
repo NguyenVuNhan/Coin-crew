@@ -48,11 +48,12 @@ describe('Settings', () => {
     expect(screen.queryByText('Language')).toBeNull();
   });
 
-  it('only the organiser can archive', async () => {
+  it('only the organiser can archive; other members can leave', async () => {
     mockApi({ 'GET /api/trips/t-1': anView() });
     const { unmount } = renderAt(<Settings />, at('settings'));
     await screen.findByRole('switch', { name: 'Fewest transfers' });
-    expect(screen.queryByText('Danger zone')).toBeNull();
+    expect(screen.getByText('Danger zone')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Leave group' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Archive group' })).toBeNull();
     expect(screen.queryByText('Nobody can change an archived trip until the organiser unarchives it.')).toBeNull();
     unmount();
@@ -129,20 +130,20 @@ describe('People', () => {
     expect(within(rowOf('Chi')).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
   });
 
-  it('no Remove for any signed-in member, only for guests', async () => {
-    // Bình has an account too: not the organiser, not me, still not removable (the API refuses).
+  it('Remove is offered on a signed-in member who is not an admin', async () => {
+    // Bình has an account too: not the organiser, not me, not an admin, so an admin can remove them.
     const view = anView();
     mockApi({ 'GET /api/trips/t-1': { ...view, people: view.people.map((p) => (p.id === PIDS.B ? { ...p, isMember: true } : p)) } });
     renderAt(<People />, at('people'));
     await screen.findByRole('button', { name: /^Bình,/ });
     expect(within(rowOf('Bình')).getByText('Member')).toBeInTheDocument();
     expect(within(rowOf('Bình')).getByRole('button', { name: 'Merge' })).toBeInTheDocument();
-    expect(within(rowOf('Bình')).queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(within(rowOf('Bình')).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
     expect(within(rowOf('Chi')).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^Bình,/ }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('button', { name: 'Merge' })).toBeInTheDocument();
-    expect(within(dialog).queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
   });
 
   it('guests show their bank details, and members manage them from the row', async () => {
@@ -230,22 +231,23 @@ describe('People', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('says "Use merge instead" when the API refuses to remove a guest who is in an expense', async () => {
+  it('a refused removal explains itself and the next try clears it', async () => {
     const { calls } = mockApi({
       'GET /api/trips/t-1': anView(),
-      // Whatever the 409 says, the screen explains it in its own words (and language).
-      'DELETE /api/trips/t-1/people/p-chi': () => Response.json({ error: { code: 'VALIDATION', message: 'Signed-in people cannot be removed.' } }, { status: 409 }),
+      // Whatever the 403 says, the screen explains it in its own words (and language).
+      'DELETE /api/trips/t-1/people/p-chi': () => Response.json({ error: { code: 'FORBIDDEN', message: 'Forbidden' } }, { status: 403 }),
       'DELETE /api/trips/t-1/people/p-binh': null,
     });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderAt(<People />, at('people'));
     await screen.findByRole('button', { name: /^Chi,/ });
     await userEvent.click(within(rowOf('Chi')).getByRole('button', { name: 'Remove' }));
-    expect(await within(rowOf('Chi')).findByText('Use merge instead')).toBeInTheDocument();
-    expect(screen.queryByText('Signed-in people cannot be removed.')).toBeNull();
+    expect(await within(rowOf('Chi')).findByText("You can't remove this person.")).toBeInTheDocument();
+    expect(screen.queryByText('Forbidden')).toBeNull();
     await userEvent.click(within(rowOf('Bình')).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/trips/t-1/people/p-binh')).toBe(true));
     // The next try clears the old message; only the row that was just acted on can show one.
-    await waitFor(() => expect(screen.queryByText('Use merge instead')).toBeNull());
+    await waitFor(() => expect(screen.queryByText("You can't remove this person.")).toBeNull());
   });
 
   it('promotes an active member to admin', async () => {

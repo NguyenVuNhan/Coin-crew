@@ -113,7 +113,8 @@ export function paymentRoutes(): Hono<AppBindings> {
         and(
           eq(participants.tripId, tripId),
           inArray(participants.id, [fromId, toId]),
-          eq(participants.status, 'active'),
+          // Someone who left can still be paid, or pay what they owe.
+          inArray(participants.status, ['active', 'left']),
         ),
       );
 
@@ -124,14 +125,15 @@ export function paymentRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Participants must be active members of the trip');
     }
 
-    const toIsMember = toP.userId !== null;
+    // A member who left cannot confirm anything, so they count as a guest here.
+    const toIsMember = toP.userId !== null && toP.status === 'active';
 
     const status = statusForNewPayment({
       actorId: actor.participantId!,
       fromId,
       toId,
       receiverIsMember: toIsMember,
-      payerIsMember: fromP.userId !== null,
+      payerIsMember: fromP.userId !== null && fromP.status === 'active',
     });
 
     if (status === 'forbidden') {

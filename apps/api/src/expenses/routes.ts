@@ -51,10 +51,12 @@ interface ValidatedExpense {
   meta?: ExpenseMeta | null;
 }
 
+/** `allowedLeftIds`: people who left but are already on the expense being edited, so they may stay on it. */
 async function validateExpenseInput(
   db: Db,
   tripId: string,
   body: unknown,
+  allowedLeftIds: ReadonlySet<string>,
 ): Promise<ValidatedExpense> {
   if (!body || typeof body !== 'object') {
     throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -118,18 +120,25 @@ async function validateExpenseInput(
     .where(
       and(
         eq(participants.tripId, tripId),
-        or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
+        inArray(participants.status, ['active', 'pending', 'left']),
       ),
     );
 
-  const participantMap = new Map(tripParticipants.map((p) => [p.id, p]));
+  const participantMap = new Map(
+    tripParticipants.filter((p) => p.status !== 'left' || allowedLeftIds.has(p.id)).map((p) => [p.id, p]),
+  );
+  // Someone who left can't be put on an expense. Usually the form was opened before they left, so say so plainly.
+  const leftIds = new Set(tripParticipants.filter((p) => !participantMap.has(p.id)).map((p) => p.id));
+  const personLeft = () => new ApiError('PERSON_LEFT', 409, 'Someone on this expense has left the group.');
 
   if (!participantMap.has(payerId)) {
+    if (leftIds.has(payerId)) throw personLeft();
     throw new ApiError('VALIDATION', 422, 'Invalid payer');
   }
 
   for (const entry of entries) {
     if (!participantMap.has(entry.participantId)) {
+      if (leftIds.has(entry.participantId)) throw personLeft();
       throw new ApiError('VALIDATION', 422, 'Invalid participant in entries');
     }
   }
@@ -293,7 +302,7 @@ export function expenseRoutes(): Hono<AppBindings> {
     }
 
     const body = await parseJson<ExpenseInput>(c);
-    const validated = await validateExpenseInput(db, tripId, body);
+    const validated = await validateExpenseInput(db, tripId, body, new Set());
 
     const status = initialExpenseStatus(actor);
     const expenseId = newId();
@@ -380,7 +389,12 @@ export function expenseRoutes(): Hono<AppBindings> {
     });
 
     const body = await parseJson<ExpenseInput>(c);
-    const validated = await validateExpenseInput(db, tripId, body);
+    const currentShares = await db
+      .select({ participantId: transactionShares.participantId })
+      .from(transactionShares)
+      .where(eq(transactionShares.transactionId, head.id));
+    const onExpense = new Set([head.payerId, ...currentShares.map((s) => s.participantId)]);
+    const validated = await validateExpenseInput(db, tripId, body, onExpense);
 
     const newHeadId = newId();
     const now = nowIso();

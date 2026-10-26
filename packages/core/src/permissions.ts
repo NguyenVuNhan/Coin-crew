@@ -4,7 +4,7 @@ export type ActorKind = 'member' | 'guest' | 'viewer';
 export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean }
 export type Action = 'view' | 'add_expense' | 'edit_expense' | 'delete_expense' | 'approve' | 'disable' | 'merge'
   | 'remove_person' | 'regenerate_links' | 'archive' | 'unarchive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank'
-  | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin';
+  | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin' | 'leave' | 'restore_person';
 export interface ActionContext {
   expenseCreatedById?: string; expenseStatus?: ExpenseStatus;
   paymentFromId?: string; paymentToId?: string; owesTo?: boolean;
@@ -12,6 +12,8 @@ export interface ActionContext {
   bankApproved?: boolean;
   isExpensePayer?: boolean;
   expenseInvolved?: boolean;
+  /** The person being removed is an admin: only the organiser removes admins. */
+  targetIsAdmin?: boolean;
 }
 
 // Source of truth for the permission matrix in the plan (Task 6). Every API route checks through here.
@@ -45,14 +47,19 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
       return isMember && (isAdmin || ctx.expenseInvolved === true);
     case 'disable':
       return isMember && (isAdmin || ctx.expenseInvolved === true);
+    case 'remove_person':
+      return isMember && isAdmin && (ctx.targetIsAdmin !== true || actor.isOrganiser);
+    case 'leave':
+      // The organiser cannot leave: nobody can take over the role, so they archive instead.
+      return isMember && !actor.isOrganiser;
     case 'approve':
     case 'manage_bank':
     case 'merge':
-    case 'remove_person':
     case 'regenerate_links':
     case 'set_fewest':
     case 'add_person':
     case 'promote_admin':
+    case 'restore_person':
       return isMember && isAdmin;
     default:
       return false;

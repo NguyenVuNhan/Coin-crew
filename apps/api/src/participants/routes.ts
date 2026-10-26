@@ -10,8 +10,6 @@ import {
   deviceParticipants,
   membershipRequests,
   participants,
-  transactionShares,
-  transactions,
   trips,
   users,
 } from '../db/schema';
@@ -23,6 +21,7 @@ import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
 import { mergeParticipants } from './merge';
+import { takeOutOfTrip } from './remove';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -104,9 +103,42 @@ export function participantRoutes(): Hono<AppBindings> {
       };
     });
 
+    const user = await getSessionUser(c);
+    const account =
+      user && actor.kind !== 'member'
+        ? {
+            name: user.name,
+            needsGender:
+              actor.trip.preset === 'sport' &&
+              user.gender !== 'M' &&
+              user.gender !== 'F',
+          }
+        : null;
+
+    let myLeftName: { id: string; name: string } | null = null;
+    if (account) {
+      const left = await db
+        .select({ id: participants.id, name: participants.name })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.tripId, tripId),
+            eq(participants.userId, user!.id),
+            eq(participants.status, 'left'),
+          ),
+        )
+        .get();
+
+      if (left) {
+        myLeftName = { id: left.id, name: left.name };
+      }
+    }
+
     const view: PickerView = {
       people,
       myPick: actor.participantId,
+      account,
+      myLeftName,
     };
 
     return c.json(view);
@@ -555,72 +587,132 @@ export function participantRoutes(): Hono<AppBindings> {
     const pid = c.req.param('pid');
     const actor = await getActor(c, tripId);
     assertWritable(actor.trip);
-    ensure(actor, 'remove_person');
 
     const db = getDb(c.env);
     const target = await db
       .select()
       .from(participants)
-      .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)))
+      .where(
+        and(
+          eq(participants.id, pid),
+          eq(participants.tripId, tripId),
+          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
+        ),
+      )
       .get();
 
     if (!target) {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    // Removing a signed-in person would lock them (or the organiser) out of their own trip.
-    if (target.userId !== null) {
-      throw new ApiError('VALIDATION', 409, 'Signed-in people cannot be removed.');
+    ensure(actor, 'remove_person', { targetIsAdmin: target.isAdmin === 1 });
+
+    if (target.userId !== null && target.userId === actor.trip.organiserUserId) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+    if (pid === actor.participantId) {
+      throw new ApiError('FORBIDDEN', 403);
     }
 
-    const txInvolved = await db
-      .select({ id: transactions.id })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.tripId, tripId),
-          or(eq(transactions.payerId, pid), eq(transactions.toId, pid)),
-        ),
-      )
-      .limit(1)
-      .get();
-
-    if (txInvolved) {
-      throw new ApiError('VALIDATION', 409, 'Use merge instead');
-    }
-
-    const share = await db
-      .select({ transactionId: transactionShares.transactionId })
-      .from(transactionShares)
-      .innerJoin(transactions, eq(transactionShares.transactionId, transactions.id))
-      .where(and(eq(transactions.tripId, tripId), eq(transactionShares.participantId, pid)))
-      .limit(1)
-      .get();
-
-    if (share) {
-      throw new ApiError('VALIDATION', 409, 'Use merge instead');
-    }
-
-    const deleteParticipant = db
-      .delete(participants)
-      .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)));
-
-    const deleteDeviceParticipants = db
-      .delete(deviceParticipants)
-      .where(
-        and(
-          eq(deviceParticipants.participantId, pid),
-          eq(deviceParticipants.tripId, tripId),
-        ),
-      );
-
-    await commitTripWrite(db, tripId, [deleteParticipant, deleteDeviceParticipants], {
+    const { queries } = await takeOutOfTrip(db, tripId, pid);
+    await commitTripWrite(db, tripId, queries, {
       action: 'person_removed',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: { name: target.name },
     });
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/leave
+  app.post('/trips/:id/leave', async (c) => {
+    const tripId = c.req.param('id');
+    const actor = await getActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'leave');
+
+    const db = getDb(c.env);
+    const participant = await db
+      .select({ name: participants.name })
+      .from(participants)
+      .where(
+        and(
+          eq(participants.id, actor.participantId!),
+          eq(participants.tripId, tripId),
+        ),
+      )
+      .get();
+
+    const name = participant?.name ?? '';
+    const { queries } = await takeOutOfTrip(db, tripId, actor.participantId!);
+    await commitTripWrite(db, tripId, queries, {
+      action: 'person_left',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { name },
+    });
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/people/:pid/restore
+  app.post('/trips/:id/people/:pid/restore', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await getActor(c, tripId);
+    assertWritable(actor.trip);
+    ensure(actor, 'restore_person');
+
+    const db = getDb(c.env);
+    const target = await db
+      .select()
+      .from(participants)
+      .where(
+        and(
+          eq(participants.id, pid),
+          eq(participants.tripId, tripId),
+          eq(participants.status, 'left'),
+        ),
+      )
+      .get();
+
+    if (!target) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    // The same account may have claimed another name while away: one user keeps one name per group.
+    if (target.userId !== null) {
+      const otherName = await db
+        .select({ id: participants.id })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.tripId, tripId),
+            eq(participants.userId, target.userId),
+            eq(participants.status, 'active'),
+          ),
+        )
+        .get();
+      if (otherName) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'This person is already in the group under another name.');
+      }
+    }
+
+    await commitTripWrite(
+      db,
+      tripId,
+      [db.update(participants).set({ status: 'active' }).where(eq(participants.id, pid))],
+      {
+        action: 'person_restored',
+        actorParticipantId: actor.participantId,
+        actorUserId: actor.userId,
+        actorDevice: actor.deviceHash,
+        details: { name: target.name },
+      },
+    );
 
     return c.body(null, 204);
   });
@@ -720,6 +812,22 @@ export function participantRoutes(): Hono<AppBindings> {
 
     if (!req) {
       throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const existingActive = await db
+      .select({ id: participants.id })
+      .from(participants)
+      .where(
+        and(
+          eq(participants.tripId, tripId),
+          eq(participants.userId, req.userId),
+          eq(participants.status, 'active'),
+        ),
+      )
+      .get();
+
+    if (existingActive) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
     const r = await db
