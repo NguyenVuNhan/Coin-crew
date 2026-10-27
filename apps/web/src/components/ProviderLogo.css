@@ -1,0 +1,10 @@
+.fsl-provider-logo {
+  border-radius: 20%;
+  flex: none;
+  display: block;
+}
+
+.fsl-provider-logo--muted {
+  filter: grayscale(1);
+  opacity: 0.45;
+}

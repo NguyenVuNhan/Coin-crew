@@ -1,24 +1,14 @@
 import { Fragment, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
 import { APP_NAME } from '../config';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
-import { apiFetch } from '../api/client';
+import { useMe } from '../api/hooks';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
+import { SignInButtons } from '../components/SignInButtons';
 import { Icon, type IconName } from '../components/icons';
 import { LanguageButton } from '../components/LanguageButton';
 import './Landing.css';
-
-interface MeResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    consentAt: string | null;
-  } | null;
-}
 
 const STEPS: { icon: IconName; title: MessageKey; body: MessageKey }[] = [
   { icon: 'map', title: 'landing.step1', body: 'landing.step1Body' },
@@ -30,10 +20,7 @@ export function Landing() {
   const t = useT();
   const navigate = useNavigate();
 
-  const meQuery = useQuery<MeResponse>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<MeResponse>('/api/me'),
-  });
+  const meQuery = useMe();
 
   const user = meQuery.data?.user;
 
@@ -46,8 +33,6 @@ export function Landing() {
   if (user) {
     return null;
   }
-
-  const signInUrl = `/api/auth/google/start?returnTo=${encodeURIComponent('/trips')}`;
 
   return (
     <Screen title={APP_NAME} right={<LanguageButton />}>
@@ -67,9 +52,7 @@ export function Landing() {
           <p className="fsl-landing__tagline">{t('landing.tagline')}</p>
         </section>
 
-        <Button variant="primary" block href={signInUrl}>
-          {t('landing.signIn')}
-        </Button>
+        <SignInButtons layout="stack" returnTo="/trips" />
 
         <section className="fsl-landing__how">
           <h2 className="fsl-landing__section-title">{t('landing.howItWorks')}</h2>

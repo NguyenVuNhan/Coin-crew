@@ -7,6 +7,8 @@ export type Env = {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   APP_ORIGIN: string;
+  ZALO_APP_ID?: string;
+  ZALO_APP_SECRET?: string;
   E2E_LOGIN?: string;
   OPS_ALERT_WEBHOOK_URL?: string;
   CF_API_TOKEN?: string;

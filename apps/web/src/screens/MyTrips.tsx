@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { TripListItem } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -12,26 +13,16 @@ import { InlineError } from '../components/InlineError';
 import { Amount } from '../components/Amount';
 import { AccountMenu } from '../components/AccountMenu';
 import { Button } from '../components/Button';
+import { Snackbar } from '../components/Snackbar';
+import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { Icon } from '../components/icons';
 import './MyTrips.css';
-
-interface MeResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    consentAt: string | null;
-  } | null;
-}
 
 export function MyTrips() {
   const t = useT();
   const navigate = useNavigate();
 
-  const meQuery = useQuery<MeResponse>({
-    queryKey: ['me'],
-    queryFn: () => apiFetch<MeResponse>('/api/me'),
-  });
+  const meQuery = useMe();
 
   const tripsQuery = useQuery<TripListItem[]>({
     queryKey: ['trips'],
@@ -40,6 +31,30 @@ export function MyTrips() {
   });
 
   const user = meQuery.data?.user;
+  const [searchParams] = useSearchParams();
+  const mergeReview = searchParams.get('mergeReview');
+  const [noRequest, setNoRequest] = useState(false);
+  const incoming = meQuery.data?.mergeRequests.incoming ?? [];
+  const [reviewedId, setReviewedId] = useState<string | null>(null);
+  const reviewMatch = mergeReview ? incoming.find((r) => r.id === mergeReview) : undefined;
+  const incomingMerge = reviewMatch ?? incoming.find((r) => r.id === reviewedId) ?? incoming[0];
+
+  // Only decide once /api/me has loaded; then drop just the mergeReview parameter.
+  useEffect(() => {
+    if (!meQuery.isSuccess || !mergeReview) return;
+    if (reviewMatch) setReviewedId(reviewMatch.id);
+    else setNoRequest(true);
+    const rest = new URLSearchParams(searchParams);
+    rest.delete('mergeReview');
+    const search = rest.toString();
+    navigate({ search: search ? `?${search}` : '' }, { replace: true });
+  }, [meQuery.isSuccess, mergeReview, reviewMatch, searchParams, navigate]);
+
+  useEffect(() => {
+    if (!noRequest) return;
+    const id = setTimeout(() => setNoRequest(false), 4000);
+    return () => clearTimeout(id);
+  }, [noRequest]);
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
@@ -56,6 +71,13 @@ export function MyTrips() {
     >
       <ConsentSheet />
       <div className="fsl-my-trips">
+        {incomingMerge && (
+          <MergeRequestBanner
+            key={incomingMerge.id}
+            request={incomingMerge}
+            autoOpen={!!reviewMatch}
+          />
+        )}
         {!isEmpty && (
           <Button variant="primary" block href="/trips/new">
             {t('trips.new')}
@@ -135,6 +157,7 @@ export function MyTrips() {
           </div>
         )}
       </div>
+      {noRequest && <Snackbar message={t('merge.noRequestHere')} />}
     </Screen>
   );
 }

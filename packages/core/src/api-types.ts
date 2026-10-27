@@ -10,6 +10,8 @@ export type ApiErrorCode =
   | 'TRIP_ARCHIVED'
   | 'DAILY_LIMIT'
   | 'RATE_LIMITED'
+  | 'LAST_IDENTITY'
+  | 'MERGE_STALE'
   | 'FUND_SHORT'
   | 'INTERNAL';
 
@@ -64,13 +66,47 @@ import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 import type { IncomeStatus } from './fund';
 
+export type AuthProvider = 'google' | 'zalo';
+
 export interface MeUserView {
   id: string;
-  email: string;
+  email: string | null;
   name: string;
   gender?: Gender | null;
   avatarUrl?: string | null;
   consentAt: string | null;
+  providers: AuthProvider[];
+  /** The name on the linked Zalo login, when one is linked. */
+  zaloName?: string | null;
+}
+
+export interface IncomingMergeRequest {
+  id: string;
+  provider: AuthProvider;
+  expiresAt: string;
+  survivor: { name: string; avatarUrl: string | null; email: string | null; providers: AuthProvider[] };
+  /** Active memberships of each account. */
+  groups: { survivor: number; merged: number };
+  released: { provider: AuthProvider; email: string | null }[];
+}
+
+export interface OutgoingMergeRequest {
+  id: string;
+  provider: AuthProvider;
+  status: 'pending' | 'accepted' | 'declined';
+  expiresAt: string;
+  /** The other account's CoinCrew name when the request was made. */
+  otherName?: string;
+  /** The verified login: the Zalo name, or the Google email. */
+  identityLabel?: string;
+}
+
+export interface MeResponse {
+  user: MeUserView | null;
+  /** False when ZALO_APP_ID or ZALO_APP_SECRET is missing. */
+  signIn: { zalo: boolean };
+  /** Both empty when signed out. */
+  mergeRequests: { incoming: IncomingMergeRequest[]; outgoing: OutgoingMergeRequest[] };
 }
 
 export interface UpdateProfileInput {
@@ -196,7 +232,7 @@ export type Approval =
   | { kind: 'bank'; bankId: string; participantId: string; bankName: string; accountNumber: string; holderName: string }
   | { kind: 'payment'; paymentId: string }
   | { kind: 'not_arrived'; paymentId: string }
-  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string };
+  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null };
 export interface TripView {
   trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi' };
   me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };

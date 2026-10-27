@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, useMatch, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Navigate, useLocation, useMatch, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useTripView } from '../api/hooks';
 import { useIsWide } from '../lib/media';
@@ -77,6 +77,7 @@ function TripSkeleton({ wide }: { wide: boolean }) {
 export function TripRoute() {
   const { tripId, expenseId, paymentId, incomeId } = useParams<{ tripId: string; expenseId: string; paymentId: string; incomeId: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const t = useT();
   const wide = useIsWide();
@@ -98,9 +99,9 @@ export function TripRoute() {
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {
-      navigate(`/t/${tripId}/who`, { replace: true });
+      navigate(`/t/${tripId}/who?next=` + encodeURIComponent(location.pathname + location.search), { replace: true });
     }
-  }, [view, tripId, navigate]);
+  }, [view, tripId, navigate, location.pathname, location.search]);
 
   // A shared link's visitor sees these first, so they carry the language switch.
   if (isLoading) {

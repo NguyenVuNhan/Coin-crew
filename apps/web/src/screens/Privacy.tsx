@@ -22,7 +22,7 @@ export function Privacy() {
 
         <h2>What information is stored</h2>
         <p>
-          We store your name and email address from Google sign-in; trip names,
+          We store your name and email address from Google sign-in, or your Zalo user ID, display name and profile picture from Zalo sign-in (Zalo does not share your phone number); trip names,
           participant names, expense records, and payment records; and bank name,
           account number, and account holder name entered for VietQR settlements.
         </p>

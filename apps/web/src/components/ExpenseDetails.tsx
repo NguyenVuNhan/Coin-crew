@@ -16,8 +16,10 @@ import { EmptyState } from './EmptyState';
 import { InlineError } from './InlineError';
 import { Icon } from './icons';
 import { usePayInfo } from '../api/payInfo';
-import { useQrSvg, qrSrc, shareSportBill, type SportBillCardInput } from '../lib/qr';
-import { sportShareText, groupLink } from '../lib/remind';
+import { useQrSvg, qrSrc, shareSportBill, renderSportBillPng, type SportBillCardInput } from '../lib/qr';
+import { isZaloWebView } from '../lib/zaloEnv';
+import { useImageSheet } from './SaveImageSheet';
+import { sportShareText, expenseLink } from '../lib/remind';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import './ExpenseDetails.css';
 
@@ -45,6 +47,7 @@ export function ExpenseDetails({
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [sharing, setSharing] = useState(false);
+  const { sheet: imageSheet, show: showImage } = useImageSheet();
   const [shareStatus, setShareStatus] = useState<'saved' | 'failed' | null>(null);
   const reasonId = useId();
 
@@ -129,8 +132,8 @@ export function ExpenseDetails({
   }, [e, shares, view]);
 
   const msgText = useMemo(() => {
-    if (!sportCalc) return '';
-    const link = groupLink(view);
+    if (!sportCalc || !e) return '';
+    const link = expenseLink(view, e.rootId ?? e.id);
     return sportShareText(lang, {
       court: sportCalc.court,
       shuttlecocksTotal: sportCalc.shuttlecocksTotal,
@@ -142,7 +145,7 @@ export function ExpenseDetails({
       participants: sportCalc.participants,
       link,
     });
-  }, [sportCalc, lang, view]);
+  }, [sportCalc, lang, view, e]);
 
   if (!e) {
     return (
@@ -187,33 +190,38 @@ export function ExpenseDetails({
 
   const handleShareSportBill = async () => {
     if (!sportCalc) return;
-    setSharing(true);
     setShareStatus(null);
-    try {
-      const billInput: SportBillCardInput = {
-        description: e.description,
-        spentOn: formatDay(e.spentOn),
-        groupName: view.trip.name,
-        total: e.amount,
-        court: sportCalc.court,
-        shuttlecocksTotal: sportCalc.shuttlecocksTotal,
-        extra: sportCalc.extra,
-        maleSlotRate: sportCalc.maleSlotRate,
-        femaleSlotRate: sportCalc.femaleSlotRate,
-        totalMaleSlots: sportCalc.totalMaleSlots,
-        totalFemaleSlots: sportCalc.totalFemaleSlots,
-        rows: sportCalc.participants.map((p) => ({
-          name: p.name,
-          femaleSlots: p.femaleSlots,
-          maleSlots: p.maleSlots,
-          isFixed: p.fixedAmount !== null && p.fixedAmount !== undefined,
-          amount: p.amount,
-        })),
-        payerName: nameOf(view, e.payerId),
-        bank: payInfo?.bankState === 'ok' && payInfo.bank ? payInfo.bank : null,
-        qrSvg: qrSvg || undefined,
-      };
+    const billInput: SportBillCardInput = {
+      description: e.description,
+      spentOn: formatDay(e.spentOn),
+      groupName: view.trip.name,
+      total: e.amount,
+      court: sportCalc.court,
+      shuttlecocksTotal: sportCalc.shuttlecocksTotal,
+      extra: sportCalc.extra,
+      maleSlotRate: sportCalc.maleSlotRate,
+      femaleSlotRate: sportCalc.femaleSlotRate,
+      totalMaleSlots: sportCalc.totalMaleSlots,
+      totalFemaleSlots: sportCalc.totalFemaleSlots,
+      rows: sportCalc.participants.map((p) => ({
+        name: p.name,
+        femaleSlots: p.femaleSlots,
+        maleSlots: p.maleSlots,
+        isFixed: p.fixedAmount !== null && p.fixedAmount !== undefined,
+        amount: p.amount,
+      })),
+      payerName: nameOf(view, e.payerId),
+      bank: payInfo?.bankState === 'ok' && payInfo.bank ? payInfo.bank : null,
+      qrSvg: qrSvg || undefined,
+    };
 
+    if (isZaloWebView()) {
+      showImage(() => renderSportBillPng(billInput), msgText);
+      return;
+    }
+
+    setSharing(true);
+    try {
       const res = await shareSportBill(billInput, msgText, payInfo?.refCode ?? e.description);
       if (res === 'saved') {
         setShareStatus('saved');
@@ -229,6 +237,7 @@ export function ExpenseDetails({
 
   return (
     <article className="fsl-details">
+      {imageSheet}
       <div className="fsl-details__head">
         <h2 className="fsl-details__title" tabIndex={-1}>{e.description}</h2>
         <Pill tone={status.tone}>{t(status.label)}</Pill>

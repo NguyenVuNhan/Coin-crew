@@ -25,6 +25,10 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
     message = t('error.rateLimited');
   } else if (code === 'LINK_DEAD') {
     message = t('error.linkDead');
+  } else if (code === 'LAST_IDENTITY') {
+    message = t('error.lastIdentity');
+  } else if (code === 'MERGE_STALE') {
+    message = t('error.mergeStale');
   } else if (code === 'FUND_SHORT') {
     message = t('error.fundShort');
   } else if (code === 'VALIDATION') {

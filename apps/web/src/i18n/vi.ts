@@ -129,7 +129,7 @@ export const vi: Record<MessageKey, string> = {
   'who.title': 'Bạn là ai?', // REVIEW
   'who.subtitle': 'Chọn tên của bạn để tiếp tục.', // REVIEW
   'who.continueAs': 'Tiếp tục với tên {name}', // REVIEW
-  'who.hasAccount': 'Có tài khoản · đăng nhập bằng Google', // REVIEW
+  'who.hasAccount': 'Đã có tài khoản · nhấn để đăng nhập', // REVIEW
   'who.search': 'Tìm tên', // REVIEW
   'who.clearSearch': 'Xóa tìm kiếm', // REVIEW
   'who.count': '{shown} trên {total} người', // REVIEW
@@ -388,6 +388,12 @@ export const vi: Record<MessageKey, string> = {
   'share.viewHint': 'Những người có liên kết này có thể xem nhưng không thể thay đổi.', // REVIEW
   'share.copy': 'Sao chép', // REVIEW
   'share.copied': 'Đã sao chép', // REVIEW
+  'share.imageTitle': 'Lưu ảnh', // REVIEW
+  'share.longPress': 'Nhấn giữ ảnh (2 giây) để Lưu về máy hoặc Chia sẻ ngay vào nhóm Zalo', // REVIEW
+  'share.messageCopied': 'Đã sao chép tin nhắn — dán vào nhóm Zalo', // REVIEW
+  'share.copyMessage': 'Sao chép tin nhắn', // REVIEW
+  'share.openInBrowser': 'Không lưu được? Nhấn ⋯ → Mở bằng trình duyệt', // REVIEW
+  'share.imageFailed': 'Không tạo được ảnh.', // REVIEW
   'share.regenerate': 'Tạo liên kết mới', // REVIEW
   'share.regenerateConfirm': 'Liên kết cũ sẽ ngừng hoạt động. Tạo liên kết mới?', // REVIEW
 
@@ -503,6 +509,7 @@ export const vi: Record<MessageKey, string> = {
   'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
   'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
   'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
+  'pay.zaloBankHint': 'Ứng dụng ngân hàng không mở? Lưu mã QR, rồi trong app ngân hàng chọn Quét QR → chọn ảnh. Hoặc nhấn ⋯ → Mở bằng trình duyệt.', // REVIEW
   'pay.remindThem': 'Nhắc {name}', // REVIEW
   'pay.share': 'Chia sẻ', // REVIEW
   'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
@@ -537,6 +544,12 @@ export const vi: Record<MessageKey, string> = {
   'who.guestTitle': 'Bạn tham gia với tư cách khách', // REVIEW
   'who.guestExpenses': 'Khoản chi bạn thêm cần một thành viên duyệt.', // REVIEW
   'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
+  'signIn.zalo': 'Đăng nhập bằng Zalo', // REVIEW
+  'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.', // REVIEW
+  'guest.becomeMemberZalo': 'Đăng nhập bằng Zalo để trở thành thành viên', // REVIEW
+  'who.guestSignInZalo': 'Đăng nhập bằng Zalo để dùng đầy đủ', // REVIEW
+  'who.nameMatch': 'Có phải bạn là {name}? Đã chọn sẵn theo tên tài khoản của bạn.', // REVIEW
+  'who.signInTitle': 'Đăng nhập', // REVIEW
   'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ', // REVIEW
   'myBank.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'myBank.none': 'Chưa có thông tin ngân hàng', // REVIEW
@@ -586,6 +599,52 @@ export const vi: Record<MessageKey, string> = {
   'updates.previous': 'Trước đó', // REVIEW
   'updates.now': 'Hiện tại', // REVIEW
   'updates.dismiss': 'Đã hiểu', // REVIEW
+  'auth.failed': 'Đăng nhập chưa xong — thử lại', // REVIEW
+  'auth.linked': 'Đã liên kết {provider}', // REVIEW
+  'auth.mergeRequested': 'Tài khoản {provider} này đã có tài khoản CoinCrew riêng. Đăng nhập vào tài khoản đó để xác nhận gộp (hết hạn sau 7 ngày).', // REVIEW
+  'account.zaloAccount': 'Tài khoản Zalo', // REVIEW
+  'error.lastIdentity': 'Liên kết thêm một cách đăng nhập trước.', // REVIEW
+  'error.mergeStale': 'Yêu cầu gộp này không còn hiệu lực.', // REVIEW
+  'account.methods': 'Cách đăng nhập', // REVIEW
+  'account.methodsHint': 'Quản lý các tài khoản liên kết để đăng nhập và bảo mật', // REVIEW
+  'account.whyLink': 'Vì sao nên liên kết?', // REVIEW
+  'account.notLinked': 'Chưa liên kết', // REVIEW
+  'account.linked': 'Đã liên kết', // REVIEW
+  'account.link': 'Liên kết', // REVIEW
+  'account.change': 'Đổi', // REVIEW
+  'account.unlink': 'Gỡ', // REVIEW
+  'account.unlinkConfirm': 'Gỡ {provider}? Bạn sẽ đăng nhập bằng cách còn lại.', // REVIEW
+  'account.backupNudgeZalo': 'Liên kết thêm Google để không mất tài khoản khi đổi số Zalo', // REVIEW
+  'account.backupNudgeGoogle': 'Liên kết thêm Zalo để đăng nhập ngay trong Zalo', // REVIEW
+  'merge.cancel': 'Huỷ', // REVIEW
+  'merge.chipPending': 'Chờ xác nhận', // REVIEW
+  'merge.chipDeclined': 'Bị từ chối', // REVIEW
+  'merge.chipAccepted': 'Đã gộp', // REVIEW
+  'merge.rowLabel': '{provider}: {status}, {name}. Xem chi tiết', // REVIEW
+  'merge.incoming': '{name} ({who}) muốn gộp tài khoản này vào tài khoản của họ', // REVIEW
+  'merge.review': 'Xem & gộp', // REVIEW
+  'merge.decline': 'Từ chối', // REVIEW
+  'merge.confirmTitle': 'Gộp tài khoản?', // REVIEW
+  'merge.moves': '{groups} nhóm, tài khoản ngân hàng và lịch sử của bạn sẽ chuyển sang tài khoản của {name}.', // REVIEW
+  'merge.released': '{provider} {email} sẽ không còn đăng nhập vào đây', // REVIEW
+  'merge.confirm': 'Gộp tài khoản', // REVIEW
+  'merge.dot': 'Có yêu cầu gộp tài khoản', // REVIEW
+  'merge.sheetTitle': 'Gộp với tài khoản {name}', // REVIEW
+  'merge.sheetIntro': '{provider} này đã thuộc tài khoản CoinCrew {name}. Khi gộp, nhóm, ngân hàng và lịch sử của {name} sẽ chuyển sang tài khoản này.', // REVIEW
+  'merge.step1': 'Bạn đã xác minh {provider} {label}', // REVIEW
+  'merge.step2Pending': 'Xác nhận từ tài khoản {name}', // REVIEW
+  'merge.step2Help': 'Đăng nhập bằng {provider} đó rồi chọn "Xem & gộp". Hết hạn {date}.', // REVIEW
+  'merge.step2Declined': '{name} đã từ chối gộp', // REVIEW
+  'merge.step2Accepted': '{name} đã đồng ý', // REVIEW
+  'merge.step3': 'Hai tài khoản thành một', // REVIEW
+  'merge.declinedHelp': 'Bạn có thể liên kết {provider} khác, hoặc thử lại nếu {name} đổi ý.', // REVIEW
+  'merge.acceptedSummary': 'Nhóm, ngân hàng và lịch sử của {name} đã chuyển sang tài khoản này.', // REVIEW
+  'merge.confirmHere': 'Đăng nhập {provider} để xác nhận', // REVIEW
+  'merge.switchNote': 'Thiết bị này sẽ chuyển sang tài khoản {name}. Sau khi gộp, bạn quay lại tài khoản này với mọi thứ của cả hai.', // REVIEW
+  'merge.cancelRequest': 'Huỷ yêu cầu', // REVIEW
+  'merge.linkAgain': 'Liên kết lại', // REVIEW
+  'merge.gotIt': 'Đã hiểu', // REVIEW
+  'merge.noRequestHere': 'Tài khoản này không có yêu cầu gộp nào đang chờ.', // REVIEW
   'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
   'entry.expense': 'Chi tiêu', // REVIEW
   'entry.income': 'Quỹ thu', // REVIEW

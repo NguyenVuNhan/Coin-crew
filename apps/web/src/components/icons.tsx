@@ -5,9 +5,10 @@ export type IconName =
   | 'back' | 'settings' | 'userPlus' | 'userCheck' | 'share' | 'copy' | 'download' | 'check' | 'circleCheck'
   | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
-  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'piggyBank';
+  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank';
 
 const SHAPES: Record<IconName, ReactNode> = {
+  swap: <><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></>,
   back: <><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></>,
   settings: (
     <>

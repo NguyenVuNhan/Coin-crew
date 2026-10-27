@@ -4,9 +4,38 @@ import { formatVnd } from '@fsl/core';
 
 const PNG_SIZE = 1024;
 
+/** The site mark from public/icon.svg (512 units square), drawn in the middle of every payment QR. */
+const LOGO_MARK =
+  '<rect width="512" height="512" rx="112.64" fill="#0f766e"/>' +
+  '<text x="256" y="270" text-anchor="middle" dominant-baseline="central" fill="#ffffff" ' +
+  'font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif" font-weight="bold" font-size="300">₫</text>';
+/** The white plate's share of the code's width: about 6% of the modules, well within what level 'H' recovers. */
+const PLATE_SHARE = 0.24;
+
 /**
- * The VietQR picture for a payload as SVG text; '' while it is being made, and when there is no payload. A picture is
- * kept with the payload it was made from, so a new payload never shows the previous picture.
+ * The QR SVG from `qrcode` with the site mark on a white plate in its middle. Only for codes made with error
+ * correction 'H'. Returns the SVG unchanged when it has no square viewBox.
+ */
+export function withLogo(svg: string): string {
+  const size = Number(/viewBox="0 0 (\d+(?:\.\d+)?) \1"/.exec(svg)?.[1]);
+  const end = svg.lastIndexOf('</svg>');
+  if (!size || end < 0) return svg;
+  const plate = size * PLATE_SHARE;
+  const at = (size - plate) / 2;
+  const pad = plate * 0.1;
+  const n = (v: number) => Number(v.toFixed(3));
+  const logo =
+    '<g data-logo="coincrew" shape-rendering="geometricPrecision">' +
+    `<rect data-logo-plate="" x="${n(at)}" y="${n(at)}" width="${n(plate)}" height="${n(plate)}" rx="${n(plate * 0.22)}" fill="#ffffff"/>` +
+    `<svg x="${n(at + pad)}" y="${n(at + pad)}" width="${n(plate - 2 * pad)}" height="${n(plate - 2 * pad)}" viewBox="0 0 512 512">${LOGO_MARK}</svg>` +
+    '</g>';
+  return svg.slice(0, end) + logo + svg.slice(end);
+}
+
+/**
+ * The VietQR picture for a payload as SVG text, with the site mark in the middle; '' while it is being made, and when
+ * there is no payload. A picture is kept with the payload it was made from, so a new payload never shows the previous
+ * picture.
  */
 export function useQrSvg(payload: string | null): string {
   const [made, setMade] = useState<{ payload: string; svg: string } | null>(null);
@@ -17,9 +46,9 @@ export function useQrSvg(payload: string | null): string {
       return;
     }
     let active = true;
-    QRCode.toString(payload, { type: 'svg', errorCorrectionLevel: 'M', margin: 2 })
+    QRCode.toString(payload, { type: 'svg', errorCorrectionLevel: 'H', margin: 2 })
       .then((svg) => {
-        if (active) setMade({ payload, svg });
+        if (active) setMade({ payload, svg: withLogo(svg) });
       })
       .catch(() => {
         if (active) setMade(null);
@@ -363,4 +392,14 @@ export async function shareSportBill(
     }
   }
   return saved ? 'saved' : 'failed';
+}
+
+/** The blob as a `data:` URL (some webviews cannot long-press-save `blob:` URLs). */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+    reader.readAsDataURL(blob);
+  });
 }
