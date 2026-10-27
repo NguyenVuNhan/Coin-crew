@@ -76,6 +76,8 @@ export interface MeUserView {
   avatarUrl?: string | null;
   consentAt: string | null;
   providers: AuthProvider[];
+  /** The name on the linked Zalo login, when one is linked. */
+  zaloName?: string | null;
 }
 
 export interface IncomingMergeRequest {
@@ -93,6 +95,10 @@ export interface OutgoingMergeRequest {
   provider: AuthProvider;
   status: 'pending' | 'accepted' | 'declined';
   expiresAt: string;
+  /** The other account's CoinCrew name when the request was made. */
+  otherName?: string;
+  /** The verified login: the Zalo name, or the Google email. */
+  identityLabel?: string;
 }
 
 export interface MeResponse {

@@ -8,6 +8,7 @@ export const users = sqliteTable(
     id: text('id').primaryKey(),
     googleSub: text('google_sub'),
     zaloSub: text('zalo_sub'),
+    zaloName: text('zalo_name'),
     email: text('email'),
     name: text('name').notNull(),
     gender: text('gender'),
@@ -35,6 +36,9 @@ export const accountMergeRequests = sqliteTable(
     createdAt: text('created_at').notNull(),
     expiresAt: text('expires_at').notNull(),
     decidedAt: text('decided_at'),
+    otherName: text('other_name'),
+    identityLabel: text('identity_label'),
+    dismissedAt: text('dismissed_at'),
   },
   (t) => [
     index('account_merge_requests_merged_idx').on(t.mergedUserId, t.status),

@@ -36,6 +36,7 @@ export function toMeUserView(user: UserRow): MeUserView {
     avatarUrl: user.avatarUrl ?? null,
     consentAt: user.consentAt ?? null,
     providers: providersOf(user),
+    zaloName: user.zaloName ?? null,
   };
 }
 
