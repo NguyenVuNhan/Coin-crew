@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import type {
   AuthProvider,
   IncomingMergeRequest,
@@ -87,24 +87,41 @@ export async function buildMeResponse(
         provider: accountMergeRequests.provider,
         status: accountMergeRequests.status,
         expiresAt: accountMergeRequests.expiresAt,
+        otherName: accountMergeRequests.otherName,
+        identityLabel: accountMergeRequests.identityLabel,
+        mergedName: users.name,
+        createdAt: accountMergeRequests.createdAt,
       })
       .from(accountMergeRequests)
+      .leftJoin(users, eq(users.id, accountMergeRequests.mergedUserId))
       .where(
         and(
           eq(accountMergeRequests.survivorUserId, user.id),
           inArray(accountMergeRequests.status, ['pending', 'accepted', 'declined']),
           gt(accountMergeRequests.expiresAt, now),
+          isNull(accountMergeRequests.dismissedAt),
         ),
       )
       .orderBy(desc(accountMergeRequests.createdAt)),
   ]);
 
-  const outgoing: OutgoingMergeRequest[] = outgoingRows.map((r) => ({
-    id: r.id,
-    provider: r.provider,
-    status: r.status as 'pending' | 'accepted' | 'declined',
-    expiresAt: r.expiresAt,
-  }));
+  const seenProviders = new Set<AuthProvider>();
+  const outgoing: OutgoingMergeRequest[] = [];
+  for (const r of outgoingRows) {
+    if (seenProviders.has(r.provider)) {
+      continue;
+    }
+    seenProviders.add(r.provider);
+    const providerLabel = r.provider === 'google' ? 'Google' : 'Zalo';
+    outgoing.push({
+      id: r.id,
+      provider: r.provider,
+      status: r.status as 'pending' | 'accepted' | 'declined',
+      expiresAt: r.expiresAt,
+      otherName: r.otherName ?? r.mergedName ?? providerLabel,
+      identityLabel: r.identityLabel ?? providerLabel,
+    });
+  }
 
   if (incomingRows.length === 0) {
     return {

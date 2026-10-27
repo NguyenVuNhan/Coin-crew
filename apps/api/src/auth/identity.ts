@@ -68,29 +68,32 @@ export async function linkIdentity(
     }
 
     const now = nowIso();
-    await db
-      .update(accountMergeRequests)
-      .set({ status: 'cancelled', decidedAt: now })
-      .where(
-        and(
-          eq(accountMergeRequests.survivorUserId, userId),
-          eq(accountMergeRequests.mergedUserId, owner.id),
-          eq(accountMergeRequests.status, 'pending'),
-        ),
-      );
-
     const requestId = newId();
     const expiresAt = new Date(Date.parse(now) + 7 * 86400000).toISOString();
-    await db.insert(accountMergeRequests).values({
-      id: requestId,
-      survivorUserId: userId,
-      mergedUserId: owner.id,
-      provider,
-      providerSub: profile.sub,
-      status: 'pending',
-      createdAt: now,
-      expiresAt,
-    });
+    await db.batch([
+      db
+        .update(accountMergeRequests)
+        .set({ status: 'cancelled', decidedAt: now })
+        .where(
+          and(
+            eq(accountMergeRequests.survivorUserId, userId),
+            eq(accountMergeRequests.provider, provider),
+            eq(accountMergeRequests.status, 'pending'),
+          ),
+        ),
+      db.insert(accountMergeRequests).values({
+        id: requestId,
+        survivorUserId: userId,
+        mergedUserId: owner.id,
+        provider,
+        providerSub: profile.sub,
+        status: 'pending',
+        createdAt: now,
+        expiresAt,
+        otherName: owner.name,
+        identityLabel: provider === 'google' ? (profile.email ?? profile.name) : profile.name,
+      }),
+    ]);
 
     return { result: 'merge_requested', requestId };
   }
