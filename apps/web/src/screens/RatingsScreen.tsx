@@ -21,7 +21,7 @@ import { Avatar } from '../components/Avatar';
 import { Pill } from '../components/Pill';
 import { Icon } from '../components/icons';
 import { InlineError } from '../components/InlineError';
-import { PodiumTop3 } from '../components/LeaderboardWidget';
+import { PodiumTop3, podiumPlayers } from '../components/LeaderboardWidget';
 import './RatingsScreen.css';
 
 /**
@@ -293,10 +293,13 @@ export function RatingsPanel({ view }: { view: TripView }) {
 
   const trimmedQuery = query.trim();
   const normQuery = normalizeName(trimmedQuery);
+  const top3 = podiumPlayers(ranked);
+  const podiumIds = new Set(top3.map((p) => p.id));
+  // The list continues below the podium (#4 onwards); a search looks through everyone, podium included.
   const filtered =
     normQuery.length > 0
       ? ranked.filter((p) => normalizeName(p.name).includes(normQuery))
-      : ranked;
+      : ranked.filter((p) => !podiumIds.has(p.id));
 
   const isSearching = normQuery.length > 0;
   const visibleRows =
@@ -332,8 +335,6 @@ export function RatingsPanel({ view }: { view: TripView }) {
       />
     );
   };
-
-  const top3 = ranked.slice(0, 3);
 
   return (
     <div className="fsl-ratings">
@@ -433,9 +434,11 @@ export function RatingsPanel({ view }: { view: TripView }) {
 
       {/* 4. Ranked Player List */}
       {visibleRows.length === 0 ? (
-        <p className="fsl-ratings__empty">
-          {t('ratings.noSearchMatch', { query: trimmedQuery })}
-        </p>
+        isSearching ? (
+          <p className="fsl-ratings__empty">
+            {t('ratings.noSearchMatch', { query: trimmedQuery })}
+          </p>
+        ) : null
       ) : (
         <div className="fsl-ratings__list">
           {visibleRows.map((p) => {
@@ -444,7 +447,7 @@ export function RatingsPanel({ view }: { view: TripView }) {
             return (
               <div key={p.id} className="fsl-ratings__row">
                 <div className="fsl-ratings__person">
-                  <span className="fsl-ratings__rank">{p.rank}</span>
+                  <span className="fsl-ratings__rank">{p.rank ?? ''}</span>
                   <Avatar name={p.name} avatarUrl={p.avatarUrl} />
                   <div className="fsl-ratings__meta">
                     <div className="fsl-ratings__name-line">

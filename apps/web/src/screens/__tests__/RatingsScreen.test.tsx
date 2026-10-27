@@ -83,8 +83,6 @@ describe('RatingsScreen & /t/:tripId/ratings', () => {
     expect(screen.queryByText('+')).toBeNull();
     expect(screen.queryByRole('button', { name: /Take back a star/i })).toBeNull();
 
-    expect(screen.getByText('You')).toBeInTheDocument();
-
     const chiBtn = screen.getByTestId(`star-vote-${PIDS.C}`);
     expect(chiBtn).toBeInTheDocument();
     expect(chiBtn).not.toHaveClass('fsl-star-vote--popping');
@@ -260,6 +258,44 @@ describe('RatingsScreen & /t/:tripId/ratings', () => {
     expect(screen.queryByText('Player 15')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Show all 15 players' }));
     expect(screen.getByText('Player 15')).toBeInTheDocument();
+  });
+
+  it('podium holds only starred players (anonymous avatars fill the rest); the list continues from #4 and unrated players have no number, sorted by name', () => {
+    const person = (id: string, name: string): PersonView => ({ id, name, status: 'active', isMember: false, bank: 'none', gender: null });
+    const people = [
+      { ...person(PIDS.M, 'Minh'), isMember: true },
+      person(PIDS.A, 'Yến'),
+      person(PIDS.B, 'Bảo'),
+      person(PIDS.C, 'Đạt'),
+      person('p-5', 'An'),
+    ];
+
+    // Only one player has stars: the #2 and #3 slots stay anonymous and everyone else is unranked.
+    const { unmount } = renderAt(
+      <RatingsScreen view={buildSportRatingsView({ people, ratings: { enabled: true, totalStars: { [PIDS.C]: 4 }, maxStars: 10, myAllocations: {} } })} />,
+    );
+    expect(document.querySelector('[data-podium-rank="1"]')).toHaveTextContent('Đạt');
+    expect(screen.getByTestId('podium-anonymous-2')).toBeInTheDocument();
+    expect(screen.getByTestId('podium-anonymous-3')).toBeInTheDocument();
+    const rows = Array.from(document.querySelectorAll('.fsl-ratings__row'));
+    expect(rows.map((r) => r.querySelector('.fsl-ratings__name')?.textContent)).toEqual(['An', 'Bảo', 'Minh', 'Yến']);
+    expect(rows.map((r) => r.querySelector('.fsl-ratings__rank')?.textContent)).toEqual(['', '', '', '']);
+    expect(screen.getByText('You')).toBeInTheDocument();
+    unmount();
+
+    // Four starred players: the first list row is #4, then the unrated one without a number.
+    renderAt(
+      <RatingsScreen
+        view={buildSportRatingsView({
+          people,
+          ratings: { enabled: true, totalStars: { [PIDS.M]: 9, [PIDS.A]: 7, [PIDS.B]: 5, [PIDS.C]: 2 }, maxStars: 10, myAllocations: {} },
+        })}
+      />,
+    );
+    expect(screen.queryByTestId('podium-anonymous-3')).toBeNull();
+    const rows4 = Array.from(document.querySelectorAll('.fsl-ratings__row'));
+    expect(rows4.map((r) => r.querySelector('.fsl-ratings__rank')?.textContent)).toEqual(['4', '']);
+    expect(rows4.map((r) => r.querySelector('.fsl-ratings__name')?.textContent)).toEqual(['Đạt', 'An']);
   });
 
   it('shows guest sign-in prompt and shows read-only star counts for guests', () => {

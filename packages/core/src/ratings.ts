@@ -10,7 +10,8 @@ export interface RankedPlayer {
   gender: 'M' | 'F' | null;
   isMember: boolean;
   stars: number;
-  rank: number;
+  /** 1-based leaderboard position; `null` for players nobody has given a star yet (they are unranked). */
+  rank: number | null;
 }
 
 /** Total star budget for each signed-in member in a group with `activeCount` active participants. */
@@ -18,7 +19,10 @@ export function maxStarsForGroup(activeCount: number): number {
   return Math.max(0, activeCount) * RATING_STAR_MULTIPLIER;
 }
 
-/** Ranks active participants by total stars descending, tie-broken by their order in `people`. */
+/**
+ * Ranks active participants by total stars descending, tie-broken by their order in `people`.
+ * Players without any star come last, sorted by name, and get no rank.
+ */
 export function rankPlayers(
   people: {
     id: string;
@@ -44,6 +48,7 @@ export function rankPlayers(
 
   active.sort((a, b) => {
     if (b.stars !== a.stars) return b.stars - a.stars;
+    if (a.stars === 0) return a.name.localeCompare(b.name, 'vi') || a.orderIndex - b.orderIndex;
     return a.orderIndex - b.orderIndex;
   });
 
@@ -54,7 +59,7 @@ export function rankPlayers(
     gender: item.gender,
     isMember: item.isMember,
     stars: item.stars,
-    rank: idx + 1,
+    rank: item.stars > 0 ? idx + 1 : null,
   }));
 }
 

@@ -36,6 +36,22 @@ describe('ratings core helpers', () => {
     ]);
   });
 
+  it('rankPlayers puts players without stars last, sorted by name, with no rank', () => {
+    const people = [
+      { id: 'p1', name: 'Huyền', status: 'active', isMember: true },
+      { id: 'p2', name: 'An', status: 'active', isMember: false },
+      { id: 'p3', name: 'Bình', status: 'active', isMember: false },
+      { id: 'p4', name: 'Thủy', status: 'active', isMember: true },
+    ];
+    const ranked = rankPlayers(people, { p4: 3 });
+    expect(ranked.map((r) => [r.rank, r.id])).toEqual([
+      [1, 'p4'],
+      [null, 'p2'],
+      [null, 'p3'],
+      [null, 'p1'],
+    ]);
+  });
+
   it('ratingBudget computes remaining stars and over-budget deficit when roster shrinks', () => {
     expect(ratingBudget(10, { p2: 5, p3: 3 })).toEqual({
       maxStars: 20,

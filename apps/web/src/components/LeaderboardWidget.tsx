@@ -13,8 +13,14 @@ const RESTORE_SCROLL_Y = 20;
 
 export type WidgetStage = 'full' | 'collapsed' | 'hidden';
 
+/** The players who stand on the podium: the top 3 among those with at least one star. */
+export function podiumPlayers(ranked: RankedPlayer[]): RankedPlayer[] {
+  return ranked.filter((p) => p.stars > 0).slice(0, 3);
+}
+
 /**
  * Radial Top 3 Podium: #2 on the left, #1 in the center (largest avatar + crown), #3 on the right.
+ * Only players with stars stand on it; a slot nobody has earned yet shows an anonymous avatar.
  */
 export function PodiumTop3({
   players,
@@ -60,8 +66,12 @@ export function PodiumTop3({
           </>
         ) : (
           <>
-            <div className={`fsl-podium__avatar fsl-podium__avatar--empty fsl-podium__avatar--rank-${rank}`} aria-hidden="true">
-              —
+            <div
+              className={`fsl-podium__avatar fsl-podium__avatar--empty fsl-podium__avatar--rank-${rank}`}
+              data-testid={`podium-anonymous-${rank}`}
+              aria-hidden="true"
+            >
+              <Icon name="user" size={rank === 1 ? 32 : 24} />
             </div>
             <span className="fsl-podium__name fsl-podium__name--empty">—</span>
             <span className="fsl-podium__score fsl-podium__score--empty">0 ★</span>
@@ -144,7 +154,7 @@ export function LeaderboardWidget({
         ? 'collapsed'
         : 'full';
 
-  const top3 = ranked.slice(0, 3);
+  const top3 = podiumPlayers(ranked);
 
   return (
     <section
