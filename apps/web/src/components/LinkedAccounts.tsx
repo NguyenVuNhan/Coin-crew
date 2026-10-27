@@ -1,14 +1,18 @@
 import { useState, useId } from 'react';
 import { useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { MeResponse, AuthProvider } from '@fsl/core';
+import type { MeResponse, AuthProvider, OutgoingMergeRequest } from '@fsl/core';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { apiSend } from '../api/client';
 import { signInHref } from './SignInButtons';
+import { ProviderLogo, providerName } from './ProviderLogo';
 import { Button } from './Button';
 import { Sheet } from './Sheet';
 import { InlineError } from './InlineError';
+import { Pill, type PillProps } from './Pill';
+import { Icon, type IconName } from './icons';
+import { MergeSheet } from './MergeSheet';
 import './LinkedAccounts.css';
 
 export interface LinkedAccountsProps {
@@ -24,8 +28,9 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
 
   const [confirming, setConfirming] = useState<AuthProvider | null>(null);
   const [unlinking, setUnlinking] = useState(false);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [whyLinkOpen, setWhyLinkOpen] = useState<AuthProvider | null>(null);
+  const [selectedMergeRequest, setSelectedMergeRequest] = useState<OutgoingMergeRequest | null>(null);
 
   const user = me.user;
   if (!user) {
@@ -33,21 +38,19 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
   }
 
   const inZalo = isZaloWebView();
-  const providers = user.providers ?? [];
-  const isGoogleLinked = providers.includes('google');
-  const isZaloLinked = providers.includes('zalo');
+  const userProviders = user.providers ?? [];
+  const isGoogleLinked = userProviders.includes('google');
+  const isZaloLinked = userProviders.includes('zalo');
   const zaloOn = me.signIn.zalo === true;
-  // A lone method can be unlinked once another is linked: Google always can be, Zalo only where it is set up.
-  const otherLinkable = providers.length === 1 && (providers[0] === 'zalo' || zaloOn);
-  const showUnlink = providers.length > 1 || otherLinkable;
 
-  const googleStatus = isGoogleLinked
-    ? (user.email || t('account.linked'))
-    : t('account.notLinked');
+  // Zalo not configured (me.signIn.zalo !== true) and Zalo not linked: no Zalo card.
+  const hasZaloMerge = me.mergeRequests?.outgoing?.some((r) => r.provider === 'zalo');
+  const showZalo = isZaloLinked || zaloOn || Boolean(hasZaloMerge);
+  const providerList: AuthProvider[] = ['google', ...(showZalo ? (['zalo'] as const) : [])];
 
-  const zaloStatus = isZaloLinked
-    ? t('account.linked')
-    : t('account.notLinked');
+  const liveMergeRequest = selectedMergeRequest
+    ? (me.mergeRequests?.outgoing?.find((r) => r.id === selectedMergeRequest.id) ?? selectedMergeRequest)
+    : null;
 
   const startUnlink = (provider: AuthProvider) => {
     setError(null);
@@ -55,7 +58,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
   };
 
   const handleUnlink = async () => {
-    if (!confirming) return;
+    if (!confirming || unlinking) return;
     const provider = confirming;
     setUnlinking(true);
     setError(null);
@@ -71,140 +74,203 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
     }
   };
 
-  const handleCancelMerge = async (id: string) => {
-    setCancellingId(id);
-    setError(null);
-    try {
-      await apiSend(`/api/me/merge-requests/${id}/cancel`, 'POST');
-      await queryClient.invalidateQueries({ queryKey: ['me'] });
-    } catch (err) {
-      setError(err);
-    } finally {
-      setCancellingId(null);
-    }
-  };
-
   return (
     <section className="fsl-linked" aria-labelledby={headingId}>
       <h3 id={headingId} className="fsl-linked__title">
         {t('account.methods')}
       </h3>
-      <ul className="fsl-linked__list">
-        <li data-testid="method-google" className="fsl-linked__row">
-          <div className="fsl-linked__info">
-            <span className="fsl-linked__provider">Google</span>
-            <span className="fsl-linked__status">{googleStatus}</span>
-          </div>
-          <div className="fsl-linked__actions">
-            {isGoogleLinked ? (
-              <>
-                {!inZalo && (
-                  <Button variant="ghost" href={signInHref('google', returnTo, 'link')}>
-                    {t('account.change')}
-                  </Button>
-                )}
-                {showUnlink && (
-                  <Button
-                    variant="ghost"
-                    className="fsl-linked__unlink"
-                    disabled={providers.length < 2}
-                    onClick={() => startUnlink('google')}
-                  >
-                    {t('account.unlink')}
-                  </Button>
-                )}
-              </>
-            ) : (
-              !inZalo && (
-                <Button variant="ghost" href={signInHref('google', returnTo, 'link')}>
-                  {t('account.link')}
-                </Button>
-              )
-            )}
-          </div>
-          {inZalo && (
-            <p className="fsl-linked__hint">{t('signIn.googleInZalo')}</p>
-          )}
-        </li>
+      <p className="fsl-linked__hint-text">{t('account.methodsHint')}</p>
 
-        {(isZaloLinked || zaloOn) && (
-          <li data-testid="method-zalo" className="fsl-linked__row">
-            <div className="fsl-linked__info">
-              <span className="fsl-linked__provider">Zalo</span>
-              <span className="fsl-linked__status">{zaloStatus}</span>
-            </div>
-            <div className="fsl-linked__actions">
-              {isZaloLinked ? (
-                <>
-                  <Button variant="ghost" href={signInHref('zalo', returnTo, 'link')}>
-                    {t('account.change')}
-                  </Button>
-                  {showUnlink && (
-                    <Button
-                      variant="ghost"
-                      className="fsl-linked__unlink"
-                      disabled={providers.length < 2}
-                      onClick={() => startUnlink('zalo')}
-                    >
-                      {t('account.unlink')}
-                    </Button>
+      <ul className="fsl-linked__list">
+        {providerList.map((p) => {
+          const isLinked = userProviders.includes(p);
+          const mergeRequest = me.mergeRequests?.outgoing?.find((r) => r.provider === p);
+          const pName = providerName(p);
+          const testId = `method-${p}`;
+
+          if (mergeRequest) {
+            let pillTone: PillProps['tone'] = 'warning';
+            let pillIcon: IconName = 'clock';
+            let chipText = t('merge.chipPending');
+            let mergeLogoMuted = true;
+
+            if (mergeRequest.status === 'accepted') {
+              pillTone = 'success';
+              pillIcon = 'check';
+              chipText = t('merge.chipAccepted');
+              mergeLogoMuted = false;
+            } else if (mergeRequest.status === 'declined') {
+              pillTone = 'danger';
+              pillIcon = 'x';
+              chipText = t('merge.chipDeclined');
+              mergeLogoMuted = true;
+            } else {
+              pillTone = 'warning';
+              pillIcon = 'clock';
+              chipText = t('merge.chipPending');
+              mergeLogoMuted = true;
+            }
+
+            const otherName = mergeRequest.otherName ?? pName;
+            const rowLabel = t('merge.rowLabel', {
+              provider: pName,
+              status: chipText,
+              name: otherName,
+            });
+
+            return (
+              <li
+                key={p}
+                data-testid={testId}
+                className="fsl-linked__card fsl-linked__card--chip"
+              >
+                <button
+                  type="button"
+                  className="fsl-linked__chip-btn"
+                  onClick={() => setSelectedMergeRequest(mergeRequest)}
+                  aria-label={rowLabel}
+                >
+                  <ProviderLogo provider={p} size={44} muted={mergeLogoMuted} />
+                  <span className="fsl-linked__info">
+                    <span className="fsl-linked__provider">{pName}</span>
+                    <span className="fsl-linked__status">
+                      <Pill tone={pillTone}>
+                        <Icon name={pillIcon} size={14} />
+                        <span>{chipText}</span>
+                      </Pill>
+                    </span>
+                    {otherName ? (
+                      <span className="fsl-linked__identity" title={otherName}>
+                        {otherName}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="fsl-linked__chevron" aria-hidden="true">
+                    <Icon name="chevronRight" size={20} />
+                  </span>
+                </button>
+              </li>
+            );
+          }
+
+          const isGoogleInZalo = inZalo && p === 'google';
+          let identityText: string | null = null;
+          if (isGoogleInZalo) {
+            identityText = t('signIn.googleInZalo');
+          } else if (p === 'google') {
+            identityText = user.email ?? null;
+          } else if (p === 'zalo') {
+            identityText = user.zaloName ?? null;
+          }
+
+          const hasIdentity = Boolean(identityText && identityText.trim().length > 0);
+          const showWhyLink = userProviders.length === 1 && !isLinked;
+          const isWhyOpen = whyLinkOpen === p;
+
+          return (
+            <li key={p} data-testid={testId} className="fsl-linked__card">
+              <ProviderLogo provider={p} size={44} muted={!isLinked} />
+              <div className="fsl-linked__info">
+                <span className="fsl-linked__provider">{pName}</span>
+                <div
+                  className={`fsl-linked__status fsl-linked__status--${
+                    isLinked ? 'linked' : 'unlinked'
+                  }`}
+                >
+                  {isLinked ? (
+                    <>
+                      <Icon name="circleCheck" size={16} />
+                      <span>{t('account.linked')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t('account.notLinked')}</span>
+                      {showWhyLink && (
+                        <button
+                          type="button"
+                          className="fsl-linked__why-btn"
+                          aria-expanded={isWhyOpen}
+                          aria-label={t('account.whyLink')}
+                          onClick={() => setWhyLinkOpen(isWhyOpen ? null : p)}
+                        >
+                          <Icon name="info" size={16} />
+                        </button>
+                      )}
+                    </>
                   )}
-                </>
-              ) : (
-                <Button variant="ghost" href={signInHref('zalo', returnTo, 'link')}>
-                  {t('account.link')}
-                </Button>
-              )}
-            </div>
-          </li>
-        )}
+                </div>
+                {isWhyOpen && (
+                  <p className="fsl-linked__why-text">
+                    {p === 'google'
+                      ? t('account.backupNudgeZalo')
+                      : t('account.backupNudgeGoogle')}
+                  </p>
+                )}
+                {hasIdentity && (
+                  <span
+                    className={`fsl-linked__identity${
+                      isGoogleInZalo ? ' fsl-linked__identity--multiline' : ''
+                    }`}
+                    title={identityText!}
+                  >
+                    {identityText}
+                  </span>
+                )}
+              </div>
+              <div className="fsl-linked__actions">
+                {isLinked ? (
+                  <>
+                    {!isGoogleInZalo && (
+                      <Button
+                        variant="secondary"
+                        href={signInHref(p, returnTo, 'link')}
+                      >
+                        <Icon name="swap" size={16} />
+                        {t('account.change')}
+                      </Button>
+                    )}
+                    {userProviders.length > 1 && (
+                      <Button variant="danger" onClick={() => startUnlink(p)}>
+                        <Icon name="trash" size={16} />
+                        {t('account.unlink')}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  !isGoogleInZalo && (
+                    <Button
+                      variant="primary"
+                      href={signInHref(p, returnTo, 'link')}
+                    >
+                      <Icon name="link" size={16} />
+                      {t('account.link')}
+                    </Button>
+                  )
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       {error !== null && (
         <InlineError error={error} className="fsl-linked__error" />
       )}
 
-      {otherLinkable && (
-        <>
-          <p className="fsl-linked__note">{t('account.unlinkLast')}</p>
-          <p className="fsl-linked__nudge">
-            {providers[0] === 'zalo'
-              ? t('account.backupNudgeZalo')
-              : t('account.backupNudgeGoogle')}
-          </p>
-        </>
+      {liveMergeRequest && (
+        <MergeSheet
+          request={liveMergeRequest}
+          open={selectedMergeRequest !== null}
+          onClose={() => setSelectedMergeRequest(null)}
+        />
       )}
-
-      {me.mergeRequests?.outgoing?.map((req) => (
-        <div
-          key={req.id}
-          className={`fsl-linked__merge fsl-linked__merge--${req.status}`}
-        >
-          <span className="fsl-linked__merge-text">
-            {req.status === 'pending'
-              ? t('merge.outgoingPending')
-              : req.status === 'accepted'
-                ? t('merge.outgoingAccepted')
-                : t('merge.outgoingDeclined')}
-          </span>
-          {req.status === 'pending' && (
-            <Button
-              variant="secondary"
-              loading={cancellingId === req.id}
-              onClick={() => handleCancelMerge(req.id)}
-            >
-              {t('merge.cancel')}
-            </Button>
-          )}
-        </div>
-      ))}
 
       <Sheet
         open={confirming !== null}
         title={
           confirming
             ? t('account.unlinkConfirm', {
-                provider: confirming === 'google' ? 'Google' : 'Zalo',
+                provider: providerName(confirming),
               })
             : ''
         }

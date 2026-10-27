@@ -131,7 +131,7 @@ export function useMe(opts?: { enabled?: boolean }) {
     select: (d) => {
       const p = d as Partial<MeResponse>;
       return {
-        user: p.user ?? null,
+        user: p.user ? { ...p.user, zaloName: p.user.zaloName ?? null } : null,
         signIn: { zalo: p.signIn?.zalo === true },
         mergeRequests: {
           incoming: p.mergeRequests?.incoming ?? [],

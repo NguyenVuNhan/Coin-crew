@@ -606,19 +606,21 @@ export const vi: Record<MessageKey, string> = {
   'error.lastIdentity': 'Liên kết thêm một cách đăng nhập trước.', // REVIEW
   'error.mergeStale': 'Yêu cầu gộp này không còn hiệu lực.', // REVIEW
   'account.methods': 'Cách đăng nhập', // REVIEW
+  'account.methodsHint': 'Quản lý các tài khoản liên kết để đăng nhập và bảo mật', // REVIEW
+  'account.whyLink': 'Vì sao nên liên kết?', // REVIEW
   'account.notLinked': 'Chưa liên kết', // REVIEW
   'account.linked': 'Đã liên kết', // REVIEW
   'account.link': 'Liên kết', // REVIEW
   'account.change': 'Đổi', // REVIEW
   'account.unlink': 'Gỡ', // REVIEW
   'account.unlinkConfirm': 'Gỡ {provider}? Bạn sẽ đăng nhập bằng cách còn lại.', // REVIEW
-  'account.unlinkLast': 'Liên kết thêm một cách đăng nhập trước', // REVIEW
   'account.backupNudgeZalo': 'Liên kết thêm Google để không mất tài khoản khi đổi số Zalo', // REVIEW
   'account.backupNudgeGoogle': 'Liên kết thêm Zalo để đăng nhập ngay trong Zalo', // REVIEW
-  'merge.outgoingPending': 'Đang chờ tài khoản kia xác nhận gộp', // REVIEW
-  'merge.outgoingAccepted': 'Đã gộp tài khoản', // REVIEW
-  'merge.outgoingDeclined': 'Tài khoản kia đã từ chối gộp', // REVIEW
   'merge.cancel': 'Huỷ', // REVIEW
+  'merge.chipPending': 'Chờ xác nhận', // REVIEW
+  'merge.chipDeclined': 'Bị từ chối', // REVIEW
+  'merge.chipAccepted': 'Đã gộp', // REVIEW
+  'merge.rowLabel': '{provider}: {status}, {name}. Xem chi tiết', // REVIEW
   'merge.incoming': '{name} ({who}) muốn gộp tài khoản này vào tài khoản của họ', // REVIEW
   'merge.review': 'Xem & gộp', // REVIEW
   'merge.decline': 'Từ chối', // REVIEW
