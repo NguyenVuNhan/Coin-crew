@@ -36,6 +36,10 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
   const providers = user.providers ?? [];
   const isGoogleLinked = providers.includes('google');
   const isZaloLinked = providers.includes('zalo');
+  const zaloOn = me.signIn.zalo === true;
+  // A lone method can be unlinked once another is linked: Google always can be, Zalo only where it is set up.
+  const otherLinkable = providers.length === 1 && (providers[0] === 'zalo' || zaloOn);
+  const showUnlink = providers.length > 1 || otherLinkable;
 
   const googleStatus = isGoogleLinked
     ? (user.email || t('account.linked'))
@@ -99,14 +103,16 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     {t('account.change')}
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  className="fsl-linked__unlink"
-                  disabled={providers.length < 2}
-                  onClick={() => startUnlink('google')}
-                >
-                  {t('account.unlink')}
-                </Button>
+                {showUnlink && (
+                  <Button
+                    variant="ghost"
+                    className="fsl-linked__unlink"
+                    disabled={providers.length < 2}
+                    onClick={() => startUnlink('google')}
+                  >
+                    {t('account.unlink')}
+                  </Button>
+                )}
               </>
             ) : (
               !inZalo && (
@@ -121,42 +127,44 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
           )}
         </li>
 
-        <li data-testid="method-zalo" className="fsl-linked__row">
-          <div className="fsl-linked__info">
-            <span className="fsl-linked__provider">Zalo</span>
-            <span className="fsl-linked__status">{zaloStatus}</span>
-          </div>
-          <div className="fsl-linked__actions">
-            {isZaloLinked ? (
-              <>
-                <Button variant="ghost" href={signInHref('zalo', returnTo, 'link')}>
-                  {t('account.change')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="fsl-linked__unlink"
-                  disabled={providers.length < 2}
-                  onClick={() => startUnlink('zalo')}
-                >
-                  {t('account.unlink')}
-                </Button>
-              </>
-            ) : (
-              me.signIn.zalo === true && (
+        {(isZaloLinked || zaloOn) && (
+          <li data-testid="method-zalo" className="fsl-linked__row">
+            <div className="fsl-linked__info">
+              <span className="fsl-linked__provider">Zalo</span>
+              <span className="fsl-linked__status">{zaloStatus}</span>
+            </div>
+            <div className="fsl-linked__actions">
+              {isZaloLinked ? (
+                <>
+                  <Button variant="ghost" href={signInHref('zalo', returnTo, 'link')}>
+                    {t('account.change')}
+                  </Button>
+                  {showUnlink && (
+                    <Button
+                      variant="ghost"
+                      className="fsl-linked__unlink"
+                      disabled={providers.length < 2}
+                      onClick={() => startUnlink('zalo')}
+                    >
+                      {t('account.unlink')}
+                    </Button>
+                  )}
+                </>
+              ) : (
                 <Button variant="ghost" href={signInHref('zalo', returnTo, 'link')}>
                   {t('account.link')}
                 </Button>
-              )
-            )}
-          </div>
-        </li>
+              )}
+            </div>
+          </li>
+        )}
       </ul>
 
       {error !== null && (
         <InlineError error={error} className="fsl-linked__error" />
       )}
 
-      {providers.length === 1 && (
+      {otherLinkable && (
         <>
           <p className="fsl-linked__note">{t('account.unlinkLast')}</p>
           <p className="fsl-linked__nudge">
