@@ -73,7 +73,7 @@ Merge in progress for Zalo (the whole row opens the merge sheet, §3.3)
   - linked: **Đổi** (Change), plus **Gỡ** (Unlink) only when two methods are linked. With one method, **Gỡ** is hidden, not disabled;
   - a merge for this provider: the chip, and the whole row becomes one button that opens the sheet.
 - **Inside the Zalo app:** the Google row shows the existing `signIn.googleInZalo` hint instead of **Liên kết** or **Đổi**.
-- **Removed:** the floating note `account.unlinkLast`, the nudges `account.backupNudgeZalo` and `account.backupNudgeGoogle`, and the line-per-request `merge.outgoing*` messages. Their keys are deleted from `en.ts` and `vi.ts`.
+- **Removed:** the floating note `account.unlinkLast` and the line-per-request `merge.outgoing*` messages. Their keys are deleted from `en.ts` and `vi.ts`. The always-visible backup nudge goes too, but its two keys stay for the ⓘ disclosure (§3.6).
 - **Chips** use the existing `Pill` tones with an icon plus text, so colour is never the only signal. A chip row's screen-reader label is `merge.rowLabel`.
 - **Which request a row shows:** the one the server returns for its provider (§3.5): at most one per provider.
 
@@ -162,7 +162,55 @@ export interface OutgoingMergeRequest {
 - `toMeUserView` exposes `zaloName`.
 - The other account's side (`IncomingMergeRequest`, `MergeRequestBanner` copy, `MergeConfirmSheet`) is unchanged, apart from the `autoOpen` prop.
 
-### 3.6 Errors
+### 3.6 Visual style (owner's reference mock, 2026-10-27)
+
+The owner's mock sets the look of the section. §3.2 still sets the behaviour; where the two differ, the rulings below apply.
+
+```
+Cách đăng nhập
+Quản lý các tài khoản liên kết để đăng nhập và bảo mật
+┌──────────────────────────────────────────────┐
+│ ┌──┐ Google                    [Liên kết ⊞]  │   primary, link icon
+│ │G │ Chưa liên kết ⓘ                         │   ⓘ reveals the nudge
+│ └──┘                                          │
+└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ ┌──┐ Zalo                    [⇄ Đổi] [🗑 Gỡ] │   secondary · danger
+│ │Z │ Đã liên kết ✓                           │   success colour
+│ └──┘ Minh Nguyen                              │   identity line, muted
+└──────────────────────────────────────────────┘
+```
+
+- **Section header:** the title `account.methods` plus the muted subtitle `account.methodsHint`.
+- **Cards:** each provider is its own bordered card (`--color-border`, `--radius-lg`, `--space-4` padding, `--space-3` between cards, `--color-surface` background) instead of rows in one list.
+- **Logo tile:** a 44px rounded square (`--radius-md`, 1px border, white) holding the 28px `ProviderLogo`. The muted state from §3.1 applies to the logo inside the tile.
+- **Text column:**
+  - the provider name in semibold `--text-md`;
+  - a status line:
+    - linked: `account.linked` in `--color-success` with the `circleCheck` icon;
+    - not linked: `account.notLinked` in muted text with an **ⓘ button**;
+  - an identity line in muted `--text-sm`: the email or Zalo name. It's left out when there's no label.
+- **ⓘ button:**
+  - a disclosure button (`aria-expanded`, label `account.whyLink`, a 44px tap area) that shows or hides the backup nudge as a muted line under the status;
+  - Google row (Zalo-only account): `account.backupNudgeZalo`;
+  - Zalo row (Google-only account): `account.backupNudgeGoogle`;
+  - with nothing linked to back up, i.e. both providers unlinked, which can't happen for a signed-in user, there's no ⓘ.
+
+  This keeps the nudge out of sight by default (section 1) without losing it. So those two keys stay, and §3.2's removal list drops them.
+- **Buttons:**
+  - **Liên kết:** primary, with the `link` icon;
+  - **Đổi:** secondary (outlined), with a new `swap` icon (⇄, stroke style like the other icons);
+  - **Gỡ:** danger, with the `trash` icon;
+  - all at least 44px tall.
+  - **Narrow widths:** below 360px of card width, the buttons wrap under the text column.
+- **Merge chip cards:** the chip from §3.2 replaces the status line, a `chevronRight` replaces the buttons, and the whole card is the button that opens §3.3.
+
+**Rulings where the mock differs:**
+1. The mock shows Google in full colour while unlinked; the logo stays **muted** when unlinked, as the owner asked in section 1.
+2. The mock shows "Minh Nguyen (09x xxx xxxx)"; only the **Zalo name** is shown, because the phone number needs Zalo's separate permission (§2).
+3. The mock shows a disabled **Gỡ** while only Zalo is linked; **Gỡ** stays **hidden** with one method (§3.2, pain point 1). Its danger and trash style applies when two methods are linked.
+
+### 3.7 Errors
 
 | Failure | Shown |
 |---|---|
@@ -173,12 +221,14 @@ export interface OutgoingMergeRequest {
 | Accept fails (`MERGE_STALE`, expired) | The existing `MergeConfirmSheet` handling |
 | No `zaloName`, or an old request without the new fields | The fallbacks in §3.2 and §3.5 |
 
-### 3.7 Copy
+### 3.8 Copy
 
 Every new Vietnamese line ends with `// REVIEW`, and en/vi stay in parity.
 
 | Key | vi | en |
 |---|---|---|
+| `account.methodsHint` | Quản lý các tài khoản liên kết để đăng nhập và bảo mật | Manage the accounts you sign in with |
+| `account.whyLink` | Vì sao nên liên kết? | Why link it? |
 | `merge.chipPending` | Chờ xác nhận | Waiting to confirm |
 | `merge.chipDeclined` | Bị từ chối | Declined |
 | `merge.chipAccepted` | Đã gộp | Merged |
@@ -214,6 +264,12 @@ Under the harness, Gemini writes new test files first and never edits existing o
 - **Web (jsdom):**
   - **`ProviderLogo`:** renders each provider, with the muted class.
   - **`SignInButtons`:** each button holds its provider's logo, and Google's G sits in the white square on the primary button.
+  - **Cards (§3.6):**
+    - the section subtitle;
+    - one card per provider with its logo tile;
+    - the linked status line with the check icon;
+    - the ⓘ button toggles the nudge (`aria-expanded`) and appears only on an unlinked row of a one-method account;
+    - **Đổi** and **Gỡ** carry their icons.
   - **Rows:**
     - logo muted or full colour;
     - Zalo name or email subtitle, with the fallback;
@@ -245,7 +301,7 @@ Under the harness, Gemini writes new test files first and never edits existing o
 |---|---|
 | API | new `apps/api/migrations/0007_merge_ux.sql`; edit `apps/api/src/db/schema.ts`, `auth/identity.ts`, `auth/me.ts`, `auth/accountRoutes.ts`, `auth/mergeUsers.ts` |
 | Core | `packages/core/src/api-types.ts` |
-| Web | new `components/ProviderLogo.tsx` (+ `.css`), `components/MergeSheet.tsx` (+ `.css`); edit `components/SignInButtons.tsx` (+ `.css`), `components/LinkedAccounts.tsx` (+ `.css`), `components/MergeRequestBanner.tsx` (`autoOpen`), `components/icons.tsx` (remove the placeholder `zalo` glyph), `screens/MyTrips.tsx`, `i18n/en.ts`, `i18n/vi.ts` |
+| Web | new `components/ProviderLogo.tsx` (+ `.css`), `components/MergeSheet.tsx` (+ `.css`); edit `components/SignInButtons.tsx` (+ `.css`), `components/LinkedAccounts.tsx` (+ `.css`), `components/MergeRequestBanner.tsx` (`autoOpen`), `components/icons.tsx` (remove the placeholder `zalo` glyph, add `swap`), `screens/MyTrips.tsx`, `i18n/en.ts`, `i18n/vi.ts` |
 
 ## 6. Known limits
 
