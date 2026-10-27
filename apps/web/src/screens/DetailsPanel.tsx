@@ -8,13 +8,14 @@ import { PaymentDetails } from '../components/PaymentDetails';
 import { IncomeDetails } from '../components/IncomeDetails';
 import type { Selection } from './TripRoute';
 import { ApprovalList } from './Approvals';
+import { RatingsPanel } from './RatingsScreen';
 import './DetailsPanel.css';
 
-/** The expense, payment or fund income whose details are open (the approvals list is not one). */
-export type Detail = Exclude<Selection, { kind: 'approvals' }>;
+/** The expense, payment or fund income whose details are open (the approvals list and ratings are not one). */
+export type Detail = Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings' }>;
 
 /**
- * The wide screen's right panel showing one expense, payment or fund income, or the full approvals list (members only).
+ * The wide screen's right panel showing one expense, payment or fund income, the full approvals list (members only), or player ratings.
  * Not modal: it takes focus when it opens, × and Esc close it (back in history, or to the trip for a shared link),
  * and nothing else is trapped.
  */
@@ -26,8 +27,9 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
     selection.kind === 'expense' ? t('details.expense')
     : selection.kind === 'payment' ? t('details.payment')
     : selection.kind === 'income' ? t('details.income')
+    : selection.kind === 'ratings' ? t('ratings.title')
     : t('approvals.allTitle');
-  const selectedId = selection.kind === 'approvals' ? null : selection.id;
+  const selectedId = selection.kind === 'approvals' || selection.kind === 'ratings' ? null : selection.id;
 
   useEffect(() => {
     const el = panel.current;
@@ -67,6 +69,8 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
         <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={close} />
       ) : selection.kind === 'income' ? (
         <IncomeDetails key={selection.id} view={view} incomeId={selection.id} onClose={close} />
+      ) : selection.kind === 'ratings' ? (
+        <RatingsPanel view={view} />
       ) : (
         <ApprovalList view={view} onClose={close} switching />
       )}
@@ -87,7 +91,7 @@ function isEditable(target: EventTarget | null): boolean {
 export function useDetailsSelection(tripId: string, selection: Selection | null): { detail: Detail | null; open(kind: Detail['kind'], id: string): void } {
   const openDetails = useOpenDetails(tripId);
   const opener = useRef<HTMLElement | null>(null);
-  const detail: Detail | null = selection && selection.kind !== 'approvals' ? selection : null;
+  const detail: Detail | null = selection && selection.kind !== 'approvals' && selection.kind !== 'ratings' ? selection : null;
   const detailKey = detail ? `${detail.kind}/${detail.id}` : null;
 
   const open = useCallback(

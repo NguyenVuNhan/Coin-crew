@@ -19,13 +19,15 @@ import { GuestTrip } from './GuestTrip';
 import { ViewOnlyTrip } from './ViewOnlyTrip';
 import { MemberTrip } from './MemberTrip';
 import { Approvals } from './Approvals';
+import { RatingsScreen } from './RatingsScreen';
 
-/** What the address points at inside the trip: the transaction whose details are open, or the approvals list. */
+/** What the address points at inside the trip: the transaction whose details are open, the approvals list, or player ratings. */
 export type Selection =
   | { kind: 'expense'; id: string }
   | { kind: 'payment'; id: string }
   | { kind: 'income'; id: string }
-  | { kind: 'approvals' };
+  | { kind: 'approvals' }
+  | { kind: 'ratings' };
 
 function selectionFrom(params: { expenseId?: string; paymentId?: string; incomeId?: string }): Selection | null {
   if (params.expenseId) return { kind: 'expense', id: params.expenseId };
@@ -35,7 +37,7 @@ function selectionFrom(params: { expenseId?: string; paymentId?: string; incomeI
 }
 
 /** The details of one expense, payment or fund income as a page of its own (phones); back returns to the list where it was left. */
-function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<Selection, { kind: 'approvals' }> }) {
+function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings' }> }) {
   const t = useT();
   const goBack = useBackToTrip(view.trip.id);
   return (
@@ -82,7 +84,12 @@ export function TripRoute() {
   const t = useT();
   const wide = useIsWide();
   const onApprovals = useMatch('/t/:tripId/approvals') !== null;
-  const selection: Selection | null = onApprovals ? { kind: 'approvals' } : selectionFrom({ expenseId, paymentId, incomeId });
+  const onRatings = useMatch('/t/:tripId/ratings') !== null;
+  const selection: Selection | null = onApprovals
+    ? { kind: 'approvals' }
+    : onRatings
+      ? { kind: 'ratings' }
+      : selectionFrom({ expenseId, paymentId, incomeId });
 
   // Polling pauses after 15 minutes so a forgotten tab doesn't use up the free plan (spec §5).
   const { view, error, isLoading, refetch, stopped, resume } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
@@ -91,11 +98,12 @@ export function TripRoute() {
     applyInheritedLang(searchParams.get('lang'), view?.trip.defaultLang);
   }, [searchParams, view?.trip.defaultLang]);
 
-  // Phones show the details, and the approvals list, as a page of their own; from 1024px every trip page (member,
-  // guest and view-only) shows them in its right panel (it takes `selection`).
-  const detail = selection && selection.kind !== 'approvals' && !wide ? selection : null;
+  // Phones show the details, the approvals list, and player ratings as a page of their own; from 1024px every trip page
+  // (member, guest and view-only) shows them in its right panel (it takes `selection`).
+  const detail = selection && selection.kind !== 'approvals' && selection.kind !== 'ratings' && !wide ? selection : null;
   const approvalsPage = selection?.kind === 'approvals' && !wide;
-  useListScroll(detail !== null ? 'details' : approvalsPage ? 'approvals' : 'list');
+  const ratingsPage = selection?.kind === 'ratings' && !wide;
+  useListScroll(detail !== null ? 'details' : approvalsPage ? 'approvals' : ratingsPage ? 'ratings' : 'list');
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {
@@ -133,11 +141,18 @@ export function TripRoute() {
     return <Navigate to={`/t/${view.trip.id}`} replace />;
   }
 
+  // If ratings are not enabled, visiting /ratings redirects back to the trip page.
+  if (selection?.kind === 'ratings' && (view.trip.preset !== 'sport' || !view.ratings?.enabled)) {
+    return <Navigate to={`/t/${view.trip.id}`} replace />;
+  }
+
   const page =
     detail ? (
       <DetailsPage view={view} selection={detail} />
     ) : approvalsPage ? (
       <Approvals view={view} />
+    ) : ratingsPage ? (
+      <RatingsScreen view={view} />
     ) : view.me.kind === 'guest' ? (
       <GuestTrip view={view} selection={selection} />
     ) : view.me.kind === 'viewer' ? (

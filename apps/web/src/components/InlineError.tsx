@@ -31,6 +31,8 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
     message = t('error.mergeStale');
   } else if (code === 'FUND_SHORT') {
     message = t('error.fundShort');
+  } else if (code === 'RATING_LIMIT') {
+    message = t('error.ratingLimit');
   } else if (code === 'VALIDATION') {
     if (error instanceof Error && error.message) {
       message = error.message;

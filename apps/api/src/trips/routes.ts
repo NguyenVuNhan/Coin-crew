@@ -471,25 +471,51 @@ export function tripRoutes(): Hono<AppBindings> {
     const tripId = c.req.param('id');
     const actor = await resolveActor(c, tripId);
     assertWritable(actor.trip);
-    ensure(actor, 'set_fewest');
 
-    const body = await parseJson<{ fewestTransfers?: unknown }>(c);
-    if (typeof body?.fewestTransfers !== 'boolean') {
+    const body = await parseJson<{ fewestTransfers?: unknown; ratingsEnabled?: unknown }>(c);
+    const hasFewest = body?.fewestTransfers !== undefined;
+    const hasRatings = body?.ratingsEnabled !== undefined;
+
+    if (
+      (!hasFewest && !hasRatings) ||
+      (hasFewest && typeof body.fewestTransfers !== 'boolean') ||
+      (hasRatings && typeof body.ratingsEnabled !== 'boolean')
+    ) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
+    if (hasRatings) {
+      if (actor.trip.preset !== 'sport') {
+        throw new ApiError('FORBIDDEN', 403, 'Player ratings are only for sport groups.');
+      }
+      ensure(actor, 'manage_ratings');
+    }
+    if (hasFewest) {
+      ensure(actor, 'set_fewest');
+    }
+
     const db = getDb(c.env);
+    const patchSet: Partial<typeof trips.$inferInsert> = {};
+    if (hasFewest) patchSet.fewestTransfers = body.fewestTransfers ? 1 : 0;
+    if (hasRatings) patchSet.ratingsEnabled = body.ratingsEnabled ? 1 : 0;
+
     const updateQuery = db
       .update(trips)
-      .set({ fewestTransfers: body.fewestTransfers ? 1 : 0 })
+      .set(patchSet)
       .where(eq(trips.id, tripId));
 
+    const action = hasRatings && !hasFewest ? 'ratings_changed' : 'fewest_changed';
+    const details =
+      hasRatings && !hasFewest
+        ? { ratingsEnabled: body.ratingsEnabled as boolean }
+        : { fewestTransfers: body.fewestTransfers as boolean };
+
     await commitTripWrite(db, tripId, [updateQuery], {
-      action: 'fewest_changed',
+      action,
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
-      details: { fewestTransfers: body.fewestTransfers },
+      details,
     });
 
     return c.body(null, 204);

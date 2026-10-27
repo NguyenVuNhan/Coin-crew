@@ -7,6 +7,7 @@ import {
   deviceParticipants,
   membershipRequests,
   participants,
+  playerRatings,
   transactions,
   transactionShares,
 } from '../db/schema';
@@ -52,6 +53,18 @@ export async function takeOutOfTrip(
     hasHistory = Boolean(share);
   }
 
+  const deleteRatingsQuery = db
+    .delete(playerRatings)
+    .where(
+      and(
+        eq(playerRatings.tripId, tripId),
+        or(
+          eq(playerRatings.raterParticipantId, participantId),
+          eq(playerRatings.targetParticipantId, participantId),
+        ),
+      ),
+    );
+
   if (!hasHistory) {
     return {
       outcome: 'deleted',
@@ -67,6 +80,7 @@ export async function takeOutOfTrip(
               eq(deviceParticipants.tripId, tripId),
             ),
           ),
+        deleteRatingsQuery,
       ],
     };
   }
@@ -86,6 +100,7 @@ export async function takeOutOfTrip(
             eq(deviceParticipants.tripId, tripId),
           ),
         ),
+      deleteRatingsQuery,
       db
         .update(membershipRequests)
         .set({ status: 'rejected' })

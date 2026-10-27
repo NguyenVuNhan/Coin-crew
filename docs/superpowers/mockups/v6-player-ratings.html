@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sport group player ratings wireframes (v6 — Option B Podium &amp; 3-Stage Transition)</title>
+<!-- Wireframes for the 2026-10-26 sport group player rating & leaderboard design (docs/2026-10-26-sport-player-rating-design.md).
+     Colours follow apps/web/src/styles/tokens.css. -->
+<style>
+:root{
+  --bg:#fafafa;--surface:#ffffff;--muted:#f4f4f5;--border:#e4e4e7;--border-strong:#d4d4d8;
+  --text:#18181b;--text-2:#52525b;--text-3:#71717a;
+  --accent:#0f766e;--accent-strong:#115e59;--accent-soft:#ccfbf1;--accent-text:#134e4a;
+  --success:#047857;--success-soft:#d1fae5;--danger:#be123c;--danger-soft:#ffe4e6;
+  --warning:#b45309;--warning-soft:#fef3c7;--warning-border:#fcd34d;--warning-text:#78350f;
+  --ease-out:cubic-bezier(0.2, 0, 0, 1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding:24px 16px 64px;max-width:1200px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}h2{font-size:17px;margin:36px 0 4px}
+.lead{color:var(--text-2);margin-bottom:12px;max-width:860px}
+.g{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:12px;color:var(--text-2);margin-top:6px;width:280px}
+.capw{font-size:12px;color:var(--text-2);margin-top:6px}
+.ph{border:1px solid var(--border-strong);border-radius:22px;background:var(--bg);padding:8px;font-size:11px;line-height:1.45;color:var(--text-2);width:280px;min-height:540px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.wide{border:1px solid var(--border-strong);border-radius:14px;background:var(--bg);padding:10px;font-size:11px;line-height:1.45;color:var(--text-2);width:100%;max-width:1040px}
+.hd{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:2px 4px 8px;margin-bottom:8px;color:var(--text);gap:6px;background:var(--surface);margin:-8px -8px 8px;padding:10px 12px;z-index:20}
+.bx{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2px 8px;margin-bottom:6px}
+.pad{padding:8px 10px}
+.t{color:var(--text);font-weight:600}
+.s{color:var(--text-2)}
+.m{color:var(--text-3)}
+.rw{display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:1px solid var(--border);padding:6px 0}
+.rw:first-child{border-top:0}
+.rw .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sh{font-size:11px;color:var(--text-3);margin:6px 0 3px;display:flex;justify-content:space-between;align-items:center}
+.pb{background:var(--accent);color:#fff;border-radius:8px;text-align:center;padding:7px;margin-bottom:5px;font-weight:600}
+.pb.off{background:var(--border-strong);color:var(--text-3)}
+.sb{border:1px solid var(--border-strong);color:var(--text);border-radius:8px;text-align:center;padding:6px;background:var(--surface);margin-bottom:5px;font-weight:600}
+.av{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--muted);border:1px solid var(--border);align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text);flex:none}
+.plus{color:var(--success);font-weight:600}
+.bar{margin-top:auto;padding-top:6px;border-top:1px solid var(--border);background:var(--bg)}
+.in{border:1px solid var(--border-strong);border-radius:8px;padding:6px 8px;background:var(--surface);color:var(--text);margin:2px 0 6px;display:flex;justify-content:space-between;align-items:center}
+.pill{border-radius:999px;padding:1px 7px;background:var(--muted);border:1px solid var(--border);font-size:10px;font-variant-numeric:tabular-nums;display:inline-block}
+.pill.star{background:var(--warning-soft);border-color:var(--warning-border);color:var(--warning-text);font-weight:700}
+.pill.teal{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.tabs2{display:grid;grid-template-columns:1fr 1fr;background:var(--muted);border-radius:8px;padding:2px;gap:2px;margin-bottom:6px}
+.tabs2 span{text-align:center;padding:5px 0;border-radius:6px;font-weight:600;color:var(--text-2)}
+.tabs2 .on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+.fund{display:flex;align-items:center;gap:6px;background:var(--muted);border-radius:8px;padding:6px 8px;margin-bottom:6px;color:var(--text)}
+.fund b{margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* ==========================================================================
+   NEW RADIAL PODIUM UI (Inspired by reference image, using tokens.css)
+   #1 Center (Largest avatar + Crown), #2 Left & #3 Right (Slightly smaller)
+   ========================================================================== */
+.hero-leaderboard{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:10px 10px 12px;
+  margin-bottom:8px;
+  box-shadow:0 1px 2px rgb(0 0 0 / 0.06);
+  transition:
+    padding 200ms var(--ease-out),
+    max-height 200ms var(--ease-out),
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out),
+    margin-bottom 200ms var(--ease-out),
+    border-width 200ms var(--ease-out);
+  overflow:hidden;
+  max-height:240px;
+}
+.hero-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:2px;
+}
+.hero-title{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--accent);
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.hero-quote{
+  font-size:10px;
+  color:var(--text-2);
+  text-align:center;
+  margin-bottom:8px;
+  transition:opacity 150ms var(--ease-out), max-height 200ms var(--ease-out), margin 200ms var(--ease-out);
+  max-height:24px;
+}
+.podium-stage{
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  gap:4px;
+  padding-top:4px;
+  transition:opacity 150ms var(--ease-out), transform 200ms var(--ease-out), max-height 200ms var(--ease-out);
+  max-height:160px;
+}
+.podium-slot{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  flex:1;
+  min-width:0;
+}
+.podium-slot.rank-1{
+  flex:1.25;
+  margin:0 -6px;
+  z-index:2;
+}
+.podium-rank-num{
+  font-size:12px;
+  font-weight:700;
+  color:var(--text-2);
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+  margin-bottom:4px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.podium-rank-num .caret-up{
+  color:var(--warning);
+  font-size:8px;
+  line-height:1;
+}
+.podium-crown{
+  color:var(--warning);
+  margin-bottom:3px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.podium-avatar{
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color:var(--text);
+  background:var(--muted);
+  position:relative;
+  transition:transform 200ms var(--ease-out);
+}
+.podium-slot.rank-2 .podium-avatar,
+.podium-slot.rank-3 .podium-avatar{
+  width:48px;
+  height:48px;
+  font-size:15px;
+  border:2px solid var(--border-strong);
+  background:var(--muted);
+}
+.podium-slot.rank-1 .podium-avatar{
+  width:68px;
+  height:68px;
+  font-size:20px;
+  background:var(--warning-soft);
+  color:var(--warning-text);
+  border:3px solid var(--warning-border);
+  box-shadow:0 0 0 4px rgb(254 243 199 / 0.65);
+}
+.podium-name{
+  margin-top:6px;
+  font-size:11px;
+  font-weight:600;
+  color:var(--text);
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.podium-slot.rank-1 .podium-name{
+  font-size:12px;
+  font-weight:700;
+}
+.podium-score{
+  font-size:13px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  color:var(--warning);
+  line-height:1.2;
+}
+.podium-slot.rank-1 .podium-score{
+  font-size:15px;
+  color:var(--warning-text);
+}
+
+/* Collapsed compact bar inside the widget */
+.hero-collapsed-bar{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  padding-top:2px;
+}
+.hero-collapsed-pills{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  overflow:hidden;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+
+/* STATE 2: COLLAPSED */
+.hero-leaderboard.is-collapsed{
+  max-height:48px;
+  padding:8px 10px;
+  background:var(--warning-soft);
+  border-color:var(--warning-border);
+}
+.hero-leaderboard.is-collapsed .hero-head,
+.hero-leaderboard.is-collapsed .hero-quote,
+.hero-leaderboard.is-collapsed .podium-stage{
+  opacity:0;
+  max-height:0;
+  margin:0;
+  padding:0;
+  pointer-events:none;
+}
+.hero-leaderboard.is-collapsed .hero-collapsed-bar{
+  display:flex;
+}
+
+/* STATE 3: HIDDEN COMPLETELY (Deep scroll) */
+.hero-leaderboard.is-hidden{
+  max-height:0;
+  padding-top:0;
+  padding-bottom:0;
+  margin-bottom:0;
+  border-width:0;
+  opacity:0;
+  transform:translateY(-12px) scale(0.98);
+  pointer-events:none;
+}
+
+.step{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.btn-step{width:24px;height:24px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.btn-step.on{border-color:var(--accent);color:var(--accent)}
+.btn-step.off{opacity:.38;background:var(--muted)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.demo-controls{display:inline-flex;gap:6px;background:var(--muted);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:12px}
+.demo-btn{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer}
+.demo-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+.k{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--text-2)}
+</style>
+</head>
+<body>
+<h1>Sport Group Player Ratings — Option B Podium &amp; 3-Stage Scroll Transition</h1>
+<p class="lead">Updated to match your reference podium layout: <b>#1 in the center with Crown &amp; largest circular avatar (68px)</b>, <b>#2 on the left (48px)</b> and <b>#3 on the right (48px)</b>, player names and bold tabular star scores directly underneath, plus a <b>3-stage transition</b> (Full Podium &rarr; Collapsed Strip &rarr; Completely Hidden when scrolling deep into Expenses).</p>
+
+<h2>1. Interactive 3-Stage Transition Preview (Try clicking or scrolling!)</h2>
+<div class="demo-controls" role="group" aria-label="Preview widget state">
+  <button type="button" class="demo-btn active" onclick="setWidgetState('full', this)">Stage 1: Full Podium (Top)</button>
+  <button type="button" class="demo-btn" onclick="setWidgetState('collapsed', this)">Stage 2: Collapsed Bar (Mid-scroll)</button>
+  <button type="button" class="demo-btn" onclick="setWidgetState('hidden', this)">Stage 3: Hidden (Deep in Expenses)</button>
+</div>
+
+<div class="g">
+  <!-- INTERACTIVE PHONE -->
+  <div>
+    <div class="ph" id="interactive-phone">
+      <div class="hd"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+
+      <div id="demo-widget" class="hero-leaderboard">
+        <div class="hero-head">
+          <span class="hero-title">🏆 Leaderboard</span>
+          <span class="pill teal">Rate ›</span>
+        </div>
+        <div class="hero-quote">"Play hard, rate fair — every star counts"</div>
+
+        <div class="podium-stage">
+          <!-- 2nd Place (Left) -->
+          <div class="podium-slot rank-2">
+            <div class="podium-rank-num">2<span class="caret-up">▲</span></div>
+            <div class="podium-avatar">L</div>
+            <div class="podium-name">Lan</div>
+            <div class="podium-score">14 ★</div>
+          </div>
+
+          <!-- 1st Place (Center, Largest + Crown) -->
+          <div class="podium-slot rank-1">
+            <div class="podium-crown" aria-hidden="true">
+              <svg width="22" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            </div>
+            <div class="podium-avatar">M</div>
+            <div class="podium-name">Minh</div>
+            <div class="podium-score">18 ★</div>
+          </div>
+
+          <!-- 3rd Place (Right) -->
+          <div class="podium-slot rank-3">
+            <div class="podium-rank-num">3<span class="caret-up" style="color:var(--text-3)">•</span></div>
+            <div class="podium-avatar">H</div>
+            <div class="podium-name">Hùng</div>
+            <div class="podium-score">11 ★</div>
+          </div>
+        </div>
+
+        <!-- Stage 2 Collapsed Bar -->
+        <div class="hero-collapsed-bar">
+          <div class="hero-collapsed-pills">
+            <span>🏆</span>
+            <span class="t" style="color:var(--warning-text)">#1 Minh 18★</span>
+            <span class="m">·</span>
+            <span class="s">#2 Lan 14★</span>
+            <span class="m">·</span>
+            <span class="s">#3 Hùng 11★</span>
+          </div>
+          <span class="t" style="color:var(--warning-text)">›</span>
+        </div>
+      </div>
+
+      <!-- Group Ledger Content -->
+      <div class="bx pad"><span class="s">You're owed</span><br><span class="plus" style="font-size:16px">525.000₫</span><br><span class="m">Group total 850.000₫</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="tabs2"><span class="on">Expenses</span><span>Payments</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span><br><span class="s">You paid 600.000₫ · sport split, 8</span></div><span class="r t">75.000₫</span></div>
+        <div class="rw"><div><span class="t">Nước sau trận</span><br><span class="s">Paid from group fund</span></div><span class="r m">150.000₫</span></div>
+        <div class="rw"><div><span class="t">Hộp cầu Hải Yến</span><br><span class="s">Lan paid 260.000₫ · sport split, 8</span></div><span class="r t">32.500₫</span></div>
+        <div class="rw"><div><span class="t">Sân Thứ 3 tuần trước</span><br><span class="s">Minh paid 480.000₫ · sport split, 8</span></div><span class="r t">60.000₫</span></div>
+      </div>
+      <div class="bar"><div class="pb">+ Add expense</div></div>
+    </div>
+    <p class="cap"><b>Interactive Preview.</b> Click the 3 stage buttons above to see the smooth <span class="k">200ms cubic-bezier(0.2, 0, 0, 1)</span> transition between Full Podium, Collapsed Bar, and Completely Hidden.</p>
+  </div>
+
+  <!-- STATIC SIDE-BY-SIDE OF STAGE 2 & STAGE 3 FOR QUICK COMPARISON -->
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+      <div class="hero-leaderboard is-collapsed">
+        <div class="hero-collapsed-bar" style="display:flex">
+          <div class="hero-collapsed-pills">
+            <span>🏆</span>
+            <span class="t" style="color:var(--warning-text)">#1 Minh 18★</span>
+            <span class="m">·</span>
+            <span class="s">#2 Lan 14★</span>
+            <span class="m">·</span>
+            <span class="s">#3 Hùng 11★</span>
+          </div>
+          <span class="t" style="color:var(--warning-text)">›</span>
+        </div>
+      </div>
+      <div class="bx pad"><span class="s">You're owed</span><br><span class="plus" style="font-size:16px">525.000₫</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="tabs2"><span class="on">Expenses</span><span>Payments</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span><br><span class="s">You paid 600.000₫ · sport split, 8</span></div><span class="r t">75.000₫</span></div>
+        <div class="rw"><div><span class="t">Nước sau trận</span><br><span class="s">Paid from group fund</span></div><span class="r m">150.000₫</span></div>
+        <div class="rw"><div><span class="t">Hộp cầu Hải Yến</span><br><span class="s">Lan paid 260.000₫ · sport split, 8</span></div><span class="r t">32.500₫</span></div>
+      </div>
+      <div class="bar"><div class="pb">+ Add expense</div></div>
+    </div>
+    <p class="cap"><b>Stage 2 (Collapsed — 40px &lt; scrollY &le; 200px, or manual collapse).</b> Podium avatars scale &amp; fade into a single 48px summary bar.</p>
+  </div>
+
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Cầu lông Thứ 5</span><span>⊕ &nbsp;⚙</span></div>
+      <!-- Hidden completely -->
+      <div class="bx pad"><span class="s">You're owed</span><br><span class="plus" style="font-size:16px">525.000₫</span></div>
+      <div class="fund"><span>🐷</span><span>Group fund</span><b>400.000₫</b><span class="m">›</span></div>
+      <div class="tabs2"><span class="on">Expenses</span><span>Payments</span></div>
+      <div class="bx">
+        <div class="rw"><div><span class="t">Sân + cầu Thứ 5</span><br><span class="s">You paid 600.000₫ · sport split, 8</span></div><span class="r t">75.000₫</span></div>
+        <div class="rw"><div><span class="t">Nước sau trận</span><br><span class="s">Paid from group fund</span></div><span class="r m">150.000₫</span></div>
+        <div class="rw"><div><span class="t">Hộp cầu Hải Yến</span><br><span class="s">Lan paid 260.000₫ · sport split, 8</span></div><span class="r t">32.500₫</span></div>
+        <div class="rw"><div><span class="t">Sân Thứ 3 tuần trước</span><br><span class="s">Minh paid 480.000₫ · sport split, 8</span></div><span class="r t">60.000₫</span></div>
+        <div class="rw"><div><span class="t">Thu 2 khách vãng lai</span><br><span class="s">Added to fund · by you</span></div><span class="r plus">+200.000₫</span></div>
+      </div>
+      <div class="bar"><div class="pb">+ Add expense</div></div>
+    </div>
+    <p class="cap"><b>Stage 3 (Hidden completely — scrollY &gt; 200px or dismissed).</b> Once the user scrolls into the transaction list, the widget hides completely so it doesn't stay on screen all the time.</p>
+  </div>
+</div>
+
+<h2>2. Dedicated Rating Page (<span class="k">/t/:tripId/ratings</span>) — Bonusly / Kudos Style</h2>
+<div class="g">
+  <!-- Frame A: Zero-Clutter Rows (Progressive Disclosure Closed) -->
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Player ratings</span><span></span></div>
+
+      <!-- Radial Podium at top of /ratings (Tappable slots) -->
+      <div class="hero-leaderboard" style="border-color:var(--warning-border)">
+        <div class="hero-quote">"Every shuttle counts — recognize the teammates who bring the heat!"</div>
+        <div class="podium-stage">
+          <div class="podium-slot rank-2">
+            <div class="podium-rank-num">2</div>
+            <div class="podium-avatar">L</div>
+            <div class="podium-name">Lan</div>
+            <div class="podium-score">14 ★</div>
+            <span class="pill" style="margin-top:3px;background:var(--warning-soft);color:var(--warning-text);border:1px solid var(--warning-border);font-size:9px">Gave 3 ★</span>
+          </div>
+          <div class="podium-slot rank-1">
+            <div class="podium-crown" aria-hidden="true">
+              <svg width="22" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+            </div>
+            <div class="podium-avatar">M</div>
+            <div class="podium-name">Minh</div>
+            <div class="podium-score">18 ★</div>
+            <span class="pill" style="margin-top:3px;background:var(--warning-soft);color:var(--warning-text);border:1px solid var(--warning-border);font-size:9px">Gave 5 ★</span>
+          </div>
+          <div class="podium-slot rank-3">
+            <div class="podium-rank-num">3</div>
+            <div class="podium-avatar">H</div>
+            <div class="podium-name">Hùng</div>
+            <div class="podium-score">11 ★</div>
+            <span class="pill" style="margin-top:3px;background:var(--surface-muted);color:var(--text-2);font-size:9px">+ Give ★</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. "Your Star Wallet" Sticky Bar (Bonusly Allowance Meter) -->
+      <div class="bx pad" style="background:var(--surface);border-color:var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="t">Your star wallet</span>
+          <span class="pill teal" style="font-variant-numeric:tabular-nums">20 / 30 ★ left</span>
+        </div>
+        <div style="height:6px;background:var(--surface-muted);border-radius:999px;overflow:hidden;margin:6px 0 4px">
+          <div style="width:66%;height:100%;background:var(--accent);border-radius:999px"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-2)">100% anonymous · Tap any player to give or take back stars</div>
+      </div>
+
+      <!-- Sticky Search Bar (N > 12) -->
+      <div class="in"><span>🔍 Search 15 players...</span></div>
+
+      <!-- 2. Zero-Clutter Player Rows -->
+      <div class="bx">
+        <div class="rw">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="m" style="width:18px;font-variant-numeric:tabular-nums">#4</span>
+            <span class="av">T</span>
+            <span class="t">Tuấn</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-2);font-size:9px">M</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="t" style="font-variant-numeric:tabular-nums">★ 9</span>
+            <span class="pill" style="background:var(--warning-soft);color:var(--warning-text);border:1px solid var(--warning-border)">Gave 2 ★</span>
+          </div>
+        </div>
+        <div class="rw">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="m" style="width:18px;font-variant-numeric:tabular-nums">#5</span>
+            <span class="av">C</span>
+            <span class="t">Chi</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-2);font-size:9px">F</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="t" style="font-variant-numeric:tabular-nums">★ 7</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-2)">+ Give ★</span>
+          </div>
+        </div>
+        <div class="rw">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="m" style="width:18px;font-variant-numeric:tabular-nums">#6</span>
+            <span class="av">A</span>
+            <span class="t">An</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-2);font-size:9px">M</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="t" style="font-variant-numeric:tabular-nums">★ 6</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-3)">You</span>
+          </div>
+        </div>
+      </div>
+      <div class="sb">Show all 15 players (5 more) ▾</div>
+    </div>
+    <p class="cap"><b>Zero-Clutter Player List.</b> No `[-]` `[+]` steppers crowding every row. Each row shows Rank, Avatar, Name + M/F badge, Total Stars, and a single status pill (`+ Give ★` or `Gave {n} ★`).</p>
+  </div>
+
+  <!-- Frame B: Tap-to-Rate Inline Drawer Expanded (like ExpenseForm.tsx) -->
+  <div>
+    <div class="ph">
+      <div class="hd"><span>‹ Player ratings</span><span></span></div>
+
+      <!-- 1. "Your Star Wallet" Sticky Bar -->
+      <div class="bx pad" style="background:var(--surface);border-color:var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="t">Your star wallet</span>
+          <span class="pill teal" style="font-variant-numeric:tabular-nums">20 / 30 ★ left</span>
+        </div>
+        <div style="height:6px;background:var(--surface-muted);border-radius:999px;overflow:hidden;margin:6px 0 4px">
+          <div style="width:66%;height:100%;background:var(--accent);border-radius:999px"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-2)">100% anonymous · Tap any player to give or take back stars</div>
+      </div>
+
+      <!-- 2. Player Row #4 Expanded with Bonusly Inline Drawer -->
+      <div class="bx">
+        <div style="padding:8px;background:var(--surface-subtle);border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="m" style="width:18px;font-variant-numeric:tabular-nums">#4</span>
+              <span class="av">T</span>
+              <span class="t">Tuấn</span>
+              <span class="pill" style="background:var(--surface-muted);color:var(--text-2);font-size:9px">M</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="t" style="font-variant-numeric:tabular-nums">★ 9</span>
+              <span class="pill" style="background:var(--warning-soft);color:var(--warning-text);border:1px solid var(--warning-border)">Gave 2 ★ ▴</span>
+            </div>
+          </div>
+
+          <!-- Inline Tap-to-Rate Drawer -->
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="s">Quick select (max 5 ★)</span>
+              <div style="display:flex;gap:4px">
+                <span class="pill" style="background:var(--surface);border:1px solid var(--border);color:var(--text-2)">0 ★</span>
+                <span class="pill" style="background:var(--surface);border:1px solid var(--border);color:var(--text-1)">1 ★</span>
+                <span class="pill" style="background:var(--surface);border:1px solid var(--border);color:var(--text-1)">3 ★</span>
+                <span class="pill" style="background:var(--surface);border:1px solid var(--border);color:var(--text-1)">5 ★</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="s">Fine-tune your stars</span>
+              <div class="step">
+                <span class="btn-step on">−</span>
+                <span class="t" style="width:32px;text-align:center;font-variant-numeric:tabular-nums">2 ★</span>
+                <span class="btn-step on">+</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rw">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="m" style="width:18px;font-variant-numeric:tabular-nums">#5</span>
+            <span class="av">C</span>
+            <span class="t">Chi</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-2);font-size:9px">F</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="t" style="font-variant-numeric:tabular-nums">★ 7</span>
+            <span class="pill" style="background:var(--surface-muted);color:var(--text-2)">+ Give ★</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap"><b>Tap-to-Rate Inline Drawer (Progressive Disclosure like ExpenseForm.tsx).</b> Tapping any player expands a clean drawer with Bonusly quick chips (<code>0 ★ (Take back)</code>, <code>+1 ★</code>, <code>+3 ★</code>, <code>+5 ★</code>) and <code>[-]</code> / <code>[+]</code> fine-tuning.</p>
+  </div>
+</div>
+
+<script>
+function setWidgetState(state, btn) {
+  const w = document.getElementById('demo-widget');
+  w.classList.remove('is-collapsed', 'is-hidden');
+  if (state === 'collapsed') w.classList.add('is-collapsed');
+  if (state === 'hidden') w.classList.add('is-hidden');
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

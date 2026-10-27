@@ -12,6 +12,7 @@ import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
 import { FewestSwitch } from '../components/FewestSwitch';
+import { RatingsSwitch } from '../components/RatingsSwitch';
 import './Settings.css';
 
 export function Settings() {
@@ -107,6 +108,10 @@ export function Settings() {
 
         {view.me.kind === 'member' && !view.trip.archived && (
           <FewestSwitch view={view} />
+        )}
+
+        {view.trip.preset === 'sport' && !view.trip.archived && can(actorOf(view), 'manage_ratings') && (
+          <RatingsSwitch view={view} />
         )}
 
         {archived ? (

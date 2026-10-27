@@ -9,6 +9,7 @@ import { Pill } from '../components/Pill';
 import { Avatar } from '../components/Avatar';
 import { Amount } from '../components/Amount';
 import { FundPill } from '../components/FundPill';
+import { LeaderboardWidget } from '../components/LeaderboardWidget';
 import { YourTransfers } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
@@ -79,6 +80,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
         {banner}
         {!wide ? (
           <>
+            <LeaderboardWidget view={view} />
             <FundPill view={view} />
             {balances}
             {transfers}
@@ -89,6 +91,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
           <TripLayout
             left={
               <>
+                <LeaderboardWidget view={view} switching={selection !== null} />
                 <FundPill view={view} />
                 {expenses(true)}
                 {payments()}
