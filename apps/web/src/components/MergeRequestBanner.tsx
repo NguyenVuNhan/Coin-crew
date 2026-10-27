@@ -10,12 +10,13 @@ import './MergeRequestBanner.css';
 
 export interface MergeRequestBannerProps {
   request: IncomingMergeRequest;
+  autoOpen?: boolean;
 }
 
-export function MergeRequestBanner({ request }: MergeRequestBannerProps) {
+export function MergeRequestBanner({ request, autoOpen = false }: MergeRequestBannerProps) {
   const t = useT();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 

@@ -644,6 +644,7 @@ export const en = {
   'merge.cancelRequest': 'Cancel request',
   'merge.linkAgain': 'Link again',
   'merge.gotIt': 'Got it',
+  'merge.noRequestHere': 'This account has no merge request waiting.',
   'entry.tabs': 'What are you adding?',
   'entry.expense': 'Expense',
   'entry.income': 'Fund income',

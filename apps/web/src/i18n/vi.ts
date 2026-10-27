@@ -644,6 +644,7 @@ export const vi: Record<MessageKey, string> = {
   'merge.cancelRequest': 'Huỷ yêu cầu', // REVIEW
   'merge.linkAgain': 'Liên kết lại', // REVIEW
   'merge.gotIt': 'Đã hiểu', // REVIEW
+  'merge.noRequestHere': 'Tài khoản này không có yêu cầu gộp nào đang chờ.', // REVIEW
   'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
   'entry.expense': 'Chi tiêu', // REVIEW
   'entry.income': 'Quỹ thu', // REVIEW
