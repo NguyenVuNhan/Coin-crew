@@ -55,6 +55,7 @@ describe('GET /api/me', () => {
     const in7Days = new Date(now + 7 * 86_400_000).toISOString();
     const pastDate = new Date(now - 86_400_000).toISOString();
     const createdDate = new Date(now).toISOString();
+    const hourEarlier = new Date(now - 3_600_000).toISOString();
 
     // User A (Google, email a@x.com, name 'A', 2 active participants in 2 trips)
     const sidA = await memberSid('u-a', 'A');
@@ -98,10 +99,10 @@ describe('GET /api/me', () => {
       "INSERT INTO account_merge_requests (id, survivor_user_id, merged_user_id, provider, provider_sub, status, created_at, expires_at) VALUES ('mr-expired', 'u-a', 'u-b', 'zalo', 'z-b', 'pending', ?, ?)",
     ).bind(createdDate, pastDate).run();
 
-    // Declined request
+    // Declined request, older than the pending one
     await env.DB.prepare(
       "INSERT INTO account_merge_requests (id, survivor_user_id, merged_user_id, provider, provider_sub, status, created_at, expires_at, decided_at) VALUES ('mr-declined', 'u-a', 'u-b', 'zalo', 'z-b', 'declined', ?, ?, ?)",
-    ).bind(createdDate, in7Days, createdDate).run();
+    ).bind(hourEarlier, in7Days, createdDate).run();
 
     // As B: incoming has exactly 1 item, survivor {name:'A', avatarUrl:null, email:'a@x.com', providers:['google']}, groups {survivor:2, merged:1}, released [], provider 'zalo'
     const bRes = await call('/api/me', { headers: { Cookie: `sid=${sidB}` } });
@@ -126,18 +127,14 @@ describe('GET /api/me', () => {
     });
     expect(bBody.mergeRequests.outgoing).toEqual([]);
 
-    // As A: outgoing lists the pending and the declined one (2 items, statuses pending/declined) and the expired one is absent; incoming is []
+    // As A: outgoing keeps only the newest Zalo request (the pending one; the older declined one and the expired one are absent); incoming is []
     const aRes = await call('/api/me', { headers: { Cookie: `sid=${sidA}` } });
     expect(aRes.status).toBe(200);
     const aBody = await json<MeResponse>(aRes);
     expect(aBody.mergeRequests.incoming).toEqual([]);
-    expect(aBody.mergeRequests.outgoing).toHaveLength(2);
-    expect(aBody.mergeRequests.outgoing).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'mr-pending', status: 'pending', provider: 'zalo', expiresAt: in7Days }),
-        expect.objectContaining({ id: 'mr-declined', status: 'declined', provider: 'zalo', expiresAt: in7Days }),
-      ]),
-    );
+    expect(aBody.mergeRequests.outgoing).toEqual([
+      expect.objectContaining({ id: 'mr-pending', status: 'pending', provider: 'zalo', expiresAt: in7Days }),
+    ]);
     expect(aBody.mergeRequests.outgoing.find((r) => r.id === 'mr-expired')).toBeUndefined();
   });
 
