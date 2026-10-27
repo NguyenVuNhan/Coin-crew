@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, eq, gt } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { accountMergeRequests, users } from '../db/schema';
@@ -126,6 +126,26 @@ export function accountRoutes(): Hono<AppBindings> {
   app.post('/me/merge-requests/:id/decline', requireUser, (c) => closeRequest(c, 'merged', 'declined'));
 
   app.post('/me/merge-requests/:id/cancel', requireUser, (c) => closeRequest(c, 'survivor', 'cancelled'));
+
+  app.post('/me/merge-requests/:id/dismiss', requireUser, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const dismissed = await getDb(c.env)
+      .update(accountMergeRequests)
+      .set({ dismissedAt: nowIso() })
+      .where(
+        and(
+          eq(accountMergeRequests.id, c.req.param('id') ?? ''),
+          eq(accountMergeRequests.survivorUserId, user.id),
+          inArray(accountMergeRequests.status, ['accepted', 'declined']),
+          isNull(accountMergeRequests.dismissedAt),
+        ),
+      )
+      .returning({ id: accountMergeRequests.id });
+    if (dismissed.length === 0) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+    return c.body(null, 204);
+  });
 
   return app;
 }
