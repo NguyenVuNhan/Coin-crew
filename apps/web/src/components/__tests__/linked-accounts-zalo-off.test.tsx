@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { AuthProvider, MeResponse } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { useMe } from '../../api/hooks';
@@ -49,20 +50,21 @@ describe('LinkedAccounts without Zalo sign-in', () => {
     expect(within(googleRow).getByRole('link', { name: 'Change' })).toBeInTheDocument();
   });
 
-  it('keeps a linked Zalo row and still nudges to link Google', async () => {
+  it('keeps a linked Zalo row and still offers linking Google', async () => {
+    const user = userEvent.setup();
     mockApi({ 'GET /api/me': me(['zalo']) });
     renderAt(<Harness />, { route: '/trips' });
 
     const zaloRow = await screen.findByTestId('method-zalo');
-    expect(zaloRow).toBeInTheDocument();
     expect(zaloRow).toHaveTextContent('Linked');
-    expect(within(zaloRow).getByRole('button', { name: 'Unlink' })).toBeDisabled();
-    expect(screen.getByText('Link another way to sign in first')).toBeInTheDocument();
+    expect(within(zaloRow).queryByRole('button', { name: 'Unlink' })).toBeNull();
+    expect(screen.queryByText('Link another way to sign in first')).toBeNull();
+    const googleRow = screen.getByTestId('method-google');
+    expect(within(googleRow).getByRole('link', { name: 'Link' })).toBeInTheDocument();
+    await user.click(within(googleRow).getByRole('button', { name: 'Why link it?' }));
     expect(
       screen.getByText("Link Google too so you don't lose this account if your Zalo changes"),
     ).toBeInTheDocument();
-    const googleRow = screen.getByTestId('method-google');
-    expect(within(googleRow).getByRole('link', { name: 'Link' })).toBeInTheDocument();
   });
 
   it('lets either method be unlinked when both are linked', async () => {

@@ -58,7 +58,8 @@ describe('LinkedAccounts', () => {
     expect(googleRow).toHaveTextContent('minh@example.com');
     const googleChange = within(googleRow).getByRole('link', { name: 'Change' });
     expect(googleChange).toHaveAttribute('href', '/api/auth/google/start?returnTo=%2Ftrips&intent=link');
-    expect(within(googleRow).getByRole('button', { name: 'Unlink' })).toBeInTheDocument();
+    // Google is the only method, so there is nothing to unlink yet.
+    expect(within(googleRow).queryByRole('button', { name: 'Unlink' })).toBeNull();
 
     expect(zaloRow).toHaveTextContent('Zalo');
     expect(zaloRow).toHaveTextContent('Not linked');
@@ -66,14 +67,18 @@ describe('LinkedAccounts', () => {
     expect(zaloLink).toHaveAttribute('href', '/api/auth/zalo/start?returnTo=%2Ftrips&intent=link');
   });
 
-  it('the last method cannot be unlinked', async () => {
+  it('a lone method has no Unlink, and the info button explains linking the other', async () => {
+    const user = userEvent.setup();
     mockApi({ 'GET /api/me': me(['google']) });
     const { unmount } = renderAt(<Harness />, { route: '/trips' });
 
     const googleRow = await screen.findByTestId('method-google');
-    const googleUnlink = within(googleRow).getByRole('button', { name: 'Unlink' });
-    expect(googleUnlink).toBeDisabled();
-    expect(screen.getByText('Link another way to sign in first')).toBeInTheDocument();
+    expect(within(googleRow).queryByRole('button', { name: 'Unlink' })).toBeNull();
+    expect(screen.queryByText('Link another way to sign in first')).toBeNull();
+    expect(screen.queryByText('Link Zalo too so you can sign in from the Zalo app')).toBeNull();
+    const whyZalo = within(screen.getByTestId('method-zalo')).getByRole('button', { name: 'Why link it?' });
+    await user.click(whyZalo);
+    expect(whyZalo).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Link Zalo too so you can sign in from the Zalo app')).toBeInTheDocument();
     unmount();
 
@@ -81,9 +86,8 @@ describe('LinkedAccounts', () => {
     renderAt(<Harness />, { route: '/trips' });
 
     const zaloRow = await screen.findByTestId('method-zalo');
-    const zaloUnlink = within(zaloRow).getByRole('button', { name: 'Unlink' });
-    expect(zaloUnlink).toBeDisabled();
-    expect(screen.getByText('Link another way to sign in first')).toBeInTheDocument();
+    expect(within(zaloRow).queryByRole('button', { name: 'Unlink' })).toBeNull();
+    await user.click(within(screen.getByTestId('method-google')).getByRole('button', { name: 'Why link it?' }));
     expect(
       screen.getByText("Link Google too so you don't lose this account if your Zalo changes"),
     ).toBeInTheDocument();
@@ -164,13 +168,15 @@ describe('LinkedAccounts', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the outgoing request and cancels it', async () => {
+  it('shows the outgoing request as a chip and cancels it from the sheet', async () => {
     const user = userEvent.setup();
     const outgoingReq: OutgoingMergeRequest = {
       id: 'm-1',
       provider: 'zalo',
       status: 'pending',
       expiresAt: '2026-10-28T00:00:00.000Z',
+      otherName: 'Noah Nguyen',
+      identityLabel: 'Noah Zalo',
     };
     let meState = me(['google'], [outgoingReq]);
     const { calls } = mockApi({
@@ -182,13 +188,14 @@ describe('LinkedAccounts', () => {
     });
 
     renderAt(<Harness />, { route: '/trips' });
-    await screen.findByTestId('method-google');
 
-    expect(
-      screen.getByText('Waiting for the other account to confirm the merge'),
-    ).toBeInTheDocument();
-    const cancelBtn = screen.getByRole('button', { name: 'Cancel' });
-    await user.click(cancelBtn);
+    const zaloCard = await screen.findByRole('button', {
+      name: 'Zalo: Waiting to confirm, Noah Nguyen. See details',
+    });
+    await user.click(zaloCard);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent("Merge with Noah Nguyen's account");
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel request' }));
 
     await waitFor(() => {
       const cancelCall = calls.find(
@@ -200,13 +207,12 @@ describe('LinkedAccounts', () => {
     });
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('Waiting for the other account to confirm the merge'),
-      ).toBeNull();
+      expect(screen.queryByText('Waiting to confirm')).toBeNull();
+      expect(screen.getByTestId('method-zalo')).toHaveTextContent('Not linked');
     });
   });
 
-  it('shows a decided request', async () => {
+  it('shows finished requests as chips', async () => {
     const declinedReq: OutgoingMergeRequest = {
       id: 'm-1',
       provider: 'zalo',
@@ -217,8 +223,7 @@ describe('LinkedAccounts', () => {
       'GET /api/me': me(['google'], [declinedReq]),
     });
     const { unmount } = renderAt(<Harness />, { route: '/trips' });
-    await screen.findByTestId('method-google');
-    expect(screen.getByText('The other account declined the merge')).toBeInTheDocument();
+    expect(within(await screen.findByTestId('method-zalo')).getByText('Declined')).toBeInTheDocument();
     unmount();
 
     const acceptedReq: OutgoingMergeRequest = {
@@ -231,7 +236,6 @@ describe('LinkedAccounts', () => {
       'GET /api/me': me(['google'], [acceptedReq]),
     });
     renderAt(<Harness />, { route: '/trips' });
-    await screen.findByTestId('method-google');
-    expect(screen.getByText('Accounts merged')).toBeInTheDocument();
+    expect(within(await screen.findByTestId('method-zalo')).getByText('Merged')).toBeInTheDocument();
   });
 });
