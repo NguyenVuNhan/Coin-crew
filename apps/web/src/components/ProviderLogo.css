@@ -1,0 +1,11 @@
+/* 10% matches the corner ratio baked into Google's asset, so the square Zalo icon matches it. */
+.fsl-provider-logo {
+  border-radius: 10%;
+  flex: none;
+  display: block;
+}
+
+.fsl-provider-logo--muted {
+  filter: grayscale(1);
+  opacity: 0.45;
+}

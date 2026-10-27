@@ -3,7 +3,7 @@ import { isZaloWebView } from '../lib/zaloEnv';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { Button } from './Button';
-import { Icon } from './icons';
+import { ProviderLogo } from './ProviderLogo';
 import './SignInButtons.css';
 
 export interface SignInButtonsProps {
@@ -48,7 +48,7 @@ export function SignInButtons({
             block
             href={signInHref('zalo', returnTo, intent)}
           >
-            <Icon name="zalo" size={18} />
+            <ProviderLogo provider="zalo" size={24} />
             {t(zaloKey)}
           </Button>
         )}
@@ -64,6 +64,7 @@ export function SignInButtons({
         block={layout === 'stack'}
         href={signInHref('google', returnTo, intent)}
       >
+        <ProviderLogo provider="google" size={24} />
         {t(googleKey)}
       </Button>
       {zaloOn && (
@@ -72,7 +73,7 @@ export function SignInButtons({
           block={layout === 'stack'}
           href={signInHref('zalo', returnTo, intent)}
         >
-          <Icon name="zalo" size={18} />
+          <ProviderLogo provider="zalo" size={24} />
           {t(zaloKey)}
         </Button>
       )}

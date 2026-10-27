@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'brand/google-signin-icon.png', 'brand/zalo-app-icon.png'],
       manifest: {
         name: 'CoinCrew (Tiền Đâu)',
         short_name: 'CoinCrew',
