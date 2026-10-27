@@ -79,6 +79,10 @@ describe('migration 0006 (Zalo sign-in)', () => {
       created_at: '2026-10-12T00:00:00.000Z',
       expires_at: '2026-10-19T00:00:00.000Z',
       decided_at: null,
+      // Added by migration 0007.
+      other_name: null,
+      identity_label: null,
+      dismissed_at: null,
     });
   });
 
