@@ -223,16 +223,23 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     {!isGoogleInZalo && (
                       <Button
                         variant="secondary"
+                        className="fsl-linked__icon-btn"
                         href={signInHref(p, returnTo, 'link')}
+                        aria-label={t('account.change')}
+                        title={t('account.change')}
                       >
-                        <Icon name="swap" size={16} />
-                        {t('account.change')}
+                        <Icon name="swap" size={18} />
                       </Button>
                     )}
                     {userProviders.length > 1 && (
-                      <Button variant="danger" onClick={() => startUnlink(p)}>
-                        <Icon name="trash" size={16} />
-                        {t('account.unlink')}
+                      <Button
+                        variant="danger"
+                        className="fsl-linked__icon-btn"
+                        onClick={() => startUnlink(p)}
+                        aria-label={t('account.unlink')}
+                        title={t('account.unlink')}
+                      >
+                        <Icon name="trash" size={18} />
                       </Button>
                     )}
                   </>
@@ -240,10 +247,12 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                   !isGoogleInZalo && (
                     <Button
                       variant="primary"
+                      className="fsl-linked__icon-btn"
                       href={signInHref(p, returnTo, 'link')}
+                      aria-label={t('account.link')}
+                      title={t('account.link')}
                     >
-                      <Icon name="link" size={16} />
-                      {t('account.link')}
+                      <Icon name="link" size={18} />
                     </Button>
                   )
                 )}

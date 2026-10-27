@@ -19,7 +19,7 @@ export default defineConfig({
         icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
       },
       // Offline use is not required; never serve the API from the service worker.
-      workbox: { navigateFallbackDenylist: [/^\/api\//] },
+      workbox: { skipWaiting: true, clientsClaim: true, cleanupOutdatedCaches: true, navigateFallbackDenylist: [/^\/api\//] },
     }),
   ],
   // The Worker in apps/api serves the built app as static assets.

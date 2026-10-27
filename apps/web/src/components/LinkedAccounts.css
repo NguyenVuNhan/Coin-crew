@@ -45,6 +45,8 @@
 
 .fsl-linked__card .fsl-provider-logo {
   border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  box-sizing: border-box;
   display: block;
   flex-shrink: 0;
 }
@@ -55,17 +57,6 @@
   grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-}
-
-@container (max-width: 360px) {
-  .fsl-linked__card:not(.fsl-linked__card--chip) {
-    grid-template-columns: 44px minmax(0, 1fr);
-  }
-
-  .fsl-linked__card:not(.fsl-linked__card--chip) .fsl-linked__actions {
-    grid-column: 2;
-    justify-content: flex-end;
-  }
 }
 
 /* Merge chip card layout (button fills entire card) */
@@ -186,8 +177,15 @@
 .fsl-linked__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-2);
   flex-shrink: 0;
+}
+
+.fsl-linked__icon-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
 }
 
 .fsl-linked__actions:empty {
