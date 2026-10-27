@@ -627,6 +627,21 @@ export const vi: Record<MessageKey, string> = {
   'merge.released': '{provider} {email} sẽ không còn đăng nhập vào đây', // REVIEW
   'merge.confirm': 'Gộp tài khoản', // REVIEW
   'merge.dot': 'Có yêu cầu gộp tài khoản', // REVIEW
+  'merge.sheetTitle': 'Gộp với tài khoản {name}', // REVIEW
+  'merge.sheetIntro': '{provider} này đã thuộc tài khoản CoinCrew {name}. Khi gộp, nhóm, ngân hàng và lịch sử của {name} sẽ chuyển sang tài khoản này.', // REVIEW
+  'merge.step1': 'Bạn đã xác minh {provider} {label}', // REVIEW
+  'merge.step2Pending': 'Xác nhận từ tài khoản {name}', // REVIEW
+  'merge.step2Help': 'Đăng nhập bằng {provider} đó rồi chọn "Xem & gộp". Hết hạn {date}.', // REVIEW
+  'merge.step2Declined': '{name} đã từ chối gộp', // REVIEW
+  'merge.step2Accepted': '{name} đã đồng ý', // REVIEW
+  'merge.step3': 'Hai tài khoản thành một', // REVIEW
+  'merge.declinedHelp': 'Bạn có thể liên kết {provider} khác, hoặc thử lại nếu {name} đổi ý.', // REVIEW
+  'merge.acceptedSummary': 'Nhóm, ngân hàng và lịch sử của {name} đã chuyển sang tài khoản này.', // REVIEW
+  'merge.confirmHere': 'Đăng nhập {provider} để xác nhận', // REVIEW
+  'merge.switchNote': 'Thiết bị này sẽ chuyển sang tài khoản {name}. Sau khi gộp, bạn quay lại tài khoản này với mọi thứ của cả hai.', // REVIEW
+  'merge.cancelRequest': 'Huỷ yêu cầu', // REVIEW
+  'merge.linkAgain': 'Liên kết lại', // REVIEW
+  'merge.gotIt': 'Đã hiểu', // REVIEW
   'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
   'entry.expense': 'Chi tiêu', // REVIEW
   'entry.income': 'Quỹ thu', // REVIEW
