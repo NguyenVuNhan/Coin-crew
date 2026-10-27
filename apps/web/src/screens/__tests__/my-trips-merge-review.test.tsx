@@ -85,6 +85,11 @@ describe('my trips merge review', () => {
     await waitFor(() => {
       expect(screen.getByTestId('search')).not.toHaveTextContent('mergeReview');
     });
+
+    // The sheet keeps showing the matched request after the parameter is gone.
+    const after = screen.getByRole('dialog', { name: 'Merge accounts?' });
+    expect(after).toHaveTextContent('Minh');
+    expect(after).not.toHaveTextContent('Lan');
   });
 
   it('says so when no request matches', async () => {

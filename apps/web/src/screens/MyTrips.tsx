@@ -35,13 +35,15 @@ export function MyTrips() {
   const mergeReview = searchParams.get('mergeReview');
   const [noRequest, setNoRequest] = useState(false);
   const incoming = meQuery.data?.mergeRequests.incoming ?? [];
+  const [reviewedId, setReviewedId] = useState<string | null>(null);
   const reviewMatch = mergeReview ? incoming.find((r) => r.id === mergeReview) : undefined;
-  const incomingMerge = reviewMatch ?? incoming[0];
+  const incomingMerge = reviewMatch ?? incoming.find((r) => r.id === reviewedId) ?? incoming[0];
 
   // Only decide once /api/me has loaded; then drop just the mergeReview parameter.
   useEffect(() => {
     if (!meQuery.isSuccess || !mergeReview) return;
-    if (!reviewMatch) setNoRequest(true);
+    if (reviewMatch) setReviewedId(reviewMatch.id);
+    else setNoRequest(true);
     const rest = new URLSearchParams(searchParams);
     rest.delete('mergeReview');
     const search = rest.toString();
@@ -70,7 +72,11 @@ export function MyTrips() {
       <ConsentSheet />
       <div className="fsl-my-trips">
         {incomingMerge && (
-          <MergeRequestBanner request={incomingMerge} autoOpen={!!reviewMatch} />
+          <MergeRequestBanner
+            key={incomingMerge.id}
+            request={incomingMerge}
+            autoOpen={!!reviewMatch}
+          />
         )}
         {!isEmpty && (
           <Button variant="primary" block href="/trips/new">
