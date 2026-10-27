@@ -13,6 +13,7 @@ export type ApiErrorCode =
   | 'LAST_IDENTITY'
   | 'MERGE_STALE'
   | 'FUND_SHORT'
+  | 'RATING_LIMIT'
   | 'INTERNAL';
 
 export type ActivityAction =
@@ -57,7 +58,8 @@ export type ActivityAction =
   | 'income_edited'
   | 'income_disabled'
   | 'income_enabled'
-  | 'income_rolled_back';
+  | 'income_rolled_back'
+  | 'ratings_changed';
 
 import type { Gender, SplitEntry, SplitMode, SportParticipantEntry, SportRule } from './split';
 import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
@@ -233,8 +235,18 @@ export type Approval =
   | { kind: 'payment'; paymentId: string }
   | { kind: 'not_arrived'; paymentId: string }
   | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null };
+
+export interface RatingsView {
+  enabled: boolean;
+  /** Total stars received per active participantId. */
+  totalStars: Record<string, number>;
+  /** Max stars each signed-in member can allocate (RATING_STAR_MULTIPLIER * activeCount). */
+  maxStars: number;
+  /** Caller's own allocations (targetParticipantId -> stars). Empty object for guests/viewers. */
+  myAllocations: Record<string, number>;
+}
 export interface TripView {
-  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi' };
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean };
   me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
   people: PersonView[];
   balances: Balances;
@@ -248,6 +260,8 @@ export interface TripView {
   links: { group: string; view: string } | null;
   /** Sport groups only; null otherwise. Left out by an older server: read it as null. */
   fund?: { balance: number; added: number; spent: number; incomes: IncomeView[] } | null;
+  /** Sport groups only; null otherwise. Left out by an older server: read it as null. */
+  ratings?: RatingsView | null;
 }
 export interface TripListItem { id: string; name: string; archived: boolean; myBalance: number; preset?: GroupPreset }
 export interface ActivityItem {

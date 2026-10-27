@@ -687,5 +687,36 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.income_disabled': 'tắt khoản thu quỹ', // REVIEW
   'activity.action.income_enabled': 'bật khoản thu quỹ', // REVIEW
   'activity.action.income_rolled_back': 'khôi phục khoản thu quỹ', // REVIEW
+  'activity.ratingsEnabled': '{actor} đã bật đánh giá người chơi', // REVIEW
+  'activity.ratingsDisabled': '{actor} đã tắt đánh giá người chơi', // REVIEW
+  'activity.action.ratings_changed': 'đã thay đổi cài đặt đánh giá người chơi', // REVIEW
+  'error.ratingLimit': 'Bạn đã chạm giới hạn sao. Hãy thu hồi sao trước rồi thử lại.', // REVIEW
+  'ratings.title': 'Đánh giá người chơi', // REVIEW
+  'ratings.leaderboard': 'Bảng xếp hạng', // REVIEW
+  'ratings.quote': 'Đánh hết mình, chấm công tâm — mỗi sao đều quý', // REVIEW
+  'ratings.rateAction': 'Chấm sao', // REVIEW
+  'ratings.coldTitle': 'Chưa có đánh giá nào', // REVIEW
+  'ratings.coldBody': 'Hãy là người đầu tiên chấm sao ẩn danh cho đồng đội để lập bảng xếp hạng CLB.', // REVIEW
+  'ratings.coldCta': 'Nhấn vào đây để chấm sao', // REVIEW
+  'ratings.budgetTitle': 'Ví sao của bạn', // REVIEW
+  'ratings.budgetLeft': 'Còn {remaining} / {max} ★', // REVIEW
+  'ratings.budgetHint': 'Ẩn danh 100% · Chạm ★ để tặng (tối đa {maxPerPlayer}★) · Giữ ★ để hóa mặt trời và nổ về 0', // REVIEW
+  'ratings.overBudgetTitle': 'Vượt quỹ sao do giảm thành viên', // REVIEW
+  'ratings.overBudgetHint': 'Bạn đã phát {spent} ★ (giới hạn mới: {max} ★). Hãy thu hồi ít nhất {over} ★ trước khi tặng thêm.', // REVIEW
+  'ratings.totalStars': 'Tổng {count} ★', // REVIEW
+  'ratings.yours': 'Bạn tặng: {count}/{max} ★', // REVIEW
+  'ratings.youBadge': 'Bạn', // REVIEW
+  'ratings.giveStar': 'Tặng 1 sao cho {name}', // REVIEW
+  'ratings.takeStar': 'Thu hồi 1 sao từ {name}', // REVIEW
+  'ratings.searchPlaceholder': 'Tìm trong {count} người chơi...', // REVIEW
+  'ratings.searchLabel': 'Tìm người chơi', // REVIEW
+  'ratings.noSearchMatch': 'Không tìm thấy người chơi "{query}".', // REVIEW
+  'ratings.showAll': 'Hiện tất cả {count} người chơi', // REVIEW
+  'ratings.guestTitle': 'Đăng nhập để chấm sao', // REVIEW
+  'ratings.guestBody': 'Chỉ thành viên đã đăng nhập mới có quỹ sao để đánh giá ẩn danh.', // REVIEW
+  'ratings.switchTitle': 'Đánh giá người chơi', // REVIEW
+  'ratings.switchExplain': 'Cho phép thành viên ẩn danh tặng sao đánh giá kỹ năng và hiện bảng xếp hạng CLB.', // REVIEW
+  'ratings.collapse': 'Thu gọn bảng xếp hạng', // REVIEW
+  'ratings.expand': 'Mở rộng bảng xếp hạng', // REVIEW
 };
 

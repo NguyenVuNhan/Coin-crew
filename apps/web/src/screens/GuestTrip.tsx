@@ -10,6 +10,7 @@ import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
 import { FundPill } from '../components/FundPill';
+import { LeaderboardWidget } from '../components/LeaderboardWidget';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
@@ -147,6 +148,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         <UpdatedTransactionsBanner view={view} />
         {!wide ? (
           <>
+            <LeaderboardWidget view={view} />
             {balance}
             {fund}
             {bankRow}
@@ -158,6 +160,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
           <TripLayout
             left={
               <>
+                <LeaderboardWidget view={view} switching={selection !== null} />
                 {fund}
                 {expenses(true, true)}
                 {payments(false)}

@@ -58,6 +58,7 @@ export const trips = sqliteTable('trips', {
   preset: text('preset', { enum: ['trip', 'sport'] }).notNull().default('trip'),
   currency: text('currency').notNull().default('VND'),
   fewestTransfers: integer('fewest_transfers').notNull().default(0),
+  ratingsEnabled: integer('ratings_enabled').notNull().default(0),
   defaultLang: text('default_lang').notNull().default('vi'),
   organiserUserId: text('organiser_user_id').notNull(),
   groupToken: text('group_token').notNull().unique(),
@@ -238,4 +239,19 @@ export const opsAlerts = sqliteTable(
     metric: text('metric').notNull(),
   },
   (t) => [primaryKey({ columns: [t.day, t.metric] })],
+);
+
+export const playerRatings = sqliteTable(
+  'player_ratings',
+  {
+    tripId: text('trip_id').notNull(),
+    raterParticipantId: text('rater_participant_id').notNull(),
+    targetParticipantId: text('target_participant_id').notNull(),
+    stars: integer('stars').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tripId, t.raterParticipantId, t.targetParticipantId] }),
+    index('player_ratings_trip_id_idx').on(t.tripId),
+  ],
 );

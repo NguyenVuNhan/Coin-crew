@@ -9,6 +9,7 @@ import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
 import { FundPill } from '../components/FundPill';
+import { LeaderboardWidget } from '../components/LeaderboardWidget';
 import { InviteCard, InviteSheet } from '../components/InviteSheet';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
@@ -106,6 +107,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
             left={
               <>
                 {notice}
+                <LeaderboardWidget view={view} switching={selection !== null} />
                 <ApprovalQueue view={view} switching={selection !== null} />
                 {fund}
                 {expenses(true, true)}
@@ -119,6 +121,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
         <div className="fsl-member">
           {notice}
           <UpdatedTransactionsBanner view={view} />
+          <LeaderboardWidget view={view} />
           <ApprovalQueue view={view} />
           {balance}
           {fund}

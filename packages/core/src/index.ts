@@ -8,4 +8,5 @@ export * from './refcode';
 export * from './banks';
 export * from './permissions';
 export * from './fund';
+export * from './ratings';
 export * from './api-types';

@@ -9,6 +9,7 @@ import {
   bankDetails,
   membershipRequests,
   participants,
+  playerRatings,
   users,
 } from '../db/schema';
 
@@ -178,6 +179,30 @@ export async function toTripView(
       ? { group: actor.trip.groupToken, view: actor.trip.viewToken }
       : null;
 
+  let ratings = snapshot.ratings ?? null;
+  if (ratings !== null && actor.kind === 'member' && actor.participantId !== null) {
+    const activeIds = new Set(snapshot.people.filter((p) => p.status === 'active').map((p) => p.id));
+    const myRows = await db
+      .select({
+        targetParticipantId: playerRatings.targetParticipantId,
+        stars: playerRatings.stars,
+      })
+      .from(playerRatings)
+      .where(
+        and(
+          eq(playerRatings.tripId, actor.trip.id),
+          eq(playerRatings.raterParticipantId, actor.participantId),
+        ),
+      );
+    const myAllocations: Record<string, number> = {};
+    for (const r of myRows) {
+      if (activeIds.has(r.targetParticipantId) && r.stars > 0) {
+        myAllocations[r.targetParticipantId] = r.stars;
+      }
+    }
+    ratings = { ...ratings, myAllocations };
+  }
+
   return {
     trip: snapshot.trip,
     me,
@@ -187,6 +212,7 @@ export async function toTripView(
     expenses: snapshot.expenses,
     payments: snapshot.payments,
     fund: snapshot.fund,
+    ratings,
     myBalance,
     approvals,
     links,

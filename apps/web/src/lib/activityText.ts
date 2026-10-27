@@ -111,6 +111,10 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         if (!description) return null;
         return t(INCOME_LINE[item.action], { actor, description });
       }
+      case 'ratings_changed': {
+        if (typeof d.ratingsEnabled !== 'boolean') return null;
+        return t(d.ratingsEnabled ? 'activity.ratingsEnabled' : 'activity.ratingsDisabled', { actor });
+      }
       default:
         return null;
     }

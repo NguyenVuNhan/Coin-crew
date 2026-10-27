@@ -11,6 +11,7 @@ import type {
   PaymentStatus,
   PaymentView,
   PersonView,
+  RatingsView,
   SplitMode,
   Transfer,
   TripView,
@@ -19,6 +20,7 @@ import {
   computeBalances,
   fundSummary,
   isFundPaid,
+  maxStarsForGroup,
   pairwiseTransfers,
   suggestTransfers,
 } from '@fsl/core';
@@ -27,6 +29,7 @@ import type { TripRow } from '../access/actor';
 import {
   bankDetails,
   participants,
+  playerRatings,
   transactionShares,
   transactions,
   tripViews,
@@ -324,6 +327,7 @@ export async function buildSnapshot(
     expenses: expenseViews,
     payments: paymentViews,
     fund: null,
+    ratings: null,
   };
 
   const ledger = toLedger(partialSnapshot);
@@ -346,6 +350,36 @@ export async function buildSnapshot(
       ? { ...fundSummary(incomes, expenseViews), incomes }
       : null;
 
+  let ratings: RatingsView | null = null;
+  if (trip.preset === 'sport') {
+    const activeIds = new Set(people.filter((p) => p.status === 'active').map((p) => p.id));
+    const totalStars: Record<string, number> = {};
+    for (const id of activeIds) {
+      totalStars[id] = 0;
+    }
+    const ratingRows = await db
+      .select({
+        raterParticipantId: playerRatings.raterParticipantId,
+        targetParticipantId: playerRatings.targetParticipantId,
+        stars: playerRatings.stars,
+      })
+      .from(playerRatings)
+      .where(eq(playerRatings.tripId, trip.id));
+
+    for (const r of ratingRows) {
+      if (activeIds.has(r.raterParticipantId) && activeIds.has(r.targetParticipantId) && r.stars > 0) {
+        totalStars[r.targetParticipantId] = (totalStars[r.targetParticipantId] ?? 0) + r.stars;
+      }
+    }
+
+    ratings = {
+      enabled: trip.ratingsEnabled === 1,
+      totalStars,
+      maxStars: maxStarsForGroup(activeIds.size),
+      myAllocations: {},
+    };
+  }
+
   return {
     trip: {
       id: trip.id,
@@ -353,6 +387,7 @@ export async function buildSnapshot(
       preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
+      ratingsEnabled: trip.ratingsEnabled === 1,
       defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
       version: trip.version,
@@ -364,6 +399,7 @@ export async function buildSnapshot(
     expenses: expenseViews,
     payments: paymentViews,
     fund,
+    ratings,
   };
 }
 
@@ -376,8 +412,8 @@ export async function getSnapshot(db: Db, trip: TripRow): Promise<TripSnapshot> 
 
   if (row && row.version === trip.version) {
     const cached = JSON.parse(row.json) as TripSnapshot;
-    // Views cached before the group fund have no `fund` (nor expense createdAt): rebuild them once.
-    if ('fund' in cached) return cached;
+    // Views cached before the group fund or player ratings lack those fields: rebuild them once.
+    if ('fund' in cached && 'ratings' in cached) return cached;
   }
 
   let previous: Transfer[] | undefined;

@@ -38,6 +38,12 @@ export function useApprovalsLink(tripId: string, switching = false): { to: strin
   return { to: `/t/${tripId}/approvals`, ...entryOptions(state, switching) };
 }
 
+/** `<Link>` props for the player ratings leaderboard, marked and replaced by the same rules as `useOpenDetails`. */
+export function useRatingsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
+  const { state } = useLocation();
+  return { to: `/t/${tripId}/ratings`, ...entryOptions(state, switching) };
+}
+
 /**
  * Leaves the details of a transaction: one step back in history when a trip list opened them (so the list
  * underneath is the page they left, and history does not grow), or, for a shared link that has nothing
@@ -73,8 +79,8 @@ function scrollWindowTo(y: number): void {
 }
 
 /** The pages a trip route can show, from the list itself down to the one opened on top of it. */
-export type TripPage = 'list' | 'approvals' | 'details';
-const DEPTH: Record<TripPage, number> = { list: 0, approvals: 1, details: 2 };
+export type TripPage = 'list' | 'approvals' | 'ratings' | 'details';
+const DEPTH: Record<TripPage, number> = { list: 0, approvals: 1, ratings: 1, details: 2 };
 
 /**
  * Keeps the window's scroll place across the trip's pages (on phones the approvals list and the details are pages
