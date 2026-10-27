@@ -12,6 +12,15 @@ import { refetchOnWindowFocus } from './api/focus';
 setLang(detectLang());
 refetchOnWindowFocus();
 
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
