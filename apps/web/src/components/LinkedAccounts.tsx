@@ -130,14 +130,16 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                   onClick={() => setSelectedMergeRequest(mergeRequest)}
                   aria-label={rowLabel}
                 >
-                  <ProviderLogo provider={p} size={44} muted={mergeLogoMuted} />
+                  <ProviderLogo provider={p} size={32} muted={mergeLogoMuted} />
                   <span className="fsl-linked__info">
-                    <span className="fsl-linked__provider">{pName}</span>
-                    <span className="fsl-linked__status">
-                      <Pill tone={pillTone}>
-                        <Icon name={pillIcon} size={14} />
-                        <span>{chipText}</span>
-                      </Pill>
+                    <span className="fsl-linked__header-row">
+                      <span className="fsl-linked__provider">{pName}</span>
+                      <span className="fsl-linked__status">
+                        <Pill tone={pillTone}>
+                          <Icon name={pillIcon} size={12} />
+                          <span>{chipText}</span>
+                        </Pill>
+                      </span>
                     </span>
                     {otherName ? (
                       <span className="fsl-linked__identity" title={otherName}>
@@ -146,7 +148,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     ) : null}
                   </span>
                   <span className="fsl-linked__chevron" aria-hidden="true">
-                    <Icon name="chevronRight" size={20} />
+                    <Icon name="chevronRight" size={18} />
                   </span>
                 </button>
               </li>
@@ -169,43 +171,38 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
 
           return (
             <li key={p} data-testid={testId} className="fsl-linked__card">
-              <ProviderLogo provider={p} size={44} muted={!isLinked} />
+              <ProviderLogo provider={p} size={32} muted={!isLinked} />
               <div className="fsl-linked__info">
-                <span className="fsl-linked__provider">{pName}</span>
-                <div
-                  className={`fsl-linked__status fsl-linked__status--${
-                    isLinked ? 'linked' : 'unlinked'
-                  }`}
-                >
-                  {isLinked ? (
-                    <>
-                      <Icon name="circleCheck" size={16} />
-                      <span>{t('account.linked')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{t('account.notLinked')}</span>
-                      {showWhyLink && (
-                        <button
-                          type="button"
-                          className="fsl-linked__why-btn"
-                          aria-expanded={isWhyOpen}
-                          aria-label={t('account.whyLink')}
-                          onClick={() => setWhyLinkOpen(isWhyOpen ? null : p)}
-                        >
-                          <Icon name="info" size={16} />
-                        </button>
-                      )}
-                    </>
-                  )}
+                <div className="fsl-linked__header-row">
+                  <span className="fsl-linked__provider">{pName}</span>
+                  <div
+                    className={`fsl-linked__status fsl-linked__status--${
+                      isLinked ? 'linked' : 'unlinked'
+                    }`}
+                  >
+                    {isLinked ? (
+                      <>
+                        <Icon name="circleCheck" size={14} />
+                        <span>{t('account.linked')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{t('account.notLinked')}</span>
+                        {showWhyLink && (
+                          <button
+                            type="button"
+                            className="fsl-linked__why-btn"
+                            aria-expanded={isWhyOpen}
+                            aria-label={t('account.whyLink')}
+                            onClick={() => setWhyLinkOpen(isWhyOpen ? null : p)}
+                          >
+                            <Icon name="info" size={14} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-                {isWhyOpen && (
-                  <p className="fsl-linked__why-text">
-                    {p === 'google'
-                      ? t('account.backupNudgeZalo')
-                      : t('account.backupNudgeGoogle')}
-                  </p>
-                )}
                 {hasIdentity && (
                   <span
                     className={`fsl-linked__identity${
@@ -215,6 +212,13 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                   >
                     {identityText}
                   </span>
+                )}
+                {isWhyOpen && (
+                  <p className="fsl-linked__why-text">
+                    {p === 'google'
+                      ? t('account.backupNudgeZalo')
+                      : t('account.backupNudgeGoogle')}
+                  </p>
                 )}
               </div>
               <div className="fsl-linked__actions">
@@ -228,18 +232,18 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                         aria-label={t('account.change')}
                         title={t('account.change')}
                       >
-                        <Icon name="swap" size={18} />
+                        <Icon name="swap" size={16} />
                       </Button>
                     )}
                     {userProviders.length > 1 && (
                       <Button
                         variant="danger"
-                        className="fsl-linked__icon-btn"
+                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink"
                         onClick={() => startUnlink(p)}
                         aria-label={t('account.unlink')}
                         title={t('account.unlink')}
                       >
-                        <Icon name="trash" size={18} />
+                        <Icon name="trash" size={16} />
                       </Button>
                     )}
                   </>
@@ -252,7 +256,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                       aria-label={t('account.link')}
                       title={t('account.link')}
                     >
-                      <Icon name="link" size={18} />
+                      <Icon name="link" size={16} />
                     </Button>
                   )
                 )}
