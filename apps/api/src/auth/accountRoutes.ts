@@ -69,7 +69,7 @@ export function accountRoutes(): Hono<AppBindings> {
     } else {
       await db
         .update(users)
-        .set({ zaloSub: null })
+        .set({ zaloSub: null, zaloName: null })
         .where(eq(users.id, user.id));
     }
 

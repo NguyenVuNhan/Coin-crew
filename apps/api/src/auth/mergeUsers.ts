@@ -36,6 +36,7 @@ function mergedUserFields(a: UserRow, b: UserRow, provider: AuthProvider, provid
   return {
     googleSub,
     zaloSub,
+    zaloName: provider === 'zalo' ? b.zaloName : (a.zaloSub != null ? a.zaloName : b.zaloName),
     email: googleSub == null ? null : (googleFromB ? b.email : a.email),
     name: profile.name,
     gender: profile.gender,

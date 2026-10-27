@@ -20,6 +20,9 @@ export async function upsertIdentity(
     if (provider === 'google' && profile.email) {
       updates.email = profile.email;
     }
+    if (provider === 'zalo') {
+      updates.zaloName = profile.name;
+    }
     if (existing.customProfile === 0) {
       updates.name = profile.name;
     }
@@ -37,6 +40,7 @@ export async function upsertIdentity(
     id,
     googleSub: provider === 'google' ? profile.sub : null,
     zaloSub: provider === 'zalo' ? profile.sub : null,
+    zaloName: provider === 'zalo' ? profile.name : null,
     email: provider === 'google' ? profile.email ?? null : null,
     name: profile.name,
     avatarUrl: profile.avatarUrl,
@@ -92,7 +96,7 @@ export async function linkIdentity(
   }
 
   const updates: Partial<typeof users.$inferInsert> = {
-    ...(provider === 'google' ? { googleSub: profile.sub } : { zaloSub: profile.sub }),
+    ...(provider === 'google' ? { googleSub: profile.sub } : { zaloSub: profile.sub, zaloName: profile.name }),
   };
   if (provider === 'google' && profile.email && profile.email.trim() !== '') {
     updates.email = profile.email.trim();
