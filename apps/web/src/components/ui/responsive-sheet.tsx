@@ -71,7 +71,7 @@ export function ResponsiveSheet({
         <DialogContent
           showCloseButton={false}
           aria-describedby={undefined}
-          className={cn("sm:max-w-md", className)}
+          className={cn("flex max-h-[85dvh] flex-col sm:max-w-md", className)}
           onEscapeKeyDown={dismissible ? undefined : (e) => e.preventDefault()}
           onInteractOutside={dismissible ? undefined : (e) => e.preventDefault()}
           onCloseAutoFocus={returnFocus}
@@ -89,7 +89,7 @@ export function ResponsiveSheet({
               </Button>
             )}
           </div>
-          <div>{children}</div>
+          <div className="-mx-6 min-h-0 overflow-y-auto px-6">{children}</div>
         </DialogContent>
       </Dialog>
     )
@@ -100,6 +100,7 @@ export function ResponsiveSheet({
       open={open}
       onOpenChange={dismissible ? onOpenChange : () => {}}
       dismissible={dismissible}
+      autoFocus
     >
       <DrawerContent aria-describedby={undefined} className={className} onCloseAutoFocus={returnFocus}>
         <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">

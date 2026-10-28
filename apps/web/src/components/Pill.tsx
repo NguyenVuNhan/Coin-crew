@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-export interface PillProps {
+export interface PillProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'className' | 'children'> {
   tone?: 'neutral' | 'accent' | 'success' | 'danger' | 'warning';
   className?: string;
   children: ReactNode;
@@ -16,9 +16,10 @@ const TONE = {
   warning: 'bg-warning-soft text-warning-foreground',
 };
 
-export function Pill({ tone = 'neutral', className, children }: PillProps) {
+export function Pill({ tone = 'neutral', className, children, ...rest }: PillProps) {
   return (
     <Badge
+      {...rest}
       className={cn(
         'fsl-pill',
         `fsl-pill--${tone}`,

@@ -242,7 +242,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     {userProviders.length > 1 && (
                       <Button
                         variant="danger"
-                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink size-9 min-w-9 min-h-9 p-0 rounded-full text-danger border-border hover:bg-danger-soft hover:text-danger"
+                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink size-9 min-w-9 min-h-9 p-0 rounded-full bg-card text-danger border-border hover:bg-danger-soft hover:text-danger"
                         onClick={() => startUnlink(p)}
                         aria-label={t('account.unlink')}
                         title={t('account.unlink')}

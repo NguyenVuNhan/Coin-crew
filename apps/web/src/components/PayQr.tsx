@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useState, type JSX } from 'react';
 import { formatVnd, type PayInfo } from '@fsl/core';
 import { useT } from '../i18n';
-import { copyText } from '../lib/clipboard';
 import { qrPngBlob, qrSrc, saveQr, shareQr, useQrSvg } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useIsCoarsePointer } from '../lib/media';
@@ -10,7 +9,6 @@ import { Amount } from './Amount';
 import { Button } from './Button';
 import { BankAppSheet } from './BankAppSheet';
 import { useImageSheet } from './SaveImageSheet';
-import { Icon } from './icons';
 
 export type PayQrProps = {
   info: PayInfo;
@@ -30,32 +28,11 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<'saved' | 'failed' | null>(null);
-  const [copiedField, setCopiedField] = useState<'account' | 'note' | null>(null);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
-
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-    };
-  }, []);
 
   if (info.amount === 0 || info.payload === null) {
     return null;
   }
-
-  const handleCopy = (field: 'account' | 'note', text: string) => {
-    void copyText(text).then((ok) => {
-      if (ok) {
-        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-        setCopiedField(field);
-        copyTimerRef.current = setTimeout(() => {
-          setCopiedField(null);
-          copyTimerRef.current = null;
-        }, 2000);
-      }
-    });
-  };
 
   async function share(text: string) {
     if (isZaloWebView()) {
@@ -87,63 +64,13 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
       {summary && (
         <>
           <Amount value={info.amount} size="lg" />
-          {(info.bank !== null || info.refCode) && (
-            <div className="w-full overflow-hidden rounded-xl border border-border bg-card divide-y divide-border text-sm shadow-xs">
-              {info.bank !== null && (
-                <div className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-xs text-muted-foreground">{info.bank.bankName}</span>
-                    <p className="fsl-pay-qr__bank m-0 truncate font-semibold text-foreground text-left">
-                      {`${info.bank.bankName} · ${info.bank.holderName}`}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {info.bank !== null && (
-                <div className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-xs text-muted-foreground">{t('pay.account')}</span>
-                    <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                      {info.bank.accountNumberMasked}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => handleCopy('account', info.bank!.accountNumber)}
-                    aria-label={t('pay.copyAccount')}
-                    title={t('pay.copyAccount')}
-                  >
-                    <Icon name={copiedField === 'account' ? 'check' : 'copy'} size={14} />
-                    <span>{copiedField === 'account' ? t('pay.copied') : t('share.copy')}</span>
-                  </Button>
-                </div>
-              )}
-              {info.refCode && (
-                <div className="fsl-pay-qr__note flex min-h-11 items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="fsl-pay-qr__note-label text-xs text-muted-foreground">{t('pay.note')}</span>
-                    <span className="fsl-pay-qr__memo w-fit rounded bg-warning-soft px-1.5 py-0.5 font-mono text-sm font-bold text-warning-foreground">
-                      {info.refCode}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => handleCopy('note', info.refCode)}
-                    aria-label={t('pay.copyNote')}
-                    title={t('pay.copyNote')}
-                  >
-                    <Icon name={copiedField === 'note' ? 'check' : 'copy'} size={14} />
-                    <span>{copiedField === 'note' ? t('pay.copied') : t('share.copy')}</span>
-                  </Button>
-                </div>
-              )}
-            </div>
+          {info.bank !== null && (
+            <p className="fsl-pay-qr__bank m-0 text-center text-sm text-muted-foreground">{`${info.bank.bankName} · ${info.bank.holderName}`}</p>
           )}
-          <span className="sr-only" role="status">
-            {copiedField ? t('pay.copied') : ''}
-          </span>
+          <div className="fsl-pay-qr__note flex items-center justify-center gap-2 text-sm">
+            <span className="fsl-pay-qr__note-label text-muted-foreground">{t('pay.note')}</span>
+            <span className="fsl-pay-qr__memo rounded bg-warning-soft px-1.5 py-0.5 font-mono font-bold text-warning-foreground">{info.refCode}</span>
+          </div>
         </>
       )}
       <div className="fsl-pay-qr__actions flex w-full gap-2">

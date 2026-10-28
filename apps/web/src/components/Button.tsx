@@ -46,7 +46,8 @@ export function Button({
     buttonVariants({ variant: variantMap[variant] }),
     'fsl-button',
     `fsl-button--${variant}`,
-    block && 'fsl-button--block w-full',
+    // Full-width buttons wrap a long label (a long Vietnamese name) instead of spilling past the pill.
+    block && 'fsl-button--block w-full h-auto min-h-11 whitespace-normal py-2 text-center',
     (disabled || loading) && 'fsl-button--disabled',
     className,
   );

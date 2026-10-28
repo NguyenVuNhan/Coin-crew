@@ -143,6 +143,7 @@ export function AvatarCropModal({
             'relative size-[220px] rounded-full overflow-hidden bg-card border-2 border-primary shadow-sm cursor-grab touch-none select-none',
             isDragging && 'cursor-grabbing',
           )}
+          data-vaul-no-drag
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -179,6 +180,7 @@ export function AvatarCropModal({
           <input
             id="fsl-crop-zoom"
             type="range"
+            data-vaul-no-drag
             min="1"
             max="3"
             step="0.05"

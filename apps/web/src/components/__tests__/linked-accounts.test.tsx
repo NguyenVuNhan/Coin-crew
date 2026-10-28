@@ -131,6 +131,15 @@ describe('LinkedAccounts', () => {
     });
   });
 
+  it('the unlink icon is a visible rose icon on a white button, not rose on rose', async () => {
+    mockApi({ 'GET /api/me': me(['google', 'zalo']) });
+    renderAt(<Harness />, { route: '/trips' });
+    const zaloRow = await screen.findByTestId('method-zalo');
+    const unlink = within(zaloRow).getByRole('button', { name: 'Unlink' });
+    expect(unlink).toHaveClass('bg-card', 'text-danger');
+    expect(unlink).not.toHaveClass('bg-destructive');
+  });
+
   it('shows a refused unlink', async () => {
     const user = userEvent.setup();
     mockApi({
