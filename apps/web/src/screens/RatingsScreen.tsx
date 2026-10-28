@@ -22,7 +22,8 @@ import { Pill } from '../components/Pill';
 import { Icon } from '../components/icons';
 import { InlineError } from '../components/InlineError';
 import { PodiumTop3, podiumPlayers } from '../components/LeaderboardWidget';
-import './RatingsScreen.css';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 
 /**
  * Pure function that builds a 24x24 SVG `<path d="...">` morphing a 5-pointed star
@@ -103,11 +104,16 @@ export function StarVote({
 
   if (!canRate) {
     return (
-      <span className="fsl-star-vote fsl-star-vote--readonly">
-        <span className="fsl-star-vote__num">{player.stars}</span>
-        <span className="fsl-star-vote__icon-wrap">
-          <svg className="fsl-star-vote__svg" viewBox="0 0 24 24" aria-hidden="true">
+      <span className="fsl-star-vote fsl-star-vote--readonly inline-flex items-center justify-center gap-1 min-w-11 min-h-11 px-2 py-1 rounded-xl bg-transparent border-0 font-sans text-sm font-bold tabular-nums select-none touch-manipulation cursor-default pointer-events-none text-muted-foreground [.fsl-podium__slot_&]:mt-1">
+        <span className="fsl-star-vote__num text-sm font-bold tabular-nums">{player.stars}</span>
+        <span className="fsl-star-vote__icon-wrap relative inline-flex items-center justify-center size-6 shrink-0">
+          <svg
+            className="fsl-star-vote__svg size-[22px] block overflow-visible text-warning-foreground origin-center transition-transform duration-150 ease-out transition-colors motion-reduce:transition-none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path
+              className="fsl-star-vote__path origin-center"
               d={buildStarSolarPath(0)}
               fill="currentColor"
               stroke="currentColor"
@@ -207,16 +213,14 @@ export function StarVote({
     }
   };
 
-  const className = [
-    'fsl-star-vote',
-    myStars > 0 ? 'fsl-star-vote--has-mine' : '',
-    isPopping ? 'fsl-star-vote--popping' : '',
-    isShaking ? 'fsl-star-vote--shaking' : '',
-    morphProgress > 0 ? 'fsl-star-vote--holding' : '',
-    isExploding ? 'fsl-star-vote--exploding' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const buttonClassName = cn(
+    'fsl-star-vote inline-flex items-center justify-center gap-1 min-w-11 min-h-11 px-2 py-1 border-0 rounded-xl bg-transparent font-sans text-sm font-bold tabular-nums cursor-pointer select-none touch-manipulation transition-colors duration-150 ease-out transition-transform motion-reduce:transition-none [.fsl-podium__slot_&]:mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    myStars > 0 ? 'fsl-star-vote--has-mine text-warning-foreground' : 'text-foreground',
+    isPopping && 'fsl-star-vote--popping',
+    isShaking && 'fsl-star-vote--shaking text-danger',
+    morphProgress > 0 && 'fsl-star-vote--holding',
+    isExploding && 'fsl-star-vote--exploding',
+  );
 
   return (
     <button
@@ -224,7 +228,7 @@ export function StarVote({
       data-testid={`star-vote-${player.id}`}
       data-my-stars={myStars}
       data-morph-progress={morphProgress.toFixed(2)}
-      className={className}
+      className={buttonClassName}
       aria-label={t('ratings.giveStar', { name: player.name })}
       onClick={handleClick}
       onPointerDown={handlePointerDown}
@@ -233,10 +237,28 @@ export function StarVote({
       onPointerCancel={cancelHold}
       onKeyDown={handleKeyDown}
     >
-      <span className="fsl-star-vote__num">{player.stars}</span>
-      <span className="fsl-star-vote__icon-wrap">
+      <span
+        className={cn(
+          'fsl-star-vote__num text-sm font-bold tabular-nums',
+          isShaking && 'text-danger motion-safe:animate-[fsl-quota-shake_320ms_ease-out] motion-reduce:animate-none',
+        )}
+      >
+        {player.stars}
+      </span>
+      <span className="fsl-star-vote__icon-wrap relative inline-flex items-center justify-center size-6 shrink-0">
         <svg
-          className="fsl-star-vote__svg"
+          className={cn(
+            'fsl-star-vote__svg size-[22px] block overflow-visible origin-center transition-transform duration-150 ease-out transition-colors motion-reduce:transition-none',
+            isShaking
+              ? 'text-danger motion-safe:animate-[fsl-quota-shake_320ms_ease-out] motion-reduce:animate-none'
+              : morphProgress > 0
+                ? 'text-danger'
+                : isPopping
+                  ? 'text-warning-foreground motion-safe:animate-[fsl-tap-pop_260ms_ease-out] motion-reduce:animate-none'
+                  : myStars > 0
+                    ? 'text-warning-foreground'
+                    : 'text-muted-foreground hover:text-warning-foreground',
+          )}
           viewBox="0 0 24 24"
           aria-hidden="true"
           style={
@@ -246,7 +268,7 @@ export function StarVote({
           }
         >
           <path
-            className="fsl-star-vote__path"
+            className="fsl-star-vote__path origin-center"
             d={buildStarSolarPath(morphProgress)}
             fill="currentColor"
             stroke="currentColor"
@@ -256,12 +278,17 @@ export function StarVote({
         </svg>
         {isExploding && (
           <span
-            className="fsl-solar-sparks"
+            className="fsl-solar-sparks absolute top-1/2 left-1/2 size-0 pointer-events-none"
             data-testid={`solar-sparks-${player.id}`}
             aria-hidden="true"
           >
             {Array.from({ length: 8 }, (_, i) => (
-              <span key={i} className="fsl-solar-spark" data-spark-idx={i} />
+              <span
+                key={i}
+                className="fsl-solar-spark absolute -top-[3px] -left-[3px] size-1.5 rounded-full bg-warning-foreground pointer-events-none motion-safe:animate-[fsl-spark-fly_380ms_ease-out_forwards] motion-reduce:animate-none"
+                data-spark-idx={i}
+                style={{ '--spark-angle': `${i * 45}deg` } as React.CSSProperties}
+              />
             ))}
           </span>
         )}
@@ -337,27 +364,42 @@ export function RatingsPanel({ view }: { view: TripView }) {
   };
 
   return (
-    <div className="fsl-ratings">
+    <div className="fsl-ratings flex flex-col gap-3">
       {/* 1. Radial Top 3 Podium Card */}
-      <div className="fsl-ratings__podium-card">
-        <p className="fsl-ratings__quote">{`“${t('ratings.quote')}”`}</p>
+      <div className="fsl-ratings__podium-card bg-card border border-border rounded-xl pt-3 px-4 pb-4 flex flex-col gap-2">
+        <p className="fsl-ratings__quote m-0 text-xs text-muted-foreground text-center">{`“${t('ratings.quote')}”`}</p>
         <PodiumTop3 players={top3} renderScore={(p) => renderStarVote(p)} />
       </div>
 
       {/* 2. "Your Star Wallet" Sticky Bar (for members) / Guest Sign-in Banner */}
       {isMember ? (
         <div
-          className={`fsl-ratings__budget${overBudgetBy > 0 ? ' fsl-ratings__budget--warning' : ''}`}
+          className={cn(
+            'fsl-ratings__budget sticky top-14 z-[6] rounded-xl border px-4 py-3 flex flex-col gap-2',
+            overBudgetBy > 0
+              ? 'fsl-ratings__budget--warning bg-warning-soft border-warning-border text-warning-foreground'
+              : 'bg-secondary border-border text-secondary-foreground',
+          )}
           role={overBudgetBy > 0 ? 'status' : undefined}
         >
-          <div className="fsl-ratings__budget-head">
-            <span className="fsl-ratings__budget-title">
+          <div className="fsl-ratings__budget-head flex items-center justify-between gap-2">
+            <span
+              className={cn(
+                'fsl-ratings__budget-title text-sm font-semibold',
+                overBudgetBy > 0 ? 'text-warning-foreground' : 'text-secondary-foreground',
+              )}
+            >
               {overBudgetBy > 0
                 ? t('ratings.overBudgetTitle')
                 : t('ratings.budgetTitle')}
             </span>
             <span
-              className={`fsl-ratings__budget-pill${overBudgetBy > 0 ? ' fsl-ratings__budget-pill--warning' : ''}`}
+              className={cn(
+                'fsl-ratings__budget-pill text-xs font-bold tabular-nums px-2 py-0.5 rounded-full bg-card',
+                overBudgetBy > 0
+                  ? 'fsl-ratings__budget-pill--warning text-warning-foreground'
+                  : 'text-secondary-foreground',
+              )}
             >
               {t('ratings.budgetLeft', {
                 remaining: overBudgetBy > 0 ? 0 : remainingStars,
@@ -366,14 +408,17 @@ export function RatingsPanel({ view }: { view: TripView }) {
             </span>
           </div>
           <div
-            className="fsl-ratings__wallet-meter"
+            className="fsl-ratings__wallet-meter w-full h-1.5 rounded-full bg-card overflow-hidden"
             role="progressbar"
             aria-valuenow={overBudgetBy > 0 ? 0 : remainingStars}
             aria-valuemin={0}
             aria-valuemax={maxStars}
           >
             <div
-              className="fsl-ratings__wallet-fill"
+              className={cn(
+                'fsl-ratings__wallet-fill h-full rounded-full transition-[width] duration-150 ease-out motion-reduce:transition-none',
+                overBudgetBy > 0 ? 'bg-warning-soft' : 'bg-primary',
+              )}
               style={{
                 width: `${
                   maxStars > 0
@@ -388,7 +433,12 @@ export function RatingsPanel({ view }: { view: TripView }) {
               }}
             />
           </div>
-          <p className="fsl-ratings__budget-hint">
+          <p
+            className={cn(
+              'fsl-ratings__budget-hint m-0 text-xs',
+              overBudgetBy > 0 ? 'text-warning-foreground' : 'text-secondary-foreground',
+            )}
+          >
             {overBudgetBy > 0
               ? t('ratings.overBudgetHint', {
                   spent: spentStars,
@@ -401,12 +451,16 @@ export function RatingsPanel({ view }: { view: TripView }) {
           </p>
         </div>
       ) : view.me.kind === 'guest' && !view.trip.archived ? (
-        <div className="fsl-ratings__guest-card">
-          <p className="fsl-ratings__guest-title">{t('ratings.guestTitle')}</p>
-          <p className="fsl-ratings__guest-body">{t('ratings.guestBody')}</p>
+        <div className="fsl-ratings__guest-card rounded-xl bg-card border border-border p-4 flex flex-col gap-2">
+          <p className="fsl-ratings__guest-title m-0 text-base font-semibold text-foreground">{t('ratings.guestTitle')}</p>
+          <p className="fsl-ratings__guest-body m-0 text-sm text-muted-foreground">{t('ratings.guestBody')}</p>
           <a
             href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${view.trip.id}/ratings`)}`}
-            className="fsl-button fsl-button--secondary fsl-button--block"
+            className={cn(
+              'fsl-button fsl-button--secondary fsl-button--block',
+              buttonVariants({ variant: 'secondary' }),
+              'w-full',
+            )}
           >
             {t('who.guestSignIn')}
           </a>
@@ -417,12 +471,12 @@ export function RatingsPanel({ view }: { view: TripView }) {
 
       {/* 3. Sticky Search Input */}
       {showSearch && (
-        <div className="fsl-ratings__search-wrap">
-          <div className="fsl-ratings__search-field">
-            <Icon name="search" size={18} className="fsl-ratings__search-icon" />
+        <div className="fsl-ratings__search-wrap sticky top-14 z-[5] bg-background py-1">
+          <div className="fsl-ratings__search-field flex items-center gap-2 h-11 rounded-xl border border-input bg-card px-3 focus-within:ring-2 focus-within:ring-ring focus-within:border-ring">
+            <Icon name="search" size={18} className="fsl-ratings__search-icon text-muted-foreground shrink-0" />
             <input
               type="search"
-              className="fsl-ratings__search-input"
+              className="fsl-ratings__search-input flex-1 min-w-0 border-0 bg-transparent text-base text-foreground py-2 placeholder:text-muted-foreground focus:outline-none"
               aria-label={t('ratings.searchLabel')}
               placeholder={t('ratings.searchPlaceholder', { count: ranked.length })}
               value={query}
@@ -435,23 +489,23 @@ export function RatingsPanel({ view }: { view: TripView }) {
       {/* 4. Ranked Player List */}
       {visibleRows.length === 0 ? (
         isSearching ? (
-          <p className="fsl-ratings__empty">
+          <p className="fsl-ratings__empty m-0 p-4 bg-card border border-border rounded-xl text-sm text-muted-foreground text-center">
             {t('ratings.noSearchMatch', { query: trimmedQuery })}
           </p>
         ) : null
       ) : (
-        <div className="fsl-ratings__list">
+        <div className="fsl-ratings__list bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
           {visibleRows.map((p) => {
             const isMe = p.id === view.me.participantId;
 
             return (
-              <div key={p.id} className="fsl-ratings__row">
-                <div className="fsl-ratings__person">
-                  <span className="fsl-ratings__rank">{p.rank ?? ''}</span>
+              <div key={p.id} className="fsl-ratings__row flex items-center justify-between gap-2 px-3 py-2 min-h-[60px]">
+                <div className="fsl-ratings__person flex items-center gap-2 min-w-0 flex-1">
+                  <span className="fsl-ratings__rank w-5 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground text-center">{p.rank ?? ''}</span>
                   <Avatar name={p.name} avatarUrl={p.avatarUrl} />
-                  <div className="fsl-ratings__meta">
-                    <div className="fsl-ratings__name-line">
-                      <span className="fsl-ratings__name">{p.name}</span>
+                  <div className="fsl-ratings__meta flex flex-col min-w-0">
+                    <div className="fsl-ratings__name-line flex items-center gap-2 min-w-0">
+                      <span className="fsl-ratings__name text-base font-semibold text-foreground truncate">{p.name}</span>
                       {(p.gender === 'M' || p.gender === 'F') && (
                         <Pill tone="neutral">{p.gender}</Pill>
                       )}
@@ -470,7 +524,11 @@ export function RatingsPanel({ view }: { view: TripView }) {
       {hasMoreToReveal && (
         <button
           type="button"
-          className="fsl-button fsl-button--secondary fsl-button--block"
+          className={cn(
+            'fsl-button fsl-button--secondary fsl-button--block',
+            buttonVariants({ variant: 'secondary' }),
+            'w-full',
+          )}
           onClick={() => setShowAll(true)}
         >
           {t('ratings.showAll', { count: ranked.length })}

@@ -11,7 +11,8 @@ import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
 import { MyBankRow } from '../components/MyBankRow';
-import './BankDetails.css';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export function BankDetails() {
   const { tripId } = useParams<{ tripId?: string }>();
@@ -79,8 +80,8 @@ export function BankDetails() {
   if (tripId && isLoading && !view) {
     return (
       <Screen title={t('bankForm.title')} back={backLink}>
-        <div className="fsl-bank-details">
-          <div className="fsl-bank-details__loading">
+        <div className={cn('fsl-bank-details flex flex-col gap-4 w-full max-w-[480px] mx-auto')}>
+          <div className={cn('fsl-bank-details__loading flex flex-col gap-4')}>
             <Skeleton width="100%" height={16} radius="sm" />
             <Skeleton width="100%" height={44} radius="md" />
             <Skeleton width="100%" height={44} radius="md" />
@@ -95,7 +96,7 @@ export function BankDetails() {
   if (tripId && tripError && !view) {
     return (
       <Screen title={t('bankForm.title')} back={backLink}>
-        <div className="fsl-bank-details">
+        <div className={cn('fsl-bank-details flex flex-col gap-4 w-full max-w-[480px] mx-auto')}>
           <InlineError error={tripError} onRetry={tripViewResult.refetch} />
         </div>
       </Screen>
@@ -109,7 +110,7 @@ export function BankDetails() {
   if (isGuest && view && !success && (view.me.participantPending || myPerson?.bank === 'approved')) {
     return (
       <Screen title={t('bankForm.title')} back={backLink}>
-        <div className="fsl-bank-details">
+        <div className={cn('fsl-bank-details flex flex-col gap-4 w-full max-w-[480px] mx-auto')}>
           <MyBankRow view={view} />
         </div>
       </Screen>
@@ -141,33 +142,50 @@ export function BankDetails() {
       }
     >
       <div
-        className={`fsl-bank-details${submitError !== null ? ' fsl-bank-details--bar-error' : ''}`}
+        className={cn(
+          'fsl-bank-details flex flex-col gap-4 w-full max-w-[480px] mx-auto',
+          submitError !== null && 'fsl-bank-details--bar-error max-lg:pb-24',
+        )}
       >
         {success ? (
-          <div className="fsl-bank-details__success">
-            <div className="fsl-bank-details__notice fsl-bank-details__notice--accent" role="status">
+          <div className={cn('fsl-bank-details__success flex flex-col items-center gap-4 text-center')}>
+            <div className={cn('fsl-bank-details__notice fsl-bank-details__notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground')} role="status">
               {successNoticeText}
             </div>
-            <Link to={backLink} className="fsl-button fsl-button--secondary">
+            <Link
+              to={backLink}
+              className={cn('fsl-button fsl-button--secondary', buttonVariants({ variant: 'secondary' }))}
+            >
               {t('common.back')}
             </Link>
           </div>
         ) : (
-          <form id="bank-details-form" className="fsl-bank-details__form" onSubmit={handleSubmit}>
-            <p className="fsl-bank-details__note">{note}</p>
+          <form id="bank-details-form" className={cn('fsl-bank-details__form flex flex-col gap-4')} onSubmit={handleSubmit}>
+            <p className={cn('fsl-bank-details__note m-0 text-sm leading-snug text-muted-foreground')}>{note}</p>
 
             <BankFields value={value} onChange={setValue} />
 
-            <div className="fsl-bank-details__consent-row">
+            <div className={cn('fsl-bank-details__consent-row flex items-center gap-2 min-h-11 text-sm leading-snug text-foreground select-none')}>
               <input
                 id="fsl-bank-consent"
                 type="checkbox"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="fsl-bank-details__checkbox"
+                className={cn(
+                  'fsl-bank-details__checkbox size-5 shrink-0 cursor-pointer accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                )}
               />
-              <label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label">
-                {beforeLink}<Link to="/privacy" className="fsl-bank-details__privacy-link">{t('bankForm.privacyLink')}</Link>{afterLink}
+              <label htmlFor="fsl-bank-consent" className={cn('fsl-bank-details__consent-label flex-1 block py-3 cursor-pointer')}>
+                {beforeLink}
+                <Link
+                  to="/privacy"
+                  className={cn(
+                    'fsl-bank-details__privacy-link font-medium underline underline-offset-[3px] text-primary hover:text-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs',
+                  )}
+                >
+                  {t('bankForm.privacyLink')}
+                </Link>
+                {afterLink}
               </label>
             </div>
           </form>

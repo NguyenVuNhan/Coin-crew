@@ -51,9 +51,9 @@ export function Join() {
 
   return (
     <Screen title={t('join.opening')} right={<LanguageButton />}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', padding: 'var(--space-4) 0' }}>
+      <div className="flex flex-col gap-3 py-4">
         <Skeleton height={56} radius="lg" />
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+        <p className="text-sm text-muted-foreground">
           {t('join.opening')}
         </p>
       </div>

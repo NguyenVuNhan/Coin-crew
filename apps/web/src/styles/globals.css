@@ -99,6 +99,24 @@
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
 }
 
+/* Star votes on the ratings screen: a tap pops the star, an over-quota tap shakes it, a burst sends sparks out along
+   each spark's --spark-angle. Used through animate-[name_…] classes; motion-reduce turns them off at the call site. */
+@keyframes fsl-tap-pop {
+  0% { transform: scale(1) rotate(0deg); }
+  45% { transform: scale(1.52) rotate(-10deg); }
+  75% { transform: scale(0.9) rotate(4deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes fsl-quota-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px) rotate(-6deg); }
+  40%, 80% { transform: translateX(5px) rotate(6deg); }
+}
+@keyframes fsl-spark-fly {
+  0% { transform: rotate(var(--spark-angle)) translate(0px) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--spark-angle)) translate(18px) scale(0); opacity: 0; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring;
@@ -109,6 +127,11 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  /* Keyboard focus: a visible ring everywhere; components may draw their own with focus-visible:ring-*. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   /* Text fields, dropdowns and text areas: under 16px makes iOS zoom in on focus. */
   input,

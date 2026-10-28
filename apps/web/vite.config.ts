@@ -17,7 +17,7 @@ export default defineConfig({
         short_name: 'CoinCrew',
         description: 'Split trip expenses and settle up with VietQR.',
         theme_color: '#0f766e',
-        background_color: '#fafafa',
+        background_color: '#f6f7f4',
         display: 'standalone',
         start_url: '/',
         icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],

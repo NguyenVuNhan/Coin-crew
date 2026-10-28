@@ -17,7 +17,7 @@ import { InlineError } from '../components/InlineError';
 import { Skeleton } from '../components/Skeleton';
 import { PayQr } from '../components/PayQr';
 import { Icon } from '../components/icons';
-import './PayScreen.css';
+import { cn } from '@/lib/utils';
 
 type Recorded = { id: string; amount: number; status: string };
 type StatusCard = { kind: 'sent' | 'paid'; amount: number } | null;
@@ -116,7 +116,7 @@ export function PayScreen() {
   const withStatus = (screen: ReactNode) => (
     <>
       {screen}
-      <div className="fsl-pay__sr" role="status" data-testid="pay-status">
+      <div className="fsl-pay__sr sr-only" role="status" data-testid="pay-status">
         {announcement}
       </div>
     </>
@@ -174,15 +174,15 @@ export function PayScreen() {
   if (isViewLoading || (isPayLoading && !payInfo) || !payInfo || !view) {
     return withStatus(
       <Screen title="" back={tripId ? `/t/${tripId}` : undefined}>
-        <div className="fsl-pay__loading">
+        <div className="fsl-pay__loading flex flex-col gap-4 py-2">
           <Skeleton height={80} radius="lg" />
           <Skeleton
             width={240}
             height={240}
             radius="lg"
-            className="fsl-pay__skeleton-qr"
+            className="fsl-pay__skeleton-qr mx-auto"
           />
-          <div className="fsl-pay__skeleton-rows">
+          <div className="fsl-pay__skeleton-rows flex flex-col gap-2">
             <Skeleton height={20} radius="sm" />
             <Skeleton height={20} radius="sm" />
             <Skeleton height={20} radius="sm" />
@@ -196,7 +196,7 @@ export function PayScreen() {
   const archived = view.trip.archived;
   const bank = payInfo.bank;
   const stoppedCheck = stopped ? (
-    <div className="fsl-pay__stopped">
+    <div className="fsl-pay__stopped flex justify-center">
       <Button
         variant="secondary"
         onClick={() => {
@@ -222,34 +222,46 @@ export function PayScreen() {
           {t('details.backToTrip')}
         </Button>
         {card.kind === 'sent' && (
-          <p className="fsl-pay__hint">{t('pay.mistake', { name })}</p>
+          <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center">{t('pay.mistake', { name })}</p>
         )}
       </>
     );
     content = (
       <>
-        <section className={`fsl-pay__card fsl-pay__card--${card.kind}`}>
-          <div className="fsl-pay__card-icon">
+        <section
+          className={cn(
+            'fsl-pay__card flex flex-col items-start gap-2 p-4 bg-card border border-border rounded-xl',
+            `fsl-pay__card--${card.kind}`,
+          )}
+        >
+          <div
+            className={cn(
+              'fsl-pay__card-icon size-11 rounded-full flex items-center justify-center shrink-0',
+              card.kind === 'sent' ? 'bg-warning-soft text-warning-foreground' : 'bg-success-soft text-success',
+            )}
+          >
             <Icon name={card.kind === 'sent' ? 'clock' : 'circleCheck'} size={28} />
           </div>
-          <p className="fsl-pay__card-title">
+          <p className="fsl-pay__card-title m-0 text-lg font-semibold text-foreground tabular-nums">
             {card.kind === 'sent'
               ? t('pay.sentTitle', { amount: formatVnd(card.amount) })
               : t('pay.paidTitle', { amount: formatVnd(card.amount), name })}
           </p>
-          <p className="fsl-pay__card-body">
+          <p className="fsl-pay__card-body m-0 text-base text-muted-foreground">
             {card.kind === 'sent' ? t('pay.sentBody', { name }) : t('pay.paidBody')}
           </p>
           {card.kind === 'sent' && payInfo.refCode ? (
-            <div className="fsl-pay__card-note">
-              <span className="fsl-pay__row-label">{t('pay.note')}</span>{' '}
-              <span className="fsl-pay__memo">{payInfo.refCode}</span>
+            <div className="fsl-pay__card-note flex items-center gap-2 flex-wrap">
+              <span className="fsl-pay__row-label text-muted-foreground">{t('pay.note')}</span>{' '}
+              <span className="fsl-pay__memo font-mono font-bold text-sm bg-warning-soft text-warning-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">
+                {payInfo.refCode}
+              </span>
             </div>
           ) : null}
         </section>
         {payInfo.amount > 0 && (
-          <div className="fsl-pay__owed">
-            <p>{t('pay.stillOwed', { amount: formatVnd(payInfo.amount) })}</p>
+          <div className="fsl-pay__owed flex flex-col gap-2 p-4 bg-card border border-border rounded-xl">
+            <p className="m-0 font-medium text-foreground">{t('pay.stillOwed', { amount: formatVnd(payInfo.amount) })}</p>
             <Button variant="secondary" onClick={() => setRestOpen(true)}>
               {t('pay.showQrRest')}
             </Button>
@@ -261,8 +273,8 @@ export function PayScreen() {
     );
   } else if (payInfo.amount === 0) {
     content = (
-      <div className="fsl-pay__empty">
-        <p className="fsl-pay__empty-text">{t('pay.nothingOwed', { name })}</p>
+      <div className="fsl-pay__empty flex flex-col items-center gap-4 py-6 text-center">
+        <p className="fsl-pay__empty-text m-0 text-base text-muted-foreground">{t('pay.nothingOwed', { name })}</p>
         <Button href={`/t/${tripId}`} variant="secondary">
           {t('common.back')}
         </Button>
@@ -271,7 +283,7 @@ export function PayScreen() {
   } else if (payInfo.bankState !== 'ok' || !bank || !payInfo.payload) {
     content = (
       <>
-        <div className="fsl-pay__hero">
+        <div className="fsl-pay__hero flex flex-col items-center text-center gap-1">
           <Amount value={payInfo.amount} size="xl" />
         </div>
         <EmptyState
@@ -292,7 +304,7 @@ export function PayScreen() {
             </>
           }
         />
-        <p className="fsl-pay__hint" aria-live="polite">
+        <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center" aria-live="polite">
           {remindCopied ? t('whoPays.remindCopied') : null}
         </p>
       </>
@@ -307,28 +319,28 @@ export function PayScreen() {
           <Button variant="secondary" block loading={isSubmitting} onClick={handleIPaid}>
             {t('pay.iPaid')}
           </Button>
-          <p className="fsl-pay__hint">{t('pay.iPaidHint')}</p>
+          <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center">{t('pay.iPaidHint')}</p>
         </>
       );
     }
     content = (
-      <div className="fsl-pay__layout">
-        <div className="fsl-pay__hero">
+      <div className="fsl-pay__layout grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-8 lg:items-start">
+        <div className="fsl-pay__hero flex flex-col items-center text-center gap-1 lg:col-start-2 lg:row-start-1 lg:items-start lg:text-left">
           <Amount value={payInfo.amount} size="xl" />
-          <p className="fsl-pay__to">{t('pay.toLine', { holder: bank.holderName, bank: bank.bankName })}</p>
+          <p className="fsl-pay__to m-0 text-sm leading-snug text-muted-foreground [overflow-wrap:anywhere]">{t('pay.toLine', { holder: bank.holderName, bank: bank.bankName })}</p>
         </div>
-        <div className="fsl-pay__qr">
+        <div className="fsl-pay__qr lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:min-w-0">
           <PayQr info={payInfo} variant="pay" summary={false} />
         </div>
-        <div className="fsl-pay__body">
-          <div className="fsl-pay__rows">
-            <div className="fsl-pay__row">
-              <span className="fsl-pay__row-label">{t('pay.account')}</span>
-              <span className="fsl-pay__row-value">
-                <span className="fsl-pay__account-number">{bank.accountNumberMasked}</span>
+        <div className="fsl-pay__body flex flex-col gap-3 min-w-0 lg:col-start-2 lg:row-start-2">
+          <div className="fsl-pay__rows bg-card border border-border rounded-xl px-4 py-2 flex flex-col">
+            <div className="fsl-pay__row flex justify-between items-center gap-3 min-h-11 text-sm">
+              <span className="fsl-pay__row-label text-muted-foreground">{t('pay.account')}</span>
+              <span className="fsl-pay__row-value text-foreground font-medium text-right flex items-center gap-1 min-w-0">
+                <span className="fsl-pay__account-number tabular-nums">{bank.accountNumberMasked}</span>
                 <button
                   type="button"
-                  className="fsl-pay__icon-btn"
+                  className="fsl-pay__icon-btn inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-9 lg:min-h-9 p-0 bg-transparent border-0 text-muted-foreground cursor-pointer rounded-md transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
                   aria-label={t('pay.copyAccount')}
                   title={t('pay.copyAccount')}
                   onClick={() => copy('account', bank.accountNumber)}
@@ -337,13 +349,13 @@ export function PayScreen() {
                 </button>
               </span>
             </div>
-            <div className="fsl-pay__row">
-              <span className="fsl-pay__row-label">{t('pay.note')}</span>
-              <span className="fsl-pay__row-value">
-                <span className="fsl-pay__memo">{payInfo.refCode}</span>
+            <div className="fsl-pay__row flex justify-between items-center gap-3 min-h-11 text-sm border-t border-border">
+              <span className="fsl-pay__row-label text-muted-foreground">{t('pay.note')}</span>
+              <span className="fsl-pay__row-value text-foreground font-medium text-right flex items-center gap-1 min-w-0">
+                <span className="fsl-pay__memo font-mono font-bold text-sm bg-warning-soft text-warning-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">{payInfo.refCode}</span>
                 <button
                   type="button"
-                  className="fsl-pay__icon-btn"
+                  className="fsl-pay__icon-btn inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-9 lg:min-h-9 p-0 bg-transparent border-0 text-muted-foreground cursor-pointer rounded-md transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
                   aria-label={t('pay.copyNote')}
                   title={t('pay.copyNote')}
                   onClick={() => copy('note', payInfo.refCode)}
@@ -352,12 +364,12 @@ export function PayScreen() {
                 </button>
               </span>
             </div>
-            <span className="fsl-pay__sr" role="status">
+            <span className="fsl-pay__sr sr-only" role="status">
               {copiedField ? t('pay.copied') : ''}
             </span>
           </div>
-          <p className="fsl-pay__keep-note">{t('pay.keepNote')}</p>
-          {!coarse && <p className="fsl-pay__scan-hint">{t('pay.scanWithPhone')}</p>}
+          <p className="fsl-pay__keep-note m-0 text-sm text-muted-foreground">{t('pay.keepNote')}</p>
+          {!coarse && <p className="fsl-pay__scan-hint m-0 text-xs text-subtle-foreground">{t('pay.scanWithPhone')}</p>}
           {stoppedCheck}
           {wide && footer}
         </div>
@@ -367,9 +379,11 @@ export function PayScreen() {
 
   // A failed "I've paid" grows the fixed bottom bar on a phone: leave room so the content can scroll clear of it.
   const barGrown = !wide && submitError !== null && footer !== null;
-  const pageClass = ['fsl-pay', isLayout ? '' : 'fsl-pay--narrow', barGrown ? 'fsl-pay--bar-error' : '']
-    .filter(Boolean)
-    .join(' ');
+  const pageClass = cn(
+    'fsl-pay flex flex-col gap-4 w-full',
+    !isLayout && 'fsl-pay--narrow max-w-[480px] mx-auto',
+    barGrown && 'fsl-pay--bar-error max-lg:pb-24',
+  );
 
   return withStatus(
     <Screen
@@ -379,7 +393,7 @@ export function PayScreen() {
       bottomBar={wide ? undefined : (footer ?? undefined)}
     >
       <div className={pageClass}>
-        {archived && <p className="fsl-pay__notice">{t('settings.archived')}</p>}
+        {archived && <p className="fsl-pay__notice m-0 px-4 py-3 bg-muted rounded-xl text-muted-foreground">{t('settings.archived')}</p>}
         {content}
       </div>
     </Screen>,

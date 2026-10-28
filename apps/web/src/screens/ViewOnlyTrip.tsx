@@ -17,7 +17,6 @@ import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { TripTabs } from '../components/TripTabs';
-import './ViewOnlyTrip.css';
 
 export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
@@ -26,25 +25,25 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
 
   const banner = (
-    <div className="fsl-view-only__banner">
+    <div className="fsl-view-only__banner flex items-center gap-2">
       <Pill tone="neutral">{t('trip.viewOnly')}</Pill>
-      <span className="fsl-view-only__total">
+      <span className="fsl-view-only__total text-sm text-muted-foreground">
         {t('trip.total', { amount: formatVnd(view.trip.total) })}
       </span>
     </div>
   );
 
   const balances = (
-    <section className="fsl-view-only__section" aria-label={t('trip.balances')}>
-      <h2 className="fsl-section-heading">{t('trip.balances')}</h2>
-      <div className="fsl-card">
+    <section className="fsl-view-only__section flex flex-col gap-2" aria-label={t('trip.balances')}>
+      <h2 className="fsl-section-heading text-sm font-semibold text-muted-foreground px-1">{t('trip.balances')}</h2>
+      <div className="fsl-card rounded-xl border border-border bg-card overflow-hidden">
         {view.people.map((person) => {
           const balance = view.balances[person.id] ?? 0;
           return (
-            <div key={person.id} className="fsl-view-only__row">
-              <div className="fsl-view-only__person">
+            <div key={person.id} className="fsl-view-only__row flex min-h-11 items-center justify-between gap-3 px-4 py-3 border-b border-border last:border-b-0">
+              <div className="fsl-view-only__person flex min-w-0 items-center gap-3">
                 <Avatar name={person.name} avatarUrl={person.avatarUrl} />
-                <span className="fsl-view-only__name">{person.name}</span>
+                <span className="fsl-view-only__name truncate text-base font-semibold text-foreground">{person.name}</span>
               </div>
               <Amount value={balance} tone="auto" />
             </div>
@@ -76,7 +75,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
 
   return (
     <Screen title={view.trip.name} right={<LanguageButton />} wide>
-      <div className="fsl-view-only">
+      <div className="fsl-view-only flex flex-col gap-4 py-4">
         {banner}
         {!wide ? (
           <>

@@ -16,7 +16,7 @@ import { Button } from '../components/Button';
 import { Snackbar } from '../components/Snackbar';
 import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { Icon } from '../components/icons';
-import './MyTrips.css';
+import { cn } from '@/lib/utils';
 
 export function MyTrips() {
   const t = useT();
@@ -70,7 +70,7 @@ export function MyTrips() {
       right={user ? <AccountMenu user={user} /> : undefined}
     >
       <ConsentSheet />
-      <div className="fsl-my-trips">
+      <div className="fsl-my-trips flex flex-col gap-4 py-4">
         {incomingMerge && (
           <MergeRequestBanner
             key={incomingMerge.id}
@@ -97,7 +97,7 @@ export function MyTrips() {
             title={t('trips.emptyTitle')}
             action={
               <>
-                <p className="fsl-my-trips__empty-body">{t('trips.emptyBody')}</p>
+                <p className="fsl-my-trips__empty-body m-0 mb-3 text-base text-muted-foreground">{t('trips.emptyBody')}</p>
                 <Button variant="primary" block href="/trips/new">
                   {t('trips.new')}
                 </Button>
@@ -105,7 +105,7 @@ export function MyTrips() {
             }
           />
         ) : (
-          <div className="fsl-my-trips__list">
+          <div className="fsl-my-trips__list bg-card border border-border rounded-xl overflow-hidden">
             {tripsQuery.data?.map((trip) => {
               const tone =
                 trip.myBalance > 0
@@ -124,12 +124,20 @@ export function MyTrips() {
                 <Link
                   key={trip.id}
                   to={`/t/${trip.id}`}
-                  className="fsl-my-trips__row"
+                  className="fsl-my-trips__row flex items-center justify-between gap-3 px-4 py-3 min-h-[56px] text-foreground border-b border-border last:border-b-0 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
                 >
-                  <div className="fsl-my-trips__row-info">
-                    <span className="fsl-my-trips__row-name">{trip.name}</span>
-                    <span className="fsl-my-trips__row-sub">
-                      <span className={`fsl-my-trips__line fsl-my-trips__line--${tone}`}>
+                  <div className="fsl-my-trips__row-info flex flex-col gap-1 min-w-0 flex-1">
+                    <span className="fsl-my-trips__row-name truncate text-base font-semibold text-foreground">{trip.name}</span>
+                    <span className="fsl-my-trips__row-sub text-sm leading-snug">
+                      <span
+                        className={cn(
+                          'fsl-my-trips__line',
+                          `fsl-my-trips__line--${tone}`,
+                          tone === 'success' && 'text-success',
+                          tone === 'danger' && 'text-danger',
+                          tone === 'neutral' && 'text-muted-foreground',
+                        )}
+                      >
                         {label}
                         {trip.myBalance !== 0 && (
                           <>
@@ -142,14 +150,14 @@ export function MyTrips() {
                         )}
                       </span>
                       {trip.archived && (
-                        <span className="fsl-my-trips__archived"> · {t('trips.archived')}</span>
+                        <span className="fsl-my-trips__archived text-muted-foreground"> · {t('trips.archived')}</span>
                       )}
                     </span>
                   </div>
                   <Icon
                     name="chevronRight"
                     size={20}
-                    className="fsl-my-trips__chevron"
+                    className="fsl-my-trips__chevron text-subtle-foreground shrink-0"
                   />
                 </Link>
               );

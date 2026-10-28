@@ -19,8 +19,9 @@ import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import { TripTabs } from '../components/TripTabs';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 import { AccountMenu } from '../components/AccountMenu';
-import './MemberTrip.css';
 
 /** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
@@ -41,7 +42,15 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
 
   const addLink = (block: boolean, variant: 'primary' | 'secondary' = 'primary') =>
     archived ? undefined : (
-      <Link className={`fsl-button fsl-button--${variant}${block ? ' fsl-button--block' : ''}`} to={`/t/${tripId}/expenses/new`}>
+      <Link
+        className={cn(
+          'fsl-button',
+          `fsl-button--${variant}`,
+          block && 'fsl-button--block w-full',
+          buttonVariants({ variant: variant === 'primary' ? 'default' : 'secondary' }),
+        )}
+        to={`/t/${tripId}/expenses/new`}
+      >
         {t('trip.addExpense')}
       </Link>
     );
@@ -49,7 +58,11 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   // While the invite card shows (no expenses yet) its Share is the one primary button, so every add steps back.
   const addVariant = !hasExpenses && canInvite ? 'secondary' : 'primary';
 
-  const notice = archived ? <p className="fsl-member__notice">{t('settings.archived')}</p> : null;
+  const notice = archived ? (
+    <p className="fsl-member__notice m-0 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+      {t('settings.archived')}
+    </p>
+  ) : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
   // Under the balance (or invite) card; with no card on a fund-only trip it still shows, since the income counts as history.
@@ -78,12 +91,21 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const header = (
     <>
       {canInvite && (
-        <button type="button" className="fsl-member__invite" onClick={() => setInviteOpen(true)}>
+        <button
+          type="button"
+          className="fsl-member__invite inline-flex min-h-11 items-center gap-1 rounded-full border-0 bg-transparent px-3 text-sm font-medium text-foreground cursor-pointer transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+          onClick={() => setInviteOpen(true)}
+        >
           <Icon name="userPlus" size={20} />
           <span>{t('invite.button')}</span>
         </button>
       )}
-      <Link className="fsl-member__settings" to={`/t/${tripId}/settings`} aria-label={t('member.settings')} title={t('member.settings')}>
+      <Link
+        className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+        to={`/t/${tripId}/settings`}
+        aria-label={t('member.settings')}
+        title={t('member.settings')}
+      >
         <Icon name="settings" size={20} />
       </Link>
       <AccountMenu />
@@ -101,7 +123,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       bottomBar={!wide && hasFeed ? addLink(true, addVariant) : undefined}
     >
       {wide ? (
-        <div className="fsl-member">
+        <div className="fsl-member flex flex-col gap-4 py-4">
           <UpdatedTransactionsBanner view={view} />
           <TripLayout
             left={
@@ -118,7 +140,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           />
         </div>
       ) : (
-        <div className="fsl-member">
+        <div className="fsl-member flex flex-col gap-4 py-4">
           {notice}
           <UpdatedTransactionsBanner view={view} />
           <LeaderboardWidget view={view} />

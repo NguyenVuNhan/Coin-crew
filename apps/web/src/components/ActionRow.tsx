@@ -77,7 +77,7 @@ export function ActionRow({
     ? undefined
     : swipe.offset > 0 && swipe.offset < width
       ? 'none'
-      : 'transform var(--motion-base) var(--ease-out)';
+      : 'transform 200ms cubic-bezier(0.2, 0, 0, 1)';
 
   return (
     <div className={cn('fsl-action-row group/row relative', selected && 'fsl-action-row--selected')}>
