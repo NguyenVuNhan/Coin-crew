@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, type JSX } from 'react';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Sheet } from './Sheet';
 import { Skeleton } from './Skeleton';
 import { Button } from './Button';
 import { copyText } from '../lib/clipboard';
 import { blobToDataUrl } from '../lib/qr';
-import './SaveImageSheet.css';
 
 export interface SaveImageSheetProps {
   open: boolean;
@@ -30,42 +30,49 @@ export function SaveImageSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title={t('share.imageTitle')}>
-      <div className="fsl-save-image">
+      <div className={cn('fsl-save-image', 'flex flex-col gap-3')}>
         {loading ? (
           <Skeleton width="100%" height={280} radius="md" />
         ) : dataUrl ? (
           <img
-            className="fsl-save-image__img"
+            className={cn(
+              'fsl-save-image__img',
+              'block w-full h-auto rounded-lg border border-border bg-card select-auto touch-manipulation',
+            )}
             src={dataUrl}
             alt={t('share.imageTitle')}
           />
         ) : (
-          <p className="fsl-save-image__error" role="alert">
+          <p className={cn('fsl-save-image__error', 'm-0 text-base leading-normal text-danger')} role="alert">
             {t('share.imageFailed')}
           </p>
         )}
 
         {(loading || Boolean(dataUrl)) && (
-          <p className="fsl-save-image__instruction">{t('share.longPress')}</p>
+          <p className={cn('fsl-save-image__instruction', 'm-0 text-base leading-normal font-semibold text-foreground')}>
+            {t('share.longPress')}
+          </p>
         )}
 
         {message !== undefined && (
           <>
-            <p className="fsl-save-image__status" aria-live="polite">
+            <p className={cn('fsl-save-image__status', 'm-0 min-h-5 text-sm leading-5 text-success')} aria-live="polite">
               {copied === true ? t('share.messageCopied') : ''}
             </p>
             <Button
               variant="secondary"
               block
               onClick={onCopy}
-              className="fsl-save-image__copy"
+              className={cn('fsl-save-image__copy', 'min-h-11')}
             >
               {t('share.copyMessage')}
             </Button>
           </>
         )}
 
-        <p className="fsl-save-image__hint">{t('share.openInBrowser')}</p>
+        <p className={cn('fsl-save-image__hint', 'm-0 text-xs leading-4 text-muted-foreground')}>
+          {t('share.openInBrowser')}
+        </p>
       </div>
     </Sheet>
   );

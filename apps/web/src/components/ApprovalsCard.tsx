@@ -1,5 +1,6 @@
 import { useId, useState, type JSX } from 'react';
 import { formatVnd, parseVnd, type Approval, type TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { ApiClientError } from '../api/client';
 import { maskAccount, nameOf, splitText } from '../lib/tripText';
@@ -7,7 +8,6 @@ import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
-import './ApprovalsCard.css';
 
 function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expenseId: string; switching?: boolean }) {
   const t = useT();
@@ -24,7 +24,7 @@ function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expen
   );
   const errorNode =
     error instanceof ApiClientError && error.code === 'PERSON_PENDING' && pendingId ? (
-      <p className="fsl-approval__error" role="alert">
+      <p className="fsl-approval__error m-0 text-sm font-semibold text-danger" role="alert">
         {t('approvals.approveNameFirst', { name: nameOf(view, pendingId) })}
       </p>
     ) : error ? (
@@ -32,14 +32,14 @@ function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expen
     ) : null;
 
   return (
-    <div className="fsl-approval">
+    <div className="fsl-approval flex flex-col gap-3">
       <button
         type="button"
-        className="fsl-approval__content"
+        className="fsl-approval__content group/btn flex min-h-11 w-full min-w-0 cursor-pointer flex-col gap-1 rounded-lg border-0 bg-transparent p-0 m-0 text-left font-inherit text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => openDetails('expense', e.id, switching)}
       >
-        <span className="fsl-approval__title">{e.description}</span>
-        <span className="fsl-approval__sub">
+        <span className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words group-hover/btn:underline">{e.description}</span>
+        <span className="fsl-approval__sub m-0 block text-sm font-normal text-muted-foreground">
           {t('approvals.addedBy', {
             name: nameOf(view, e.createdById),
             amount: formatVnd(e.amount),
@@ -48,11 +48,11 @@ function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expen
         </span>
       </button>
       {rejecting && (
-        <div className="fsl-approval__form">
+        <div className="fsl-approval__form flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
           <label htmlFor={reasonId}>{t('approvals.rejectReason')}</label>
           <input
             id={reasonId}
-            className="fsl-approval__input"
+            className="fsl-approval__input min-h-11 rounded-xl border border-input bg-card px-3 text-base text-foreground tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             value={reason}
             maxLength={140}
             onChange={(ev) => setReason(ev.target.value)}
@@ -67,11 +67,11 @@ function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expen
           </Button>
         </div>
       )}
-      <div className="fsl-approval__actions">
-        <Button loading={busy} onClick={() => run(`/expenses/${e.id}/approve`)}>
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
+        <Button variant="primary" loading={busy} onClick={() => run(`/expenses/${e.id}/approve`)}>
           {t('approvals.approve')}
         </Button>
-        <Button variant="ghost" onClick={() => setRejecting((v) => !v)} aria-expanded={rejecting}>
+        <Button variant="secondary" onClick={() => setRejecting((v) => !v)} aria-expanded={rejecting}>
           {t('approvals.reject')}
         </Button>
       </div>
@@ -90,18 +90,18 @@ function NameApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind
   // A person who is already in an expense cannot be removed: the API says 409, and merging ("Same as") is the way.
   const errorNode =
     rejected && error instanceof ApiClientError && error.status === 409 ? (
-      <p className="fsl-approval__error" role="alert">{t('people.useMerge')}</p>
+      <p className="fsl-approval__error m-0 text-sm font-semibold text-danger" role="alert">{t('people.useMerge')}</p>
     ) : error ? (
       <InlineError error={error} />
     ) : null;
 
   return (
-    <div className="fsl-approval">
-      <div className="fsl-approval__content">
-        <p className="fsl-approval__title">{t('approvals.name', { name: nameOf(view, a.participantId) })}</p>
-        {match && <p className="fsl-approval__sub">{t('approvals.looksLike', { name: a.matches.map((m) => m.name).join(', ') })}</p>}
+    <div className="fsl-approval flex flex-col gap-3">
+      <div className="fsl-approval__content flex min-w-0 flex-col gap-1 text-left">
+        <p className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words">{t('approvals.name', { name: nameOf(view, a.participantId) })}</p>
+        {match && <p className="fsl-approval__sub m-0 block text-sm font-normal text-muted-foreground">{t('approvals.looksLike', { name: a.matches.map((m) => m.name).join(', ') })}</p>}
       </div>
-      <div className="fsl-approval__actions">
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
         <Button
           variant={match ? 'secondary' : 'primary'}
           loading={busy}
@@ -114,6 +114,7 @@ function NameApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind
         </Button>
         {match && (
           <Button
+            variant="primary"
             loading={busy}
             onClick={() => {
               setRejected(false);
@@ -124,7 +125,7 @@ function NameApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind
           </Button>
         )}
         <Button
-          variant="ghost"
+          variant="secondary"
           loading={busy}
           onClick={() => {
             setRejected(true);
@@ -144,20 +145,20 @@ function BankApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind
   const { busy, error, run } = useTripAction(view.trip.id);
 
   return (
-    <div className="fsl-approval">
-      <div className="fsl-approval__content">
-        <p className="fsl-approval__title">{t('approvals.bank', { name: nameOf(view, a.participantId) })}</p>
-        <div className="fsl-approval__sub fsl-approval__bank">
+    <div className="fsl-approval flex flex-col gap-3">
+      <div className="fsl-approval__content flex min-w-0 flex-col gap-1 text-left">
+        <p className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words">{t('approvals.bank', { name: nameOf(view, a.participantId) })}</p>
+        <div className="fsl-approval__sub fsl-approval__bank m-0 flex flex-col gap-0 text-sm font-normal text-muted-foreground">
           <span>{a.bankName}</span>
-          <span className="fsl-approval__mono">{maskAccount(a.accountNumber)}</span>
+          <span className="fsl-approval__mono font-semibold tabular-nums tracking-wide text-foreground">{maskAccount(a.accountNumber)}</span>
           <span>{a.holderName}</span>
         </div>
       </div>
-      <div className="fsl-approval__actions">
-        <Button loading={busy} onClick={() => run(`/bank/${a.bankId}/approve`)}>
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
+        <Button variant="primary" loading={busy} onClick={() => run(`/bank/${a.bankId}/approve`)}>
           {t('approvals.approve')}
         </Button>
-        <Button variant="ghost" loading={busy} onClick={() => run(`/bank/${a.bankId}/reject`)}>
+        <Button variant="secondary" loading={busy} onClick={() => run(`/bank/${a.bankId}/reject`)}>
           {t('approvals.reject')}
         </Button>
       </div>
@@ -187,23 +188,23 @@ function PaymentApproval({
   const amount = showAmount ? parsed : p.amountClaimed;
 
   return (
-    <div className="fsl-approval">
+    <div className="fsl-approval flex flex-col gap-3">
       <button
         type="button"
-        className="fsl-approval__content"
+        className="fsl-approval__content group/btn flex min-h-11 w-full min-w-0 cursor-pointer flex-col gap-1 rounded-lg border-0 bg-transparent p-0 m-0 text-left font-inherit text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => openDetails('payment', p.id, switching)}
       >
-        <span className="fsl-approval__title">
+        <span className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words group-hover/btn:underline">
           {t('approvals.paidYou', { name: nameOf(view, p.fromId), amount: formatVnd(p.amountClaimed) })}
         </span>
-        <span className="fsl-approval__sub">{t('approvals.didItArrive')}</span>
+        <span className="fsl-approval__sub m-0 block text-sm font-normal text-muted-foreground">{t('approvals.didItArrive')}</span>
       </button>
       {showAmount && (
-        <div className="fsl-approval__form">
+        <div className="fsl-approval__form flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
           <label htmlFor={inputId}>{t('approvals.amountReceived')}</label>
           <input
             id={inputId}
-            className="fsl-approval__input"
+            className="fsl-approval__input min-h-11 rounded-xl border border-input bg-card px-3 text-base text-foreground tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             inputMode="decimal"
             aria-describedby={`${inputId}-preview`}
             value={received}
@@ -211,14 +212,19 @@ function PaymentApproval({
           />
           <span
             id={`${inputId}-preview`}
-            className={parsed === null ? 'fsl-approval__error' : 'fsl-approval__mono'}
+            className={cn(
+              parsed === null
+                ? 'fsl-approval__error m-0 text-sm font-semibold text-danger'
+                : 'fsl-approval__mono font-semibold tabular-nums tracking-wide text-foreground',
+            )}
           >
             {parsed === null ? t('expenseForm.amountInvalid') : formatVnd(parsed)}
           </span>
         </div>
       )}
-      <div className="fsl-approval__actions">
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
         <Button
+          variant="primary"
           loading={busy}
           disabled={amount === null}
           onClick={() =>
@@ -230,7 +236,7 @@ function PaymentApproval({
         >
           {t('approvals.confirm')}
         </Button>
-        <Button variant="ghost" loading={busy} onClick={() => run(`/payments/${p.id}/not-arrived`)}>
+        <Button variant="secondary" loading={busy} onClick={() => run(`/payments/${p.id}/not-arrived`)}>
           {t('approvals.didntArrive')}
         </Button>
         <Button variant="ghost" onClick={() => setShowAmount((v) => !v)} aria-expanded={showAmount}>
@@ -249,9 +255,9 @@ function NotArrivedApproval({ view, paymentId }: { view: TripView; paymentId: st
   if (!p) return null;
 
   return (
-    <div className="fsl-approval">
-      <div className="fsl-approval__content">
-        <p className="fsl-approval__title">
+    <div className="fsl-approval flex flex-col gap-3">
+      <div className="fsl-approval__content flex min-w-0 flex-col gap-1 text-left">
+        <p className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words">
           {t('approvals.notArrived', {
             name: nameOf(view, p.toId),
             amount: formatVnd(p.amountConfirmed ?? p.amountClaimed),
@@ -259,7 +265,7 @@ function NotArrivedApproval({ view, paymentId }: { view: TripView; paymentId: st
           })}
         </p>
       </div>
-      <div className="fsl-approval__actions">
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
         <Button variant="danger" loading={busy} onClick={() => run(`/payments/${p.id}/disable`)}>
           {t('approvals.disable')}
         </Button>
@@ -277,16 +283,16 @@ function MembershipApproval({ view, a }: { view: TripView; a: Extract<Approval, 
   const { busy, error, run } = useTripAction(view.trip.id);
 
   return (
-    <div className="fsl-approval">
-      <div className="fsl-approval__content">
-        <p className="fsl-approval__title">{t('approvals.membership', { name: nameOf(view, a.participantId) })}</p>
-        <p className="fsl-approval__sub">{`${a.userName} · ${a.userEmail ?? 'Zalo'}`}</p>
+    <div className="fsl-approval flex flex-col gap-3">
+      <div className="fsl-approval__content flex min-w-0 flex-col gap-1 text-left">
+        <p className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words">{t('approvals.membership', { name: nameOf(view, a.participantId) })}</p>
+        <p className="fsl-approval__sub m-0 block text-sm font-normal text-muted-foreground">{`${a.userName} · ${a.userEmail ?? 'Zalo'}`}</p>
       </div>
-      <div className="fsl-approval__actions">
-        <Button loading={busy} onClick={() => run(`/membership/${a.requestId}/approve`)}>
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
+        <Button variant="primary" loading={busy} onClick={() => run(`/membership/${a.requestId}/approve`)}>
           {t('approvals.approve')}
         </Button>
-        <Button variant="ghost" loading={busy} onClick={() => run(`/membership/${a.requestId}/reject`)}>
+        <Button variant="secondary" loading={busy} onClick={() => run(`/membership/${a.requestId}/reject`)}>
           {t('approvals.reject')}
         </Button>
       </div>

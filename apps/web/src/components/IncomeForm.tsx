@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type JSX, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, MAX_AMOUNT, parseVnd, type IncomeView, type TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { incomeMinimum } from '../lib/fund';
@@ -8,7 +9,6 @@ import { fromEntryValue } from '../lib/splitInput';
 import { Screen } from './Screen';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
-import './IncomeForm.css';
 
 function getTodayLocalDate(): string {
   const now = new Date();
@@ -110,59 +110,66 @@ export function IncomeForm({
       <form
         id="income-form"
         onSubmit={handleSubmit}
-        className={`fsl-expense-form${submitError ? ' fsl-income-form--bar-error' : ''}`}
+        className={cn(
+          'fsl-expense-form flex flex-col gap-4 w-full',
+          Boolean(submitError) && 'fsl-income-form--bar-error max-lg:pb-24',
+        )}
       >
         {switcher}
 
-        <div className="fsl-field">
-          <label htmlFor="income-amount" className="fsl-field-label">
+        <div className={cn('fsl-field flex flex-col gap-1.5')}>
+          <label htmlFor="income-amount" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
             {t('expenseForm.amount')}
           </label>
           <input
             id="income-amount"
             type="text"
             inputMode="decimal"
-            className="fsl-input fsl-input--amount"
+            className={cn(
+              'fsl-input fsl-input--amount h-11 w-full rounded-xl border border-input bg-card px-3 text-base font-semibold tabular-nums text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+            )}
             value={amountText}
             onChange={(e) => setAmountText(e.target.value)}
             aria-describedby={isAmountInvalid ? 'income-amount-error' : 'income-amount-hint'}
           />
           {parsed !== null && (
-            <div className="fsl-amount-preview">
+            <div className={cn('fsl-amount-preview text-sm font-semibold tabular-nums text-muted-foreground')}>
               {formatVnd(parsed)}
             </div>
           )}
           {isAmountInvalid ? (
-            <div id="income-amount-error" role="alert" className="fsl-field-error">
+            <div id="income-amount-error" role="alert" className={cn('fsl-field-error text-sm text-danger')}>
               {t('expenseForm.amountInvalid')}
             </div>
           ) : (
-            <div id="income-amount-hint" className="fsl-field-hint">
+            <div id="income-amount-hint" className={cn('fsl-field-hint text-sm text-muted-foreground')}>
               {t('expenseForm.amountHint')}
             </div>
           )}
           {isBelowMinimum && (
-            <p className="fsl-income-form__min" role="status">
+            <p className={cn('fsl-income-form__min m-0 mt-1 text-sm text-danger')} role="status">
               {t('fund.keepAtLeast', { amount: formatVnd(minimum) })}
             </p>
           )}
         </div>
 
-        <div className="fsl-field">
-          <label htmlFor="income-date" className="fsl-field-label">
+        <div className={cn('fsl-field flex flex-col gap-1.5')}>
+          <label htmlFor="income-date" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
             {t('expenseForm.date')}
           </label>
           <input
             id="income-date"
             type="date"
-            className="fsl-input"
+            className={cn(
+              'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+            )}
             value={spentOn}
             onChange={(e) => setSpentOn(e.target.value)}
           />
         </div>
 
-        <div className="fsl-field">
-          <label htmlFor="income-note" className="fsl-field-label">
+        <div className={cn('fsl-field flex flex-col gap-1.5')}>
+          <label htmlFor="income-note" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
             {t('fund.note')}
           </label>
           <input
@@ -170,7 +177,9 @@ export function IncomeForm({
             type="text"
             maxLength={80}
             placeholder={t('fund.notePlaceholder')}
-            className="fsl-input"
+            className={cn(
+              'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+            )}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />

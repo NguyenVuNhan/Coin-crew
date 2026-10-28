@@ -1,7 +1,7 @@
+import { cn } from '@/lib/utils';
 import { Sheet } from './Sheet';
 import { Icon } from './icons';
 import type { RowAction } from './ActionRow';
-import './ActionSheet.css';
 
 export function ActionSheet(props: {
   open: boolean;
@@ -13,12 +13,19 @@ export function ActionSheet(props: {
 
   return (
     <Sheet open={open} onClose={onClose} title={title}>
-      <div className="fsl-action-sheet">
+      <div className={cn('fsl-action-sheet bg-card rounded-xl border border-border divide-y divide-border overflow-hidden')}>
         {actions.map((action) => (
           <button
             key={action.id}
             type="button"
-            className={`fsl-action-sheet__action fsl-action-sheet__action--${action.tone ?? 'default'}`}
+            className={cn(
+              'fsl-action-sheet__action',
+              `fsl-action-sheet__action--${action.tone ?? 'default'}`,
+              'flex items-center gap-3 w-full min-h-12 px-4 py-3 text-left font-medium text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none cursor-pointer',
+              action.tone === 'danger' && 'text-danger hover:bg-danger-soft',
+              action.tone === 'success' && 'text-success hover:bg-success-soft',
+              (!action.tone || action.tone === 'default') && 'text-foreground hover:bg-muted',
+            )}
             onClick={() => {
               onClose();
               action.onSelect();
@@ -32,3 +39,4 @@ export function ActionSheet(props: {
     </Sheet>
   );
 }
+

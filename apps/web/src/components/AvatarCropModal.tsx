@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import './AvatarCropModal.css';
 
 export interface AvatarCropModalProps {
   open: boolean;
@@ -135,9 +135,14 @@ export function AvatarCropModal({
 
   return (
     <Modal open={open} onClose={onCancel} title={t('account.cropTitle')}>
-      <div className="fsl-crop">
+      <div className={cn('fsl-crop', 'flex flex-col items-center gap-4')}>
         <div
-          className={`fsl-crop__viewport${isDragging ? ' fsl-crop__viewport--dragging' : ''}`}
+          className={cn(
+            'fsl-crop__viewport',
+            isDragging && 'fsl-crop__viewport--dragging',
+            'relative size-[220px] rounded-full overflow-hidden bg-card border-2 border-primary shadow-sm cursor-grab touch-none select-none',
+            isDragging && 'cursor-grabbing',
+          )}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -147,7 +152,10 @@ export function AvatarCropModal({
             ref={imageRef}
             src={imageSrc}
             alt=""
-            className="fsl-crop__image"
+            className={cn(
+              'fsl-crop__image',
+              'absolute top-1/2 left-1/2 max-w-none pointer-events-none select-none will-change-transform',
+            )}
             onLoad={(e) => {
               const nw = e.currentTarget.naturalWidth;
               const nh = e.currentTarget.naturalHeight;
@@ -164,8 +172,8 @@ export function AvatarCropModal({
           />
         </div>
 
-        <div className="fsl-crop__controls">
-          <label className="fsl-crop__zoom-label" htmlFor="fsl-crop-zoom">
+        <div className={cn('fsl-crop__controls', 'w-full flex items-center gap-3')}>
+          <label className={cn('fsl-crop__zoom-label', 'text-sm text-muted-foreground shrink-0 font-medium')} htmlFor="fsl-crop-zoom">
             {t('account.zoom')}
           </label>
           <input
@@ -176,16 +184,16 @@ export function AvatarCropModal({
             step="0.05"
             value={zoom}
             aria-label={t('account.zoom')}
-            className="fsl-crop__zoom"
+            className={cn('fsl-crop__zoom', 'flex-1 accent-primary cursor-pointer h-2 bg-muted rounded-lg')}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
           />
         </div>
 
-        <div className="fsl-crop__actions">
-          <Button variant="secondary" onClick={onCancel}>
+        <div className={cn('fsl-crop__actions', 'w-full flex flex-col-reverse sm:flex-row justify-end gap-2')}>
+          <Button variant="secondary" onClick={onCancel} className="w-full sm:w-auto">
             {t('common.cancel')}
           </Button>
-          <Button variant="primary" onClick={handleSave}>
+          <Button variant="primary" onClick={handleSave} className="w-full sm:w-auto">
             {t('account.savePhoto')}
           </Button>
         </div>

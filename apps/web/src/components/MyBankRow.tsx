@@ -1,9 +1,9 @@
 import { useId, type JSX } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Icon, type IconName } from './icons';
-import './MyBankRow.css';
 
 export function MyBankRow({ view }: { view: TripView }): JSX.Element | null {
   const t = useT();
@@ -51,17 +51,32 @@ export function MyBankRow({ view }: { view: TripView }): JSX.Element | null {
   }
 
   return (
-    <section className="fsl-my-bank" aria-labelledby={headingId}>
-      <h2 id={headingId} className="fsl-my-bank__title">{t('myBank.title')}</h2>
-      <div className="fsl-my-bank__row">
-        <Icon name={iconName} size={20} className={iconClassName} />
-        <div className="fsl-my-bank__text">
-          <span className="fsl-my-bank__main">{mainText}</span>
-          {subText && <span className="fsl-my-bank__sub">{subText}</span>}
+    <section className="fsl-my-bank flex flex-col gap-2" aria-labelledby={headingId}>
+      <h2 id={headingId} className="fsl-my-bank__title text-sm font-semibold text-muted-foreground">{t('myBank.title')}</h2>
+      <div className="fsl-my-bank__row flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+        <div
+          className={cn(
+            'size-[38px] shrink-0 rounded-xl flex items-center justify-center',
+            me.bank === 'pending'
+              ? 'bg-warning-soft text-warning-foreground'
+              : me.bank === 'approved'
+                ? 'bg-success-soft text-success'
+                : 'bg-secondary text-secondary-foreground',
+          )}
+        >
+          <Icon name={iconName} size={20} className={iconClassName} />
+        </div>
+        <div className="fsl-my-bank__text flex min-w-0 flex-1 flex-col">
+          <span className="fsl-my-bank__main truncate text-base font-semibold tabular-nums text-foreground">{mainText}</span>
+          {subText && <span className="fsl-my-bank__sub text-sm text-muted-foreground">{subText}</span>}
         </div>
         {linkText && (
-          <Link to={`/t/${view.trip.id}/bank`} className="fsl-my-bank__action">
-            {linkText}
+          <Link
+            to={`/t/${view.trip.id}/bank`}
+            className="fsl-my-bank__action inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-3 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span>{linkText}</span>
+            <Icon name="chevronRight" size={16} aria-hidden="true" className="text-muted-foreground" />
           </Link>
         )}
       </div>

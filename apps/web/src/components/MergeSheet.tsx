@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { OutgoingMergeRequest } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { formatExpiry } from '../lib/time';
@@ -12,7 +13,6 @@ import { Sheet } from './Sheet';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
 import { Icon } from './icons';
-import './MergeSheet.css';
 
 export interface MergeSheetProps {
   request: OutgoingMergeRequest;
@@ -164,53 +164,79 @@ export function MergeSheet({ request, open, onClose }: MergeSheetProps) {
       dismissible={busy === null}
       title={t('merge.sheetTitle', { name: otherName })}
     >
-      <div ref={containerRef} className="fsl-merge-sheet">
+      <div ref={containerRef} className={cn('fsl-merge-sheet', 'flex flex-col gap-4')}>
         {request.status !== 'accepted' && (
-          <p className="fsl-merge-sheet__intro">
+          <p className={cn('fsl-merge-sheet__intro', 'm-0 text-sm leading-5 text-muted-foreground')}>
             {t('merge.sheetIntro', { provider: pName, name: otherName })}
           </p>
         )}
 
-        <ol className="fsl-merge-steps">
+        <ol className={cn('fsl-merge-steps', 'm-0 p-0 list-none flex flex-col gap-3')}>
           {steps.map((step, idx) => (
             <li
               key={idx}
-              className={`fsl-merge-steps__item${step.muted ? ' fsl-merge-steps__item--muted' : ''}`}
+              className={cn(
+                'fsl-merge-steps__item',
+                'flex items-start gap-2.5',
+                step.muted && 'fsl-merge-steps__item--muted',
+              )}
               aria-current={step.isCurrent ? 'step' : undefined}
             >
               <span
-                className={`fsl-merge-steps__marker fsl-merge-steps__marker--${step.status}`}
+                className={cn(
+                  'fsl-merge-steps__marker',
+                  `fsl-merge-steps__marker--${step.status}`,
+                  'size-6 rounded-full shrink-0 flex items-center justify-center text-xs',
+                  step.status === 'done' && 'bg-success-soft text-success',
+                  step.status === 'current' && 'bg-warning-soft text-warning-foreground',
+                  step.status === 'failed' && 'bg-danger-soft text-danger',
+                  step.status === 'future' && 'bg-transparent border border-border text-subtle-foreground',
+                )}
                 aria-hidden="true"
               >
                 {step.status === 'done' && <Icon name="check" size={14} />}
-                {step.status === 'current' && <span className="fsl-merge-steps__dot" />}
+                {step.status === 'current' && (
+                  <span className={cn('fsl-merge-steps__dot', 'size-2 rounded-full bg-current')} />
+                )}
                 {step.status === 'failed' && <Icon name="x" size={14} />}
               </span>
-              <div className="fsl-merge-steps__content">
-                <p className="fsl-merge-steps__title">{step.title}</p>
-                {step.help && <p className="fsl-merge-steps__help">{step.help}</p>}
+              <div className={cn('fsl-merge-steps__content', 'flex flex-col gap-1 min-w-0 flex-1 text-left')}>
+                <p
+                  className={cn(
+                    'fsl-merge-steps__title',
+                    'm-0 text-base leading-normal font-medium text-foreground',
+                    step.muted && 'text-subtle-foreground',
+                  )}
+                >
+                  {step.title}
+                </p>
+                {step.help && (
+                  <p className={cn('fsl-merge-steps__help', 'm-0 text-sm leading-5 text-muted-foreground')}>
+                    {step.help}
+                  </p>
+                )}
               </div>
             </li>
           ))}
         </ol>
 
         {request.status === 'declined' && (
-          <p className="fsl-merge-sheet__status-help">
+          <p className={cn('fsl-merge-sheet__status-help', 'm-0 text-sm leading-5 text-muted-foreground')}>
             {t('merge.declinedHelp', { provider: pName, name: otherName })}
           </p>
         )}
 
         {request.status === 'accepted' && (
-          <p className="fsl-merge-sheet__status-help">
+          <p className={cn('fsl-merge-sheet__status-help', 'm-0 text-sm leading-5 text-muted-foreground')}>
             {t('merge.acceptedSummary', { name: otherName })}
           </p>
         )}
 
         {error !== null && (
-          <InlineError error={error} className="fsl-merge-sheet__error" />
+          <InlineError error={error} className={cn('fsl-merge-sheet__error', 'm-0')} />
         )}
 
-        <div className="fsl-merge-sheet__actions">
+        <div className={cn('fsl-merge-sheet__actions', 'flex flex-col gap-2')}>
           {request.status === 'pending' && (
             <>
               {!isGoogleInZalo ? (
@@ -226,12 +252,14 @@ export function MergeSheet({ request, open, onClose }: MergeSheetProps) {
                   >
                     {t('merge.confirmHere', { provider: pName })}
                   </Button>
-                  <p className="fsl-merge-sheet__switch-note">
+                  <p className={cn('fsl-merge-sheet__switch-note', 'm-0 text-xs leading-4 text-muted-foreground')}>
                     {t('merge.switchNote', { name: otherName })}
                   </p>
                 </>
               ) : (
-                <p className="fsl-merge-sheet__hint">{t('signIn.googleInZalo')}</p>
+                <p className={cn('fsl-merge-sheet__hint', 'm-0 text-sm leading-5 text-muted-foreground')}>
+                  {t('signIn.googleInZalo')}
+                </p>
               )}
               <Button
                 variant="ghost"

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { MeUserView, Gender } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';
 import { apiSend } from '../api/client';
@@ -15,7 +16,6 @@ import { Icon } from './icons';
 import { AvatarCropModal } from './AvatarCropModal';
 import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
-import './AccountMenu.css';
 
 export type AccountMenuUser = {
   name: string;
@@ -179,7 +179,9 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
     <button
       ref={triggerRef}
       type="button"
-      className="fsl-account-menu__trigger"
+      className={cn(
+        'fsl-account-menu__trigger relative inline-flex items-center justify-center size-11 rounded-full bg-transparent hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+      )}
       aria-label={t('trips.accountAria', { name: u.name })}
       title={t('account.label')}
       aria-haspopup="dialog"
@@ -187,16 +189,22 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
       onClick={() => setOpen((prev) => !prev)}
     >
       <Avatar name={u.name} avatarUrl={u.avatarUrl} size="sm" />
-      {incomingMerge && (<span className="fsl-account-menu__dot" role="img" aria-label={t('merge.dot')} />)}
+      {incomingMerge && (
+        <span
+          className="fsl-account-menu__dot absolute top-1.5 right-1.5 size-2.5 rounded-full bg-danger ring-2 ring-card"
+          role="img"
+          aria-label={t('merge.dot')}
+        />
+      )}
     </button>
   );
 
   const body = (
-    <div className="fsl-account-menu__body">
-      <div className="fsl-account-menu__identity">
-        <div className="fsl-account-menu__avatar-row">
+    <div className="fsl-account-menu__body flex flex-col gap-3">
+      <div className="fsl-account-menu__identity m-0">
+        <div className="fsl-account-menu__avatar-row flex items-center gap-3 mb-2">
           <Avatar name={u.name} avatarUrl={u.avatarUrl} size="md" />
-          <div className="fsl-account-menu__photo-actions">
+          <div className="fsl-account-menu__photo-actions flex flex-col gap-1">
             <input
               type="file"
               ref={fileInputRef}
@@ -206,7 +214,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
             />
             <button
               type="button"
-              className="fsl-account-menu__photo-btn"
+              className="fsl-account-menu__photo-btn inline-flex items-center gap-1 bg-transparent p-0 text-xs font-medium text-primary hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
               onClick={() => fileInputRef.current?.click()}
             >
               <Icon name="camera" size={16} />
@@ -215,7 +223,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
             {u.avatarUrl && (
               <button
                 type="button"
-                className="fsl-account-menu__photo-btn fsl-account-menu__photo-btn--remove"
+                className="fsl-account-menu__photo-btn fsl-account-menu__photo-btn--remove inline-flex items-center gap-1 bg-transparent p-0 text-xs font-medium text-danger hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
                 onClick={handleRemovePhoto}
               >
                 {t('account.removePhoto')}
@@ -224,35 +232,42 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
           </div>
         </div>
 
-        <div className="fsl-account-menu__info">
-          <p className="fsl-account-menu__name">{u.name}</p>
-          <p className="fsl-account-menu__email">{u.email ?? t('account.zaloAccount')}</p>
+        <div className="fsl-account-menu__info flex flex-col">
+          <p className="fsl-account-menu__name m-0 text-base font-semibold text-foreground leading-normal">{u.name}</p>
+          <p className="fsl-account-menu__email m-0 mt-1 text-sm text-muted-foreground break-all leading-normal">
+            {u.email ?? t('account.zaloAccount')}
+          </p>
         </div>
       </div>
 
-      <div className="fsl-account-menu__profile-form">
-        <div className="fsl-form-group">
-          <label htmlFor="fsl-account-name-input" className="fsl-form-label">
+      <div className="fsl-account-menu__profile-form flex flex-col gap-3 m-0 p-3 bg-muted rounded-xl">
+        <div className="fsl-form-group flex flex-col gap-1.5">
+          <label htmlFor="fsl-account-name-input" className="fsl-form-label text-sm font-medium text-foreground">
             {t('account.displayName')}
           </label>
           <input
             id="fsl-account-name-input"
             type="text"
-            className="fsl-input"
+            className="fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 py-1 text-base text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={t('account.displayName')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
 
-        <div className="fsl-account-menu__gender-group">
-          <span className="fsl-form-label">{t('account.gender')}</span>
-          <div className="fsl-account-menu__gender-toggle" role="radiogroup" aria-label={t('account.gender')}>
+        <div className="fsl-account-menu__gender-group flex flex-col gap-1.5">
+          <span className="fsl-form-label text-sm font-medium text-foreground">{t('account.gender')}</span>
+          <div className="fsl-account-menu__gender-toggle flex gap-2" role="radiogroup" aria-label={t('account.gender')}>
             <button
               type="button"
               role="radio"
               aria-checked={gender === 'M'}
-              className={`fsl-account-menu__gender-btn${gender === 'M' ? ' fsl-account-menu__gender-btn--selected' : ''}`}
+              className={cn(
+                'fsl-account-menu__gender-btn flex-1 inline-flex items-center justify-center gap-1 min-h-11 px-2 border rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                gender === 'M'
+                  ? 'fsl-account-menu__gender-btn--selected bg-card text-foreground font-semibold shadow-sm border-border'
+                  : 'bg-card/50 text-muted-foreground border-transparent hover:text-foreground hover:bg-card',
+              )}
               onClick={() => setGender(gender === 'M' ? null : 'M')}
             >
               <Icon name="mars" size={16} />
@@ -262,7 +277,12 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
               type="button"
               role="radio"
               aria-checked={gender === 'F'}
-              className={`fsl-account-menu__gender-btn${gender === 'F' ? ' fsl-account-menu__gender-btn--selected' : ''}`}
+              className={cn(
+                'fsl-account-menu__gender-btn flex-1 inline-flex items-center justify-center gap-1 min-h-11 px-2 border rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                gender === 'F'
+                  ? 'fsl-account-menu__gender-btn--selected bg-card text-foreground font-semibold shadow-sm border-border'
+                  : 'bg-card/50 text-muted-foreground border-transparent hover:text-foreground hover:bg-card',
+              )}
               onClick={() => setGender(gender === 'F' ? null : 'F')}
             >
               <Icon name="venus" size={16} />
@@ -277,7 +297,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
           loading={savingProfile}
           disabled={!displayName.trim() || savingProfile}
           onClick={handleSaveProfile}
-          className="fsl-account-menu__save-profile"
+          className="fsl-account-menu__save-profile mt-1"
         >
           {t('account.saveProfile')}
         </Button>
@@ -287,36 +307,40 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
 
       {meQuery.data && <LinkedAccounts me={meQuery.data} />}
 
-      <div className="fsl-account-menu__list">
+      <div className="fsl-account-menu__list flex flex-col border border-border rounded-xl p-1 bg-card">
         <Link
           to="/me/bank"
-          className="fsl-account-menu__row fsl-account-menu__link"
+          className={cn(
+            'fsl-account-menu__row fsl-account-menu__link flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground hover:bg-accent transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
           onClick={close}
         >
-          <span className="fsl-account-menu__row-left">
+          <span className="fsl-account-menu__row-left inline-flex items-center gap-2">
             <Icon name="bank" size={20} />
             <span>{t('bankForm.title')}</span>
           </span>
-          <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron" />
+          <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
         </Link>
 
-        <div className="fsl-account-menu__row">
+        <div className="fsl-account-menu__row flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground">
           <span>{t('account.language')}</span>
           <LanguageButton />
         </div>
 
         <Link
           to="/privacy"
-          className="fsl-account-menu__row fsl-account-menu__link"
+          className={cn(
+            'fsl-account-menu__row fsl-account-menu__link flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground hover:bg-accent transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
           onClick={close}
         >
           <span>{t('privacy.title')}</span>
-          <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron" />
+          <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
         </Link>
       </div>
 
       {error !== null && (
-        <InlineError error={error} className="fsl-account-menu__error" />
+        <InlineError error={error} className="fsl-account-menu__error m-0" />
       )}
 
       <Button
@@ -324,7 +348,7 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
         block
         loading={signingOut}
         onClick={signOut}
-        className="fsl-account-menu__sign-out"
+        className="fsl-account-menu__sign-out m-0"
       >
         {t('trips.signOut')}
       </Button>
@@ -342,13 +366,13 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
 
   if (wide) {
     return (
-      <div className="fsl-account-menu" ref={wrapperRef}>
+      <div className="fsl-account-menu relative inline-flex" ref={wrapperRef}>
         {trigger}
         {open && !cropOpen && (
           <div
             role="dialog"
             aria-label={t('account.label')}
-            className="fsl-account-menu__popover"
+            className="fsl-account-menu__popover absolute top-full mt-2 right-0 w-[348px] max-w-[calc(100vw-2rem)] p-2 bg-card rounded-xl shadow-lg border border-border z-30 box-border"
           >
             {body}
           </div>

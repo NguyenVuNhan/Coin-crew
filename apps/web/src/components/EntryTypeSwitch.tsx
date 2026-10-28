@@ -1,7 +1,7 @@
 import { useRef, type JSX, type KeyboardEvent } from 'react';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
-import './EntryTypeSwitch.css';
 
 export type EntryType = 'expense' | 'income';
 
@@ -43,7 +43,7 @@ export function EntryTypeSwitch({ value, onChange }: EntryTypeSwitchProps): JSX.
   };
 
   return (
-    <div role="tablist" aria-label={t('entry.tabs')} className="fsl-entry-switch">
+    <div role="tablist" aria-label={t('entry.tabs')} className="fsl-entry-switch flex bg-muted rounded-full p-1 gap-1">
       {OPTIONS.map((item, index) => {
         const selected = value === item.type;
         const label = t(item.labelKey);
@@ -58,7 +58,12 @@ export function EntryTypeSwitch({ value, onChange }: EntryTypeSwitchProps): JSX.
             role="tab"
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
-            className={`fsl-entry-switch__tab${selected ? ' fsl-entry-switch__tab--active' : ''}`}
+            className={cn(
+              'fsl-entry-switch__tab flex-1 min-w-0 min-h-11 flex items-center justify-center rounded-full px-3 text-base tabular-nums cursor-pointer select-none transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              selected
+                ? 'fsl-entry-switch__tab--active bg-card text-foreground font-semibold shadow-sm'
+                : 'text-muted-foreground hover:text-foreground font-medium',
+            )}
             onClick={() => onChange(item.type)}
             onKeyDown={(e) => handleKeyDown(index, e)}
           >

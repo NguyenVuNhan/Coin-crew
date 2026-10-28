@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router';
 import { formatVnd, type PaymentView, type TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { useTripAction } from '../lib/useTripAction';
@@ -12,7 +13,6 @@ import { Pill } from './Pill';
 import { InlineError } from './InlineError';
 import { ListModeChip } from './ListModeChip';
 import { paymentStatus } from './PaymentDetails';
-import './PaymentsList.css';
 
 function PaymentItem({
   view,
@@ -53,20 +53,23 @@ function PaymentItem({
   return (
     <li className="fsl-payments__item" data-testid={`payment-row-${payment.id}`}>
       <ActionRow label={label} actions={actions} onOpen={onOpen} selected={selected} hintable={hintable}>
-        <span className="fsl-payments__row">
+        <span className="fsl-payments__row flex min-w-0 flex-1 items-center justify-between gap-3">
           <span
-            className={`fsl-payments__text${off ? ' fsl-payments__text--off' : ''}`}
+            className={cn(
+              'fsl-payments__text min-w-0 truncate text-base font-semibold text-foreground',
+              off && 'fsl-payments__text--off text-subtle-foreground line-through',
+            )}
             style={off ? { textDecoration: 'line-through' } : undefined}
           >
             {title}
           </span>
-          <span className="fsl-payments__right">
+          <span className="fsl-payments__right flex shrink-0 flex-col items-end gap-1 text-right">
             <Amount value={amount} style={off ? { textDecoration: 'line-through' } : undefined} />
             <Pill tone={status.tone}>{statusText}</Pill>
           </span>
         </span>
       </ActionRow>
-      {error ? <InlineError error={error} className="fsl-payments__error" /> : null}
+      {error ? <InlineError error={error} className="fsl-payments__error mx-4 mb-3" /> : null}
     </li>
   );
 }
@@ -96,28 +99,28 @@ export function PaymentsList({
   const title = effective === null ? t('payments.title') : effective === 'mine' ? t('payments.mine') : t('payments.all');
 
   return (
-    <section className="fsl-payments" aria-label={title}>
-      <div className="fsl-payments__top">
-        <h2 className="fsl-payments__heading">{title}</h2>
+    <section className="fsl-payments flex flex-col gap-2" aria-label={title}>
+      <div className="fsl-payments__top flex items-center justify-between gap-3">
+        <h2 className="fsl-payments__heading text-sm font-semibold text-muted-foreground">{title}</h2>
         {effective !== null && <ListModeChip mode={effective} onToggle={toggle} />}
       </div>
       {rows.length === 0 ? (
-        <p className="fsl-payments__empty">{t('payments.emptyMine')}</p>
+        <p className="fsl-payments__empty rounded-xl border border-border bg-card p-4 text-base text-muted-foreground">{t('payments.emptyMine')}</p>
       ) : (
-      <SwipeGroupProvider>
-        <ul className="fsl-payments__list">
-          {rows.map((p, i) => (
-            <PaymentItem
-              key={p.id}
-              view={view}
-              payment={p}
-              selected={p.id === selectedId}
-              hintable={hintable && i === 0}
-              onOpen={() => onOpen(p.id)}
-            />
-          ))}
-        </ul>
-      </SwipeGroupProvider>
+        <SwipeGroupProvider>
+          <ul className="fsl-payments__list divide-y divide-border overflow-hidden rounded-xl border border-border bg-card [&_.fsl-action-row]:border-b-0">
+            {rows.map((p, i) => (
+              <PaymentItem
+                key={p.id}
+                view={view}
+                payment={p}
+                selected={p.id === selectedId}
+                hintable={hintable && i === 0}
+                onOpen={() => onOpen(p.id)}
+              />
+            ))}
+          </ul>
+        </SwipeGroupProvider>
       )}
     </section>
   );

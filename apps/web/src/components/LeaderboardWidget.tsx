@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { rankPlayers, type RankedPlayer, type TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 import { useT } from '../i18n';
 import { useRatingsLink } from '../lib/detailsNav';
 import { Avatar } from './Avatar';
 import { Icon } from './icons';
-import './LeaderboardWidget.css';
 
 const COLLAPSE_SCROLL_Y = 40;
 const HIDE_SCROLL_Y = 200;
@@ -39,14 +40,19 @@ export function PodiumTop3({
       <div
         key={rank}
         data-podium-rank={rank}
-        className={`fsl-podium__slot fsl-podium__slot--rank-${rank}`}
+        className={cn(
+          'fsl-podium__slot',
+          `fsl-podium__slot--rank-${rank}`,
+          'flex min-w-0 flex-col items-center text-center',
+          isFirst ? 'z-10 flex-[1.25]' : 'flex-1',
+        )}
       >
         {isFirst ? (
-          <div className="fsl-podium__crown" aria-hidden="true">
+          <div className="fsl-podium__crown mb-1 flex items-center justify-center text-warning" aria-hidden="true">
             <Icon name="crown" size={22} />
           </div>
         ) : (
-          <div className="fsl-podium__rank-num" aria-hidden="true">
+          <div className="fsl-podium__rank-num mb-1 text-sm font-bold tabular-nums text-muted-foreground" aria-hidden="true">
             <span>{rank}</span>
           </div>
         )}
@@ -55,26 +61,58 @@ export function PodiumTop3({
             <Avatar
               name={player.name}
               avatarUrl={player.avatarUrl}
-              className={`fsl-podium__avatar fsl-podium__avatar--rank-${rank}`}
+              className={cn(
+                'fsl-podium__avatar',
+                `fsl-podium__avatar--rank-${rank}`,
+                'transition-transform duration-200 motion-reduce:transition-none',
+                isFirst
+                  ? 'size-[68px] border-[3px] border-warning-border bg-warning-soft text-lg text-warning-foreground shadow-xs'
+                  : 'size-12 border-2 border-border text-base shadow-xs',
+              )}
             />
-            <span className="fsl-podium__name">{player.name}</span>
+            <span
+              className={cn(
+                'fsl-podium__name mt-2 max-w-full truncate text-foreground',
+                isFirst ? 'text-sm font-bold' : 'text-xs font-semibold',
+              )}
+            >
+              {player.name}
+            </span>
             {renderScore ? (
               renderScore(player)
             ) : (
-              <span className="fsl-podium__score">{`${player.stars} ★`}</span>
+              <span
+                className={cn(
+                  'fsl-podium__score font-bold tabular-nums',
+                  isFirst ? 'text-base text-warning-foreground' : 'text-sm text-warning',
+                )}
+              >
+                {`${player.stars} ★`}
+              </span>
             )}
           </>
         ) : (
           <>
             <div
-              className={`fsl-podium__avatar fsl-podium__avatar--empty fsl-podium__avatar--rank-${rank}`}
+              className={cn(
+                'fsl-podium__avatar fsl-podium__avatar--empty',
+                `fsl-podium__avatar--rank-${rank}`,
+                'inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground',
+                isFirst
+                  ? 'size-[68px] border-[3px] border-warning-border/50 text-lg'
+                  : 'size-12 border-2 border-border text-base',
+              )}
               data-testid={`podium-anonymous-${rank}`}
               aria-hidden="true"
             >
               <Icon name="user" size={rank === 1 ? 32 : 24} />
             </div>
-            <span className="fsl-podium__name fsl-podium__name--empty">—</span>
-            <span className="fsl-podium__score fsl-podium__score--empty">0 ★</span>
+            <span className="fsl-podium__name fsl-podium__name--empty mt-2 max-w-full truncate text-xs font-semibold text-muted-foreground">
+              —
+            </span>
+            <span className="fsl-podium__score fsl-podium__score--empty text-sm font-bold tabular-nums text-muted-foreground">
+              0 ★
+            </span>
           </>
         )}
       </div>
@@ -82,7 +120,7 @@ export function PodiumTop3({
   };
 
   return (
-    <div className="fsl-podium">
+    <div className="fsl-podium flex items-end justify-center gap-2 py-1">
       {renderSlot(second, 2)}
       {renderSlot(first, 1)}
       {renderSlot(third, 3)}
@@ -131,16 +169,31 @@ export function LeaderboardWidget({
 
   if (totalGroupStars === 0) {
     return (
-      <section className="fsl-leaderboard fsl-leaderboard--cold" aria-label={t('ratings.title')}>
-        <div className="fsl-leaderboard__head">
-          <div className="fsl-leaderboard__title-group">
-            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy" />
-            <span className="fsl-leaderboard__title">{t('ratings.title')}</span>
+      <section
+        className="fsl-leaderboard fsl-leaderboard--cold flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs"
+        aria-label={t('ratings.title')}
+      >
+        <div className="fsl-leaderboard__head flex items-center justify-between gap-2">
+          <div className="fsl-leaderboard__title-group inline-flex min-w-0 items-center gap-2">
+            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy shrink-0 text-warning" />
+            <span className="fsl-leaderboard__title truncate text-sm font-semibold tracking-wider text-foreground uppercase">
+              {t('ratings.title')}
+            </span>
           </div>
         </div>
-        <p className="fsl-leaderboard__cold-title">{t('ratings.coldTitle')}</p>
-        <p className="fsl-leaderboard__cold-body">{t('ratings.coldBody')}</p>
-        <Link className="fsl-button fsl-button--primary fsl-button--block" {...ratingsLink}>
+        <p className="fsl-leaderboard__cold-title m-0 text-base font-semibold text-foreground">
+          {t('ratings.coldTitle')}
+        </p>
+        <p className="fsl-leaderboard__cold-body m-0 mb-1 text-sm text-muted-foreground">
+          {t('ratings.coldBody')}
+        </p>
+        <Link
+          className={cn(
+            buttonVariants({ variant: 'default' }),
+            'fsl-button fsl-button--primary fsl-button--block min-h-11 w-full',
+          )}
+          {...ratingsLink}
+        >
           {`★ ${t('ratings.coldCta')}`}
         </Link>
       </section>
@@ -158,26 +211,43 @@ export function LeaderboardWidget({
 
   return (
     <section
-      className={`fsl-leaderboard fsl-leaderboard--${stage}`}
+      className={cn(
+        'fsl-leaderboard',
+        `fsl-leaderboard--${stage}`,
+        'overflow-hidden rounded-xl border transition-all duration-200 motion-reduce:transition-none',
+        stage === 'full' && 'fsl-leaderboard--full max-h-[340px] border-border bg-card px-4 pt-3 pb-4 shadow-xs',
+        stage === 'collapsed' && 'fsl-leaderboard--collapsed max-h-[60px] border-warning-border bg-warning-soft px-3 py-1 shadow-xs',
+        stage === 'hidden' && 'fsl-leaderboard--hidden pointer-events-none max-h-0 -translate-y-2 border-transparent px-4 py-0 opacity-0',
+      )}
       data-stage={stage}
       aria-label={t('ratings.leaderboard')}
       aria-hidden={stage === 'hidden' ? 'true' : undefined}
     >
       {/* Stage 1: Full Radial Podium */}
-      <div className="fsl-leaderboard__full">
-        <div className="fsl-leaderboard__head">
-          <div className="fsl-leaderboard__title-group">
-            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy" />
-            <span className="fsl-leaderboard__title">{t('ratings.leaderboard')}</span>
+      <div
+        className={cn(
+          'fsl-leaderboard__full flex flex-col gap-2 transition-all duration-200 motion-reduce:transition-none',
+          stage !== 'full' && 'pointer-events-none max-h-0 scale-95 overflow-hidden opacity-0',
+        )}
+      >
+        <div className="fsl-leaderboard__head flex items-center justify-between gap-2">
+          <div className="fsl-leaderboard__title-group inline-flex min-w-0 items-center gap-2">
+            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy shrink-0 text-warning" />
+            <span className="fsl-leaderboard__title truncate text-sm font-semibold tracking-wider text-foreground uppercase">
+              {t('ratings.leaderboard')}
+            </span>
           </div>
-          <div className="fsl-leaderboard__actions">
-            <Link className="fsl-leaderboard__rate-link" {...ratingsLink}>
+          <div className="fsl-leaderboard__actions inline-flex shrink-0 items-center gap-1">
+            <Link
+              className="fsl-leaderboard__rate-link inline-flex min-h-11 items-center gap-1 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              {...ratingsLink}
+            >
               <span>{t('ratings.rateAction')}</span>
               <Icon name="chevronRight" size={16} />
             </Link>
             <button
               type="button"
-              className="fsl-leaderboard__toggle"
+              className="fsl-leaderboard__toggle inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               aria-label={t('ratings.collapse')}
               title={t('ratings.collapse')}
               onClick={() => setManualCollapsed(true)}
@@ -187,20 +257,38 @@ export function LeaderboardWidget({
           </div>
         </div>
 
-        <p className="fsl-leaderboard__quote">{`“${t('ratings.quote')}”`}</p>
+        <p className="fsl-leaderboard__quote m-0 text-center text-xs text-muted-foreground">{`“${t('ratings.quote')}”`}</p>
 
-        <Link className="fsl-leaderboard__podium-link" {...ratingsLink}>
+        <Link
+          className="fsl-leaderboard__podium-link block rounded-xl text-inherit focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          {...ratingsLink}
+        >
           <PodiumTop3 players={top3} />
         </Link>
       </div>
 
       {/* Stage 2: Collapsed Summary Bar */}
-      <div className="fsl-leaderboard__bar">
-        <Link className="fsl-leaderboard__bar-link" {...ratingsLink}>
-          <Icon name="trophy" size={16} className="fsl-leaderboard__trophy" />
-          <span className="fsl-leaderboard__bar-summary">
+      <div
+        className={cn(
+          'fsl-leaderboard__bar min-h-11 items-center justify-between gap-2',
+          stage === 'collapsed' ? 'flex' : 'hidden',
+        )}
+      >
+        <Link
+          className="fsl-leaderboard__bar-link inline-flex min-h-11 flex-1 min-w-0 items-center gap-2 rounded-lg text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          {...ratingsLink}
+        >
+          <Icon name="trophy" size={16} className="fsl-leaderboard__trophy shrink-0 text-warning" />
+          <span className="fsl-leaderboard__bar-summary flex-1 min-w-0 truncate text-xs tabular-nums">
             {top3.map((p, idx) => (
-              <span key={p.id} className={idx === 0 ? 'fsl-leaderboard__bar-first' : 'fsl-leaderboard__bar-item'}>
+              <span
+                key={p.id}
+                className={cn(
+                  idx === 0
+                    ? 'fsl-leaderboard__bar-first font-bold text-warning-foreground'
+                    : 'fsl-leaderboard__bar-item font-medium text-muted-foreground',
+                )}
+              >
                 {idx > 0 ? ' · ' : ''}
                 {`#${p.rank} ${p.name} ${p.stars}★`}
               </span>
@@ -209,7 +297,7 @@ export function LeaderboardWidget({
         </Link>
         <button
           type="button"
-          className="fsl-leaderboard__toggle"
+          className="fsl-leaderboard__toggle inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           aria-label={t('ratings.expand')}
           title={t('ratings.expand')}
           onClick={() => {

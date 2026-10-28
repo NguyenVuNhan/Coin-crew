@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { BANKS, toTransferNote } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
-import './BankFields.css';
 
 export interface BankFieldsValue {
   bin: string;
@@ -57,39 +58,47 @@ export function BankFields({
   };
 
   return (
-    <div className="fsl-bank-fields">
-      <div className="fsl-bank-fields__group">
-        <label htmlFor="fsl-bank-select" className="fsl-bank-fields__label">
+    <div className={cn('fsl-bank-fields flex flex-col gap-4 w-full')}>
+      <div className={cn('fsl-bank-fields__group flex flex-col gap-1.5')}>
+        <label htmlFor="fsl-bank-select" className={cn('fsl-bank-fields__label text-sm font-medium text-foreground')}>
           {t('bank.bank')}
         </label>
-        <select
-          id="fsl-bank-select"
-          value={value.bin}
-          onChange={(e) => onChange({ ...value, bin: e.target.value })}
-          className="fsl-bank-fields__select"
-        >
-          <option value="" disabled>
-            {t('bank.choose')}
-          </option>
-          <optgroup label={t('bank.popular')}>
-            {POPULAR_BANKS.map((b) => (
-              <option key={`pop-${b.bin}`} value={b.bin}>
-                {`${b.shortName} — ${b.name}`}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label={t('bank.allBanks')}>
-            {ALL_BANKS_SORTED.map((b) => (
-              <option key={`all-${b.bin}`} value={b.bin}>
-                {`${b.shortName} — ${b.name}`}
-              </option>
-            ))}
-          </optgroup>
-        </select>
+        <div className="relative w-full">
+          <select
+            id="fsl-bank-select"
+            value={value.bin}
+            onChange={(e) => onChange({ ...value, bin: e.target.value })}
+            className={cn(
+              'fsl-bank-fields__select h-11 w-full appearance-none rounded-xl border border-input bg-card px-3 pr-10 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+            )}
+          >
+            <option value="" disabled>
+              {t('bank.choose')}
+            </option>
+            <optgroup label={t('bank.popular')}>
+              {POPULAR_BANKS.map((b) => (
+                <option key={`pop-${b.bin}`} value={b.bin}>
+                  {`${b.shortName} — ${b.name}`}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={t('bank.allBanks')}>
+              {ALL_BANKS_SORTED.map((b) => (
+                <option key={`all-${b.bin}`} value={b.bin}>
+                  {`${b.shortName} — ${b.name}`}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          <ChevronDown
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </div>
       </div>
 
-      <div className="fsl-bank-fields__group">
-        <label htmlFor="fsl-bank-account-number" className="fsl-bank-fields__label">
+      <div className={cn('fsl-bank-fields__group flex flex-col gap-1.5')}>
+        <label htmlFor="fsl-bank-account-number" className={cn('fsl-bank-fields__label text-sm font-medium text-foreground')}>
           {t('bank.accountNumber')}
         </label>
         <input
@@ -103,15 +112,17 @@ export function BankFields({
             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 19);
             onChange({ ...value, accountNumber: digitsOnly });
           }}
-          className="fsl-bank-fields__input"
+          className={cn(
+            'fsl-bank-fields__input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+          )}
         />
       </div>
 
-      <div className="fsl-bank-fields__group">
-        <label htmlFor="fsl-bank-holder-name" className="fsl-bank-fields__label">
+      <div className={cn('fsl-bank-fields__group flex flex-col gap-1.5')}>
+        <label htmlFor="fsl-bank-holder-name" className={cn('fsl-bank-fields__label text-sm font-medium text-foreground')}>
           {t('bank.holderName')}
         </label>
-        <span id="fsl-bank-holder-hint" className="fsl-bank-fields__hint">
+        <span id="fsl-bank-holder-hint" className={cn('fsl-bank-fields__hint text-sm text-muted-foreground')}>
           {t('bank.holderHint')}
         </span>
         <input
@@ -122,7 +133,9 @@ export function BankFields({
           value={rawHolderName}
           onChange={handleHolderChange}
           onBlur={handleHolderBlur}
-          className="fsl-bank-fields__input"
+          className={cn(
+            'fsl-bank-fields__input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+          )}
         />
       </div>
     </div>

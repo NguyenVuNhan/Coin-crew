@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import { Button } from './Button';
 import { Icon } from './icons';
 import { Sheet } from './Sheet';
-import './UpdatedTransactionsBanner.css';
+import { cn } from '@/lib/utils';
 
 export interface UpdatedTransactionsBannerProps {
   view: TripView;
@@ -81,12 +81,21 @@ export function UpdatedTransactionsBanner({ view }: UpdatedTransactionsBannerPro
   return (
     <>
       {!dismissed && unseen.length > 0 && (
-        <aside className="fsl-updated-banner" aria-label={t('updates.bannerTitle')}>
-          <div className="fsl-updated-banner__info">
-            <Icon name="rotateCcw" size={18} />
+        <aside
+          className={cn(
+            'fsl-updated-banner rounded-xl bg-secondary text-secondary-foreground p-4 mb-4 flex items-center justify-between gap-3',
+          )}
+          aria-label={t('updates.bannerTitle')}
+        >
+          <div className="fsl-updated-banner__info flex items-center gap-2 text-sm font-medium text-secondary-foreground">
+            <Icon name="rotateCcw" size={18} className="shrink-0" />
             <span className="fsl-updated-banner__text">{t('updates.bannerTitle')}</span>
           </div>
-          <Button variant="secondary" className="fsl-updated-banner__btn" onClick={handleOpen}>
+          <Button
+            variant="secondary"
+            className="fsl-updated-banner__btn shrink-0 whitespace-nowrap text-sm bg-card text-foreground hover:bg-card/90 border border-border shadow-xs"
+            onClick={handleOpen}
+          >
             {t('updates.viewAll')}
           </Button>
         </aside>
@@ -98,8 +107,8 @@ export function UpdatedTransactionsBanner({ view }: UpdatedTransactionsBannerPro
         title={t('updates.bannerTitle')}
         className="fsl-updated-sheet"
       >
-        <div className="fsl-updated-modal">
-          <ul className="fsl-updated-modal__list">
+        <div className="fsl-updated-modal flex flex-col gap-4 text-left">
+          <ul className="fsl-updated-modal__list list-none m-0 p-0 flex flex-col gap-3">
             {displayExpenses.map((e) => {
               const prev = e.history?.[0];
               const prevAmount = prev ? prev.amount : e.amount;
@@ -109,14 +118,17 @@ export function UpdatedTransactionsBanner({ view }: UpdatedTransactionsBannerPro
               const nextShare = e.shares.find((s) => s.participantId === myId)?.amount ?? 0;
 
               return (
-                <li key={e.id} className="fsl-updated-modal__item">
-                  <div className="fsl-updated-modal__desc">{e.description}</div>
-                  <div className="fsl-updated-modal__row">
+                <li
+                  key={e.id}
+                  className="fsl-updated-modal__item flex flex-col gap-1 p-3 bg-muted/50 border border-border rounded-xl"
+                >
+                  <div className="fsl-updated-modal__desc text-base font-semibold text-foreground">{e.description}</div>
+                  <div className="fsl-updated-modal__row flex items-center gap-1 text-sm text-muted-foreground tabular-nums">
                     <span>
                       {formatVnd(prevAmount)} → {formatVnd(e.amount)}
                     </span>
                   </div>
-                  <div className="fsl-updated-modal__shares">
+                  <div className="fsl-updated-modal__shares flex items-center gap-1 text-sm text-muted-foreground tabular-nums">
                     <span>
                       {t('updates.previous')}: {formatVnd(prevShare)} → {t('updates.now')}: {formatVnd(nextShare)}
                     </span>
@@ -125,7 +137,7 @@ export function UpdatedTransactionsBanner({ view }: UpdatedTransactionsBannerPro
               );
             })}
           </ul>
-          <div className="fsl-updated-modal__footer">
+          <div className="fsl-updated-modal__footer flex justify-end pt-2">
             <Button variant="primary" onClick={handleDismiss}>
               {t('updates.dismiss')}
             </Button>

@@ -16,12 +16,12 @@ import { EmptyState } from './EmptyState';
 import { InlineError } from './InlineError';
 import { Icon } from './icons';
 import { usePayInfo } from '../api/payInfo';
-import { useQrSvg, qrSrc, shareSportBill, renderSportBillPng, type SportBillCardInput } from '../lib/qr';
+import { useQrSvg, shareSportBill, renderSportBillPng, type SportBillCardInput } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useImageSheet } from './SaveImageSheet';
 import { sportShareText, expenseLink } from '../lib/remind';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
-import './ExpenseDetails.css';
+import { cn } from '@/lib/utils';
 
 const STATUS: Record<ExpenseView['status'], { tone: PillProps['tone']; label: MessageKey }> = {
   approved: { tone: 'success', label: 'status.approved' },
@@ -152,7 +152,7 @@ export function ExpenseDetails({
       <EmptyState
         icon="receipt"
         title={t('details.gone')}
-        action={<Button onClick={onClose}>{t('details.backToTrip')}</Button>}
+        action={<Button onClick={onClose} className="rounded-full">{t('details.backToTrip')}</Button>}
       />
     );
   }
@@ -169,7 +169,7 @@ export function ExpenseDetails({
     );
     if (pendingId) {
       errorElement = (
-        <p className="fsl-details__error" role="alert">
+        <p className="fsl-details__error text-sm text-danger m-0" role="alert">
           {t('approvals.approveNameFirst', { name: nameOf(view, pendingId) })}
         </p>
       );
@@ -236,43 +236,47 @@ export function ExpenseDetails({
   };
 
   return (
-    <article className="fsl-details">
+    <article className="fsl-details flex flex-col gap-4 min-w-0">
       {imageSheet}
-      <div className="fsl-details__head">
-        <h2 className="fsl-details__title" tabIndex={-1}>{e.description}</h2>
+      <div className="fsl-details__head flex flex-row items-start justify-between gap-3">
+        <h2 className="fsl-details__title text-lg font-semibold text-foreground m-0 break-words focus:outline-none" tabIndex={-1}>
+          {e.description}
+        </h2>
         <Pill tone={status.tone}>{t(status.label)}</Pill>
       </div>
 
-      <Amount value={e.amount} size="xl" />
+      <Amount value={e.amount} size="xl" className="text-3xl font-bold tabular-nums" />
 
       {e.status === 'rejected' && e.rejectReason ? (
-        <p className="fsl-details__note fsl-details__note--danger">
+        <p className="fsl-details__note fsl-details__note--danger text-sm text-danger m-0">
           {t('expense.rejectedBecause', { reason: e.rejectReason })}
         </p>
       ) : null}
       {e.status === 'disabled' && e.disabledByName ? (
-        <p className="fsl-details__note">
+        <p className="fsl-details__note text-sm text-muted-foreground m-0">
           {t('expenses.disabledBy', { name: e.disabledByName })}
         </p>
       ) : null}
 
-      <dl className="fsl-details__facts">
-        <div className="fsl-details__fact">
-          <dt>{t('details.date')}</dt>
-          <dd>{formatDay(e.spentOn)}</dd>
+      <dl className="fsl-details__facts m-0 bg-card rounded-xl border border-border divide-y divide-border overflow-hidden">
+        <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+          <dt className="text-sm text-muted-foreground">{t('details.date')}</dt>
+          <dd className="text-sm font-medium text-foreground text-right m-0">{formatDay(e.spentOn)}</dd>
         </div>
-        <div className="fsl-details__fact">
-          <dt>{t('details.paidBy')}</dt>
-          <dd>{fromFund ? t('fund.title') : whoText(e.payerId)}</dd>
+        <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+          <dt className="text-sm text-muted-foreground">{t('details.paidBy')}</dt>
+          <dd className="text-sm font-medium text-foreground text-right m-0">{fromFund ? t('fund.title') : whoText(e.payerId)}</dd>
         </div>
-        <div className="fsl-details__fact">
-          <dt>{t('details.addedBy')}</dt>
-          <dd>{fromFund ? `${whoText(e.createdById)} · ${formatDay(e.spentOn)}` : whoText(e.createdById)}</dd>
+        <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+          <dt className="text-sm text-muted-foreground">{t('details.addedBy')}</dt>
+          <dd className="text-sm font-medium text-foreground text-right m-0">
+            {fromFund ? `${whoText(e.createdById)} · ${formatDay(e.spentOn)}` : whoText(e.createdById)}
+          </dd>
         </div>
         {!fromFund && (
-          <div className="fsl-details__fact">
-            <dt>{t('details.split')}</dt>
-            <dd>
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('details.split')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">
               {e.meta?.sport
                 ? splitText(e, t)
                 : e.mode === 'equal'
@@ -284,39 +288,39 @@ export function ExpenseDetails({
       </dl>
 
       {fromFund ? (
-        <p className="fsl-details__note">{t('fund.expenseNote')}</p>
+        <p className="fsl-details__note text-sm text-muted-foreground m-0">{t('fund.expenseNote')}</p>
       ) : sportCalc ? (
         <>
-          <div className="fsl-sport-table-container">
-            <table className="fsl-sport-table">
+          <div className="fsl-sport-table-container overflow-x-auto bg-card border border-border rounded-xl">
+            <table className="fsl-sport-table w-full border-collapse text-sm text-left">
               <thead>
-                <tr>
-                  <th scope="col">{t('sport.tableColName')}</th>
-                  <th scope="col" className="fsl-sport-table__col--center">{t('sport.tableColFemale')}</th>
-                  <th scope="col" className="fsl-sport-table__col--center">{t('sport.tableColMale')}</th>
-                  <th scope="col" className="fsl-sport-table__col--right">{t('sport.tableColAmount')}</th>
+                <tr className="bg-muted text-muted-foreground text-xs font-semibold">
+                  <th scope="col" className="p-3 border-b border-border">{t('sport.tableColName')}</th>
+                  <th scope="col" className="fsl-sport-table__col--center p-3 border-b border-border text-center">{t('sport.tableColFemale')}</th>
+                  <th scope="col" className="fsl-sport-table__col--center p-3 border-b border-border text-center">{t('sport.tableColMale')}</th>
+                  <th scope="col" className="fsl-sport-table__col--right p-3 border-b border-border text-right">{t('sport.tableColAmount')}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {sportCalc.participants.map((p) => {
                   const isMe = p.participantId === view.me.participantId;
                   const displayName = isMe ? t('details.you', { name: p.name }) : p.name;
                   const isFixed = p.fixedAmount !== null && p.fixedAmount !== undefined;
                   return (
-                    <tr key={p.participantId}>
-                      <td>
+                    <tr key={p.participantId} className="hover:bg-muted/50">
+                      <td className="p-3 border-b border-border">
                         <span>{displayName}</span>
                         {isFixed && (
-                          <span className="fsl-sport-table__fixed"> ({t('sport.fixedBadge')})</span>
+                          <span className="fsl-sport-table__fixed text-xs text-muted-foreground"> ({t('sport.fixedBadge')})</span>
                         )}
                       </td>
-                      <td className="fsl-sport-table__col--center fsl-num">
+                      <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums">
                         {p.femaleSlots > 0 ? p.femaleSlots : '—'}
                       </td>
-                      <td className="fsl-sport-table__col--center fsl-num">
+                      <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums">
                         {p.maleSlots > 0 ? p.maleSlots : '—'}
                       </td>
-                      <td className="fsl-sport-table__col--right fsl-num">
+                      <td className="fsl-sport-table__col--right fsl-num p-3 border-b border-border text-right tabular-nums">
                         <Amount value={p.amount} />
                       </td>
                     </tr>
@@ -324,72 +328,76 @@ export function ExpenseDetails({
                 })}
               </tbody>
               <tfoot>
-                <tr className="fsl-sport-table__row--total-slots">
-                  <th scope="row">{t('sport.tableTotalSlots')}</th>
-                  <td className="fsl-sport-table__col--center fsl-num">{sportCalc.totalFemaleSlots}</td>
-                  <td className="fsl-sport-table__col--center fsl-num">{sportCalc.totalMaleSlots}</td>
-                  <td className="fsl-sport-table__col--right fsl-num">
+                <tr className="fsl-sport-table__row--total-slots bg-warning-soft text-warning-foreground font-semibold">
+                  <th scope="row" className="p-3 border-b border-border font-semibold">{t('sport.tableTotalSlots')}</th>
+                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">{sportCalc.totalFemaleSlots}</td>
+                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">{sportCalc.totalMaleSlots}</td>
+                  <td className="fsl-sport-table__col--right fsl-num p-3 border-b border-border text-right tabular-nums font-semibold">
                     {sportCalc.totalFemaleSlots + sportCalc.totalMaleSlots} {t('split.mode.shares').toLowerCase()}
                   </td>
                 </tr>
-                <tr className="fsl-sport-table__row--costs">
-                  <th scope="row">{t('sport.tableCosts')}</th>
-                  <td colSpan={2} className="fsl-sport-table__col--center fsl-sport-table__cost-summary">
+                <tr className="fsl-sport-table__row--costs bg-muted/60 text-foreground">
+                  <th scope="row" className="p-3 border-b border-border font-semibold">{t('sport.tableCosts')}</th>
+                  <td colSpan={2} className="fsl-sport-table__col--center fsl-sport-table__cost-summary p-3 border-b border-border text-center text-xs text-muted-foreground">
                     {[
                       sportCalc.court > 0 ? `${t('sport.court')}: ${formatVnd(sportCalc.court)}` : null,
                       sportCalc.shuttlecocksTotal > 0 ? `${t('sport.shuttlecocks')}: ${formatVnd(sportCalc.shuttlecocksTotal)}` : null,
                       sportCalc.extra > 0 ? `${t('sport.extra')}: ${formatVnd(sportCalc.extra)}` : null,
                     ].filter(Boolean).join(' · ')}
                   </td>
-                  <td className="fsl-sport-table__col--right fsl-num">
+                  <td className="fsl-sport-table__col--right fsl-num p-3 border-b border-border text-right tabular-nums font-semibold">
                     <Amount value={e.amount} />
                   </td>
                 </tr>
-                <tr className="fsl-sport-table__row--per-slot">
-                  <th scope="row">{t('sport.tablePerSlot')}</th>
-                  <td className="fsl-sport-table__col--center fsl-num">
+                <tr className="fsl-sport-table__row--per-slot bg-warning-soft text-warning-foreground font-semibold">
+                  <th scope="row" className="p-3 border-b border-border font-semibold">{t('sport.tablePerSlot')}</th>
+                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">
                     <Amount value={sportCalc.femaleSlotRate} />
                   </td>
-                  <td className="fsl-sport-table__col--center fsl-num">
+                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">
                     <Amount value={sportCalc.maleSlotRate} />
                   </td>
-                  <td className="fsl-sport-table__col--right">—</td>
+                  <td className="fsl-sport-table__col--right p-3 border-b border-border text-right font-semibold">—</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <div className="fsl-sport-preview-card">
+          <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
             <Button
               variant="primary"
               loading={sharing}
               onClick={handleShareSportBill}
+              className="rounded-full"
             >
               <Icon name="share" size={18} />
               {t('sport.shareBillQr')}
             </Button>
             {shareStatus === 'saved' && (
-              <p className="fsl-sport-share-status" role="status">
+              <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
                 {t('pay.shareSaved')}
               </p>
             )}
             {shareStatus === 'failed' && (
-              <p className="fsl-sport-share-status fsl-sport-share-status--danger" role="alert">
+              <p className="fsl-sport-share-status fsl-sport-share-status--danger text-sm text-danger m-0" role="alert">
                 {t('pay.shareFailed')}
               </p>
             )}
           </div>
         </>
       ) : (
-        <ul className="fsl-details__shares" aria-label={t('details.split')}>
+        <ul className="fsl-details__shares m-0 p-0 list-none bg-card rounded-xl border border-border divide-y divide-border overflow-hidden" aria-label={t('details.split')}>
           {shares.map((s) => {
             const isMe = s.participantId === view.me.participantId;
             return (
               <li
                 key={s.participantId}
-                className={`fsl-details__share${isMe ? ' fsl-details__share--me' : ''}`}
+                className={cn(
+                  'fsl-details__share flex items-center justify-between gap-3 px-4 py-3 min-h-11',
+                  isMe && 'fsl-details__share--me bg-secondary/40 font-semibold',
+                )}
               >
-                <span className="fsl-details__share-name">
+                <span className="fsl-details__share-name text-sm text-foreground">
                   {isMe
                     ? t('details.you', { name: nameOf(view, s.participantId) })
                     : nameOf(view, s.participantId)}
@@ -397,7 +405,7 @@ export function ExpenseDetails({
                 {view.people.find((p) => p.id === s.participantId)?.status === 'left' && (
                   <Pill tone="neutral">{t('people.leftBadge')}</Pill>
                 )}
-                <Amount value={s.amount} />
+                <Amount value={s.amount} className="font-semibold tabular-nums text-right" />
               </li>
             );
           })}
@@ -408,36 +416,40 @@ export function ExpenseDetails({
       {errorElement}
 
       {showReason ? (
-        <div className="fsl-details__reject">
-          <label htmlFor={reasonId}>{t('approvals.rejectReason')}</label>
+        <div className="fsl-details__reject flex flex-col gap-2 bg-card p-4 rounded-xl border border-border">
+          <label htmlFor={reasonId} className="text-sm font-medium text-muted-foreground">{t('approvals.rejectReason')}</label>
           <input
             id={reasonId}
-            className="fsl-details__input"
+            className="fsl-details__input w-full min-h-11 px-3 py-2 text-base text-foreground bg-background border border-input rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             value={reason}
             maxLength={140}
             onChange={(ev) => setReason(ev.target.value)}
           />
-          <div className="fsl-details__reject-row">
+          <div className="fsl-details__reject-row flex gap-2 pt-1">
             <Button
               variant="danger"
               disabled={!reason.trim()}
               loading={busy}
               onClick={() => run(`/expenses/${e.id}/reject`, { reason: reason.trim() })}
+              className="rounded-full"
             >
               {t('approvals.reject')}
             </Button>
-            <Button variant="ghost" onClick={() => setRejecting(false)}>
+            <Button variant="ghost" onClick={() => setRejecting(false)} className="rounded-full">
               {t('common.cancel')}
             </Button>
           </div>
         </div>
       ) : actions.length > 0 ? (
-        <div className="fsl-details__actions">
+        <div className="fsl-details__actions flex flex-wrap gap-2">
           {actions.map((a) => (
             <Button
               key={a.id}
               variant={a.tone === 'success' ? 'primary' : 'secondary'}
-              className={`fsl-details__action${a.tone === 'danger' ? ' fsl-details__action--danger' : ''}`}
+              className={cn(
+                'fsl-details__action flex-1 min-w-[140px] rounded-full',
+                a.tone === 'danger' && 'fsl-details__action--danger text-danger border-border hover:bg-danger-soft hover:text-danger',
+              )}
               loading={busy}
               onClick={a.onSelect}
             >

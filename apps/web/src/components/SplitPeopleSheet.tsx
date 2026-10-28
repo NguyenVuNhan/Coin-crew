@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { PersonView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Sheet } from './Sheet';
 import { Avatar } from './Avatar';
@@ -10,7 +11,6 @@ import { Icon } from './icons';
 import { formatDay } from '../lib/time';
 import { matchesWordStart } from '../lib/nameSearch';
 import type { RecentGroup } from '../lib/recentGroups';
-import './SplitPeopleSheet.css';
 
 export interface SplitPeopleSheetProps {
   open: boolean;
@@ -110,9 +110,11 @@ export function SplitPeopleSheet({
   return (
     <Sheet open={open} onClose={onClose} title={t('splitSheet.title')} className="fsl-split-sheet">
       {displayedRecent.length > 0 && (
-        <section className="fsl-split-sheet__recent">
-          <h3 className="fsl-split-sheet__section-title">{t('splitSheet.recent')}</h3>
-          <ul className="fsl-split-sheet__recent-list">
+        <section className={cn('fsl-split-sheet__recent', 'mb-4')}>
+          <h3 className={cn('fsl-split-sheet__section-title', 'm-0 mb-2 text-xs leading-4 font-semibold tracking-wider uppercase text-muted-foreground')}>
+            {t('splitSheet.recent')}
+          </h3>
+          <ul className={cn('fsl-split-sheet__recent-list', 'm-0 p-0 list-none flex flex-col gap-2')}>
             {displayedRecent.map((g) => {
               const groupPeople = g.people
                 .map((id) => byId.get(id))
@@ -123,15 +125,23 @@ export function SplitPeopleSheet({
                 (rest > 0 ? ' ' + t('splitSheet.more', { n: rest }) : '');
 
               return (
-                <li key={g.expenseId} className="fsl-split-sheet__recent-row">
-                  <span className="fsl-split-sheet__stack" aria-hidden="true">
+                <li
+                  key={g.expenseId}
+                  className={cn(
+                    'fsl-split-sheet__recent-row',
+                    'flex items-center gap-3 min-h-14 px-3 py-2 border border-border rounded-xl bg-card',
+                  )}
+                >
+                  <span className={cn('fsl-split-sheet__stack', 'flex shrink-0 -space-x-2')} aria-hidden="true">
                     {groupPeople.slice(0, 3).map((p) => (
-                      <Avatar key={p.id} name={p.name} avatarUrl={p.avatarUrl} size="sm" />
+                      <Avatar key={p.id} name={p.name} avatarUrl={p.avatarUrl} size="sm" className="ring-2 ring-card" />
                     ))}
                   </span>
-                  <span className="fsl-split-sheet__recent-text">
-                    <span className="fsl-split-sheet__recent-title">{g.description}</span>
-                    <span className="fsl-split-sheet__recent-meta">
+                  <span className={cn('fsl-split-sheet__recent-text', 'flex flex-col flex-1 min-w-0')}>
+                    <span className={cn('fsl-split-sheet__recent-title', 'text-base leading-normal font-medium text-foreground truncate')}>
+                      {g.description}
+                    </span>
+                    <span className={cn('fsl-split-sheet__recent-meta', 'text-sm leading-5 text-muted-foreground truncate')}>
                       {t('splitSheet.recentMeta', {
                         date: formatDay(g.spentOn),
                         n: g.people.length,
@@ -139,14 +149,15 @@ export function SplitPeopleSheet({
                       })}
                     </span>
                   </span>
-                  <button
+                  <Button
                     type="button"
-                    className="fsl-split-sheet__use"
+                    variant="secondary"
+                    className={cn('fsl-split-sheet__use', 'shrink-0 min-h-11 px-4')}
                     aria-label={t('splitSheet.useAria', { description: g.description })}
                     onClick={() => applyGroup(g)}
                   >
                     {t('splitSheet.use')}
-                  </button>
+                  </Button>
                 </li>
               );
             })}
@@ -154,31 +165,63 @@ export function SplitPeopleSheet({
         </section>
       )}
 
-      <div className="fsl-split-sheet__search">
-        <div className="fsl-split-sheet__toolbar">
-          <span className="fsl-split-sheet__count">{t('splitSheet.count', { n, total })}</span>
-          <span className="fsl-split-sheet__actions">
+      <div className={cn('fsl-split-sheet__search', 'sticky top-[-1rem] z-1 -mx-4 px-4 py-2 bg-card')}>
+        <div className={cn('fsl-split-sheet__toolbar', 'flex items-center justify-between gap-3 min-h-11 mb-2')}>
+          <span className={cn('fsl-split-sheet__count', 'text-sm text-muted-foreground tabular-nums')}>
+            {t('splitSheet.count', { n, total })}
+          </span>
+          <span className={cn('fsl-split-sheet__actions', 'flex gap-1')}>
             {n > 0 && (
-              <button type="button" className="fsl-split-sheet__link" onClick={clearAll}>
+              <button
+                type="button"
+                className={cn(
+                  'fsl-split-sheet__link',
+                  'min-h-11 px-2 border-0 rounded-sm bg-transparent text-primary text-sm font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                )}
+                onClick={clearAll}
+              >
                 {t('splitSheet.clearAll')}
               </button>
             )}
             {n < total && (
-              <button type="button" className="fsl-split-sheet__link" onClick={addEveryone}>
+              <button
+                type="button"
+                className={cn(
+                  'fsl-split-sheet__link',
+                  'min-h-11 px-2 border-0 rounded-sm bg-transparent text-primary text-sm font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                )}
+                onClick={addEveryone}
+              >
                 {t('splitSheet.addEveryone')}
               </button>
             )}
           </span>
         </div>
 
-        <div ref={attachField} className="fsl-split-sheet__field" onClick={() => inputRef.current?.focus()}>
+        <div
+          ref={attachField}
+          className={cn(
+            'fsl-split-sheet__field',
+            'flex flex-wrap items-center gap-2 min-h-12 max-h-[7.5rem] overflow-y-auto p-2 border border-border rounded-xl bg-card cursor-text focus-within:border-primary focus-within:ring-2 focus-within:ring-ring',
+          )}
+          onClick={() => inputRef.current?.focus()}
+        >
           {chips.map((p) => (
-            <span key={p.id} className="fsl-split-sheet__chip">
+            <span
+              key={p.id}
+              className={cn(
+                'fsl-split-sheet__chip',
+                'inline-flex items-center gap-1 max-w-full h-8 pl-1 pr-1 rounded-full bg-secondary text-secondary-foreground text-sm font-medium',
+              )}
+            >
               <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
-              <span className="fsl-split-sheet__chip-name">{shown(p)}</span>
+              <span className={cn('fsl-split-sheet__chip-name', 'truncate')}>{shown(p)}</span>
               <button
                 type="button"
-                className="fsl-split-sheet__chip-remove"
+                className={cn(
+                  'fsl-split-sheet__chip-remove',
+                  'relative inline-flex items-center justify-center shrink-0 size-7 p-0 border-0 rounded-full bg-transparent text-inherit cursor-pointer hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                )}
                 aria-label={t('splitSheet.remove', { name: p.name })}
                 onMouseDown={keepSearchFocus}
                 onClick={() => toggle(p.id, false)}
@@ -190,7 +233,10 @@ export function SplitPeopleSheet({
           <input
             ref={inputRef}
             type="text"
-            className="fsl-split-sheet__input"
+            className={cn(
+              'fsl-split-sheet__input',
+              'flex-1 min-w-24 min-h-8 px-1 border-0 outline-none bg-transparent text-foreground text-base leading-normal placeholder:text-muted-foreground focus-visible:ring-0',
+            )}
             aria-label={t('splitSheet.searchLabel')}
             placeholder={t('splitSheet.searchPlaceholder')}
             value={query}
@@ -201,44 +247,53 @@ export function SplitPeopleSheet({
         </div>
 
         {n === 0 && (
-          <p role="alert" className="fsl-split-sheet__error">
+          <p role="alert" className={cn('fsl-split-sheet__error', 'mt-2 text-sm leading-5 text-danger')}>
             {t('splitError.NO_PARTICIPANTS')}
           </p>
         )}
       </div>
 
-      <p role="status" aria-live="polite" className="fsl-split-sheet__sr-only">
+      <p role="status" aria-live="polite" className={cn('fsl-split-sheet__sr-only', 'sr-only')}>
         {typed ? t('splitSheet.matches', { n: suggestions.length }) : ''}
       </p>
 
       {suggestions.length > 0 ? (
-        <ul className="fsl-split-sheet__suggestions">
+        <ul className={cn('fsl-split-sheet__suggestions', 'mt-2 p-0 list-none divide-y divide-border')}>
           {suggestions.map((p) => (
             <li key={p.id}>
               <button
                 type="button"
-                className="fsl-split-sheet__suggestion"
+                className={cn(
+                  'fsl-split-sheet__suggestion',
+                  'flex items-center gap-3 w-full min-h-12 px-2 py-1 border-0 bg-transparent text-foreground text-left cursor-pointer hover:bg-muted/50 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                )}
                 aria-label={t('splitSheet.add', { name: p.name })}
                 onMouseDown={keepSearchFocus}
                 onClick={() => add(p.id)}
               >
                 <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
-                <span className="fsl-split-sheet__name">{p.name}</span>
+                <span className={cn('fsl-split-sheet__name', 'flex-1 min-w-0 truncate text-foreground font-medium')}>{p.name}</span>
                 {p.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
-                <Icon name="plus" size={18} />
+                <Icon name="plus" size={18} className="text-primary shrink-0" />
               </button>
             </li>
           ))}
         </ul>
       ) : alreadyIn.length > 0 ? (
-        <p className="fsl-split-sheet__empty">{t('splitSheet.alreadyIn', { names: alreadyIn.map(shown).join(', ') })}</p>
+        <p className={cn('fsl-split-sheet__empty', 'mt-3 text-sm leading-5 text-muted-foreground')}>
+          {t('splitSheet.alreadyIn', { names: alreadyIn.map(shown).join(', ') })}
+        </p>
       ) : n === total ? (
-        <p className="fsl-split-sheet__empty">{t('splitSheet.allChosen')}</p>
+        <p className={cn('fsl-split-sheet__empty', 'mt-3 text-sm leading-5 text-muted-foreground')}>
+          {t('splitSheet.allChosen')}
+        </p>
       ) : (
-        <p className="fsl-split-sheet__empty">{t('splitSheet.noMatch', { q: query.trim() })}</p>
+        <p className={cn('fsl-split-sheet__empty', 'mt-3 text-sm leading-5 text-muted-foreground')}>
+          {t('splitSheet.noMatch', { q: query.trim() })}
+        </p>
       )}
 
-      <div className="fsl-split-sheet__footer">
+      <div className={cn('fsl-split-sheet__footer', 'sticky bottom-0 mt-4 pt-2 bg-card')}>
         <Button variant="primary" block onClick={onClose}>
           {t('splitSheet.done')}
         </Button>

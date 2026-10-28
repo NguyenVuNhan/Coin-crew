@@ -13,7 +13,7 @@ import { InlineError } from './InlineError';
 import { Pill, type PillProps } from './Pill';
 import { Icon, type IconName } from './icons';
 import { MergeSheet } from './MergeSheet';
-import './LinkedAccounts.css';
+import { cn } from '@/lib/utils';
 
 export interface LinkedAccountsProps {
   me: MeResponse;
@@ -75,13 +75,15 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
   };
 
   return (
-    <section className="fsl-linked" aria-labelledby={headingId}>
-      <h3 id={headingId} className="fsl-linked__title">
+    <section className="fsl-linked flex flex-col" aria-labelledby={headingId}>
+      <h3 id={headingId} className="fsl-linked__title text-xs font-semibold text-muted-foreground m-0">
         {t('account.methods')}
       </h3>
-      <p className="fsl-linked__hint-text">{t('account.methodsHint')}</p>
+      <p className="fsl-linked__hint-text text-xs text-subtle-foreground mt-0.5 mb-2">
+        {t('account.methodsHint')}
+      </p>
 
-      <ul className="fsl-linked__list">
+      <ul className="fsl-linked__list m-0 p-0 list-none flex flex-col bg-card rounded-xl border border-border divide-y divide-border overflow-hidden">
         {providerList.map((p) => {
           const isLinked = userProviders.includes(p);
           const mergeRequest = me.mergeRequests?.outgoing?.find((r) => r.provider === p);
@@ -122,19 +124,19 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
               <li
                 key={p}
                 data-testid={testId}
-                className="fsl-linked__card fsl-linked__card--chip"
+                className="fsl-linked__card fsl-linked__card--chip p-0"
               >
                 <button
                   type="button"
-                  className="fsl-linked__chip-btn"
+                  className="fsl-linked__chip-btn flex items-center gap-3 w-full min-h-12 px-4 py-3 bg-transparent hover:bg-muted text-left cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setSelectedMergeRequest(mergeRequest)}
                   aria-label={rowLabel}
                 >
-                  <ProviderLogo provider={p} size={32} muted={mergeLogoMuted} />
-                  <span className="fsl-linked__info">
-                    <span className="fsl-linked__header-row">
-                      <span className="fsl-linked__provider">{pName}</span>
-                      <span className="fsl-linked__status">
+                  <ProviderLogo provider={p} size={32} muted={mergeLogoMuted} className="rounded-md border border-border shrink-0" />
+                  <span className="fsl-linked__info flex flex-col min-w-0 flex-1 gap-0.5">
+                    <span className="fsl-linked__header-row flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="fsl-linked__provider text-sm font-semibold text-foreground">{pName}</span>
+                      <span className="fsl-linked__status inline-flex items-center">
                         <Pill tone={pillTone}>
                           <Icon name={pillIcon} size={12} />
                           <span>{chipText}</span>
@@ -142,12 +144,12 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                       </span>
                     </span>
                     {otherName ? (
-                      <span className="fsl-linked__identity" title={otherName}>
+                      <span className="fsl-linked__identity text-xs text-muted-foreground truncate min-w-0" title={otherName}>
                         {otherName}
                       </span>
                     ) : null}
                   </span>
-                  <span className="fsl-linked__chevron" aria-hidden="true">
+                  <span className="fsl-linked__chevron flex items-center justify-center text-muted-foreground shrink-0" aria-hidden="true">
                     <Icon name="chevronRight" size={18} />
                   </span>
                 </button>
@@ -170,64 +172,66 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
           const isWhyOpen = whyLinkOpen === p;
 
           return (
-            <li key={p} data-testid={testId} className="fsl-linked__card">
-              <ProviderLogo provider={p} size={32} muted={!isLinked} />
-              <div className="fsl-linked__info">
-                <div className="fsl-linked__header-row">
-                  <span className="fsl-linked__provider">{pName}</span>
+            <li key={p} data-testid={testId} className="fsl-linked__card flex items-center gap-3 px-4 py-3 min-h-12">
+              <ProviderLogo provider={p} size={32} muted={!isLinked} className="rounded-md border border-border shrink-0" />
+              <div className="fsl-linked__info flex flex-col min-w-0 flex-1 gap-0.5">
+                <div className="fsl-linked__header-row flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="fsl-linked__provider text-sm font-semibold text-foreground">{pName}</span>
                   <div
-                    className={`fsl-linked__status fsl-linked__status--${
-                      isLinked ? 'linked' : 'unlinked'
-                    }`}
+                    className={cn(
+                      'fsl-linked__status inline-flex items-center gap-1.5',
+                      isLinked ? 'fsl-linked__status--linked' : 'fsl-linked__status--unlinked',
+                    )}
                   >
-                    {isLinked ? (
-                      <>
-                        <Icon name="circleCheck" size={14} />
-                        <span>{t('account.linked')}</span>
-                      </>
-                    ) : (
-                      <>
+                    <Pill tone={isLinked ? 'success' : 'neutral'}>
+                      {isLinked ? (
+                        <>
+                          <Icon name="circleCheck" size={12} />
+                          <span>{t('account.linked')}</span>
+                        </>
+                      ) : (
                         <span>{t('account.notLinked')}</span>
-                        {showWhyLink && (
-                          <button
-                            type="button"
-                            className="fsl-linked__why-btn"
-                            aria-expanded={isWhyOpen}
-                            aria-label={t('account.whyLink')}
-                            onClick={() => setWhyLinkOpen(isWhyOpen ? null : p)}
-                          >
-                            <Icon name="info" size={14} />
-                          </button>
-                        )}
-                      </>
+                      )}
+                    </Pill>
+                    {showWhyLink && (
+                      <button
+                        type="button"
+                        className="fsl-linked__why-btn inline-flex items-center justify-center size-6 text-muted-foreground hover:text-foreground rounded-sm cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-expanded={isWhyOpen}
+                        aria-label={t('account.whyLink')}
+                        onClick={() => setWhyLinkOpen(isWhyOpen ? null : p)}
+                      >
+                        <Icon name="info" size={14} />
+                      </button>
                     )}
                   </div>
                 </div>
                 {hasIdentity && (
                   <span
-                    className={`fsl-linked__identity${
-                      isGoogleInZalo ? ' fsl-linked__identity--multiline' : ''
-                    }`}
+                    className={cn(
+                      'fsl-linked__identity text-xs text-muted-foreground truncate min-w-0',
+                      isGoogleInZalo && 'fsl-linked__identity--multiline whitespace-normal line-clamp-2',
+                    )}
                     title={identityText!}
                   >
                     {identityText}
                   </span>
                 )}
                 {isWhyOpen && (
-                  <p className="fsl-linked__why-text">
+                  <p className="fsl-linked__why-text text-xs text-muted-foreground m-0 mt-1">
                     {p === 'google'
                       ? t('account.backupNudgeZalo')
                       : t('account.backupNudgeGoogle')}
                   </p>
                 )}
               </div>
-              <div className="fsl-linked__actions">
+              <div className="fsl-linked__actions flex items-center justify-end gap-2 shrink-0 empty:hidden">
                 {isLinked ? (
                   <>
                     {!isGoogleInZalo && (
                       <Button
                         variant="secondary"
-                        className="fsl-linked__icon-btn"
+                        className="fsl-linked__icon-btn size-9 min-w-9 min-h-9 p-0 rounded-full"
                         href={signInHref(p, returnTo, 'link')}
                         aria-label={t('account.change')}
                         title={t('account.change')}
@@ -238,7 +242,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     {userProviders.length > 1 && (
                       <Button
                         variant="danger"
-                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink"
+                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink size-9 min-w-9 min-h-9 p-0 rounded-full text-danger border-border hover:bg-danger-soft hover:text-danger"
                         onClick={() => startUnlink(p)}
                         aria-label={t('account.unlink')}
                         title={t('account.unlink')}
@@ -251,7 +255,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                   !isGoogleInZalo && (
                     <Button
                       variant="primary"
-                      className="fsl-linked__icon-btn"
+                      className="fsl-linked__icon-btn size-9 min-w-9 min-h-9 p-0 rounded-full"
                       href={signInHref(p, returnTo, 'link')}
                       aria-label={t('account.link')}
                       title={t('account.link')}
@@ -267,7 +271,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
       </ul>
 
       {error !== null && (
-        <InlineError error={error} className="fsl-linked__error" />
+        <InlineError error={error} className="fsl-linked__error mt-2" />
       )}
 
       {liveMergeRequest && (
@@ -294,12 +298,13 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
         }}
         className="fsl-linked__sheet"
       >
-        <div className="fsl-linked__sheet-actions">
+        <div className="fsl-linked__sheet-actions flex flex-col gap-2 pt-2">
           <Button
             variant="danger"
             block
             loading={unlinking}
             onClick={handleUnlink}
+            className="rounded-full"
           >
             {t('account.unlink')}
           </Button>
@@ -308,6 +313,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
             block
             disabled={unlinking}
             onClick={() => setConfirming(null)}
+            className="rounded-full"
           >
             {t('merge.cancel')}
           </Button>
