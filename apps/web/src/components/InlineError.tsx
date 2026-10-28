@@ -1,6 +1,7 @@
 import { useT } from '../i18n';
 import { Button } from './Button';
-import './InlineError.css';
+import { Alert } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 export interface InlineErrorProps {
   error: unknown;
@@ -49,13 +50,17 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
   }
 
   return (
-    <div className={`fsl-inline-error ${className}`.trim()} role="alert">
+    <Alert
+      variant="destructive"
+      role="alert"
+      className={cn('fsl-inline-error', 'border-transparent bg-danger-soft text-danger', className)}
+    >
       <div className="fsl-inline-error__message">{message}</div>
       {showRetry && onRetry && (
-        <Button variant="secondary" onClick={onRetry}>
+        <Button variant="secondary" onClick={onRetry} className="mt-2">
           {t('common.retry')}
         </Button>
       )}
-    </div>
+    </Alert>
   );
 }

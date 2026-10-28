@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { PersonView } from '@fsl/core';
 import { useT } from '../i18n';
@@ -99,6 +99,12 @@ export function SplitPeopleSheet({
     if (field) field.scrollTop = field.scrollHeight;
   }, [open, chipKey]);
 
+  // The sheet's content mounts a render after `open` turns true (Radix portal), so also scroll when the field attaches.
+  const attachField = useCallback((field: HTMLDivElement | null) => {
+    fieldRef.current = field;
+    if (field) field.scrollTop = field.scrollHeight;
+  }, []);
+
   const displayedRecent = recent.slice(0, 3);
 
   return (
@@ -165,7 +171,7 @@ export function SplitPeopleSheet({
           </span>
         </div>
 
-        <div ref={fieldRef} className="fsl-split-sheet__field" onClick={() => inputRef.current?.focus()}>
+        <div ref={attachField} className="fsl-split-sheet__field" onClick={() => inputRef.current?.focus()}>
           {chips.map((p) => (
             <span key={p.id} className="fsl-split-sheet__chip">
               <Avatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />

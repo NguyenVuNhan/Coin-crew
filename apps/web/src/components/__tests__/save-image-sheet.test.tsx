@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
 import { copyText } from '../../lib/clipboard';
@@ -167,7 +167,11 @@ describe('useImageSheet', () => {
 
     renderAt(<Harness render={renderFirst} renderSecond={renderSecond} />);
     await userEvent.click(screen.getByRole('button', { name: 'open' }));
-    await userEvent.click(screen.getByRole('button', { name: 'open second' }));
+    // The open sheet makes the page behind it inert (Radix); the harness's second trigger stands in for a second caller.
+    // A plain click event (no pointerdown, which the sheet would take as a tap outside to close it).
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'open second', hidden: true }));
+    });
 
     await act(async () => {
       resolveSecond(new Blob(['second'], { type: 'image/png' }));
