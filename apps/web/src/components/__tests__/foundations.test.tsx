@@ -130,7 +130,11 @@ describe('media hooks', () => {
 describe('design tokens', () => {
   it('fields use the 16px input token', () => {
     // Vitest turns CSS imports (even ?raw) into empty strings, so read the file itself.
-    const baseCss = readFileSync(resolve(import.meta.dirname, '../../styles/base.css'), 'utf8');
-    expect(baseCss).toMatch(/input,\s*select,\s*textarea\s*\{[^}]*var\(--text-input\)/);
+    const globalsCss = readFileSync(resolve(import.meta.dirname, '../../styles/globals.css'), 'utf8');
+    expect(globalsCss).toMatch(/input,\s*select,\s*textarea\s*\{[^}]*font-size:\s*max\(16px/);
+    // shadcn's fields must not shrink below 16px on wider screens either.
+    for (const file of ['input.tsx', 'textarea.tsx']) {
+      expect(readFileSync(resolve(import.meta.dirname, '../ui', file), 'utf8')).not.toMatch(/md:text-sm/);
+    }
   });
 });

@@ -110,4 +110,10 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  /* Text fields, dropdowns and text areas: under 16px makes iOS zoom in on focus. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
 }
