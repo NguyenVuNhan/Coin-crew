@@ -12,6 +12,8 @@ import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
 import { MyBankRow } from '../components/MyBankRow';
 import { buttonVariants } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export function BankDetails() {
@@ -166,16 +168,13 @@ export function BankDetails() {
             <BankFields value={value} onChange={setValue} />
 
             <div className={cn('fsl-bank-details__consent-row flex items-center gap-2 min-h-11 text-sm leading-snug text-foreground select-none')}>
-              <input
+              <Checkbox
                 id="fsl-bank-consent"
-                type="checkbox"
                 checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className={cn(
-                  'fsl-bank-details__checkbox size-5 shrink-0 cursor-pointer accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                )}
+                onCheckedChange={(v) => setConsent(v === true)}
+                className="fsl-bank-details__checkbox"
               />
-              <label htmlFor="fsl-bank-consent" className={cn('fsl-bank-details__consent-label flex-1 block py-3 cursor-pointer')}>
+              <Label htmlFor="fsl-bank-consent" className={cn('fsl-bank-details__consent-label flex-1 block font-normal leading-snug py-3 cursor-pointer')}>
                 {beforeLink}
                 <Link
                   to="/privacy"
@@ -186,7 +185,7 @@ export function BankDetails() {
                   {t('bankForm.privacyLink')}
                 </Link>
                 {afterLink}
-              </label>
+              </Label>
             </div>
           </form>
         )}

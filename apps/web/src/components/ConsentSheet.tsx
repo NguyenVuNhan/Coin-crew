@@ -7,6 +7,8 @@ import { useMe } from '../api/hooks';
 import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';
 import { Button } from './Button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 export function ConsentSheet() {
   const t = useT();
@@ -41,16 +43,20 @@ export function ConsentSheet() {
             {t('consent.readNotice')}
           </Link>
         </div>
-        <label htmlFor="consent-agree-checkbox" className={cn('fsl-consent-sheet__checkbox-label flex items-center gap-3 min-h-11 text-base text-foreground cursor-pointer select-none')}>
-          <input
+        <Label
+          htmlFor="consent-agree-checkbox"
+          className={cn(
+            'fsl-consent-sheet__checkbox-label flex items-center gap-3 font-normal leading-snug min-h-11 text-base text-foreground cursor-pointer select-none',
+          )}
+        >
+          <Checkbox
             id="consent-agree-checkbox"
-            type="checkbox"
             checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className={cn('fsl-consent-sheet__checkbox size-5 accent-primary cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+            onCheckedChange={(v) => setAgreed(v === true)}
+            className={cn('fsl-consent-sheet__checkbox cursor-pointer')}
           />
           <span>{t('consent.agree')}</span>
-        </label>
+        </Label>
         <Button
           variant="primary"
           block

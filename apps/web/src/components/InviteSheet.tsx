@@ -8,6 +8,7 @@ import { Button } from './Button';
 import { Sheet } from './Sheet';
 import { Icon } from './icons';
 import { InlineError } from './InlineError';
+import { Input } from '@/components/ui/input';
 
 function useLinkActions(view: TripView, url: string) {
   const t = useT();
@@ -89,8 +90,8 @@ function LinkBlock({
       </legend>
       <div className={cn('fsl-invite__body flex flex-col gap-3 bg-muted rounded-xl p-4')}>
         <p className={cn('fsl-invite__hint m-0 text-sm text-muted-foreground')}>{hint}</p>
-        <input
-          className={cn('fsl-invite__input box-border w-full min-w-0 min-h-11 px-3 bg-card border border-border rounded-lg text-base text-foreground truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+        <Input
+          className={cn('fsl-invite__input truncate')}
           aria-labelledby={legendId}
           readOnly
           value={url}
@@ -167,8 +168,8 @@ export function InviteCard({ view }: { view: TripView }) {
     <section className={cn('fsl-invite-card bg-card rounded-xl p-5 border border-border flex flex-col gap-3')} aria-labelledby={titleId}>
       <h2 id={titleId} className={cn('fsl-invite-card__title m-0 text-base font-semibold text-foreground')}>{t('invite.cardTitle')}</h2>
       <p className={cn('fsl-invite-card__body m-0 -mt-1 text-sm text-muted-foreground')}>{t('invite.cardBody')}</p>
-      <input
-        className={cn('fsl-invite__input box-border w-full min-w-0 min-h-11 px-3 bg-muted border border-border rounded-lg text-base text-foreground truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+      <Input
+        className={cn('fsl-invite__input bg-muted truncate')}
         aria-label={t('share.groupLink')}
         readOnly
         value={url}

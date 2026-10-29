@@ -22,6 +22,8 @@ import { useImageSheet } from './SaveImageSheet';
 import { sportShareText, expenseLink } from '../lib/remind';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const STATUS: Record<ExpenseView['status'], { tone: PillProps['tone']; label: MessageKey }> = {
   approved: { tone: 'success', label: 'status.approved' },
@@ -417,10 +419,10 @@ export function ExpenseDetails({
 
       {showReason ? (
         <div className="fsl-details__reject flex flex-col gap-2 bg-card p-4 rounded-xl border border-border">
-          <label htmlFor={reasonId} className="text-sm font-medium text-muted-foreground">{t('approvals.rejectReason')}</label>
-          <input
+          <Label htmlFor={reasonId} className="text-muted-foreground">{t('approvals.rejectReason')}</Label>
+          <Input
             id={reasonId}
-            className="fsl-details__input w-full min-h-11 px-3 py-2 text-base text-foreground bg-background border border-input rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="fsl-details__input bg-background"
             value={reason}
             maxLength={140}
             onChange={(ev) => setReason(ev.target.value)}

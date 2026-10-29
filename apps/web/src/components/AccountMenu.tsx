@@ -16,6 +16,8 @@ import { Icon } from './icons';
 import { AvatarCropModal } from './AvatarCropModal';
 import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export type AccountMenuUser = {
   name: string;
@@ -242,13 +244,13 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
 
       <div className="fsl-account-menu__profile-form flex flex-col gap-3 m-0 p-3 bg-muted rounded-xl">
         <div className="fsl-form-group flex flex-col gap-1.5">
-          <label htmlFor="fsl-account-name-input" className="fsl-form-label text-sm font-medium text-foreground">
+          <Label htmlFor="fsl-account-name-input" className="fsl-form-label text-foreground">
             {t('account.displayName')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="fsl-account-name-input"
             type="text"
-            className="fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 py-1 text-base text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+            className="fsl-input"
             aria-label={t('account.displayName')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}

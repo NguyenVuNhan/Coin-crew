@@ -8,6 +8,8 @@ import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expenseId: string; switching?: boolean }) {
   const t = useT();
@@ -49,10 +51,10 @@ function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expen
       </button>
       {rejecting && (
         <div className="fsl-approval__form flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
-          <label htmlFor={reasonId}>{t('approvals.rejectReason')}</label>
-          <input
+          <Label htmlFor={reasonId} className="text-muted-foreground">{t('approvals.rejectReason')}</Label>
+          <Input
             id={reasonId}
-            className="fsl-approval__input min-h-11 rounded-xl border border-input bg-card px-3 text-base text-foreground tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="fsl-approval__input tabular-nums"
             value={reason}
             maxLength={140}
             onChange={(ev) => setReason(ev.target.value)}
@@ -201,10 +203,10 @@ function PaymentApproval({
       </button>
       {showAmount && (
         <div className="fsl-approval__form flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
-          <label htmlFor={inputId}>{t('approvals.amountReceived')}</label>
-          <input
+          <Label htmlFor={inputId} className="text-muted-foreground">{t('approvals.amountReceived')}</Label>
+          <Input
             id={inputId}
-            className="fsl-approval__input min-h-11 rounded-xl border border-input bg-card px-3 text-base text-foreground tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="fsl-approval__input tabular-nums"
             inputMode="decimal"
             aria-describedby={`${inputId}-preview`}
             value={received}

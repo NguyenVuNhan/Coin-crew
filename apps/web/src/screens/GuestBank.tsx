@@ -11,6 +11,8 @@ import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
 import { buttonVariants } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 type Mode = 'show' | 'form' | 'saved' | 'deleted';
@@ -207,16 +209,15 @@ export function GuestBank(): JSX.Element | null {
             <p className="fsl-bank-details__note m-0 text-sm text-muted-foreground">{t('guestBank.note', { name: person.name })}</p>
             <BankFields value={value} onChange={setValue} />
             <div className="fsl-bank-details__consent-row flex items-center gap-2 min-h-11 text-sm text-foreground select-none">
-              <input
+              <Checkbox
                 id="fsl-bank-consent"
-                type="checkbox"
                 checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="fsl-bank-details__checkbox size-5 accent-primary cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onCheckedChange={(v) => setConsent(v === true)}
+                className="fsl-bank-details__checkbox"
               />
-              <label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label flex-1 block py-3 cursor-pointer">
+              <Label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label flex-1 block font-normal leading-snug py-3 cursor-pointer">
                 {beforeLink}<Link to="/privacy" className="fsl-bank-details__privacy-link text-primary underline underline-offset-[3px] font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">{t('bankForm.privacyLink')}</Link>{afterLink}
-              </label>
+              </Label>
             </div>
           </form>
         )}

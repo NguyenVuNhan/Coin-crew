@@ -9,6 +9,8 @@ import { fromEntryValue } from '../lib/splitInput';
 import { Screen } from './Screen';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function getTodayLocalDate(): string {
   const now = new Date();
@@ -118,16 +120,14 @@ export function IncomeForm({
         {switcher}
 
         <div className={cn('fsl-field flex flex-col gap-1.5')}>
-          <label htmlFor="income-amount" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+          <Label htmlFor="income-amount" className={cn('fsl-field-label text-foreground')}>
             {t('expenseForm.amount')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="income-amount"
             type="text"
             inputMode="decimal"
-            className={cn(
-              'fsl-input fsl-input--amount h-11 w-full rounded-xl border border-input bg-card px-3 text-base font-semibold tabular-nums text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-            )}
+            className={cn('fsl-input fsl-input--amount font-semibold tabular-nums')}
             value={amountText}
             onChange={(e) => setAmountText(e.target.value)}
             aria-describedby={isAmountInvalid ? 'income-amount-error' : 'income-amount-hint'}
@@ -154,32 +154,28 @@ export function IncomeForm({
         </div>
 
         <div className={cn('fsl-field flex flex-col gap-1.5')}>
-          <label htmlFor="income-date" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+          <Label htmlFor="income-date" className={cn('fsl-field-label text-foreground')}>
             {t('expenseForm.date')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="income-date"
             type="date"
-            className={cn(
-              'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-            )}
+            className={cn('fsl-input')}
             value={spentOn}
             onChange={(e) => setSpentOn(e.target.value)}
           />
         </div>
 
         <div className={cn('fsl-field flex flex-col gap-1.5')}>
-          <label htmlFor="income-note" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+          <Label htmlFor="income-note" className={cn('fsl-field-label text-foreground')}>
             {t('fund.note')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="income-note"
             type="text"
             maxLength={80}
             placeholder={t('fund.notePlaceholder')}
-            className={cn(
-              'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-            )}
+            className={cn('fsl-input')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />

@@ -35,6 +35,9 @@ import { Pill } from '../components/Pill';
 import { InlineError } from '../components/InlineError';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { Icon } from '../components/icons';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { cn } from '@/lib/utils';
 
 function getTodayLocalDate(): string {
@@ -696,15 +699,13 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         {switcher}
 
         <div className={cn('fsl-field flex flex-col gap-1.5')}>
-          <label htmlFor="expense-what-for" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+          <Label htmlFor="expense-what-for" className={cn('fsl-field-label text-foreground')}>
             {t('expenseForm.whatFor')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="expense-what-for"
             type="text"
-            className={cn(
-              'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-            )}
+            className="fsl-input"
             placeholder={sportShown ? t('sport.whatForPlaceholder') : t('expenseForm.whatForPlaceholder')}
             maxLength={80}
             value={description}
@@ -717,16 +718,14 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
             <h3 className={cn('fsl-sport-costs-title m-0 text-base font-semibold text-foreground')}>{t('sport.costsTitle')}</h3>
 
             <div className={cn('fsl-field flex flex-col gap-1.5')}>
-              <label htmlFor="sport-court" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+              <Label htmlFor="sport-court" className={cn('fsl-field-label text-foreground')}>
                 {t('sport.court')}
-              </label>
-              <input
+              </Label>
+              <Input
                 id="sport-court"
                 type="text"
                 inputMode="decimal"
-                className={cn(
-                  'fsl-input fsl-input--amount h-11 w-full rounded-xl border border-input bg-card px-3 text-base font-semibold tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                )}
+                className="fsl-input fsl-input--amount font-semibold tabular-nums"
                 placeholder="0"
                 value={courtText}
                 onChange={(e) => setCourtText(e.target.value)}
@@ -748,13 +747,11 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                   return (
                     <div key={idx} className={cn('fsl-shuttle-row flex items-center gap-2')}>
-                      <input
+                      <Input
                         type="number"
                         min={0}
                         max={100}
-                        className={cn(
-                          'fsl-input fsl-input--qty h-11 w-16 text-center rounded-xl border border-input bg-card px-2 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                        )}
+                        className="fsl-input fsl-input--qty w-16 px-2 text-center"
                         aria-label={t('sport.qty')}
                         placeholder="1"
                         value={row.qty}
@@ -766,12 +763,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                         }}
                       />
                       <span className={cn('fsl-shuttle-times text-base text-muted-foreground select-none')} aria-hidden="true">×</span>
-                      <input
+                      <Input
                         type="text"
                         inputMode="decimal"
-                        className={cn(
-                          'fsl-input fsl-input--unit-price h-11 flex-1 min-w-0 rounded-xl border border-input bg-card px-3 text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                        )}
+                        className="fsl-input fsl-input--unit-price flex-1 tabular-nums"
                         aria-label={t('sport.unitPrice')}
                         placeholder="26.67k"
                         value={row.unitPrice}
@@ -805,17 +800,15 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
             {showExtra && (
               <div className={cn('fsl-field flex flex-col gap-1.5')}>
-                <label htmlFor="sport-extra" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+                <Label htmlFor="sport-extra" className={cn('fsl-field-label text-foreground')}>
                   {t('sport.extra')}
-                </label>
+                </Label>
                 <div className={cn('fsl-extra-row flex items-center gap-2')}>
-                  <input
+                  <Input
                     id="sport-extra"
                     type="text"
                     inputMode="decimal"
-                    className={cn(
-                      'fsl-input h-11 flex-1 min-w-0 rounded-xl border border-input bg-card px-3 text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                    )}
+                    className="fsl-input flex-1 tabular-nums"
                     aria-label={t('sport.extra')}
                     placeholder="0"
                     value={extraText}
@@ -886,16 +879,14 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
           </div>
         ) : (
           <div className={cn('fsl-field flex flex-col gap-1.5')}>
-            <label htmlFor="expense-amount" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+            <Label htmlFor="expense-amount" className={cn('fsl-field-label text-foreground')}>
               {t('expenseForm.amount')}
-            </label>
-            <input
+            </Label>
+            <Input
               id="expense-amount"
               type="text"
               inputMode="decimal"
-              className={cn(
-                'fsl-input fsl-input--amount h-11 w-full rounded-xl border border-input bg-card px-3 text-base font-semibold tabular-nums text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-              )}
+              className="fsl-input fsl-input--amount font-semibold tabular-nums"
               value={amountText}
               onChange={(e) => setAmountText(e.target.value)}
               aria-describedby={isAmountInvalid ? 'expense-amount-error' : 'expense-amount-hint'}
@@ -920,29 +911,25 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         {/* "Group fund · 500.000₫" is too long for half the row on a phone: paid from the fund, Paid by gets the full width. */}
         <div className={cn('fsl-expense-form__row grid gap-3', fromFund ? 'fsl-expense-form__row--stack grid-cols-1' : 'grid-cols-2')}>
           <div className={cn('fsl-field min-w-0 flex flex-col gap-1.5')}>
-            <label htmlFor="expense-date" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+            <Label htmlFor="expense-date" className={cn('fsl-field-label text-foreground')}>
               {t('expenseForm.date')}
-            </label>
-            <input
+            </Label>
+            <Input
               id="expense-date"
               type="date"
-              className={cn(
-                'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-              )}
+              className="fsl-input"
               value={spentOn}
               onChange={(e) => setSpentOn(e.target.value)}
             />
           </div>
 
           <div className={cn('fsl-field min-w-0 flex flex-col gap-1.5')}>
-            <label htmlFor="expense-paid-by" className={cn('fsl-field-label text-sm font-medium text-foreground')}>
+            <Label htmlFor="expense-paid-by" className={cn('fsl-field-label text-foreground')}>
               {t('expenseForm.paidBy')}
-            </label>
-            <select
+            </Label>
+            <NativeSelect
               id="expense-paid-by"
-              className={cn(
-                'fsl-select h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-              )}
+              className="fsl-select"
               value={payer}
               onChange={(e) => {
                 const next = e.target.value;
@@ -954,21 +941,21 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
               }}
             >
               {payer === '' && (
-                <option value="" disabled>
+                <NativeSelectOption value="" disabled>
                   {t('expenseForm.choosePayer')}
-                </option>
+                </NativeSelectOption>
               )}
               {offerFund && (
-                <option value={FUND_PAYER}>{t('fund.payerOption', { amount: formatVnd(available) })}</option>
+                <NativeSelectOption value={FUND_PAYER}>{t('fund.payerOption', { amount: formatVnd(available) })}</NativeSelectOption>
               )}
               {formPeople.map((person) => (
-                <option key={person.id} value={person.id}>
+                <NativeSelectOption key={person.id} value={person.id}>
                   {person.id === me
                     ? t('expenseForm.me', { name: person.name })
                     : person.name}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         </div>
 
@@ -1048,17 +1035,15 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                   {ruleKind === 'discount' && (
                     <div className={cn('fsl-sport-rule-input-row flex items-center gap-2 mt-1')}>
                       <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-warning-foreground shrink-0')} />
-                      <label htmlFor="sport-female-discount" className={cn('fsl-sport-rule-label text-sm text-foreground')}>
+                      <Label htmlFor="sport-female-discount" className={cn('fsl-sport-rule-label text-foreground')}>
                         {t('sport.femaleDiscountLabel')}
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         id="sport-female-discount"
                         type="text"
                         inputMode="decimal"
                         placeholder="15k"
-                        className={cn(
-                          'fsl-input fsl-input--discount h-11 w-[120px] rounded-xl border border-input bg-card px-3 text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                        )}
+                        className="fsl-input fsl-input--discount w-[120px] tabular-nums"
                         value={discountText}
                         onChange={(e) => setDiscountText(e.target.value)}
                       />
@@ -1068,25 +1053,21 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                   {ruleKind === 'ratio' && (
                     <div className={cn('fsl-sport-rule-input-row flex items-center gap-2 mt-1')}>
                       <Icon name="mars" size={16} className={cn('fsl-sport-rule-icon--male text-primary shrink-0')} />
-                      <input
+                      <Input
                         type="text"
                         inputMode="decimal"
                         aria-label={t('sport.maleWeightLabel')}
-                        className={cn(
-                          'fsl-input fsl-input--ratio h-11 w-20 text-center rounded-xl border border-input bg-card px-2 text-base tabular-nums text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                        )}
+                        className="fsl-input fsl-input--ratio w-20 px-2 text-center tabular-nums"
                         value={maleWeightText}
                         onChange={(e) => setMaleWeightText(e.target.value)}
                       />
                       <span aria-hidden="true">:</span>
                       <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-warning-foreground shrink-0')} />
-                      <input
+                      <Input
                         type="text"
                         inputMode="decimal"
                         aria-label={t('sport.femaleWeightLabel')}
-                        className={cn(
-                          'fsl-input fsl-input--ratio h-11 w-20 text-center rounded-xl border border-input bg-card px-2 text-base tabular-nums text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                        )}
+                        className="fsl-input fsl-input--ratio w-20 px-2 text-center tabular-nums"
                         value={femaleWeightText}
                         onChange={(e) => setFemaleWeightText(e.target.value)}
                       />
@@ -1323,19 +1304,17 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                             </div>
 
                             <div className={cn('fsl-sport-drawer__fixed-section flex flex-col gap-1')}>
-                              <label htmlFor={`sport-fixed-${person.id}`} className={cn('fsl-sport-drawer__subtitle block text-xs font-semibold text-muted-foreground mb-1')}>
+                              <Label htmlFor={`sport-fixed-${person.id}`} className={cn('fsl-sport-drawer__subtitle block text-xs font-semibold text-muted-foreground mb-1')}>
                                 {t('sport.orFixedAmount', { name: person.name })}
-                              </label>
+                              </Label>
                               <div className={cn('fsl-sport-drawer__fixed-row flex items-center gap-2')}>
-                                <input
+                                <Input
                                   id={`sport-fixed-${person.id}`}
                                   type="text"
                                   inputMode="decimal"
                                   aria-label={t('sport.orFixedAmount', { name: person.name })}
                                   placeholder={t('sport.fixedFor', { name: person.name })}
-                                  className={cn(
-                                    'fsl-input fsl-input--fixed h-11 flex-1 min-w-0 rounded-xl border border-input bg-card px-3 text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                                  )}
+                                  className="fsl-input fsl-input--fixed flex-1 tabular-nums"
                                   value={guest.fixedText}
                                   onChange={(e) => {
                                     const val = e.target.value;
@@ -1387,12 +1366,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                       {mode === 'adjust' && (
                         <div className={cn('fsl-split-row__control flex flex-col items-end gap-1')}>
-                          <input
+                          <Input
                             type="text"
                             inputMode="decimal"
-                            className={cn(
-                              'fsl-input fsl-split-row__input h-11 w-24 rounded-xl border border-input bg-card px-2 py-1 text-right text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                            )}
+                            className="fsl-input fsl-split-row__input w-24 px-2 text-right tabular-nums"
                             aria-label={t('expenseForm.adjustFor', { name: person.name })}
                             value={adjustInputs[person.id] ?? ''}
                             placeholder={placeholderFor(person.id)}
@@ -1413,12 +1390,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                       {mode === 'amounts' && (
                         <div className={cn('fsl-split-row__control flex flex-col items-end gap-1')}>
-                          <input
+                          <Input
                             type="text"
                             inputMode="decimal"
-                            className={cn(
-                              'fsl-input fsl-split-row__input h-11 w-24 rounded-xl border border-input bg-card px-2 py-1 text-right text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                            )}
+                            className="fsl-input fsl-split-row__input w-24 px-2 text-right tabular-nums"
                             aria-label={t('expenseForm.amountFor', { name: person.name })}
                             value={amountsInputs[person.id] ?? ''}
                             placeholder={placeholderFor(person.id)}
@@ -1439,12 +1414,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                       {mode === 'percent' && (
                         <div className={cn('fsl-split-row__control flex flex-col items-end gap-1')}>
-                          <input
+                          <Input
                             type="text"
                             inputMode="decimal"
-                            className={cn(
-                              'fsl-input fsl-split-row__input h-11 w-24 rounded-xl border border-input bg-card px-2 py-1 text-right text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                            )}
+                            className="fsl-input fsl-split-row__input w-24 px-2 text-right tabular-nums"
                             aria-label={t('expenseForm.percentFor', { name: person.name })}
                             value={percentInputs[person.id] ?? ''}
                             placeholder={placeholderFor(person.id)}
@@ -1465,12 +1438,10 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                       {mode === 'shares' && (
                         <div className={cn('fsl-split-row__control flex flex-col items-end gap-1')}>
-                          <input
+                          <Input
                             type="text"
                             inputMode="decimal"
-                            className={cn(
-                              'fsl-input fsl-split-row__input h-11 w-24 rounded-xl border border-input bg-card px-2 py-1 text-right text-base tabular-nums text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                            )}
+                            className="fsl-input fsl-split-row__input w-24 px-2 text-right tabular-nums"
                             aria-label={t('expenseForm.sharesFor', { name: person.name })}
                             value={sharesInputs[person.id] ?? ''}
                             placeholder={placeholderFor(person.id)}

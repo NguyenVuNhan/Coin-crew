@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 import { useT } from '../i18n';
 import { Modal } from './Modal';
 import { Button } from './Button';
@@ -174,9 +175,12 @@ export function AvatarCropModal({
         </div>
 
         <div className={cn('fsl-crop__controls', 'w-full flex items-center gap-3')}>
-          <label className={cn('fsl-crop__zoom-label', 'text-sm text-muted-foreground shrink-0 font-medium')} htmlFor="fsl-crop-zoom">
+          <Label
+            htmlFor="fsl-crop-zoom"
+            className={cn('fsl-crop__zoom-label', 'shrink-0 text-muted-foreground')}
+          >
             {t('account.zoom')}
-          </label>
+          </Label>
           <input
             id="fsl-crop-zoom"
             type="range"

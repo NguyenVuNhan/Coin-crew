@@ -9,6 +9,7 @@ import { useRecentPeople } from '../api/recentPeople';
 import { Button } from './Button';
 import { Avatar } from './Avatar';
 import { GenderToggle } from './GenderToggle';
+import { Input } from '@/components/ui/input';
 
 function withEmptyLineAfter(list: PersonEntry[], index: number): { list: PersonEntry[]; focusKey: string; added: boolean } {
   const nextEntry = list[index + 1];
@@ -243,10 +244,8 @@ export function PeopleInput({
             <div key={entry.key} className={cn('fsl-people-input__item flex flex-col gap-1')}>
               <div className={cn('fsl-people-input__row flex items-center gap-2')}>
                 <div className={cn('fsl-people-input__field relative flex-1 min-w-0')}>
-                  <input
-                    className={cn(
-                      'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                    )}
+                  <Input
+                    className={cn('fsl-input')}
                     type="text"
                     maxLength={40}
                     autoComplete="off"

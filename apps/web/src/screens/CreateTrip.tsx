@@ -15,6 +15,8 @@ import { PeopleInput } from '../components/PeopleInput';
 import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export function CreateTrip() {
@@ -172,39 +174,35 @@ export function CreateTrip() {
         </div>
 
         <div className={cn('fsl-form-group flex flex-col gap-1.5')}>
-          <label htmlFor="fsl-trip-name" className={cn('fsl-form-label text-sm font-medium text-foreground')}>
+          <Label htmlFor="fsl-trip-name" className={cn('fsl-form-label text-foreground')}>
             {t('create.tripName')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="fsl-trip-name"
             type="text"
             placeholder={preset === 'sport' ? t('create.sportNamePlaceholder') : t('create.tripNamePlaceholder')}
             maxLength={60}
             value={tripName}
             onChange={(e) => setTripName(e.target.value)}
-            className={cn(
-              'fsl-input h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-            )}
+            className="fsl-input"
           />
         </div>
 
         <div className={cn('fsl-form-group flex flex-col gap-1.5')}>
-          <label htmlFor="fsl-my-name" className={cn('fsl-form-label text-sm font-medium text-foreground')}>
+          <Label htmlFor="fsl-my-name" className={cn('fsl-form-label text-foreground')}>
             {t('create.myName')}
-          </label>
+          </Label>
           {meQuery.isLoading ? (
             <Skeleton height={44} radius="xl" />
           ) : (
             <div className={cn('fsl-create-trip__my-name-row flex items-center gap-2')}>
-              <input
+              <Input
                 id="fsl-my-name"
                 type="text"
                 maxLength={40}
                 value={myName}
                 onChange={(e) => setUserEnteredMyName(e.target.value)}
-                className={cn(
-                  'fsl-input h-11 w-full flex-1 min-w-0 rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                )}
+                className="fsl-input flex-1"
               />
               {preset === 'sport' && (
                 <GenderToggle

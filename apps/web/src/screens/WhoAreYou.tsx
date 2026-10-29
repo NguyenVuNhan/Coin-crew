@@ -19,6 +19,7 @@ import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const REJOIN = 'rejoin';
@@ -325,10 +326,10 @@ export function WhoAreYou() {
                 <span className="fsl-who__search-icon pointer-events-none absolute left-3 inline-flex text-subtle-foreground" aria-hidden="true">
                   <Icon name="search" size={18} />
                 </span>
-                <input
+                <Input
                   type="search"
                   aria-label={t('who.search')}
-                  className="fsl-who__search-input h-11 min-h-11 w-full rounded-xl border border-input bg-card pl-10 pr-11 text-base text-foreground outline-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
+                  className="fsl-who__search-input pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoComplete="off"

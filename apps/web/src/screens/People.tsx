@@ -17,6 +17,7 @@ import { ActionSheet } from '../components/ActionSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { GenderToggle } from '../components/GenderToggle';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export function People() {
@@ -285,11 +286,9 @@ export function People() {
           view.me.kind === 'member' &&
           (view.me.isAdmin || view.me.isOrganiser) && (
           <form onSubmit={handleAddPerson} className={cn('fsl-people__add-form flex items-center gap-2 mt-2')}>
-            <input
+            <Input
               type="text"
-              className={cn(
-                'fsl-input h-11 flex-1 min-w-0 rounded-xl border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-              )}
+              className={cn('fsl-input flex-1')}
               placeholder={t('create.otherPlaceholder')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
