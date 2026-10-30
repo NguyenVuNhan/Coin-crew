@@ -50,9 +50,9 @@ The Zalo buttons stay hidden until both secrets exist, so you can deploy first a
 1. Create an app at [developers.zalo.me](https://developers.zalo.me/) and enable Social API / "Đăng nhập với Zalo".
 2. Verify each domain with the **meta tag** method ("Thêm thẻ meta vào trang chủ"). The tag is `zalo-platform-site-verification` in `apps/web/index.html`. Zalo's verifier file (`apps/web/public/zalo_verifier….html`) is there too as a backup, but Cloudflare answers its `.html` address with a 307 to the same path without `.html`, so that method passes only if Zalo follows the redirect. Its token belongs to the Zalo app, so the same tag verifies every domain the site runs on. Keep it after verification. A `*.workers.dev` domain cannot take a DNS TXT record, and Zalo reads the tag from `https://<domain>/`, so a domain verifies only once a build with the tag is live there:
    - `coincrew.nvnlab.workers.dev`: after a deploy that contains the tag.
-   - `coin-crew-nvn.loca.lt`: while `npm run tunnel` runs (localtunnel lets server-side checks through without its reminder page).
+   - `sawfish-dear-heron.ngrok-free.app`: while `npm run tunnel` runs.
    - `localhost`: Zalo cannot reach it, so it cannot be verified. Test Zalo sign-in on your machine through the tunnel.
-3. Register the callback URL `<APP_ORIGIN>/api/auth/zalo/callback` for each verified domain, for example `https://coincrew.nvnlab.workers.dev/api/auth/zalo/callback` and `https://coin-crew-nvn.loca.lt/api/auth/zalo/callback`.
+3. Register the callback URL `<APP_ORIGIN>/api/auth/zalo/callback` for each verified domain, for example `https://coincrew.nvnlab.workers.dev/api/auth/zalo/callback` and `https://sawfish-dear-heron.ngrok-free.app/api/auth/zalo/callback`.
 4. Activate the app for public use. In development mode only the app's admins and testers can sign in.
 5. Run `wrangler secret put ZALO_APP_ID` and `wrangler secret put ZALO_APP_SECRET` for the live app, and add `ZALO_APP_ID` and `ZALO_APP_SECRET` to `apps/api/.dev.vars` for your machine (the tunnel uses them too; restart `npm run tunnel` after adding them).
 
