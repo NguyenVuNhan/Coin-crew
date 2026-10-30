@@ -103,7 +103,7 @@ async function nextSortOrder(db: Db, tripId: string): Promise<number> {
 }
 
 /** Copy someone from one of the caller's groups into the caller's ledger (idempotent). */
-async function importPerson(
+export async function importPerson(
   db: Db,
   userId: string,
   ledger: PersonalLedger,

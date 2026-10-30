@@ -15,6 +15,7 @@ export type ApiErrorCode =
   | 'FUND_SHORT'
   | 'RATING_LIMIT'
   | 'TRY_AGAIN'
+  | 'ALREADY_WAITING'
   | 'INTERNAL';
 
 export type ActivityAction =
