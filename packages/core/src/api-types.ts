@@ -14,6 +14,7 @@ export type ApiErrorCode =
   | 'MERGE_STALE'
   | 'FUND_SHORT'
   | 'RATING_LIMIT'
+  | 'TRY_AGAIN'
   | 'INTERNAL';
 
 export type ActivityAction =

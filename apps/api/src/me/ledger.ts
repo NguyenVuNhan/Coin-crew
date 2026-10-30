@@ -18,7 +18,7 @@ export interface PersonalLedger {
   ownerPid: string;
 }
 
-async function findLedger(db: Db, userId: string): Promise<PersonalLedger | null> {
+export async function findLedger(db: Db, userId: string): Promise<PersonalLedger | null> {
   const row = await db
     .select({ tripId: trips.id, ownerPid: participants.id })
     .from(trips)

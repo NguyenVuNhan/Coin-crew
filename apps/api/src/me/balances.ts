@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type PeopleSummaryResponse, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
+import { pairItems, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks, trips, tripViews } from '../db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
 import type { TripRow } from '../access/actor';
+import { ApiError } from '../lib/errors';
 
 interface OtherRow {
   id: string;
@@ -183,6 +184,150 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
   }
   out.sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.name.localeCompare(b.name));
   return { people: out, incomplete };
+}
+
+/** One open item with the person, with the two participants that stand for owner and person there. */
+export interface PersonTripItem extends PersonItem {
+  writable: boolean;
+  ownerPid: string;
+  personPid: string;
+}
+
+export interface PersonItems {
+  /** Canonical key: a guest linked to a ledger person is that ledger person. */
+  key: PersonKey;
+  name: string;
+  userId: string | null;
+  /** Every open item, from every group (archived ones too) where the person has a participant. */
+  items: PersonTripItem[];
+  /** The owner's ledger, when the person has a row in it. */
+  ledger: { tripId: string; ownerPid: string; personPid: string } | null;
+  /** An unlinked group guest: the participant a new ledger row should be linked from. */
+  guestPid: string | null;
+  /** D1 statements this load prepared (counts toward the 50-per-invocation budget). */
+  queries: number;
+  /** Snapshot rebuilds this load did. */
+  rebuilt: number;
+}
+
+/**
+ * Cold rebuilds allowed per settlement. A rebuild costs up to 9 statements; 3 fixed queries plus
+ * 3 rebuilds leaves about 20 of the 50 for the writes. More cold groups than this: TRY_AGAIN
+ * (the rebuilds done here warm the cache, so a retry converges).
+ */
+export const MAX_SETTLE_REBUILDS = 3;
+export const REBUILD_COST = 9;
+
+interface PersonRow {
+  id: string;
+  trip_id: string;
+  name: string;
+  user_id: string | null;
+}
+
+/**
+ * Everything open between the owner and one person, for a settlement. Unlike loadPeopleSummary it
+ * never answers with a partial picture: it looks only at trips where the person has a participant,
+ * rebuilds those snapshots, and throws 409 TRY_AGAIN when more than MAX_SETTLE_REBUILDS are cold.
+ * Returns null when the key is not someone the owner shares a group or ledger with.
+ */
+export async function loadPersonItems(db: Db, userId: string, key: PersonKey): Promise<PersonItems | null> {
+  let queries = 0;
+  const myTrips = sql`SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active'`;
+
+  let cond;
+  let canonical: PersonKey = key;
+  if (key.startsWith('u:')) {
+    const otherUser = key.slice(2);
+    if (otherUser === userId || otherUser === '') return null;
+    cond = sql`p.user_id = ${otherUser}`;
+  } else {
+    let target = key.slice(2);
+    if (target === '') return null;
+    const link = await db
+      .select({ personPid: personLinks.personPid })
+      .from(personLinks)
+      .where(and(eq(personLinks.ownerUserId, userId), eq(personLinks.participantId, target)))
+      .get();
+    queries += 1;
+    if (link) target = link.personPid;
+    canonical = `p:${target}`;
+    cond = sql`p.user_id IS NULL AND (p.id = ${target} OR p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${userId} AND pl.person_pid = ${target}))`;
+  }
+
+  const rows = await db.all<PersonRow>(sql`
+    SELECT p.id AS id, p.trip_id AS trip_id, p.name AS name, p.user_id AS user_id
+    FROM participants p
+    WHERE (${cond}) AND p.trip_id IN (${myTrips})
+  `);
+  queries += 1;
+  if (rows.length === 0) return null;
+
+  const mine = await db
+    .select({ trip: trips, myPid: participants.id, viewVersion: tripViews.version, viewJson: tripViews.json })
+    .from(participants)
+    .innerJoin(trips, eq(trips.id, participants.tripId))
+    .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
+    .where(and(
+      eq(participants.userId, userId),
+      eq(participants.status, 'active'),
+      sql`${trips.id} IN (SELECT p.trip_id FROM participants p WHERE ${cond})`,
+    ));
+  queries += 1;
+
+  const cold = mine.filter((r) => !cachedSnapshot(r.trip, r.viewVersion, r.viewJson));
+  if (cold.length > MAX_SETTLE_REBUILDS) {
+    // Warm what fits so a retry gets further, then refuse: never settle on a partial picture.
+    for (const row of cold.slice(0, MAX_SETTLE_REBUILDS)) {
+      const cache = row.viewJson !== null && row.viewVersion !== null ? { version: row.viewVersion, json: row.viewJson } : null;
+      await getSnapshot(db, row.trip, cache);
+    }
+    throw new ApiError('TRY_AGAIN', 409, 'Still adding things up. Try again.');
+  }
+
+  let rebuilt = 0;
+  const items: PersonTripItem[] = [];
+  let ledger: PersonItems['ledger'] = null;
+  for (const row of mine) {
+    const trip = row.trip;
+    let snapshot = cachedSnapshot(trip, row.viewVersion, row.viewJson);
+    if (!snapshot) {
+      const cache = row.viewJson !== null && row.viewVersion !== null ? { version: row.viewVersion, json: row.viewJson } : null;
+      snapshot = await getSnapshot(db, trip, cache);
+      rebuilt += 1;
+    }
+    const isDirect = trip.preset === 'direct';
+    const ownLedger = isDirect && trip.organiserUserId === userId;
+    for (const person of rows) {
+      if (person.trip_id !== trip.id) continue;
+      if (ownLedger && ledger === null) ledger = { tripId: trip.id, ownerPid: row.myPid, personPid: person.id };
+      const [item] = pairItems([{
+        tripId: trip.id,
+        tripName: trip.name,
+        kind: isDirect ? 'direct' : 'group',
+        ownerPid: row.myPid,
+        otherPid: person.id,
+        suggestions: snapshot.suggestions,
+        oldestOpenAt: oldestShared(snapshot, row.myPid, person.id) ?? trip.createdAt,
+        writable: trip.archivedAt === null,
+      }]);
+      if (item) items.push({ ...item, writable: trip.archivedAt === null, ownerPid: row.myPid, personPid: person.id });
+    }
+  }
+  queries += rebuilt * REBUILD_COST;
+
+  const named = rows.find((r) => r.id === canonical.slice(2)) ?? rows[0]!;
+  items.sort((a, b) => a.oldestOpenAt.localeCompare(b.oldestOpenAt));
+  return {
+    key: canonical,
+    name: named.name,
+    userId: canonical.startsWith('u:') ? canonical.slice(2) : null,
+    items,
+    ledger,
+    guestPid: canonical.startsWith('p:') && ledger === null ? canonical.slice(2) : null,
+    queries,
+    rebuilt,
+  };
 }
 
 export function balanceRoutes(): Hono<AppBindings> {

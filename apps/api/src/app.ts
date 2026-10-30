@@ -17,6 +17,7 @@ import { paymentRoutes } from './payments/routes';
 import { balanceRoutes } from './me/balances';
 import { peopleRoutes } from './me/people';
 import { ledgerRoutes } from './me/ledger';
+import { settleRoutes } from './me/settle';
 import { pageRoutes } from './og/routes';
 
 export function createApp(): Hono<AppBindings> {
@@ -43,6 +44,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', balanceRoutes());
   app.route('/api', peopleRoutes());
   app.route('/api', ledgerRoutes());
+  app.route('/api', settleRoutes());
   app.route('/', pageRoutes());
 
   return app;
