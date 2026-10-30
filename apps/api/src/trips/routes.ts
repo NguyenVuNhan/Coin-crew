@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, desc, eq, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type {
   ActivityAction,
@@ -59,6 +59,7 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
+    // 'direct' is the personal ledger, created only by GET /me/ledger.
     const preset = body.preset ?? 'trip';
     if (preset !== 'trip' && preset !== 'sport') {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -278,6 +279,8 @@ export function tripRoutes(): Hono<AppBindings> {
         and(
           eq(participants.userId, user.id),
           eq(participants.status, 'active'),
+          // The personal ledger is a 'direct' trip that never shows as a group.
+          ne(trips.preset, 'direct'),
         ),
       )
       .orderBy(desc(trips.createdAt));

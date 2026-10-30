@@ -5,7 +5,7 @@ import type { BatchItem } from 'drizzle-orm/batch';
 import type { PickerView } from '@fsl/core';
 import { findSimilarNames, normalizeName } from '@fsl/core';
 import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
+import { getDb, type Db } from '../db/client';
 import {
   deviceParticipants,
   membershipRequests,
@@ -47,6 +47,122 @@ async function getActor(c: Context<AppBindings>, tripId: string): Promise<Resolv
     throw new ApiError('FORBIDDEN', 403);
   }
   return actor;
+}
+
+/**
+ * Add a plain name to a trip as `actor` (POST /trips/:id/people, and the personal ledger).
+ * Validates the body, checks for similar names and the guest pending limit, and commits.
+ */
+export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unknown): Promise<string> {
+  const tripId = actor.trip.id;
+  assertWritable(actor.trip);
+  ensure(actor, 'add_person');
+
+  const body = input as { name?: unknown; confirmNew?: unknown; gender?: unknown } | null;
+  if (typeof body?.name !== 'string') {
+    throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
+
+  let gender: 'M' | 'F' | null = null;
+  if (body.gender !== undefined && body.gender !== null) {
+    if (body.gender !== 'M' && body.gender !== 'F') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    gender = body.gender;
+  }
+
+  const name = body.name.trim();
+  if (name.length < 1 || name.length > 40) {
+    throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
+
+  const existing = await db
+    .select({ id: participants.id, name: participants.name })
+    .from(participants)
+    .where(
+      and(
+        eq(participants.tripId, tripId),
+        or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
+      ),
+    );
+
+  const matches = findSimilarNames(name, existing);
+  if (matches.length > 0 && body.confirmNew !== true) {
+    throw new ApiError('VALIDATION', 422, 'A similar name is already in this trip.');
+  }
+
+  if (actor.kind === 'guest') {
+    const pendingCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(participants)
+      .where(
+        and(
+          eq(participants.tripId, tripId),
+          eq(participants.createdByDevice, actor.deviceHash),
+          eq(participants.status, 'pending'),
+        ),
+      )
+      .get();
+
+    if ((pendingCount?.count ?? 0) >= 3) {
+      throw new ApiError('RATE_LIMITED', 429);
+    }
+  }
+
+  const maxOrderRow = await db
+    .select({ maxOrder: max(participants.sortOrder) })
+    .from(participants)
+    .where(eq(participants.tripId, tripId))
+    .get();
+  const sortOrder = (maxOrderRow?.maxOrder ?? -1) + 1;
+
+  const participantId = newId();
+  const now = nowIso();
+  const status = actor.kind === 'guest' ? 'pending' : 'active';
+
+  const insertParticipant = db.insert(participants).values({
+    id: participantId,
+    tripId,
+    name,
+    normalizedName: normalizeName(name),
+    gender,
+    userId: null,
+    status,
+    sortOrder,
+    createdByDevice: actor.deviceHash,
+    createdAt: now,
+  });
+
+  const queries: BatchItem<'sqlite'>[] = [insertParticipant];
+
+  if (actor.kind === 'guest') {
+    const upsertDevice = db
+      .insert(deviceParticipants)
+      .values({
+        deviceHash: actor.deviceHash,
+        tripId,
+        participantId,
+        lastUsedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [deviceParticipants.deviceHash, deviceParticipants.tripId],
+        set: {
+          participantId,
+          lastUsedAt: now,
+        },
+      });
+    queries.push(upsertDevice);
+  }
+
+  await commitTripWrite(db, tripId, queries, {
+    action: 'name_added',
+    actorParticipantId: actor.participantId,
+    actorUserId: actor.userId,
+    actorDevice: actor.deviceHash,
+    details: { name },
+  });
+
+  return participantId;
 }
 
 export function participantRoutes(): Hono<AppBindings> {
@@ -228,114 +344,11 @@ export function participantRoutes(): Hono<AppBindings> {
   app.post('/trips/:id/people', async (c) => {
     const tripId = c.req.param('id');
     const actor = await getActor(c, tripId);
+    // Checked again inside addPersonToTrip; here so they still win over a bad body.
     assertWritable(actor.trip);
     ensure(actor, 'add_person');
-
-    const body = await parseJson<{ name?: unknown; confirmNew?: unknown; gender?: unknown }>(c);
-    if (typeof body?.name !== 'string') {
-      throw new ApiError('VALIDATION', 422, 'Invalid request');
-    }
-
-    let gender: 'M' | 'F' | null = null;
-    if (body.gender !== undefined && body.gender !== null) {
-      if (body.gender !== 'M' && body.gender !== 'F') {
-        throw new ApiError('VALIDATION', 422, 'Invalid request');
-      }
-      gender = body.gender;
-    }
-
-    const name = body.name.trim();
-    if (name.length < 1 || name.length > 40) {
-      throw new ApiError('VALIDATION', 422, 'Invalid request');
-    }
-
-    const db = getDb(c.env);
-    const existing = await db
-      .select({ id: participants.id, name: participants.name })
-      .from(participants)
-      .where(
-        and(
-          eq(participants.tripId, tripId),
-          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
-        ),
-      );
-
-    const matches = findSimilarNames(name, existing);
-    if (matches.length > 0 && body.confirmNew !== true) {
-      throw new ApiError('VALIDATION', 422, 'A similar name is already in this trip.');
-    }
-
-    if (actor.kind === 'guest') {
-      const pendingCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(participants)
-        .where(
-          and(
-            eq(participants.tripId, tripId),
-            eq(participants.createdByDevice, actor.deviceHash),
-            eq(participants.status, 'pending'),
-          ),
-        )
-        .get();
-
-      if ((pendingCount?.count ?? 0) >= 3) {
-        throw new ApiError('RATE_LIMITED', 429);
-      }
-    }
-
-    const maxOrderRow = await db
-      .select({ maxOrder: max(participants.sortOrder) })
-      .from(participants)
-      .where(eq(participants.tripId, tripId))
-      .get();
-    const sortOrder = (maxOrderRow?.maxOrder ?? -1) + 1;
-
-    const participantId = newId();
-    const now = nowIso();
-    const status = actor.kind === 'guest' ? 'pending' : 'active';
-
-    const insertParticipant = db.insert(participants).values({
-      id: participantId,
-      tripId,
-      name,
-      normalizedName: normalizeName(name),
-      gender,
-      userId: null,
-      status,
-      sortOrder,
-      createdByDevice: actor.deviceHash,
-      createdAt: now,
-    });
-
-    const queries: BatchItem<'sqlite'>[] = [insertParticipant];
-
-    if (actor.kind === 'guest') {
-      const upsertDevice = db
-        .insert(deviceParticipants)
-        .values({
-          deviceHash: actor.deviceHash,
-          tripId,
-          participantId,
-          lastUsedAt: now,
-        })
-        .onConflictDoUpdate({
-          target: [deviceParticipants.deviceHash, deviceParticipants.tripId],
-          set: {
-            participantId,
-            lastUsedAt: now,
-          },
-        });
-      queries.push(upsertDevice);
-    }
-
-    await commitTripWrite(db, tripId, queries, {
-      action: 'name_added',
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-      details: { name },
-    });
-
+    const body = await parseJson<unknown>(c);
+    const participantId = await addPersonToTrip(getDb(c.env), actor, body);
     return c.json({ participantId }, 201);
   });
 
