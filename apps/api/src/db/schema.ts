@@ -52,21 +52,29 @@ export const sessions = sqliteTable('sessions', {
   expiresAt: text('expires_at').notNull(),
 });
 
-export const trips = sqliteTable('trips', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  preset: text('preset', { enum: ['trip', 'sport'] }).notNull().default('trip'),
-  currency: text('currency').notNull().default('VND'),
-  fewestTransfers: integer('fewest_transfers').notNull().default(0),
-  ratingsEnabled: integer('ratings_enabled').notNull().default(0),
-  defaultLang: text('default_lang').notNull().default('vi'),
-  organiserUserId: text('organiser_user_id').notNull(),
-  groupToken: text('group_token').notNull().unique(),
-  viewToken: text('view_token').notNull().unique(),
-  version: integer('version').notNull().default(0),
-  createdAt: text('created_at').notNull(),
-  archivedAt: text('archived_at'),
-});
+export const trips = sqliteTable(
+  'trips',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    preset: text('preset', { enum: ['trip', 'sport', 'direct'] }).notNull().default('trip'),
+    currency: text('currency').notNull().default('VND'),
+    fewestTransfers: integer('fewest_transfers').notNull().default(0),
+    ratingsEnabled: integer('ratings_enabled').notNull().default(0),
+    defaultLang: text('default_lang').notNull().default('vi'),
+    organiserUserId: text('organiser_user_id').notNull(),
+    groupToken: text('group_token').notNull().unique(),
+    viewToken: text('view_token').notNull().unique(),
+    version: integer('version').notNull().default(0),
+    createdAt: text('created_at').notNull(),
+    archivedAt: text('archived_at'),
+  },
+  (t) => [
+    uniqueIndex('trips_organiser_direct_idx')
+      .on(t.organiserUserId)
+      .where(sql`${t.preset} = 'direct'`),
+  ],
+);
 
 export const participants = sqliteTable(
   'participants',
@@ -83,8 +91,10 @@ export const participants = sqliteTable(
     sortOrder: integer('sort_order').notNull(),
     createdByDevice: text('created_by_device'),
     createdAt: text('created_at').notNull(),
+    requestToken: text('request_token'),
   },
   (t) => [
+    uniqueIndex('participants_request_token_unique').on(t.requestToken),
     index('participants_trip_id_idx').on(t.tripId),
     index('participants_trip_id_normalized_name_idx').on(t.tripId, t.normalizedName),
   ],
@@ -100,7 +110,12 @@ export const membershipRequests = sqliteTable(
     status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull(),
     createdAt: text('created_at').notNull(),
   },
-  (t) => [index('membership_requests_trip_id_idx').on(t.tripId)],
+  (t) => [
+    index('membership_requests_trip_id_idx').on(t.tripId),
+    uniqueIndex('membership_requests_one_pending')
+      .on(t.participantId)
+      .where(sql`${t.status} = 'pending'`),
+  ],
 );
 
 export const devices = sqliteTable('devices', {
@@ -254,4 +269,47 @@ export const playerRatings = sqliteTable(
     primaryKey({ columns: [t.tripId, t.raterParticipantId, t.targetParticipantId] }),
     index('player_ratings_trip_id_idx').on(t.tripId),
   ],
+);
+
+export const personLinks = sqliteTable(
+  'person_links',
+  {
+    ownerUserId: text('owner_user_id').notNull(),
+    participantId: text('participant_id').notNull(),
+    // A personal-ledger participant id.
+    personPid: text('person_pid').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerUserId, t.participantId] })],
+);
+
+export const nicknames = sqliteTable(
+  'nicknames',
+  {
+    ownerUserId: text('owner_user_id').notNull(),
+    personKey: text('person_key').notNull(),
+    nickname: text('nickname').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerUserId, t.personKey] })],
+);
+
+export const participantMerges = sqliteTable('participant_merges', {
+  id: text('id').primaryKey(),
+  tripId: text('trip_id').notNull(),
+  fromId: text('from_id').notNull(),
+  intoId: text('into_id').notNull(),
+  actorUserId: text('actor_user_id').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
+export const participantMergeRows = sqliteTable(
+  'participant_merge_rows',
+  {
+    mergeId: text('merge_id').notNull(),
+    tableName: text('table_name').notNull(),
+    rowKey: text('row_key').notNull(),
+    beforeJson: text('before_json').notNull(),
+  },
+  (t) => [index('participant_merge_rows_merge_id_idx').on(t.mergeId)],
 );
