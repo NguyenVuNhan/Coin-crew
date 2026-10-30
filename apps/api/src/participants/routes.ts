@@ -789,14 +789,14 @@ export function participantRoutes(): Hono<AppBindings> {
     const requestId = newId();
     let inserted: number;
     try {
-      // Only for a name that is still active and unlinked; the partial unique index
+      // Only for a name that is still active or pending and unlinked; the partial unique index
       // membership_requests_one_pending refuses a second pending claim on the same name.
       const r = await db.run(sql`
         INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at)
         SELECT ${requestId}, ${tripId}, ${participantId}, ${user.id}, 'pending', ${nowIso()}
         WHERE EXISTS (
           SELECT 1 FROM participants
-          WHERE id = ${participantId} AND trip_id = ${tripId} AND status = 'active' AND user_id IS NULL
+          WHERE id = ${participantId} AND trip_id = ${tripId} AND status IN ('active', 'pending') AND user_id IS NULL
         )`);
       inserted = r.meta.changes;
     } catch (err) {
@@ -893,7 +893,7 @@ export function participantRoutes(): Hono<AppBindings> {
       updates.gender = (claimingUser as Record<string, unknown>).gender as 'M' | 'F';
     }
 
-    // Link only a name that is still active and unlinked; otherwise the claim is void.
+    // Link only a name that is still active or pending and unlinked; otherwise the claim is void.
     const linked = await db
       .update(participants)
       .set(updates)
@@ -902,7 +902,7 @@ export function participantRoutes(): Hono<AppBindings> {
           eq(participants.id, req.participantId),
           eq(participants.tripId, tripId),
           isNull(participants.userId),
-          eq(participants.status, 'active'),
+          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
         ),
       )
       .run();
