@@ -222,7 +222,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
     if (expense?.meta?.sport?.rule) {
       return expense.meta.sport.rule.kind;
     }
-    return 'discount';
+    return 'equal';
   });
 
   const [discountText, setDiscountText] = useState(() => {

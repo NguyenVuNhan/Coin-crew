@@ -302,6 +302,7 @@ export const en = {
   'sport.orFixedAmount': 'Or want to set a fixed amount for {name}',
   'sport.editGender': 'Edit gender',
   'sport.shareBillQr': 'Share bill & QR',
+  'sport.shareCopied': 'Message and link copied. Paste it in the group chat.',
   'sport.zaloPreviewTitle': 'Zalo message & bill card',
   'sport.tableColName': 'NAME',
   'sport.tableColFemale': 'F',

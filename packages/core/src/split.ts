@@ -325,3 +325,14 @@ export function computeSportShares(
   };
 }
 
+
+/**
+ * What each person other than the payer owes on a bill, when that is the same for everyone (shares a rounding đồng
+ * apart count as the same: the larger one, so nobody comes up short). Null when the shares differ or nobody owes.
+ */
+export function equalBillShare(bill: { payerId: string; shares: { participantId: string; amount: number }[] }): number | null {
+  const owed = bill.shares.filter((s) => s.participantId !== bill.payerId && s.amount > 0).map((s) => s.amount);
+  if (owed.length === 0) return null;
+  const most = Math.max(...owed);
+  return most - Math.min(...owed) <= 1 ? most : null;
+}

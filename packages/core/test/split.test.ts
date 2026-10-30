@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeShares, computeSportShares, type SplitMode, type SplitResult } from '../src/split';
+import { computeShares, computeSportShares, equalBillShare, type SplitMode, type SplitResult } from '../src/split';
 import { parseVnd } from '../src/money';
 
 const e = (ids: string[], values: number[] = []) => ids.map((id, i) => ({ participantId: id, value: values[i] ?? 1 }));
@@ -279,3 +279,15 @@ describe('computeSportShares', () => {
   });
 });
 
+
+describe('equalBillShare', () => {
+  const bill = (amounts: [string, number][]) => ({ payerId: 'p', shares: amounts.map(([participantId, amount]) => ({ participantId, amount })) });
+
+  it('is the share when everyone but the payer owes the same', () =>
+    expect(equalBillShare(bill([['p', 50000], ['a', 100000], ['b', 100000]]))).toBe(100000));
+  it('takes the larger share when they only differ by a rounding đồng', () =>
+    expect(equalBillShare(bill([['p', 33334], ['a', 33333], ['b', 33334]]))).toBe(33334));
+  it('is null when the shares differ', () => expect(equalBillShare(bill([['a', 100000], ['b', 100002]]))).toBeNull());
+  it('ignores people who owe nothing', () => expect(equalBillShare(bill([['a', 0], ['b', 70000]]))).toBe(70000));
+  it('is null when nobody else owes anything', () => expect(equalBillShare(bill([['p', 100000]]))).toBeNull());
+});

@@ -35,6 +35,40 @@ function metaContent(html: string, prop: string): string | null {
   return unescapeHtml(m[1] ?? '');
 }
 
+/** A sport bill "Cầu lông" paid by Minh, split with An. */
+async function seedSportExpense(): Promise<void> {
+  const metaJson = JSON.stringify({
+    sport: {
+      court: 300000,
+      shuttlecocks: [{ qty: 2, unitPrice: 60000 }],
+      extra: 50000,
+      maleSlotRate: 45000,
+      femaleSlotRate: 35000,
+      rule: { kind: 'equal' },
+      entries: [{ participantId: PID.M, maleSlots: 2, femaleSlots: 0 }],
+    },
+  });
+
+  await env.DB.prepare(
+    `INSERT INTO transactions (
+      id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency,
+      spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at, meta_json
+    ) VALUES (?, ?, NULL, 1, 't-1', 'expense', 'Cầu lông', 500000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z', ?)`,
+  )
+    .bind('e-sport', 'e-sport', PID.M, PID.M, metaJson)
+    .run();
+
+  await env.DB.batch([
+    env.DB.prepare(
+      'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 250000)',
+    ).bind('e-sport', PID.M),
+    env.DB.prepare(
+      'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 250000)',
+    ).bind('e-sport', PID.A),
+    env.DB.prepare("UPDATE trips SET preset='sport', version = version + 1 WHERE id='t-1'"),
+  ]);
+}
+
 describe('page routes', () => {
   beforeEach(async () => {
     await seedTrip();
@@ -59,42 +93,50 @@ describe('page routes', () => {
   });
 
   it('an expense link gets the sport breakdown', async () => {
-    const metaJson = JSON.stringify({
-      sport: {
-        court: 300000,
-        shuttlecocks: [{ qty: 2, unitPrice: 60000 }],
-        extra: 50000,
-        maleSlotRate: 45000,
-        femaleSlotRate: 35000,
-        rule: { kind: 'equal' },
-        entries: [{ participantId: PID.M, maleSlots: 2, femaleSlots: 0 }],
-      },
-    });
-
-    await env.DB.prepare(
-      `INSERT INTO transactions (
-        id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency,
-        spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at, meta_json
-      ) VALUES (?, ?, NULL, 1, 't-1', 'expense', 'Cầu lông', 500000, 'VND', '2026-10-11', ?, 'equal', 'approved', ?, '2026-10-11T00:00:00.000Z', '2026-10-11T00:00:00.000Z', ?)`,
-    )
-      .bind('e-sport', 'e-sport', PID.M, PID.M, metaJson)
-      .run();
-
-    await env.DB.batch([
-      env.DB.prepare(
-        'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 250000)',
-      ).bind('e-sport', PID.M),
-      env.DB.prepare(
-        'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 250000)',
-      ).bind('e-sport', PID.A),
-      env.DB.prepare("UPDATE trips SET preset='sport', version = version + 1 WHERE id='t-1'"),
-    ]);
+    await seedSportExpense();
 
     const res = await page('/j/gtok-1/e/e-sport');
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(metaContent(html, 'og:description')?.startsWith('Sân 300.000₫')).toBe(true);
     expect(metaContent(html, 'og:image')?.endsWith('/og/sport.png')).toBe(true);
+  });
+
+  it("a sport bill previews the payer's QR once they have bank details", async () => {
+    await seedSportExpense();
+    await seedMinhBank();
+
+    const html = await text('/j/gtok-1/e/e-sport');
+    const image = metaContent(html, 'og:image');
+    expect(image).toMatch(/^http:\/\/localhost:8787\/j\/gtok-1\/e\/e-sport\/qr\.png\?v=\d+$/);
+    expect(html).not.toContain('19031234565678');
+
+    const res = await page(new URL(image!).pathname + new URL(image!).search);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/png');
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect([...bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const header = new DataView(bytes.buffer, bytes.byteOffset + 16, 8);
+    expect([header.getUint32(0), header.getUint32(4)]).toEqual([1200, 630]);
+  });
+
+  it("a sport bill with the payer's QR leaves the figures to the shared message: no description", async () => {
+    await seedSportExpense();
+    await seedMinhBank();
+
+    const html = await text('/j/gtok-1/e/e-sport');
+    expect(metaContent(html, 'og:title')).toBe('Cầu lông · Đà Lạt · Oct 2026');
+    expect(metaContent(html, 'og:description')).toBeNull();
+    expect(metaContent(html, 'twitter:description')).toBeNull();
+    expect(metaContent(html, 'description')).toBeNull();
+  });
+
+  it('the QR picture is not found without bank details or for a plain expense', async () => {
+    await seedSportExpense();
+    expect((await page('/j/gtok-1/e/e-sport/qr.png')).status).toBe(404);
+    await seedMinhBank();
+    expect((await page('/j/gtok-1/e/e-1/qr.png')).status).toBe(404);
+    expect((await page('/j/nope/e/e-sport/qr.png')).status).toBe(404);
   });
 
   it('a rejected or missing expense falls back to the group card', async () => {

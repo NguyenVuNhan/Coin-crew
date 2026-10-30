@@ -174,43 +174,7 @@ describe('Expense links', () => {
     setLang('en');
     mockMedia({});
     const user = userEvent.setup();
-
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = String(input);
-        if (url.includes('/pay/p-minh?bill=1')) {
-          return Response.json({
-            to: { id: 'p-minh', name: 'Minh' },
-            amount: 0,
-            bankState: 'ok',
-            bank: {
-              bin: '970407',
-              bankName: 'Techcombank',
-              accountNumber: '19031234565678',
-              accountNumberMasked: '1903 •••• 5678',
-              holderName: 'NGUYEN VAN MINH',
-            },
-            refCode: 'CAU LONG T5',
-            payload:
-              '00020101021138580010A000000727012800069704070114190312345656780208QRIBFTTA53037045802VN62150811CAU LONG T56304ABCD',
-            inFlight: [],
-          });
-        }
-        return Response.json(viewWithSportExpense);
-      }),
-    );
-
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={qc}>
-        <MemoryRouter initialEntries={['/t/t-sport/expenses/e-sport-1']}>
-          <Routes>
-            <Route path="/t/:tripId/expenses/:expenseId" element={<TripRoute />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    renderSportExpense();
 
     const shareBillBtn = await screen.findByRole('button', { name: 'Share bill & QR' });
     await waitFor(() => expect(shareBillBtn).toBeEnabled());
@@ -219,4 +183,73 @@ describe('Expense links', () => {
     await waitFor(() => expect(shareSportBill).toHaveBeenCalled());
     expect(vi.mocked(shareSportBill).mock.calls[0]?.[1]).toContain('/j/gtok-s/e/e-sport-1');
   });
+
+  it('on a PC, Share bill & QR copies the message with the link for the group chat', async () => {
+    setLang('en');
+    mockMedia({ mouse: true });
+    const user = userEvent.setup(); // also puts a clipboard stub on navigator
+    renderSportExpense();
+
+    const shareBillBtn = await screen.findByRole('button', { name: 'Share bill & QR' });
+    await waitFor(() => expect(shareBillBtn).toBeEnabled());
+    await user.click(shareBillBtn);
+
+    expect(await screen.findByText('Message and link copied. Paste it in the group chat.')).toBeInTheDocument();
+    const copied = await navigator.clipboard.readText();
+    expect(copied).toContain('Court 300.000');
+    expect(copied).toMatch(/\/j\/gtok-s\/e\/e-sport-1$/);
+    expect(shareSportBill).not.toHaveBeenCalled();
+  });
+
+  it("the bill's QR is asked for this expense, so an equal split comes with its amount", async () => {
+    setLang('en');
+    mockMedia({});
+    renderSportExpense();
+
+    await screen.findByRole('button', { name: 'Share bill & QR' });
+    await waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls.map(([input]) => String(input))).toContainEqual(
+        expect.stringContaining('/pay/p-minh?bill=1&expense=e-sport-1'),
+      ),
+    );
+  });
 });
+
+function renderSportExpense(): void {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/pay/p-minh?bill=1')) {
+        return Response.json({
+          to: { id: 'p-minh', name: 'Minh' },
+          amount: 0,
+          bankState: 'ok',
+          bank: {
+            bin: '970407',
+            bankName: 'Techcombank',
+            accountNumber: '19031234565678',
+            accountNumberMasked: '1903 •••• 5678',
+            holderName: 'NGUYEN VAN MINH',
+          },
+          refCode: 'CAU LONG T5',
+          payload:
+            '00020101021138580010A000000727012800069704070114190312345656780208QRIBFTTA53037045802VN62150811CAU LONG T56304ABCD',
+          inFlight: [],
+        });
+      }
+      return Response.json(viewWithSportExpense);
+    }),
+  );
+
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={['/t/t-sport/expenses/e-sport-1']}>
+        <Routes>
+          <Route path="/t/:tripId/expenses/:expenseId" element={<TripRoute />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}

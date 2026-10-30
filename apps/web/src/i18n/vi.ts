@@ -302,6 +302,7 @@ export const vi: Record<MessageKey, string> = {
   'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}', // REVIEW
   'sport.editGender': 'Đổi giới tính', // REVIEW
   'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
+  'sport.shareCopied': 'Đã sao chép tin nhắn và link. Dán vào nhóm chat nhé.', // REVIEW
   'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
   'sport.tableColName': 'TÊN', // REVIEW
   'sport.tableColFemale': 'NỮ', // REVIEW
