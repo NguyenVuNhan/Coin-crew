@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, asc, eq, max, or, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, max, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PickerView } from '@fsl/core';
 import { findSimilarNames, normalizeName } from '@fsl/core';
@@ -18,7 +18,7 @@ import type { ResolvedActor } from '../access/actor';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
+import { ApiError, isDbError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
 import { mergeParticipants } from './merge';
 import { takeOutOfTrip } from './remove';
@@ -744,21 +744,25 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    const participantId = body.participantId;
-    if (actor.kind !== 'guest' || actor.participantId !== participantId) {
-      throw new ApiError('FORBIDDEN', 403);
-    }
-
     const db = getDb(c.env);
-    const target = await db
+    // A merged name forwards to the person it was merged into.
+    let target = await db
       .select()
       .from(participants)
-      .where(and(eq(participants.id, participantId), eq(participants.tripId, tripId)))
+      .where(and(eq(participants.id, body.participantId), eq(participants.tripId, tripId)))
       .get();
+    for (let hops = 0; target?.status === 'merged' && target.mergedInto && hops < 10; hops++) {
+      target = await db
+        .select()
+        .from(participants)
+        .where(and(eq(participants.id, target.mergedInto), eq(participants.tripId, tripId)))
+        .get();
+    }
 
-    if (!target || target.userId !== null) {
+    if (!target || actor.kind !== 'guest' || actor.participantId !== target.id || target.userId !== null) {
       throw new ApiError('FORBIDDEN', 403);
     }
+    const participantId = target.id;
 
     assertWritable(actor.trip);
 
@@ -783,16 +787,29 @@ export function participantRoutes(): Hono<AppBindings> {
     }
 
     const requestId = newId();
-    const insertRequest = db.insert(membershipRequests).values({
-      id: requestId,
-      tripId,
-      participantId,
-      userId: user.id,
-      status: 'pending',
-      createdAt: nowIso(),
-    });
+    let inserted: number;
+    try {
+      // Only for a name that is still active and unlinked; the partial unique index
+      // membership_requests_one_pending refuses a second pending claim on the same name.
+      const r = await db.run(sql`
+        INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at)
+        SELECT ${requestId}, ${tripId}, ${participantId}, ${user.id}, 'pending', ${nowIso()}
+        WHERE EXISTS (
+          SELECT 1 FROM participants
+          WHERE id = ${participantId} AND trip_id = ${tripId} AND status = 'active' AND user_id IS NULL
+        )`);
+      inserted = r.meta.changes;
+    } catch (err) {
+      if (isDbError(err, 'UNIQUE constraint failed')) {
+        throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
+      }
+      throw err;
+    }
+    if (inserted === 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
 
-    await commitTripWrite(db, tripId, [insertRequest], {
+    await commitTripWrite(db, tripId, [], {
       action: 'membership_requested',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -859,21 +876,6 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
-    const p = await db
-      .select()
-      .from(participants)
-      .where(
-        and(
-          eq(participants.id, req.participantId),
-          eq(participants.tripId, tripId),
-        ),
-      )
-      .get();
-
-    if (!p || p.userId !== null) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
     const claimingUser = await db
       .select()
       .from(users)
@@ -891,12 +893,29 @@ export function participantRoutes(): Hono<AppBindings> {
       updates.gender = (claimingUser as Record<string, unknown>).gender as 'M' | 'F';
     }
 
-    const updateParticipant = db
+    // Link only a name that is still active and unlinked; otherwise the claim is void.
+    const linked = await db
       .update(participants)
       .set(updates)
-      .where(eq(participants.id, req.participantId));
+      .where(
+        and(
+          eq(participants.id, req.participantId),
+          eq(participants.tripId, tripId),
+          isNull(participants.userId),
+          eq(participants.status, 'active'),
+        ),
+      )
+      .run();
 
-    await commitTripWrite(db, tripId, [updateParticipant], {
+    if (linked.meta.changes === 0) {
+      await db
+        .update(membershipRequests)
+        .set({ status: 'rejected' })
+        .where(eq(membershipRequests.id, rid));
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+
+    await commitTripWrite(db, tripId, [], {
       action: 'membership_approved',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,

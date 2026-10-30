@@ -16,6 +16,8 @@ export type ApiErrorCode =
   | 'RATING_LIMIT'
   | 'TRY_AGAIN'
   | 'ALREADY_WAITING'
+  | 'ALREADY_CLAIMED'
+  | 'CONFLICT'
   | 'INTERNAL';
 
 export type ActivityAction =
