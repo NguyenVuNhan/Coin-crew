@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import type { PayInfo } from '@fsl/core';
+import type { MyBankResponse, PayInfo } from '@fsl/core';
 import { buildVietQrPayload, can, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@fsl/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
@@ -180,6 +180,29 @@ function liveGuestBank(participantId: string) {
 
 export function bankRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
+
+  // GET /me/bank
+  app.get('/me/bank', requireUser, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const db = getDb(c.env);
+    const row = await db
+      .select({
+        bin: bankDetails.bin,
+        accountNumber: bankDetails.accountNumber,
+        holderName: bankDetails.holderName,
+      })
+      .from(bankDetails)
+      .where(
+        and(
+          eq(bankDetails.userId, user.id),
+          eq(bankDetails.status, 'approved'),
+        ),
+      )
+      .orderBy(desc(bankDetails.createdAt))
+      .get();
+
+    return c.json<MyBankResponse | null>(row ?? null);
+  });
 
   // PUT /me/bank
   app.put('/me/bank', requireUser, async (c) => {

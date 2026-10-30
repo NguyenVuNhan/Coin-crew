@@ -1,14 +1,15 @@
 import { useState, useRef, useId, useMemo, useEffect } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
+import { UserCheck, X } from 'lucide-react';
 import { normalizeName, type RecentPerson, type Gender } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { newPersonEntry, filterRecentPeople, type PersonEntry } from '../lib/recentPeople';
 import { useRecentPeople } from '../api/recentPeople';
 import { Button } from './Button';
 import { Avatar } from './Avatar';
-import { Icon } from './icons';
 import { GenderToggle } from './GenderToggle';
-import './PeopleInput.css';
+import { Input } from '@/components/ui/input';
 
 function withEmptyLineAfter(list: PersonEntry[], index: number): { list: PersonEntry[]; focusKey: string; added: boolean } {
   const nextEntry = list[index + 1];
@@ -188,23 +189,25 @@ export function PeopleInput({
   };
 
   return (
-    <div className="fsl-people-input" role="group" aria-labelledby={labelId}>
-      <span id={labelId} className="fsl-form-label">
+    <div className={cn('fsl-people-input flex flex-col gap-2')} role="group" aria-labelledby={labelId}>
+      <span id={labelId} className={cn('fsl-form-label text-sm font-medium text-foreground')}>
         {t('create.others')}
       </span>
-      <div className="fsl-people-input__list">
+      <div className={cn('fsl-people-input__list flex flex-col gap-2')}>
         {value.map((entry, index) => {
           if (entry.userId) {
             return (
               <div
                 key={entry.key}
-                className="fsl-people-input__row fsl-people-input__row--locked"
+                className={cn(
+                  'fsl-people-input__row fsl-people-input__row--locked flex items-center gap-2',
+                )}
                 role="group"
                 aria-label={t('create.hasAccount', { name: entry.name })}
               >
-                <div className="fsl-people-input__locked">
-                  <Icon name="userCheck" size={20} className="fsl-people-input__locked-icon" />
-                  <span className="fsl-people-input__locked-name">{entry.name}</span>
+                <div className={cn('fsl-people-input__locked flex items-center gap-2 flex-1 min-w-0 h-11 px-3 rounded-xl bg-secondary text-secondary-foreground text-base')}>
+                  <UserCheck className="fsl-people-input__locked-icon shrink-0 size-5" />
+                  <span className={cn('fsl-people-input__locked-name min-w-0 truncate font-medium')}>{entry.name}</span>
                 </div>
                 {showGender && (
                   <GenderToggle
@@ -215,13 +218,15 @@ export function PeopleInput({
                 )}
                 <button
                   type="button"
-                  className="fsl-people-input__remove"
+                  className={cn(
+                    'fsl-people-input__remove inline-flex items-center justify-center size-11 min-w-11 shrink-0 rounded-xl border border-border bg-card text-muted-foreground hover:bg-danger-soft hover:text-danger hover:border-danger transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                  )}
                   aria-label={removeLabel(entry, index)}
                   title={removeLabel(entry, index)}
                   onClick={() => removeAt(index)}
                   ref={(el) => registerRef(entry.key, el)}
                 >
-                  <Icon name="x" size={20} />
+                  <X className="size-5" />
                 </button>
               </div>
             );
@@ -236,11 +241,11 @@ export function PeopleInput({
           const hintId = `${baseId}-hint-${entry.key}`;
 
           return (
-            <div key={entry.key} className="fsl-people-input__item">
-              <div className="fsl-people-input__row">
-                <div className="fsl-people-input__field">
-                  <input
-                    className="fsl-input"
+            <div key={entry.key} className={cn('fsl-people-input__item flex flex-col gap-1')}>
+              <div className={cn('fsl-people-input__row flex items-center gap-2')}>
+                <div className={cn('fsl-people-input__field relative flex-1 min-w-0')}>
+                  <Input
+                    className={cn('fsl-input')}
                     type="text"
                     maxLength={40}
                     autoComplete="off"
@@ -266,27 +271,30 @@ export function PeopleInput({
                     ref={(el) => registerRef(entry.key, el)}
                   />
                   {isOpen && (
-                    <div className="fsl-people-input__dropdown">
-                      <div className="fsl-people-input__dropdown-title" aria-hidden="true">
+                    <div className={cn('fsl-people-input__dropdown absolute top-[calc(100%+4px)] left-0 right-0 z-10 bg-card border border-border rounded-xl shadow-md overflow-hidden py-1')}>
+                      <div className={cn('fsl-people-input__dropdown-title px-3 pt-2 pb-1 text-xs text-muted-foreground')} aria-hidden="true">
                         {t('create.suggestTitle')}
                       </div>
-                      <ul role="listbox" id={listboxId} aria-label={t('create.suggestTitle')} className="fsl-people-input__options">
+                      <ul role="listbox" id={listboxId} aria-label={t('create.suggestTitle')} className={cn('fsl-people-input__options list-none m-0 p-0')}>
                         {suggestions.map((p, i) => (
                           <li
                             key={p.userId}
                             id={optionId(i)}
                             role="option"
                             aria-selected={i === highlighted}
-                            className={`fsl-people-input__option${i === highlighted ? ' fsl-people-input__option--active' : ''}`}
+                            className={cn(
+                              'fsl-people-input__option flex items-center gap-3 min-h-11 px-3 py-2 cursor-pointer transition-colors motion-reduce:transition-none hover:bg-secondary',
+                              i === highlighted && 'fsl-people-input__option--active bg-secondary',
+                            )}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => pick(entry, p)}
                           >
                             <Avatar name={p.name} size="sm" />
-                            <span className="fsl-people-input__option-text">
-                              <span className="fsl-people-input__option-name">{p.name}</span>
-                              <span className="fsl-people-input__option-trips">{p.trips.join(' · ')}</span>
+                            <span className={cn('fsl-people-input__option-text flex flex-col flex-1 min-w-0')}>
+                              <span className={cn('fsl-people-input__option-name text-base font-medium text-foreground truncate')}>{p.name}</span>
+                              <span className={cn('fsl-people-input__option-trips text-xs text-muted-foreground truncate')}>{p.trips.join(' · ')}</span>
                             </span>
-                            <Icon name="userCheck" size={18} className="fsl-people-input__option-icon" />
+                            <UserCheck className="fsl-people-input__option-icon shrink-0 size-[18px] text-primary" />
                           </li>
                         ))}
                       </ul>
@@ -303,17 +311,19 @@ export function PeopleInput({
                 {value.length > 1 && (
                   <button
                     type="button"
-                    className="fsl-people-input__remove"
+                    className={cn(
+                      'fsl-people-input__remove inline-flex items-center justify-center size-11 min-w-11 shrink-0 rounded-xl border border-border bg-card text-muted-foreground hover:bg-danger-soft hover:text-danger hover:border-danger transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                    )}
                     aria-label={removeLabel(entry, index)}
                     title={removeLabel(entry, index)}
                     onClick={() => removeAt(index)}
                   >
-                    <Icon name="x" size={20} />
+                    <X className="size-5" />
                   </button>
                 )}
               </div>
               {accountName !== undefined && (
-                <p id={hintId} className="fsl-people-input__hint">
+                <p id={hintId} className={cn('fsl-people-input__hint m-0 text-sm text-warning-foreground')}>
                   {t('create.alreadyListed', { name: accountName })}
                 </p>
               )}
@@ -321,7 +331,7 @@ export function PeopleInput({
           );
         })}
       </div>
-      <Button type="button" variant="secondary" className="fsl-people-input__add" onClick={add}>
+      <Button type="button" variant="secondary" className={cn('fsl-people-input__add self-start')} onClick={add}>
         {t('create.addPerson')}
       </Button>
     </div>

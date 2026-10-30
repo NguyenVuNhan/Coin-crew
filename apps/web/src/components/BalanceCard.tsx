@@ -3,8 +3,10 @@ import { formatVnd, type Transfer, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { Amount } from './Amount';
+import { Button } from './Button';
 import { Icon } from './icons';
-import './BalanceCard.css';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 /**
  * The one transfer a guest pays straight from their balance card: they owe exactly one person. With several debts
@@ -41,53 +43,72 @@ export function BalanceCard({ view }: { view: TripView }) {
   const showBankPrompt = !guest && now > 0 && view.people.find((p) => p.id === me)?.bank === 'none';
 
   return (
-    <div className="fsl-balance">
+    <Card
+      className={cn(
+        'fsl-balance rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-1 w-full text-card-foreground',
+      )}
+    >
       {now > 0 && (
         <>
-          <p className="fsl-balance__label">{t('balance.owed')}</p>
-          <Amount value={now} tone="success" size="xl" />
+          <p className="fsl-balance__label m-0 text-sm font-medium text-muted-foreground">{t('balance.owed')}</p>
+          <Amount value={now} tone="success" size="xl" className="!text-3xl !font-bold tabular-nums !text-primary" />
         </>
       )}
       {now < 0 && (
         <>
-          <p className="fsl-balance__label">{payTo ? t('balance.oweName', { name: nameOf(view, payTo.toId) }) : t('balance.owe')}</p>
-          <Amount value={payTo ? payTo.amount : -now} tone="danger" size="xl" />
+          <p className="fsl-balance__label m-0 text-sm font-medium text-muted-foreground">
+            {payTo ? t('balance.oweName', { name: nameOf(view, payTo.toId) }) : t('balance.owe')}
+          </p>
+          <Amount value={payTo ? payTo.amount : -now} tone="danger" size="xl" className="!text-3xl !font-bold tabular-nums !text-danger" />
           {payTo && (
-            <Link to={`/t/${view.trip.id}/pay/${payTo.toId}`} className="fsl-button fsl-button--primary fsl-button--block fsl-balance__pay">
-              {t('pay.payWithVietQr')}
-            </Link>
+            <div className="flex w-full flex-row gap-2 mt-3">
+              <Button
+                href={`/t/${view.trip.id}/pay/${payTo.toId}`}
+                variant="primary"
+                block
+                className="fsl-balance__pay flex-1"
+              >
+                {t('pay.payWithVietQr')}
+              </Button>
+            </div>
           )}
         </>
       )}
       {now === 0 && (
-        <p className="fsl-balance__settled">
-          <Icon name="circleCheck" size={20} />
+        <p className="fsl-balance__settled m-0 flex items-center gap-2 text-lg font-semibold text-foreground">
+          <Icon name="circleCheck" size={20} className="text-primary shrink-0" />
           <span>{t('balance.settled')}</span>
         </p>
       )}
-      <p className="fsl-balance__sub">{subText}</p>
+      <p className="fsl-balance__sub m-0 text-sm text-muted-foreground tabular-nums">{subText}</p>
       {ifApproved !== null && (
-        <p className="fsl-balance__pending">
+        <p className="fsl-balance__pending m-0 mt-1 text-sm text-muted-foreground tabular-nums">
           {t(ifApproved < 0 ? 'guest.ifApprovedOwe' : ifApproved > 0 ? 'guest.ifApprovedOwed' : 'guest.ifApprovedSettled', {
             amount: formatVnd(Math.abs(ifApproved)),
           })}
         </p>
       )}
       {waiting.length > 0 && (
-        <ul className="fsl-balance__waiting">
+        <ul className="fsl-balance__waiting list-none m-0 p-0 mt-2 flex flex-col gap-1 w-full">
           {waiting.map((p) => (
-            <li key={p.id}>
-              <Icon name="clock" size={16} />
+            <li key={p.id} className="flex items-start gap-2 text-sm text-foreground tabular-nums">
+              <Icon name="clock" size={16} className="text-warning shrink-0 mt-[1px]" />
               <span>{t('balance.waitingFor', { amount: formatVnd(p.amountClaimed), name: nameOf(view, p.toId) })}</span>
             </li>
           ))}
         </ul>
       )}
       {showBankPrompt && (
-        <p className="fsl-balance__bank">
-          {t('bankForm.addPrompt')} <Link to="/me/bank">{t('bankForm.title')}</Link>
+        <p className="fsl-balance__bank self-stretch mt-3 px-4 py-3 rounded-lg bg-secondary text-secondary-foreground text-sm leading-snug">
+          {t('bankForm.addPrompt')}{' '}
+          <Link
+            to="/me/bank"
+            className="font-semibold underline text-secondary-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
+          >
+            {t('bankForm.title')}
+          </Link>
         </p>
       )}
-    </div>
+    </Card>
   );
 }

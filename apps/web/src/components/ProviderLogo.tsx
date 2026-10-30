@@ -1,5 +1,5 @@
 import type { AuthProvider } from '@fsl/core';
-import './ProviderLogo.css';
+import { cn } from '@/lib/utils';
 
 // Official artwork, used verbatim (PNG, not redrawn):
 // - Google: pre-approved icon-only "Theme=Light, Show text=No, Shape=Square" button @4x, from
@@ -20,10 +20,12 @@ export function ProviderLogo({
   provider,
   size = 20,
   muted = false,
+  className,
 }: {
   provider: AuthProvider;
   size?: number;
   muted?: boolean;
+  className?: string;
 }) {
   return (
     <img
@@ -33,7 +35,11 @@ export function ProviderLogo({
       data-provider={provider}
       width={size}
       height={size}
-      className={`fsl-provider-logo${muted ? ' fsl-provider-logo--muted' : ''}`}
+      className={cn(
+        'fsl-provider-logo block shrink-0 rounded-[20%]',
+        muted && 'fsl-provider-logo--muted grayscale opacity-45',
+        className,
+      )}
     />
   );
 }

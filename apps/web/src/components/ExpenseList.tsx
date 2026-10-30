@@ -9,13 +9,13 @@ import { expenseActions, incomeActions } from '../lib/rowActions';
 import { fundOf, incomeMinimum, mergeFeed } from '../lib/fund';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
 import { ApiClientError } from '../api/client';
+import { cn } from '@/lib/utils';
 import { ActionRow } from './ActionRow';
 import { ExpenseRow, rowAmount } from './ExpenseRow';
 import { EmptyState } from './EmptyState';
 import { IncomeRow } from './IncomeRow';
 import { InlineError } from './InlineError';
 import { ListModeChip } from './ListModeChip';
-import './ExpenseList.css';
 
 const STATUS: Record<'pending' | 'rejected' | 'disabled', MessageKey> = {
   pending: 'status.waiting',
@@ -57,7 +57,7 @@ function ExpenseItem({
       <ActionRow label={label} actions={actions} onOpen={onOpen} selected={selected} hintable={hintable}>
         <ExpenseRow expense={expense} view={view} />
       </ActionRow>
-      {error ? <InlineError error={error} className="fsl-expense-list__error" /> : null}
+      {error ? <InlineError error={error} className="fsl-expense-list__error mx-4 mb-3" /> : null}
     </li>
   );
 }
@@ -100,7 +100,7 @@ function IncomeItem({
       <ActionRow label={label} actions={actions} onOpen={onOpen} hintable={hintable}>
         <IncomeRow income={income} view={view} />
       </ActionRow>
-      {shown ? <InlineError error={shown} className="fsl-expense-list__error" /> : null}
+      {shown ? <InlineError error={shown} className="fsl-expense-list__error mx-4 mb-3" /> : null}
     </li>
   );
 }
@@ -136,11 +136,11 @@ export function ExpenseList({
   const title = effective === null ? t('trip.expenses') : effective === 'mine' ? t('expenses.mine') : t('expenses.all');
 
   return (
-    <section className="fsl-expense-list" aria-label={title}>
-      <div className="fsl-expense-list__head">
-        <h2 className="fsl-expense-list__heading">{title}</h2>
+    <section className="fsl-expense-list flex flex-col gap-2" aria-label={title}>
+      <div className="fsl-expense-list__head flex items-center justify-between gap-3 min-h-6">
+        <h2 className="fsl-expense-list__heading text-sm font-semibold text-muted-foreground px-1 pb-2">{title}</h2>
         {feed.length > 0 && (effective !== null || addInHeading) ? (
-          <span className="fsl-expense-list__actions">
+          <span className="fsl-expense-list__actions flex items-center gap-2">
             {effective !== null && <ListModeChip mode={effective} onToggle={toggle} />}
             {addInHeading ? add : null}
           </span>
@@ -155,10 +155,10 @@ export function ExpenseList({
           action={add ?? null}
         />
       ) : rows.length === 0 ? (
-        <p className="fsl-expense-list__empty">{t('expenses.emptyMine')}</p>
+        <p className="fsl-expense-list__empty m-0 p-4 bg-card rounded-xl border border-border text-base text-muted-foreground">{t('expenses.emptyMine')}</p>
       ) : (
         <SwipeGroupProvider>
-          <ul className="fsl-expense-list__rows">
+          <ul className="fsl-expense-list__rows list-none m-0 p-0 bg-card rounded-xl border border-border divide-y divide-border overflow-hidden">
             {rows.map((f, i) =>
               f.kind === 'expense' ? (
                 <ExpenseItem
@@ -185,4 +185,3 @@ export function ExpenseList({
     </section>
   );
 }
-

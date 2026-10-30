@@ -14,7 +14,6 @@ import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
 import { IncomeDetails } from '../components/IncomeDetails';
 import { useT, applyInheritedLang } from '../i18n';
-import './TripRoute.css';
 import { GuestTrip } from './GuestTrip';
 import { ViewOnlyTrip } from './ViewOnlyTrip';
 import { MemberTrip } from './MemberTrip';
@@ -62,7 +61,7 @@ function TripSkeleton({ wide }: { wide: boolean }) {
   const transfers = <SkeletonList rows={3} />;
   const expenses = <SkeletonList rows={4} />;
   return (
-    <div className="fsl-trip-skeleton">
+    <div className="fsl-trip-skeleton flex flex-col gap-4 py-4">
       {wide ? (
         <TripLayout left={expenses} right={<>{balance}{transfers}</>} />
       ) : (
@@ -164,7 +163,7 @@ export function TripRoute() {
     <>
       {page}
       {stopped && (
-        <div className="fsl-resume-bar">
+        <div className="fsl-resume-bar fixed left-1/2 -translate-x-1/2 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] shadow-lg rounded-full z-10">
           <Button onClick={() => { resume(); refetch(); }}>{t('pay.tapToCheck')}</Button>
         </div>
       )}

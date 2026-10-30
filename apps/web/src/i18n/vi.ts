@@ -112,6 +112,8 @@ export const vi: Record<MessageKey, string> = {
   'bank.popular': 'Phổ biến', // REVIEW
   'bank.allBanks': 'Tất cả ngân hàng', // REVIEW
   'bank.choose': 'Chọn ngân hàng', // REVIEW
+  'bank.search': 'Tìm ngân hàng', // REVIEW
+  'bank.noResults': 'Không tìm thấy ngân hàng', // REVIEW
   'bank.accountNumber': 'Số tài khoản', // REVIEW
   'bank.holderName': 'Tên chủ tài khoản', // REVIEW
   'bank.holderHint': 'Như hiển thị trên ngân hàng, không dấu.', // REVIEW

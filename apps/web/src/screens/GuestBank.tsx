@@ -10,8 +10,10 @@ import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
-import './BankDetails.css';
-import './GuestBank.css';
+import { buttonVariants } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 type Mode = 'show' | 'form' | 'saved' | 'deleted';
 
@@ -41,8 +43,8 @@ export function GuestBank(): JSX.Element | null {
   if ((isLoading && !view) || (!view && !error)) {
     return (
       <Screen title={t('people.bank')} back={backLink}>
-        <div className="fsl-bank-details">
-          <div className="fsl-bank-details__loading">
+        <div className="fsl-bank-details flex flex-col gap-4 max-w-[480px] mx-auto w-full">
+          <div className="fsl-bank-details__loading flex flex-col gap-4">
             <Skeleton width="100%" height={16} radius="sm" />
             <Skeleton width="100%" height={44} radius="md" />
             <Skeleton width="100%" height={44} radius="md" />
@@ -57,7 +59,7 @@ export function GuestBank(): JSX.Element | null {
   if (error && !view) {
     return (
       <Screen title={t('people.bank')} back={backLink}>
-        <div className="fsl-bank-details">
+        <div className="fsl-bank-details flex flex-col gap-4 max-w-[480px] mx-auto w-full">
           <InlineError error={error} onRetry={refetch} />
         </div>
       </Screen>
@@ -162,23 +164,28 @@ export function GuestBank(): JSX.Element | null {
         ) : undefined
       }
     >
-      <div className={`fsl-bank-details${submitError !== null ? ' fsl-bank-details--bar-error' : ''}`}>
+      <div
+        className={cn(
+          'fsl-bank-details flex flex-col gap-4 max-w-[480px] mx-auto w-full',
+          submitError !== null && 'fsl-bank-details--bar-error max-lg:pb-24',
+        )}
+      >
         {mode === 'show' && (
           <>
             {person.bankAccount ? (
-              <div className="fsl-guest-bank__card">
-                <p className="fsl-guest-bank__account">{`${person.bankAccount.bankName} · ${person.bankAccount.accountNumberMasked}`}</p>
-                <p className="fsl-guest-bank__holder">{person.bankAccount.holderName}</p>
+              <div className="fsl-guest-bank__card p-4 rounded-xl border border-border bg-card flex flex-col gap-1">
+                <p className="fsl-guest-bank__account m-0 text-base font-semibold text-foreground tabular-nums">{`${person.bankAccount.bankName} · ${person.bankAccount.accountNumberMasked}`}</p>
+                <p className="fsl-guest-bank__holder m-0 text-sm text-muted-foreground">{person.bankAccount.holderName}</p>
               </div>
             ) : null}
             {person.bank === 'pending' ? (
-              <p className="fsl-guest-bank__pending">{t('guestBank.pending')}</p>
+              <p className="fsl-guest-bank__pending m-0 text-sm text-warning-foreground bg-warning-soft px-3 py-2 rounded-lg">{t('guestBank.pending')}</p>
             ) : null}
             {isArchived ? (
-              <p className="fsl-guest-bank__archived">{t('settings.archived')}</p>
+              <p className="fsl-guest-bank__archived m-0 text-sm text-muted-foreground">{t('settings.archived')}</p>
             ) : (
               <>
-                <div className="fsl-guest-bank__buttons">
+                <div className="fsl-guest-bank__buttons flex gap-3 [&>*]:flex-1">
                   <Button
                     variant="secondary"
                     onClick={() => {
@@ -198,39 +205,44 @@ export function GuestBank(): JSX.Element | null {
           </>
         )}
         {mode === 'form' && (
-          <form id="guest-bank-form" className="fsl-bank-details__form" onSubmit={handleSubmit}>
-            <p className="fsl-bank-details__note">{t('guestBank.note', { name: person.name })}</p>
+          <form id="guest-bank-form" className="fsl-bank-details__form flex flex-col gap-4" onSubmit={handleSubmit}>
+            <p className="fsl-bank-details__note m-0 text-sm text-muted-foreground">{t('guestBank.note', { name: person.name })}</p>
             <BankFields value={value} onChange={setValue} />
-            <div className="fsl-bank-details__consent-row">
-              <input
+            <div className="fsl-bank-details__consent-row flex items-center gap-2 min-h-11 text-sm text-foreground select-none">
+              <Checkbox
                 id="fsl-bank-consent"
-                type="checkbox"
                 checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
+                onCheckedChange={(v) => setConsent(v === true)}
                 className="fsl-bank-details__checkbox"
               />
-              <label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label">
-                {beforeLink}<Link to="/privacy" className="fsl-bank-details__privacy-link">{t('bankForm.privacyLink')}</Link>{afterLink}
-              </label>
+              <Label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label flex-1 block font-normal leading-snug py-3 cursor-pointer">
+                {beforeLink}<Link to="/privacy" className="fsl-bank-details__privacy-link text-primary underline underline-offset-[3px] font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">{t('bankForm.privacyLink')}</Link>{afterLink}
+              </Label>
             </div>
           </form>
         )}
         {mode === 'saved' && (
-          <div className="fsl-bank-details__success">
-            <div className="fsl-bank-details__notice fsl-bank-details__notice--accent" role="status">
+          <div className="fsl-bank-details__success flex flex-col gap-4 items-center text-center">
+            <div className="fsl-bank-details__notice fsl-bank-details__notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground" role="status">
               {t('bankForm.saved')}
             </div>
-            <Link to={backLink} className="fsl-button fsl-button--secondary">
+            <Link
+              to={backLink}
+              className={cn('fsl-button fsl-button--secondary', buttonVariants({ variant: 'secondary' }))}
+            >
               {t('common.back')}
             </Link>
           </div>
         )}
         {mode === 'deleted' && (
-          <div className="fsl-bank-details__success">
-            <div className="fsl-bank-details__notice fsl-bank-details__notice--accent" role="status">
+          <div className="fsl-bank-details__success flex flex-col gap-4 items-center text-center">
+            <div className="fsl-bank-details__notice fsl-bank-details__notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground" role="status">
               {t('guestBank.deleted')}
             </div>
-            <Link to={backLink} className="fsl-button fsl-button--secondary">
+            <Link
+              to={backLink}
+              className={cn('fsl-button fsl-button--secondary', buttonVariants({ variant: 'secondary' }))}
+            >
               {t('common.back')}
             </Link>
           </div>

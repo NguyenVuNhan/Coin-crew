@@ -9,7 +9,6 @@ import { IncomeDetails } from '../components/IncomeDetails';
 import type { Selection } from './TripRoute';
 import { ApprovalList } from './Approvals';
 import { RatingsPanel } from './RatingsScreen';
-import './DetailsPanel.css';
 
 /** The expense, payment or fund income whose details are open (the approvals list and ratings are not one). */
 export type Detail = Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings' }>;
@@ -53,12 +52,18 @@ export function DetailsPanel({ view, selection }: { view: TripView; selection: S
     <section
       ref={panel}
       tabIndex={-1}
-      className="fsl-details-panel"
+      className="fsl-details-panel flex flex-col gap-2 min-w-0 focus:outline-none focus:shadow-none"
       aria-label={label}
     >
-      <div className="fsl-details-panel__head">
-        <span className="fsl-details-panel__kind">{label}</span>
-        <button type="button" className="fsl-details-panel__close" aria-label={t('common.close')} title={t('common.close')} onClick={close}>
+      <div className="fsl-details-panel__head flex items-center justify-between gap-3">
+        <span className="fsl-details-panel__kind text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <button
+          type="button"
+          className="fsl-details-panel__close inline-flex size-11 items-center justify-center -mr-1 p-0 border-0 rounded-full bg-transparent text-muted-foreground cursor-pointer transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+          aria-label={t('common.close')}
+          title={t('common.close')}
+          onClick={close}
+        >
           <Icon name="x" size={20} />
         </button>
       </div>

@@ -134,6 +134,8 @@ export interface ExpenseHistoryItem {
 export type GroupPreset = 'trip' | 'sport';
 
 export interface BankFields { bin: string; accountNumber: string; holderName: string }
+/** The signed-in user's own saved bank details (GET /api/me/bank). */
+export type MyBankResponse = BankFields;
 /** A person to add when creating a trip: a plain name, or someone with an account from the recent-people list. */
 export type CreateTripPerson = { name: string; userId?: string; gender?: Gender | null };
 /** Plain strings are still accepted so an older open client keeps working. */

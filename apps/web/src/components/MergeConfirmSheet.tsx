@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IncomingMergeRequest } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
-import './MergeRequestBanner.css';
 
 export interface MergeConfirmSheetProps {
   request: IncomingMergeRequest;
@@ -48,15 +48,18 @@ export function MergeConfirmSheet({ request, open, onClose }: MergeConfirmSheetP
       title={t('merge.confirmTitle')}
       className="fsl-merge-sheet"
     >
-      <div className="fsl-merge-sheet__body">
-        <p className="fsl-merge-sheet__moves">
+      <div className={cn('fsl-merge-sheet__body', 'flex flex-col gap-3 text-left')}>
+        <p className={cn('fsl-merge-sheet__moves', 'm-0 text-base leading-normal text-foreground')}>
           {t('merge.moves', { groups: request.groups.merged, name: request.survivor.name })}
         </p>
 
         {request.released && request.released.length > 0 && (
-          <ul className="fsl-merge-sheet__released">
+          <ul className={cn('fsl-merge-sheet__released', 'm-0 p-0 list-none divide-y divide-border')}>
             {request.released.map((r) => (
-              <li key={`${r.provider}-${r.email}`} className="fsl-merge-sheet__released-item">
+              <li
+                key={`${r.provider}-${r.email}`}
+                className={cn('fsl-merge-sheet__released-item', 'py-2 text-sm leading-5 text-muted-foreground')}
+              >
                 {t('merge.released', {
                   provider: r.provider === 'google' ? 'Google' : 'Zalo',
                   email: r.email ?? '',
@@ -68,7 +71,7 @@ export function MergeConfirmSheet({ request, open, onClose }: MergeConfirmSheetP
 
         {error !== null && <InlineError error={error} />}
 
-        <div className="fsl-merge-sheet__actions">
+        <div className={cn('fsl-merge-sheet__actions', 'flex flex-col gap-2')}>
           <Button
             variant="danger"
             block

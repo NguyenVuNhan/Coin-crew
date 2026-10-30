@@ -19,7 +19,8 @@ import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
-import './WhoAreYou.css';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 const REJOIN = 'rejoin';
 
@@ -204,7 +205,7 @@ export function WhoAreYou() {
   if (isLoading) {
     return (
       <Screen title={t('who.title')} right={<LanguageButton />}>
-        <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
+        <p className="fsl-who__subtitle m-0 mb-4 text-sm text-muted-foreground">{t('who.subtitle')}</p>
         <SkeletonList rows={4} />
       </Screen>
     );
@@ -233,10 +234,10 @@ export function WhoAreYou() {
           {actionError ? <InlineError error={actionError} /> : null}
           {joinStep === 'similar' && similarMatch && account ? (
             <>
-              <p className="fsl-who__similar">
+              <p className="fsl-who__similar m-0 mb-2 text-sm leading-snug text-foreground">
                 {t('who.similar', { typed: account.name, name: similarMatch.name })}
               </p>
-              <div className="fsl-who__similar-actions">
+              <div className="fsl-who__similar-actions flex flex-col gap-2">
                 <Button
                   variant="primary"
                   block
@@ -289,15 +290,22 @@ export function WhoAreYou() {
       }
     >
       <div
-        className={`fsl-who${actionError ? ' fsl-who--bar-error' : ''}`}
+        className={cn(
+          'fsl-who flex flex-col gap-4 py-4',
+          !!actionError && 'fsl-who--bar-error max-lg:pb-24',
+        )}
       >
         {!signedIn && account === null && (
-          <section className="fsl-who__guest-note" role="note" aria-labelledby={guestNoteId}>
-            <h2 id={guestNoteId} className="fsl-who__guest-title">
-              <Icon name="info" size={16} />
+          <section
+            className="fsl-who__guest-note flex flex-col gap-2 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-sm leading-snug text-warning-foreground"
+            role="note"
+            aria-labelledby={guestNoteId}
+          >
+            <h2 id={guestNoteId} className="fsl-who__guest-title m-0 flex items-center gap-2 text-base font-semibold leading-normal">
+              <Icon name="info" size={16} className="shrink-0" />
               {t('who.guestTitle')}
             </h2>
-            <ul className="fsl-who__guest-list">
+            <ul className="fsl-who__guest-list m-0 flex flex-col gap-1 pl-5 list-disc">
               <li>{t('who.guestExpenses')}</li>
               <li>{t('who.guestBank')}</li>
             </ul>
@@ -309,19 +317,19 @@ export function WhoAreYou() {
           </section>
         )}
 
-        <p className="fsl-who__subtitle">{t('who.subtitle')}</p>
+        <p className="fsl-who__subtitle m-0 text-sm text-muted-foreground">{t('who.subtitle')}</p>
 
-        <div className="fsl-who__pick-step">
+        <div className="fsl-who__pick-step flex flex-col gap-4">
           {showSearch && (
             <>
-              <div className="fsl-who__search">
-                <span className="fsl-who__search-icon" aria-hidden="true">
+              <div className="fsl-who__search relative flex items-center">
+                <span className="fsl-who__search-icon pointer-events-none absolute left-3 inline-flex text-subtle-foreground" aria-hidden="true">
                   <Icon name="search" size={18} />
                 </span>
-                <input
+                <Input
                   type="search"
                   aria-label={t('who.search')}
-                  className="fsl-who__search-input"
+                  className="fsl-who__search-input pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoComplete="off"
@@ -329,7 +337,7 @@ export function WhoAreYou() {
                 {query !== '' && (
                   <button
                     type="button"
-                    className="fsl-who__search-clear"
+                    className="fsl-who__search-clear absolute right-0 size-11 inline-flex items-center justify-center p-0 border-0 bg-transparent text-muted-foreground rounded-full cursor-pointer hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
                     aria-label={t('who.clearSearch')}
                     title={t('who.clearSearch')}
                     onClick={() => setQuery('')}
@@ -338,14 +346,14 @@ export function WhoAreYou() {
                   </button>
                 )}
               </div>
-              <p className="fsl-who__count" role="status">
+              <p className="fsl-who__count m-0 -mt-2 text-sm text-muted-foreground" role="status">
                 {t('who.count', { shown: visible.length, total: people.length })}
               </p>
             </>
           )}
 
           {nameMatchId && selectedId === nameMatchId && selectedPerson && (
-            <p className="fsl-who__subtitle" role="status">
+            <p className="fsl-who__subtitle m-0 text-sm text-muted-foreground" role="status">
               {t('who.nameMatch', { name: selectedPerson.name })}
             </p>
           )}
@@ -354,7 +362,7 @@ export function WhoAreYou() {
             <div
               role="radiogroup"
               aria-label={t('who.title')}
-              className="fsl-who__list"
+              className="fsl-who__list flex flex-col bg-card rounded-xl border border-border divide-y divide-border overflow-hidden"
             >
               {myLeft && (
                 <button
@@ -362,7 +370,12 @@ export function WhoAreYou() {
                   type="button"
                   role="radio"
                   aria-checked={selectedId === REJOIN}
-                  className={`fsl-who__row fsl-who__row--radio ${selectedId === REJOIN ? 'fsl-who__row--selected' : ''}`}
+                  className={cn(
+                    'fsl-who__row fsl-who__row--radio flex items-center gap-3 px-4 py-3 min-h-11 w-full text-left text-foreground transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset border-0',
+                    selectedId === REJOIN
+                      ? 'fsl-who__row--selected bg-secondary ring-2 ring-inset ring-ring relative z-1'
+                      : 'bg-card hover:bg-accent',
+                  )}
                   onClick={() => selectRadio(REJOIN)}
                   onKeyDown={(e) => {
                     if (e.key === ' ' || e.key === 'Enter') {
@@ -372,9 +385,9 @@ export function WhoAreYou() {
                   }}
                 >
                   <Avatar name={myLeft.name} />
-                  <div className="fsl-who__row-info">
-                    <div className="fsl-who__row-name">{myLeft.name}</div>
-                    <div className="fsl-who__row-sub">
+                  <div className="fsl-who__row-info flex flex-1 flex-col gap-1 min-w-0">
+                    <div className="fsl-who__row-name truncate text-base font-semibold text-foreground">{myLeft.name}</div>
+                    <div className="fsl-who__row-sub text-sm text-muted-foreground">
                       {t('who.rejoinHint')}
                     </div>
                   </div>
@@ -387,16 +400,16 @@ export function WhoAreYou() {
                     <a
                       key={person.id}
                       href={signInHref(isZaloWebView() && me?.signIn.zalo ? 'zalo' : 'google', target)}
-                      className="fsl-who__row fsl-who__row--member"
+                      className="fsl-who__row fsl-who__row--member flex items-center gap-3 px-4 py-3 min-h-11 w-full text-left text-foreground bg-card hover:bg-accent no-underline cursor-pointer transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset border-0"
                       onClick={(e) => {
                         e.preventDefault();
                         setSignInOpen(true);
                       }}
                     >
                       <Avatar name={person.name} />
-                      <div className="fsl-who__row-info">
-                        <div className="fsl-who__row-name">{person.name}</div>
-                        <div className="fsl-who__row-sub">
+                      <div className="fsl-who__row-info flex flex-1 flex-col gap-1 min-w-0">
+                        <div className="fsl-who__row-name truncate text-base font-semibold text-foreground">{person.name}</div>
+                        <div className="fsl-who__row-sub text-sm text-muted-foreground">
                           {t('who.hasAccount')}
                         </div>
                       </div>
@@ -412,7 +425,12 @@ export function WhoAreYou() {
                     type="button"
                     role="radio"
                     aria-checked={isSelected}
-                    className={`fsl-who__row fsl-who__row--radio ${isSelected ? 'fsl-who__row--selected' : ''}`}
+                    className={cn(
+                      'fsl-who__row fsl-who__row--radio flex items-center gap-3 px-4 py-3 min-h-11 w-full text-left text-foreground transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset border-0',
+                      isSelected
+                        ? 'fsl-who__row--selected bg-secondary ring-2 ring-inset ring-ring relative z-1'
+                        : 'bg-card hover:bg-accent',
+                    )}
                     onClick={() => selectRadio(person.id)}
                     onKeyDown={(e) => {
                       if (e.key === ' ' || e.key === 'Enter') {
@@ -422,15 +440,15 @@ export function WhoAreYou() {
                     }}
                   >
                     <Avatar name={person.name} />
-                    <div className="fsl-who__row-info">
-                      <div className="fsl-who__row-name">{person.name}</div>
+                    <div className="fsl-who__row-info flex flex-1 flex-col gap-1 min-w-0">
+                      <div className="fsl-who__row-name truncate text-base font-semibold text-foreground">{person.name}</div>
                       {person.lastUsedHere && (
-                        <div className="fsl-who__row-sub">
+                        <div className="fsl-who__row-sub text-sm text-muted-foreground">
                           {t('who.lastUsedHere')}
                         </div>
                       )}
                       {person.activeElsewhere && (
-                        <div className="fsl-who__row-sub">
+                        <div className="fsl-who__row-sub text-sm text-muted-foreground">
                           {t('who.activeElsewhere', {
                             ago: formatAgo(person.activeElsewhere),
                           })}
@@ -450,14 +468,14 @@ export function WhoAreYou() {
             <>
               <button
                 type="button"
-                className="fsl-who__join"
+                className="fsl-who__join mt-2 flex min-h-11 w-full items-center rounded-xl border border-dashed border-border bg-transparent px-4 py-3 text-left font-medium text-primary transition-colors hover:enabled:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50 motion-reduce:transition-none"
                 disabled={isSubmitting}
                 onClick={onJoinRow}
               >
                 {t('who.joinAs', { name: account.name })}
               </button>
               {joinStep === 'gender' && (
-                <div className="fsl-who__join-gender">
+                <div className="fsl-who__join-gender flex items-center gap-2 px-4 pt-2">
                   <GenderToggle
                     name={account.name}
                     value={joinGender}

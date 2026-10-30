@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { CreateTripInput, GroupPreset, Gender } from '@fsl/core';
 import { useT, useLang } from '../i18n';
 import { useMe } from '../api/hooks';
-import { apiFetch, apiSend } from '../api/client';
+import { apiSend } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
 import { Button } from '../components/Button';
@@ -15,7 +15,9 @@ import { PeopleInput } from '../components/PeopleInput';
 import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
-import './CreateTrip.css';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 export function CreateTrip() {
   const t = useT();
@@ -129,18 +131,26 @@ export function CreateTrip() {
       <form
         id="create-trip-form"
         onSubmit={handleSubmit}
-        className={`fsl-create-trip__form${submitError ? ' fsl-create-trip__form--bar-error' : ''}`}
+        className={cn(
+          'fsl-create-trip__form flex flex-col gap-5 py-4',
+          !!submitError && 'fsl-create-trip__form--bar-error max-lg:pb-24',
+        )}
       >
         <div
           role="radiogroup"
           aria-label={t('create.presetLabel')}
-          className="fsl-create-trip__preset"
+          className={cn('fsl-create-trip__preset grid grid-cols-2 gap-2 p-1 bg-muted rounded-xl border border-border')}
         >
           <button
             type="button"
             role="radio"
             aria-checked={preset === 'trip'}
-            className={`fsl-create-trip__preset-btn${preset === 'trip' ? ' fsl-create-trip__preset-btn--selected' : ''}`}
+            className={cn(
+              'fsl-create-trip__preset-btn inline-flex items-center justify-center gap-2 min-h-11 px-3 py-2 rounded-lg border text-base cursor-pointer select-none transition-all active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              preset === 'trip'
+                ? 'fsl-create-trip__preset-btn--selected bg-card text-foreground font-semibold border-border shadow-xs'
+                : 'border-transparent bg-transparent text-muted-foreground font-medium hover:text-foreground',
+            )}
             onClick={() => setPreset('trip')}
           >
             <Icon name="suitcase" size={18} />
@@ -150,7 +160,12 @@ export function CreateTrip() {
             type="button"
             role="radio"
             aria-checked={preset === 'sport'}
-            className={`fsl-create-trip__preset-btn${preset === 'sport' ? ' fsl-create-trip__preset-btn--selected' : ''}`}
+            className={cn(
+              'fsl-create-trip__preset-btn inline-flex items-center justify-center gap-2 min-h-11 px-3 py-2 rounded-lg border text-base cursor-pointer select-none transition-all active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              preset === 'sport'
+                ? 'fsl-create-trip__preset-btn--selected bg-card text-foreground font-semibold border-border shadow-xs'
+                : 'border-transparent bg-transparent text-muted-foreground font-medium hover:text-foreground',
+            )}
             onClick={() => setPreset('sport')}
           >
             <Icon name="trophy" size={18} />
@@ -158,11 +173,11 @@ export function CreateTrip() {
           </button>
         </div>
 
-        <div className="fsl-form-group">
-          <label htmlFor="fsl-trip-name" className="fsl-form-label">
+        <div className={cn('fsl-form-group flex flex-col gap-1.5')}>
+          <Label htmlFor="fsl-trip-name" className={cn('fsl-form-label text-foreground')}>
             {t('create.tripName')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="fsl-trip-name"
             type="text"
             placeholder={preset === 'sport' ? t('create.sportNamePlaceholder') : t('create.tripNamePlaceholder')}
@@ -173,21 +188,21 @@ export function CreateTrip() {
           />
         </div>
 
-        <div className="fsl-form-group">
-          <label htmlFor="fsl-my-name" className="fsl-form-label">
+        <div className={cn('fsl-form-group flex flex-col gap-1.5')}>
+          <Label htmlFor="fsl-my-name" className={cn('fsl-form-label text-foreground')}>
             {t('create.myName')}
-          </label>
+          </Label>
           {meQuery.isLoading ? (
-            <Skeleton height={44} radius="md" />
+            <Skeleton height={44} radius="xl" />
           ) : (
-            <div className="fsl-create-trip__my-name-row">
-              <input
+            <div className={cn('fsl-create-trip__my-name-row flex items-center gap-2')}>
+              <Input
                 id="fsl-my-name"
                 type="text"
                 maxLength={40}
                 value={myName}
                 onChange={(e) => setUserEnteredMyName(e.target.value)}
-                className="fsl-input"
+                className="fsl-input flex-1"
               />
               {preset === 'sport' && (
                 <GenderToggle
@@ -202,19 +217,29 @@ export function CreateTrip() {
 
         <PeopleInput value={people} onChange={setPeople} showGender={preset === 'sport'} />
 
-        <details className="fsl-create-trip__details">
-          <summary className="fsl-create-trip__summary">
-            <span className="fsl-create-trip__summary-text">
-              <span className="fsl-create-trip__summary-title">
+        <details className={cn('fsl-create-trip__details group rounded-xl border border-border bg-card overflow-hidden')}>
+          <summary
+            className={cn(
+              'fsl-create-trip__summary flex items-center justify-between gap-3 min-h-11 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl',
+            )}
+          >
+            <span className={cn('fsl-create-trip__summary-text flex flex-col gap-0.5 min-w-0')}>
+              <span className={cn('fsl-create-trip__summary-title text-base font-medium text-foreground')}>
                 {t('create.bankTitle')}
               </span>
-              <span className="fsl-create-trip__summary-hint">
+              <span className={cn('fsl-create-trip__summary-hint text-xs text-subtle-foreground')}>
                 {t('create.bankHint')}
               </span>
             </span>
-            <Icon name="chevronDown" size={20} className="fsl-create-trip__chevron" />
+            <Icon
+              name="chevronDown"
+              size={20}
+              className={cn(
+                'fsl-create-trip__chevron shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none group-open:rotate-180',
+              )}
+            />
           </summary>
-          <div className="fsl-create-trip__details-body">
+          <div className={cn('fsl-create-trip__details-body mx-4 py-4 border-t border-border')}>
             <BankFields value={bank} onChange={setBank} />
           </div>
         </details>

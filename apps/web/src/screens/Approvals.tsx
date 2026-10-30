@@ -5,7 +5,6 @@ import { useBackToTrip } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { ApprovalItem, approvalKey, waitingApprovals } from '../components/ApprovalsCard';
 import { FocusWatch } from '../components/FocusWatch';
-import './Approvals.css';
 
 /**
  * Every approval that is waiting, each with its own actions. Handled ones drop out as the trip refreshes,
@@ -44,9 +43,14 @@ export function ApprovalList({ view, onClose, switching = false }: { view: TripV
 
   if (empty) return null;
   return (
-    <ul ref={list} className="fsl-approvals__list">
+    <ul ref={list} className="fsl-approvals__list m-0 p-0 list-none flex flex-col gap-3">
       {approvals.map((a) => (
-        <FocusWatch key={approvalKey(a)} as="li" handoff={handoff} className="fsl-approvals__item">
+        <FocusWatch
+          key={approvalKey(a)}
+          as="li"
+          handoff={handoff}
+          className="fsl-approvals__item min-w-0 bg-warning-soft border border-warning-border rounded-xl px-4 py-3"
+        >
           <ApprovalItem view={view} approval={a} switching={switching} />
         </FocusWatch>
       ))}
@@ -60,7 +64,7 @@ export function Approvals({ view }: { view: TripView }) {
   const close = useBackToTrip(view.trip.id);
   return (
     <Screen title={t('approvals.allTitle')} onBack={close}>
-      <div className="fsl-approvals">
+      <div className="fsl-approvals py-4">
         <ApprovalList view={view} onClose={close} />
       </div>
     </Screen>

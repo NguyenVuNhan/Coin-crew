@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { formatVnd, type Gender, type PersonView } from '@fsl/core';
 import { useT } from '../i18n';
@@ -17,7 +17,12 @@ import { ActionSheet } from '../components/ActionSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { GenderToggle } from '../components/GenderToggle';
-import './People.css';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { cn } from '@/lib/utils';
 
 export function People() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -33,12 +38,20 @@ export function People() {
   const [menuFor, setMenuFor] = useState<PersonView | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
-  const [newGender, setNewGender] = useState<Gender | null>(null);
+  const [newGender, setNewGender] = useState<Gender | null>('M');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastAddedName = useRef('');
+
+  useEffect(() => {
+    if (actingId === 'new-person' && error && !newName) {
+      setNewName(lastAddedName.current);
+    }
+  }, [error, actingId]);
 
   if (isLoading) {
     return (
       <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
-        <div className="fsl-people">
+        <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
           <SkeletonList rows={4} />
         </div>
       </Screen>
@@ -142,15 +155,18 @@ export function People() {
   const handleAddPerson = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newName.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed) return;
+    lastAddedName.current = trimmed;
+    const genderToSubmit = newGender;
+    setNewName('');
+    setNewGender('M');
+    inputRef.current?.focus();
     setActingId('new-person');
     const payload: { name: string; gender?: Gender | null } = { name: trimmed };
-    if (view.trip.preset === 'sport' && newGender) {
-      payload.gender = newGender;
+    if (view.trip.preset === 'sport' && genderToSubmit) {
+      payload.gender = genderToSubmit;
     }
     await run('/people', payload, 'POST');
-    setNewName('');
-    setNewGender(null);
   };
 
   const mainPeople = view.people.filter((p) => p.status !== 'left');
@@ -158,9 +174,9 @@ export function People() {
 
   return (
     <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
-      <div className="fsl-people">
+      <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
         <SwipeGroupProvider>
-          <ul className="fsl-people__list">
+          <ul className={cn('fsl-people__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border [&_.fsl-action-row]:border-b-0 [&_.fsl-action-row__main]:pl-3 [&_.fsl-action-row__main]:gap-2 [&_.fsl-pill]:shrink-0')}>
             {mainPeople.map((person, index) => {
               const actions = actionsFor(person);
               const isOrganiser =
@@ -199,7 +215,7 @@ export function People() {
                 );
               } else if (person.gender) {
                 trailing = (
-                  <Pill tone={person.gender === 'M' ? 'accent' : 'warning'}>
+                  <Pill tone={person.gender === 'M' ? 'accent' : 'warning'} className="shrink-0">
                     {t(`gender.${person.gender}`)}
                   </Pill>
                 );
@@ -215,17 +231,17 @@ export function People() {
                     leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                     trailing={trailing}
                   >
-                    <span className="fsl-people__text">
-                      <span className="fsl-people__name">{person.name}</span>
-                      {subLine(person) !== null && <span className="fsl-people__bank">{subLine(person)}</span>}
+                    <span className={cn('fsl-people__text flex-1 min-w-0 flex flex-col')}>
+                      <span className={cn('fsl-people__name flex-1 min-w-0 truncate text-base font-semibold text-foreground')}>{person.name}</span>
+                      {subLine(person) !== null && <span className={cn('fsl-people__bank text-sm leading-snug text-muted-foreground tabular-nums [overflow-wrap:anywhere]')}>{subLine(person)}</span>}
                     </span>
-                    <Pill tone={roleTone}>{roleText}</Pill>
+                    <Pill tone={roleTone} className="shrink-0">{roleText}</Pill>
                     {person.status === 'pending' && (
-                      <Pill tone="warning">{t('who.pending')}</Pill>
+                      <Pill tone="warning" className="shrink-0">{t('who.pending')}</Pill>
                     )}
                   </ActionRow>
                   {hasRowError && (
-                    <p className="fsl-people__row-error" role="alert">
+                    <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">
                       {actionErrorText(error)}
                     </p>
                   )}
@@ -236,12 +252,12 @@ export function People() {
         </SwipeGroupProvider>
 
         {leftPeople.length > 0 && (
-          <section className="fsl-people__left" aria-labelledby={leftHeadingId}>
-            <h2 id={leftHeadingId} className="fsl-people__left-title">
+          <section className={cn('fsl-people__left flex flex-col gap-2')} aria-labelledby={leftHeadingId}>
+            <h2 id={leftHeadingId} className={cn('fsl-people__left-title m-0 px-1 text-sm font-semibold text-muted-foreground')}>
               {t('people.leftTitle')}
             </h2>
             <SwipeGroupProvider>
-              <ul className="fsl-people__list">
+              <ul className={cn('fsl-people__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border [&_.fsl-action-row]:border-b-0 [&_.fsl-action-row__main]:pl-3 [&_.fsl-action-row__main]:gap-2 [&_.fsl-pill]:shrink-0')}>
                 {leftPeople.map((person) => {
                   const actions = actionsFor(person);
                   const hasRowError = actingId === person.id && Boolean(error);
@@ -262,14 +278,14 @@ export function People() {
                         hintable={false}
                         leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                       >
-                        <span className="fsl-people__text">
-                          <span className="fsl-people__name">{person.name}</span>
-                          <span className="fsl-people__bank">{balanceLine}</span>
+                        <span className={cn('fsl-people__text flex-1 min-w-0 flex flex-col')}>
+                          <span className={cn('fsl-people__name flex-1 min-w-0 truncate text-base font-semibold text-foreground')}>{person.name}</span>
+                          <span className={cn('fsl-people__bank text-sm leading-snug text-muted-foreground tabular-nums [overflow-wrap:anywhere]')}>{balanceLine}</span>
                         </span>
-                        <Pill tone="neutral">{t('people.leftBadge')}</Pill>
+                        <Pill tone="neutral" className="shrink-0">{t('people.leftBadge')}</Pill>
                       </ActionRow>
                       {hasRowError && (
-                        <p className="fsl-people__row-error" role="alert">
+                        <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">
                           {actionErrorText(error)}
                         </p>
                       )}
@@ -284,31 +300,36 @@ export function People() {
         {!view.trip.archived &&
           view.me.kind === 'member' &&
           (view.me.isAdmin || view.me.isOrganiser) && (
-          <form onSubmit={handleAddPerson} className="fsl-people__add-form">
-            <input
-              type="text"
-              className="fsl-input"
-              placeholder={t('create.otherPlaceholder')}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              maxLength={40}
-              aria-label={t('create.otherPlaceholder')}
-            />
-            {view.trip.preset === 'sport' && (
-              <GenderToggle
-                name={newName.trim() || t('create.otherPlaceholder')}
-                value={newGender}
-                onChange={setNewGender}
-                disabled={busy}
+          <form onSubmit={handleAddPerson} className={cn('fsl-people__add-form flex items-center gap-2 mt-2')}>
+            <InputGroup className="fsl-people__add-group flex-1">
+              <InputGroupInput
+                ref={inputRef}
+                type="text"
+                className="fsl-input"
+                placeholder={t('create.otherPlaceholder')}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                maxLength={40}
+                aria-label={t('create.otherPlaceholder')}
               />
-            )}
-            <Button type="submit" variant="secondary" disabled={!newName.trim() || busy}>
+              {view.trip.preset === 'sport' && (
+                <InputGroupAddon align="inline-end">
+                  <GenderToggle
+                    variant="inline"
+                    name={newName.trim() || t('create.otherPlaceholder')}
+                    value={newGender}
+                    onChange={setNewGender}
+                  />
+                </InputGroupAddon>
+              )}
+            </InputGroup>
+            <Button type="submit" variant="secondary" disabled={!newName.trim()}>
               {t('create.addPerson')}
             </Button>
           </form>
         )}
         {actingId === 'new-person' && Boolean(error) && (
-          <p className="fsl-people__row-error" role="alert">
+          <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">
             {actionErrorText(error)}
           </p>
         )}
@@ -327,8 +348,8 @@ export function People() {
             mergeSource ? t('people.mergeInto', { name: mergeSource.name }) : ''
           }
         >
-          <p className="fsl-people__explain">{t('people.mergeExplain')}</p>
-          <div className="fsl-people__targets">
+          <p className={cn('fsl-people__explain m-0 mb-3 text-sm leading-snug text-muted-foreground')}>{t('people.mergeExplain')}</p>
+          <div className={cn('fsl-people__targets flex flex-col gap-2 py-2')}>
             {mergeSource &&
               view.people
                 .filter((p) => p.id !== mergeSource.id && p.status !== 'left')
@@ -337,7 +358,7 @@ export function People() {
                     key={target.id}
                     variant="secondary"
                     block
-                    className="fsl-people__target"
+                    className={cn('fsl-people__target')}
                     onClick={() => handleChooseTarget(target)}
                   >
                     {target.name}

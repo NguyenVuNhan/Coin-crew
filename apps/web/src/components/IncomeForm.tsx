@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type JSX, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, MAX_AMOUNT, parseVnd, type IncomeView, type TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { incomeMinimum } from '../lib/fund';
@@ -8,7 +9,8 @@ import { fromEntryValue } from '../lib/splitInput';
 import { Screen } from './Screen';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
-import './IncomeForm.css';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function getTodayLocalDate(): string {
   const now = new Date();
@@ -110,67 +112,70 @@ export function IncomeForm({
       <form
         id="income-form"
         onSubmit={handleSubmit}
-        className={`fsl-expense-form${submitError ? ' fsl-income-form--bar-error' : ''}`}
+        className={cn(
+          'fsl-expense-form flex flex-col gap-4 w-full',
+          Boolean(submitError) && 'fsl-income-form--bar-error max-lg:pb-24',
+        )}
       >
         {switcher}
 
-        <div className="fsl-field">
-          <label htmlFor="income-amount" className="fsl-field-label">
+        <div className={cn('fsl-field flex flex-col gap-1.5')}>
+          <Label htmlFor="income-amount" className={cn('fsl-field-label text-foreground')}>
             {t('expenseForm.amount')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="income-amount"
             type="text"
             inputMode="decimal"
-            className="fsl-input fsl-input--amount"
+            className={cn('fsl-input fsl-input--amount font-semibold tabular-nums')}
             value={amountText}
             onChange={(e) => setAmountText(e.target.value)}
             aria-describedby={isAmountInvalid ? 'income-amount-error' : 'income-amount-hint'}
           />
           {parsed !== null && (
-            <div className="fsl-amount-preview">
+            <div className={cn('fsl-amount-preview text-sm font-semibold tabular-nums text-muted-foreground')}>
               {formatVnd(parsed)}
             </div>
           )}
           {isAmountInvalid ? (
-            <div id="income-amount-error" role="alert" className="fsl-field-error">
+            <div id="income-amount-error" role="alert" className={cn('fsl-field-error text-sm text-danger')}>
               {t('expenseForm.amountInvalid')}
             </div>
           ) : (
-            <div id="income-amount-hint" className="fsl-field-hint">
+            <div id="income-amount-hint" className={cn('fsl-field-hint text-sm text-muted-foreground')}>
               {t('expenseForm.amountHint')}
             </div>
           )}
           {isBelowMinimum && (
-            <p className="fsl-income-form__min" role="status">
+            <p className={cn('fsl-income-form__min m-0 mt-1 text-sm text-danger')} role="status">
               {t('fund.keepAtLeast', { amount: formatVnd(minimum) })}
             </p>
           )}
         </div>
 
-        <div className="fsl-field">
-          <label htmlFor="income-date" className="fsl-field-label">
+        <div className={cn('fsl-field flex flex-col gap-1.5')}>
+          <Label htmlFor="income-date" className={cn('fsl-field-label text-foreground')}>
             {t('expenseForm.date')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="income-date"
             type="date"
-            className="fsl-input"
+            className={cn('fsl-input')}
             value={spentOn}
             onChange={(e) => setSpentOn(e.target.value)}
           />
         </div>
 
-        <div className="fsl-field">
-          <label htmlFor="income-note" className="fsl-field-label">
+        <div className={cn('fsl-field flex flex-col gap-1.5')}>
+          <Label htmlFor="income-note" className={cn('fsl-field-label text-foreground')}>
             {t('fund.note')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="income-note"
             type="text"
             maxLength={80}
             placeholder={t('fund.notePlaceholder')}
-            className="fsl-input"
+            className={cn('fsl-input')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />

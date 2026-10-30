@@ -112,6 +112,7 @@ describe('AccountMenu', () => {
     mockApi({});
     renderAt(<AccountMenu user={user} />);
     await userEvent.click(screen.getByRole('button', { name: 'Account' }));
-    expect(screen.getByRole('dialog', { name: 'Account' })).toHaveAttribute('aria-modal', 'true');
+    // A bottom drawer (vaul) over the page: modal, the page behind is hidden from assistive tech.
+    expect(screen.getByRole('dialog', { name: 'Account' })).toHaveAttribute('data-slot', 'drawer-content');
   });
 });

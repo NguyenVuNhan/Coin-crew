@@ -6,7 +6,7 @@ import { apiSend } from '../api/client';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
 import { MergeConfirmSheet } from './MergeConfirmSheet';
-import './MergeRequestBanner.css';
+import { cn } from '@/lib/utils';
 
 export interface MergeRequestBannerProps {
   request: IncomingMergeRequest;
@@ -36,11 +36,15 @@ export function MergeRequestBanner({ request, autoOpen = false }: MergeRequestBa
   };
 
   return (
-    <div className="fsl-merge-banner">
-      <p className="fsl-merge-banner__text">
+    <div
+      className={cn(
+        'fsl-merge-banner block rounded-xl bg-warning-soft text-warning-foreground p-4 box-border',
+      )}
+    >
+      <p className="fsl-merge-banner__text m-0 mb-3 text-sm text-warning-foreground text-left break-words">
         {t('merge.incoming', { name: request.survivor.name, who })}
       </p>
-      <div className="fsl-merge-banner__actions">
+      <div className="fsl-merge-banner__actions flex flex-row flex-wrap items-center justify-start gap-2">
         <Button
           variant="primary"
           disabled={busy}
@@ -57,7 +61,7 @@ export function MergeRequestBanner({ request, autoOpen = false }: MergeRequestBa
         </Button>
       </div>
       {error !== null && (
-        <InlineError error={error} className="fsl-merge-banner__error" />
+        <InlineError error={error} className="fsl-merge-banner__error mt-2" />
       )}
       <MergeConfirmSheet
         request={request}

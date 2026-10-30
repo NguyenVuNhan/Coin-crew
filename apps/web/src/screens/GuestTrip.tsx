@@ -21,7 +21,8 @@ import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import { TripTabs } from '../components/TripTabs';
 import { SignInButtons } from '../components/SignInButtons';
-import './GuestTrip.css';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
@@ -70,21 +71,31 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
     archived ? undefined : (
       <Link
         to={`/t/${view.trip.id}/expenses/new`}
-        className={`fsl-button fsl-button--${showsPay ? 'secondary' : 'primary'}${block ? ' fsl-button--block' : ''}`}
+        className={cn(
+          'fsl-button',
+          `fsl-button--${showsPay ? 'secondary' : 'primary'}`,
+          block && 'fsl-button--block',
+          buttonVariants({ variant: showsPay ? 'secondary' : 'default' }),
+          block && 'w-full',
+        )}
       >
         {t('trip.addExpense')}
       </Link>
     );
 
-  const notice = archived ? <p className="fsl-guest__notice">{t('settings.archived')}</p> : null;
+  const notice = archived ? (
+    <p className="fsl-guest__notice m-0 px-4 py-3 bg-muted rounded-xl text-sm text-muted-foreground">
+      {t('settings.archived')}
+    </p>
+  ) : null;
 
   const banner = (
-    <div className="fsl-guest__banner">
+    <div className="fsl-guest__banner bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
       <span>{t('guest.viewingAs', { name: myName })}</span>
-      <span className="fsl-guest__banner-dot">·</span>
+      <span className="fsl-guest__banner-dot text-muted-foreground">·</span>
       <Link
         to={`/t/${view.trip.id}/who`}
-        className="fsl-guest__switch-link"
+        className="fsl-guest__switch-link text-primary font-semibold no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
         {t('guest.switch', { name: myName })}
       </Link>
@@ -121,10 +132,10 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   );
 
   const footer = (
-    <footer className="fsl-guest__footer">
+    <footer className="fsl-guest__footer flex items-center justify-center flex-wrap gap-2 mt-2 [&_.fsl-button]:px-2 [&_.fsl-button]:text-sm">
       <LanguageButton />
       {memberRequested ? (
-        <div className="fsl-notice fsl-notice--accent">
+        <div className="fsl-notice fsl-notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground">
           {t('guest.memberRequested')}
         </div>
       ) : (
@@ -142,7 +153,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
 
   return (
     <Screen title={view.trip.name} wide bottomBar={!wide && hasFeed ? addLink(true) : undefined}>
-      <div className="fsl-guest">
+      <div className="fsl-guest flex flex-col gap-4 py-4">
         {banner}
         {notice}
         <UpdatedTransactionsBanner view={view} />

@@ -9,7 +9,7 @@ import { Screen } from '../components/Screen';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { EmptyState } from '../components/EmptyState';
-import './Activity.css';
+import { cn } from '@/lib/utils';
 
 export function Activity() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -26,7 +26,7 @@ export function Activity() {
 
   return (
     <Screen title={t('activity.title')} back={`/t/${tripId}/settings`}>
-      <div className="fsl-activity">
+      <div className={cn('fsl-activity flex flex-col gap-4 py-4')}>
         {loading && !error && <SkeletonList rows={5} />}
 
         {error && (
@@ -39,14 +39,14 @@ export function Activity() {
 
         {!loading && !error && data && data.length > 0 &&
           groupByDay(data, new Date()).map((group) => (
-            <section key={group.label} className="fsl-activity__day">
-              <h2 className="fsl-activity__heading">{group.label}</h2>
-              <ul className="fsl-activity__list">
+            <section key={group.label} className={cn('fsl-activity__day flex flex-col gap-2')}>
+              <h2 className={cn('fsl-activity__heading m-0 text-sm font-semibold text-muted-foreground')}>{group.label}</h2>
+              <ul className={cn('fsl-activity__list list-none m-0 p-0 bg-card rounded-xl border border-border divide-y divide-border overflow-hidden')}>
                 {group.items.map((item) => (
-                  <li key={item.id} className="fsl-activity__row">
-                    <div className="fsl-activity__line">{activityLine(item, view, t)}</div>
-                    <div className="fsl-activity__meta">
-                      {timeOf(item.createdAt)}{item.deviceShort ? <> · {t('activity.device')} <code className="fsl-activity__device">{item.deviceShort}</code></> : null}
+                  <li key={item.id} className={cn('fsl-activity__row flex flex-col gap-1 px-4 py-3 min-h-11')}>
+                    <div className={cn('fsl-activity__line text-base font-medium text-foreground [overflow-wrap:anywhere]')}>{activityLine(item, view, t)}</div>
+                    <div className={cn('fsl-activity__meta text-sm text-muted-foreground tabular-nums')}>
+                      {timeOf(item.createdAt)}{item.deviceShort ? <> · {t('activity.device')} <code className={cn('fsl-activity__device font-mono text-xs text-muted-foreground')}>{item.deviceShort}</code></> : null}
                     </div>
                   </li>
                 ))}

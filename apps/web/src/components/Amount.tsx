@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { formatVnd } from '@fsl/core';
-import './Amount.css';
+import { cn } from '@/lib/utils';
 
 export interface AmountProps {
   value: number;
@@ -10,6 +10,19 @@ export interface AmountProps {
   style?: CSSProperties;
 }
 
+const TONE_CLASSES: Record<'neutral' | 'success' | 'danger', string> = {
+  neutral: 'text-foreground',
+  success: 'text-success',
+  danger: 'text-danger',
+};
+
+const SIZE_CLASSES: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-lg',
+  xl: 'text-2xl font-bold',
+};
+
 export function Amount({
   value,
   tone = 'neutral',
@@ -17,7 +30,7 @@ export function Amount({
   className = '',
   style,
 }: AmountProps) {
-  let resolvedTone = tone;
+  let resolvedTone: 'neutral' | 'success' | 'danger' = 'neutral';
   if (tone === 'auto') {
     if (value > 0) {
       resolvedTone = 'success';
@@ -26,11 +39,21 @@ export function Amount({
     } else {
       resolvedTone = 'neutral';
     }
+  } else {
+    resolvedTone = tone;
   }
 
   return (
     <span
-      className={`fsl-amount fsl-amount--${resolvedTone} fsl-amount--${size} ${className}`.trim()}
+      className={cn(
+        'fsl-amount',
+        `fsl-amount--${resolvedTone}`,
+        `fsl-amount--${size}`,
+        'inline-block whitespace-nowrap tabular-nums font-semibold',
+        TONE_CLASSES[resolvedTone],
+        SIZE_CLASSES[size],
+        className,
+      )}
       style={style}
     >
       {formatVnd(value)}

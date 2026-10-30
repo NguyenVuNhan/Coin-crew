@@ -1,8 +1,8 @@
+import { cn } from '@/lib/utils';
 import { Sheet } from './Sheet';
 import { BANK_APPS, bankAppLink, PREFILL_VERIFIED } from '@fsl/core';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
-import './BankAppSheet.css';
 
 export interface BankAppSheetProps {
   open: boolean;
@@ -22,23 +22,28 @@ export function BankAppSheet({ open, onClose }: BankAppSheetProps) {
 
   return (
     <Sheet open={open} onClose={onClose} title={t('pay.chooseApp')}>
-      <div className="fsl-bank-app-sheet__list">
+      <div className={cn('fsl-bank-app-sheet__list bg-card rounded-xl border border-border divide-y divide-border overflow-hidden max-h-[60vh] overflow-y-auto')}>
         {apps.map((app) => (
           <a
             key={app.appId}
             href={bankAppLink(app.appId)}
-            className="fsl-bank-app-sheet__row"
+            className={cn('fsl-bank-app-sheet__row flex flex-col justify-center min-h-11 px-4 py-3 text-foreground no-underline transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none')}
           >
-            <span className="fsl-bank-app-sheet__name">{app.appName}</span>
+            <span className={cn('fsl-bank-app-sheet__name font-semibold text-base')}>{app.appName}</span>
             {PREFILL_VERIFIED && app.autofill && (
-              <span className="fsl-bank-app-sheet__hint">
+              <span className={cn('fsl-bank-app-sheet__hint text-xs text-muted-foreground mt-1')}>
                 {t('pay.fillsIn')}
               </span>
             )}
           </a>
         ))}
       </div>
-      {isZaloWebView() && <p className="fsl-bank-app-sheet__zalo-hint">{t('pay.zaloBankHint')}</p>}
+      {isZaloWebView() && (
+        <p className={cn('fsl-bank-app-sheet__zalo-hint mt-3 text-sm text-muted-foreground leading-normal')}>
+          {t('pay.zaloBankHint')}
+        </p>
+      )}
     </Sheet>
   );
 }
+

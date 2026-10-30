@@ -1,13 +1,14 @@
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TripView } from '@fsl/core';
+import { cn } from '@/lib/utils';
 import { useT, useLang } from '../i18n';
 import { apiSend } from '../api/client';
 import { Button } from './Button';
 import { Sheet } from './Sheet';
 import { Icon } from './icons';
 import { InlineError } from './InlineError';
-import './InviteSheet.css';
+import { Input } from '@/components/ui/input';
 
 function useLinkActions(view: TripView, url: string) {
   const t = useT();
@@ -83,29 +84,31 @@ function LinkBlock({
   }
 
   return (
-    <fieldset className="fsl-invite__block">
-      <legend id={legendId} className="fsl-invite__label">{title}</legend>
-      <div className="fsl-invite__body">
-        <p className="fsl-invite__hint">{hint}</p>
-        <input
-          className="fsl-invite__input"
+    <fieldset className={cn('fsl-invite__block m-0 p-0 border-0 min-w-0')}>
+      <legend id={legendId} className={cn('fsl-invite__label w-full p-0 mb-2 text-base font-semibold text-foreground')}>
+        {title}
+      </legend>
+      <div className={cn('fsl-invite__body flex flex-col gap-3 bg-muted rounded-xl p-4')}>
+        <p className={cn('fsl-invite__hint m-0 text-sm text-muted-foreground')}>{hint}</p>
+        <Input
+          className={cn('fsl-invite__input truncate')}
           aria-labelledby={legendId}
           readOnly
           value={url}
           onFocus={(e) => e.target.select()}
         />
-        <div className="fsl-invite__buttons">
-          <Button variant={primary ? 'primary' : 'secondary'} onClick={share}>
+        <div className={cn('fsl-invite__buttons flex flex-col sm:flex-row gap-2')}>
+          <Button variant={primary ? 'primary' : 'secondary'} block className="sm:flex-1" onClick={share}>
             <Icon name="share" size={18} />
             {t('invite.share')}
           </Button>
-          <Button variant="secondary" onClick={copy}>
+          <Button variant="secondary" block className="sm:flex-1" onClick={copy}>
             <Icon name="copy" size={18} />
             {copied ? t('share.copied') : t('share.copy')}
           </Button>
         </div>
-        <span aria-live="polite" className="fsl-invite__sr">{copied ? t('share.copied') : ''}</span>
-        <Button variant="ghost" className="fsl-invite__regenerate" loading={busy} onClick={regenerate}>
+        <span aria-live="polite" className={cn('fsl-invite__sr sr-only')}>{copied ? t('share.copied') : ''}</span>
+        <Button variant="ghost" className={cn('fsl-invite__regenerate self-start -ml-2 px-2 text-muted-foreground text-sm hover:text-foreground')} loading={busy} onClick={regenerate}>
           {t('share.regenerate')}
         </Button>
         {error ? <InlineError error={error} /> : null}
@@ -130,7 +133,7 @@ export function InviteSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title={t('invite.title')}>
-      <div className="fsl-invite">
+      <div className={cn('fsl-invite flex flex-col gap-4')}>
         <LinkBlock
           view={view}
           which="group"
@@ -162,27 +165,28 @@ export function InviteCard({ view }: { view: TripView }) {
   if (!view.links) return null;
 
   return (
-    <section className="fsl-invite-card" aria-labelledby={titleId}>
-      <h2 id={titleId} className="fsl-invite-card__title">{t('invite.cardTitle')}</h2>
-      <p className="fsl-invite-card__body">{t('invite.cardBody')}</p>
-      <input
-        className="fsl-invite__input"
+    <section className={cn('fsl-invite-card bg-card rounded-xl p-5 border border-border flex flex-col gap-3')} aria-labelledby={titleId}>
+      <h2 id={titleId} className={cn('fsl-invite-card__title m-0 text-base font-semibold text-foreground')}>{t('invite.cardTitle')}</h2>
+      <p className={cn('fsl-invite-card__body m-0 -mt-1 text-sm text-muted-foreground')}>{t('invite.cardBody')}</p>
+      <Input
+        className={cn('fsl-invite__input bg-muted truncate')}
         aria-label={t('share.groupLink')}
         readOnly
         value={url}
         onFocus={(e) => e.target.select()}
       />
-      <div className="fsl-invite__buttons">
-        <Button variant="primary" onClick={share}>
+      <div className={cn('fsl-invite__buttons flex flex-col sm:flex-row gap-2')}>
+        <Button variant="primary" block className="sm:flex-1" onClick={share}>
           <Icon name="share" size={18} />
           {t('invite.share')}
         </Button>
-        <Button variant="secondary" onClick={copy}>
+        <Button variant="secondary" block className="sm:flex-1" onClick={copy}>
           <Icon name="copy" size={18} />
           {copied ? t('share.copied') : t('share.copy')}
         </Button>
       </div>
-      <span aria-live="polite" className="fsl-invite__sr">{copied ? t('share.copied') : ''}</span>
+      <span aria-live="polite" className={cn('fsl-invite__sr sr-only')}>{copied ? t('share.copied') : ''}</span>
     </section>
   );
 }
+

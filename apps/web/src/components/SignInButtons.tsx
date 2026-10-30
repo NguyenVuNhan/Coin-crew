@@ -4,7 +4,7 @@ import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { Button } from './Button';
 import { ProviderLogo } from './ProviderLogo';
-import './SignInButtons.css';
+import { cn } from '@/lib/utils';
 
 export interface SignInButtonsProps {
   returnTo: string;
@@ -38,40 +38,58 @@ export function SignInButtons({
 
   const googleKey = labels?.google ?? 'landing.signIn';
   const zaloKey = labels?.zalo ?? 'signIn.zalo';
+  const isStack = layout === 'stack';
 
   if (inZalo) {
     return (
-      <div className={`fsl-signin fsl-signin--${layout}`}>
+      <div
+        className={cn(
+          'fsl-signin',
+          isStack
+            ? 'fsl-signin--stack flex flex-col gap-3'
+            : 'fsl-signin--inline flex flex-row flex-wrap items-center gap-2',
+        )}
+      >
         {zaloOn && (
           <Button
-            variant={layout === 'stack' ? 'primary' : 'secondary'}
-            block
+            variant={isStack ? 'primary' : 'secondary'}
+            block={isStack}
             href={signInHref('zalo', returnTo, intent)}
+            className={cn(isStack && 'h-12 justify-start gap-3 px-4')}
           >
             <ProviderLogo provider="zalo" size={24} />
             {t(zaloKey)}
           </Button>
         )}
-        <p className="fsl-signin__hint">{t('signIn.googleInZalo')}</p>
+        <p className="fsl-signin__hint text-sm text-muted-foreground leading-normal m-0">{t('signIn.googleInZalo')}</p>
       </div>
     );
   }
 
   return (
-    <div className={`fsl-signin fsl-signin--${layout}`}>
+    <div
+      className={cn(
+        'fsl-signin',
+        isStack
+          ? 'fsl-signin--stack flex flex-col gap-3'
+          : 'fsl-signin--inline flex flex-row flex-wrap items-center gap-2',
+      )}
+    >
       <Button
-        variant={layout === 'stack' ? 'primary' : 'ghost'}
-        block={layout === 'stack'}
+        variant={isStack ? 'primary' : 'ghost'}
+        block={isStack}
         href={signInHref('google', returnTo, intent)}
+        className={cn(isStack && 'h-12 justify-start gap-3 px-4')}
       >
         <ProviderLogo provider="google" size={24} />
         {t(googleKey)}
       </Button>
       {zaloOn && (
         <Button
-          variant={layout === 'stack' ? 'secondary' : 'ghost'}
-          block={layout === 'stack'}
+          variant={isStack ? 'secondary' : 'ghost'}
+          block={isStack}
           href={signInHref('zalo', returnTo, intent)}
+          className={cn(isStack && 'h-12 justify-start gap-3 px-4')}
         >
           <ProviderLogo provider="zalo" size={24} />
           {t(zaloKey)}

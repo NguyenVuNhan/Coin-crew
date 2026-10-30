@@ -1,6 +1,8 @@
 import type { ButtonHTMLAttributes, AnchorHTMLAttributes, ReactNode } from 'react';
 import { Link } from 'react-router';
-import './Button.css';
+import { Loader2Icon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -22,6 +24,13 @@ function isInAppPath(href: string): boolean {
   return href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/api/');
 }
 
+const variantMap: Record<ButtonVariant, 'default' | 'secondary' | 'destructive' | 'ghost'> = {
+  primary: 'default',
+  secondary: 'secondary',
+  danger: 'destructive',
+  ghost: 'ghost',
+};
+
 export function Button({
   variant = 'primary',
   block = false,
@@ -33,15 +42,22 @@ export function Button({
   type = 'button',
   ...rest
 }: ButtonProps) {
-  const classes = [
+  const classes = cn(
+    buttonVariants({ variant: variantMap[variant] }),
     'fsl-button',
     `fsl-button--${variant}`,
-    block ? 'fsl-button--block' : '',
-    disabled || loading ? 'fsl-button--disabled' : '',
+    // Full-width buttons wrap a long label (a long Vietnamese name) instead of spilling past the pill.
+    block && 'fsl-button--block w-full h-auto min-h-11 whitespace-normal py-2 text-center',
+    (disabled || loading) && 'fsl-button--disabled',
     className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  );
+
+  const content = (
+    <>
+      {loading && <Loader2Icon className="animate-spin" />}
+      {children}
+    </>
+  );
 
   if (href !== undefined && isInAppPath(href)) {
     return (
@@ -51,7 +67,7 @@ export function Button({
         aria-busy={loading ? 'true' : undefined}
         {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}
       >
-        {children}
+        {content}
       </Link>
     );
   }
@@ -64,7 +80,7 @@ export function Button({
         aria-busy={loading ? 'true' : undefined}
         {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}
       >
-        {children}
+        {content}
       </a>
     );
   }
@@ -77,7 +93,7 @@ export function Button({
       aria-busy={loading ? 'true' : undefined}
       {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}
     >
-      {children}
+      {content}
     </button>
   );
 }

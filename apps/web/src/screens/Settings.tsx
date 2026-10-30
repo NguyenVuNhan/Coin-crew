@@ -13,7 +13,7 @@ import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
 import { FewestSwitch } from '../components/FewestSwitch';
 import { RatingsSwitch } from '../components/RatingsSwitch';
-import './Settings.css';
+import { cn } from '@/lib/utils';
 
 export function Settings() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -31,7 +31,7 @@ export function Settings() {
   if (isLoading) {
     return (
       <Screen title={t('settings.title')} back={`/t/${tripId}`}>
-        <div className="fsl-settings">
+        <div className={cn('fsl-settings flex flex-col gap-4 py-4')}>
           <SkeletonList rows={4} />
         </div>
       </Screen>
@@ -83,7 +83,7 @@ export function Settings() {
 
   return (
     <Screen title={t('settings.title')} back={`/t/${tripId}`}>
-      <div className="fsl-settings">
+      <div className={cn('fsl-settings flex flex-col gap-4 py-4')}>
         {archiveError && (
           <InlineError error={archiveError} onRetry={handleArchive} />
         )}
@@ -91,17 +91,27 @@ export function Settings() {
           <InlineError error={leaveError} onRetry={handleLeave} />
         )}
 
-        <ul className="fsl-settings__list">
+        <ul className={cn('fsl-settings__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border')}>
           <li>
-            <Link to={`/t/${tripId}/people`} className="fsl-settings__row">
+            <Link
+              to={`/t/${tripId}/people`}
+              className={cn(
+                'fsl-settings__row flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
+              )}
+            >
               <span className="fsl-settings__label">{t('settings.people')}</span>
-              <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
+              <Icon name="chevronRight" size={20} className={cn('fsl-settings__chevron shrink-0 text-subtle-foreground')} />
             </Link>
           </li>
           <li>
-            <Link to={`/t/${tripId}/activity`} className="fsl-settings__row">
+            <Link
+              to={`/t/${tripId}/activity`}
+              className={cn(
+                'fsl-settings__row flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
+              )}
+            >
               <span className="fsl-settings__label">{t('settings.activity')}</span>
-              <Icon name="chevronRight" size={20} className="fsl-settings__chevron" />
+              <Icon name="chevronRight" size={20} className={cn('fsl-settings__chevron shrink-0 text-subtle-foreground')} />
             </Link>
           </li>
         </ul>
@@ -116,49 +126,49 @@ export function Settings() {
 
         {archived ? (
           <>
-            <div className="fsl-notice fsl-notice--muted">
+            <div className={cn('fsl-notice fsl-notice--muted p-3 text-sm rounded-xl text-center bg-muted text-muted-foreground')}>
               {t('settings.archived')}
             </div>
             {view.me.isOrganiser && (
-              <div className="fsl-settings__restore">
+              <div className={cn('fsl-settings__restore flex flex-col gap-2 mt-4')}>
                 <Button variant="secondary" block loading={archiving} onClick={handleArchive}>
                   {t('settings.unarchive')}
                 </Button>
-                <p className="fsl-settings__hint">{t('settings.unarchiveHint')}</p>
+                <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>{t('settings.unarchiveHint')}</p>
               </div>
             )}
           </>
         ) : view.me.isOrganiser ? (
-          <section className="fsl-settings__danger" aria-labelledby={headingId}>
-            <h2 className="fsl-settings__heading" id={headingId}>
+          <section className={cn('fsl-settings__danger flex flex-col gap-2 mt-4')} aria-labelledby={headingId}>
+            <h2 className={cn('fsl-settings__heading m-0 text-xs font-bold uppercase tracking-wider text-muted-foreground')} id={headingId}>
               {t('settings.dangerZone')}
             </h2>
             <Button
               variant="secondary"
               block
               loading={archiving}
-              className="fsl-settings__archive"
+              className={cn('fsl-settings__archive bg-card text-danger border border-danger hover:bg-danger-soft hover:border-danger hover:text-danger transition-colors duration-150 ease-out motion-reduce:transition-none')}
               onClick={handleArchive}
             >
               {t('settings.archive')}
             </Button>
-            <p className="fsl-settings__hint">{t('settings.archiveHint')}</p>
+            <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>{t('settings.archiveHint')}</p>
           </section>
         ) : canLeave ? (
-          <section className="fsl-settings__danger" aria-labelledby={headingId}>
-            <h2 className="fsl-settings__heading" id={headingId}>
+          <section className={cn('fsl-settings__danger flex flex-col gap-2 mt-4')} aria-labelledby={headingId}>
+            <h2 className={cn('fsl-settings__heading m-0 text-xs font-bold uppercase tracking-wider text-muted-foreground')} id={headingId}>
               {t('settings.dangerZone')}
             </h2>
             <Button
               variant="secondary"
               block
               loading={leaving}
-              className="fsl-settings__archive"
+              className={cn('fsl-settings__archive bg-card text-danger border border-danger hover:bg-danger-soft hover:border-danger hover:text-danger transition-colors duration-150 ease-out motion-reduce:transition-none')}
               onClick={handleLeave}
             >
               {t('settings.leave')}
             </Button>
-            <p className="fsl-settings__hint">{t('settings.leaveHint')}</p>
+            <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>{t('settings.leaveHint')}</p>
           </section>
         ) : null}
       </div>

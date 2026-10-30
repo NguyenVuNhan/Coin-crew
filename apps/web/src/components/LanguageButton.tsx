@@ -1,8 +1,12 @@
+import { cn } from '@/lib/utils';
 import { useLang, useT } from '../i18n';
 import { Icon } from './icons';
-import './LanguageButton.css';
 
-export function LanguageButton() {
+export interface LanguageButtonProps {
+  className?: string;
+}
+
+export function LanguageButton({ className }: LanguageButtonProps = {}) {
   const [lang, setLang] = useLang();
   const t = useT();
 
@@ -22,7 +26,10 @@ export function LanguageButton() {
   return (
     <button
       type="button"
-      className="fsl-language-button"
+      className={cn(
+        'fsl-language-button inline-flex items-center justify-center gap-1.5 min-h-11 h-11 px-3 rounded-full bg-transparent text-muted-foreground hover:text-foreground hover:bg-accent transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none text-sm font-medium',
+        className,
+      )}
       aria-label={label}
       title={label}
       onClick={handleClick}
