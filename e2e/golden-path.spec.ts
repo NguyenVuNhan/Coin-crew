@@ -46,7 +46,10 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.getByRole('button', { name: 'Add person' }).click();
   await others.nth(2).fill('Chi');
   await minh.getByText('Your bank details (optional)').click();
-  await minh.getByLabel('Bank').selectOption('970407');
+  await minh.getByRole('combobox', { name: 'Bank' }).click();
+  await minh.getByPlaceholder('Search banks').fill('Techcombank');
+  await minh.getByRole('option', { name: /^Techcombank —/ }).first().click();
+  await expect(minh.getByRole('combobox', { name: 'Bank' })).toContainText('Techcombank');
   await minh.getByLabel('Account number').fill('19031234565678');
   await minh.getByLabel('Account holder name').fill('Nguyen Van Minh');
   await noSidewaysScroll(minh);
