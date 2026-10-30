@@ -199,6 +199,18 @@ describe('pay info', () => {
     // View-only token is still forbidden from ?bill=1
     expect((await call(`${base}/pay/${PID.M}?bill=1`, { headers: await guestHeaders(undefined, T.viewToken) })).status).toBe(403);
   });
+
+  it('?bill=1 for an expense everyone owes the same on asks for that share', async () => {
+    // e-1: Minh paid 3.200.000 for all four, 800.000 each
+    const bill = await json<PayInfo>(call(`${base}/pay/${PID.M}?bill=1&expense=e-1`, { headers: await guestHeaders(PID.A) }));
+    expect(bill.payload).toBe(
+      buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 800000, note: bill.refCode }),
+    );
+
+    // e-2 was paid by An, not Minh: Minh's bill QR asks for no amount
+    const other = await json<PayInfo>(call(`${base}/pay/${PID.M}?bill=1&expense=e-2`, { headers: await guestHeaders(PID.A) }));
+    expect(other.payload?.startsWith('000201010211')).toBe(true);
+  });
 });
 
 describe('pay info for the receiver', () => {

@@ -27,4 +27,7 @@ export const useIsWide = () => useMediaQuery('(min-width: 1024px)');
 /** A touch screen is the main pointer (phones), as opposed to a mouse. */
 export const useIsCoarsePointer = () => useMediaQuery('(pointer: coarse)');
 
+/** A mouse that hovers is the main pointer (a PC), where chat apps take a pasted link rather than a share sheet. */
+export const useIsMousePointer = () => useMediaQuery('(hover: hover) and (pointer: fine)');
+
 export const usePrefersReducedMotion = () => useMediaQuery('(prefers-reduced-motion: reduce)');

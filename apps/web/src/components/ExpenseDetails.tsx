@@ -18,6 +18,8 @@ import { Icon } from './icons';
 import { usePayInfo } from '../api/payInfo';
 import { useQrSvg, shareSportBill, renderSportBillPng, type SportBillCardInput } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
+import { useIsMousePointer } from '../lib/media';
+import { copyText } from '../lib/clipboard';
 import { useImageSheet } from './SaveImageSheet';
 import { sportShareText, expenseLink } from '../lib/remind';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
@@ -50,7 +52,8 @@ export function ExpenseDetails({
   const [reason, setReason] = useState('');
   const [sharing, setSharing] = useState(false);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
-  const [shareStatus, setShareStatus] = useState<'saved' | 'failed' | null>(null);
+  const mouse = useIsMousePointer();
+  const [shareStatus, setShareStatus] = useState<'saved' | 'copied' | 'failed' | null>(null);
   const reasonId = useId();
 
   const e = view.expenses.find(
@@ -61,6 +64,7 @@ export function ExpenseDetails({
     tripId: view.trip.id,
     toId: e?.payerId ?? '',
     bill: true,
+    expenseId: e ? (e.rootId ?? e.id) : undefined,
     enabled: Boolean(e?.meta?.sport),
     version: view.trip.version,
   });
@@ -193,6 +197,14 @@ export function ExpenseDetails({
   const handleShareSportBill = async () => {
     if (!sportCalc) return;
     setShareStatus(null);
+
+    // On a PC the message goes into a group chat by pasting: copy it (its link previews the payer's QR).
+    // Copy first, while the click still counts as a user gesture.
+    if (mouse && !isZaloWebView()) {
+      setShareStatus((await copyText(msgText)) ? 'copied' : 'failed');
+      return;
+    }
+
     const billInput: SportBillCardInput = {
       description: e.description,
       spentOn: formatDay(e.spentOn),
@@ -378,6 +390,11 @@ export function ExpenseDetails({
             {shareStatus === 'saved' && (
               <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
                 {t('pay.shareSaved')}
+              </p>
+            )}
+            {shareStatus === 'copied' && (
+              <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
+                {t('sport.shareCopied')}
               </p>
             )}
             {shareStatus === 'failed' && (

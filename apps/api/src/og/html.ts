@@ -10,14 +10,22 @@ export function escapeHtml(s: string): string {
 }
 
 export function metaTagsHtml(meta: PageMeta, pathname: string, origin: string): string {
-  const imageUrl = `${origin}/og/${meta.image}.png`;
+  const imageUrl = meta.imagePath ? `${origin}${meta.imagePath}` : `${origin}/og/${meta.image}.png`;
   const pageUrl = `${origin}${pathname}`;
   const siteName = 'CoinCrew (Tiền Đâu)';
 
+  // An empty description leaves its tags out, so the preview shows only the title.
+  const description = meta.description
+    ? [
+        `<meta name="description" content="${escapeHtml(meta.description)}">`,
+        `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
+        `<meta name="twitter:description" content="${escapeHtml(meta.description)}">`,
+      ]
+    : [];
+
   const tags = [
-    `<meta name="description" content="${escapeHtml(meta.description)}">`,
+    ...description,
     `<meta property="og:title" content="${escapeHtml(meta.title)}">`,
-    `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
     `<meta property="og:image" content="${escapeHtml(imageUrl)}">`,
     `<meta property="og:image:width" content="1200">`,
     `<meta property="og:image:height" content="630">`,
@@ -28,7 +36,6 @@ export function metaTagsHtml(meta: PageMeta, pathname: string, origin: string): 
     `<meta property="og:locale" content="${escapeHtml(meta.locale)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${escapeHtml(meta.title)}">`,
-    `<meta name="twitter:description" content="${escapeHtml(meta.description)}">`,
     `<meta name="twitter:image" content="${escapeHtml(imageUrl)}">`,
     `<meta name="robots" content="noindex, nofollow">`,
   ];
