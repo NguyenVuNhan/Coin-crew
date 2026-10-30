@@ -9,4 +9,5 @@ export * from './banks';
 export * from './permissions';
 export * from './fund';
 export * from './ratings';
+export * from './people';
 export * from './api-types';

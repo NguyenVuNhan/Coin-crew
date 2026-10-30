@@ -67,6 +67,7 @@ import type { Transfer } from './transfers';
 import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 import type { IncomeStatus } from './fund';
+import type { PersonKey, PersonItem } from './people';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -131,7 +132,7 @@ export interface ExpenseHistoryItem {
   meta?: ExpenseMeta | null;
 }
 
-export type GroupPreset = 'trip' | 'sport';
+export type GroupPreset = 'trip' | 'sport' | 'direct';
 
 export interface BankFields { bin: string; accountNumber: string; holderName: string }
 /** The signed-in user's own saved bank details (GET /api/me/bank). */
@@ -306,4 +307,23 @@ export interface PayInfo {
   /** VietQR string, only when bankState is 'ok' and someone else is paying. */
   payload: string | null;
   inFlight: PaymentView[];
+}
+
+export interface PersonSummary {
+  key: PersonKey;
+  name: string;
+  nickname: string | null;
+  userId: string | null;
+  groupLabel: string | null;
+  total: number;
+  items: PersonItem[];
+}
+
+export interface RequestView {
+  ownerName: string;
+  total: number;
+  items: PersonItem[];
+  settled: boolean;
+  pay: PayInfo | null;
+  settlementWaiting: boolean;
 }
