@@ -321,6 +321,18 @@ export interface PersonSummary {
   groupLabel: string | null;
   total: number;
   items: PersonItem[];
+  /**
+   * Settlements this person recorded ("I've paid") that the caller can confirm with
+   * `POST /api/me/settlements/:sid/confirm`. `amount` is the settlement's net, always > 0;
+   * `direction` says who it moves money to, from the caller's side.
+   */
+  waiting: PersonWaitingSettlement[];
+}
+
+export interface PersonWaitingSettlement {
+  settlementId: string;
+  amount: number;
+  direction: 'toOwner' | 'fromOwner';
 }
 
 /** `GET /api/me/people/summary`. `incomplete`: some groups were left out to stay within the query budget; ask again. */

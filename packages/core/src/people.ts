@@ -19,6 +19,10 @@ export interface PersonItem {
   kind: 'group' | 'direct';
   amount: number;
   oldestOpenAt: string;
+  /** The caller's participant id in this trip (set by the API, not by pairItems). */
+  ownerPid?: string;
+  /** The person's participant id in this trip (set by the API, not by pairItems). */
+  otherPid?: string;
 } // amount > 0: they owe owner
 
 export function pairItems(inputs: TripPairInput[]): PersonItem[] {

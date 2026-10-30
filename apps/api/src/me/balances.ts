@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
+import { pairItems, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks, trips, tripViews } from '../db/schema';
@@ -15,6 +15,14 @@ interface OtherRow {
   name: string;
   user_id: string | null;
   user_name: string | null;
+}
+
+interface WaitingPart {
+  paymentId: string;
+  key: PersonKey;
+  /** > 0: the person pays the caller. */
+  signed: number;
+  toMe: boolean;
 }
 
 interface Person {
@@ -64,8 +72,9 @@ function oldestShared(snapshot: TripSnapshot, a: string, b: string): string | nu
 
 /**
  * Everyone the caller has money open with, across their groups (archived ones too) and
- * their personal ledger. Four fixed queries plus at most MAX_COLD_REBUILDS snapshot
- * rebuilds; groups past that cap are left out and `incomplete` is true. Every query binds
+ * their personal ledger. Four fixed queries, one more only when a payment waits on the caller
+ * (to find its settlement), plus at most MAX_COLD_REBUILDS snapshot rebuilds; groups past that
+ * cap are left out and `incomplete` is true. Every query binds
  * only the caller's id (D1 allows 100 bound parameters).
  */
 export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleSummaryResponse> {
@@ -110,6 +119,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     warm.push({ row, snapshot: await getSnapshot(db, row.trip, cache) });
   }
   const incomplete = cold.length > MAX_COLD_REBUILDS;
+  const waitingParts: WaitingPart[] = [];
 
   for (const { row, snapshot } of warm) {
     const trip = row.trip;
@@ -122,13 +132,15 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
       if (s.fromId === me) otherPids.add(s.toId);
       else if (s.toId === me) otherPids.add(s.fromId);
     }
-    const waitingWith = new Set<string>();
+    const waitingWith = new Map<string, PaymentView[]>();
     for (const p of snapshot.payments) {
       if (p.status !== 'says_paid') continue;
       const other = p.fromId === me ? p.toId : p.toId === me ? p.fromId : null;
       if (other) {
         otherPids.add(other);
-        waitingWith.add(other);
+        const list = waitingWith.get(other) ?? [];
+        list.push(p);
+        waitingWith.set(other, list);
       }
     }
 
@@ -155,13 +167,20 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
       let person = people.get(key);
       if (!person) {
         person = {
-          summary: { key, name, nickname: nicknameOf.get(key) ?? null, userId: other.user_id, groupLabel, total: 0, items: [] },
+          summary: { key, name, nickname: nicknameOf.get(key) ?? null, userId: other.user_id, groupLabel, total: 0, items: [], waiting: [] },
           inputs: [],
           waiting: false,
         };
         people.set(key, person);
       }
-      if (waitingWith.has(pid)) person.waiting = true;
+      const waitingPayments = waitingWith.get(pid);
+      if (waitingPayments) {
+        person.waiting = true;
+        for (const p of waitingPayments) {
+          const toMe = p.toId === me;
+          waitingParts.push({ paymentId: p.id, key, signed: toMe ? p.amountClaimed : -p.amountClaimed, toMe });
+        }
+      }
       person.inputs.push({
         tripId: trip.id,
         tripName: trip.name,
@@ -175,15 +194,65 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     }
   }
 
+  const waitingOf = await waitingSettlements(db, userId, waitingParts);
+
   const out: PersonSummary[] = [];
   for (const person of people.values()) {
-    const items = pairItems(person.inputs);
+    const items: PersonItem[] = [];
+    for (const input of person.inputs) {
+      const [item] = pairItems([input]);
+      if (item) items.push({ ...item, ownerPid: input.ownerPid, otherPid: input.otherPid });
+    }
+    items.sort((a, b) => a.oldestOpenAt.localeCompare(b.oldestOpenAt));
     const total = items.reduce((sum, i) => sum + i.amount, 0);
     if (total === 0 && !person.waiting) continue;
-    out.push({ ...person.summary, items, total });
+    out.push({ ...person.summary, items, total, waiting: waitingOf.get(person.summary.key) ?? [] });
   }
   out.sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.name.localeCompare(b.name));
   return { people: out, incomplete };
+}
+
+/**
+ * Groups the caller's waiting payments into settlements (payments tagged `{"settlementId"}`),
+ * per person, keeping only those the caller can confirm: at least one part pays the caller.
+ * One query, and only when something is waiting; it binds only the caller's id.
+ */
+async function waitingSettlements(db: Db, userId: string, parts: WaitingPart[]): Promise<Map<PersonKey, PersonSummary['waiting']>> {
+  const out = new Map<PersonKey, PersonSummary['waiting']>();
+  if (parts.length === 0) return out;
+
+  const rows = await db.all<{ id: string; meta_json: string }>(sql`
+    SELECT t.id AS id, t.meta_json AS meta_json
+    FROM transactions t
+    WHERE t.type = 'payment' AND t.is_latest = 1 AND t.status = 'says_paid' AND t.meta_json LIKE '%settlementId%'
+      AND t.trip_id IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active')
+  `);
+  const settlementOf = new Map<string, string>();
+  for (const row of rows) {
+    try {
+      const meta = JSON.parse(row.meta_json) as { settlementId?: unknown };
+      if (typeof meta.settlementId === 'string') settlementOf.set(row.id, meta.settlementId);
+    } catch {
+      // Not a settlement part.
+    }
+  }
+
+  const sums = new Map<string, { key: PersonKey; net: number; toMe: boolean }>();
+  for (const part of parts) {
+    const settlementId = settlementOf.get(part.paymentId);
+    if (!settlementId) continue;
+    const sum = sums.get(settlementId) ?? { key: part.key, net: 0, toMe: false };
+    sum.net += part.signed;
+    sum.toMe ||= part.toMe;
+    sums.set(settlementId, sum);
+  }
+  for (const [settlementId, sum] of sums) {
+    if (!sum.toMe) continue;
+    const list = out.get(sum.key) ?? [];
+    list.push({ settlementId, amount: Math.abs(sum.net), direction: sum.net >= 0 ? 'toOwner' : 'fromOwner' });
+    out.set(sum.key, list);
+  }
+  return out;
 }
 
 /** One open item with the person, with the two participants that stand for owner and person there. */
@@ -311,7 +380,7 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
         oldestOpenAt: oldestShared(snapshot, row.myPid, person.id) ?? trip.createdAt,
         writable: trip.archivedAt === null,
       }]);
-      if (item) items.push({ ...item, writable: trip.archivedAt === null, ownerPid: row.myPid, personPid: person.id });
+      if (item) items.push({ ...item, writable: trip.archivedAt === null, ownerPid: row.myPid, otherPid: person.id, personPid: person.id });
     }
   }
   queries += rebuilt * REBUILD_COST;
