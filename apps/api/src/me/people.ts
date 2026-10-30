@@ -20,7 +20,7 @@ export async function loadRecentPeople(db: Db, userId: string): Promise<RecentPe
   // the SQL text: D1 allows at most 100 bound parameters per query, so no id lists here.
   const rows = await db.all<RecentPersonRow>(sql`
     SELECT p.user_id AS user_id, p.name AS name, t.id AS trip_id, t.name AS trip_name
-    FROM participants p JOIN trips t ON t.id = p.trip_id
+    FROM participants p JOIN trips t ON t.id = p.trip_id AND t.preset <> 'direct'
     WHERE p.status = 'active' AND p.user_id IS NOT NULL AND p.user_id <> ${userId}
       AND p.trip_id IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active')
     ORDER BY t.created_at DESC, t.id, p.sort_order
