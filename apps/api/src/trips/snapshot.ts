@@ -403,17 +403,28 @@ export async function buildSnapshot(
   };
 }
 
-export async function getSnapshot(db: Db, trip: TripRow): Promise<TripSnapshot> {
-  const row = await db
-    .select()
-    .from(tripViews)
-    .where(eq(tripViews.tripId, trip.id))
-    .get();
+/**
+ * `cached` is the trip's `trip_views` row (or null when it has none) when the caller already
+ * read it, which saves the lookup.
+ */
+export async function getSnapshot(
+  db: Db,
+  trip: TripRow,
+  cached?: { version: number; json: string } | null,
+): Promise<TripSnapshot> {
+  const row =
+    cached !== undefined
+      ? cached
+      : await db
+          .select()
+          .from(tripViews)
+          .where(eq(tripViews.tripId, trip.id))
+          .get();
 
   if (row && row.version === trip.version) {
-    const cached = JSON.parse(row.json) as TripSnapshot;
+    const view = JSON.parse(row.json) as TripSnapshot;
     // Views cached before the group fund or player ratings lack those fields: rebuild them once.
-    if ('fund' in cached && 'ratings' in cached) return cached;
+    if ('fund' in view && 'ratings' in view) return view;
   }
 
   let previous: Transfer[] | undefined;

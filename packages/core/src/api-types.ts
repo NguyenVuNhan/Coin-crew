@@ -319,6 +319,12 @@ export interface PersonSummary {
   items: PersonItem[];
 }
 
+/** `GET /api/me/people/summary`. `incomplete`: some groups were left out to stay within the query budget; ask again. */
+export interface PeopleSummaryResponse {
+  people: PersonSummary[];
+  incomplete: boolean;
+}
+
 export interface RequestView {
   ownerName: string;
   total: number;

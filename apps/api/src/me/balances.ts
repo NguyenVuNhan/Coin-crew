@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
+import { pairItems, type PeopleSummaryResponse, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks, trips, tripViews } from '../db/schema';
@@ -22,17 +22,32 @@ interface Person {
   waiting: boolean;
 }
 
-/** The cached view when it is current; `getSnapshot` otherwise (it rebuilds and stores it). */
-async function snapshotFor(db: Db, trip: TripRow, viewVersion: number | null, viewJson: string | null): Promise<TripSnapshot> {
-  if (viewJson !== null && viewVersion === trip.version) {
-    try {
-      const cached = JSON.parse(viewJson) as TripSnapshot;
-      if ('fund' in cached && 'ratings' in cached) return cached;
-    } catch {
-      // Fall through and rebuild.
-    }
+/**
+ * Cold rebuilds allowed per request. A rebuild costs about 8 queries (measured 8–9 with the
+ * cache read, which is skipped here), and a Worker gets 50 D1 queries per invocation:
+ * 4 fixed queries + 4 rebuilds stays well under 45. Each request warms more caches, so a
+ * client that asks again while `incomplete` is true converges.
+ */
+export const MAX_COLD_REBUILDS = 4;
+
+/** The cached view when it is current, else null. */
+function cachedSnapshot(trip: TripRow, viewVersion: number | null, viewJson: string | null): TripSnapshot | null {
+  if (viewJson === null || viewVersion !== trip.version) return null;
+  try {
+    const cached = JSON.parse(viewJson) as TripSnapshot;
+    // Same rule as getSnapshot: views from before the fund or ratings get rebuilt.
+    return 'fund' in cached && 'ratings' in cached ? cached : null;
+  } catch {
+    return null;
   }
-  return getSnapshot(db, trip);
+}
+
+/** True when the caller has no suggested transfer and no payment waiting in this snapshot. */
+function nothingOpen(snapshot: TripSnapshot, me: string): boolean {
+  return (
+    !snapshot.suggestions.some((s) => s.fromId === me || s.toId === me) &&
+    !snapshot.payments.some((p) => p.status === 'says_paid' && (p.fromId === me || p.toId === me))
+  );
 }
 
 /** createdAt of the oldest approved expense that involves both people. */
@@ -48,17 +63,18 @@ function oldestShared(snapshot: TripSnapshot, a: string, b: string): string | nu
 
 /**
  * Everyone the caller has money open with, across their groups (archived ones too) and
- * their personal ledger. A fixed handful of queries plus one per group whose cached view
- * is stale; every query binds only the caller's id (D1 allows 100 bound parameters).
+ * their personal ledger. Four fixed queries plus at most MAX_COLD_REBUILDS snapshot
+ * rebuilds; groups past that cap are left out and `incomplete` is true. Every query binds
+ * only the caller's id (D1 allows 100 bound parameters).
  */
-export async function loadPeopleSummary(db: Db, userId: string): Promise<PersonSummary[]> {
+export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleSummaryResponse> {
   const mine = await db
     .select({ trip: trips, myPid: participants.id, viewVersion: tripViews.version, viewJson: tripViews.json })
     .from(participants)
     .innerJoin(trips, eq(trips.id, participants.tripId))
     .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
     .where(and(eq(participants.userId, userId), eq(participants.status, 'active')));
-  if (mine.length === 0) return [];
+  if (mine.length === 0) return { people: [], incomplete: false };
 
   const [others, links, nicks] = await Promise.all([
     db.all<OtherRow>(sql`
@@ -75,9 +91,27 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PersonS
   const nicknameOf = new Map(nicks.map((n) => [n.personKey, n.nickname]));
   const people = new Map<PersonKey, Person>();
 
+  const warm: { row: (typeof mine)[number]; snapshot: TripSnapshot }[] = [];
+  const cold: (typeof mine)[number][] = [];
   for (const row of mine) {
+    const snapshot = cachedSnapshot(row.trip, row.viewVersion, row.viewJson);
+    if (!snapshot) cold.push(row);
+    // An archived group with nothing open for the caller adds nothing.
+    else if (row.trip.archivedAt === null || !nothingOpen(snapshot, row.myPid)) warm.push({ row, snapshot });
+  }
+
+  // Rebuild the caller's ledger first, then open groups, newest first; archived ones last.
+  const rank = (r: (typeof mine)[number]) =>
+    r.trip.preset === 'direct' && r.trip.organiserUserId === userId ? 0 : r.trip.archivedAt === null ? 1 : 2;
+  cold.sort((a, b) => rank(a) - rank(b) || b.trip.createdAt.localeCompare(a.trip.createdAt));
+  for (const row of cold.slice(0, MAX_COLD_REBUILDS)) {
+    const cache = row.viewJson !== null && row.viewVersion !== null ? { version: row.viewVersion, json: row.viewJson } : null;
+    warm.push({ row, snapshot: await getSnapshot(db, row.trip, cache) });
+  }
+  const incomplete = cold.length > MAX_COLD_REBUILDS;
+
+  for (const { row, snapshot } of warm) {
     const trip = row.trip;
-    const snapshot = await snapshotFor(db, trip, row.viewVersion, row.viewJson);
     const me = row.myPid;
     const isDirect = trip.preset === 'direct';
     const ownLedger = isDirect && trip.organiserUserId === userId;
@@ -148,7 +182,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PersonS
     out.push({ ...person.summary, items, total });
   }
   out.sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.name.localeCompare(b.name));
-  return out;
+  return { people: out, incomplete };
 }
 
 export function balanceRoutes(): Hono<AppBindings> {

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { drizzle } from 'drizzle-orm/d1';
-import type { PersonSummary } from '@fsl/core';
+import type { PeopleSummaryResponse, PersonSummary } from '@fsl/core';
 import * as schema from '../src/db/schema';
-import { loadPeopleSummary } from '../src/me/balances';
+import { loadPeopleSummary, MAX_COLD_REBUILDS } from '../src/me/balances';
 import { call, json, memberSid, seedUser, U } from './helpers';
 
 const OWNER = 'u-owner';
@@ -42,11 +42,58 @@ async function addExpense(tripId: string, id: string, payer: string, amount: num
   }
 }
 
-async function summary(): Promise<PersonSummary[]> {
+async function summaryResponse(): Promise<PeopleSummaryResponse> {
   const sid = await memberSid(OWNER, 'Owen');
   const res = await call('/api/me/people/summary', { headers: { Cookie: `sid=${sid}` } });
   expect(res.status).toBe(200);
-  return json<PersonSummary[]>(res);
+  return json<PeopleSummaryResponse>(res);
+}
+
+async function summary(): Promise<PersonSummary[]> {
+  const body = await summaryResponse();
+  expect(body.incomplete).toBe(false);
+  return body.people;
+}
+
+/** 30 groups where Minh owes the owner 10 each (cold: no trip_views rows). */
+async function seedThirtyGroups() {
+  await seedUser(OWNER, 'Owen');
+  await seedUser(U.minh, 'Minh');
+  const trip = env.DB.prepare("INSERT INTO trips (id, name, currency, fewest_transfers, organiser_user_id, group_token, view_token, version, created_at) VALUES (?, ?, 'VND', 1, ?, ?, ?, 0, ?)");
+  const person = env.DB.prepare("INSERT INTO participants (id, trip_id, name, normalized_name, user_id, status, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)");
+  const expense = env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'expense', 'x', 20, 'VND', '2026-10-10', ?, 'equal', 'approved', ?, ?, ?)");
+  const share = env.DB.prepare('INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 10)');
+  const stmts = [];
+  for (let i = 0; i < 30; i++) {
+    const t = `t-${i}`;
+    stmts.push(
+      trip.bind(t, `Group ${i}`, OWNER, `g-${t}`, `v-${t}`, NOW),
+      person.bind(`${t}-o`, t, 'Owen', 'owen', OWNER, 0, NOW),
+      person.bind(`${t}-m`, t, 'Minh', 'minh', U.minh, 1, NOW),
+      expense.bind(`${t}-e`, `${t}-e`, t, `${t}-o`, `${t}-o`, NOW, NOW),
+      share.bind(`${t}-e`, `${t}-o`),
+      share.bind(`${t}-e`, `${t}-m`),
+    );
+  }
+  await env.DB.batch(stmts);
+}
+
+/** A drizzle client over env.DB that counts the statements it prepares. */
+function countingDb() {
+  const counter = { queries: 0 };
+  const proxied = new Proxy(env.DB, {
+    get(target, prop) {
+      if (prop === 'prepare') {
+        return (q: string) => {
+          counter.queries += 1;
+          return target.prepare(q);
+        };
+      }
+      const value = Reflect.get(target, prop) as unknown;
+      return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
+    },
+  });
+  return { db: drizzle(proxied, { schema }), counter };
 }
 
 /** Owner and Minh (with an account) in badminton, dinner and the owner's ledger. */
@@ -169,46 +216,59 @@ describe('GET /api/me/people/summary', () => {
     expect(rows[0]!.key).toBe('u:u-minh');
   });
 
-  it('30 groups with Minh stay under 50 database queries', async () => {
-    await seedUser(OWNER, 'Owen');
-    await seedUser(U.minh, 'Minh');
-    const trip = env.DB.prepare("INSERT INTO trips (id, name, currency, fewest_transfers, organiser_user_id, group_token, view_token, version, created_at) VALUES (?, ?, 'VND', 1, ?, ?, ?, 0, ?)");
-    const person = env.DB.prepare("INSERT INTO participants (id, trip_id, name, normalized_name, user_id, status, sort_order, created_at) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)");
-    const expense = env.DB.prepare("INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'expense', 'x', 20, 'VND', '2026-10-10', ?, 'equal', 'approved', ?, ?, ?)");
-    const share = env.DB.prepare('INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 1, 10)');
-    const stmts = [];
-    for (let i = 0; i < 30; i++) {
-      const t = `t-${i}`;
-      stmts.push(
-        trip.bind(t, `Group ${i}`, OWNER, `g-${t}`, `v-${t}`, NOW),
-        person.bind(`${t}-o`, t, 'Owen', 'owen', OWNER, 0, NOW),
-        person.bind(`${t}-m`, t, 'Minh', 'minh', U.minh, 1, NOW),
-        expense.bind(`${t}-e`, `${t}-e`, t, `${t}-o`, `${t}-o`, NOW, NOW),
-        share.bind(`${t}-e`, `${t}-o`),
-        share.bind(`${t}-e`, `${t}-m`),
-      );
-    }
-    await env.DB.batch(stmts);
-    // The first read fills the per-group snapshot cache (trip_views), as opening each group does.
-    await summary();
+  it('30 groups with a warm cache stay under 50 database queries', async () => {
+    await seedThirtyGroups();
+    // Fill every group's snapshot cache (trip_views), as opening each group does.
+    for (let i = 0; i < 20 && (await summaryResponse()).incomplete; i++);
 
-    let queries = 0;
-    const counting = new Proxy(env.DB, {
-      get(target, prop) {
-        if (prop === 'prepare') {
-          return (q: string) => {
-            queries += 1;
-            return target.prepare(q);
-          };
-        }
-        const value = Reflect.get(target, prop) as unknown;
-        return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
-      },
-    });
-    const rows = await loadPeopleSummary(drizzle(counting, { schema }), OWNER);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]!.total).toBe(300);
-    expect(rows[0]!.items).toHaveLength(30);
-    expect(queries).toBeLessThan(50);
+    const { db, counter } = countingDb();
+    const body = await loadPeopleSummary(db, OWNER);
+    expect(body.incomplete).toBe(false);
+    expect(body.people).toHaveLength(1);
+    expect(body.people[0]!.total).toBe(300);
+    expect(body.people[0]!.items).toHaveLength(30);
+    expect(counter.queries).toBeLessThan(50);
   }, 30_000);
+
+  it('30 groups with a cold cache stay under 50 queries, then converge on retries', async () => {
+    await seedThirtyGroups();
+
+    const { db, counter } = countingDb();
+    const first = await loadPeopleSummary(db, OWNER);
+    expect(counter.queries).toBeLessThan(50);
+    expect(first.incomplete).toBe(true);
+    expect(first.people[0]!.items).toHaveLength(MAX_COLD_REBUILDS);
+
+    let body = first;
+    let calls = 1;
+    while (body.incomplete && calls < 30) {
+      counter.queries = 0;
+      body = await loadPeopleSummary(db, OWNER);
+      expect(counter.queries).toBeLessThan(50);
+      calls += 1;
+    }
+    expect(body.incomplete).toBe(false);
+    expect(calls).toBe(Math.ceil(30 / MAX_COLD_REBUILDS));
+    expect(body.people).toHaveLength(1);
+    expect(body.people[0]!.total).toBe(300);
+    expect(body.people[0]!.items).toHaveLength(30);
+  }, 30_000);
+
+  it('skips an archived group with nothing open but keeps one with money open', async () => {
+    await seedMinhEverywhere();
+    await addTrip('t-old', 'Old trip', { archived: true });
+    await addPerson('t-old', 'old-o', 'Owen', OWNER, 0);
+    await addPerson('t-old', 'old-m', 'Minh', U.minh, 1);
+    await addExpense('t-old', 'e-old', 'old-o', 100, ['old-o', 'old-m']);
+    await addExpense('t-old', 'e-old2', 'old-m', 100, ['old-o', 'old-m']);
+    await run("UPDATE trips SET archived_at = ? WHERE id = 't-bad'", NOW);
+    await summary(); // warm every cache
+
+    const { db, counter } = countingDb();
+    const body = await loadPeopleSummary(db, OWNER);
+    expect(body.incomplete).toBe(false);
+    expect(body.people[0]!.total).toBe(270);
+    expect(body.people[0]!.items.map((i) => i.tripId)).not.toContain('t-old');
+    expect(counter.queries).toBe(4);
+  });
 });
