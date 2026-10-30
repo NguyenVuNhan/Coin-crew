@@ -128,46 +128,48 @@ export function ActionRow({
           }}
         >
           {leading && <div className="fsl-action-row__leading shrink-0 pl-4 flex items-center">{leading}</div>}
-          <button
-            type="button"
-            className="fsl-action-row__main flex-1 min-w-0 flex items-center gap-3 px-4 py-3 min-h-11 text-left appearance-none bg-transparent border-0 m-0 font-[inherit] text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-            aria-label={label}
-            aria-current={selected || undefined}
-            aria-expanded={expanded}
-            aria-controls={controls}
-            onClick={() => (swipe.open ? swipe.close() : onOpen?.())}
-          >
-            {children}
-          </button>
-          {trailing && <div className="fsl-action-row__trailing shrink-0 pr-4 flex items-center">{trailing}</div>}
-          {!coarse && actions.length > 0 && (
-            <div
-              className={cn(
-                'fsl-action-row__tools',
-                'absolute top-0.5 right-0.5 bottom-0.5 min-w-[128px] flex items-center justify-end gap-1 pl-8 pr-2',
-                'bg-gradient-to-r from-transparent via-card/80 to-card group-hover/row:via-accent/80 group-hover/row:to-accent group-focus-within/row:via-card/80 group-focus-within/row:to-card',
-                'invisible pointer-events-none group-hover/row:visible group-hover/row:pointer-events-auto group-focus-within/row:visible group-focus-within/row:pointer-events-auto',
-              )}
+          <div className="fsl-action-row__body relative flex-1 min-w-0 flex">
+            <button
+              type="button"
+              className="fsl-action-row__main flex-1 min-w-0 flex items-center gap-3 px-4 py-3 min-h-11 text-left appearance-none bg-transparent border-0 m-0 font-[inherit] text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              aria-label={label}
+              aria-current={selected || undefined}
+              aria-expanded={expanded}
+              aria-controls={controls}
+              onClick={() => (swipe.open ? swipe.close() : onOpen?.())}
             >
-              {actions.map((action) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  className={cn(
-                    'fsl-action-row__tool',
-                    `fsl-action-row__tool--${action.tone ?? 'default'}`,
-                    'size-9 inline-flex items-center justify-center rounded-lg border-0 bg-transparent p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors',
-                    TOOL_TONE[action.tone ?? 'default'],
-                  )}
-                  aria-label={action.label}
-                  title={action.label}
-                  onClick={action.onSelect}
-                >
-                  <Icon name={action.icon} size={18} />
-                </button>
-              ))}
-            </div>
-          )}
+              {children}
+            </button>
+            {!coarse && actions.length > 0 && (
+              <div
+                className={cn(
+                  'fsl-action-row__tools',
+                  'absolute top-0.5 right-0.5 bottom-0.5 min-w-[128px] flex items-center justify-end gap-1 pl-8 pr-2',
+                  'bg-gradient-to-r from-transparent via-card/80 to-card group-hover/row:via-accent/80 group-hover/row:to-accent group-focus-within/row:via-card/80 group-focus-within/row:to-card',
+                  'invisible pointer-events-none group-hover/row:visible group-hover/row:pointer-events-auto group-focus-within/row:visible group-focus-within/row:pointer-events-auto',
+                )}
+              >
+                {actions.map((action) => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    className={cn(
+                      'fsl-action-row__tool',
+                      `fsl-action-row__tool--${action.tone ?? 'default'}`,
+                      'size-9 inline-flex items-center justify-center rounded-lg border-0 bg-transparent p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors',
+                      TOOL_TONE[action.tone ?? 'default'],
+                    )}
+                    aria-label={action.label}
+                    title={action.label}
+                    onClick={action.onSelect}
+                  >
+                    <Icon name={action.icon} size={18} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {trailing && <div className="fsl-action-row__trailing shrink-0 pr-4 flex items-center">{trailing}</div>}
         </div>
       </div>
       {hint && <p className="fsl-action-row__hint m-0 px-4 pt-1 pb-2 font-sans text-xs text-muted-foreground">{t('rows.swipeHint')}</p>}

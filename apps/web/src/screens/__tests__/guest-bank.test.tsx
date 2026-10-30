@@ -21,7 +21,9 @@ function withChi(bank: PersonView['bank'], bankAccount?: PersonView['bankAccount
 }
 
 async function fillChiBank() {
-  await userEvent.selectOptions(await screen.findByLabelText('Bank'), '970432');
+  await userEvent.click(await screen.findByLabelText('Bank'));
+  await userEvent.type(screen.getByPlaceholderText('Search banks'), 'vpbank');
+  await userEvent.click(screen.getAllByRole('option', { name: /^VPBank/ })[0]!);
   await userEvent.type(screen.getByLabelText('Account number'), '0123456789');
   await userEvent.type(screen.getByLabelText('Account holder name'), 'Tran Thi Chi');
   await userEvent.tab();

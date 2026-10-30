@@ -112,6 +112,8 @@ export const en = {
   'bank.popular': 'Popular',
   'bank.allBanks': 'All banks',
   'bank.choose': 'Choose your bank',
+  'bank.search': 'Search banks',
+  'bank.noResults': 'No bank found',
   'bank.accountNumber': 'Account number',
   'bank.holderName': 'Account holder name',
   'bank.holderHint': 'As your bank shows it, without accents.',

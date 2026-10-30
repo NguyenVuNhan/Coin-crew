@@ -10,6 +10,7 @@ export interface GenderToggleProps {
   onChange: (next: Gender | null) => void;
   disabled?: boolean;
   className?: string;
+  variant?: 'default' | 'inline';
 }
 
 export function GenderToggle({
@@ -18,9 +19,17 @@ export function GenderToggle({
   onChange,
   disabled,
   className = '',
+  variant = 'default',
 }: GenderToggleProps) {
   const t = useT();
   const gender = value ?? null;
+
+  const title =
+    gender === 'M'
+      ? t('gender.M')
+      : gender === 'F'
+        ? t('gender.F')
+        : t('gender.unset');
 
   return (
     <button
@@ -28,19 +37,28 @@ export function GenderToggle({
       className={cn(
         'fsl-gender-toggle',
         `fsl-gender-toggle--${gender ?? 'unset'}`,
-        'inline-flex items-center justify-center gap-1 min-h-11 min-w-[68px] px-3 py-1 rounded-full text-sm transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none select-none shrink-0 cursor-pointer',
-        gender
-          ? 'bg-card text-foreground font-semibold shadow-sm border border-border'
-          : 'bg-muted text-muted-foreground font-medium hover:text-foreground',
+        'inline-flex items-center justify-center rounded-full transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none select-none shrink-0 cursor-pointer p-0',
+        variant === 'inline'
+          ? cn(
+              'size-9 bg-transparent border-0 shadow-none hover:bg-muted',
+              gender ? 'text-foreground' : 'text-muted-foreground',
+            )
+          : cn(
+              'size-11',
+              gender
+                ? 'bg-card border border-border shadow-sm text-foreground'
+                : 'bg-muted text-muted-foreground',
+            ),
         className,
       )}
       aria-label={t('gender.label', { name })}
+      title={title}
       disabled={disabled}
       onClick={() => onChange(nextGender(gender))}
     >
-      {gender === 'M' && <Icon name="mars" size={14} />}
-      {gender === 'F' && <Icon name="venus" size={14} />}
-      <span>{gender ? t(`gender.${gender}`) : t('gender.unset')}</span>
+      {gender === 'M' && <Icon name="mars" size={18} />}
+      {gender === 'F' && <Icon name="venus" size={18} />}
+      {!gender && <Icon name="user" size={18} />}
     </button>
   );
 }

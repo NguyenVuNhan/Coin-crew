@@ -443,7 +443,9 @@ describe('BankDetails', () => {
     const { calls } = mockApi({ 'GET /api/trips/t-1': guestChiView(), 'PUT /api/trips/t-1/bank': null });
     renderAt(<BankDetails />, route);
     expect(await screen.findByText('A member approves new bank details before anyone can pay you.')).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText('Bank'), '970422');
+    await userEvent.click(screen.getByLabelText('Bank'));
+    await userEvent.type(screen.getByPlaceholderText('Search banks'), 'quan doi');
+    await userEvent.click(screen.getAllByRole('option', { name: /^MBBank/ })[0]!);
     await userEvent.type(screen.getByLabelText('Account number'), '0123456789');
     const holder = screen.getByLabelText('Account holder name');
     await userEvent.type(holder, 'Nguyễn Văn Minh');

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router';
-import { useQueryClient } from '@tanstack/react-query';
-import type { BankInput } from '@fsl/core';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { BankInput, MyBankResponse } from '@fsl/core';
 import { useT } from '../i18n';
-import { apiSend } from '../api/client';
+import { apiFetch, apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
@@ -26,11 +26,34 @@ export function BankDetails() {
   const isLoading = tripId ? tripViewResult.isLoading : false;
   const tripError = tripId ? tripViewResult.error : null;
 
+  const isMemberForm = !tripId || view?.me.kind === 'member';
+
+  const myBankQuery = useQuery<MyBankResponse | null>({
+    queryKey: ['me', 'bank'],
+    queryFn: () => apiFetch<MyBankResponse | null>('/api/me/bank'),
+    enabled: isMemberForm,
+  });
+
   const [value, setValue] = useState<BankFieldsValue>({
     bin: '',
     accountNumber: '',
     holderName: '',
   });
+  const userTypedRef = useRef(false);
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (prefilledRef.current || userTypedRef.current) return;
+    if (myBankQuery.data) {
+      prefilledRef.current = true;
+      setValue({
+        bin: myBankQuery.data.bin,
+        accountNumber: myBankQuery.data.accountNumber,
+        holderName: myBankQuery.data.holderName,
+      });
+    }
+  }, [myBankQuery.data]);
+
   const [consent, setConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
@@ -71,6 +94,7 @@ export function BankDetails() {
       } else {
         await apiSend('/api/me/bank', 'PUT', body);
       }
+      await queryClient.invalidateQueries({ queryKey: ['me', 'bank'] });
       setSuccess(true);
     } catch (err) {
       setSubmitError(err);
@@ -165,7 +189,13 @@ export function BankDetails() {
           <form id="bank-details-form" className={cn('fsl-bank-details__form flex flex-col gap-4')} onSubmit={handleSubmit}>
             <p className={cn('fsl-bank-details__note m-0 text-sm leading-snug text-muted-foreground')}>{note}</p>
 
-            <BankFields value={value} onChange={setValue} />
+            <BankFields
+              value={value}
+              onChange={(v) => {
+                userTypedRef.current = true;
+                setValue(v);
+              }}
+            />
 
             <div className={cn('fsl-bank-details__consent-row flex items-center gap-2 min-h-11 text-sm leading-snug text-foreground select-none')}>
               <Checkbox

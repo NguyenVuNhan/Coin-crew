@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { formatVnd, type Gender, type PersonView } from '@fsl/core';
 import { useT } from '../i18n';
@@ -17,7 +17,11 @@ import { ActionSheet } from '../components/ActionSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { GenderToggle } from '../components/GenderToggle';
-import { Input } from '@/components/ui/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
 
 export function People() {
@@ -34,7 +38,15 @@ export function People() {
   const [menuFor, setMenuFor] = useState<PersonView | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
-  const [newGender, setNewGender] = useState<Gender | null>(null);
+  const [newGender, setNewGender] = useState<Gender | null>('M');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastAddedName = useRef('');
+
+  useEffect(() => {
+    if (actingId === 'new-person' && error && !newName) {
+      setNewName(lastAddedName.current);
+    }
+  }, [error, actingId]);
 
   if (isLoading) {
     return (
@@ -143,15 +155,18 @@ export function People() {
   const handleAddPerson = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newName.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed) return;
+    lastAddedName.current = trimmed;
+    const genderToSubmit = newGender;
+    setNewName('');
+    setNewGender('M');
+    inputRef.current?.focus();
     setActingId('new-person');
     const payload: { name: string; gender?: Gender | null } = { name: trimmed };
-    if (view.trip.preset === 'sport' && newGender) {
-      payload.gender = newGender;
+    if (view.trip.preset === 'sport' && genderToSubmit) {
+      payload.gender = genderToSubmit;
     }
     await run('/people', payload, 'POST');
-    setNewName('');
-    setNewGender(null);
   };
 
   const mainPeople = view.people.filter((p) => p.status !== 'left');
@@ -286,24 +301,29 @@ export function People() {
           view.me.kind === 'member' &&
           (view.me.isAdmin || view.me.isOrganiser) && (
           <form onSubmit={handleAddPerson} className={cn('fsl-people__add-form flex items-center gap-2 mt-2')}>
-            <Input
-              type="text"
-              className={cn('fsl-input flex-1')}
-              placeholder={t('create.otherPlaceholder')}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              maxLength={40}
-              aria-label={t('create.otherPlaceholder')}
-            />
-            {view.trip.preset === 'sport' && (
-              <GenderToggle
-                name={newName.trim() || t('create.otherPlaceholder')}
-                value={newGender}
-                onChange={setNewGender}
-                disabled={busy}
+            <InputGroup className="fsl-people__add-group flex-1">
+              <InputGroupInput
+                ref={inputRef}
+                type="text"
+                className="fsl-input"
+                placeholder={t('create.otherPlaceholder')}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                maxLength={40}
+                aria-label={t('create.otherPlaceholder')}
               />
-            )}
-            <Button type="submit" variant="secondary" disabled={!newName.trim() || busy}>
+              {view.trip.preset === 'sport' && (
+                <InputGroupAddon align="inline-end">
+                  <GenderToggle
+                    variant="inline"
+                    name={newName.trim() || t('create.otherPlaceholder')}
+                    value={newGender}
+                    onChange={setNewGender}
+                  />
+                </InputGroupAddon>
+              )}
+            </InputGroup>
+            <Button type="submit" variant="secondary" disabled={!newName.trim()}>
               {t('create.addPerson')}
             </Button>
           </form>
