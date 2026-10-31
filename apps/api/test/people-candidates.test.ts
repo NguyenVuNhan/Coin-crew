@@ -48,6 +48,30 @@ describe('GET /api/me/people/candidates', () => {
     ]);
   });
 
+  it('leaves out people already in my ledger by identity, not by name', async () => {
+    const sid = await memberSid(U.an, 'An');
+    await seedUser(U.minh, 'Minh');
+    await seedUser('u-minh2', 'Minh');
+    await env.DB.batch([
+      trip('g', 'trip', NOW),
+      trip('led', 'direct', NOW),
+      person('g-an', 'g', 'An', U.an, 0),
+      person('g-minh', 'g', 'Minh', U.minh, 1),
+      person('g-minh2', 'g', 'Minh', 'u-minh2', 2),
+      person('g-linh', 'g', 'Linh', null, 3),
+      person('g-linh2', 'g', 'Linh', null, 4),
+      person('l-an', 'led', 'An', U.an, 0),
+      // In the ledger: signed-in Minh, a typed guest "Minh", and Linh linked from the group.
+      person('l-minh', 'led', 'Minh', U.minh, 1),
+      person('l-minh-typed', 'led', 'Minh', null, 2),
+      person('l-linh', 'led', 'Linh', null, 3),
+      env.DB.prepare("INSERT INTO person_links (owner_user_id, participant_id, person_pid, created_at) VALUES (?, 'g-linh', 'l-linh', ?)").bind(U.an, NOW),
+    ]);
+
+    const people = await json<GroupPerson[]>(call('/api/me/people/candidates', { headers: { Cookie: `sid=${sid}` } }));
+    expect(people.map((p) => p.participantId)).toEqual(['g-minh2', 'g-linh2']);
+  });
+
   it('needs a signed-in user', async () => {
     const res = await call('/api/me/people/candidates');
     expect(res.status).toBe(401);

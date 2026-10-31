@@ -12,7 +12,7 @@ import type {
   SportParticipantEntry,
   SportRule,
 } from '@fsl/core';
-import { can, computeShares, computeSportShares, formatVnd, isFundPaid, normalizeName, parseVnd } from '@fsl/core';
+import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
@@ -173,15 +173,14 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
   const splitCandidates = useMemo(() => {
     if (!isDirect || !groupPeople) return [];
-    const existing = new Set(formPeople.map((p) => normalizeName(p.name)));
+    // The server leaves out people already in the ledger by identity; same names stay pickable.
     return groupPeople
-      .filter((c) => !existing.has(normalizeName(c.name)))
       .map((c) => ({
         id: c.participantId,
         name: c.name,
         meta: c.tripName,
       }));
-  }, [isDirect, groupPeople, formPeople]);
+  }, [isDirect, groupPeople]);
 
   const splitExtra = useMemo(() => {
     if (!isDirect) return undefined;

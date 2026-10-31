@@ -59,13 +59,24 @@ interface GroupPersonRow {
   trip_name: string;
 }
 
-/** Everyone active in my groups but me, newest group first; a signed-in person once. One query, two bound parameters. */
+/**
+ * Everyone active in my groups but me, newest group first; a signed-in person once. Someone already
+ * in my ledger is left out by identity (same account, or a guest linked to a ledger row), never by
+ * name: a second "Minh" stays pickable. One query, four bound parameters (all the caller's id).
+ */
 export async function loadGroupPeople(db: Db, userId: string): Promise<GroupPerson[]> {
+  const ledgerRows = sql`SELECT lp.id, lp.user_id FROM participants lp JOIN trips lt ON lt.id = lp.trip_id
+    WHERE lt.preset = 'direct' AND lt.organiser_user_id = ${userId} AND lp.status = 'active'`;
   const rows = await db.all<GroupPersonRow>(sql`
     SELECT p.id AS id, p.name AS name, p.user_id AS user_id, t.name AS trip_name
     FROM participants p JOIN trips t ON t.id = p.trip_id AND t.preset <> 'direct' AND t.archived_at IS NULL
     WHERE p.status = 'active' AND (p.user_id IS NULL OR p.user_id <> ${userId})
       AND p.trip_id IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active')
+      AND NOT (p.user_id IS NOT NULL AND p.user_id IN (SELECT l.user_id FROM (${ledgerRows}) l WHERE l.user_id IS NOT NULL))
+      AND NOT (p.user_id IS NULL AND EXISTS (
+        SELECT 1 FROM person_links pl WHERE pl.owner_user_id = ${userId} AND pl.participant_id = p.id
+          AND pl.person_pid IN (SELECT l.id FROM (${ledgerRows}) l)
+      ))
     ORDER BY t.created_at DESC, t.id, p.sort_order
     LIMIT 500
   `);
