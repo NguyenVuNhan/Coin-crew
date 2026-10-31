@@ -20,6 +20,7 @@ import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError, isDbError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
+import { pendingProposalFor } from '../proposals/store';
 import { mergeParticipants } from './merge';
 import { takeOutOfTrip } from './remove';
 
@@ -790,13 +791,16 @@ export function participantRoutes(): Hono<AppBindings> {
     let inserted: number;
     try {
       // Only for a name that is still active or pending and unlinked; the partial unique index
-      // membership_requests_one_pending refuses a second pending claim on the same name.
+      // membership_requests_one_pending refuses a second pending claim on the same name, and a
+      // pending merge proposal on the name blocks a claim (one pending claim or proposal per guest).
       const r = await db.run(sql`
         INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at)
         SELECT ${requestId}, ${tripId}, ${participantId}, ${user.id}, 'pending', ${nowIso()}
         WHERE EXISTS (
           SELECT 1 FROM participants
           WHERE id = ${participantId} AND trip_id = ${tripId} AND status IN ('active', 'pending') AND user_id IS NULL
+        ) AND NOT EXISTS (
+          SELECT 1 FROM merge_proposals WHERE guest_pid = ${participantId} AND status = 'pending'
         )`);
       inserted = r.meta.changes;
     } catch (err) {
@@ -806,6 +810,9 @@ export function participantRoutes(): Hono<AppBindings> {
       throw err;
     }
     if (inserted === 0) {
+      if (await pendingProposalFor(db, participantId)) {
+        throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
+      }
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 
