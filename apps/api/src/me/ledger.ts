@@ -111,11 +111,21 @@ export async function importPerson(
   deviceHash: string | null,
 ): Promise<string> {
   const source = await db
-    .select({ id: participants.id, tripId: participants.tripId, name: participants.name, userId: participants.userId })
+    .select({
+      id: participants.id,
+      tripId: participants.tripId,
+      name: participants.name,
+      userId: participants.userId,
+      preset: trips.preset,
+      organiserUserId: trips.organiserUserId,
+    })
     .from(participants)
+    .innerJoin(trips, eq(trips.id, participants.tripId))
     .where(eq(participants.id, sourcePid))
     .get();
   if (!source || source.tripId === ledger.tripId) throw new ApiError('FORBIDDEN', 403);
+  // Someone else's ledger: only its owner can be picked from it, never the owner's other contacts.
+  if (source.preset === 'direct' && source.userId !== source.organiserUserId) throw new ApiError('FORBIDDEN', 403);
 
   const membership = await db
     .select({ id: participants.id })

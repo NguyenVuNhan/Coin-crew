@@ -52,6 +52,8 @@ async function ensureLedgerPerson(db: Db, user: { id: string; name: string }, ke
         eq(participants.userId, id),
         ne(participants.tripId, ledger.tripId),
         sql`${participants.tripId} IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${user.id} AND m.status = 'active')`,
+        // In someone else's ledger only its owner counts as shared.
+        sql`${participants.tripId} NOT IN (SELECT d.id FROM trips d WHERE d.preset = 'direct' AND d.organiser_user_id <> ${id})`,
       ))
       .get();
     if (!source) throw new ApiError('NOT_FOUND', 404);

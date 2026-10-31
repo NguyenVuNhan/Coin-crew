@@ -147,6 +147,8 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     for (const pid of otherPids) {
       const other = byPid.get(pid);
       if (!other || other.user_id === userId) continue;
+      // In someone else's ledger the caller has a pair with its owner only, never with the owner's contacts.
+      if (isDirect && !ownLedger && other.user_id !== trip.organiserUserId) continue;
 
       let key: PersonKey;
       let name: string;
@@ -324,10 +326,12 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
     cond = sql`p.user_id IS NULL AND (p.id = ${target} OR p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${userId} AND pl.person_pid = ${target}))`;
   }
 
+  // Someone else's ledger holds a pair with its owner only (not with the owner's other contacts).
+  const visible = sql`p.trip_id NOT IN (SELECT d.id FROM trips d WHERE d.preset = 'direct' AND d.organiser_user_id <> ${userId} AND (p.user_id IS NULL OR p.user_id <> d.organiser_user_id))`;
   const rows = await db.all<PersonRow>(sql`
     SELECT p.id AS id, p.trip_id AS trip_id, p.name AS name, p.user_id AS user_id
     FROM participants p
-    WHERE (${cond}) AND p.trip_id IN (${myTrips})
+    WHERE (${cond}) AND p.status <> 'merged' AND (${visible}) AND p.trip_id IN (${myTrips})
   `);
   queries += 1;
   if (rows.length === 0) return null;
@@ -340,7 +344,7 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
     .where(and(
       eq(participants.userId, userId),
       eq(participants.status, 'active'),
-      sql`${trips.id} IN (SELECT p.trip_id FROM participants p WHERE ${cond})`,
+      sql`${trips.id} IN (SELECT p.trip_id FROM participants p WHERE (${cond}) AND p.status <> 'merged' AND (${visible}))`,
     ));
   queries += 1;
 

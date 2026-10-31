@@ -33,7 +33,7 @@ async function jMeta(c: Context<AppBindings>): Promise<PageMeta> {
       .from(trips)
       .where(or(eq(trips.groupToken, token), eq(trips.viewToken, token)))
       .get();
-    if (!trip) {
+    if (!trip || trip.preset === 'direct') {
       return pageMeta({ kind: 'dead' });
     }
 
