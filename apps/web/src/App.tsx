@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
-import { MyTrips } from './screens/MyTrips';
+import { Home } from './screens/Home';
 import { CreateTrip } from './screens/CreateTrip';
 import { Privacy } from './screens/Privacy';
 import { Join } from './screens/Join';
@@ -22,7 +22,7 @@ export function App() {
       <AuthNotice />
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/trips" element={<MyTrips />} />
+      <Route path="/trips" element={<Home />} />
       <Route path="/trips/new" element={<CreateTrip />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
