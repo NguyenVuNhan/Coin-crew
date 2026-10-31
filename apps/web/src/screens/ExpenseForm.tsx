@@ -12,11 +12,12 @@ import type {
   SportParticipantEntry,
   SportRule,
 } from '@fsl/core';
-import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@fsl/core';
+import { can, computeShares, computeSportShares, formatVnd, isFundPaid, normalizeName, parseVnd } from '@fsl/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
 import { apiSend, ApiClientError } from '../api/client';
+import { useGroupPeople, importPerson } from '../api/people';
 import { readSplitInput, fromEntryValue } from '../lib/splitInput';
 import { recentGroups } from '../lib/recentGroups';
 import { SplitBetween } from '../components/SplitBetween';
@@ -152,9 +153,11 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
   const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { data: groupPeople } = useGroupPeople();
 
   const isEdit = Boolean(expenseId);
   const me = view.me.participantId;
+  const isDirect = view.trip.preset === 'direct';
 
   // Fund admins may pay from the group fund. A fund-paid expense keeps the choice while it is edited (the route lets
   // only fund admins open it), and may spend its own amount again on top of the balance.
@@ -167,6 +170,35 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
     const onExpense = new Set(expense ? [expense.payerId, ...expense.shares.map((s) => s.participantId)] : []);
     return view.people.filter((p) => p.status !== 'left' || onExpense.has(p.id));
   }, [view.people, expense]);
+
+  const splitCandidates = useMemo(() => {
+    if (!isDirect || !groupPeople) return [];
+    const existing = new Set(formPeople.map((p) => normalizeName(p.name)));
+    return groupPeople
+      .filter((c) => !existing.has(normalizeName(c.name)))
+      .map((c) => ({
+        id: c.participantId,
+        name: c.name,
+        meta: c.tripName,
+      }));
+  }, [isDirect, groupPeople, formPeople]);
+
+  const splitExtra = useMemo(() => {
+    if (!isDirect) return undefined;
+    return {
+      candidates: splitCandidates,
+      onPickCandidate: async (id: string) => {
+        const { participantId } = await importPerson({ participantId: id });
+        await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+        return participantId;
+      },
+      onAddName: async (name: string) => {
+        const { participantId } = await importPerson({ name });
+        await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+        return participantId;
+      },
+    };
+  }, [isDirect, splitCandidates, queryClient, tripId]);
 
   // The trip refreshes while the form is open: someone removed or leaving meanwhile drops off the split, and is named.
   const [openedWith] = useState(() => new Map(formPeople.map((p) => [p.id, p.name])));
@@ -304,6 +336,9 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
     // A fund-paid expense has no shares: choosing a person on it starts from everyone, as a new expense does.
     if (expense && !editingFundPaid) {
       return new Set(expense.shares.map((s) => s.participantId));
+    }
+    if (isDirect) {
+      return new Set(me ? [me] : []);
     }
     return new Set(formPeople.map((p) => p.id));
   });
@@ -665,7 +700,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
   return (
     <Screen
-      title={title}
+      title={isDirect && !isEdit ? t('home.newExpense') : title}
       onBack={leave}
       bottomBar={
         <>
@@ -696,7 +731,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
           Boolean(submitError || goneNames.length > 0) && 'fsl-expense-form--bar-error max-lg:pb-24',
         )}
       >
-        {switcher}
+        {!isDirect && switcher}
 
         <div className={cn('fsl-field flex flex-col gap-1.5')}>
           <Label htmlFor="expense-what-for" className={cn('fsl-field-label text-foreground')}>
@@ -1484,6 +1519,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                 onChange={setIncluded}
                 me={me}
                 recent={recent}
+                extra={splitExtra}
               />
             </>
           )}

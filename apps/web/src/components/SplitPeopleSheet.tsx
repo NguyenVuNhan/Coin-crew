@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent, MouseEvent } from 'react';
-import type { PersonView } from '@fsl/core';
+import { normalizeName, type PersonView } from '@fsl/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Sheet } from './Sheet';
@@ -20,6 +20,11 @@ export interface SplitPeopleSheetProps {
   onChange(next: Set<string>): void;
   me: string | null;
   recent: readonly RecentGroup[];
+  extra?: {
+    candidates: readonly { id: string; name: string; meta: string }[];
+    onPickCandidate(id: string): Promise<string>;
+    onAddName(name: string): Promise<string>;
+  };
 }
 
 /** Tapping these must not move focus off the search box: on a phone that would close the keyboard and reopen it. */
@@ -34,9 +39,12 @@ export function SplitPeopleSheet({
   onChange,
   me,
   recent,
+  extra,
 }: SplitPeopleSheetProps): JSX.Element {
   const t = useT();
   const [query, setQuery] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +75,48 @@ export function SplitPeopleSheet({
   const suggestions = people.filter((p) => !chosen.has(p.id) && matchesWordStart(query, p.name));
   const alreadyIn = typed ? chips.filter((p) => matchesWordStart(query, p.name)) : [];
 
+  const matchingCandidates =
+    extra && typed
+      ? extra.candidates.filter((c) => matchesWordStart(query, c.name)).slice(0, 5)
+      : [];
+
+  const showAddName =
+    extra &&
+    typed &&
+    !people.some((p) => normalizeName(p.name) === normalizeName(query));
+
+  const handlePickCandidate = async (candidateId: string) => {
+    if (isBusy || !extra) return;
+    setIsBusy(true);
+    setAddError(null);
+    try {
+      const newId = await extra.onPickCandidate(candidateId);
+      onChange(new Set([...chosen, newId]));
+      setQuery('');
+      inputRef.current?.focus();
+    } catch {
+      setAddError(t('quick.addFailed'));
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleAddName = async () => {
+    if (isBusy || !extra) return;
+    setIsBusy(true);
+    setAddError(null);
+    try {
+      const newId = await extra.onAddName(query.trim());
+      onChange(new Set([...chosen, newId]));
+      setQuery('');
+      inputRef.current?.focus();
+    } catch {
+      setAddError(t('quick.addFailed'));
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const add = (id: string) => {
     toggle(id, true);
     setQuery('');
@@ -88,7 +138,10 @@ export function SplitPeopleSheet({
 
   // A new search each time the sheet opens.
   useEffect(() => {
-    if (!open) setQuery('');
+    if (!open) {
+      setQuery('');
+      setAddError(null);
+    }
   }, [open]);
 
   // The text box comes after the chips in a field that stops at about three lines: keep it scrolled to the end so the
@@ -240,7 +293,10 @@ export function SplitPeopleSheet({
             aria-label={t('splitSheet.searchLabel')}
             placeholder={t('splitSheet.searchPlaceholder')}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setAddError(null);
+            }}
             onKeyDown={onKeyDown}
             autoComplete="off"
           />
@@ -287,10 +343,65 @@ export function SplitPeopleSheet({
         <p className={cn('fsl-split-sheet__empty', 'mt-3 text-sm leading-5 text-muted-foreground')}>
           {t('splitSheet.allChosen')}
         </p>
-      ) : (
+      ) : !extra ? (
         <p className={cn('fsl-split-sheet__empty', 'mt-3 text-sm leading-5 text-muted-foreground')}>
           {t('splitSheet.noMatch', { q: query.trim() })}
         </p>
+      ) : null}
+
+      {extra && typed && (
+        <div className="fsl-split-sheet__extra mt-4 flex flex-col gap-3">
+          {matchingCandidates.length > 0 && (
+            <section className={cn('fsl-split-sheet__groups')}>
+              <h3 className={cn('fsl-split-sheet__section-title', 'm-0 mb-2 text-xs leading-4 font-semibold tracking-wider uppercase text-muted-foreground')}>
+                {t('quick.fromGroups')}
+              </h3>
+              <ul className={cn('fsl-split-sheet__groups-list', 'm-0 p-0 list-none divide-y divide-border')}>
+                {matchingCandidates.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      data-testid={`candidate-${c.id}`}
+                      className={cn(
+                        'fsl-split-sheet__candidate',
+                        'flex items-center justify-between gap-3 w-full min-h-11 px-2 py-1 border-0 bg-transparent text-foreground text-left cursor-pointer hover:bg-muted/50 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed',
+                      )}
+                      onMouseDown={keepSearchFocus}
+                      onClick={() => void handlePickCandidate(c.id)}
+                    >
+                      <span className={cn('fsl-split-sheet__candidate-name', 'font-medium truncate')}>{c.name}</span>
+                      <span className={cn('fsl-split-sheet__candidate-meta', 'text-sm text-muted-foreground shrink-0')}>{c.meta}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {showAddName && (
+            <button
+              type="button"
+              disabled={isBusy}
+              data-testid="split-add-name"
+              className={cn(
+                'fsl-split-sheet__add-name',
+                'flex items-center gap-2 w-full min-h-11 px-2 py-2 border-0 bg-transparent text-primary text-left text-sm font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+              )}
+              onMouseDown={keepSearchFocus}
+              onClick={() => void handleAddName()}
+            >
+              <Icon name="plus" size={18} className="shrink-0" />
+              <span>{t('quick.addName', { name: query.trim() })}</span>
+            </button>
+          )}
+
+          {addError && (
+            <p role="alert" className={cn('fsl-split-sheet__add-error', 'm-0 text-sm text-danger')}>
+              {addError}
+            </p>
+          )}
+        </div>
       )}
 
       <div className={cn('fsl-split-sheet__footer', 'sticky bottom-0 mt-4 pt-2 bg-card')}>
