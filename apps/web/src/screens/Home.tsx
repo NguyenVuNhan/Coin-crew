@@ -144,7 +144,9 @@ export function Home(): JSX.Element {
     );
   };
 
-  const totalCard = (
+  const totalCard = peopleLoading || people === undefined ? (
+    <SkeletonList rows={1} />
+  ) : (
     <Card
       data-testid="home-total"
       className="fsl-home__total rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-1 w-full text-card-foreground"
@@ -156,7 +158,6 @@ export function Home(): JSX.Element {
         value={sumPositive}
         tone="success"
         size="xl"
-        className="!text-3xl !font-bold tabular-nums !text-primary"
       />
       {sumNegative > 0 && (
         <p className="fsl-home__total-owe m-0 text-sm text-muted-foreground tabular-nums">
