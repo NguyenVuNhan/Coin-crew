@@ -110,7 +110,7 @@ export function CreateTrip() {
   return (
     <Screen
       title={t('create.title')}
-      back="/trips"
+      back="/groups"
       bottomBar={
         <>
           {submitError ? <InlineError error={submitError} /> : null}

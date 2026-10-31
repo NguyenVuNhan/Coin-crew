@@ -210,7 +210,7 @@ describe('PersonScreen', () => {
     const manageLink = screen.getByRole('link', {
       name: 'Rename or merge in Đà Lạt',
     });
-    expect(manageLink).toHaveAttribute('href', '/t/t-dl/people');
+    expect(manageLink).toHaveAttribute('href', '/t/t-dl/people?from=%2Fpeople%2Fp%253Ap-tuan');
   });
 
   it('paid in cash: Save is disabled while sending and one key is reused for a retry', async () => {

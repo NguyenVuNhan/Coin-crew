@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { formatVnd, type Gender, type PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
@@ -27,6 +27,9 @@ import { cn } from '@/lib/utils';
 
 export function People() {
   const { tripId, href } = useTrip();
+  // Opened from a person's page ("Rename or merge in …"), back returns there; otherwise to the group settings.
+  const from = useSearchParams()[0].get('from');
+  const back = from && /^\/people\/[^/\\]+$/.test(from) ? from : href('/settings');
   const t = useT();
   const navigate = useNavigate();
   const leftHeadingId = useId();
@@ -51,7 +54,7 @@ export function People() {
 
   if (isLoading) {
     return (
-      <Screen title={t('people.title')} back={href('/settings')}>
+      <Screen title={t('people.title')} back={back}>
         <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
           <SkeletonList rows={4} />
         </div>
@@ -61,7 +64,7 @@ export function People() {
 
   if (loadError) {
     return (
-      <Screen title={t('people.title')} back={href('/settings')}>
+      <Screen title={t('people.title')} back={back}>
         <InlineError error={loadError} onRetry={refetch} />
       </Screen>
     );
@@ -174,7 +177,7 @@ export function People() {
   const leftPeople = view.people.filter((p) => p.status === 'left');
 
   return (
-    <Screen title={t('people.title')} back={href('/settings')}>
+    <Screen title={t('people.title')} back={back}>
       <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
         <SwipeGroupProvider>
           <ul className={cn('fsl-people__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border [&_.fsl-action-row]:border-b-0 [&_.fsl-action-row__main]:pl-3 [&_.fsl-action-row__main]:gap-2 [&_.fsl-pill]:shrink-0')}>

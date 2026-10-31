@@ -478,7 +478,7 @@ export function PersonScreen(): JSX.Element {
                 key={`manage-${item.tripId}:${item.otherPid ?? index}`}
                 variant="ghost"
                 block
-                href={`/t/${item.tripId}/people`}
+                href={`/t/${item.tripId}/people?${new URLSearchParams({ from: `/people/${encodeURIComponent(person.key)}` })}`}
               >
                 {t('person.manageIn', {
                   group:
