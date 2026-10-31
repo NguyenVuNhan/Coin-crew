@@ -11,8 +11,10 @@ import { InlineError } from '../components/InlineError';
 import { EmptyState } from '../components/EmptyState';
 import { cn } from '@/lib/utils';
 
-export function Activity() {
-  const { tripId } = useParams<{ tripId: string }>();
+/** `tripId` + `embedded`: render only the list for that trip, inside another screen (the Activity tab on Home). */
+export function Activity({ tripId: tripIdProp, embedded = false }: { tripId?: string; embedded?: boolean } = {}) {
+  const params = useParams<{ tripId: string }>();
+  const tripId = tripIdProp ?? params.tripId;
   const t = useT();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -24,8 +26,7 @@ export function Activity() {
   const { view, isLoading: viewLoading } = useTripView(tripId ?? '', 0);
   const loading = isLoading || viewLoading;
 
-  return (
-    <Screen title={t('activity.title')} back={`/t/${tripId}/settings`}>
+  const content = (
       <div className={cn('fsl-activity flex flex-col gap-4 py-4')}>
         {loading && !error && <SkeletonList rows={5} />}
 
@@ -54,6 +55,12 @@ export function Activity() {
             </section>
           ))}
       </div>
+  );
+
+  if (embedded) return content;
+  return (
+    <Screen title={t('activity.title')} back={`/t/${tripId}/settings`}>
+      {content}
     </Screen>
   );
 }

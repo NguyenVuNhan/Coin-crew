@@ -78,6 +78,18 @@ export const vi: Record<MessageKey, string> = {
   'account.gender': 'Giới tính', // REVIEW
   'trips.accountAria': 'Tài khoản', // REVIEW
   'trips.signOut': 'Đăng xuất', // REVIEW
+
+  'home.title': 'CoinCrew', // REVIEW
+  'home.tabPeople': 'Mọi người', // REVIEW
+  'home.tabGroups': 'Nhóm', // REVIEW
+  'home.tabActivity': 'Hoạt động', // REVIEW
+  'home.newExpense': 'Thêm khoản chi', // REVIEW
+  'home.owedToYou': 'Nợ bạn', // REVIEW
+  'home.youOwe': 'Bạn nợ', // REVIEW
+  'home.peopleEmptyTitle': 'Không có khoản nợ nào', // REVIEW
+  'home.peopleEmptyBody': 'Thêm một khoản chi và chọn người chia cùng.', // REVIEW
+  'home.stillCounting': 'Đang cộng thêm vài nhóm…', // REVIEW
+  'home.waiting': 'Chờ bạn xác nhận', // REVIEW
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
   'trip.tabs': 'Các tab', // REVIEW
