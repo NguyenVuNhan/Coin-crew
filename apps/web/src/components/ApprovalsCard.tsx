@@ -303,6 +303,31 @@ function MembershipApproval({ view, a }: { view: TripView; a: Extract<Approval, 
   );
 }
 
+function ProposalApproval({ view, a }: { view: TripView; a: Extract<Approval, { kind: 'proposal' }> }) {
+  const t = useT();
+  const { busy, error, run } = useTripAction(view.trip.id);
+  const into = a.targetUserName ?? (a.intoPid ? nameOf(view, a.intoPid) : '');
+
+  return (
+    <div className="fsl-approval flex flex-col gap-3" data-testid={`approval-proposal-${a.proposalId}`}>
+      <div className="fsl-approval__content flex min-w-0 flex-col gap-1 text-left">
+        <p className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words">
+          {t('approvals.proposal', { by: a.requestedByName, guest: nameOf(view, a.guestPid), into })}
+        </p>
+      </div>
+      <div className="fsl-approval__actions flex flex-wrap gap-2">
+        <Button variant="primary" loading={busy} onClick={() => run(`/proposals/${a.proposalId}/approve`)}>
+          {t('approvals.approve')}
+        </Button>
+        <Button variant="secondary" loading={busy} onClick={() => run(`/proposals/${a.proposalId}/reject`)}>
+          {t('approvals.reject')}
+        </Button>
+      </div>
+      {error ? <InlineError error={error} /> : null}
+    </div>
+  );
+}
+
 export function approvalKey(a: Approval): string {
   switch (a.kind) {
     case 'expense':
@@ -349,6 +374,6 @@ export function ApprovalItem({
     case 'membership':
       return <MembershipApproval view={view} a={approval} />;
     case 'proposal':
-      return null;
+      return <ProposalApproval view={view} a={approval} />;
   }
 }

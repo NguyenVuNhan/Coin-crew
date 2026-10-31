@@ -19,6 +19,8 @@ import {
   unlinkPerson,
   useLedger,
   useMergeOptions,
+  useProposals,
+  cancelProposal,
   usePeopleSummary,
   usePersonPay,
 } from '../api/people';
@@ -64,6 +66,9 @@ export function PersonScreen(): JSX.Element {
   const [editError, setEditError] = useState<unknown>(null);
 
   const mergeOptions = useMergeOptions(key, editSheetOpen);
+  const proposals = useProposals();
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<{ id: string; error: unknown } | null>(null);
 
   const [cashSheetOpen, setCashSheetOpen] = useState(false);
   const [cashValue, setCashValue] = useState('');
@@ -182,6 +187,25 @@ export function PersonScreen(): JSX.Element {
 
   const handleOpenMerge = () => {
     setMergeSheetOpen(true);
+  };
+
+  // Requests this user sent about this person; declined ones show once, for a week (API window).
+  const myProposals = (proposals.data?.outgoing ?? []).filter(
+    (p) => p.guestKey === person.key && (p.status === 'pending' || p.status === 'declined'),
+  );
+
+  const handleCancelProposal = async (id: string) => {
+    if (cancelling) return;
+    setCancelling(id);
+    setCancelError(null);
+    try {
+      await cancelProposal(id, qc);
+      setSnack(t('proposal.cancelled'));
+    } catch (error) {
+      setCancelError({ id, error });
+    } finally {
+      setCancelling(null);
+    }
   };
 
   const handleMerged = (result: { key: PersonKey; proposals: string[] }) => {
@@ -493,6 +517,38 @@ export function PersonScreen(): JSX.Element {
               {t('person.settleUp')}
             </Button>
           )}
+
+          {myProposals.map((p) => {
+            const group = p.tripKind === 'direct' ? t('person.quickExpenses') : p.tripName;
+            if (p.status !== 'pending') {
+              return (
+                <p key={p.id} className="m-0 text-sm text-muted-foreground" data-testid={`proposal-declined-${p.id}`}>
+                  {t('proposal.declined', { guest: p.guestName })}
+                </p>
+              );
+            }
+            const parts = p.waitingFor.map((w) =>
+              w === 'user' ? (p.targetUserName ?? '') : t('proposal.theAdmin', { group }),
+            );
+            const who = parts.length === 2 ? t('proposal.and', { a: parts[0]!, b: parts[1]! }) : (parts[0] ?? '');
+            return (
+              <div key={p.id} className="flex flex-col gap-1 rounded-xl bg-warning-soft px-4 py-3" data-testid={`proposal-waiting-${p.id}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-warning-foreground">{t('proposal.waitingFor', { who })}</span>
+                  <Button
+                    variant="ghost"
+                    data-testid={`proposal-cancel-${p.id}`}
+                    loading={cancelling === p.id}
+                    disabled={cancelling !== null}
+                    onClick={() => void handleCancelProposal(p.id)}
+                  >
+                    {t('proposal.cancel')}
+                  </Button>
+                </div>
+                {cancelError?.id === p.id && <InlineError error={cancelError.error} />}
+              </div>
+            );
+          })}
 
           {person.userId === null && (
             <Button
