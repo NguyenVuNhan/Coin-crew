@@ -176,7 +176,7 @@ describe('member trip page', () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
     renderAt(<TripRoute />, route);
     expect(await screen.findByRole('link', { name: '+ Add expense' })).toHaveAttribute('href', '/t/t-1/expenses/new');
-    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/trips');
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/groups');
     expect(screen.getByRole('link', { name: 'Trip settings' })).toHaveAttribute('title', 'Trip settings');
   });
 
