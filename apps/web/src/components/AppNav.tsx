@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { useT } from '../i18n';
 import { Icon, type IconName } from './icons';
 import { Button } from './Button';
@@ -20,6 +20,8 @@ interface NavItem {
   icon: IconName;
 }
 
+const TAB_ROOTS: readonly string[] = ['/trips', '/groups', '/activity'];
+
 const NAV_ITEMS: readonly NavItem[] = [
   { id: 'home', labelKey: 'nav.home', href: '/trips', icon: 'home' },
   { id: 'groups', labelKey: 'nav.groups', href: '/groups', icon: 'users' },
@@ -28,6 +30,8 @@ const NAV_ITEMS: readonly NavItem[] = [
 
 export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
   const t = useT();
+  const location = useLocation();
+  const shouldReplace = TAB_ROOTS.includes(location.pathname);
 
   return (
     <nav
@@ -47,6 +51,7 @@ export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
               <Link
                 key={item.id}
                 to={item.href}
+                replace={shouldReplace}
                 data-testid={`nav-${item.id}`}
                 aria-label={t(item.labelKey)}
                 aria-current={isCurrent ? 'page' : undefined}
@@ -99,6 +104,7 @@ export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
               <Link
                 key={item.id}
                 to={item.href}
+                replace={shouldReplace}
                 data-testid={`nav-${item.id}`}
                 aria-current={isCurrent ? 'page' : undefined}
                 className={cn(
