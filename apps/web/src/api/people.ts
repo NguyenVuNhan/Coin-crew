@@ -196,6 +196,19 @@ export async function linkPeople(
   return result;
 }
 
+export async function unlinkPerson(
+  participantId: string,
+  queryClient?: QueryClient,
+): Promise<void> {
+  await apiSend<void>(
+    `/api/me/people/link/${encodeURIComponent(participantId)}`,
+    'DELETE',
+  );
+  if (queryClient) {
+    await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
+  }
+}
+
 export async function importPerson(
   input: { name: string } | { participantId: string },
   queryClient?: QueryClient,

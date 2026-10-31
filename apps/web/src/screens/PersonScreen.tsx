@@ -17,6 +17,7 @@ import {
   requestLink,
   setNickname,
   settle,
+  unlinkPerson,
   useLedger,
   usePeopleSummary,
   usePersonPay,
@@ -72,7 +73,7 @@ export function PersonScreen(): JSX.Element {
   const [answering, setAnswering] = useState<string | null>(null);
   const [answerError, setAnswerError] = useState<{ settlementId: string; error: unknown } | null>(null);
 
-  const [samePersonSheetOpen, setSamePersonSheetOpen] = useState(false);
+  const [mergeSheetOpen, setMergeSheetOpen] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
 
   useEffect(() => {
@@ -199,10 +200,18 @@ export function PersonScreen(): JSX.Element {
     }
   };
 
-  // Other people from summary with similar names (excluding this person)
+  // Candidates for merge: similar names first (findSimilarNames), then the rest sorted A–Z by name
   const others = (people ?? []).filter((p) => p.key !== person.key);
-  const candidates = others.map((o) => ({ id: o.key, name: o.name }));
-  const similarPeople = findSimilarNames(person.name, candidates);
+  const candidateNames = others.map((o) => ({ id: o.key, name: o.name }));
+  const similar = findSimilarNames(person.name, candidateNames);
+  const similarKeys = new Set(similar.map((s) => s.id));
+  const similarPeople = similar
+    .map((s) => others.find((o) => o.key === s.id))
+    .filter((o): o is PersonSummary => o !== undefined);
+  const remaining = others
+    .filter((o) => !similarKeys.has(o.key))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  const mergeCandidates = [...similarPeople, ...remaining];
 
   const cleanCashDigits = cashValue.replace(/\D/g, '');
   const cashAmount = cleanCashDigits ? parseInt(cleanCashDigits, 10) : 0;
@@ -353,6 +362,38 @@ export function PersonScreen(): JSX.Element {
           </div>
         )}
 
+        {/* Linked list ("Đã gộp vào đây") */}
+        {person.linked && person.linked.length > 0 && (
+          <div className="fsl-person__linked flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-muted-foreground px-1 m-0">
+              {t('person.linkedTitle')}
+            </h3>
+            <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+              {person.linked.map((entry) => {
+                const location =
+                  entry.kind === 'direct' ? t('nav.home') : entry.tripName;
+                return (
+                  <div
+                    key={entry.participantId}
+                    className="flex items-center justify-between gap-3 px-4 py-3 min-h-11"
+                  >
+                    <span className="truncate text-base text-foreground flex-1 min-w-0">
+                      {entry.name} · {location}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      data-testid={`unmerge-${entry.participantId}`}
+                      onClick={() => void unlinkPerson(entry.participantId, qc)}
+                    >
+                      {t('person.unmerge', { name: entry.name })}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Actions stack */}
         <div className="fsl-person__actions flex flex-col gap-2">
           {person.total > 0 && (
@@ -402,14 +443,14 @@ export function PersonScreen(): JSX.Element {
               </Button>
             ))}
 
-          {person.groupLabel !== null && (
+          {person.userId === null && (
             <Button
-              variant="ghost"
+              variant="secondary"
               block
-              data-testid="person-same"
-              onClick={() => setSamePersonSheetOpen(true)}
+              data-testid="person-merge"
+              onClick={() => setMergeSheetOpen(true)}
             >
-              {t('person.samePerson')}
+              {t('person.mergeWith')}
             </Button>
           )}
         </div>
@@ -500,36 +541,49 @@ export function PersonScreen(): JSX.Element {
           </div>
         </Sheet>
 
-        {/* Same Person Sheet */}
+        {/* Merge Sheet */}
         <Sheet
-          open={samePersonSheetOpen}
-          onClose={() => setSamePersonSheetOpen(false)}
-          title={t('person.samePerson')}
+          open={mergeSheetOpen}
+          onClose={() => setMergeSheetOpen(false)}
+          title={t('person.mergeWith')}
         >
           <div className="flex flex-col gap-3 py-2">
             <p className="text-sm text-muted-foreground m-0">
-              {t('person.samePersonHelp')}
+              {t('person.mergeHelp')}
             </p>
             <div className="flex flex-col gap-2">
-              {similarPeople.map((match) => (
-                <Button
-                  key={match.id}
-                  variant="secondary"
-                  block
-                  onClick={async () => {
-                    const result = await linkPeople(
-                      [person.key, match.id as PersonKey],
-                      qc,
-                    );
-                    setSamePersonSheetOpen(false);
-                    navigate(`/people/${encodeURIComponent(result.key)}`, {
-                      replace: true,
-                    });
-                  }}
-                >
-                  {match.name}
-                </Button>
-              ))}
+              {mergeCandidates.map((candidate) => {
+                const bothSignedIn = person.userId !== null && candidate.userId !== null;
+                return (
+                  <Button
+                    key={candidate.key}
+                    variant="secondary"
+                    block
+                    data-testid={`merge-pick-${candidate.key}`}
+                    disabled={bothSignedIn}
+                    onClick={async () => {
+                      const result = await linkPeople(
+                        [person.key, candidate.key],
+                        qc,
+                      );
+                      setMergeSheetOpen(false);
+                      navigate(`/people/${encodeURIComponent(result.key)}`, {
+                        replace: true,
+                      });
+                    }}
+                  >
+                    <span>{candidate.name}</span>
+                    {bothSignedIn && (
+                      <>
+                        {' · '}
+                        <span className="text-xs text-muted-foreground font-normal">
+                          {t('person.mergeBothSignedIn')}
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </Sheet>

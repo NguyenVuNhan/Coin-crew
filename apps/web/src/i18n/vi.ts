@@ -118,6 +118,11 @@ export const vi: Record<MessageKey, string> = {
   'person.manageIn': 'Đổi tên hoặc gộp trong {group}', // REVIEW
   'person.samePerson': 'Cùng một người?', // REVIEW
   'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
+  'person.mergeWith': 'Gộp với…', // REVIEW
+  'person.mergeHelp': 'Họ sẽ thành một người ở đây, với một tổng. Các nhóm không thay đổi.', // REVIEW
+  'person.mergeBothSignedIn': 'Cả hai đều có tài khoản', // REVIEW
+  'person.unmerge': 'Tách {name} ra', // REVIEW
+  'person.linkedTitle': 'Đã gộp vào đây', // REVIEW
   'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
   'person.notReceived': 'Chưa nhận được', // REVIEW
   'person.payTitle': 'Trả cho {name}', // REVIEW
@@ -516,6 +521,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
   'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
   'activity.personRestored': '{actor} đã thêm lại {name}', // REVIEW
+  'activity.personUnlinked': '{actor} đã tách {name} ra', // REVIEW
   'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
   'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
   'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
@@ -530,6 +536,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.person_removed': 'đã xóa một người', // REVIEW
   'activity.action.person_left': 'đã rời nhóm', // REVIEW
   'activity.action.person_restored': 'đã thêm lại một người', // REVIEW
+  'activity.action.person_unlinked': 'đã tách một người ra', // REVIEW
   'activity.action.member_joined': 'đã tham gia', // REVIEW
   'activity.action.member_rejoined': 'đã vào lại', // REVIEW
   'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng', // REVIEW
