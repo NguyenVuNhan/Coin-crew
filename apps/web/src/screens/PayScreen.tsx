@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { useTrip } from '../lib/tripBase';
+import { useBackLink } from '../lib/navHistory';
 import { canManageBankOf } from '../lib/rowActions';
 import { usePayInfo } from '../api/payInfo';
 import { groupLink, remind } from '../lib/remind';
@@ -40,6 +41,7 @@ function statusCardFor(recorded: Recorded | null, view: TripView, payInfo: PayIn
 
 export function PayScreen() {
   const { tripId, href } = useTrip();
+  const back = useBackLink(href());
   const { toId = '' } = useParams<{ toId: string }>();
   const t = useT();
   const queryClient = useQueryClient();
@@ -220,7 +222,7 @@ export function PayScreen() {
   if (card !== null && !restOpen) {
     footer = (
       <>
-        <Button href={href()} variant="primary" block>
+        <Button href={back.to} onClick={back.onClick} variant="primary" block>
           {t('details.backToTrip')}
         </Button>
         {card.kind === 'sent' && (
@@ -277,7 +279,7 @@ export function PayScreen() {
     content = (
       <div className="fsl-pay__empty flex flex-col items-center gap-4 py-6 text-center">
         <p className="fsl-pay__empty-text m-0 text-base text-muted-foreground">{t('pay.nothingOwed', { name })}</p>
-        <Button href={href()} variant="secondary">
+        <Button href={back.to} onClick={back.onClick} variant="secondary">
           {t('common.back')}
         </Button>
       </div>

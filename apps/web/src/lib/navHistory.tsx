@@ -8,6 +8,7 @@ import {
   type JSX,
   type ReactNode,
 } from 'react';
+import type React from 'react';
 import { useLocation, useNavigate, useNavigationType } from 'react-router';
 
 /**
@@ -220,6 +221,29 @@ export function useBack(parent?: string): { canGoBack: boolean; goBack: () => vo
     }
   }, [navigate, depth, parent, key]);
   return { canGoBack: depth > 0 || parent !== undefined, goBack };
+}
+
+/** Props for an in-page back <Link> (or <Button href>) whose natural parent is `parent`: a plain click goes back like the arrow, while a modified or middle click opens the parent as a normal link. */
+export function useBackLink(parent: string): { to: string; onClick: (event: React.MouseEvent<HTMLElement>) => void } {
+  const { goBack } = useBack(parent);
+  const onClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      goBack();
+    },
+    [goBack],
+  );
+  return { to: parent, onClick };
 }
 
 /**

@@ -4,7 +4,7 @@ import { useT } from '../i18n';
 import { Icon } from './icons';
 import { BottomBar } from './BottomBar';
 import { AppNav, type NavSection } from './AppNav';
-import { useBack, useNavEntry } from '../lib/navHistory';
+import { useBack, useBackLink, useNavEntry } from '../lib/navHistory';
 import { cn } from '@/lib/utils';
 
 export interface ScreenProps {
@@ -29,21 +29,14 @@ interface BackLinkProps {
 }
 
 function BackLink({ to, className, label }: BackLinkProps) {
-  const { depth } = useNavEntry();
-  const { goBack } = useBack(to);
+  const back = useBackLink(to);
   return (
     <Link
-      to={to}
-      replace
+      to={back.to}
       className={className}
       aria-label={label}
       title={label}
-      onClick={(e) => {
-        if (depth > 0) {
-          e.preventDefault();
-          goBack();
-        }
-      }}
+      onClick={back.onClick}
     >
       <Icon name="back" size={24} />
     </Link>

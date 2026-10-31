@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { useTrip } from '../lib/tripBase';
+import { useBackLink } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
@@ -61,6 +62,7 @@ export function BankDetails() {
   const [success, setSuccess] = useState(false);
 
   const backLink = tripId ? href() : '/trips';
+  const back = useBackLink(backLink);
 
   const note = tripId
     ? view?.me.kind === 'guest'
@@ -180,7 +182,8 @@ export function BankDetails() {
               {successNoticeText}
             </div>
             <Link
-              to={backLink}
+              to={back.to}
+              onClick={back.onClick}
               className={cn('fsl-button fsl-button--secondary', buttonVariants({ variant: 'secondary' }))}
             >
               {t('common.back')}

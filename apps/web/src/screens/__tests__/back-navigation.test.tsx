@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { MyActivityItem, TripView } from '@fsl/core';
+import type { MyActivityItem, PersonSummary, TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
-import { tripView } from '../../test/fixtures';
+import { tripView, guestChiView, PIDS } from '../../test/fixtures';
 import { App } from '../../App';
 
 beforeEach(() => {
@@ -213,5 +213,361 @@ describe('back-navigation', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Back' }));
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/groups$/));
+  });
+});
+
+describe('screens with one hard-coded back', () => {
+  it('row 1: person → group → Back returns to the person', async () => {
+    mockMedia({ wide: false });
+    const tuan: PersonSummary = {
+      key: 'p:p-tuan',
+      name: 'Tuấn',
+      nickname: null,
+      userId: null,
+      groupLabel: 'Đà Lạt · Oct 2026',
+      total: -80000,
+      items: [
+        {
+          tripId: 't-1',
+          tripName: 'Đà Lạt · Oct 2026',
+          kind: 'group',
+          amount: -80000,
+          otherPid: PIDS.M,
+          ownerPid: 'p-me',
+          oldestOpenAt: '2026-10-01T00:00:00.000Z',
+        },
+      ],
+      waiting: [],
+      linked: [],
+    };
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { incomplete: false, people: [tuan] },
+      'GET /api/trips/t-1': tripView(),
+      'GET /api/trips/t-1/version': { version: 1 },
+    });
+    renderApp('/people/p%3Ap-tuan');
+
+    const groupLink = await screen.findByTestId('person-item-t-1');
+    await userEvent.click(groupLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+
+    const backLink = screen.getByRole('link', { name: 'Back' });
+    await userEvent.click(backLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-tuan'));
+  });
+
+  it('row 7: group BalanceCard → /me/bank → Back returns to the group', async () => {
+    mockMedia({ wide: false });
+    const view = tripView({
+      people: tripView().people.map((p) => (p.id === PIDS.M ? { ...p, bank: 'none' } : p)),
+    });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips/t-1': view,
+      'GET /api/trips/t-1/version': { version: 1 },
+      'GET /api/me/bank': null,
+    });
+    renderApp('/t/t-1');
+
+    const bankPromptLink = await screen.findByRole('link', { name: 'Your bank details' });
+    await userEvent.click(bankPromptLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/me/bank'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your bank details' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+  });
+
+  it('row 8: Groups → account menu → /me/bank → Back returns to Groups', async () => {
+    mockMedia({ wide: false });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips': [
+        { id: 't-1', name: 'Đà Lạt · Oct 2026', archived: false, myBalance: 500000 },
+      ],
+      'GET /api/me/bank': null,
+    });
+    renderApp('/groups');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Groups' })).toBeInTheDocument();
+
+    const accountBtn = screen.getByRole('button', { name: 'Account' });
+    await userEvent.click(accountBtn);
+
+    const menu = await screen.findByRole('dialog', { name: 'Account' });
+    const bankLink = within(menu).getByRole('link', { name: 'Your bank details' });
+    await userEvent.click(bankLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/me/bank'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your bank details' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/groups'));
+  });
+
+  it('row 9: group → privacy → Back returns to the group', async () => {
+    mockMedia({ wide: false });
+    api();
+    renderApp('/t/t-1');
+
+    await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Account' }));
+    const menu = await screen.findByRole('dialog', { name: 'Account' });
+    await userEvent.click(within(menu).getByRole('link', { name: 'Privacy notice' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/privacy'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Privacy notice' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+  });
+
+  it('row 9: guest under /j/<token> → privacy → Back returns to the group', async () => {
+    mockMedia({ wide: false });
+    mockApi({
+      'GET /api/me': { user: null },
+      'GET /api/links/tok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' },
+      'GET /api/trips/t-1': guestChiView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+      'GET /api/me/bank': null,
+    });
+    renderApp('/j/tok-1');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+
+    const addBank = await screen.findByRole('link', { name: 'Add' });
+    await userEvent.click(addBank);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/bank'));
+    const privacyLink = await screen.findByRole('link', { name: 'privacy notice' });
+    await userEvent.click(privacyLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/privacy'));
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/bank'));
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1'));
+  });
+
+  it('row 10: group transfers → guest bank → Back returns to the group', async () => {
+    mockMedia({ wide: false });
+    const view = tripView({
+      suggestions: [{ fromId: PIDS.M, toId: PIDS.C, amount: 500000 }],
+    });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips/t-1': view,
+      'GET /api/trips/t-1/version': { version: 1 },
+      [`GET /api/trips/t-1/pay/${PIDS.C}`]: {
+        to: { id: PIDS.C, name: 'Chi' },
+        amount: 500000,
+        bankState: 'none',
+        payload: null,
+        inFlight: [],
+      },
+    });
+    renderApp('/t/t-1');
+
+    const transferRow = await screen.findByTestId(`transfer-${PIDS.M}-${PIDS.C}`);
+    await userEvent.click(within(transferRow).getByRole('button', { name: /Chi/ }));
+
+    const addBankBtn = await screen.findByRole('link', { name: 'Add bank details for Chi' });
+    await userEvent.click(addBankBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/people/${PIDS.C}/bank`));
+    expect(await screen.findByRole('heading', { level: 1, name: "Chi's bank details" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+  });
+
+  it('row 11: pay screen → guest bank → Back returns to the pay screen', async () => {
+    mockMedia({ wide: false });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips/t-1': tripView(),
+      'GET /api/trips/t-1/version': { version: 1 },
+      [`GET /api/trips/t-1/pay/${PIDS.C}`]: {
+        to: { id: PIDS.C, name: 'Chi' },
+        amount: 500000,
+        bankState: 'none',
+        payload: null,
+        inFlight: [],
+      },
+    });
+    renderApp(`/t/t-1/pay/${PIDS.C}`);
+
+    const addBankBtn = await screen.findByRole('link', { name: 'Add bank details for Chi' });
+    await userEvent.click(addBankBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/people/${PIDS.C}/bank`));
+    expect(await screen.findByRole('heading', { level: 1, name: "Chi's bank details" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.C}`));
+  });
+
+  it('row 12: person → People → guest bank → Back → Back returns to the person', async () => {
+    mockMedia({ wide: false });
+    const tuan: PersonSummary = {
+      key: 'p:p-tuan',
+      name: 'Tuấn',
+      nickname: null,
+      userId: null,
+      groupLabel: 'Đà Lạt · Oct 2026',
+      total: -80000,
+      items: [
+        {
+          tripId: 't-1',
+          tripName: 'Đà Lạt · Oct 2026',
+          kind: 'group',
+          amount: -80000,
+          otherPid: PIDS.C,
+          ownerPid: PIDS.M,
+          oldestOpenAt: '2026-10-01T00:00:00.000Z',
+        },
+      ],
+      waiting: [],
+      linked: [],
+    };
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { incomplete: false, people: [tuan] },
+      'GET /api/trips/t-1': tripView(),
+      'GET /api/trips/t-1/version': { version: 1 },
+    });
+    renderApp('/people/p%3Ap-tuan');
+
+    const manageBtn = await screen.findByRole('link', { name: /Rename or merge in/ });
+    await userEvent.click(manageBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/people'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'People' })).toBeInTheDocument();
+
+    const chiRow = screen.getByRole('button', { name: /^Chi,/ });
+    await userEvent.click(chiRow);
+
+    const bankAction = await screen.findByRole('button', { name: 'Bank details' });
+    await userEvent.click(bankAction);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/people/${PIDS.C}/bank`));
+    expect(await screen.findByRole('heading', { level: 1, name: "Chi's bank details" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/people'));
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-tuan'));
+  });
+
+  it('opened by link, /me/bank Back goes to /trips', async () => {
+    mockMedia({ wide: false });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/me/bank': null,
+    });
+    renderApp('/me/bank');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your bank details' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/trips'));
+  });
+
+  it('PayScreen "Back to trip" button returns to the group', async () => {
+    mockMedia({ wide: false });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips/t-1': guestChiView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+      [`GET /api/trips/t-1/pay/${PIDS.M}`]: {
+        to: { id: PIDS.M, name: 'Minh' },
+        amount: 1245000,
+        bankState: 'ok',
+        bank: { bin: '970407', bankName: 'Techcombank', accountNumber: '19031234565678', accountNumberMasked: '1903 •••• 5678', holderName: 'NGUYEN VAN MINH' },
+        refCode: 'DALAT C7K2',
+        payload: null,
+        inFlight: [
+          {
+            id: 'pay-1',
+            fromId: PIDS.C,
+            toId: PIDS.M,
+            amountClaimed: 1245000,
+            amountConfirmed: null,
+            status: 'says_paid',
+            notArrived: false,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+    renderApp('/t/t-1');
+
+    const payBtn = await screen.findByRole('link', { name: 'Pay with VietQR' });
+    await userEvent.click(payBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.M}`));
+    const backToTripBtn = await screen.findByRole('link', { name: 'Back to trip' });
+    await userEvent.click(backToTripBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+  });
+
+  it('PayScreen "Back" button when nothing owed returns to the group', async () => {
+    mockMedia({ wide: false });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips/t-1': guestChiView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+      [`GET /api/trips/t-1/pay/${PIDS.M}`]: {
+        to: { id: PIDS.M, name: 'Minh' },
+        amount: 0,
+        bankState: 'ok',
+        payload: null,
+        inFlight: [],
+      },
+    });
+    renderApp('/t/t-1');
+
+    const payBtn = await screen.findByRole('link', { name: 'Pay with VietQR' });
+    await userEvent.click(payBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.M}`));
+    const backBtn = await screen.findByRole('link', { name: 'Back' });
+    await userEvent.click(backBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
   });
 });

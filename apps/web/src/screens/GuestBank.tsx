@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { useTrip } from '../lib/tripBase';
+import { useBackLink } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
@@ -41,6 +42,7 @@ export function GuestBank(): JSX.Element | null {
 
   const person = view?.people.find((p) => p.id === pid);
   const backLink = href('/people');
+  const back = useBackLink(backLink);
 
   if ((isLoading && !view) || (!view && !error)) {
     return (
@@ -229,7 +231,8 @@ export function GuestBank(): JSX.Element | null {
               {t('bankForm.saved')}
             </div>
             <Link
-              to={backLink}
+              to={back.to}
+              onClick={back.onClick}
               className={cn('fsl-button fsl-button--secondary', buttonVariants({ variant: 'secondary' }))}
             >
               {t('common.back')}
@@ -242,7 +245,8 @@ export function GuestBank(): JSX.Element | null {
               {t('guestBank.deleted')}
             </div>
             <Link
-              to={backLink}
+              to={back.to}
+              onClick={back.onClick}
               className={cn('fsl-button fsl-button--secondary', buttonVariants({ variant: 'secondary' }))}
             >
               {t('common.back')}
