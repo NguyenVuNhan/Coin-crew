@@ -82,7 +82,10 @@ export const vi: Record<MessageKey, string> = {
   'trips.accountAria': 'Tài khoản', // REVIEW
   'trips.signOut': 'Đăng xuất', // REVIEW
 
-  'home.title': 'CoinCrew', // REVIEW
+  'home.title': 'Khoản chi nhanh', // REVIEW
+  'home.totalOwed': 'Mọi người nợ bạn (tất cả nhóm)', // REVIEW
+  'home.totalOwe': 'Bạn nợ {amount}', // REVIEW
+  'home.byPerson': 'Theo người · mọi nhóm', // REVIEW
   'home.tabPeople': 'Mọi người', // REVIEW
   'home.tabGroups': 'Nhóm', // REVIEW
   'home.tabActivity': 'Hoạt động', // REVIEW

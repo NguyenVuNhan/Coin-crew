@@ -1,31 +1,38 @@
 import type { JSX } from 'react';
-import { useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
-import type { PersonSummary } from '@fsl/core';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { formatVnd, type PersonSummary } from '@fsl/core';
 import { useT } from '../i18n';
-import { useMe } from '../api/hooks';
+import { useMe, useTripView } from '../api/hooks';
 import { useLedger, usePeopleSummary } from '../api/people';
+import { useIsWide } from '../lib/media';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { ConsentSheet } from '../components/ConsentSheet';
-import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
 import { Amount } from '../components/Amount';
 import { EmptyState } from '../components/EmptyState';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { MyTrips } from './MyTrips';
-import { Activity } from './Activity';
+import { Card } from '@/components/ui/card';
+import { TripTabs } from '../components/TripTabs';
+import { ExpenseList } from '../components/ExpenseList';
+import { PaymentsList } from '../components/PaymentsList';
+import { TripLayout } from '../components/TripLayout';
+import type { Selection } from './TripRoute';
+import { DetailsPanel } from './DetailsPanel';
 import { cn } from '@/lib/utils';
 
 export function Home(): JSX.Element {
   const t = useT();
   const navigate = useNavigate();
+  const wide = useIsWide();
   const meQuery = useMe();
   const user = meQuery.data?.user;
 
-  const { ledger } = useLedger();
+  const { ledger, isLoading: ledgerLoading } = useLedger();
+  const { view: ledgerView, isLoading: ledgerViewLoading } = useTripView(ledger?.tripId ?? '', 0);
+
   const {
     people,
     incomplete,
@@ -34,19 +41,20 @@ export function Home(): JSX.Element {
     refetch: refetchPeople,
   } = usePeopleSummary();
 
-  const [searchParams] = useSearchParams();
-  const defaultTab =
-    searchParams.get('mergeReview') || searchParams.get('tab') === 'groups'
-      ? 'groups'
-      : searchParams.get('tab') === 'activity'
-        ? 'activity'
-        : 'people';
+  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
+  const [selection, setSelection] = useState<Selection | null>(null);
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
       navigate('/', { replace: true });
     }
   }, [meQuery.isSuccess, user, navigate]);
+
+  useEffect(() => {
+    if (!wide && selection !== null) {
+      setSelection(null);
+    }
+  }, [wide, selection]);
 
   // A guest's "I've paid" counts at once, so someone settled can still have a payment to confirm: keep them listed,
   // on the side the money moved to.
@@ -64,6 +72,33 @@ export function Home(): JSX.Element {
     .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
 
   const isEmpty = owedToYou.length === 0 && youOwe.length === 0;
+
+  const sumPositive = (people ?? []).filter((p) => p.total > 0).reduce((acc, p) => acc + p.total, 0);
+  const sumNegative = (people ?? []).filter((p) => p.total < 0).reduce((acc, p) => acc + Math.abs(p.total), 0);
+
+  const handleOpenExpense = (id: string) => {
+    if (wide && ledgerView) {
+      setSelection({ kind: 'expense', id });
+    } else if (ledger) {
+      navigate(`/t/${ledger.tripId}/expenses/${id}`);
+    }
+  };
+
+  const handleOpenPayment = (id: string) => {
+    if (wide && ledgerView) {
+      setSelection({ kind: 'payment', id });
+    } else if (ledger) {
+      navigate(`/t/${ledger.tripId}/payments/${id}`);
+    }
+  };
+
+  const handleOpenIncome = (id: string) => {
+    if (wide && ledgerView) {
+      setSelection({ kind: 'income', id });
+    } else if (ledger) {
+      navigate(`/t/${ledger.tripId}/fund/${id}`);
+    }
+  };
 
   const renderPersonRow = (p: PersonSummary) => {
     const hasSecondLine = p.groupLabel !== null || p.waiting.length > 0;
@@ -109,130 +144,156 @@ export function Home(): JSX.Element {
     );
   };
 
+  const totalCard = (
+    <Card
+      data-testid="home-total"
+      className="fsl-home__total rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-1 w-full text-card-foreground"
+    >
+      <p className="fsl-home__total-label m-0 text-sm font-medium text-muted-foreground">
+        {t('home.totalOwed')}
+      </p>
+      <Amount
+        value={sumPositive}
+        tone="success"
+        size="xl"
+        className="!text-3xl !font-bold tabular-nums !text-primary"
+      />
+      {sumNegative > 0 && (
+        <p className="fsl-home__total-owe m-0 text-sm text-muted-foreground tabular-nums">
+          {t('home.totalOwe', { amount: formatVnd(sumNegative) })}
+        </p>
+      )}
+    </Card>
+  );
+
+  const byPersonSection = (
+    <div className="fsl-home__by-person flex flex-col gap-2">
+      <h2 className="fsl-home__heading text-sm font-semibold text-muted-foreground px-1">
+        {t('home.byPerson')}
+      </h2>
+
+      {peopleLoading ? (
+        <SkeletonList rows={3} />
+      ) : peopleError ? (
+        <InlineError error={peopleError} onRetry={refetchPeople} />
+      ) : isEmpty ? (
+        <>
+          <EmptyState
+            icon="users"
+            title={t('home.peopleEmptyTitle')}
+            action={
+              <p className="fsl-home__empty-body m-0 text-base text-muted-foreground">
+                {t('home.peopleEmptyBody')}
+              </p>
+            }
+          />
+          {incomplete && (
+            <p className="fsl-home__still-counting m-0 px-1 text-sm text-muted-foreground text-center">
+              {t('home.stillCounting')}
+            </p>
+          )}
+        </>
+      ) : (
+        <div className="fsl-home__people-sections flex flex-col gap-4">
+          {owedToYou.length > 0 && (
+            <section className="fsl-home__section flex flex-col gap-2">
+              <h3 className="sr-only">{t('home.owedToYou')}</h3>
+              <div className="fsl-home__list bg-card border border-border rounded-xl overflow-hidden">
+                {owedToYou.map(renderPersonRow)}
+              </div>
+            </section>
+          )}
+          {youOwe.length > 0 && (
+            <section className="fsl-home__section flex flex-col gap-2">
+              <h3 className="sr-only">{t('home.youOwe')}</h3>
+              <div className="fsl-home__list bg-card border border-border rounded-xl overflow-hidden">
+                {youOwe.map(renderPersonRow)}
+              </div>
+            </section>
+          )}
+          {incomplete && (
+            <p className="fsl-home__still-counting m-0 px-1 text-sm text-muted-foreground text-center">
+              {t('home.stillCounting')}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const navProps = ledger
+    ? { section: 'home' as const, addHref: `/t/${ledger.tripId}/expenses/new` }
+    : undefined;
+
   return (
     <Screen
       title={t('home.title')}
       right={user ? <AccountMenu user={user} /> : undefined}
+      wide
+      nav={navProps}
     >
       <ConsentSheet />
-      <div className="fsl-home flex flex-col gap-4 py-4">
-        <Tabs defaultValue={defaultTab} className="flex flex-col gap-4">
-          <TabsList
-            aria-label={t('home.title')}
-            className="fsl-home__tabs flex w-full items-center bg-muted rounded-full p-1 gap-1 h-auto"
-          >
-            <TabsTrigger
-              value="people"
-              data-testid="home-tab-people"
-              className="fsl-home__tab flex-1 min-w-0 min-h-11 flex items-center justify-center rounded-full px-3 text-sm font-medium text-muted-foreground cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
-            >
-              {t('home.tabPeople')}
-            </TabsTrigger>
-            <TabsTrigger
-              value="groups"
-              data-testid="home-tab-groups"
-              className="fsl-home__tab flex-1 min-w-0 min-h-11 flex items-center justify-center rounded-full px-3 text-sm font-medium text-muted-foreground cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
-            >
-              {t('home.tabGroups')}
-            </TabsTrigger>
-            <TabsTrigger
-              value="activity"
-              data-testid="home-tab-activity"
-              className="fsl-home__tab flex-1 min-w-0 min-h-11 flex items-center justify-center rounded-full px-3 text-sm font-medium text-muted-foreground cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
-            >
-              {t('home.tabActivity')}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent
-            value="people"
-            className="fsl-home__tab-content fsl-home__tab-content--people flex flex-col gap-4 mt-0 outline-none"
-          >
-            {ledger && (
-              <Button
-                variant="primary"
-                block
-                data-testid="home-new-expense"
-                href={`/t/${ledger.tripId}/expenses/new`}
-              >
-                {t('home.newExpense')}
-              </Button>
-            )}
-            <Button variant="secondary" block href="/trips/new">
-              {t('trips.new')}
-            </Button>
-
-            {peopleLoading ? (
-              <SkeletonList rows={3} />
-            ) : peopleError ? (
-              <InlineError error={peopleError} onRetry={refetchPeople} />
-            ) : isEmpty ? (
-              <>
-                <EmptyState
-                  icon="users"
-                  title={t('home.peopleEmptyTitle')}
-                  action={
-                    <p className="fsl-home__empty-body m-0 text-base text-muted-foreground">
-                      {t('home.peopleEmptyBody')}
-                    </p>
-                  }
-                />
-                {incomplete && (
-                  <p className="fsl-home__still-counting m-0 px-1 text-sm text-muted-foreground text-center">
-                    {t('home.stillCounting')}
-                  </p>
-                )}
-              </>
+      {wide ? (
+        <div className="fsl-home flex flex-col gap-4 py-4">
+          <TripLayout
+            left={
+              ledgerLoading || ledgerViewLoading ? (
+                <SkeletonList rows={4} />
+              ) : ledgerView ? (
+                <>
+                  <ExpenseList
+                    view={ledgerView}
+                    selectedId={selection?.kind === 'expense' ? selection.id : undefined}
+                    onOpen={handleOpenExpense}
+                    onOpenIncome={handleOpenIncome}
+                    hintable={true}
+                  />
+                  <PaymentsList
+                    view={ledgerView}
+                    selectedId={selection?.kind === 'payment' ? selection.id : undefined}
+                    onOpen={handleOpenPayment}
+                    hintable={false}
+                  />
+                </>
+              ) : null
+            }
+            right={
+              selection && ledgerView ? (
+                <DetailsPanel view={ledgerView} selection={selection} />
+              ) : (
+                <>
+                  {totalCard}
+                  {byPersonSection}
+                </>
+              )
+            }
+          />
+        </div>
+      ) : (
+        <div className="fsl-home flex flex-col gap-4 py-4">
+          {totalCard}
+          {byPersonSection}
+          <TripTabs activeTab={activeTab} onChange={setActiveTab} />
+          {ledgerLoading || ledgerViewLoading ? (
+            <SkeletonList rows={3} />
+          ) : ledgerView ? (
+            activeTab === 'expenses' ? (
+              <ExpenseList
+                view={ledgerView}
+                onOpen={handleOpenExpense}
+                onOpenIncome={handleOpenIncome}
+                hintable={true}
+              />
             ) : (
-              <div className="fsl-home__people-sections flex flex-col gap-4">
-                {owedToYou.length > 0 && (
-                  <section className="fsl-home__section flex flex-col gap-2">
-                    <h2 className="fsl-home__heading m-0 px-1 text-sm font-semibold text-muted-foreground">
-                      {t('home.owedToYou')}
-                    </h2>
-                    <div className="fsl-home__list bg-card border border-border rounded-xl overflow-hidden">
-                      {owedToYou.map(renderPersonRow)}
-                    </div>
-                  </section>
-                )}
-                {youOwe.length > 0 && (
-                  <section className="fsl-home__section flex flex-col gap-2">
-                    <h2 className="fsl-home__heading m-0 px-1 text-sm font-semibold text-muted-foreground">
-                      {t('home.youOwe')}
-                    </h2>
-                    <div className="fsl-home__list bg-card border border-border rounded-xl overflow-hidden">
-                      {youOwe.map(renderPersonRow)}
-                    </div>
-                  </section>
-                )}
-                {incomplete && (
-                  <p className="fsl-home__still-counting m-0 px-1 text-sm text-muted-foreground text-center">
-                    {t('home.stillCounting')}
-                  </p>
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent
-            value="groups"
-            className="fsl-home__tab-content fsl-home__tab-content--groups mt-0 outline-none"
-          >
-            <MyTrips embedded />
-          </TabsContent>
-
-          <TabsContent
-            value="activity"
-            className="fsl-home__tab-content fsl-home__tab-content--activity mt-0 outline-none"
-          >
-            {ledger ? (
-              <Activity tripId={ledger.tripId} embedded />
-            ) : (
-              <SkeletonList rows={3} />
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+              <PaymentsList
+                view={ledgerView}
+                onOpen={handleOpenPayment}
+                hintable={true}
+              />
+            )
+          ) : null}
+        </div>
+      )}
     </Screen>
   );
 }

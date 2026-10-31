@@ -121,7 +121,7 @@ describe('Home screen', () => {
     });
   });
 
-  it('home-new-expense has href "/t/t-ledger/expenses/new"', async () => {
+  it('nav-add has href "/t/t-ledger/expenses/new"', async () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/trips': [],
@@ -134,27 +134,8 @@ describe('Home screen', () => {
 
     renderAt(<Home />, { route: '/trips' });
 
-    const newExpenseButton = await screen.findByTestId('home-new-expense');
-    expect(newExpenseButton).toHaveAttribute('href', '/t/t-ledger/expenses/new');
-  });
-
-  it('clicking home-tab-groups shows the MyTrips empty state text "Create your first group"', async () => {
-    mockApi({
-      'GET /api/me': me(),
-      'GET /api/trips': [],
-      'GET /api/me/ledger': { tripId: 't-ledger', ownerPid: 'p-me' },
-      'GET /api/me/people/summary': {
-        people: [],
-        incomplete: false,
-      },
-    });
-
-    renderAt(<Home />, { route: '/trips' });
-
-    const groupsTab = await screen.findByTestId('home-tab-groups');
-    await userEvent.click(groupsTab);
-
-    expect(await screen.findByText('Create your first group')).toBeInTheDocument();
+    const addLinks = await screen.findAllByTestId('nav-add');
+    expect(addLinks[0]).toHaveAttribute('href', '/t/t-ledger/expenses/new');
   });
 
   it('with people: [] it shows "No open debts"', async () => {
@@ -188,38 +169,6 @@ describe('Home screen', () => {
     renderAt(<Home />, { route: '/trips' });
 
     expect(await screen.findByText('Still adding up a few groups…')).toBeInTheDocument();
-  });
-
-  it('defaults to groups tab when ?tab=groups is in the URL', async () => {
-    mockApi({
-      'GET /api/me': me(),
-      'GET /api/trips': [],
-      'GET /api/me/ledger': { tripId: 't-ledger', ownerPid: 'p-me' },
-      'GET /api/me/people/summary': {
-        people: [],
-        incomplete: false,
-      },
-    });
-
-    renderAt(<Home />, { route: '/trips?tab=groups' });
-
-    expect(await screen.findByText('Create your first group')).toBeInTheDocument();
-  });
-
-  it('defaults to groups tab when ?mergeReview=... is in the URL', async () => {
-    mockApi({
-      'GET /api/me': me(),
-      'GET /api/trips': [],
-      'GET /api/me/ledger': { tripId: 't-ledger', ownerPid: 'p-me' },
-      'GET /api/me/people/summary': {
-        people: [],
-        incomplete: false,
-      },
-    });
-
-    renderAt(<Home />, { route: '/trips?mergeReview=req-123' });
-
-    expect(await screen.findByText('Create your first group')).toBeInTheDocument();
   });
 
   it('keeps a settled person listed while their payment waits for me', async () => {

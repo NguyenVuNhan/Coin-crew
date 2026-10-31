@@ -82,7 +82,10 @@ export const en = {
   'trips.accountAria': 'Account',
   'trips.signOut': 'Sign out',
 
-  'home.title': 'CoinCrew',
+  'home.title': 'Quick expenses',
+  'home.totalOwed': 'Owed to you, all groups',
+  'home.totalOwe': 'You owe {amount}',
+  'home.byPerson': 'By person · all groups',
   'home.tabPeople': 'People',
   'home.tabGroups': 'Groups',
   'home.tabActivity': 'Activity',
