@@ -73,6 +73,7 @@ import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 import type { IncomeStatus } from './fund';
 import type { PersonKey, PersonItem } from './people';
+import type { MergePlan } from './mergePlan';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -379,6 +380,29 @@ export interface PersonWaitingSettlement {
 export interface PeopleSummaryResponse {
   people: PersonSummary[];
   incomplete: boolean;
+}
+
+/** A place (group or the caller's Quick Expenses ledger) a person has a participant in. */
+export interface MergeGroupRef { tripId: string; tripName: string; kind: 'group' | 'direct' }
+
+/** One row of the person page's "Merge with…" picker. */
+export interface MergeCandidate {
+  key: PersonKey;
+  name: string;
+  nickname: string | null;
+  avatarUrl: string | null;
+  /** Only when the caller shares an active group with this user. */
+  signIn: { provider: 'google' | 'zalo'; label: string } | null;
+  groups: MergeGroupRef[];
+  /** A likely duplicate of the person on the page (findSimilarNames). */
+  similar: boolean;
+  plan: MergePlan;
+}
+
+/** `GET /api/me/people/:key/merge-options`. Candidates: similar ones first, then A–Z. */
+export interface MergeOptionsResponse {
+  person: { key: PersonKey; groups: (MergeGroupRef & { participantId: string; name: string; canRename: boolean })[] };
+  candidates: MergeCandidate[];
 }
 
 export interface RequestView {

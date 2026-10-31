@@ -12,6 +12,7 @@ import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newToken, nowIso } from '../lib/ids';
 import { ensurePersonalLedger, importPerson, type PersonalLedger } from './ledger';
+import { mergeOptionsRoutes } from './mergeOptions';
 
 const NICKNAME_MAX = 40;
 const LINK_MAX_KEYS = 20;
@@ -312,6 +313,9 @@ async function unlinkGuest(db: Db, user: { id: string; name: string }, participa
 
 export function personRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
+
+  // The person page's "Merge with…" picker.
+  app.route('/', mergeOptionsRoutes());
 
   // A Tikkie-style link: the same link every time, for one person to see and pay what they owe.
   app.post('/me/people/:key/request-link', requireUser, async (c) => {
