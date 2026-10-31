@@ -1,7 +1,9 @@
-import { Routes, Route } from 'react-router';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
 import { Home } from './screens/Home';
+import { Groups } from './screens/Groups';
+import { MyActivity } from './screens/MyActivity';
 import { PersonScreen } from './screens/PersonScreen';
 import { RequestPage } from './screens/RequestPage';
 import { CreateTrip } from './screens/CreateTrip';
@@ -18,13 +20,24 @@ import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
 import { AuthNotice } from './components/AuthNotice';
 
+function TripsRoute() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  if (params.has('mergeReview') || params.get('tab') === 'groups') {
+    return <Navigate to={{ pathname: '/groups', search }} replace />;
+  }
+  return <Home />;
+}
+
 export function App() {
   return (
     <>
       <AuthNotice />
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/trips" element={<Home />} />
+      <Route path="/trips" element={<TripsRoute />} />
+      <Route path="/groups" element={<Groups />} />
+      <Route path="/activity" element={<MyActivity />} />
       <Route path="/trips/new" element={<CreateTrip />} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />
