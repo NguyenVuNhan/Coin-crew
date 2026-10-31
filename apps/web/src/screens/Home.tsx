@@ -1,11 +1,12 @@
 import type { JSX } from 'react';
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { formatVnd, type PersonSummary } from '@fsl/core';
 import { useT } from '../i18n';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger, usePeopleSummary } from '../api/people';
 import { useIsWide } from '../lib/media';
+import { homeDetailsFrom, ledgerDetailsPath, useOpenDetails, type HomeDetailKind } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -42,7 +43,28 @@ export function Home(): JSX.Element {
   } = usePeopleSummary();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
-  const [selection, setSelection] = useState<Selection | null>(null);
+  // From 1024px the open transaction lives in the search params (`/trips?expense=<id>`), so Activity, an edit's
+  // return and a deep link to a ledger item all land here with it open.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fromSearch = homeDetailsFrom(searchParams);
+  const selection: Selection | null = wide ? fromSearch : null;
+  const openDetails = useOpenDetails(ledger?.tripId ?? '');
+
+  const select = useCallback(
+    (kind: HomeDetailKind, id: string) => setSearchParams({ [kind]: id }, { replace: true }),
+    [setSearchParams],
+  );
+  // Closing clears the main screen's own selection: no detour through the ledger's address.
+  const closeDetails = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const kind of ['expense', 'payment', 'income']) next.delete(kind);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
@@ -50,11 +72,11 @@ export function Home(): JSX.Element {
     }
   }, [meQuery.isSuccess, user, navigate]);
 
+  // Phones show details as a page of their own.
+  const phoneDetail = !wide && fromSearch && ledger ? ledgerDetailsPath(ledger.tripId, fromSearch.kind, fromSearch.id) : null;
   useEffect(() => {
-    if (!wide && selection !== null) {
-      setSelection(null);
-    }
-  }, [wide, selection]);
+    if (phoneDetail) navigate(phoneDetail, { replace: true });
+  }, [phoneDetail, navigate]);
 
   // A guest's "I've paid" counts at once, so someone settled can still have a payment to confirm: keep them listed,
   // on the side the money moved to.
@@ -76,29 +98,13 @@ export function Home(): JSX.Element {
   const sumPositive = (people ?? []).filter((p) => p.total > 0).reduce((acc, p) => acc + p.total, 0);
   const sumNegative = (people ?? []).filter((p) => p.total < 0).reduce((acc, p) => acc + Math.abs(p.total), 0);
 
-  const handleOpenExpense = (id: string) => {
-    if (wide && ledgerView) {
-      setSelection({ kind: 'expense', id });
-    } else if (ledger) {
-      navigate(`/t/${ledger.tripId}/expenses/${id}`);
-    }
+  const handleOpen = (kind: HomeDetailKind) => (id: string) => {
+    if (wide && ledgerView) select(kind, id);
+    else if (ledger) openDetails(kind, id);
   };
-
-  const handleOpenPayment = (id: string) => {
-    if (wide && ledgerView) {
-      setSelection({ kind: 'payment', id });
-    } else if (ledger) {
-      navigate(`/t/${ledger.tripId}/payments/${id}`);
-    }
-  };
-
-  const handleOpenIncome = (id: string) => {
-    if (wide && ledgerView) {
-      setSelection({ kind: 'income', id });
-    } else if (ledger) {
-      navigate(`/t/${ledger.tripId}/fund/${id}`);
-    }
-  };
+  const handleOpenExpense = handleOpen('expense');
+  const handleOpenPayment = handleOpen('payment');
+  const handleOpenIncome = handleOpen('income');
 
   const renderPersonRow = (p: PersonSummary) => {
     const hasSecondLine = p.groupLabel !== null || p.waiting.length > 0;
@@ -260,7 +266,7 @@ export function Home(): JSX.Element {
             }
             right={
               selection && ledgerView ? (
-                <DetailsPanel view={ledgerView} selection={selection} />
+                <DetailsPanel view={ledgerView} selection={selection} onClose={closeDetails} />
               ) : (
                 <>
                   {totalCard}

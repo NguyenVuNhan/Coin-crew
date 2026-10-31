@@ -38,7 +38,7 @@ export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
       {/* Phone floating footer (below lg) */}
       <div
         data-testid="app-nav-bar"
-        className="fsl-app-nav__bar lg:hidden fixed bottom-4 inset-x-4 z-20 flex items-center justify-between pointer-events-none"
+        className="fsl-app-nav__bar lg:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] inset-x-4 z-20 flex items-center justify-between pointer-events-none"
       >
         <div className="pointer-events-auto flex items-center rounded-full bg-card shadow-lg p-1.5 border border-border">
           {NAV_ITEMS.map((item) => {

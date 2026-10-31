@@ -19,7 +19,8 @@ export function Groups(): JSX.Element {
     <Screen
       title={t('trips.title')}
       right={user ? <AccountMenu user={user} /> : undefined}
-      nav={{ section: 'groups', addHref }}
+      // Signed-out visitors get no nav: MyTrips sends them to the start page.
+      nav={user ? { section: 'groups', addHref } : undefined}
     >
       <ConsentSheet />
       <MyTrips embedded />

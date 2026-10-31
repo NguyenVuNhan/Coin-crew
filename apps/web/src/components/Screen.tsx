@@ -112,7 +112,7 @@ export function Screen({
           bottomBar
             ? 'pb-[calc(72px+env(safe-area-inset-bottom,0px)+1.5rem)] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]'
             : 'pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
-          nav && 'pb-28 lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
+          nav && 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
         )}
       >
         {children}

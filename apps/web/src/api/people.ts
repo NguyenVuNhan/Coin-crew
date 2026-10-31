@@ -64,11 +64,12 @@ export function usePeopleSummary(): {
   };
 }
 
-export function useLedger(): {
+export function useLedger(opts?: { enabled?: boolean }): {
   ledger: { tripId: string; ownerPid: string } | undefined;
   isLoading: boolean;
 } {
   const query = useQuery<{ tripId: string; ownerPid: string }, ApiClientError>({
+    enabled: opts?.enabled ?? true,
     queryKey: ['me', 'ledger'],
     queryFn: () => apiFetch<{ tripId: string; ownerPid: string }>('/api/me/ledger'),
   });

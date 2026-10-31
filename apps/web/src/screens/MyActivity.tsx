@@ -1,6 +1,10 @@
 import type { JSX } from 'react';
-import { Link } from 'react-router';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
+import { useIsWide } from '../lib/media';
+import { homeDetailsHref } from '../lib/detailsNav';
 import { useLedger } from '../api/people';
 import { useMyActivity } from '../api/myActivity';
 import { activityLine, groupByDay, timeOf } from '../lib/activityText';
@@ -14,8 +18,19 @@ import { cn } from '@/lib/utils';
 
 export function MyActivity(): JSX.Element {
   const t = useT();
-  const { ledger } = useLedger();
-  const { items, isLoading, error, fetchNextPage, hasNextPage } = useMyActivity();
+  const navigate = useNavigate();
+  const wide = useIsWide();
+  const meQuery = useMe();
+  const user = meQuery.data?.user;
+  const { ledger } = useLedger({ enabled: Boolean(user) });
+  const { items, isLoading: activityLoading, error, fetchNextPage, hasNextPage } = useMyActivity({ enabled: Boolean(user) });
+  // Nothing is fetched before sign-in is known.
+  const isLoading = activityLoading || !user;
+
+  // Signed-out visitors go to the start page, as from the main screen.
+  useEffect(() => {
+    if (meQuery.isSuccess && user === null) navigate('/', { replace: true });
+  }, [meQuery.isSuccess, user, navigate]);
 
   const addHref = ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
 
@@ -23,7 +38,7 @@ export function MyActivity(): JSX.Element {
     <Screen
       title={t('nav.activity')}
       right={<AccountMenu />}
-      nav={{ section: 'activity', addHref }}
+      nav={user ? { section: 'activity', addHref } : undefined}
       className="fsl-my-activity"
     >
       <div className={cn('fsl-my-activity flex flex-col gap-4 py-4')}>
@@ -46,10 +61,12 @@ export function MyActivity(): JSX.Element {
                   {group.items.map((item) => {
                     const expenseId = item.details?.expenseId ? String(item.details.expenseId) : undefined;
                     const paymentId = item.details?.paymentId ? String(item.details.paymentId) : undefined;
+                    // Quick-expense lines open on the main screen: in its right column from 1024px, else as the details page.
+                    const onHome = item.kind === 'direct' && wide;
                     const href = expenseId
-                      ? `/t/${item.tripId}/expenses/${expenseId}`
+                      ? onHome ? homeDetailsHref('expense', expenseId) : `/t/${item.tripId}/expenses/${expenseId}`
                       : paymentId
-                        ? `/t/${item.tripId}/payments/${paymentId}`
+                        ? onHome ? homeDetailsHref('payment', paymentId) : `/t/${item.tripId}/payments/${paymentId}`
                         : undefined;
 
                     const rowContent = (

@@ -4,7 +4,7 @@ import type { TripView } from '@fsl/core';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';
-import { useBackToTrip, useListScroll } from '../lib/detailsNav';
+import { homeDetailsHref, useBackToTrip, useListScroll } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { TripLayout } from '../components/TripLayout';
@@ -21,6 +21,7 @@ import { ViewOnlyTrip } from './ViewOnlyTrip';
 import { MemberTrip } from './MemberTrip';
 import { Approvals } from './Approvals';
 import { RatingsScreen } from './RatingsScreen';
+import { cn } from '@/lib/utils';
 
 /** What the address points at inside the trip: the transaction whose details are open, the approvals list, or player ratings. */
 export type Selection =
@@ -40,7 +41,8 @@ function selectionFrom(params: { expenseId?: string; paymentId?: string; incomeI
 /** The details of one expense, payment or fund income as a page of its own (phones); back returns to the list where it was left. */
 function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings' }> }) {
   const t = useT();
-  const goBack = useBackToTrip(view.trip.id);
+  // The ledger has no page of its own: its details go back to the main screen.
+  const goBack = useBackToTrip(view.trip.id, view.trip.preset === 'direct' ? '/trips' : undefined);
   return (
     <Screen
       title={selection.kind === 'expense' ? t('details.expense') : selection.kind === 'income' ? t('details.income') : t('details.payment')}
@@ -155,6 +157,11 @@ export function TripRoute() {
     return <Navigate to="/trips" replace />;
   }
 
+  // From 1024px the caller's own ledger items open on the main screen, in its right column (never the ledger as a group).
+  if (view.trip.preset === 'direct' && view.me.isOrganiser && wide && selection && (selection.kind === 'expense' || selection.kind === 'payment' || selection.kind === 'income')) {
+    return <Navigate to={homeDetailsHref(selection.kind, selection.id)} replace />;
+  }
+
   // Only members have anything to approve: a guest or a view-only link to the list lands on the trip.
   if (selection?.kind === 'approvals' && view.me.kind !== 'member') {
     return <Navigate to={`/t/${view.trip.id}`} replace />;
@@ -179,11 +186,22 @@ export function TripRoute() {
     ) : (
       <MemberTrip view={view} selection={selection} />
     );
+  // Member and view-only lists carry the app nav for signed-in callers; below 1024px its floating footer sits at the
+  // bottom, so the resume bar goes above it, where the Snackbar sits.
+  const hasNav = Boolean(user) && view.me.kind !== 'guest' && !detail && !approvalsPage && !ratingsPage;
   return (
     <>
       {page}
       {stopped && (
-        <div className="fsl-resume-bar fixed left-1/2 -translate-x-1/2 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] shadow-lg rounded-full z-10">
+        <div
+          data-testid="resume-bar"
+          className={cn(
+            'fsl-resume-bar fixed left-1/2 -translate-x-1/2 shadow-lg rounded-full z-10',
+            hasNav
+              ? 'bottom-[calc(72px+env(safe-area-inset-bottom,0px)+12px)] lg:bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+              : 'bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]',
+          )}
+        >
           <Button onClick={() => { resume(); refetch(); }}>{t('pay.tapToCheck')}</Button>
         </div>
       )}

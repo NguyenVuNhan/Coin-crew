@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router';
 import { renderAt, mockApi } from '../../test/render';
@@ -104,5 +104,23 @@ describe('groups and activity routing', () => {
     expect(
       within(screen.getByTestId('app-nav-bar')).getByTestId('nav-groups'),
     ).toHaveAttribute('aria-current', 'page');
+  });
+});
+
+describe('groups and activity when signed out', () => {
+  it('Groups shows no nav and sends a signed-out visitor to the start page', async () => {
+    mockApi({ 'GET /api/me': { user: null }, 'GET /api/trips': [] });
+    renderApp('/groups');
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent(/^\/$/));
+    expect(screen.queryByTestId('app-nav')).toBeNull();
+  });
+
+  it('Activity shows no nav, asks for nothing and sends a signed-out visitor to the start page', async () => {
+    const { calls } = mockApi({ 'GET /api/me': { user: null } });
+    renderApp('/activity');
+    expect(screen.queryByTestId('app-nav')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent(/^\/$/));
+    expect(screen.queryByTestId('app-nav')).toBeNull();
+    expect(calls.some((c) => c.path === '/api/me/activity')).toBe(false);
   });
 });

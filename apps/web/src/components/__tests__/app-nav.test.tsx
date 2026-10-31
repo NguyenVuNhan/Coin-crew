@@ -27,8 +27,10 @@ describe('AppNav', () => {
       </Screen>,
     );
 
-    expect(screen.getByRole('main')).toHaveClass('pb-28');
+    expect(screen.getByRole('main')).toHaveClass('pb-[calc(7rem+env(safe-area-inset-bottom,0px))]');
     expect(screen.getByTestId('app-nav')).toBeInTheDocument();
+    // Clear of the iPhone home indicator.
+    expect(screen.getByTestId('app-nav-bar')).toHaveClass('bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]');
 
     unmount();
 
@@ -39,7 +41,7 @@ describe('AppNav', () => {
     );
 
     expect(screen.queryByTestId('app-nav')).toBeNull();
-    expect(screen.getByRole('main')).not.toHaveClass('pb-28');
+    expect(screen.getByRole('main')).not.toHaveClass('pb-[calc(7rem+env(safe-area-inset-bottom,0px))]');
   });
 
   it('side panel lists the same links with labels', () => {

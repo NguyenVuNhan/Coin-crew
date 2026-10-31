@@ -2,7 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import type { MyActivityItem, MyActivityPage } from '@fsl/core';
 import { apiFetch, type ApiClientError } from './client';
 
-export function useMyActivity(): {
+export function useMyActivity(opts?: { enabled?: boolean }): {
   items: MyActivityItem[];
   isLoading: boolean;
   error: ApiClientError | null;
@@ -10,6 +10,7 @@ export function useMyActivity(): {
   hasNextPage: boolean;
 } {
   const query = useInfiniteQuery({
+    enabled: opts?.enabled ?? true,
     queryKey: ['me', 'activity'] as const,
     queryFn: ({ pageParam }) => {
       const url = pageParam
