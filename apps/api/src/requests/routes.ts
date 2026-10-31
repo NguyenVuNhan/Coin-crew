@@ -1,10 +1,11 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import { buildVietQrPayload, findBank, maskAccountNumber, type PayInfo, type PersonItem, type PersonKey, type RequestView } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
-import { bankDetails, deviceParticipants, participants, trips, users } from '../db/schema';
+import { bankDetails, deviceParticipants, participants, personLinks, trips, users } from '../db/schema';
 import { getSessionUser } from '../auth/session';
 import { ApiError } from '../lib/errors';
 import { nowIso } from '../lib/ids';
@@ -27,14 +28,22 @@ export interface RequestTarget {
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{32,64}$/;
 
-/** The ledger row behind a request token, or null. Never matches a group (non-ledger) participant. */
+/**
+ * The ledger row behind a request token, or null. Never matches a group (non-ledger) participant.
+ * A row merged into another ledger row (or an account's) answers as that kept row, so the items,
+ * the waiting check and "I've paid" all use one person.
+ */
 export async function findRequest(db: Db, token: string): Promise<RequestTarget | null> {
   if (!TOKEN_RE.test(token)) return null;
+  const kept = alias(participants, 'kept');
   const row = await db
     .select({
       personPid: participants.id,
       personUserId: participants.userId,
       status: participants.status,
+      keptPid: kept.id,
+      keptUserId: kept.userId,
+      keptStatus: kept.status,
       tripId: trips.id,
       tripName: trips.name,
       lang: trips.defaultLang,
@@ -44,9 +53,17 @@ export async function findRequest(db: Db, token: string): Promise<RequestTarget 
     .from(participants)
     .innerJoin(trips, eq(trips.id, participants.tripId))
     .innerJoin(users, eq(users.id, trips.organiserUserId))
+    // A ledger row the owner merged into someone else: the link stands for the kept person.
+    .leftJoin(personLinks, and(eq(personLinks.ownerUserId, trips.organiserUserId), eq(personLinks.participantId, participants.id)))
+    .leftJoin(kept, and(eq(kept.id, personLinks.personPid), eq(kept.tripId, trips.id)))
     .where(and(eq(participants.requestToken, token), eq(trips.preset, 'direct')))
     .get();
   if (!row || row.status !== 'active' || !row.ownerUserId || row.personUserId === row.ownerUserId) return null;
+  if (row.keptPid) {
+    if (row.keptStatus !== 'active' || row.keptUserId === row.ownerUserId) return null;
+    row.personPid = row.keptPid;
+    row.personUserId = row.keptUserId;
+  }
   const owner = await db
     .select({ id: participants.id })
     .from(participants)

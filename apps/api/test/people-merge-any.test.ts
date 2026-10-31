@@ -217,6 +217,45 @@ describe('POST /api/me/people/link (any guest with anyone)', () => {
   });
 });
 
+describe('request links after a merge', () => {
+  async function getRequest(token: string): Promise<Response> {
+    let res = await call(`/api/r/${token}`);
+    for (let i = 0; i < 5 && res.status === 409; i++) res = await call(`/api/r/${token}`);
+    return res;
+  }
+
+  it("a merged-away guest's old link shows the kept person's waiting \"I've paid\" and refuses a second one", async () => {
+    sids.clear();
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-led', 'Owen', { preset: 'direct' });
+    await addPerson('t-led', 'led-o', 'Owen', OWNER, 0);
+    await addPerson('t-led', 'led-b', 'Minh N', null, 1, '2026-10-01T00:00:00.000Z');
+    await addPerson('t-led', 'led-a', 'Minh', null, 2, '2026-10-05T00:00:00.000Z');
+    await owes('t-led', 'e-a', 'led-o', 'led-a', 1000);
+    await owes('t-led', 'e-b', 'led-o', 'led-b', 2000);
+    const tokenA = 'tok-a-0123456789abcdefghijklmnopqrstuv';
+    const tokenB = 'tok-b-0123456789abcdefghijklmnopqrstuv';
+    await run("UPDATE participants SET request_token = ? WHERE id = 'led-a'", tokenA);
+    await run("UPDATE participants SET request_token = ? WHERE id = 'led-b'", tokenB);
+
+    expect(await json(await link(['p:led-a', 'p:led-b']))).toEqual({ key: 'p:led-b' });
+    const before = await getRequest(tokenA);
+    expect(await json(before)).toMatchObject({ total: 3000, settlementWaiting: false });
+
+    // B records "I've paid" for the combined 3000 through B's own link.
+    const paid = await call(`/api/r/${tokenB}/paid`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 3000 }) });
+    expect(paid.status).toBe(201);
+
+    const res = await getRequest(tokenA);
+    expect(res.status).toBe(200);
+    expect(await json(res)).toMatchObject({ settlementWaiting: true, settled: false });
+
+    const again = await call(`/api/r/${tokenA}/paid`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 3000 }) });
+    expect(again.status).toBe(409);
+    expect(await json(again)).toMatchObject({ error: { code: 'ALREADY_WAITING' } });
+  });
+});
+
 describe('DELETE /api/me/people/link/:participantId', () => {
   it('unmerge splits one entry off', async () => {
     await seedMinh();

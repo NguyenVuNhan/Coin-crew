@@ -41,25 +41,13 @@ async function ensureLedgerPerson(db: Db, user: { id: string; name: string }, ke
   const id = key.slice(2);
   if (key.startsWith('u:')) {
     if (id === user.id) throw new ApiError('NOT_FOUND', 404);
-    const existing = await db
-      .select({ id: participants.id })
-      .from(participants)
-      .where(and(eq(participants.tripId, ledger.tripId), eq(participants.userId, id)))
-      .get();
-    if (existing) return existing.id;
-    const source = await db
-      .select({ id: participants.id })
-      .from(participants)
-      .where(and(
-        eq(participants.userId, id),
-        ne(participants.tripId, ledger.tripId),
-        sql`${participants.tripId} IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${user.id} AND m.status = 'active')`,
-        // In someone else's ledger only its owner counts as shared.
-        sql`${participants.tripId} NOT IN (SELECT d.id FROM trips d WHERE d.preset = 'direct' AND d.organiser_user_id <> ${id})`,
-      ))
-      .get();
-    if (!source) throw new ApiError('NOT_FOUND', 404);
-    return importPerson(db, user.id, ledger, source.id, device);
+    try {
+      return await ensureLedgerUser(db, user.id, ledger, id, device);
+    } catch (err) {
+      // Someone the owner shares no group with: same answer as a key that does not exist.
+      if (err instanceof ApiError && err.code === 'FORBIDDEN') throw new ApiError('NOT_FOUND', 404);
+      throw err;
+    }
   }
 
   const row = await db
@@ -154,7 +142,8 @@ function parseLinkKeys(raw: unknown): LinkRequest {
 
 /**
  * The account's row in the owner's ledger, imported from one of the owner's groups when there is
- * none yet. 403 when the owner shares no group with the account.
+ * none yet. 403 when the owner shares no group with the account (the request-link route answers
+ * that as 404, like a key that does not exist).
  */
 async function ensureLedgerUser(db: Db, ownerUserId: string, ledger: PersonalLedger, userId: string, device: string | null): Promise<string> {
   const existing = await db
@@ -167,8 +156,8 @@ async function ensureLedgerUser(db: Db, ownerUserId: string, ledger: PersonalLed
     .select({ id: participants.id })
     .from(participants)
     .where(and(
+      // Any status: someone who left a group can still have money open with the owner.
       eq(participants.userId, userId),
-      eq(participants.status, 'active'),
       ne(participants.tripId, ledger.tripId),
       sql`${participants.tripId} IN (${myTrips(ownerUserId)})`,
       // In someone else's ledger only its owner counts as shared.
