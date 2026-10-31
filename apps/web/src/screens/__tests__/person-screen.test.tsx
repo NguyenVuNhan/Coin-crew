@@ -171,7 +171,7 @@ describe('PersonScreen', () => {
     });
   });
 
-  it('a guest: person-settle opens the pay sheet (not a group pay link) and a Rename or merge link goes to /t/t-dl/people', async () => {
+  it('a guest: person-settle opens the pay sheet (not a group pay link) and there is no Rename or merge link', async () => {
     const tuan: PersonSummary = {
       key: 'p:p-tuan',
       name: 'Tuấn',
@@ -207,10 +207,8 @@ describe('PersonScreen', () => {
     const settleBtn = await screen.findByTestId('person-settle');
     expect(settleBtn).not.toHaveAttribute('href');
 
-    const manageLink = screen.getByRole('link', {
-      name: 'Rename or merge in Đà Lạt',
-    });
-    expect(manageLink).toHaveAttribute('href', '/t/t-dl/people?from=%2Fpeople%2Fp%253Ap-tuan');
+    // "Rename or merge in …" was folded into the ✎ sheet and the merge picker (person-merge-picker spec).
+    expect(screen.queryByRole('link', { name: 'Rename or merge in Đà Lạt' })).toBeNull();
   });
 
   it('paid in cash: Save is disabled while sending and one key is reused for a retry', async () => {

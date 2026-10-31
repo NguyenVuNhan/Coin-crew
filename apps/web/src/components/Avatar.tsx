@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 export interface AvatarProps {
   name: string;
   avatarUrl?: string | null;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'xl';
   className?: string;
 }
 
@@ -37,7 +37,7 @@ export function Avatar({ name, avatarUrl, size = 'md', className = '' }: AvatarP
         `fsl-avatar--${size}`,
         avatarUrl && 'fsl-avatar--has-img',
         'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold',
-        size === 'sm' ? 'size-7 text-xs' : 'size-9 text-sm',
+        size === 'sm' ? 'size-7 text-xs' : size === 'xl' ? 'size-24 text-4xl' : 'size-9 text-sm',
         avatarUrl ? 'bg-muted' : TONES[avatarTone(name)],
         className,
       )}

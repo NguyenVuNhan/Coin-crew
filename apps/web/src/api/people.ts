@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { GroupPerson, PayInfo, PersonKey, PersonSummary, PeopleSummaryResponse } from '@fsl/core';
+import type { GroupPerson, MergeOptionsResponse, PayInfo, PersonKey, PersonSummary, PeopleSummaryResponse, ProposalsResponse } from '@fsl/core';
 import { apiFetch, apiSend, ApiClientError } from './client';
 
 export const PEOPLE_SUMMARY_QUERY_KEY = ['me', 'people', 'summary'] as const;
@@ -241,4 +241,62 @@ export function useGroupPeople() {
     staleTime: 5 * 60_000,
     retry: false,
   });
+}
+
+export const mergeOptionsQueryKey = (key: PersonKey) => ['people', 'merge-options', key] as const;
+export const PROPOSALS_QUERY_KEY = ['me', 'proposals'] as const;
+
+/** The person's groups (with rename rights) and everyone they could be merged with. */
+export function useMergeOptions(key: PersonKey, enabled: boolean) {
+  return useQuery<MergeOptionsResponse, ApiClientError>({
+    queryKey: mergeOptionsQueryKey(key),
+    queryFn: () => apiFetch<MergeOptionsResponse>(`/api/me/people/${encodeURIComponent(key)}/merge-options`),
+    enabled,
+  });
+}
+
+async function invalidateMergeState(queryClient?: QueryClient): Promise<void> {
+  if (!queryClient) return;
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: ['people', 'merge-options'] }),
+    queryClient.invalidateQueries({ queryKey: PROPOSALS_QUERY_KEY }),
+  ]);
+}
+
+/** Renames a guest for everyone in one group (group admins only). */
+export async function renameInGroup(tripId: string, pid: string, name: string, queryClient?: QueryClient): Promise<void> {
+  await apiSend<void>(`/api/trips/${encodeURIComponent(tripId)}/people/${encodeURIComponent(pid)}`, 'PATCH', { name }, tripId);
+  await invalidateMergeState(queryClient);
+}
+
+/** Runs the server's plan for A (the person on the page) and B: link, merge, or send requests. */
+export async function mergePeople(keys: [PersonKey, PersonKey], queryClient?: QueryClient): Promise<{ key: PersonKey; proposals: string[] }> {
+  const result = await apiSend<{ key: PersonKey; proposals: string[] }>('/api/me/people/merge', 'POST', { keys });
+  await invalidateMergeState(queryClient);
+  return result;
+}
+
+export function useProposals(enabled = true) {
+  return useQuery<ProposalsResponse, ApiClientError>({
+    queryKey: PROPOSALS_QUERY_KEY,
+    queryFn: () => apiFetch<ProposalsResponse>('/api/me/proposals'),
+    enabled,
+  });
+}
+
+export async function acceptProposal(id: string, queryClient?: QueryClient): Promise<{ status: 'approved' | 'waiting' }> {
+  const r = await apiSend<{ status: 'approved' | 'waiting' }>(`/api/me/proposals/${encodeURIComponent(id)}/accept`, 'POST');
+  await invalidateMergeState(queryClient);
+  return r;
+}
+
+export async function declineProposal(id: string, queryClient?: QueryClient): Promise<void> {
+  await apiSend<void>(`/api/me/proposals/${encodeURIComponent(id)}/decline`, 'POST');
+  await invalidateMergeState(queryClient);
+}
+
+export async function cancelProposal(id: string, queryClient?: QueryClient): Promise<void> {
+  await apiSend<void>(`/api/me/proposals/${encodeURIComponent(id)}/cancel`, 'POST');
+  await invalidateMergeState(queryClient);
 }
