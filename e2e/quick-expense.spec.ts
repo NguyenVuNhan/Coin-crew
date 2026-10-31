@@ -32,7 +32,7 @@ test('a quick expense, a request link and a confirmed "I\'ve paid"', async ({ br
   await nhan.getByRole('button', { name: 'Continue' }).click();
 
   // New expense, no group: only Nhan to start with; "Minh" is typed once and added as someone new.
-  await nhan.getByTestId('home-new-expense').click();
+  await nhan.getByTestId('app-nav-bar').getByTestId('nav-add').click();
   await expect(nhan.getByRole('heading', { name: 'New expense' })).toBeVisible();
   await nhan.getByLabel('What for').fill('Taxi');
   await nhan.getByLabel('Amount', { exact: true }).fill('240.000');
