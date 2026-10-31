@@ -109,7 +109,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     try {
       await apiSend<void>('/api/auth/logout', 'POST');
       queryClient.clear();
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err);
       setSigningOut(false);

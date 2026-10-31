@@ -154,7 +154,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   );
 
   return (
-    <Screen title={view.trip.name} wide bottomBar={!wide && hasFeed ? addLink(true) : undefined}>
+    <Screen title={view.trip.name} wide bottomBar={!wide && hasFeed ? addLink(true) : undefined} backInApp>
       <div className="fsl-guest flex flex-col gap-4 py-4">
         {banner}
         {notice}

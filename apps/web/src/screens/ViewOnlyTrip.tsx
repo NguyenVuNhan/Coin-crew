@@ -81,7 +81,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
   );
 
   return (
-    <Screen title={view.trip.name} right={<LanguageButton />} wide nav={nav}>
+    <Screen title={view.trip.name} right={<LanguageButton />} wide nav={nav} backInApp>
       <div className="fsl-view-only flex flex-col gap-4 py-4">
         {banner}
         {!wide ? (
