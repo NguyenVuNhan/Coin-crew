@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { GroupPerson, PersonKey, PersonSummary, PeopleSummaryResponse } from '@fsl/core';
+import type { GroupPerson, PayInfo, PersonKey, PersonSummary, PeopleSummaryResponse } from '@fsl/core';
 import { apiFetch, apiSend, ApiClientError } from './client';
 
 export const PEOPLE_SUMMARY_QUERY_KEY = ['me', 'people', 'summary'] as const;
@@ -86,16 +86,43 @@ export async function requestLink(key: PersonKey): Promise<{ url: string }> {
   );
 }
 
+/** One key per submit (a sheet open, a page load), reused on every retry so the server writes it once. */
+export function newIdempotencyKey(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  } catch {
+    // Not a secure context: fall through.
+  }
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Runs `send` again while the server is still adding things up (409 TRY_AGAIN), a few times. */
+export async function withTryAgain<T>(send: () => Promise<T>, retries = 3, delayMs = 700): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await send();
+    } catch (err) {
+      if (!(err instanceof ApiClientError) || err.code !== 'TRY_AGAIN' || attempt >= retries) throw err;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 export async function settle(
   key: PersonKey,
   paid: number,
   direction: 'toOwner' | 'fromOwner',
   queryClient?: QueryClient,
+  idempotencyKey?: string,
 ): Promise<{ settlementId: string; status: 'confirmed' | 'says_paid' }> {
-  const result = await apiSend<{ settlementId: string; status: 'confirmed' | 'says_paid' }>(
-    `/api/me/people/${encodeURIComponent(key)}/settle`,
-    'POST',
-    { paid, direction },
+  const result = await withTryAgain(() =>
+    apiSend<{ settlementId: string; status: 'confirmed' | 'says_paid' }>(
+      `/api/me/people/${encodeURIComponent(key)}/settle`,
+      'POST',
+      idempotencyKey ? { paid, direction, idempotencyKey } : { paid, direction },
+    ),
   );
   if (queryClient) {
     await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
@@ -114,6 +141,29 @@ export async function confirmSettlement(
   if (queryClient) {
     await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
   }
+}
+
+export async function rejectSettlement(
+  settlementId: string,
+  queryClient?: QueryClient,
+): Promise<void> {
+  await apiSend<void>(
+    `/api/me/settlements/${encodeURIComponent(settlementId)}/reject`,
+    'POST',
+  );
+  if (queryClient) {
+    await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
+  }
+}
+
+/** The person's VietQR for the netted total the caller owes them ("Settle up"). */
+export function usePersonPay(key: PersonKey, enabled: boolean) {
+  return useQuery<PayInfo, ApiClientError>({
+    queryKey: ['me', 'people', key, 'pay'],
+    queryFn: () => withTryAgain(() => apiFetch<PayInfo>(`/api/me/people/${encodeURIComponent(key)}/pay`)),
+    enabled,
+    staleTime: 0,
+  });
 }
 
 export async function setNickname(

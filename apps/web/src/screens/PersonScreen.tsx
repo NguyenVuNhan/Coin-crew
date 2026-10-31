@@ -4,18 +4,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   findSimilarNames,
   formatVnd,
-  type PersonItem,
   type PersonKey,
+  type PersonWaitingSettlement,
 } from '@fsl/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
 import {
   confirmSettlement,
   linkPeople,
+  newIdempotencyKey,
+  rejectSettlement,
   requestLink,
   setNickname,
   settle,
   usePeopleSummary,
+  usePersonPay,
 } from '../api/people';
 import { copyText } from '../lib/clipboard';
 import { Screen } from '../components/Screen';
@@ -24,6 +27,7 @@ import { Amount } from '../components/Amount';
 import { Avatar } from '../components/Avatar';
 import { Sheet } from '../components/Sheet';
 import { Snackbar } from '../components/Snackbar';
+import { PayQr } from '../components/PayQr';
 import { InlineError } from '../components/InlineError';
 import { SkeletonList } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
@@ -49,6 +53,19 @@ export function PersonScreen(): JSX.Element {
 
   const [cashSheetOpen, setCashSheetOpen] = useState(false);
   const [cashValue, setCashValue] = useState('');
+  // One key per sheet open: a double tap or a retry records the payment once.
+  const [cashKey, setCashKey] = useState('');
+  const [cashSending, setCashSending] = useState(false);
+  const [cashError, setCashError] = useState<unknown>(null);
+
+  const [paySheetOpen, setPaySheetOpen] = useState(false);
+  const [payKey, setPayKey] = useState('');
+  const [paySending, setPaySending] = useState(false);
+  const [payError, setPayError] = useState<unknown>(null);
+  const payInfo = usePersonPay(key, paySheetOpen);
+
+  const [answering, setAnswering] = useState<string | null>(null);
+  const [answerError, setAnswerError] = useState<{ settlementId: string; error: unknown } | null>(null);
 
   const [samePersonSheetOpen, setSamePersonSheetOpen] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
@@ -97,15 +114,61 @@ export function PersonScreen(): JSX.Element {
 
   const handleOpenCash = () => {
     setCashValue(String(person.total));
+    setCashKey(newIdempotencyKey());
+    setCashError(null);
     setCashSheetOpen(true);
   };
 
   const handleSaveCash = async () => {
     const cleanDigits = cashValue.replace(/\D/g, '');
     const amount = cleanDigits ? parseInt(cleanDigits, 10) : 0;
-    if (amount <= 0) return;
-    await settle(person.key, amount, 'toOwner', qc);
-    setCashSheetOpen(false);
+    if (amount <= 0 || cashSending) return;
+    setCashSending(true);
+    setCashError(null);
+    try {
+      await settle(person.key, amount, 'toOwner', qc, cashKey);
+      setCashSheetOpen(false);
+    } catch (err) {
+      setCashError(err);
+    } finally {
+      setCashSending(false);
+    }
+  };
+
+  const handleOpenPay = () => {
+    setPayKey(newIdempotencyKey());
+    setPayError(null);
+    setPaySheetOpen(true);
+  };
+
+  // "I've paid them": one settlement for the netted total, spread over every group (spec 6a.2).
+  const handlePaidThem = async () => {
+    if (person.total >= 0 || paySending) return;
+    setPaySending(true);
+    setPayError(null);
+    try {
+      await settle(person.key, -person.total, 'fromOwner', qc, payKey);
+      setPaySheetOpen(false);
+    } catch (err) {
+      setPayError(err);
+    } finally {
+      setPaySending(false);
+    }
+  };
+
+  const answer = async (w: PersonWaitingSettlement, action: 'confirm' | 'reject') => {
+    if (answering) return;
+    setAnswering(w.settlementId);
+    setAnswerError(null);
+    try {
+      if (action === 'confirm') await confirmSettlement(w.settlementId, qc);
+      else await rejectSettlement(w.settlementId, qc);
+    } catch (error) {
+      setAnswerError({ settlementId: w.settlementId, error });
+      refetch();
+    } finally {
+      setAnswering(null);
+    }
   };
 
   const handleRequestLink = async () => {
@@ -130,16 +193,6 @@ export function PersonScreen(): JSX.Element {
       // ignore
     }
   };
-
-  // Item with the most negative amount that has otherPid
-  const settleUpItem = person.items
-    .filter((item) => Boolean(item.otherPid))
-    .reduce<PersonItem | undefined>((mostNeg, item) => {
-      if (!mostNeg || item.amount < mostNeg.amount) {
-        return item;
-      }
-      return mostNeg;
-    }, undefined);
 
   // Other people from summary with similar names (excluding this person)
   const others = (people ?? []).filter((p) => p.key !== person.key);
@@ -203,21 +256,33 @@ export function PersonScreen(): JSX.Element {
                       name: person.name,
                       amount: formatVnd(w.amount),
                     });
+              const busy = answering === w.settlementId;
               return (
                 <div
                   key={w.settlementId}
                   data-testid={`waiting-${w.settlementId}`}
-                  className="flex items-center justify-between gap-3 p-4 rounded-xl bg-card border border-border"
+                  className="flex flex-col gap-3 p-4 rounded-xl bg-card border border-border"
                 >
-                  <span className="text-sm text-foreground flex-1 min-w-0">{message}</span>
-                  <Button
-                    variant="primary"
-                    onClick={async () => {
-                      await confirmSettlement(w.settlementId, qc);
-                    }}
-                  >
-                    {t('person.confirm')}
-                  </Button>
+                  <span className="text-sm text-foreground min-w-0">{message}</span>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="primary"
+                      loading={busy}
+                      disabled={answering !== null}
+                      onClick={() => void answer(w, 'confirm')}
+                    >
+                      {t('person.confirm')}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      data-testid={`not-received-${w.settlementId}`}
+                      disabled={answering !== null}
+                      onClick={() => void answer(w, 'reject')}
+                    >
+                      {t('person.notReceived')}
+                    </Button>
+                  </div>
+                  {answerError?.settlementId === w.settlementId && <InlineError error={answerError.error} />}
                 </div>
               );
             })}
@@ -227,7 +292,9 @@ export function PersonScreen(): JSX.Element {
         {/* Items list */}
         {person.items.length > 0 && (
           <div className="fsl-person__items bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-            {person.items.map((item) => {
+            {person.items.map((item, index) => {
+              // Two linked guests can sit in one trip: the trip id alone is not a unique key.
+              const rowKey = `${item.tripId}:${item.otherPid ?? index}`;
               const isGroup = item.kind !== 'direct';
               const label =
                 item.kind === 'direct' ? t('person.quickExpenses') : item.tripName;
@@ -258,7 +325,7 @@ export function PersonScreen(): JSX.Element {
               if (isGroup) {
                 return (
                   <Link
-                    key={item.tripId}
+                    key={rowKey}
                     to={`/t/${item.tripId}`}
                     data-testid={`person-item-${item.tripId}`}
                     className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors"
@@ -270,7 +337,7 @@ export function PersonScreen(): JSX.Element {
 
               return (
                 <div
-                  key={item.tripId}
+                  key={rowKey}
                   data-testid={`person-item-${item.tripId}`}
                   className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-foreground"
                 >
@@ -309,21 +376,16 @@ export function PersonScreen(): JSX.Element {
               variant="primary"
               block
               data-testid="person-settle"
-              href={
-                settleUpItem
-                  ? `/t/${settleUpItem.tripId}/pay/${settleUpItem.otherPid}`
-                  : undefined
-              }
-              disabled={!settleUpItem}
+              onClick={handleOpenPay}
             >
               {t('person.settleUp')}
             </Button>
           )}
 
           {person.userId === null &&
-            person.items.map((item) => (
+            person.items.map((item, index) => (
               <Button
-                key={`manage-${item.tripId}`}
+                key={`manage-${item.tripId}:${item.otherPid ?? index}`}
                 variant="ghost"
                 block
                 href={`/t/${item.tripId}/people`}
@@ -385,13 +447,50 @@ export function PersonScreen(): JSX.Element {
               value={cashValue}
               onChange={(e) => setCashValue(e.target.value)}
             />
+            {cashError !== null && <InlineError error={cashError} />}
             <Button
               variant="primary"
               block
-              disabled={cashAmount <= 0}
+              disabled={cashAmount <= 0 || cashSending}
+              loading={cashSending}
               onClick={handleSaveCash}
             >
               {t('person.save')}
+            </Button>
+          </div>
+        </Sheet>
+
+        {/* Settle up Sheet: the netted total, the person's VietQR, and "I've paid them" */}
+        <Sheet
+          open={paySheetOpen}
+          onClose={() => setPaySheetOpen(false)}
+          title={t('person.payTitle', { name: person.name })}
+        >
+          <div className="fsl-person__pay flex flex-col gap-3 py-2" data-testid="person-pay-sheet">
+            <div className="flex justify-center">
+              <Amount value={Math.max(-person.total, 0)} size="xl" />
+            </div>
+            {payInfo.isLoading ? (
+              <SkeletonList rows={1} />
+            ) : payInfo.error ? (
+              <InlineError error={payInfo.error} onRetry={() => void payInfo.refetch()} />
+            ) : payInfo.data && payInfo.data.payload !== null && payInfo.data.amount > 0 ? (
+              <PayQr info={payInfo.data} variant="pay" summary={false} />
+            ) : (
+              <p className="m-0 text-center text-sm text-muted-foreground" data-testid="person-pay-nobank">
+                {t('person.noBank', { name: person.name })}
+              </p>
+            )}
+            {payError !== null && <InlineError error={payError} />}
+            <Button
+              variant="secondary"
+              block
+              data-testid="person-paid-them"
+              disabled={paySending || person.total >= 0}
+              loading={paySending}
+              onClick={handlePaidThem}
+            >
+              {t('person.paidThem')}
             </Button>
           </div>
         </Sheet>

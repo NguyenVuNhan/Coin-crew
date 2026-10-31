@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { RequestView, PersonItem } from '@fsl/core';
 import { useT } from '../i18n';
 import { ApiClientError, apiFetch, apiSend } from '../api/client';
+import { newIdempotencyKey } from '../api/people';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Amount } from '../components/Amount';
@@ -33,6 +34,8 @@ export function RequestPage(): JSX.Element {
   });
 
   const [hasPaid, setHasPaid] = useState(false);
+  // One key per page load, reused on every retry: the server records the payment once.
+  const [idempotencyKey] = useState(newIdempotencyKey);
   const [isSending, setIsSending] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -98,6 +101,7 @@ export function RequestPage(): JSX.Element {
       try {
         await apiSend(`/api/r/${encodeURIComponent(token)}/paid`, 'POST', {
           amount: view.total,
+          idempotencyKey,
         });
         setHasPaid(true);
         void refetch();

@@ -194,7 +194,8 @@ describe('RequestPage (/r/:token)', () => {
       (c) => c.method === 'POST' && c.path === '/api/r/tok/paid',
     );
     expect(postCall).toBeDefined();
-    expect(postCall?.body).toEqual({ amount: 120000 });
+    // The page's idempotency key rides along (I1): one key per page load.
+    expect(postCall?.body).toEqual({ amount: 120000, idempotencyKey: expect.stringMatching(/^[A-Za-z0-9_-]{16,64}$/) });
   });
 
   it('6. TRY_AGAIN: the POST handler returns 409 TRY_AGAIN the first time and 201 the second; after tapping, request-waiting appears and POST was called twice', async () => {

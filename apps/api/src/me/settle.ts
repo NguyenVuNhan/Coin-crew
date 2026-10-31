@@ -2,15 +2,16 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { MAX_AMOUNT, normalizeName, spreadSettlement, type PersonKey } from '@fsl/core';
+import { buildVietQrPayload, findBank, maskAccountNumber, MAX_AMOUNT, normalizeName, spreadSettlement, type PayInfo, type PersonKey } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
-import { activity, participants, personLinks, settlementKeys, transactions, transactionShares, trips, users } from '../db/schema';
+import { activity, bankDetails, participants, personLinks, settlementKeys, transactions, transactionShares, trips, users } from '../db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
 import { ApiError, isDbError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
 import { loadPersonItems, type PersonItems } from './balances';
 import { ensurePersonalLedger, findLedger } from './ledger';
+import { getOrCreateRefCode } from '../payments/refs';
 
 /**
  * D1 statements a settlement may prepare in one Worker invocation (the hard limit is 50; every
@@ -366,6 +367,50 @@ async function commitParts(
   await db.batch(asBatch(queries));
 }
 
+/**
+ * How the owner pays the person the netted total they owe (spec goal 6, "Settle up"): the person's
+ * approved bank details as a VietQR for `-total`. The receiving participant and the transfer note
+ * come from the group where the owner owes the most. Amount 0 (and no bank) when nothing is owed.
+ */
+export async function personPayInfo(db: Db, userId: string, key: PersonKey): Promise<PayInfo> {
+  const person = await loadPersonItems(db, userId, key);
+  if (!person) throw new ApiError('NOT_FOUND', 404);
+  const total = person.items.reduce((sum, i) => sum + i.amount, 0);
+  const amount = total < 0 ? -total : 0;
+  const most = person.items.reduce<(typeof person.items)[number] | undefined>((m, i) => (i.amount < 0 && (!m || i.amount < m.amount) ? i : m), undefined);
+  const to = most ?? person.ledger;
+  const nothing: PayInfo = { to: { id: to?.personPid ?? '', name: person.name }, amount: 0, bankState: 'none', bank: null, refCode: '', payload: null, inFlight: [] };
+  if (amount === 0 || !most) return nothing;
+
+  const approved = person.userId
+    ? await db.select().from(bankDetails).where(and(eq(bankDetails.userId, person.userId), eq(bankDetails.status, 'approved'))).get()
+    : await db
+        .select()
+        .from(bankDetails)
+        .where(and(
+          inArray(bankDetails.participantId, [...new Set([most.personPid, ...person.items.map((i) => i.personPid), ...(person.ledger ? [person.ledger.personPid] : [])])].slice(0, 50)),
+          eq(bankDetails.status, 'approved'),
+        ))
+        .get();
+  const refCode = await getOrCreateRefCode(db, { id: most.tripId, name: most.tripName }, most.ownerPid, most.personPid);
+  if (!approved) return { ...nothing, amount, refCode };
+  return {
+    to: { id: most.personPid, name: person.name },
+    amount,
+    bankState: 'ok',
+    bank: {
+      bin: approved.bin,
+      bankName: findBank(approved.bin)?.shortName ?? approved.bin,
+      accountNumber: approved.accountNumber,
+      accountNumberMasked: maskAccountNumber(approved.accountNumber),
+      holderName: approved.holderName,
+    },
+    refCode,
+    payload: buildVietQrPayload({ bin: approved.bin, accountNumber: approved.accountNumber, amount, note: refCode }),
+    inFlight: [],
+  };
+}
+
 async function parseJson<T>(c: Context): Promise<T> {
   try {
     return await c.req.json<T>();
@@ -400,6 +445,12 @@ export function settleRoutes(): Hono<AppBindings> {
       idempotencyKey: parseIdempotencyKey(body.idempotencyKey),
     });
     return c.json(result, replayed ? 200 : 201);
+  });
+
+  // "Settle up": the person's VietQR for the netted total the owner owes them.
+  app.get('/me/people/:key/pay', requireUser, async (c) => {
+    const user = (await getSessionUser(c))!;
+    return c.json<PayInfo>(await personPayInfo(getDb(c.env), user.id, parseKey(c.req.param('key'))));
   });
 
   app.post('/me/settlements/:sid/confirm', requireUser, async (c) => {

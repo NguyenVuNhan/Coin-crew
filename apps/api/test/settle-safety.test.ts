@@ -332,3 +332,55 @@ describe('"I\'ve paid" query budget (M1)', () => {
     expect(await payments()).toHaveLength(0);
   }, 60_000);
 });
+
+describe('Settle up when the owner owes (I3)', () => {
+  /** The owner owes Minh 300 in badminton; Minh owes the owner 100 in quick expenses: net, the owner owes 200. */
+  async function seedOwnerOwes() {
+    await seedUser(OWNER, 'Nhan');
+    await seedUser(U.minh, 'Minh');
+    await addTrip('t-led', 'Nhan', 'direct');
+    await addPerson('t-led', 'led-o', 'Nhan', OWNER, 0);
+    await addPerson('t-led', 'led-m', 'Minh', U.minh, 1);
+    await addExpense('t-led', 'e-led', 'led-o', 200, ['led-o', 'led-m'], '2026-10-01T00:00:00.000Z');
+    await addTrip('t-bad', 'Badminton');
+    await addPerson('t-bad', 'bad-o', 'Nhan', OWNER, 0);
+    await addPerson('t-bad', 'bad-m', 'Minh', U.minh, 1);
+    await addExpense('t-bad', 'e-bad', 'bad-m', 600, ['bad-o', 'bad-m'], '2026-10-02T00:00:00.000Z');
+  }
+
+  it("shows Minh's VietQR for the netted 200, and \"I've paid them\" settles both groups", async () => {
+    await seedOwnerOwes();
+    await run("INSERT INTO bank_details (id, user_id, bin, account_number, holder_name, status, consent_at, created_at) VALUES ('b-m', ?, '970407', '19031234565678', 'NGUYEN MINH', 'approved', ?, ?)", U.minh, NOW, NOW);
+    const owner = await headersFor(OWNER, 'Nhan');
+    await summary(owner);
+
+    const res = await call(`/api/me/people/u%3A${U.minh}/pay`, { headers: owner });
+    expect(res.status).toBe(200);
+    const info = await json<{ amount: number; bankState: string; payload: string | null; to: { id: string; name: string }; refCode: string }>(res);
+    expect(info).toMatchObject({ amount: 200, bankState: 'ok', to: { id: 'bad-m', name: 'Minh' } });
+    expect(info.payload).toContain('19031234565678');
+    expect(info.refCode).not.toBe('');
+
+    const settle = await call(`/api/me/people/u%3A${U.minh}/settle`, { method: 'POST', headers: owner, body: JSON.stringify({ paid: 200, direction: 'fromOwner', idempotencyKey: KEY_A }) });
+    expect(settle.status).toBe(201);
+    expect((await payments()).map((r) => [r.trip_id, r.payer_id, r.to_id, r.amount])).toEqual([
+      ['t-bad', 'bad-o', 'bad-m', 300],
+      ['t-led', 'led-m', 'led-o', 100],
+    ]);
+    expect((await summary(owner)).find((p) => p.key === `u:${U.minh}`)).toBeUndefined();
+  });
+
+  it('without bank details: the amount but no QR; nothing owed: amount 0', async () => {
+    await seedOwnerOwes();
+    const owner = await headersFor(OWNER, 'Nhan');
+    await summary(owner);
+    const info = await json<{ amount: number; bankState: string; payload: string | null }>(call(`/api/me/people/u%3A${U.minh}/pay`, { headers: owner }));
+    expect(info).toMatchObject({ amount: 200, bankState: 'none', payload: null });
+
+    await seedLan();
+    const lan = await json<{ amount: number; payload: string | null }>(call('/api/me/people/p%3Ag-lan/pay', { headers: owner }));
+    expect(lan).toMatchObject({ amount: 0, payload: null });
+    expect((await call('/api/me/people/p%3Anobody/pay', { headers: owner })).status).toBe(404);
+    expect((await call(`/api/me/people/u%3A${U.minh}/pay`)).status).toBe(401);
+  });
+});
