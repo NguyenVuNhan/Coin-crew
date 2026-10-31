@@ -5,6 +5,7 @@ import {
   findSimilarNames,
   formatVnd,
   type PersonKey,
+  type PersonSummary,
   type PersonWaitingSettlement,
 } from '@fsl/core';
 import { useT } from '../i18n';
