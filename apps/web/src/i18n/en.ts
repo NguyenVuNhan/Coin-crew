@@ -499,6 +499,7 @@ export const en = {
 
   'activity.title': 'Activity',
   'activity.empty': 'Nothing has happened yet.',
+  'activity.loadMore': 'Load more',
   'activity.someone': 'Someone',
   'activity.line': '{actor} {action}',
   'activity.today': 'Today',

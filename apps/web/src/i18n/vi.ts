@@ -499,6 +499,7 @@ export const vi: Record<MessageKey, string> = {
 
   'activity.title': 'Hoạt động', // REVIEW
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
+  'activity.loadMore': 'Xem thêm', // REVIEW
   'activity.someone': 'Ai đó', // REVIEW
   'activity.line': '{actor} {action}', // REVIEW
   'activity.today': 'Hôm nay', // REVIEW
