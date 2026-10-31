@@ -5,6 +5,7 @@ import { formatVnd, type PayInfo, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
+import { useTrip } from '../lib/tripBase';
 import { canManageBankOf } from '../lib/rowActions';
 import { usePayInfo } from '../api/payInfo';
 import { groupLink, remind } from '../lib/remind';
@@ -38,7 +39,8 @@ function statusCardFor(recorded: Recorded | null, view: TripView, payInfo: PayIn
 }
 
 export function PayScreen() {
-  const { tripId = '', toId = '' } = useParams<{ tripId: string; toId: string }>();
+  const { tripId, href } = useTrip();
+  const { toId = '' } = useParams<{ toId: string }>();
   const t = useT();
   const queryClient = useQueryClient();
 
@@ -159,7 +161,7 @@ export function PayScreen() {
 
   if (viewError || payError) {
     return withStatus(
-      <Screen title="" back={tripId ? `/t/${tripId}` : undefined}>
+      <Screen title="" back={tripId ? href() : undefined}>
         <InlineError
           error={viewError || payError}
           onRetry={() => {
@@ -173,7 +175,7 @@ export function PayScreen() {
 
   if (isViewLoading || (isPayLoading && !payInfo) || !payInfo || !view) {
     return withStatus(
-      <Screen title="" back={tripId ? `/t/${tripId}` : undefined}>
+      <Screen title="" back={tripId ? href() : undefined}>
         <div className="fsl-pay__loading flex flex-col gap-4 py-2">
           <Skeleton height={80} radius="lg" />
           <Skeleton
@@ -218,7 +220,7 @@ export function PayScreen() {
   if (card !== null && !restOpen) {
     footer = (
       <>
-        <Button href={`/t/${tripId}`} variant="primary" block>
+        <Button href={href()} variant="primary" block>
           {t('details.backToTrip')}
         </Button>
         {card.kind === 'sent' && (
@@ -275,7 +277,7 @@ export function PayScreen() {
     content = (
       <div className="fsl-pay__empty flex flex-col items-center gap-4 py-6 text-center">
         <p className="fsl-pay__empty-text m-0 text-base text-muted-foreground">{t('pay.nothingOwed', { name })}</p>
-        <Button href={`/t/${tripId}`} variant="secondary">
+        <Button href={href()} variant="secondary">
           {t('common.back')}
         </Button>
       </div>
@@ -297,7 +299,7 @@ export function PayScreen() {
                 {t('pay.remindThem', { name })}
               </Button>
               {payInfo.bankState === 'none' && view && canManageBankOf(view, payInfo.to.id) && (
-                <Button href={`/t/${tripId}/people/${payInfo.to.id}/bank`} variant="secondary" block>
+                <Button href={href(`/people/${payInfo.to.id}/bank`)} variant="secondary" block>
                   {t('transfers.addFor', { name })}
                 </Button>
               )}
@@ -388,7 +390,7 @@ export function PayScreen() {
   return withStatus(
     <Screen
       title={t('pay.title', { name })}
-      back={`/t/${tripId}`}
+      back={href()}
       wide
       bottomBar={wide ? undefined : (footer ?? undefined)}
     >

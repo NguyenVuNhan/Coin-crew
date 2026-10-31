@@ -3,11 +3,13 @@ import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { Icon, type IconName } from './icons';
 
 export function MyBankRow({ view }: { view: TripView }): JSX.Element | null {
   const t = useT();
   const headingId = useId();
+  const { href } = useTrip(view.trip.id);
 
   const me = view.people.find((p) => p.id === view.me.participantId);
   if (view.me.participantId === null || !me || view.trip.archived) {
@@ -72,7 +74,7 @@ export function MyBankRow({ view }: { view: TripView }): JSX.Element | null {
         </div>
         {linkText && (
           <Link
-            to={`/t/${view.trip.id}/bank`}
+            to={href('/bank')}
             className="fsl-my-bank__action inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-3 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span>{linkText}</span>

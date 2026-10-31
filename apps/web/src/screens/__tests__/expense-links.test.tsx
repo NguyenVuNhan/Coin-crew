@@ -8,11 +8,10 @@ import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { setLang } from '../../i18n';
 import { guestChiView, picker, tripView } from '../../test/fixtures';
-import { Join } from '../Join';
 import { WhoAreYou, safeTripPath } from '../WhoAreYou';
 import { TripRoute } from '../TripRoute';
 import { expenseLink, groupLink } from '../../lib/remind';
-import { linkTokens } from '../../lib/linkTokens';
+
 import { shareSportBill } from '../../lib/qr';
 
 vi.mock('../../lib/qr', async (importOriginal) => {
@@ -97,13 +96,6 @@ const viewWithSportExpense: TripView = {
 };
 
 describe('Expense links', () => {
-  it('an expense link stores the token and opens the expense', async () => {
-    mockApi({ 'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'x', access: 'group' } });
-    renderAt(<Join />, { route: '/j/gtok-1/e/e-2', path: '/j/:token/e/:expenseId' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-2'));
-    expect(linkTokens.get('t-1')).toBe('gtok-1');
-  });
-
   it('a guest who has not picked is sent to who with next', async () => {
     const guestView: TripView = {
       ...guestChiView(),

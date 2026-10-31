@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
 import { Screen } from '../components/Screen';
@@ -27,10 +28,10 @@ import { AccountMenu } from '../components/AccountMenu';
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
+  const { tripId, href } = useTrip(view.trip.id);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
 
-  const tripId = view.trip.id;
   const archived = view.trip.archived;
   const hasExpenses = view.expenses.length > 0;
   // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
@@ -49,7 +50,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           block && 'fsl-button--block w-full',
           buttonVariants({ variant: variant === 'primary' ? 'default' : 'secondary' }),
         )}
-        to={`/t/${tripId}/expenses/new`}
+        to={href('/expenses/new')}
       >
         {t('trip.addExpense')}
       </Link>
@@ -102,7 +103,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       )}
       <Link
         className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-        to={`/t/${tripId}/settings`}
+        to={href('/settings')}
         aria-label={t('member.settings')}
         title={t('member.settings')}
       >

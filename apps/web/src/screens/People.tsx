@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import { formatVnd, type Gender, type PersonView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { useTripView } from '../api/hooks';
 import { ApiClientError } from '../api/client';
 import { useTripAction } from '../lib/useTripAction';
@@ -25,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export function People() {
-  const { tripId } = useParams<{ tripId: string }>();
+  const { tripId, href } = useTrip();
   const t = useT();
   const navigate = useNavigate();
   const leftHeadingId = useId();
@@ -50,7 +51,7 @@ export function People() {
 
   if (isLoading) {
     return (
-      <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
+      <Screen title={t('people.title')} back={href('/settings')}>
         <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
           <SkeletonList rows={4} />
         </div>
@@ -60,7 +61,7 @@ export function People() {
 
   if (loadError) {
     return (
-      <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
+      <Screen title={t('people.title')} back={href('/settings')}>
         <InlineError error={loadError} onRetry={refetch} />
       </Screen>
     );
@@ -108,7 +109,7 @@ export function People() {
       onRemove: () => {
         void remove(person);
       },
-      onBank: () => navigate(`/t/${tripId}/people/${person.id}/bank`),
+      onBank: () => navigate(href(`/people/${person.id}/bank`)),
       onMakeAdmin: () => {
         void makeAdmin(person);
       },
@@ -173,7 +174,7 @@ export function People() {
   const leftPeople = view.people.filter((p) => p.status === 'left');
 
   return (
-    <Screen title={t('people.title')} back={`/t/${tripId}/settings`}>
+    <Screen title={t('people.title')} back={href('/settings')}>
       <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
         <SwipeGroupProvider>
           <ul className={cn('fsl-people__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border [&_.fsl-action-row]:border-b-0 [&_.fsl-action-row__main]:pl-3 [&_.fsl-action-row__main]:gap-2 [&_.fsl-pill]:shrink-0')}>

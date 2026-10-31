@@ -6,6 +6,7 @@ import { nameOf } from '../lib/tripText';
 import { canManageBankOf } from '../lib/rowActions';
 import { groupLink, remind, remindText } from '../lib/remind';
 import { usePayInfo } from '../api/payInfo';
+import { useTrip } from '../lib/tripBase';
 import { useIsCoarsePointer } from '../lib/media';
 import { usePendingPayment, type PendingPayment } from '../lib/usePendingPayment';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
@@ -24,7 +25,7 @@ import { Snackbar } from './Snackbar';
 /** In-place detail for an open transfer row, showing QR code or bank status. */
 function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.Element | null {
   const t = useT();
-  const tripId = view.trip.id;
+  const { tripId, href } = useTrip(view.trip.id);
   const me = view.me.participantId as string;
   const owed = row.toId === me;
   const {
@@ -60,7 +61,7 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
   if (owed) {
     if (info.bankState !== 'ok') {
       return (
-        <Button href={'/t/' + tripId + '/bank'} variant="secondary" block>
+        <Button href={href('/bank')} variant="secondary" block>
           {t('transfers.addBank')}
         </Button>
       );
@@ -103,7 +104,7 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
             {t('pay.remindThem', { name: info.to.name })}
           </Button>
           {canManageBankOf(view, row.toId) && (
-            <Button href={`/t/${tripId}/people/${row.toId}/bank`} variant="secondary" block>
+            <Button href={href(`/people/${row.toId}/bank`)} variant="secondary" block>
               {t('transfers.addFor', { name: info.to.name })}
             </Button>
           )}

@@ -16,6 +16,7 @@ import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';
+import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '../api/client';
 import { readSplitInput, fromEntryValue } from '../lib/splitInput';
 import { recentGroups } from '../lib/recentGroups';
@@ -152,6 +153,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
   const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { href } = useTrip(view.trip.id);
 
   const isEdit = Boolean(expenseId);
   const me = view.me.participantId;
@@ -625,7 +627,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         } else {
           const res = await apiSend<{ expenseId: string }>(`/api/trips/${tripId}/expenses`, 'POST', body, tripId);
           await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-          navigate(`/t/${tripId}/expenses/${res.expenseId}`, { replace: true });
+          navigate(href(`/expenses/${res.expenseId}`), { replace: true });
         }
       } else {
         if (parsedAmount === null) return;
@@ -1500,7 +1502,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 }
 
 export function ExpenseForm() {
-  const { tripId = '', expenseId, incomeId } = useParams<{ tripId: string; expenseId?: string; incomeId?: string }>();
+  const { tripId } = useTrip();
+  const { expenseId, incomeId } = useParams<{ expenseId?: string; incomeId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
   const leave = useLeaveForm(tripId);

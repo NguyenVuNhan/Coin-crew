@@ -4,6 +4,7 @@ import type { ExpenseHistoryItem, ExpenseView, TripView } from '@fsl/core';
 import { can, formatVnd, isFundPaid } from '@fsl/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { nameOf } from '../lib/tripText';
 import { actorOf } from '../lib/rowActions';
 import { formatDay } from '../lib/time';
@@ -39,6 +40,7 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
   const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { href } = useTrip(view.trip.id);
 
   const rollbackMutation = useMutation({
     mutationFn: async (targetHistoryId: string) => {
@@ -52,7 +54,7 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['trip', view.trip.id] });
       if (data?.expenseId) {
-        navigate(`/t/${view.trip.id}/expenses/${data.expenseId}`, { replace: true });
+        navigate(href(`/expenses/${data.expenseId}`), { replace: true });
       }
     },
   });

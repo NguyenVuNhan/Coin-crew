@@ -1,8 +1,9 @@
 import { useState, useId } from 'react';
-import { useParams, useNavigate, Link } from 'react-router';
+import { useNavigate, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { can } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { actorOf } from '../lib/rowActions';
 import { useTripView } from '../api/hooks';
 import { apiSend, type ApiClientError } from '../api/client';
@@ -16,7 +17,7 @@ import { RatingsSwitch } from '../components/RatingsSwitch';
 import { cn } from '@/lib/utils';
 
 export function Settings() {
-  const { tripId } = useParams<{ tripId: string }>();
+  const { tripId, href } = useTrip();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const t = useT();
@@ -30,7 +31,7 @@ export function Settings() {
 
   if (isLoading) {
     return (
-      <Screen title={t('settings.title')} back={`/t/${tripId}`}>
+      <Screen title={t('settings.title')} back={href()}>
         <div className={cn('fsl-settings flex flex-col gap-4 py-4')}>
           <SkeletonList rows={4} />
         </div>
@@ -40,7 +41,7 @@ export function Settings() {
 
   if (error) {
     return (
-      <Screen title={t('settings.title')} back={`/t/${tripId}`}>
+      <Screen title={t('settings.title')} back={href()}>
         <InlineError error={error} onRetry={refetch} />
       </Screen>
     );
@@ -58,7 +59,7 @@ export function Settings() {
     try {
       await apiSend(`/api/trips/${tripId}/${archived ? 'unarchive' : 'archive'}`, 'POST', undefined, tripId);
       await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      navigate(`/t/${tripId}`);
+      navigate(href());
     } catch (err) {
       setArchiveError(err as ApiClientError);
       setArchiving(false);
@@ -82,7 +83,7 @@ export function Settings() {
   };
 
   return (
-    <Screen title={t('settings.title')} back={`/t/${tripId}`}>
+    <Screen title={t('settings.title')} back={href()}>
       <div className={cn('fsl-settings flex flex-col gap-4 py-4')}>
         {archiveError && (
           <InlineError error={archiveError} onRetry={handleArchive} />
@@ -94,7 +95,7 @@ export function Settings() {
         <ul className={cn('fsl-settings__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border')}>
           <li>
             <Link
-              to={`/t/${tripId}/people`}
+              to={href('/people')}
               className={cn(
                 'fsl-settings__row flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
               )}
@@ -105,7 +106,7 @@ export function Settings() {
           </li>
           <li>
             <Link
-              to={`/t/${tripId}/activity`}
+              to={href('/activity')}
               className={cn(
                 'fsl-settings__row flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
               )}

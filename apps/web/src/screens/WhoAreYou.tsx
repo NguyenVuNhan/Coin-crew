@@ -1,5 +1,5 @@
 import { useState, useEffect, useId, useRef } from 'react';
-import { Navigate, useParams, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView, Gender } from '@fsl/core';
 import { normalizeName, findSimilarNames } from '@fsl/core';
@@ -8,6 +8,7 @@ import { useMe } from '../api/hooks';
 import { apiFetch, apiSend, ApiClientError } from '../api/client';
 import { formatAgo } from '../lib/time';
 import { isZaloWebView } from '../lib/zaloEnv';
+import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Avatar } from '../components/Avatar';
@@ -25,8 +26,9 @@ import { cn } from '@/lib/utils';
 
 const REJOIN = 'rejoin';
 
-export function safeTripPath(next: string | null, tripId: string): string {
-  const fallback = `/t/${tripId}`;
+/** `next` when it is one of this trip's pages under `base` (`/t/<tripId>` or `/j/<token>`), else the trip itself. */
+export function safeTripPath(next: string | null, tripId: string, base = `/t/${tripId}`): string {
+  const fallback = base;
   if (!next) return fallback;
   if (next !== fallback && !next.startsWith(`${fallback}/`)) return fallback;
   if (next.includes('//') || next.includes('\\')) return fallback;
@@ -38,7 +40,7 @@ export function safeTripPath(next: string | null, tripId: string): string {
 }
 
 export function WhoAreYou() {
-  const { tripId } = useParams<{ tripId: string }>();
+  const { tripId, base } = useTrip();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,7 +49,7 @@ export function WhoAreYou() {
   const me = useMe().data;
   const signedIn = Boolean(me?.user);
 
-  const target = safeTripPath(searchParams.get('next'), tripId ?? '');
+  const target = safeTripPath(searchParams.get('next'), tripId, base);
 
   const guestNoteId = useId();
 
