@@ -180,7 +180,7 @@ describe('back-navigation', () => {
     await userEvent.click(addBtn);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-led/expenses/new'));
-    expect(await screen.findByRole('heading', { name: 'Add expense' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'New expense' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
 
