@@ -292,3 +292,85 @@ describe('DELETE /api/me/people/link/:participantId', () => {
     expect((await call('/api/me/people/link/x', { method: 'DELETE' })).status).toBe(401);
   });
 });
+
+describe("a person's own source link is not a merge", () => {
+  /** Badminton guest Minh only (owes 50000), and Cầu lông guest Minh (owes 7000). No ledger row yet. */
+  async function seedGroupMinh() {
+    sids.clear();
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-bad', 'Badminton', { preset: 'sport' });
+    await addPerson('t-bad', 'bad-o', 'Owen', OWNER, 0);
+    await addPerson('t-bad', 'bad-minh', 'Minh', null, 1);
+    await owes('t-bad', 'e-bad', 'bad-o', 'bad-minh', 50000);
+    await addTrip('t-cl', 'Cầu lông', { preset: 'sport' });
+    await addPerson('t-cl', 'cl-o', 'Owen', OWNER, 0);
+    await addPerson('t-cl', 'cl-minh', 'Minh', null, 1);
+    await owes('t-cl', 'e-cl', 'cl-o', 'cl-minh', 7000);
+  }
+
+  async function requestLink(key: string) {
+    const res = await call(`/api/me/people/${encodeURIComponent(key)}/request-link`, { method: 'POST', headers: await auth() });
+    expect(res.status).toBe(200);
+    const row = await env.DB.prepare("SELECT person_pid FROM person_links WHERE participant_id = 'bad-minh'").first<{ person_pid: string }>();
+    return row!.person_pid;
+  }
+
+  it('a group guest sent a request link has linked: []', async () => {
+    await seedGroupMinh();
+    const ledgerPid = await requestLink('p:bad-minh');
+    const minh = (await summary()).find((p) => p.key === `p:${ledgerPid}`);
+    expect(minh).toMatchObject({ total: 50000, linked: [] });
+  });
+
+  it('a genuine merge after a request link lists only the merged guest', async () => {
+    await seedGroupMinh();
+    const ledgerPid = await requestLink('p:bad-minh');
+    expect(await json(await link([`p:${ledgerPid}`, 'p:cl-minh']))).toEqual({ key: `p:${ledgerPid}` });
+    const rows = await summary();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ key: `p:${ledgerPid}`, total: 57000 });
+    expect(rows[0]!.linked).toEqual([{ participantId: 'cl-minh', tripName: 'Cầu lông', kind: 'group', name: 'Minh' }]);
+    expect((await unlink('cl-minh')).status).toBe(204);
+  });
+
+  it('unmerge of the link a request link made is 422 and changes nothing', async () => {
+    await seedGroupMinh();
+    const ledgerPid = await requestLink('p:bad-minh');
+    const res = await unlink('bad-minh');
+    expect(res.status).toBe(422);
+    expect(await json(res)).toMatchObject({ error: { code: 'VALIDATION', message: 'Not a merge' } });
+    const row = await env.DB.prepare("SELECT person_pid, kind FROM person_links WHERE participant_id = 'bad-minh'").first();
+    expect(row).toEqual({ person_pid: ledgerPid, kind: 'import' });
+  });
+
+  it('a settlement that imports a group guest makes an import link too', async () => {
+    await seedGroupMinh();
+    const settled = await call('/api/me/people/p%3Abad-minh/settle', {
+      method: 'POST', headers: await auth(), body: JSON.stringify({ paid: 60000, direction: 'toOwner' }),
+    });
+    expect(settled.status).toBeLessThan(300);
+    const row = await env.DB.prepare("SELECT kind FROM person_links WHERE participant_id = 'bad-minh'").first<{ kind: string }>();
+    expect(row?.kind).toBe('import');
+    expect((await unlink('bad-minh')).status).toBe(422);
+  });
+});
+
+describe('POST /api/me/people/link in someone else ledger', () => {
+  it("refuses a contact from someone else's ledger (403)", async () => {
+    sids.clear();
+    await seedUser(OWNER, 'Owen');
+    await seedUser(OTHER, 'Olga');
+    await addTrip('t-led', 'Owen', { preset: 'direct' });
+    await addPerson('t-led', 'led-o', 'Owen', OWNER, 0);
+    await addPerson('t-led', 'led-minh', 'Minh', null, 1);
+    // Olga's ledger, where Owen was imported: Olga's other contacts are not Owen's.
+    await addTrip('t-olga', 'Olga', { preset: 'direct', organiser: OTHER });
+    await addPerson('t-olga', 'olga-o', 'Olga', OTHER, 0);
+    await addPerson('t-olga', 'olga-owen', 'Owen', OWNER, 1);
+    await addPerson('t-olga', 'olga-minh', 'Minh', null, 2);
+    const res = await link(['p:led-minh', 'p:olga-minh']);
+    expect(res.status).toBe(403);
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM person_links').first<{ n: number }>();
+    expect(n!.n).toBe(0);
+  });
+});

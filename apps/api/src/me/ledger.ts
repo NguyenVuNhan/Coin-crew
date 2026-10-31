@@ -165,7 +165,7 @@ export async function importPerson(
     }),
   ];
   if (!source.userId) {
-    queries.push(db.insert(personLinks).values({ ownerUserId: userId, participantId: source.id, personPid: participantId, createdAt: now }));
+    queries.push(db.insert(personLinks).values({ ownerUserId: userId, participantId: source.id, personPid: participantId, kind: 'import', createdAt: now }));
   }
 
   try {

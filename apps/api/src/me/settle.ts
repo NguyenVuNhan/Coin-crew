@@ -170,7 +170,7 @@ export async function createSettlement(db: Db, args: CreateSettlementArgs): Prom
       }),
     );
     if (person.guestPid) {
-      queries.push(db.insert(personLinks).values({ ownerUserId: args.ownerUserId, participantId: person.guestPid, personPid, createdAt: now }));
+      queries.push(db.insert(personLinks).values({ ownerUserId: args.ownerUserId, participantId: person.guestPid, personPid, kind: 'import', createdAt: now }));
     }
     targets.set(LEDGER, { tripId: ledger.tripId, ownerPid: ledger.ownerPid, personPid });
   }

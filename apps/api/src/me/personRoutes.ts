@@ -190,6 +190,8 @@ async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkR
       targetUserId: target.userId,
       targetCreatedAt: target.createdAt,
       member: sql<number>`${participants.tripId} IN (${myTrips(user.id)})`,
+      // Someone else's ledger: its owner's other contacts are not the caller's to merge.
+      foreign: sql<number>`${participants.tripId} IN (SELECT d.id FROM trips d WHERE d.preset = 'direct' AND d.organiser_user_id <> ${user.id})`,
     })
     .from(participants)
     .leftJoin(personLinks, and(eq(personLinks.ownerUserId, user.id), eq(personLinks.participantId, participants.id)))
@@ -206,7 +208,7 @@ async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkR
   for (const pid of req.pids) {
     const row = byId.get(pid);
     // Unknown, or in a trip the caller is not active in: same answer.
-    if (!row || !row.member) throw new ApiError('FORBIDDEN', 403);
+    if (!row || !row.member || row.foreign) throw new ApiError('FORBIDDEN', 403);
     // An account is picked by its u: key, never by one of its participants.
     if (row.userId) throw new ApiError('VALIDATION', 422, 'Only guests can be linked');
     if (row.personPid && row.targetUserId) {
@@ -245,7 +247,7 @@ async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkR
     // Whoever was linked to a merged ledger guest now follows the survivor (links stay one hop).
     queries.push(
       db.update(personLinks)
-        .set({ personPid: survivor })
+        .set({ personPid: survivor, kind: 'merge' })
         .where(and(eq(personLinks.ownerUserId, user.id), inArray(personLinks.personPid, merged))),
     );
   }
@@ -255,8 +257,8 @@ async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkR
     if (byId.get(id)?.personPid === survivor) continue;
     queries.push(
       db.insert(personLinks)
-        .values({ ownerUserId: user.id, participantId: id, personPid: survivor, createdAt: now })
-        .onConflictDoUpdate({ target: [personLinks.ownerUserId, personLinks.participantId], set: { personPid: survivor } }),
+        .values({ ownerUserId: user.id, participantId: id, personPid: survivor, kind: 'merge', createdAt: now })
+        .onConflictDoUpdate({ target: [personLinks.ownerUserId, personLinks.participantId], set: { personPid: survivor, kind: 'merge' } }),
     );
   }
 
@@ -285,12 +287,14 @@ async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkR
 /** Split one participant off the person it was merged into. Nicknames moved by the merge stay. */
 async function unlinkGuest(db: Db, user: { id: string; name: string }, participantId: string, device: string | null): Promise<void> {
   const row = await db
-    .select({ personPid: personLinks.personPid, name: participants.name })
+    .select({ personPid: personLinks.personPid, kind: personLinks.kind, name: participants.name })
     .from(personLinks)
     .leftJoin(participants, eq(participants.id, personLinks.participantId))
     .where(and(eq(personLinks.ownerUserId, user.id), eq(personLinks.participantId, participantId)))
     .get();
   if (!row) throw new ApiError('NOT_FOUND', 404);
+  // The link written when the person's ledger row was made from this guest is the person itself.
+  if (row.kind !== 'merge') throw new ApiError('VALIDATION', 422, 'Not a merge');
   const ledger = await ensurePersonalLedger(db, user);
   await commitTripWrite(
     db,
@@ -350,7 +354,7 @@ export function personRoutes(): Hono<AppBindings> {
     return c.json({ key });
   });
 
-  // "Tách ra": undo one link the caller made.
+  // "Tách ra": undo one merge the caller made (never a person's own source link).
   app.delete('/me/people/link/:participantId', requireUser, async (c) => {
     const user = (await getSessionUser(c))!;
     await unlinkGuest(getDb(c.env), user, c.req.param('participantId'), c.get('deviceHash') ?? null);

@@ -278,6 +278,9 @@ export const personLinks = sqliteTable(
     participantId: text('participant_id').notNull(),
     // A personal-ledger participant id.
     personPid: text('person_pid').notNull(),
+    // 'import': the person's own source, written when their ledger row was made from them.
+    // 'merge': made by the owner ("Gộp với…"); only these can be undone.
+    kind: text('kind', { enum: ['import', 'merge'] }).notNull().default('merge'),
     createdAt: text('created_at').notNull(),
   },
   (t) => [primaryKey({ columns: [t.ownerUserId, t.participantId] })],

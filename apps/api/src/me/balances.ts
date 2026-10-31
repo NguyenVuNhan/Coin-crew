@@ -92,7 +92,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
       FROM participants p LEFT JOIN users u ON u.id = p.user_id
       WHERE p.trip_id IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active')
     `),
-    db.select({ participantId: personLinks.participantId, personPid: personLinks.personPid }).from(personLinks).where(eq(personLinks.ownerUserId, userId)),
+    db.select({ participantId: personLinks.participantId, personPid: personLinks.personPid, kind: personLinks.kind }).from(personLinks).where(eq(personLinks.ownerUserId, userId)),
     db.select({ personKey: nicknames.personKey, nickname: nicknames.nickname }).from(nicknames).where(eq(nicknames.ownerUserId, userId)),
   ]);
 
@@ -205,9 +205,11 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
 
   const waitingOf = await waitingSettlements(db, userId, waitingParts);
 
-  // Everyone folded into a shown person by a link, from the link rows already loaded.
+  // Everyone the owner merged into a shown person, from the link rows already loaded. A person's
+  // own source (the guest their ledger row was made from) is not a merge and is left out.
   const tripOf = new Map(mine.map((r) => [r.trip.id, r.trip]));
   for (const l of links) {
+    if (l.kind !== 'merge') continue;
     const target = byPid.get(l.personPid);
     const entry = byPid.get(l.participantId);
     const trip = entry ? tripOf.get(entry.trip_id) : undefined;

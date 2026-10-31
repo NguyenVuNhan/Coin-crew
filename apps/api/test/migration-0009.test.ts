@@ -30,7 +30,8 @@ async function columns(table: string) {
 describe('migration 0009', () => {
   it('creates person_links, nicknames, participant_merges and participant_merge_rows', async () => {
     const expected: Record<string, string[]> = {
-      person_links: ['owner_user_id', 'participant_id', 'person_pid', 'created_at'],
+      // kind: added by 0011.
+      person_links: ['owner_user_id', 'participant_id', 'person_pid', 'created_at', 'kind'],
       nicknames: ['owner_user_id', 'person_key', 'nickname', 'updated_at'],
       participant_merges: ['id', 'trip_id', 'from_id', 'into_id', 'actor_user_id', 'created_at'],
       participant_merge_rows: ['merge_id', 'table_name', 'row_key', 'before_json'],
