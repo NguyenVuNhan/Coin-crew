@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
 import { Home } from './screens/Home';
+import { PersonScreen } from './screens/PersonScreen';
 import { CreateTrip } from './screens/CreateTrip';
 import { Privacy } from './screens/Privacy';
 import { Join } from './screens/Join';
@@ -24,6 +25,7 @@ export function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/trips" element={<Home />} />
       <Route path="/trips/new" element={<CreateTrip />} />
+      <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
       <Route path="/j/:token" element={<Join />} />

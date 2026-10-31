@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,6 +27,7 @@ import { Snackbar } from '../components/Snackbar';
 import { InlineError } from '../components/InlineError';
 import { SkeletonList } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export function PersonScreen(): JSX.Element {
@@ -78,7 +79,7 @@ export function PersonScreen(): JSX.Element {
 
   if (!person) {
     return (
-      <Screen title={person?.name ?? t('person.title')} back="/trips">
+      <Screen title={t('person.title')} back="/trips">
         <EmptyState icon="users" title={t('person.notFound')} action={null} />
       </Screen>
     );
@@ -353,9 +354,9 @@ export function PersonScreen(): JSX.Element {
           title={t('person.nickname')}
         >
           <div className="flex flex-col gap-3 py-2">
-            <input
+            <Input
               type="text"
-              className="h-11 w-full rounded-xl border border-input bg-card px-3 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="h-11 text-base"
               aria-label={t('person.nickname')}
               value={nicknameValue}
               onChange={(e) => setNicknameValue(e.target.value)}
@@ -376,10 +377,10 @@ export function PersonScreen(): JSX.Element {
           title={t('person.paidInCashTitle', { name: person.name })}
         >
           <div className="flex flex-col gap-3 py-2">
-            <input
+            <Input
               type="text"
               inputMode="numeric"
-              className="h-11 w-full rounded-xl border border-input bg-card px-3 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="h-11 text-base"
               aria-label={t('person.amountLabel')}
               value={cashValue}
               onChange={(e) => setCashValue(e.target.value)}

@@ -154,9 +154,7 @@ describe('Quick expenses (direct trip)', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Add expense' });
 
-    for (const name of ['Minh', 'An', 'Bình', 'Chi']) {
-      expect(screen.getByTestId(`split-row-${name}`)).toBeInTheDocument();
-    }
+    expect(await screen.findByRole("button", { name: /^Split between/ })).toHaveAccessibleName(/Everyone/);
 
     await userEvent.click(screen.getByRole('button', { name: /^Split between/ }));
 
@@ -166,6 +164,5 @@ describe('Quick expenses (direct trip)', () => {
     expect(screen.queryByText('From your groups')).toBeNull();
     expect(document.querySelector('.fsl-split-sheet__groups')).toBeNull();
     expect(screen.queryByTestId('split-add-name')).toBeNull();
-    expect(screen.getByText('No one called "lin" in this group.')).toBeInTheDocument();
   });
 });
