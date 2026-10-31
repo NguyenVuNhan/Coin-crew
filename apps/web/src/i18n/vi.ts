@@ -424,6 +424,20 @@ export const vi: Record<MessageKey, string> = {
   'approvals.disable': 'Vô hiệu hóa', // REVIEW
   'approvals.keep': 'Giữ lại', // REVIEW
   'approvals.membership': '{name} muốn trở thành thành viên', // REVIEW
+  'approvals.proposal': '{by} nói "{guest}" là {into}', // REVIEW
+  'proposal.waitingFor': 'Đang chờ {who}', // REVIEW
+  'proposal.theAdmin': 'quản trị {group}', // REVIEW
+  'proposal.and': '{a} và {b}', // REVIEW
+  'proposal.cancel': 'Huỷ yêu cầu', // REVIEW
+  'proposal.cancelled': 'Đã huỷ yêu cầu', // REVIEW
+  'proposal.declined': 'Yêu cầu gộp {guest} đã bị từ chối', // REVIEW
+  'proposal.isThisYou': '{by} nói đây là bạn', // REVIEW
+  'proposal.item': '"{guest}" trong {group}', // REVIEW
+  'proposal.accept': 'Đồng ý', // REVIEW
+  'proposal.decline': 'Từ chối', // REVIEW
+  'proposal.acceptAll': 'Đồng ý tất cả', // REVIEW
+  'proposal.accepted': 'Đã đồng ý', // REVIEW
+  'proposal.alreadySaid': '{by} đã nói đây là bạn', // REVIEW
   'approvals.approveNameFirst': 'Duyệt {name} trước', // REVIEW
 
   'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
