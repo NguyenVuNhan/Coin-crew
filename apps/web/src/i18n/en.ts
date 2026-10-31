@@ -13,6 +13,9 @@ export const en = {
   'error.linkDead': 'This link no longer works. Ask the organiser for a new one.', // SPEC
   'error.rateLimited': 'Too many items are waiting for approval. Ask a member to approve them first.',
 
+  'noAccess.title': "You don't have access to this group",
+  'noAccess.body': 'Sign in if you are a member, or open the invite link the group shared with you.',
+
   'lang.vi': 'Tiếng Việt',
   'lang.en': 'English',
   'lang.switchTo': 'Switch to {lang}',
