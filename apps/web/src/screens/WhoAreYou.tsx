@@ -1,11 +1,11 @@
 import { useState, useEffect, useId, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView, Gender } from '@fsl/core';
 import { normalizeName, findSimilarNames } from '@fsl/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
-import { apiFetch, apiSend } from '../api/client';
+import { apiFetch, apiSend, ApiClientError } from '../api/client';
 import { formatAgo } from '../lib/time';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { Screen } from '../components/Screen';
@@ -15,6 +15,7 @@ import { Pill } from '../components/Pill';
 import { Button } from '../components/Button';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
+import { NoAccess } from '../components/NoAccess';
 import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
@@ -214,9 +215,19 @@ export function WhoAreYou() {
   if (error) {
     return (
       <Screen title={t('who.title')} right={<LanguageButton />}>
-        <InlineError error={error} onRetry={() => refetch()} />
+        {error instanceof ApiClientError && error.code === 'FORBIDDEN' ? (
+          <NoAccess returnTo={target} />
+        ) : (
+          <InlineError error={error} onRetry={() => refetch()} />
+        )}
       </Screen>
     );
+  }
+
+  // A signed-in member is already someone in this group; picking a name is only for guests (the API refuses it).
+  const myRow = picker?.people.find((p) => p.id === picker.myPick);
+  if (signedIn && account === null && myRow?.isMember) {
+    return <Navigate to={target} replace />;
   }
 
   const people = picker?.people ?? [];
