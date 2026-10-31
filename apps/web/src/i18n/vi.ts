@@ -116,6 +116,17 @@ export const vi: Record<MessageKey, string> = {
   'quick.fromGroups': 'Từ các nhóm của bạn', // REVIEW
   'quick.addName': 'Thêm “{name}” là người mới', // REVIEW
   'quick.addFailed': 'Không thêm được. Thử lại.', // REVIEW
+  'request.title': 'Yêu cầu thanh toán', // REVIEW
+  'request.askedYou': '{owner} gửi yêu cầu', // REVIEW
+  'request.youOwe': 'Bạn nợ {owner}', // REVIEW
+  'request.ownerOwes': '{owner} nợ bạn', // REVIEW
+  'request.settled': 'Bạn đã hết nợ với {owner}', // REVIEW
+  'request.noBank': '{owner} chưa thêm tài khoản ngân hàng — hãy trả trực tiếp.', // REVIEW
+  'request.paid': 'Tôi đã trả', // REVIEW
+  'request.cashHint': 'Trả tiền mặt? Báo {owner} để họ đánh dấu.', // REVIEW
+  'request.waiting': 'Đang chờ {owner} xác nhận', // REVIEW
+  'request.quickExpenses': 'Khoản chi với {owner}', // REVIEW
+  'request.notFound': 'Liên kết này không còn hiệu lực. Hãy xin liên kết mới.', // REVIEW
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
   'trip.tabs': 'Các tab', // REVIEW
