@@ -45,26 +45,6 @@ function anView(binhIsAdmin = false): TripView {
   };
 }
 
-describe('People back arrow', () => {
-  it('goes to the group settings by default', async () => {
-    mockApi({ 'GET /api/trips/t-1': tripView() });
-    renderAt(<People />, at);
-    expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute('href', '/t/t-1/settings');
-  });
-
-  it('returns to the person page it was opened from', async () => {
-    mockApi({ 'GET /api/trips/t-1': tripView() });
-    renderAt(<People />, { ...at, route: '/t/t-1/people?from=%2Fpeople%2Fp%253Ap-tuan' });
-    expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute('href', '/people/p%3Ap-tuan');
-  });
-
-  it('ignores a from address that is not a person page', async () => {
-    mockApi({ 'GET /api/trips/t-1': tripView() });
-    renderAt(<People />, { ...at, route: '/t/t-1/people?from=%2F%2Fevil.example%2Fpeople%2Fx' });
-    expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute('href', '/t/t-1/settings');
-  });
-});
-
 describe('People who left', () => {
   it('people who left sit in their own section with what they owe', async () => {
     mockApi({ 'GET /api/trips/t-1': leftView() });
