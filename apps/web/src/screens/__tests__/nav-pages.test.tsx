@@ -100,7 +100,6 @@ describe('app navigation on pages', () => {
     const navHome = within(navBar).getByTestId('nav-home');
     expect(navHome).toHaveAttribute('aria-current', 'page');
 
-    const navAdd = within(navBar).getByTestId('nav-add');
-    expect(navAdd).toHaveAttribute('href', '/t/t-ledger/expenses/new');
+    await waitFor(() => expect(within(screen.getByTestId('app-nav-bar')).getByTestId('nav-add')).toHaveAttribute('href', '/t/t-ledger/expenses/new'));
   });
 });

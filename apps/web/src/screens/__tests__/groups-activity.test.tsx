@@ -48,12 +48,12 @@ describe('groups and activity routing', () => {
 
     const { unmount } = renderApp('/trips?mergeReview=req-1');
     expect(screen.getByTestId('location-path')).toHaveTextContent('/groups');
-    expect(screen.getByTestId('location-search')).toContain('mergeReview=req-1');
+    expect(screen.getByTestId('location-search')).toHaveTextContent('mergeReview=req-1');
     unmount();
 
     renderApp('/trips?tab=groups');
     expect(screen.getByTestId('location-path')).toHaveTextContent('/groups');
-    expect(screen.getByTestId('location-search')).toContain('tab=groups');
+    expect(screen.getByTestId('location-search')).toHaveTextContent('tab=groups');
   });
 
   it('groups screen lists groups and has New group, with Nhóm current', async () => {

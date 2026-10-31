@@ -68,7 +68,7 @@ describe('PersonScreen', () => {
     expect(await screen.findByTestId('person-item-t-led')).toBeInTheDocument();
     expect(screen.getByTestId('person-item-t-bad')).toBeInTheDocument();
     expect(screen.getByTestId('person-item-t-cafe')).toBeInTheDocument();
-    expect(screen.getByText('Quick expenses')).toBeInTheDocument();
+    expect(within(screen.getByTestId('person-item-t-led')).getByText('Quick expenses')).toBeInTheDocument();
     expect(screen.getByText('Badminton')).toBeInTheDocument();
   });
 

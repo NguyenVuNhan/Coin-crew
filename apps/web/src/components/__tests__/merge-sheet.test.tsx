@@ -82,7 +82,7 @@ describe('MergeSheet', () => {
     const link = screen.getByRole('link', { name: 'Sign in with Zalo to confirm' });
     expect(link).toHaveAttribute(
       'href',
-      '/api/auth/zalo/start?returnTo=%2Ftrips%3FmergeReview%3Dmr-1',
+      '/api/auth/zalo/start?returnTo=%2Fgroups%3FmergeReview%3Dmr-1',
     );
 
     expect(screen.getByText(/This device switches to Noah Nguyen/)).toBeInTheDocument();

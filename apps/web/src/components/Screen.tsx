@@ -124,14 +124,10 @@ export function Screen({
 
   return (
     <div className={rootClass}>
-      {nav ? (
-        <>
-          <AppNav section={nav.section} addHref={nav.addHref} />
-          <div className="flex-1 flex flex-col min-w-0">{content}</div>
-        </>
-      ) : (
-        content
-      )}
+      {/* The same tree with or without the nav: it often appears once sign-in is known, and a different wrapper
+          would remount the whole page (scroll, open sheets and tab state lost). */}
+      {nav && <AppNav section={nav.section} addHref={nav.addHref} />}
+      <div className="fsl-screen__body flex-1 flex flex-col min-w-0">{content}</div>
     </div>
   );
 }
