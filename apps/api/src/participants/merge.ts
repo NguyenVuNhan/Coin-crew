@@ -58,7 +58,8 @@ export async function mergeParticipants(
   tripId: string,
   fromId: string,
   intoId: string,
-  actor: ResolvedActor,
+  /** Only these are read: the user records the merge, and all three go in the activity log. */
+  actor: Pick<ResolvedActor, 'userId' | 'participantId' | 'deviceHash'>,
 ): Promise<void> {
   if (fromId === intoId) {
     throw new ApiError('VALIDATION', 422, 'Cannot merge person into themselves');

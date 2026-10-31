@@ -556,6 +556,9 @@ export const en = {
   'activity.action.membership_requested': 'asked to become a member',
   'activity.action.membership_approved': 'approved a new member',
   'activity.action.membership_rejected': 'declined a new member',
+  'activity.action.merge_proposed': 'asked to merge two names',
+  'activity.action.merge_proposal_accepted': 'accepted a merge request',
+  'activity.action.merge_proposal_declined': 'declined a merge request',
 
   'pay.title': 'Pay {name}',
   'pay.toLine': 'to {holder} · {bank}',

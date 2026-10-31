@@ -556,6 +556,9 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.membership_requested': 'đã yêu cầu trở thành thành viên', // REVIEW
   'activity.action.membership_approved': 'đã duyệt thành viên mới', // REVIEW
   'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW
+  'activity.action.merge_proposed': 'đã đề nghị gộp hai tên', // REVIEW
+  'activity.action.merge_proposal_accepted': 'đã đồng ý yêu cầu gộp tên', // REVIEW
+  'activity.action.merge_proposal_declined': 'đã từ chối yêu cầu gộp tên', // REVIEW
 
   'pay.title': 'Thanh toán cho {name}', // REVIEW
   'pay.toLine': 'đến {holder} · {bank}', // REVIEW

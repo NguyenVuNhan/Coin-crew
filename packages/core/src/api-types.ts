@@ -17,6 +17,7 @@ export type ApiErrorCode =
   | 'TRY_AGAIN'
   | 'ALREADY_WAITING'
   | 'ALREADY_CLAIMED'
+  | 'BOTH_SIGNED_IN'
   | 'CONFLICT'
   | 'INTERNAL';
 
@@ -64,7 +65,10 @@ export type ActivityAction =
   | 'income_disabled'
   | 'income_enabled'
   | 'income_rolled_back'
-  | 'ratings_changed';
+  | 'ratings_changed'
+  | 'merge_proposed'
+  | 'merge_proposal_accepted'
+  | 'merge_proposal_declined';
 
 import type { Gender, SplitEntry, SplitMode, SportParticipantEntry, SportRule } from './split';
 import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
