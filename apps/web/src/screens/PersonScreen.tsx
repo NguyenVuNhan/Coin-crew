@@ -15,11 +15,13 @@ import {
   linkPeople,
   newIdempotencyKey,
   rejectSettlement,
+  renameInGroup,
   requestLink,
   setNickname,
   settle,
   unlinkPerson,
   useLedger,
+  useMergeOptions,
   usePeopleSummary,
   usePersonPay,
 } from '../api/people';
@@ -28,6 +30,8 @@ import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Amount } from '../components/Amount';
 import { Avatar } from '../components/Avatar';
+import { Icon } from '../components/icons';
+import { Label } from '@/components/ui/label';
 import { Sheet } from '../components/Sheet';
 import { Snackbar } from '../components/Snackbar';
 import { PayQr } from '../components/PayQr';
@@ -55,8 +59,13 @@ export function PersonScreen(): JSX.Element {
   const { people, isLoading, error, refetch } = usePeopleSummary();
   const person = people?.find((p) => p.key === key);
 
-  const [nicknameSheetOpen, setNicknameSheetOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [nicknameValue, setNicknameValue] = useState('');
+  const [groupNames, setGroupNames] = useState<Record<string, string>>({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<unknown>(null);
+
+  const mergeOptions = useMergeOptions(key, editSheetOpen);
 
   const [cashSheetOpen, setCashSheetOpen] = useState(false);
   const [cashValue, setCashValue] = useState('');
@@ -115,14 +124,41 @@ export function PersonScreen(): JSX.Element {
     );
   }
 
-  const handleOpenNickname = () => {
+  const handleOpenEdit = () => {
     setNicknameValue(person.nickname ?? '');
-    setNicknameSheetOpen(true);
+    setGroupNames({});
+    setEditError(null);
+    setEditSheetOpen(true);
   };
 
-  const handleSaveNickname = async () => {
-    await setNickname(person.key, nicknameValue.trim() || null, qc);
-    setNicknameSheetOpen(false);
+  const handleSaveEdit = async () => {
+    if (editSaving) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const newNickname = nicknameValue.trim() || null;
+      const oldNickname = person.nickname ?? null;
+      if (newNickname !== oldNickname) {
+        await setNickname(person.key, newNickname, qc);
+      }
+      if (person.userId === null && mergeOptions.data?.person?.groups) {
+        for (const g of mergeOptions.data.person.groups) {
+          if (g.canRename) {
+            const currentVal = groupNames[g.tripId] ?? g.name;
+            const trimmed = currentVal.trim();
+            if (trimmed !== '' && trimmed !== g.name) {
+              await renameInGroup(g.tripId, g.participantId, trimmed, qc);
+            }
+          }
+        }
+      }
+      setEditSheetOpen(false);
+      setSnack(t('person.saved'));
+    } catch (err) {
+      setEditError(err);
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handleOpenCash = () => {
@@ -263,16 +299,29 @@ export function PersonScreen(): JSX.Element {
       <div className="fsl-person flex flex-col gap-6 py-2">
         {/* Header block */}
         <div className="fsl-person__header flex flex-col items-center gap-2 text-center">
-          <Avatar name={person.name} />
+          <Avatar size="xl" name={person.name} />
           <div className="flex flex-col items-center gap-0.5">
-            <h2 className="text-xl font-bold text-foreground m-0">{person.name}</h2>
+            <div className="flex items-center justify-center gap-1">
+              <h2 className="text-xl font-semibold text-foreground m-0">{person.name}</h2>
+              <Button
+                variant="ghost"
+                aria-label={t('person.edit')}
+                data-testid="person-edit"
+                className="min-h-11 min-w-11 p-0"
+                onClick={handleOpenEdit}
+              >
+                <Icon name="edit" />
+              </Button>
+            </div>
             {person.nickname && (
               <span className="text-sm text-muted-foreground">"{person.nickname}"</span>
             )}
+            {person.userId === null && person.groupLabel && (
+              <span className="text-sm text-muted-foreground">
+                {t('person.guestIn', { group: person.groupLabel })}
+              </span>
+            )}
           </div>
-          <Button variant="ghost" onClick={handleOpenNickname}>
-            {t('person.editNickname')}
-          </Button>
         </div>
 
         {/* Total block */}
@@ -472,21 +521,6 @@ export function PersonScreen(): JSX.Element {
             </Button>
           )}
 
-          {person.userId === null &&
-            person.items.map((item, index) => (
-              <Button
-                key={`manage-${item.tripId}:${item.otherPid ?? index}`}
-                variant="ghost"
-                block
-                href={`/t/${item.tripId}/people?${new URLSearchParams({ from: `/people/${encodeURIComponent(person.key)}` })}`}
-              >
-                {t('person.manageIn', {
-                  group:
-                    item.kind === 'direct' ? t('person.quickExpenses') : item.tripName,
-                })}
-              </Button>
-            ))}
-
           {person.userId === null && (
             <Button
               variant="secondary"
@@ -499,11 +533,11 @@ export function PersonScreen(): JSX.Element {
           )}
         </div>
 
-        {/* Edit Nickname Sheet */}
+        {/* Edit Sheet */}
         <Sheet
-          open={nicknameSheetOpen}
-          onClose={() => setNicknameSheetOpen(false)}
-          title={t('person.nickname')}
+          open={editSheetOpen}
+          onClose={() => setEditSheetOpen(false)}
+          title={t('person.edit')}
         >
           <div className="flex flex-col gap-3 py-2">
             <Input
@@ -516,7 +550,52 @@ export function PersonScreen(): JSX.Element {
             <p className="text-sm text-muted-foreground m-0">
               {t('person.nicknameHelp')}
             </p>
-            <Button variant="primary" block onClick={handleSaveNickname}>
+
+            {person.userId === null &&
+              mergeOptions.data?.person?.groups.map((g) => {
+                const groupName =
+                  g.kind === 'direct' ? t('person.quickExpenses') : g.tripName;
+                if (g.canRename) {
+                  return (
+                    <div key={`${g.tripId}:${g.participantId}`} className="flex flex-col gap-1">
+                    <Label htmlFor={`person-name-${g.tripId}`} className="text-foreground">
+                      {t('person.nameIn', { group: groupName })}
+                    </Label>
+                    <Input
+                      id={`person-name-${g.tripId}`}
+                      type="text"
+                      className="h-11 text-base"
+                      aria-label={t('person.nameIn', { group: groupName })}
+                      data-testid={`person-name-${g.tripId}`}
+                      value={groupNames[g.tripId] ?? g.name}
+                      onChange={(e) =>
+                        setGroupNames((prev) => ({
+                          ...prev,
+                          [g.tripId]: e.target.value,
+                        }))
+                      }
+                    />
+                    </div>
+                  );
+                }
+                return (
+                  <p
+                    key={`${g.tripId}:${g.participantId}`}
+                    className="text-sm text-muted-foreground m-0"
+                  >
+                    {groupName}: {g.name}
+                  </p>
+                );
+              })}
+
+            {editError !== null && <InlineError error={editError} />}
+            <Button
+              variant="primary"
+              block
+              disabled={editSaving}
+              loading={editSaving}
+              onClick={handleSaveEdit}
+            >
               {t('person.save')}
             </Button>
           </div>

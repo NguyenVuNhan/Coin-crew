@@ -114,8 +114,10 @@ export const vi: Record<MessageKey, string> = {
   'person.confirm': 'Xác nhận', // REVIEW
   'person.nickname': 'Biệt danh', // REVIEW
   'person.nicknameHelp': 'Chỉ mình bạn thấy.', // REVIEW
-  'person.editNickname': 'Sửa biệt danh', // REVIEW
-  'person.manageIn': 'Đổi tên hoặc gộp trong {group}', // REVIEW
+  'person.edit': 'Sửa', // REVIEW
+  'person.guestIn': 'Khách trong {group}', // REVIEW
+  'person.nameIn': 'Tên trong {group}', // REVIEW
+  'person.saved': 'Đã lưu', // REVIEW
   'person.samePerson': 'Cùng một người?', // REVIEW
   'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
   'person.mergeWith': 'Gộp với…', // REVIEW
