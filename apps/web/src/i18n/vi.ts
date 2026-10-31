@@ -13,6 +13,9 @@ export const vi: Record<MessageKey, string> = {
   'error.linkDead': 'Liên kết này không còn hoạt động. Hãy xin trưởng nhóm liên kết mới.', // REVIEW
   'error.rateLimited': 'Quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.', // REVIEW
 
+  'noAccess.title': 'Bạn chưa có quyền vào nhóm này', // REVIEW
+  'noAccess.body': 'Đăng nhập nếu bạn là thành viên, hoặc mở liên kết mời mà nhóm đã gửi cho bạn.', // REVIEW
+
   'lang.vi': 'Tiếng Việt', // REVIEW
   'lang.en': 'English', // REVIEW
   'lang.switchTo': 'Chuyển sang {lang}', // REVIEW
@@ -355,6 +358,7 @@ export const vi: Record<MessageKey, string> = {
   'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}', // REVIEW
   'sport.editGender': 'Đổi giới tính', // REVIEW
   'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
+  'sport.shareCopied': 'Đã sao chép tin nhắn và link. Dán vào nhóm chat nhé.', // REVIEW
   'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
   'sport.tableColName': 'TÊN', // REVIEW
   'sport.tableColFemale': 'NỮ', // REVIEW

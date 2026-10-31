@@ -30,6 +30,23 @@ const baseSportView: TripView = {
 };
 
 describe('Sport ExpenseForm and ExpenseDetails bill sharing', () => {
+  it('a new sport bill starts with the equal split', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json(baseSportView)));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-sport/expenses/new']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('radio', { name: 'Equal' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByLabelText('Women pay less per slot')).not.toBeInTheDocument();
+  });
+
   it('calculates court + shuttlecocks + extra with VND discount and slot drawer, posts meta.sport, and navigates to ExpenseDetails', async () => {
     const posted: unknown[] = [];
     let currentView = baseSportView;
@@ -104,7 +121,8 @@ describe('Sport ExpenseForm and ExpenseDetails bill sharing', () => {
     await userEvent.type(screen.getByLabelText('Qty'), '3');
     await userEvent.type(screen.getByLabelText('Unit price'), '26.67k');
 
-    // Enter 15k female discount
+    // Switch from the default equal split and enter a 15k female discount
+    await userEvent.click(screen.getByRole('radio', { name: 'VND offset' }));
     await userEvent.type(screen.getByLabelText('Women pay less per slot'), '15k');
 
     // Open Quang's inline drawer and set guest slots (+1 female guest, +1 male guest)

@@ -14,6 +14,7 @@ import './styles/globals.css';
 import { App } from './App';
 import { detectLang, setLang } from './i18n';
 import { refetchOnWindowFocus } from './api/focus';
+import { ApiClientError } from './api/client';
 
 setLang(detectLang());
 refetchOnWindowFocus();
@@ -30,7 +31,9 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigato
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      // A 4xx (no access, not found…) answers the same the second time.
+      retry: (failures, error) =>
+        failures < 1 && !(error instanceof ApiClientError && error.status >= 400 && error.status < 500),
       refetchOnWindowFocus: true,
     },
   },

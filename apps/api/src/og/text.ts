@@ -13,6 +13,8 @@ export interface PageMeta {
   title: string;
   description: string;
   image: 'trip' | 'sport';
+  /** A picture made for this page (a path on the app origin), used instead of `image`. */
+  imagePath?: string;
   locale: 'vi_VN' | 'en_US';
 }
 

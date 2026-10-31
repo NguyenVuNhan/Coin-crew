@@ -9,6 +9,7 @@ import { LanguageButton } from '../components/LanguageButton';
 import { TripLayout } from '../components/TripLayout';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
+import { NoAccess } from '../components/NoAccess';
 import { Button } from '../components/Button';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
@@ -122,7 +123,11 @@ export function TripRoute() {
   if (error) {
     return (
       <Screen title="" right={<LanguageButton />}>
-        <InlineError error={error} onRetry={refetch} />
+        {error.code === 'FORBIDDEN' ? (
+          <NoAccess returnTo={location.pathname + location.search} />
+        ) : (
+          <InlineError error={error} onRetry={refetch} />
+        )}
       </Screen>
     );
   }

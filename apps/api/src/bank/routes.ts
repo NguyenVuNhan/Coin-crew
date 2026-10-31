@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { MyBankResponse, PayInfo } from '@fsl/core';
-import { buildVietQrPayload, can, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@fsl/core';
+import { buildVietQrPayload, can, equalBillShare, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@fsl/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';
@@ -618,10 +618,21 @@ export function bankRoutes(): Hono<AppBindings> {
     if (isBill) {
       if (bankState === 'ok' && approvedRow) {
         const billNote = refCode || toTransferNote(actor.trip.name, 25);
+        // The bill of one expense this person paid asks for the share when everyone owes the same.
+        const expenseId = c.req.query('expense');
+        const billExpense = expenseId
+          ? snapshot.expenses.find(
+              (e) =>
+                (e.id === expenseId || e.rootId === expenseId) &&
+                e.payerId === toId &&
+                (e.status === 'approved' || e.status === 'pending') &&
+                !isFundPaid(e),
+            )
+          : undefined;
         payload = buildVietQrPayload({
           bin: approvedRow.bin,
           accountNumber: approvedRow.accountNumber,
-          amount: 0,
+          amount: billExpense ? (equalBillShare(billExpense) ?? 0) : 0,
           note: billNote,
         });
       }
