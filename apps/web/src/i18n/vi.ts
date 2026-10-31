@@ -113,6 +113,9 @@ export const vi: Record<MessageKey, string> = {
   'person.samePerson': 'Cùng một người?', // REVIEW
   'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
   'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
+  'quick.fromGroups': 'Từ các nhóm của bạn', // REVIEW
+  'quick.addName': 'Thêm “{name}” là người mới', // REVIEW
+  'quick.addFailed': 'Không thêm được. Thử lại.', // REVIEW
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
   'trip.tabs': 'Các tab', // REVIEW

@@ -1503,9 +1503,10 @@ export function ExpenseForm() {
   const { tripId = '', expenseId, incomeId } = useParams<{ tripId: string; expenseId?: string; incomeId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
-  const leave = useLeaveForm(tripId);
   // Polls like the trip page, so someone removed elsewhere drops off the split before it is saved.
   const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
+  // Quick expenses live in a hidden trip: leaving goes back to Home, not to that trip's page.
+  const leave = useLeaveForm(tripId, view?.trip.preset === 'direct' ? '/trips' : undefined);
 
   const isEdit = Boolean(expenseId);
   const title = incomeId

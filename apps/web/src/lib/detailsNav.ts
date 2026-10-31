@@ -65,13 +65,13 @@ export function useBackToTrip(tripId: string): () => void {
  * from) and history does not grow. A form that was the first page of the visit (a shared or typed address) has nothing
  * of the app behind it: it is replaced by the trip page. The router gives only that first entry the key `default`.
  */
-export function useLeaveForm(tripId: string): () => void {
+export function useLeaveForm(tripId: string, fallback = `/t/${tripId}`): () => void {
   const navigate = useNavigate();
   const openedInApp = useLocation().key !== 'default';
   return useCallback(() => {
     if (openedInApp) navigate(-1);
-    else navigate(`/t/${tripId}`, { replace: true });
-  }, [navigate, openedInApp, tripId]);
+    else navigate(fallback, { replace: true });
+  }, [navigate, openedInApp, fallback]);
 }
 
 function scrollWindowTo(y: number): void {
