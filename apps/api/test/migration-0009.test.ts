@@ -81,4 +81,39 @@ describe('migration 0009', () => {
     await insertRequest('r4', 'p2', 'pending');
     await expect(insertRequest('r5', 'p1', 'pending')).rejects.toThrow();
   });
+
+  it('its cleanup keeps only the oldest pending claim per participant (ties broken by id)', async () => {
+    const migration = env.TEST_MIGRATIONS!.find((m) => m.name.startsWith('0009'))!;
+    const cleanup = migration.queries.find((q) => q.includes('UPDATE `membership_requests`'))!;
+    const index = migration.queries.find((q) => q.includes('CREATE UNIQUE INDEX `membership_requests_one_pending`'))!;
+    expect(cleanup).toBeDefined();
+    expect(index).toBeDefined();
+
+    // Back to the state before 0009: duplicates were possible.
+    await env.DB.prepare('DROP INDEX membership_requests_one_pending').run();
+    const insert = (id: string, participantId: string, status: string, createdAt: string) =>
+      env.DB.prepare(
+        'INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+        .bind(id, 't1', participantId, 'u1', status, createdAt)
+        .run();
+    await insert('r-c', 'p1', 'pending', '2026-10-02T00:00:00.000Z');
+    await insert('r-b', 'p1', 'pending', '2026-10-01T00:00:00.000Z');
+    await insert('r-a', 'p1', 'pending', '2026-10-01T00:00:00.000Z');
+    await insert('r-x', 'p1', 'approved', '2026-09-01T00:00:00.000Z');
+    await insert('r-p2', 'p2', 'pending', '2026-10-05T00:00:00.000Z');
+
+    await env.DB.prepare(cleanup).run();
+    await env.DB.prepare(index).run();
+
+    const { results } = await env.DB.prepare('SELECT id, status FROM membership_requests ORDER BY id').all<{ id: string; status: string }>();
+    expect(results).toEqual([
+      { id: 'r-a', status: 'pending' },
+      { id: 'r-b', status: 'rejected' },
+      { id: 'r-c', status: 'rejected' },
+      { id: 'r-p2', status: 'pending' },
+      { id: 'r-x', status: 'approved' },
+    ]);
+    await expect(insert('r-d', 'p1', 'pending', '2026-10-09T00:00:00.000Z')).rejects.toThrow();
+  });
 });
