@@ -119,12 +119,51 @@ interface ZaloProfileResponse {
   message?: string;
 }
 
+/**
+ * The user's Zalo id, name and avatar. Zalo withholds personal information from callers outside Vietnam (the prod
+ * Worker calls from a Cloudflare IP), so when the full profile is refused, ask for the id alone: sign-in only needs
+ * the id, and the name falls back to "Zalo".
+ */
 export async function fetchZaloProfile(
   accessToken: string,
-): Promise<{ sub: string; name: string; avatarUrl: string | null }> {
+): Promise<{ sub: string; name: string; avatarUrl: string | null; nameWithheld?: boolean }> {
+  let data: ZaloProfileResponse;
+  let nameWithheld = false;
+  try {
+    data = await requestZaloProfile(accessToken, 'id,name,picture');
+  } catch (err) {
+    if (!(err instanceof ZaloError)) throw err;
+    try {
+      data = await requestZaloProfile(accessToken, 'id');
+    } catch (idErr) {
+      if (!(idErr instanceof ZaloError)) throw idErr;
+      throw new ZaloError(`${err.message}; with the id alone: ${idErr.message.replace(/^Zalo profile error: /, '')}`);
+    }
+    nameWithheld = true;
+    console.warn(`Zalo profile without name and avatar: ${err.message}`);
+  }
+
+  // A JSON number would lose precision for ~19-digit ids; only accept strings.
+  if (typeof data.id !== 'string' || data.id === '') {
+    throw new ZaloError('Zalo profile response missing id');
+  }
+
+  const sub = data.id;
+  const rawName = typeof data.name === 'string' ? data.name.trim() : '';
+  const name = rawName.length > 0 ? rawName : 'Zalo';
+  const rawAvatarUrl = data.picture?.data?.url;
+  const avatarUrl =
+    typeof rawAvatarUrl === 'string' && rawAvatarUrl.trim().length > 0
+      ? rawAvatarUrl.trim()
+      : null;
+
+  return nameWithheld ? { sub, name, avatarUrl, nameWithheld } : { sub, name, avatarUrl };
+}
+
+async function requestZaloProfile(accessToken: string, fields: string): Promise<ZaloProfileResponse> {
   let res: Response;
   try {
-    res = await fetch('https://graph.zalo.me/v2.0/me?fields=id,name,picture', {
+    res = await fetch(`https://graph.zalo.me/v2.0/me?fields=${fields}`, {
       method: 'GET',
       headers: {
         access_token: accessToken,
@@ -162,19 +201,5 @@ export async function fetchZaloProfile(
     throw new ZaloError(`Zalo profile error: ${message}`);
   }
 
-  // A JSON number would lose precision for ~19-digit ids; only accept strings.
-  if (typeof data.id !== 'string' || data.id === '') {
-    throw new ZaloError('Zalo profile response missing id');
-  }
-
-  const sub = data.id;
-  const rawName = typeof data.name === 'string' ? data.name.trim() : '';
-  const name = rawName.length > 0 ? rawName : 'Zalo';
-  const rawAvatarUrl = data.picture?.data?.url;
-  const avatarUrl =
-    typeof rawAvatarUrl === 'string' && rawAvatarUrl.trim().length > 0
-      ? rawAvatarUrl.trim()
-      : null;
-
-  return { sub, name, avatarUrl };
+  return data;
 }

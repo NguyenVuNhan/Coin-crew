@@ -209,7 +209,7 @@ export function authRoutes(): Hono<AppBindings> {
       return failure('state does not match the cookie');
     }
 
-    let profile: { sub: string; name: string; avatarUrl: string | null };
+    let profile: Awaited<ReturnType<typeof fetchZaloProfile>>;
     try {
       const accessToken = await exchangeZaloCode(c.env, code, oauthVerifier);
       profile = await fetchZaloProfile(accessToken);

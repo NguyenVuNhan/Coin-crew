@@ -7,7 +7,8 @@ import { newId, nowIso } from '../lib/ids';
 export async function upsertIdentity(
   db: Db,
   provider: AuthProvider,
-  profile: { sub: string; name: string; avatarUrl: string | null; email?: string },
+  // nameWithheld: Zalo didn't give the name (see fetchZaloProfile), so `name` is a placeholder not to save over a real one.
+  profile: { sub: string; name: string; avatarUrl: string | null; email?: string; nameWithheld?: boolean },
 ): Promise<string> {
   const existing = await db
     .select()
@@ -20,10 +21,10 @@ export async function upsertIdentity(
     if (provider === 'google' && profile.email) {
       updates.email = profile.email;
     }
-    if (provider === 'zalo') {
+    if (provider === 'zalo' && !profile.nameWithheld) {
       updates.zaloName = profile.name;
     }
-    if (existing.customProfile === 0) {
+    if (existing.customProfile === 0 && !profile.nameWithheld) {
       updates.name = profile.name;
     }
     if ((existing.customProfile === 0 || !existing.avatarUrl) && profile.avatarUrl) {
