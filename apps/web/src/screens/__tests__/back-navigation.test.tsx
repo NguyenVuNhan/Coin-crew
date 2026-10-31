@@ -175,7 +175,8 @@ describe('back-navigation', () => {
     api();
     renderApp('/activity');
 
-    const addBtn = await screen.findByTestId('nav-add');
+    const bar = await screen.findByTestId('app-nav-bar');
+    const addBtn = within(bar).getByTestId('nav-add');
     await userEvent.click(addBtn);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-led/expenses/new'));
