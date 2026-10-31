@@ -98,7 +98,13 @@ export function Screen({
             {title}
           </h1>
 
-          <div className="fsl-screen__right inline-flex items-center justify-end min-w-11 shrink-0 gap-1">
+          {/* From lg the account menu lives in the side panel, so the header one would be a second avatar. */}
+          <div
+            className={cn(
+              'fsl-screen__right inline-flex items-center justify-end min-w-11 shrink-0 gap-1',
+              nav && 'lg:[&_.fsl-account-menu]:hidden',
+            )}
+          >
             {right}
           </div>
         </div>
