@@ -5,6 +5,8 @@ export class ApiError extends Error {
     public code: ApiErrorCode,
     public status: number,
     message?: string,
+    /** Extra fields sent next to `code` and `message` in the error body. */
+    public extra?: Record<string, unknown>,
   ) {
     super(message ?? code);
     this.name = 'ApiError';
@@ -13,7 +15,7 @@ export class ApiError extends Error {
 
 export function errorResponse(err: unknown): Response {
   if (err instanceof ApiError) {
-    return Response.json({ error: { code: err.code, message: err.message } }, { status: err.status });
+    return Response.json({ error: { ...err.extra, code: err.code, message: err.message } }, { status: err.status });
   }
 
   if (isDailyLimit(err)) {

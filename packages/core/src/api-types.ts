@@ -18,6 +18,7 @@ export type ApiErrorCode =
   | 'ALREADY_WAITING'
   | 'ALREADY_CLAIMED'
   | 'BOTH_SIGNED_IN'
+  | 'PROPOSAL_PENDING'
   | 'CONFLICT'
   | 'INTERNAL';
 
@@ -258,7 +259,8 @@ export type Approval =
   | { kind: 'bank'; bankId: string; participantId: string; bankName: string; accountNumber: string; holderName: string }
   | { kind: 'payment'; paymentId: string }
   | { kind: 'not_arrived'; paymentId: string }
-  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null };
+  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null }
+  | { kind: 'proposal'; proposalId: string; guestPid: string; intoPid: string | null; targetUserName: string | null; requestedByName: string };
 
 export interface RatingsView {
   enabled: boolean;
@@ -417,3 +419,21 @@ export interface RequestView {
   pay: PayInfo | null;
   settlementWaiting: boolean;
 }
+
+/** A merge proposal (someone said a guest is the same person as an account, or as another guest). */
+export interface ProposalView {
+  id: string;
+  tripId: string;
+  tripName: string;
+  tripKind: 'group' | 'direct';
+  guestName: string;
+  /** The guest as the caller's people key (canonicalKey of p:guestPid). */
+  guestKey: PersonKey;
+  requestedByName: string;
+  targetUserName: string | null;
+  waitingFor: ('user' | 'admin')[];
+  status: 'pending' | 'approved' | 'declined' | 'cancelled';
+}
+
+/** `GET /api/me/proposals`. Outgoing: pending ones, plus ones decided in the last 7 days. */
+export interface ProposalsResponse { incoming: ProposalView[]; outgoing: ProposalView[] }

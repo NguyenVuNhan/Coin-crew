@@ -9,6 +9,7 @@ import { getDb, type Db } from '../db/client';
 import {
   deviceParticipants,
   membershipRequests,
+  mergeProposals,
   participants,
   trips,
   users,
@@ -810,7 +811,16 @@ export function participantRoutes(): Hono<AppBindings> {
       throw err;
     }
     if (inserted === 0) {
-      if (await pendingProposalFor(db, participantId)) {
+      const proposal = await pendingProposalFor(db, participantId);
+      if (proposal?.targetUserId === user.id) {
+        // Someone already said this guest is the caller: accepting that proposal is their claim.
+        const by = await db.select({ name: users.name }).from(users).where(eq(users.id, proposal.requestedByUserId)).get();
+        throw new ApiError('PROPOSAL_PENDING', 409, 'Someone already said this is you.', {
+          proposalId: proposal.id,
+          requestedByName: by?.name ?? '',
+        });
+      }
+      if (proposal) {
         throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
       }
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
@@ -863,8 +873,59 @@ export function participantRoutes(): Hono<AppBindings> {
       )
       .get();
 
-    if (existingActive) {
+    // One name per user: a claimer who is already a member can't claim a second name — unless they
+    // became a member through a merge proposal while this claim waited (both go ahead; see the
+    // person-merge-picker spec, claim case 3).
+    const viaProposal = existingActive
+      ? await db
+          .select({ id: mergeProposals.id })
+          .from(mergeProposals)
+          .where(
+            and(
+              eq(mergeProposals.tripId, tripId),
+              eq(mergeProposals.targetUserId, req.userId),
+              eq(mergeProposals.status, 'approved'),
+            ),
+          )
+          .get()
+      : undefined;
+    if (existingActive && !viaProposal) {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+    if (existingActive) {
+      // The claimed guest merges into their participant. Approve first, so a second approve can't
+      // merge twice; the request waits again if the merge throws.
+      const approved = await db
+        .update(membershipRequests)
+        .set({ status: 'approved' })
+        .where(and(eq(membershipRequests.id, rid), eq(membershipRequests.tripId, tripId), eq(membershipRequests.status, 'pending')))
+        .run();
+      if (approved.meta.changes === 0) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+      }
+      const guest = await db
+        .select({ status: participants.status, userId: participants.userId })
+        .from(participants)
+        .where(and(eq(participants.id, req.participantId), eq(participants.tripId, tripId)))
+        .get();
+      if (!guest || guest.userId !== null || (guest.status !== 'active' && guest.status !== 'pending')) {
+        await db.update(membershipRequests).set({ status: 'rejected' }).where(eq(membershipRequests.id, rid));
+        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+      }
+      try {
+        await mergeParticipants(db, tripId, req.participantId, existingActive.id, actor);
+      } catch (err) {
+        await db.update(membershipRequests).set({ status: 'pending' }).where(eq(membershipRequests.id, rid));
+        throw err;
+      }
+      await commitTripWrite(db, tripId, [], {
+        action: 'membership_approved',
+        actorParticipantId: actor.participantId,
+        actorUserId: actor.userId,
+        actorDevice: actor.deviceHash,
+        details: {},
+      });
+      return c.body(null, 204);
     }
 
     const r = await db

@@ -317,6 +317,8 @@ export function approvalKey(a: Approval): string {
       return `x-${a.paymentId}`;
     case 'membership':
       return `m-${a.requestId}`;
+    case 'proposal':
+      return `mp-${a.proposalId}`;
   }
 }
 
@@ -346,5 +348,7 @@ export function ApprovalItem({
       return <NotArrivedApproval view={view} paymentId={approval.paymentId} />;
     case 'membership':
       return <MembershipApproval view={view} a={approval} />;
+    case 'proposal':
+      return null;
   }
 }
