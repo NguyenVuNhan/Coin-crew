@@ -19,6 +19,7 @@ import { peopleRoutes } from './me/people';
 import { ledgerRoutes } from './me/ledger';
 import { settleRoutes } from './me/settle';
 import { personRoutes } from './me/personRoutes';
+import { myActivityRoutes } from './me/activity';
 import { requestRoutes } from './requests/routes';
 import { pageRoutes } from './og/routes';
 
@@ -48,6 +49,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', ledgerRoutes());
   app.route('/api', settleRoutes());
   app.route('/api', personRoutes());
+  app.route('/api', myActivityRoutes());
   app.route('/api', requestRoutes());
   app.route('/', pageRoutes());
 

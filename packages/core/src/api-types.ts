@@ -288,6 +288,22 @@ export interface ActivityItem {
   details: Record<string, unknown>; createdAt: string;
 }
 
+/** One line of `GET /api/me/activity`: an activity row from any of my groups or my own ledger. */
+export interface MyActivityItem extends ActivityItem {
+  tripId: string;
+  tripName: string;
+  /** 'direct' is my personal quick-expense ledger. */
+  kind: 'group' | 'direct';
+  /** Names for the participant ids in `details` (`fromId`, `toId`, `participantId`). */
+  names: Record<string, string>;
+}
+
+export interface MyActivityPage {
+  items: MyActivityItem[];
+  /** Opaque cursor `<createdAt>~<id>` for `?before=`, or null on the last page. */
+  next: string | null;
+}
+
 export interface PickerView {
   people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
   myPick: string | null;
