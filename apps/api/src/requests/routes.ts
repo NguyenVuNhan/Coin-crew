@@ -84,9 +84,11 @@ export async function requestItems(
 
 /** True while a settlement the person recorded ("I've paid") still waits for the owner. */
 async function settlementWaiting(db: Db, target: RequestTarget): Promise<boolean> {
+  const linkedToPerson = sql`p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${target.ownerUserId} AND pl.person_pid = ${target.personPid})`;
+  // Guests the owner merged into the person count as the person.
   const personCond = target.personUserId
-    ? sql`p.user_id = ${target.personUserId}`
-    : sql`p.user_id IS NULL AND (p.id = ${target.personPid} OR p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${target.ownerUserId} AND pl.person_pid = ${target.personPid}))`;
+    ? sql`(p.user_id = ${target.personUserId} OR (p.user_id IS NULL AND ${linkedToPerson}))`
+    : sql`p.user_id IS NULL AND (p.id = ${target.personPid} OR ${linkedToPerson})`;
   const rows = await db.all<{ id: string }>(sql`
     SELECT t.id AS id
     FROM transactions t

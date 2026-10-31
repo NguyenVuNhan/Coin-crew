@@ -46,6 +46,7 @@ const minh: PersonSummary = {
     },
   ],
   waiting: [{ settlementId: 's-1', amount: 270000, direction: 'toOwner' }],
+  linked: [],
 };
 
 afterEach(() => {
@@ -190,6 +191,7 @@ describe('PersonScreen', () => {
         },
       ],
       waiting: [],
+      linked: [],
     };
 
     mockApi({

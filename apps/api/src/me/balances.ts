@@ -152,14 +152,21 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
 
       let key: PersonKey;
       let name: string;
+      let personUserId = other.user_id;
       let groupLabel: string | null = null;
       const linked = other.user_id ? undefined : linkOf.get(pid);
+      const linkTarget = linked ? byPid.get(linked) : undefined;
       if (other.user_id) {
         key = `u:${other.user_id}`;
         name = other.user_name ?? other.name;
+      } else if (linked && linkTarget?.user_id) {
+        // A guest merged into an account nets under that account.
+        key = `u:${linkTarget.user_id}`;
+        name = linkTarget.user_name ?? linkTarget.name;
+        personUserId = linkTarget.user_id;
       } else if (linked) {
         key = `p:${linked}`;
-        name = byPid.get(linked)?.name ?? other.name;
+        name = linkTarget?.name ?? other.name;
       } else {
         key = `p:${pid}`;
         name = other.name;
@@ -169,7 +176,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
       let person = people.get(key);
       if (!person) {
         person = {
-          summary: { key, name, nickname: nicknameOf.get(key) ?? null, userId: other.user_id, groupLabel, total: 0, items: [], waiting: [] },
+          summary: { key, name, nickname: nicknameOf.get(key) ?? null, userId: personUserId, groupLabel, total: 0, items: [], waiting: [], linked: [] },
           inputs: [],
           waiting: false,
         };
@@ -198,6 +205,22 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
 
   const waitingOf = await waitingSettlements(db, userId, waitingParts);
 
+  // Everyone folded into a shown person by a link, from the link rows already loaded.
+  const tripOf = new Map(mine.map((r) => [r.trip.id, r.trip]));
+  for (const l of links) {
+    const target = byPid.get(l.personPid);
+    const entry = byPid.get(l.participantId);
+    const trip = entry ? tripOf.get(entry.trip_id) : undefined;
+    if (!target || !entry || !trip || entry.user_id) continue;
+    const person = people.get(target.user_id ? `u:${target.user_id}` : `p:${target.id}`);
+    person?.summary.linked.push({
+      participantId: entry.id,
+      name: entry.name,
+      tripName: trip.name,
+      kind: trip.preset === 'direct' ? 'direct' : 'group',
+    });
+  }
+
   const out: PersonSummary[] = [];
   for (const person of people.values()) {
     const items: PersonItem[] = [];
@@ -208,7 +231,8 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     items.sort((a, b) => a.oldestOpenAt.localeCompare(b.oldestOpenAt));
     const total = items.reduce((sum, i) => sum + i.amount, 0);
     if (total === 0 && !person.waiting) continue;
-    out.push({ ...person.summary, items, total, waiting: waitingOf.get(person.summary.key) ?? [] });
+    const linked = [...person.summary.linked].sort((a, b) => a.tripName.localeCompare(b.tripName) || a.name.localeCompare(b.name) || a.participantId.localeCompare(b.participantId));
+    out.push({ ...person.summary, items, total, waiting: waitingOf.get(person.summary.key) ?? [], linked });
   }
   out.sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.name.localeCompare(b.name));
   return { people: out, incomplete };
@@ -307,27 +331,42 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
   let queries = 0;
   const myTrips = sql`SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active'`;
 
+  // An account, plus the guests the caller merged into that account's ledger row.
+  const accountCond = (otherUser: string) => sql`(p.user_id = ${otherUser} OR (p.user_id IS NULL AND p.id IN (
+    SELECT pl.participant_id FROM person_links pl JOIN participants lt ON lt.id = pl.person_pid
+    WHERE pl.owner_user_id = ${userId} AND lt.user_id = ${otherUser})))`;
+
   let cond;
   let canonical: PersonKey = key;
   if (key.startsWith('u:')) {
     const otherUser = key.slice(2);
     if (otherUser === userId || otherUser === '') return null;
-    cond = sql`p.user_id = ${otherUser}`;
+    cond = accountCond(otherUser);
   } else {
     let target = key.slice(2);
     if (target === '') return null;
     const link = await db
-      .select({ personPid: personLinks.personPid, status: participants.status, mergedInto: participants.mergedInto })
+      .select({ personPid: personLinks.personPid, status: participants.status, mergedInto: participants.mergedInto, userId: participants.userId })
       .from(personLinks)
       .leftJoin(participants, eq(participants.id, personLinks.personPid))
       .where(and(eq(personLinks.ownerUserId, userId), eq(personLinks.participantId, target)))
       .get();
     queries += 1;
-    // A link left on a merged ledger row means its survivor.
-    if (link) target = link.status === 'merged' && link.mergedInto ? link.mergedInto : link.personPid;
-    canonical = `p:${target}`;
-    cond = sql`p.user_id IS NULL AND (p.id = ${target} OR p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${userId} AND pl.person_pid = ${target}))`;
+    if (link?.userId) {
+      // A guest merged into an account is that account.
+      if (link.userId === userId) return null;
+      canonical = `u:${link.userId}`;
+      cond = accountCond(link.userId);
+    } else {
+      // A link left on a merged ledger row means its survivor.
+      if (link) target = link.status === 'merged' && link.mergedInto ? link.mergedInto : link.personPid;
+      canonical = `p:${target}`;
+      cond = sql`p.user_id IS NULL AND (p.id = ${target} OR p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${userId} AND pl.person_pid = ${target}))`;
+    }
   }
+  const accountId = canonical.startsWith('u:') ? canonical.slice(2) : null;
+  /** The row that is the person itself (not one folded in by a link). */
+  const isCanonical = (r: PersonRow) => (accountId ? r.user_id === accountId : r.id === canonical.slice(2));
 
   // Someone else's ledger holds a pair with its owner only (not with the owner's other contacts).
   const visible = sql`p.trip_id NOT IN (SELECT d.id FROM trips d WHERE d.preset = 'direct' AND d.organiser_user_id <> ${userId} AND (p.user_id IS NULL OR p.user_id <> d.organiser_user_id))`;
@@ -376,7 +415,8 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
     const ownLedger = isDirect && trip.organiserUserId === userId;
     for (const person of rows) {
       if (person.trip_id !== trip.id) continue;
-      if (ownLedger && ledger === null) ledger = { tripId: trip.id, ownerPid: row.myPid, personPid: person.id };
+      // The person's own ledger row; ledger guests merged into it keep their own items.
+      if (ownLedger && ledger === null && isCanonical(person)) ledger = { tripId: trip.id, ownerPid: row.myPid, personPid: person.id };
       const [item] = pairItems([{
         tripId: trip.id,
         tripName: trip.name,
@@ -392,12 +432,12 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
   }
   queries += rebuilt * REBUILD_COST;
 
-  const named = rows.find((r) => r.id === canonical.slice(2)) ?? rows[0]!;
+  const named = rows.find(isCanonical) ?? rows[0]!;
   items.sort((a, b) => a.oldestOpenAt.localeCompare(b.oldestOpenAt));
   return {
     key: canonical,
     name: named.name,
-    userId: canonical.startsWith('u:') ? canonical.slice(2) : null,
+    userId: accountId,
     items,
     ledger,
     guestPid: canonical.startsWith('p:') && ledger === null ? canonical.slice(2) : null,

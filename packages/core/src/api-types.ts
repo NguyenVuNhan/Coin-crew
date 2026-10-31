@@ -32,6 +32,7 @@ export type ActivityAction =
   | 'name_added'
   | 'name_approved'
   | 'name_merged'
+  | 'person_unlinked'
   | 'person_removed'
   | 'person_left'
   | 'person_restored'
@@ -338,6 +339,18 @@ export interface PersonSummary {
    * `direction` says who it moves money to, from the caller's side.
    */
   waiting: PersonWaitingSettlement[];
+  /**
+   * Participants folded into this person by the caller's "same person" links (not the person's
+   * own ledger row). Each can be split off with `DELETE /api/me/people/link/:participantId`.
+   */
+  linked: PersonLinkedEntry[];
+}
+
+export interface PersonLinkedEntry {
+  participantId: string;
+  name: string;
+  tripName: string;
+  kind: 'group' | 'direct';
 }
 
 export interface PersonWaitingSettlement {

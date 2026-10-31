@@ -1,15 +1,17 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PersonKey } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks } from '../db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
+import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newToken, nowIso } from '../lib/ids';
-import { ensurePersonalLedger, importPerson } from './ledger';
+import { ensurePersonalLedger, importPerson, type PersonalLedger } from './ledger';
 
 const NICKNAME_MAX = 40;
 const LINK_MAX_KEYS = 20;
@@ -103,13 +105,17 @@ async function canonicalKey(db: Db, userId: string, key: PersonKey): Promise<Per
     if (!shared) throw new ApiError('NOT_FOUND', 404);
     return key;
   }
+  const target = alias(participants, 'link_target');
   const row = await db
-    .select({ id: participants.id, personPid: personLinks.personPid })
+    .select({ id: participants.id, personPid: personLinks.personPid, targetUserId: target.userId })
     .from(participants)
     .leftJoin(personLinks, and(eq(personLinks.ownerUserId, userId), eq(personLinks.participantId, participants.id)))
+    .leftJoin(target, eq(target.id, personLinks.personPid))
     .where(and(eq(participants.id, id), isNull(participants.userId), sql`${participants.tripId} IN (${myTrips(userId)})`))
     .get();
   if (!row) throw new ApiError('NOT_FOUND', 404);
+  // A guest merged into an account is that account.
+  if (row.targetUserId) return `u:${row.targetUserId}`;
   return `p:${row.personPid ?? row.id}`;
 }
 
@@ -121,85 +127,162 @@ function parseNickname(raw: unknown): string | null {
   return nickname;
 }
 
-function parseLinkKeys(raw: unknown): string[] {
+interface LinkRequest {
+  /** Participant ids behind the `p:` keys. */
+  pids: string[];
+  /** The account behind the one `u:` key, if any. */
+  userId: string | null;
+}
+
+function parseLinkKeys(raw: unknown): LinkRequest {
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > LINK_MAX_KEYS) {
     throw new ApiError('VALIDATION', 422, 'Pick at least two people');
   }
   const pids: string[] = [];
+  const users: string[] = [];
   for (const k of raw) {
-    // Accounts are already one person: only guests can be linked.
-    if (typeof k !== 'string' || !/^p:.+$/.test(k)) throw new ApiError('VALIDATION', 422, 'Only guests can be linked');
-    pids.push(k.slice(2));
+    if (typeof k !== 'string' || !/^[up]:.+$/.test(k)) throw new ApiError('VALIDATION', 422, 'Invalid person');
+    (k.startsWith('u:') ? users : pids).push(k.slice(2));
   }
-  if (new Set(pids).size !== pids.length) throw new ApiError('VALIDATION', 422, 'Pick different people');
-  return pids;
+  if (new Set(pids).size !== pids.length || new Set(users).size !== users.length) {
+    throw new ApiError('VALIDATION', 422, 'Pick different people');
+  }
+  // Accounts are already one person each.
+  if (users.length > 1) throw new ApiError('VALIDATION', 422, "Two accounts can't be merged");
+  return { pids, userId: users[0] ?? null };
 }
 
 /**
- * Point every guest behind the keys at one ledger person (the one already among them, or a new
- * import) and move nicknames from keys that change onto the merged key. Two different ledger
- * people are refused: merging those is the merge tool's job.
+ * The account's row in the owner's ledger, imported from one of the owner's groups when there is
+ * none yet. 403 when the owner shares no group with the account.
  */
-async function linkGuests(db: Db, user: { id: string; name: string }, pids: string[], device: string | null): Promise<PersonKey> {
+async function ensureLedgerUser(db: Db, ownerUserId: string, ledger: PersonalLedger, userId: string, device: string | null): Promise<string> {
+  const existing = await db
+    .select({ id: participants.id })
+    .from(participants)
+    .where(and(eq(participants.tripId, ledger.tripId), eq(participants.userId, userId)))
+    .get();
+  if (existing) return existing.id;
+  const source = await db
+    .select({ id: participants.id })
+    .from(participants)
+    .where(and(
+      eq(participants.userId, userId),
+      eq(participants.status, 'active'),
+      ne(participants.tripId, ledger.tripId),
+      sql`${participants.tripId} IN (${myTrips(ownerUserId)})`,
+      // In someone else's ledger only its owner counts as shared.
+      sql`${participants.tripId} NOT IN (SELECT d.id FROM trips d WHERE d.preset = 'direct' AND d.organiser_user_id <> ${userId})`,
+    ))
+    .get();
+  if (!source) throw new ApiError('FORBIDDEN', 403);
+  return importPerson(db, ownerUserId, ledger, source.id, device);
+}
+
+/**
+ * Make everyone behind the keys one person in the owner's lists. The survivor is the account's
+ * ledger row when an account is among them (imported if missing), else the oldest ledger row among
+ * the keys or behind their links, else a new import. Every other participant (group guests, other
+ * ledger guests, and anyone already linked to a merged ledger guest) gets a link to the survivor,
+ * so links stay one hop. Nicknames move onto the survivor's key, its own winning. Returns the
+ * survivor's key.
+ */
+async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkRequest, device: string | null): Promise<PersonKey> {
+  if (req.userId === user.id) throw new ApiError('VALIDATION', 422, "You can't merge yourself");
   const ledger = await ensurePersonalLedger(db, user);
+  const target = alias(participants, 'link_target');
   const rows = await db
     .select({
       id: participants.id,
       tripId: participants.tripId,
       userId: participants.userId,
+      createdAt: participants.createdAt,
       personPid: personLinks.personPid,
+      targetUserId: target.userId,
+      targetCreatedAt: target.createdAt,
       member: sql<number>`${participants.tripId} IN (${myTrips(user.id)})`,
     })
     .from(participants)
     .leftJoin(personLinks, and(eq(personLinks.ownerUserId, user.id), eq(personLinks.participantId, participants.id)))
-    .where(inArray(participants.id, pids));
+    .leftJoin(target, eq(target.id, personLinks.personPid))
+    .where(inArray(participants.id, req.pids));
   const byId = new Map(rows.map((r) => [r.id, r]));
 
-  const ledgerPids = new Set<string>();
-  const guests: { id: string; personPid: string | null }[] = [];
-  for (const pid of pids) {
+  let accountId = req.userId;
+  let accountRoot: string | null = null;
+  // Guest ledger rows the keys stand for (directly or through a link), with their age.
+  const ledgerRoots = new Map<string, string>();
+  // Each key's participant, with the key the summary showed for it before this merge.
+  const members: { id: string; oldKey: PersonKey }[] = [];
+  for (const pid of req.pids) {
     const row = byId.get(pid);
     // Unknown, or in a trip the caller is not active in: same answer.
     if (!row || !row.member) throw new ApiError('FORBIDDEN', 403);
+    // An account is picked by its u: key, never by one of its participants.
     if (row.userId) throw new ApiError('VALIDATION', 422, 'Only guests can be linked');
-    if (row.tripId === ledger.tripId) {
-      ledgerPids.add(row.id);
+    if (row.personPid && row.targetUserId) {
+      if (accountId !== null && accountId !== row.targetUserId) throw new ApiError('VALIDATION', 422, "Two accounts can't be merged");
+      accountId = row.targetUserId;
+      accountRoot = row.personPid;
+      members.push({ id: row.id, oldKey: `u:${row.targetUserId}` });
+    } else if (row.personPid) {
+      ledgerRoots.set(row.personPid, row.targetCreatedAt ?? '');
+      members.push({ id: row.id, oldKey: `p:${row.personPid}` });
     } else {
-      if (row.personPid) ledgerPids.add(row.personPid);
-      guests.push({ id: row.id, personPid: row.personPid });
+      if (row.tripId === ledger.tripId) ledgerRoots.set(row.id, row.createdAt);
+      members.push({ id: row.id, oldKey: `p:${row.id}` });
     }
   }
-  if (ledgerPids.size > 1) {
-    throw new ApiError('VALIDATION', 422, 'These are already two different people. Merge them instead.');
-  }
+  if (accountId === user.id) throw new ApiError('VALIDATION', 422, "You can't merge yourself");
 
-  const target = ledgerPids.size === 1 ? [...ledgerPids][0]! : await importPerson(db, user.id, ledger, guests[0]!.id, device);
-  const targetKey: PersonKey = `p:${target}`;
+  let survivor: string;
+  let survivorKey: PersonKey;
+  if (accountId !== null) {
+    survivor = accountRoot ?? (await ensureLedgerUser(db, user.id, ledger, accountId, device));
+    survivorKey = `u:${accountId}`;
+  } else if (ledgerRoots.size > 0) {
+    survivor = [...ledgerRoots].sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]))[0]![0];
+    survivorKey = `p:${survivor}`;
+  } else {
+    // importPerson links this first guest to the new ledger row itself.
+    survivor = await importPerson(db, user.id, ledger, members[0]!.id, device);
+    survivorKey = `p:${survivor}`;
+  }
 
   const now = nowIso();
   const queries: BatchItem<'sqlite'>[] = [];
-  // Keys the summary showed for guests that were not linked to the target yet.
-  const movedKeys: PersonKey[] = [];
-  for (const g of guests) {
-    if (g.personPid === target) continue;
-    movedKeys.push(`p:${g.id}`);
+  const merged = [...ledgerRoots.keys()].filter((id) => id !== survivor);
+  if (merged.length > 0) {
+    // Whoever was linked to a merged ledger guest now follows the survivor (links stay one hop).
+    queries.push(
+      db.update(personLinks)
+        .set({ personPid: survivor })
+        .where(and(eq(personLinks.ownerUserId, user.id), inArray(personLinks.personPid, merged))),
+    );
+  }
+  const linkIds = new Set([...members.map((m) => m.id), ...merged]);
+  linkIds.delete(survivor);
+  for (const id of linkIds) {
+    if (byId.get(id)?.personPid === survivor) continue;
     queries.push(
       db.insert(personLinks)
-        .values({ ownerUserId: user.id, participantId: g.id, personPid: target, createdAt: now })
-        .onConflictDoUpdate({ target: [personLinks.ownerUserId, personLinks.participantId], set: { personPid: target } }),
+        .values({ ownerUserId: user.id, participantId: id, personPid: survivor, createdAt: now })
+        .onConflictDoUpdate({ target: [personLinks.ownerUserId, personLinks.participantId], set: { personPid: survivor } }),
     );
   }
 
-  // A nickname under a moved key carries over to the merged key; the target's own wins.
+  // A nickname under a key that goes away carries over to the survivor's key; the survivor's own wins.
+  const movedKeys = [...new Set<PersonKey>([...members.map((m) => m.oldKey), ...merged.map((id): PersonKey => `p:${id}`)])]
+    .filter((k) => k !== survivorKey);
   if (movedKeys.length > 0) {
     const nicks = await db
       .select({ personKey: nicknames.personKey, nickname: nicknames.nickname })
       .from(nicknames)
-      .where(and(eq(nicknames.ownerUserId, user.id), inArray(nicknames.personKey, [targetKey, ...movedKeys])));
-    const hasTarget = nicks.some((n) => n.personKey === targetKey);
+      .where(and(eq(nicknames.ownerUserId, user.id), inArray(nicknames.personKey, [survivorKey, ...movedKeys])));
+    const hasSurvivor = nicks.some((n) => n.personKey === survivorKey);
     const carried = movedKeys.map((k) => nicks.find((n) => n.personKey === k)).find((n) => n !== undefined);
-    if (!hasTarget && carried) {
-      queries.push(db.insert(nicknames).values({ ownerUserId: user.id, personKey: targetKey, nickname: carried.nickname, updatedAt: now }));
+    if (!hasSurvivor && carried) {
+      queries.push(db.insert(nicknames).values({ ownerUserId: user.id, personKey: survivorKey, nickname: carried.nickname, updatedAt: now }));
     }
     if (carried) {
       queries.push(db.delete(nicknames).where(and(eq(nicknames.ownerUserId, user.id), inArray(nicknames.personKey, movedKeys))));
@@ -207,7 +290,31 @@ async function linkGuests(db: Db, user: { id: string; name: string }, pids: stri
   }
 
   if (queries.length > 0) await db.batch(queries as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
-  return targetKey;
+  return survivorKey;
+}
+
+/** Split one participant off the person it was merged into. Nicknames moved by the merge stay. */
+async function unlinkGuest(db: Db, user: { id: string; name: string }, participantId: string, device: string | null): Promise<void> {
+  const row = await db
+    .select({ personPid: personLinks.personPid, name: participants.name })
+    .from(personLinks)
+    .leftJoin(participants, eq(participants.id, personLinks.participantId))
+    .where(and(eq(personLinks.ownerUserId, user.id), eq(personLinks.participantId, participantId)))
+    .get();
+  if (!row) throw new ApiError('NOT_FOUND', 404);
+  const ledger = await ensurePersonalLedger(db, user);
+  await commitTripWrite(
+    db,
+    ledger.tripId,
+    [db.delete(personLinks).where(and(eq(personLinks.ownerUserId, user.id), eq(personLinks.participantId, participantId)))],
+    {
+      action: 'person_unlinked',
+      actorParticipantId: ledger.ownerPid,
+      actorUserId: user.id,
+      actorDevice: device,
+      details: { participantId, personPid: row.personPid, name: row.name ?? '' },
+    },
+  );
 }
 
 export function personRoutes(): Hono<AppBindings> {
@@ -243,15 +350,22 @@ export function personRoutes(): Hono<AppBindings> {
     return c.json({ key, nickname });
   });
 
-  // "Same person?": guests from different groups become one person in the caller's lists.
+  // "Same person?": any guests, and at most one account, become one person in the caller's lists.
   app.post('/me/people/link', requireUser, async (c) => {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
     const body = await parseJson<{ keys?: unknown } | null>(c);
     if (!body || typeof body !== 'object') throw new ApiError('VALIDATION', 422, 'Invalid request');
-    const pids = parseLinkKeys(body.keys);
-    const key = await linkGuests(db, user, pids, c.get('deviceHash') ?? null);
+    const req = parseLinkKeys(body.keys);
+    const key = await linkGuests(db, user, req, c.get('deviceHash') ?? null);
     return c.json({ key });
+  });
+
+  // "Tách ra": undo one link the caller made.
+  app.delete('/me/people/link/:participantId', requireUser, async (c) => {
+    const user = (await getSessionUser(c))!;
+    await unlinkGuest(getDb(c.env), user, c.req.param('participantId'), c.get('deviceHash') ?? null);
+    return c.body(null, 204);
   });
 
   return app;

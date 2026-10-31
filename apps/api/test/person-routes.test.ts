@@ -164,16 +164,17 @@ describe('POST /api/me/people/link', () => {
     expect(rows.results.map((r) => r.person_key)).toEqual([key]);
   });
 
-  it('refuses account keys and bad bodies (422)', async () => {
+  it('refuses two account keys, account participants and bad bodies (422)', async () => {
     await seed();
-    expect((await link(['p:a-lan', 'u:u-minh'])).status).toBe(422);
+    // One account with guests is allowed now (people-merge-any.test.ts); two accounts are not.
+    expect((await link(['u:u-minh', 'u:u-other'])).status).toBe(422);
     expect((await link(['p:a-lan'])).status).toBe(422);
     expect((await link(['p:a-lan', 'p:a-lan'])).status).toBe(422);
     expect((await link('p:a-lan')).status).toBe(422);
     expect((await link(['p:a-lan', 'p:a-m'])).status).toBe(422);
   });
 
-  it('refuses two different ledger people (422)', async () => {
+  it('merges two different ledger people into one (was refused before merge-any)', async () => {
     await seed();
     const ledgerLan = (await json<{ participantId: string }>(await call('/api/me/ledger/people', {
       method: 'POST', headers: await auth(), body: JSON.stringify({ participantId: 'a-lan' }),
@@ -182,8 +183,15 @@ describe('POST /api/me/people/link', () => {
       method: 'POST', headers: await auth(), body: JSON.stringify({ participantId: 'b-lan' }),
     }))).participantId;
     expect(ledgerLan).not.toBe(ledgerLan2);
-    expect((await link([`p:${ledgerLan}`, `p:${ledgerLan2}`])).status).toBe(422);
-    expect((await link(['p:a-lan', 'p:b-lan'])).status).toBe(422);
+    const res = await link([`p:${ledgerLan}`, `p:${ledgerLan2}`]);
+    expect(res.status).toBe(200);
+    const { key } = await json<{ key: string }>(res);
+    expect([`p:${ledgerLan}`, `p:${ledgerLan2}`]).toContain(key);
+    const lans = (await summary()).filter((p) => p.name.startsWith('Lan'));
+    expect(lans).toHaveLength(1);
+    expect(lans[0]).toMatchObject({ key, total: 150 });
+    // Linking the group guests again keeps the same person.
+    expect(await json(await link(['p:a-lan', 'p:b-lan']))).toEqual({ key });
   });
 
   it('refuses guests from trips the caller is not in (403)', async () => {
