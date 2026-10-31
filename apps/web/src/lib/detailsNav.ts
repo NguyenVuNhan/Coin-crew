@@ -49,17 +49,17 @@ export function useRatingsLink(tripId: string, switching = false): { to: string;
 /**
  * Leaves the details of a transaction: one step back in history when a trip list opened them (so the list
  * underneath is the page they left, and history does not grow), or, for a shared link that has nothing
- * behind it, to the trip page in place of the link.
+ * behind it, to the trip page (or `fallback`, e.g. the main screen for the ledger) in place of the link.
  * The phone details page's back arrow, "Back to trip" and the wide panel's × and Esc use it.
  */
-export function useBackToTrip(tripId: string): () => void {
+export function useBackToTrip(tripId: string, fallback?: string): () => void {
   const navigate = useNavigate();
   const fromList = cameFromList(useLocation().state);
   const { base } = useTrip(tripId);
   return useCallback(() => {
     if (fromList) navigate(-1);
-    else navigate(base, { replace: true });
-  }, [navigate, fromList, base]);
+    else navigate(fallback ?? base, { replace: true });
+  }, [navigate, fromList, fallback, base]);
 }
 
 /**
@@ -68,14 +68,14 @@ export function useBackToTrip(tripId: string): () => void {
  * from) and history does not grow. A form that was the first page of the visit (a shared or typed address) has nothing
  * of the app behind it: it is replaced by the trip page. The router gives only that first entry the key `default`.
  */
-export function useLeaveForm(tripId: string): () => void {
+export function useLeaveForm(tripId: string, fallback?: string): () => void {
   const navigate = useNavigate();
   const openedInApp = useLocation().key !== 'default';
   const { base } = useTrip(tripId);
   return useCallback(() => {
     if (openedInApp) navigate(-1);
-    else navigate(base, { replace: true });
-  }, [navigate, openedInApp, base]);
+    else navigate(fallback ?? base, { replace: true });
+  }, [navigate, openedInApp, fallback, base]);
 }
 
 function scrollWindowTo(y: number): void {
@@ -114,4 +114,28 @@ export function useListScroll(page: TripPage): void {
       if (DEPTH[left] > DEPTH[page]) delete saved.current[left];
     }
   }, [page]);
+}
+
+/** Kinds of transaction details the main screen can show, and the search param each one uses on `/trips`. */
+export type HomeDetailKind = 'expense' | 'payment' | 'income';
+const HOME_DETAIL_KINDS: readonly HomeDetailKind[] = ['expense', 'payment', 'income'];
+
+/** The main screen with one of the ledger's transactions open in its right column (from 1024px). */
+export function homeDetailsHref(kind: HomeDetailKind, id: string): string {
+  return `/trips?${kind}=${encodeURIComponent(id)}`;
+}
+
+/** The transaction `homeDetailsHref` put in the search params, if any. */
+export function homeDetailsFrom(params: URLSearchParams): { kind: HomeDetailKind; id: string } | null {
+  for (const kind of HOME_DETAIL_KINDS) {
+    const id = params.get(kind);
+    if (id) return { kind, id };
+  }
+  return null;
+}
+
+/** The ledger transaction's own details page (phones). */
+export function ledgerDetailsPath(ledgerId: string, kind: HomeDetailKind, id: string): string {
+  const segment = kind === 'expense' ? 'expenses' : kind === 'payment' ? 'payments' : 'fund';
+  return `/t/${ledgerId}/${segment}/${encodeURIComponent(id)}`;
 }

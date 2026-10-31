@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
+import { useLedger } from '../api/people';
 import { useTrip } from '../lib/tripBase';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
@@ -32,7 +34,16 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const [inviteOpen, setInviteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
 
+  const meQuery = useMe();
+  const user = meQuery.data?.user;
+  const signedIn = Boolean(user);
+  // Until sign-in is known neither the nav nor the old add bar shows, so the page does not swap one for the other.
+  const meSettled = !meQuery.isPending;
+
   const archived = view.trip.archived;
+  // An archived group takes no new expenses: its "+" adds a quick expense, as on view-only pages.
+  const { ledger } = useLedger({ enabled: signedIn && archived });
+  const navAddHref = !archived ? `/t/${tripId}/expenses/new` : ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
   const hasExpenses = view.expenses.length > 0;
   // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
   const hasFeed = hasExpenses || (fundOf(view)?.incomes.length ?? 0) > 0;
@@ -85,7 +96,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       onOpenIncome={(id) => open('income', id)}
       hintable={hintable}
       add={addLink(false, addVariant)}
-      addInHeading={inHeading}
+      addInHeading={signedIn || !meSettled ? false : inHeading}
     />
   );
 
@@ -117,11 +128,12 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
     <Screen
       title={view.trip.name}
       titleAlign="left"
-      back="/trips"
+      back="/groups"
       right={header}
       wide
+      nav={signedIn ? { section: 'groups', addHref: navAddHref } : undefined}
       // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
-      bottomBar={!wide && hasFeed ? addLink(true, addVariant) : undefined}
+      bottomBar={signedIn || !meSettled ? undefined : (!wide && hasFeed ? addLink(true, addVariant) : undefined)}
     >
       {wide ? (
         <div className="fsl-member flex flex-col gap-4 py-4">

@@ -17,7 +17,8 @@ export function accessRoutes(): Hono<AppBindings> {
       .where(or(eq(trips.groupToken, token), eq(trips.viewToken, token)))
       .get();
 
-    if (!trip) {
+    // A personal ledger's tokens are never shown and never open anything.
+    if (!trip || trip.preset === 'direct') {
       throw new ApiError('LINK_DEAD', 410, 'This link no longer works. Ask the organiser for a new one.');
     }
 

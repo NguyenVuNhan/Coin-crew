@@ -18,9 +18,11 @@ export type Detail = Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings
  * Not modal: it takes focus when it opens, × and Esc close it (back in history, or to the trip for a shared link),
  * and nothing else is trapped.
  */
-export function DetailsPanel({ view, selection }: { view: TripView; selection: Selection }) {
+export function DetailsPanel({ view, selection, onClose }: { view: TripView; selection: Selection; onClose?: () => void }) {
   const t = useT();
-  const close = useBackToTrip(view.trip.id);
+  const backToTrip = useBackToTrip(view.trip.id);
+  // The main screen keeps its own selection and closes by clearing it.
+  const close = onClose ?? backToTrip;
   const panel = useRef<HTMLElement>(null);
   const label =
     selection.kind === 'expense' ? t('details.expense')

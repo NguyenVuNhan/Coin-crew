@@ -14,6 +14,10 @@ export type ApiErrorCode =
   | 'MERGE_STALE'
   | 'FUND_SHORT'
   | 'RATING_LIMIT'
+  | 'TRY_AGAIN'
+  | 'ALREADY_WAITING'
+  | 'ALREADY_CLAIMED'
+  | 'CONFLICT'
   | 'INTERNAL';
 
 export type ActivityAction =
@@ -28,6 +32,7 @@ export type ActivityAction =
   | 'name_added'
   | 'name_approved'
   | 'name_merged'
+  | 'person_unlinked'
   | 'person_removed'
   | 'person_left'
   | 'person_restored'
@@ -67,6 +72,7 @@ import type { Transfer } from './transfers';
 import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 import type { IncomeStatus } from './fund';
+import type { PersonKey, PersonItem } from './people';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -131,7 +137,7 @@ export interface ExpenseHistoryItem {
   meta?: ExpenseMeta | null;
 }
 
-export type GroupPreset = 'trip' | 'sport';
+export type GroupPreset = 'trip' | 'sport' | 'direct';
 
 export interface BankFields { bin: string; accountNumber: string; holderName: string }
 /** The signed-in user's own saved bank details (GET /api/me/bank). */
@@ -155,6 +161,15 @@ export interface RecentPerson {
   name: string;
   /** Up to two shared trip names, newest first. */
   trips: string[];
+}
+
+/** `GET /api/me/people/candidates`: someone from one of my groups, to pick into a quick expense with `POST /api/me/ledger/people`. */
+export interface GroupPerson {
+  /** Their participant id in `tripName`; signed-in people appear once, from their newest shared group. */
+  participantId: string;
+  name: string;
+  userId: string | null;
+  tripName: string;
 }
 
 export interface PersonView {
@@ -229,6 +244,8 @@ export interface IncomeView {
 export interface PaymentView {
   id: string; fromId: string; toId: string; amountClaimed: number; amountConfirmed: number | null;
   status: PaymentStatus; notArrived: boolean; createdAt: string;
+  /** The part of a People settlement that runs against the money handed over: no cash moved in this group. */
+  throughPeople?: boolean;
 }
 export type Approval =
   | { kind: 'expense'; expenseId: string }
@@ -271,6 +288,22 @@ export interface ActivityItem {
   details: Record<string, unknown>; createdAt: string;
 }
 
+/** One line of `GET /api/me/activity`: an activity row from any of my groups or my own ledger. */
+export interface MyActivityItem extends ActivityItem {
+  tripId: string;
+  tripName: string;
+  /** 'direct' is my personal quick-expense ledger. */
+  kind: 'group' | 'direct';
+  /** Names for the participant ids in `details` (`fromId`, `toId`, `participantId`). */
+  names: Record<string, string>;
+}
+
+export interface MyActivityPage {
+  items: MyActivityItem[];
+  /** Opaque cursor `<createdAt>~<id>` for `?before=`, or null on the last page. */
+  next: string | null;
+}
+
 export interface PickerView {
   people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
   myPick: string | null;
@@ -306,4 +339,53 @@ export interface PayInfo {
   /** VietQR string, only when bankState is 'ok' and someone else is paying. */
   payload: string | null;
   inFlight: PaymentView[];
+}
+
+export interface PersonSummary {
+  key: PersonKey;
+  name: string;
+  nickname: string | null;
+  userId: string | null;
+  groupLabel: string | null;
+  total: number;
+  items: PersonItem[];
+  /**
+   * Settlements this person recorded ("I've paid") that the caller can confirm with
+   * `POST /api/me/settlements/:sid/confirm`. `amount` is the settlement's net, always > 0;
+   * `direction` says who it moves money to, from the caller's side.
+   */
+  waiting: PersonWaitingSettlement[];
+  /**
+   * Participants folded into this person by the caller's "same person" links (not the person's
+   * own ledger row). Each can be split off with `DELETE /api/me/people/link/:participantId`.
+   */
+  linked: PersonLinkedEntry[];
+}
+
+export interface PersonLinkedEntry {
+  participantId: string;
+  name: string;
+  tripName: string;
+  kind: 'group' | 'direct';
+}
+
+export interface PersonWaitingSettlement {
+  settlementId: string;
+  amount: number;
+  direction: 'toOwner' | 'fromOwner';
+}
+
+/** `GET /api/me/people/summary`. `incomplete`: some groups were left out to stay within the query budget; ask again. */
+export interface PeopleSummaryResponse {
+  people: PersonSummary[];
+  incomplete: boolean;
+}
+
+export interface RequestView {
+  ownerName: string;
+  total: number;
+  items: PersonItem[];
+  settled: boolean;
+  pay: PayInfo | null;
+  settlementWaiting: boolean;
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { useT } from '../i18n';
 import { Icon } from './icons';
 import { BottomBar } from './BottomBar';
+import { AppNav, type NavSection } from './AppNav';
 import { cn } from '@/lib/utils';
 
 export interface ScreenProps {
@@ -14,6 +15,7 @@ export interface ScreenProps {
   right?: ReactNode;
   bottomBar?: ReactNode;
   wide?: boolean;
+  nav?: { section: NavSection; addHref: string };
   children?: ReactNode;
   className?: string;
 }
@@ -26,6 +28,7 @@ export function Screen({
   right,
   bottomBar,
   wide,
+  nav,
   children,
   className,
 }: ScreenProps) {
@@ -34,6 +37,7 @@ export function Screen({
   const rootClass = cn(
     'fsl-screen',
     'min-h-screen min-h-dvh bg-background flex flex-col',
+    nav && 'lg:flex-row',
     wide && 'fsl-screen--wide',
     bottomBar && 'fsl-screen--has-bar',
     className,
@@ -51,8 +55,8 @@ export function Screen({
   const backLinkClass =
     'fsl-screen__back inline-flex items-center justify-center size-11 text-foreground rounded-full bg-transparent hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0 transition-colors motion-reduce:transition-none no-underline';
 
-  return (
-    <div className={rootClass}>
+  const content = (
+    <>
       <header className={headerClass}>
         <div
           className={cn(
@@ -94,7 +98,13 @@ export function Screen({
             {title}
           </h1>
 
-          <div className="fsl-screen__right inline-flex items-center justify-end min-w-11 shrink-0 gap-1">
+          {/* From lg the account menu lives in the side panel, so the header one would be a second avatar. */}
+          <div
+            className={cn(
+              'fsl-screen__right inline-flex items-center justify-end min-w-11 shrink-0 gap-1',
+              nav && 'lg:[&_.fsl-account-menu]:hidden',
+            )}
+          >
             {right}
           </div>
         </div>
@@ -108,12 +118,22 @@ export function Screen({
           bottomBar
             ? 'pb-[calc(72px+env(safe-area-inset-bottom,0px)+1.5rem)] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]'
             : 'pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
+          nav && 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
         )}
       >
         {children}
       </main>
 
       {bottomBar ? <BottomBar wide={wide}>{bottomBar}</BottomBar> : null}
+    </>
+  );
+
+  return (
+    <div className={rootClass}>
+      {/* The same tree with or without the nav: it often appears once sign-in is known, and a different wrapper
+          would remount the whole page (scroll, open sheets and tab state lost). */}
+      {nav && <AppNav section={nav.section} addHref={nav.addHref} />}
+      <div className="fsl-screen__body flex-1 flex flex-col min-w-0">{content}</div>
     </div>
   );
 }

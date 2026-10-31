@@ -1,7 +1,11 @@
-import { Routes, Route } from 'react-router';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
-import { MyTrips } from './screens/MyTrips';
+import { Home } from './screens/Home';
+import { Groups } from './screens/Groups';
+import { MyActivity } from './screens/MyActivity';
+import { PersonScreen } from './screens/PersonScreen';
+import { RequestPage } from './screens/RequestPage';
 import { CreateTrip } from './screens/CreateTrip';
 import { Privacy } from './screens/Privacy';
 import { Join, OldExpenseLink } from './screens/Join';
@@ -15,6 +19,15 @@ import { PayScreen } from './screens/PayScreen';
 import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
 import { AuthNotice } from './components/AuthNotice';
+
+function TripsRoute() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  if (params.has('mergeReview') || params.get('tab') === 'groups') {
+    return <Navigate to={{ pathname: '/groups', search }} replace />;
+  }
+  return <Home />;
+}
 
 /** A trip's pages, mounted under `/t/:tripId` (members) and `/j/:token` (guests and view-only links). */
 const tripPages = (
@@ -44,8 +57,12 @@ export function App() {
       <AuthNotice />
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/trips" element={<MyTrips />} />
+      <Route path="/trips" element={<TripsRoute />} />
+      <Route path="/groups" element={<Groups />} />
+      <Route path="/activity" element={<MyActivity />} />
       <Route path="/trips/new" element={<CreateTrip />} />
+      <Route path="/people/:key" element={<PersonScreen />} />
+      <Route path="/r/:token" element={<RequestPage />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
       <Route path="/t/:tripId">{tripPages}</Route>

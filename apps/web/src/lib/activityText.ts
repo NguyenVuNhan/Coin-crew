@@ -26,7 +26,12 @@ const money = (v: unknown): string | null => (typeof v === 'number' && Number.is
  * What an activity item says, using its `details` when they hold what the sentence needs
  * ("Chi added Bánh tráng nướng · 180.000₫"), and the generic wording ("Chi added an expense") when they do not.
  */
-export function activityLine(item: ActivityItem, view: TripView | undefined, t: T): string {
+export function activityLine(
+  item: ActivityItem,
+  view: TripView | undefined,
+  t: T,
+  names?: Record<string, string>,
+): string {
   const actor = item.actorName ?? t('activity.someone');
   const d = item.details;
 
@@ -50,10 +55,19 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
         const fromId = text(d.fromId);
         const toId = text(d.toId);
         const amount = money(d.amount);
-        if (!view || !fromId || !toId || !amount) return null;
-        const known = (id: string) => view.people.some((p) => p.id === id);
-        if (!known(fromId) || !known(toId)) return null;
-        return t('activity.paymentRecorded', { from: nameOf(view, fromId), to: nameOf(view, toId), amount });
+        if (!fromId || !toId || !amount) return null;
+        if (view) {
+          const known = (id: string) => view.people.some((p) => p.id === id);
+          if (!known(fromId) || !known(toId)) return null;
+          return t('activity.paymentRecorded', { from: nameOf(view, fromId), to: nameOf(view, toId), amount });
+        }
+        if (names) {
+          const from = names[fromId];
+          const to = names[toId];
+          if (!from || !to) return null;
+          return t('activity.paymentRecorded', { from, to, amount });
+        }
+        return null;
       }
       case 'payment_confirmed': {
         const amount = money(d.amount);
@@ -74,8 +88,17 @@ export function activityLine(item: ActivityItem, view: TripView | undefined, t: 
       case 'bank_set':
       case 'bank_removed': {
         const participantId = text(d.participantId);
-        if (!view || !participantId || !view.people.some((p) => p.id === participantId)) return null;
-        return t(item.action === 'bank_set' ? 'activity.bankSet' : 'activity.bankRemoved', { actor, name: nameOf(view, participantId) });
+        if (!participantId) return null;
+        if (view) {
+          if (!view.people.some((p) => p.id === participantId)) return null;
+          return t(item.action === 'bank_set' ? 'activity.bankSet' : 'activity.bankRemoved', { actor, name: nameOf(view, participantId) });
+        }
+        if (names) {
+          const name = names[participantId];
+          if (!name) return null;
+          return t(item.action === 'bank_set' ? 'activity.bankSet' : 'activity.bankRemoved', { actor, name });
+        }
+        return null;
       }
       case 'name_merged': {
         const from = text(d.fromName);
@@ -136,12 +159,12 @@ export function timeOf(iso: string): string {
  * Items under "Today", "Yesterday" or their date (in the current language), one group per calendar day in the
  * viewer's time zone. Groups and the items in them keep the order they come in (newest first from the server).
  */
-export function groupByDay(items: ActivityItem[], now: Date): { label: string; items: ActivityItem[] }[] {
+export function groupByDay<T extends ActivityItem = ActivityItem>(items: T[], now: Date): { label: string; items: T[] }[] {
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
   const todayKey = ymdOf(now);
   const yesterdayKey = ymdOf(yesterday);
 
-  const days = new Map<string, ActivityItem[]>();
+  const days = new Map<string, T[]>();
   for (const item of items) {
     const key = ymdOf(new Date(item.createdAt));
     const group = days.get(key);
