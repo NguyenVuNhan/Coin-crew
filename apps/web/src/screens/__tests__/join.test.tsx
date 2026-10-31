@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { ExpenseView, TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { guestChiView, picker, viewerView, tripView, PIDS } from '../../test/fixtures';
-import { Join } from '../Join';
+import { App } from '../../App';
 import { WhoAreYou } from '../WhoAreYou';
 import { TripRoute } from '../TripRoute';
 import { linkTokens } from '../../lib/linkTokens';
@@ -14,23 +14,94 @@ afterEach(() => {
 });
 
 describe('Join', () => {
-  it('stores the group link and goes to "Who are you?"', async () => {
-    mockApi({ 'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' } });
-    renderAt(<Join />, { route: '/j/gtok-1', path: '/j/:token' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/who'));
+  const pickedView = () => ({ ...guestChiView(), links: null });
+
+  it('stores the group link and, before a name is picked, goes to "Who are you?" under the link', async () => {
+    mockApi({
+      'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' },
+      'GET /api/trips/t-1': { ...guestChiView(), me: { kind: 'guest', participantId: null, participantPending: false, isOrganiser: false } },
+      'GET /api/trips/t-1/version': { version: 3 },
+      'GET /api/trips/t-1/people/picker': picker(),
+    });
+    renderAt(<App />, { route: '/j/gtok-1' });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/gtok-1/who'));
     expect(linkTokens.get('t-1')).toBe('gtok-1');
   });
 
-  it('a view-only link goes straight to the trip', async () => {
-    mockApi({ 'GET /api/links/vtok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'view' } });
-    renderAt(<Join />, { route: '/j/vtok-1', path: '/j/:token' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+  it('a view-only link shows the trip under the link', async () => {
+    mockApi({
+      'GET /api/links/vtok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'view' },
+      'GET /api/trips/t-1': viewerView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+    });
+    renderAt(<App />, { route: '/j/vtok-1' });
+    expect(await screen.findAllByText('Đà Lạt · Oct 2026')).not.toHaveLength(0);
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/vtok-1$/);
   });
 
   it('a dead link says so', async () => {
     mockApi({ 'GET /api/links/old': () => Response.json({ error: { code: 'LINK_DEAD', message: 'gone' } }, { status: 410 }) });
-    renderAt(<Join />, { route: '/j/old', path: '/j/:token' });
+    renderAt(<App />, { route: '/j/old' });
     expect(await screen.findByText('This link no longer works. Ask the organiser for a new one.')).toBeInTheDocument();
+  });
+
+  it("opens in a browser that has never seen the link (Zalo handing the page to the phone's browser)", async () => {
+    const { fetchMock } = mockApi({
+      'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'x', access: 'group' },
+      'GET /api/trips/t-1': (init: RequestInit | undefined) =>
+        new Headers(init?.headers).get('X-Link-Token') === 'gtok-1'
+          ? Response.json(pickedView())
+          : Response.json({ error: { code: 'FORBIDDEN', message: 'no' } }, { status: 403 }),
+      'GET /api/trips/t-1/version': { version: 3 },
+    });
+    expect(linkTokens.get('t-1')).toBeNull();
+    renderAt(<App />, { route: '/j/gtok-1/settings' });
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/trips/t-1'))).toBe(true));
+    expect(screen.queryByText("You don't have access to this group")).not.toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/j/gtok-1/settings');
+  });
+
+  it("a guest's links stay under the link", async () => {
+    mockApi({
+      'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'x', access: 'group' },
+      'GET /api/trips/t-1': pickedView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+    });
+    renderAt(<App />, { route: '/j/gtok-1' });
+    const adds = await screen.findAllByRole('link', { name: /add/i });
+    for (const add of adds) expect(add.getAttribute('href')).toMatch(/^\/j\/gtok-1\//);
+  });
+
+  it("a signed-in member who opens the link is moved to the trip's own address", async () => {
+    mockApi({
+      'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'x', access: 'group' },
+      'GET /api/trips/t-1': tripView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+    });
+    renderAt(<App />, { route: '/j/gtok-1/expenses/e-2?x=1' });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1\/expenses\/e-2$/));
+  });
+
+  it("a guest on the trip's own address with the link saved here is moved under the link", async () => {
+    linkTokens.set('t-1', 'gtok-1');
+    mockApi({
+      'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'x', access: 'group' },
+      'GET /api/trips/t-1': pickedView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+    });
+    renderAt(<App />, { route: '/t/t-1' });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1$/));
+  });
+
+  it('the old expense address of reminders and shared bills opens the expense under the link', async () => {
+    mockApi({
+      'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'x', access: 'group' },
+      'GET /api/trips/t-1': pickedView(),
+      'GET /api/trips/t-1/version': { version: 3 },
+    });
+    renderAt(<App />, { route: '/j/gtok-1/e/e-2' });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/gtok-1/expenses/e-2'));
+    expect(linkTokens.get('t-1')).toBe('gtok-1');
   });
 });
 

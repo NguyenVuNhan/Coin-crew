@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { useTrip } from './tripBase';
 
 /** Router state on a details entry that a trip list opened: the list is the entry right behind it. */
 interface DetailsState {
@@ -23,25 +24,26 @@ function entryOptions(state: unknown, switching: boolean): { replace?: true; sta
 export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment' | 'income', id: string, switching?: boolean) => void {
   const navigate = useNavigate();
   const { state } = useLocation();
+  const { href } = useTrip(tripId);
   return useCallback(
     (kind, id, switching = false) => {
       const segment = kind === 'expense' ? 'expenses' : kind === 'payment' ? 'payments' : 'fund';
-      navigate(`/t/${tripId}/${segment}/${id}`, entryOptions(state, switching));
+      navigate(href(`/${segment}/${id}`), entryOptions(state, switching));
     },
-    [navigate, state, tripId],
+    [navigate, state, href],
   );
 }
 
 /** `<Link>` props for the full approvals list, marked and replaced by the same rules as `useOpenDetails`. */
 export function useApprovalsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
   const { state } = useLocation();
-  return { to: `/t/${tripId}/approvals`, ...entryOptions(state, switching) };
+  return { to: useTrip(tripId).href('/approvals'), ...entryOptions(state, switching) };
 }
 
 /** `<Link>` props for the player ratings leaderboard, marked and replaced by the same rules as `useOpenDetails`. */
 export function useRatingsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
   const { state } = useLocation();
-  return { to: `/t/${tripId}/ratings`, ...entryOptions(state, switching) };
+  return { to: useTrip(tripId).href('/ratings'), ...entryOptions(state, switching) };
 }
 
 /**
@@ -53,10 +55,11 @@ export function useRatingsLink(tripId: string, switching = false): { to: string;
 export function useBackToTrip(tripId: string): () => void {
   const navigate = useNavigate();
   const fromList = cameFromList(useLocation().state);
+  const { base } = useTrip(tripId);
   return useCallback(() => {
     if (fromList) navigate(-1);
-    else navigate(`/t/${tripId}`, { replace: true });
-  }, [navigate, fromList, tripId]);
+    else navigate(base, { replace: true });
+  }, [navigate, fromList, base]);
 }
 
 /**
@@ -68,10 +71,11 @@ export function useBackToTrip(tripId: string): () => void {
 export function useLeaveForm(tripId: string): () => void {
   const navigate = useNavigate();
   const openedInApp = useLocation().key !== 'default';
+  const { base } = useTrip(tripId);
   return useCallback(() => {
     if (openedInApp) navigate(-1);
-    else navigate(`/t/${tripId}`, { replace: true });
-  }, [navigate, openedInApp, tripId]);
+    else navigate(base, { replace: true });
+  }, [navigate, openedInApp, base]);
 }
 
 function scrollWindowTo(y: number): void {
