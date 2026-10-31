@@ -162,6 +162,15 @@ export interface RecentPerson {
   trips: string[];
 }
 
+/** `GET /api/me/people/candidates`: someone from one of my groups, to pick into a quick expense with `POST /api/me/ledger/people`. */
+export interface GroupPerson {
+  /** Their participant id in `tripName`; signed-in people appear once, from their newest shared group. */
+  participantId: string;
+  name: string;
+  userId: string | null;
+  tripName: string;
+}
+
 export interface PersonView {
   id: string; name: string; status: 'active' | 'pending' | 'left'; isMember: boolean; bank: 'none' | 'pending' | 'approved';
   /** The person who created the trip. Left out by an older server. */

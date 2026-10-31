@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { PersonKey, PersonSummary, PeopleSummaryResponse } from '@fsl/core';
+import type { GroupPerson, PersonKey, PersonSummary, PeopleSummaryResponse } from '@fsl/core';
 import { apiFetch, apiSend, ApiClientError } from './client';
 
 export const PEOPLE_SUMMARY_QUERY_KEY = ['me', 'people', 'summary'] as const;
@@ -167,4 +167,14 @@ export function useInvalidatePeople(): () => Promise<void> {
     () => queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY }),
     [queryClient],
   );
+}
+
+/** People from my groups to pick into a quick expense; cached like `useRecentPeople`, failures just mean no suggestions. */
+export function useGroupPeople() {
+  return useQuery<GroupPerson[]>({
+    queryKey: ['me', 'people', 'candidates'],
+    queryFn: () => apiFetch<GroupPerson[]>('/api/me/people/candidates'),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
 }
