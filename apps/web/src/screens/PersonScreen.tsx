@@ -75,15 +75,21 @@ export function PersonScreen(): JSX.Element {
   const [answerError, setAnswerError] = useState<{ settlementId: string; error: unknown } | null>(null);
 
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false);
-  const [showCopied, setShowCopied] = useState(false);
+  // The candidate being merged in, and the last merge's error (shown in the sheet).
+  const [mergeSending, setMergeSending] = useState<PersonKey | null>(null);
+  const [mergeError, setMergeError] = useState<unknown>(null);
+  // The linked entry being split off, and the last unmerge's error (shown under its row).
+  const [unmergeSending, setUnmergeSending] = useState<string | null>(null);
+  const [unmergeError, setUnmergeError] = useState<{ participantId: string; error: unknown } | null>(null);
+  const [snack, setSnack] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!showCopied) return;
+    if (snack === null) return;
     const timer = setTimeout(() => {
-      setShowCopied(false);
+      setSnack(null);
     }, 4000);
     return () => clearTimeout(timer);
-  }, [showCopied]);
+  }, [snack]);
 
   if (isLoading) {
     return (
@@ -142,6 +148,41 @@ export function PersonScreen(): JSX.Element {
     }
   };
 
+  const handleOpenMerge = () => {
+    setMergeError(null);
+    setMergeSheetOpen(true);
+  };
+
+  const handleMerge = async (candidate: PersonSummary) => {
+    if (mergeSending) return;
+    setMergeSending(candidate.key);
+    setMergeError(null);
+    try {
+      const result = await linkPeople([person.key, candidate.key], qc);
+      setMergeSheetOpen(false);
+      setSnack(t('person.merged'));
+      navigate(`/people/${encodeURIComponent(result.key)}`, { replace: true });
+    } catch (err) {
+      setMergeError(err);
+    } finally {
+      setMergeSending(null);
+    }
+  };
+
+  const handleUnmerge = async (participantId: string, name: string) => {
+    if (unmergeSending) return;
+    setUnmergeSending(participantId);
+    setUnmergeError(null);
+    try {
+      await unlinkPerson(participantId, qc);
+      setSnack(t('person.unmerged', { name }));
+    } catch (error) {
+      setUnmergeError({ participantId, error });
+    } finally {
+      setUnmergeSending(null);
+    }
+  };
+
   const handleOpenPay = () => {
     setPayKey(newIdempotencyKey());
     setPayError(null);
@@ -194,7 +235,7 @@ export function PersonScreen(): JSX.Element {
         }
       } else {
         await copyText(url);
-        setShowCopied(true);
+        setSnack(t('person.linkCopied'));
       }
     } catch {
       // ignore
@@ -374,20 +415,22 @@ export function PersonScreen(): JSX.Element {
                 const location =
                   entry.kind === 'direct' ? t('nav.home') : entry.tripName;
                 return (
-                  <div
-                    key={entry.participantId}
-                    className="flex items-center justify-between gap-3 px-4 py-3 min-h-11"
-                  >
-                    <span className="truncate text-base text-foreground flex-1 min-w-0">
-                      {entry.name} · {location}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      data-testid={`unmerge-${entry.participantId}`}
-                      onClick={() => void unlinkPerson(entry.participantId, qc)}
-                    >
-                      {t('person.unmerge', { name: entry.name })}
-                    </Button>
+                  <div key={entry.participantId} className="flex flex-col gap-2 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 min-h-11">
+                      <span className="truncate text-base text-foreground flex-1 min-w-0">
+                        {entry.name} · {location}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        data-testid={`unmerge-${entry.participantId}`}
+                        loading={unmergeSending === entry.participantId}
+                        disabled={unmergeSending !== null}
+                        onClick={() => void handleUnmerge(entry.participantId, entry.name)}
+                      >
+                        {t('person.unmerge', { name: entry.name })}
+                      </Button>
+                    </div>
+                    {unmergeError?.participantId === entry.participantId && <InlineError error={unmergeError.error} />}
                   </div>
                 );
               })}
@@ -449,7 +492,7 @@ export function PersonScreen(): JSX.Element {
               variant="secondary"
               block
               data-testid="person-merge"
-              onClick={() => setMergeSheetOpen(true)}
+              onClick={handleOpenMerge}
             >
               {t('person.mergeWith')}
             </Button>
@@ -561,17 +604,9 @@ export function PersonScreen(): JSX.Element {
                     variant="secondary"
                     block
                     data-testid={`merge-pick-${candidate.key}`}
-                    disabled={bothSignedIn}
-                    onClick={async () => {
-                      const result = await linkPeople(
-                        [person.key, candidate.key],
-                        qc,
-                      );
-                      setMergeSheetOpen(false);
-                      navigate(`/people/${encodeURIComponent(result.key)}`, {
-                        replace: true,
-                      });
-                    }}
+                    disabled={bothSignedIn || mergeSending !== null}
+                    loading={mergeSending === candidate.key}
+                    onClick={() => void handleMerge(candidate)}
                   >
                     <span>{candidate.name}</span>
                     {bothSignedIn && (
@@ -586,11 +621,12 @@ export function PersonScreen(): JSX.Element {
                 );
               })}
             </div>
+            {mergeError !== null && <InlineError error={mergeError} />}
           </div>
         </Sheet>
       </div>
 
-      {showCopied && <Snackbar message={t('person.linkCopied')} />}
+      {snack !== null && <Snackbar message={snack} />}
     </Screen>
   );
 }

@@ -122,6 +122,8 @@ export const en = {
   'person.mergeHelp': "They become one person here, with one total. Your groups don't change.",
   'person.mergeBothSignedIn': 'Both have accounts',
   'person.unmerge': 'Split {name} off',
+  'person.merged': 'Merged',
+  'person.unmerged': '{name} split off',
   'person.linkedTitle': 'Merged here',
   'person.notFound': 'Nothing open with this person.',
   'person.notReceived': 'Not received',

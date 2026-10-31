@@ -122,6 +122,8 @@ export const vi: Record<MessageKey, string> = {
   'person.mergeHelp': 'Họ sẽ thành một người ở đây, với một tổng. Các nhóm không thay đổi.', // REVIEW
   'person.mergeBothSignedIn': 'Cả hai đều có tài khoản', // REVIEW
   'person.unmerge': 'Tách {name} ra', // REVIEW
+  'person.merged': 'Đã gộp', // REVIEW
+  'person.unmerged': 'Đã tách {name} ra', // REVIEW
   'person.linkedTitle': 'Đã gộp vào đây', // REVIEW
   'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
   'person.notReceived': 'Chưa nhận được', // REVIEW

@@ -207,3 +207,66 @@ describe('PersonScreen merge & unmerge', () => {
     });
   });
 });
+
+describe('PersonScreen merge & unmerge feedback', () => {
+  const withLinked: PersonSummary = {
+    ...guestMinh,
+    linked: [{ participantId: 'g-minh', name: 'Minh', tripName: 'Đà Lạt', kind: 'group' }],
+  };
+  const failure = () => Response.json({ error: { code: 'VALIDATION', message: 'Not a merge' } }, { status: 422 });
+
+  it('a failed merge shows the error in the sheet and keeps it open', async () => {
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people/summary': { incomplete: false, people: [guestMinh, candidateMinhN] },
+      'POST /api/me/people/link': failure,
+    });
+    renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
+    await userEvent.click(await screen.findByTestId('person-merge'));
+    await userEvent.click(await screen.findByTestId('merge-pick-p:p-minhn'));
+    expect(await screen.findByText('Not a merge')).toBeInTheDocument();
+    expect(screen.getByTestId('merge-pick-p:p-minhn')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-minh');
+  });
+
+  it('a merge shows a snackbar', async () => {
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people/summary': { incomplete: false, people: [guestMinh, candidateMinhN] },
+      'POST /api/me/people/link': { key: 'p:p-minh' },
+    });
+    renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
+    await userEvent.click(await screen.findByTestId('person-merge'));
+    await userEvent.click(await screen.findByTestId('merge-pick-p:p-minhn'));
+    expect(await screen.findByRole('status')).toHaveTextContent('Merged');
+  });
+
+  it('unmerge disables the row while sending, then shows a snackbar', async () => {
+    let answer: (r: Response) => void = () => {};
+    const { calls } = mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people/summary': { incomplete: false, people: [withLinked] },
+      'DELETE /api/me/people/link/g-minh': () => new Promise<Response>((resolve) => { answer = resolve; }),
+    });
+    renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
+    const btn = await screen.findByTestId('unmerge-g-minh');
+    await userEvent.click(btn);
+    await waitFor(() => expect(screen.getByTestId('unmerge-g-minh')).toBeDisabled());
+    await userEvent.click(screen.getByTestId('unmerge-g-minh'));
+    expect(calls.filter((c) => c.method === 'DELETE').length).toBe(1);
+    answer(new Response(null, { status: 204 }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Minh split off');
+  });
+
+  it('a failed unmerge shows the error under its row', async () => {
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people/summary': { incomplete: false, people: [withLinked] },
+      'DELETE /api/me/people/link/g-minh': failure,
+    });
+    renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
+    await userEvent.click(await screen.findByTestId('unmerge-g-minh'));
+    expect(await screen.findByText('Not a merge')).toBeInTheDocument();
+    expect(screen.getByTestId('unmerge-g-minh')).not.toBeDisabled();
+  });
+});
