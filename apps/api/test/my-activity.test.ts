@@ -97,8 +97,9 @@ describe('GET /api/me/activity', () => {
     const sid = await memberSid(U.an, 'An');
     const rows = [trip('g1', 'trip'), person('g1-an', 'g1', 'An', U.an, 0)];
     for (let i = 0; i < 60; i++) {
-      // 30 rows share one createdAt; the other 30 each have their own.
-      const createdAt = i < 30 ? at(30) : at(i - 30);
+      // 40 newest rows each have their own createdAt; the 20 oldest share one, so the
+      // 50-row page boundary falls inside that same-timestamp group (10 on each page).
+      const createdAt = i < 40 ? at(20 + i) : at(10);
       rows.push(act(`a-${String(i).padStart(2, '0')}`, 'g1', createdAt, 'g1-an'));
     }
     await env.DB.batch(rows);
@@ -106,6 +107,7 @@ describe('GET /api/me/activity', () => {
     const p1 = await page(sid);
     expect(p1.items).toHaveLength(50);
     expect(p1.next).not.toBeNull();
+    expect(p1.items.filter((i) => i.createdAt === at(10))).toHaveLength(10);
     const p2 = await page(sid, p1.next!);
     expect(p2.items).toHaveLength(10);
     expect(p2.next).toBeNull();
