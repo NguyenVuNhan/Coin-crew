@@ -23,7 +23,7 @@ import { readSplitInput, fromEntryValue } from '../lib/splitInput';
 import { recentGroups } from '../lib/recentGroups';
 import { SplitBetween } from '../components/SplitBetween';
 import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
-import { useLeaveForm } from '../lib/detailsNav';
+import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
 import { fundAvailable, fundPaidCheck, isFundAdmin } from '../lib/fund';
 import { EntryTypeSwitch, type EntryType } from '../components/EntryTypeSwitch';
@@ -1545,7 +1545,8 @@ export function ExpenseForm() {
   // Polls like the trip page, so someone removed elsewhere drops off the split before it is saved.
   const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
   // Quick expenses live in a hidden trip: leaving goes back to Home, not to that trip's page.
-  const leave = useLeaveForm(tripId, view?.trip.preset === 'direct' ? '/trips' : undefined);
+  const { base } = useTrip(tripId);
+  const leave = useBack((view?.trip.preset === 'direct' ? '/trips' : undefined) ?? base).goBack;
 
   const isEdit = Boolean(expenseId);
   const title = incomeId

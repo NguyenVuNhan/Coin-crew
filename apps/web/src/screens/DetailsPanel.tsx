@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
-import { useBackToTrip, useOpenDetails } from '../lib/detailsNav';
+import { useOpenDetails } from '../lib/detailsNav';
+import { useBack } from '../lib/navHistory';
+import { useTrip } from '../lib/tripBase';
 import { Icon } from '../components/icons';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
@@ -20,7 +22,8 @@ export type Detail = Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings
  */
 export function DetailsPanel({ view, selection, onClose }: { view: TripView; selection: Selection; onClose?: () => void }) {
   const t = useT();
-  const backToTrip = useBackToTrip(view.trip.id);
+  const { base } = useTrip(view.trip.id);
+  const backToTrip = useBack(base).goBack;
   // The main screen keeps its own selection and closes by clearing it.
   const close = onClose ?? backToTrip;
   const panel = useRef<HTMLElement>(null);

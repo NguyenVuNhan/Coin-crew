@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
-import { useBackToTrip } from '../lib/detailsNav';
+import { useBack } from '../lib/navHistory';
+import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { ApprovalItem, approvalKey, waitingApprovals } from '../components/ApprovalsCard';
 import { FocusWatch } from '../components/FocusWatch';
@@ -61,7 +62,8 @@ export function ApprovalList({ view, onClose, switching = false }: { view: TripV
 /** The full approvals list as a page of its own (phones). The wide trip page shows the same list in its right panel. */
 export function Approvals({ view }: { view: TripView }) {
   const t = useT();
-  const close = useBackToTrip(view.trip.id);
+  const { base } = useTrip(view.trip.id);
+  const close = useBack(base).goBack;
   return (
     <Screen title={t('approvals.allTitle')} onBack={close}>
       <div className="fsl-approvals py-4">

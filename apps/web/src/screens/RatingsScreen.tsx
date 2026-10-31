@@ -14,7 +14,7 @@ import {
 } from '../config';
 import { useT } from '../i18n';
 import { actorOf } from '../lib/rowActions';
-import { useBackToTrip } from '../lib/detailsNav';
+import { useBack } from '../lib/navHistory';
 import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
@@ -542,7 +542,8 @@ export function RatingsPanel({ view }: { view: TripView }) {
 
 export function RatingsScreen({ view }: { view: TripView }) {
   const t = useT();
-  const goBack = useBackToTrip(view.trip.id);
+  const { base } = useTrip(view.trip.id);
+  const goBack = useBack(base).goBack;
   return (
     <Screen title={t('ratings.title')} onBack={goBack}>
       <RatingsPanel view={view} />

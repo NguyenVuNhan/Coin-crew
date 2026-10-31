@@ -4,7 +4,8 @@ import type { TripView } from '@fsl/core';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';
-import { homeDetailsHref, useBackToTrip, useListScroll } from '../lib/detailsNav';
+import { homeDetailsHref } from '../lib/detailsNav';
+import { useBack } from '../lib/navHistory';
 import { linkTokens } from '../lib/linkTokens';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
@@ -43,8 +44,9 @@ function selectionFrom(params: { expenseId?: string; paymentId?: string; incomeI
 /** The details of one expense, payment or fund income as a page of its own (phones); back returns to the list where it was left. */
 function DetailsPage({ view, selection }: { view: TripView; selection: Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings' }> }) {
   const t = useT();
+  const { base } = useTrip(view.trip.id);
   // The ledger has no page of its own: its details go back to the main screen.
-  const goBack = useBackToTrip(view.trip.id, view.trip.preset === 'direct' ? '/trips' : undefined);
+  const goBack = useBack((view.trip.preset === 'direct' ? '/trips' : undefined) ?? base).goBack;
   return (
     <Screen
       title={selection.kind === 'expense' ? t('details.expense') : selection.kind === 'income' ? t('details.income') : t('details.payment')}
@@ -111,7 +113,6 @@ export function TripRoute() {
   const detail = selection && selection.kind !== 'approvals' && selection.kind !== 'ratings' && !wide ? selection : null;
   const approvalsPage = selection?.kind === 'approvals' && !wide;
   const ratingsPage = selection?.kind === 'ratings' && !wide;
-  useListScroll(detail !== null ? 'details' : approvalsPage ? 'approvals' : ratingsPage ? 'ratings' : 'list');
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {
