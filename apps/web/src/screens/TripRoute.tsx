@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Navigate, useLocation, useMatch, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
-import { useTripView } from '../api/hooks';
+import { useMe, useTripView } from '../api/hooks';
+import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';
 import { useBackToTrip, useListScroll } from '../lib/detailsNav';
 import { Screen } from '../components/Screen';
@@ -83,6 +84,8 @@ export function TripRoute() {
   const navigate = useNavigate();
   const t = useT();
   const wide = useIsWide();
+  const user = useMe().data?.user;
+  const { ledger } = useLedger();
   const onApprovals = useMatch('/t/:tripId/approvals') !== null;
   const onRatings = useMatch('/t/:tripId/ratings') !== null;
   const selection: Selection | null = onApprovals
@@ -121,8 +124,16 @@ export function TripRoute() {
   }
 
   if (error) {
+    const forbiddenNav =
+      error.code === 'FORBIDDEN' && user
+        ? {
+            section: 'groups' as const,
+            addHref: ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips',
+          }
+        : undefined;
+
     return (
-      <Screen title="" right={<LanguageButton />}>
+      <Screen title="" right={<LanguageButton />} nav={forbiddenNav}>
         {error.code === 'FORBIDDEN' ? (
           <NoAccess returnTo={location.pathname + location.search} />
         ) : (
@@ -138,6 +149,10 @@ export function TripRoute() {
 
   if (view.me.kind === 'guest' && view.me.participantId === null) {
     return null;
+  }
+
+  if (view.trip.preset === 'direct' && selection === null) {
+    return <Navigate to="/trips" replace />;
   }
 
   // Only members have anything to approve: a guest or a view-only link to the list lands on the trip.

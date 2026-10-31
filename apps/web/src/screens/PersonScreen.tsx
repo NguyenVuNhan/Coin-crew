@@ -17,6 +17,7 @@ import {
   requestLink,
   setNickname,
   settle,
+  useLedger,
   usePeopleSummary,
   usePersonPay,
 } from '../api/people';
@@ -44,6 +45,10 @@ export function PersonScreen(): JSX.Element {
 
   const meQuery = useMe();
   const me = meQuery.data;
+
+  const { ledger } = useLedger();
+  const addHref = ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
+  const nav = { section: 'home' as const, addHref };
 
   const { people, isLoading, error, refetch } = usePeopleSummary();
   const person = people?.find((p) => p.key === key);
@@ -80,7 +85,7 @@ export function PersonScreen(): JSX.Element {
 
   if (isLoading) {
     return (
-      <Screen title={person?.name ?? t('person.title')} back="/trips">
+      <Screen title={person?.name ?? t('person.title')} back="/trips" nav={nav}>
         <SkeletonList rows={3} />
       </Screen>
     );
@@ -88,7 +93,7 @@ export function PersonScreen(): JSX.Element {
 
   if (error) {
     return (
-      <Screen title={person?.name ?? t('person.title')} back="/trips">
+      <Screen title={person?.name ?? t('person.title')} back="/trips" nav={nav}>
         <InlineError error={error} onRetry={refetch} />
       </Screen>
     );
@@ -96,7 +101,7 @@ export function PersonScreen(): JSX.Element {
 
   if (!person) {
     return (
-      <Screen title={t('person.title')} back="/trips">
+      <Screen title={t('person.title')} back="/trips" nav={nav}>
         <EmptyState icon="users" title={t('person.notFound')} action={null} />
       </Screen>
     );
@@ -203,7 +208,7 @@ export function PersonScreen(): JSX.Element {
   const cashAmount = cleanCashDigits ? parseInt(cleanCashDigits, 10) : 0;
 
   return (
-    <Screen title={person.name ?? t('person.title')} back="/trips">
+    <Screen title={person.name ?? t('person.title')} back="/trips" nav={nav}>
       <div className="fsl-person flex flex-col gap-6 py-2">
         {/* Header block */}
         <div className="fsl-person__header flex flex-col items-center gap-2 text-center">

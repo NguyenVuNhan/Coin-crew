@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
 import { Screen } from '../components/Screen';
@@ -29,6 +30,9 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const wide = useIsWide();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
+
+  const user = useMe().data?.user;
+  const signedIn = Boolean(user);
 
   const tripId = view.trip.id;
   const archived = view.trip.archived;
@@ -84,7 +88,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       onOpenIncome={(id) => open('income', id)}
       hintable={hintable}
       add={addLink(false, addVariant)}
-      addInHeading={inHeading}
+      addInHeading={signedIn ? false : inHeading}
     />
   );
 
@@ -119,8 +123,9 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       back="/trips"
       right={header}
       wide
+      nav={signedIn ? { section: 'groups', addHref: `/t/${view.trip.id}/expenses/new` } : undefined}
       // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
-      bottomBar={!wide && hasFeed ? addLink(true, addVariant) : undefined}
+      bottomBar={signedIn ? undefined : (!wide && hasFeed ? addLink(true, addVariant) : undefined)}
     >
       {wide ? (
         <div className="fsl-member flex flex-col gap-4 py-4">
