@@ -221,4 +221,28 @@ describe('Home screen', () => {
 
     expect(await screen.findByText('Create your first group')).toBeInTheDocument();
   });
+
+  it('keeps a settled person listed while their payment waits for me', async () => {
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/trips': [],
+      'GET /api/me/ledger': { tripId: 't-ledger', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': {
+        people: [
+          {
+            key: 'p:p-minh', name: 'Minh', nickname: null, userId: null, groupLabel: null, total: 0, items: [],
+            waiting: [{ settlementId: 's-1', amount: 120000, direction: 'toOwner' }],
+          },
+        ],
+        incomplete: false,
+      },
+    });
+
+    renderAt(<Home />, { route: '/trips' });
+
+    const row = await screen.findByTestId('person-row-p:p-minh');
+    expect(within(row).getByText('Waiting for you to confirm')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Owed to you' })).toBeInTheDocument();
+    expect(screen.queryByText('No open debts')).not.toBeInTheDocument();
+  });
 });

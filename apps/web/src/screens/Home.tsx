@@ -48,12 +48,19 @@ export function Home(): JSX.Element {
     }
   }, [meQuery.isSuccess, user, navigate]);
 
+  // A guest's "I've paid" counts at once, so someone settled can still have a payment to confirm: keep them listed,
+  // on the side the money moved to.
+  const owedSide = (p: PersonSummary) =>
+    p.total > 0 || (p.total === 0 && p.waiting.some((w) => w.direction === 'toOwner'));
+  const oweSide = (p: PersonSummary) =>
+    p.total < 0 || (p.total === 0 && p.waiting.length > 0 && !owedSide(p));
+
   const owedToYou = (people ?? [])
-    .filter((p) => p.total > 0)
+    .filter(owedSide)
     .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
 
   const youOwe = (people ?? [])
-    .filter((p) => p.total < 0)
+    .filter(oweSide)
     .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
 
   const isEmpty = owedToYou.length === 0 && youOwe.length === 0;
@@ -89,13 +96,13 @@ export function Home(): JSX.Element {
         <span
           className={cn(
             'fsl-home__amount tabular-nums font-semibold shrink-0',
-            p.total > 0 ? 'text-success' : 'text-danger',
+            p.total > 0 ? 'text-success' : p.total < 0 ? 'text-danger' : 'text-muted-foreground',
           )}
         >
-          {p.total > 0 ? '+' : '−'}
+          {p.total > 0 ? '+' : p.total < 0 ? '−' : ''}
           <Amount
             value={Math.abs(p.total)}
-            tone={p.total > 0 ? 'success' : 'danger'}
+            tone={p.total > 0 ? 'success' : p.total < 0 ? 'danger' : 'neutral'}
           />
         </span>
       </Link>
