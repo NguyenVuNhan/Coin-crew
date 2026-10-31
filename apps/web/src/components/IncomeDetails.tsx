@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { formatDay } from '../lib/time';
 import { useTripAction } from '../lib/useTripAction';
+import { useTrip } from '../lib/tripBase';
 import { fundOf, incomeMinimum, isFundAdmin } from '../lib/fund';
 import { ApiClientError } from '../api/client';
 import { Pill } from './Pill';
@@ -34,6 +35,7 @@ export function IncomeDetails({ view, incomeId, onClose }: IncomeDetailsProps) {
   const t = useT();
   const navigate = useNavigate();
   const historyTitleId = useId();
+  const { href } = useTrip(view.trip.id);
   const { busy, error, run } = useTripAction(view.trip.id);
   const [lastActionDisable, setLastActionDisable] = useState(false);
 
@@ -159,7 +161,7 @@ export function IncomeDetails({ view, incomeId, onClose }: IncomeDetailsProps) {
           <Button
             variant="secondary"
             className="fsl-details__action flex-1 min-w-[140px] rounded-full"
-            onClick={() => navigate(`/t/${view.trip.id}/fund/${income.id}/edit`)}
+            onClick={() => navigate(href(`/fund/${income.id}/edit`))}
           >
             <Icon name="edit" size={18} />
             {t('approvals.edit')}

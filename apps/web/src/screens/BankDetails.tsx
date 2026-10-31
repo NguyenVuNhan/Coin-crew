@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router';
+import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BankInput, MyBankResponse } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
+import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
@@ -17,11 +18,11 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export function BankDetails() {
-  const { tripId } = useParams<{ tripId?: string }>();
+  const { tripId, href } = useTrip();
   const t = useT();
   const queryClient = useQueryClient();
 
-  const tripViewResult = useTripView(tripId ?? '', 0);
+  const tripViewResult = useTripView(tripId, 0);
   const view = tripId ? tripViewResult.view : undefined;
   const isLoading = tripId ? tripViewResult.isLoading : false;
   const tripError = tripId ? tripViewResult.error : null;
@@ -59,7 +60,7 @@ export function BankDetails() {
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [success, setSuccess] = useState(false);
 
-  const backLink = tripId ? `/t/${tripId}` : '/trips';
+  const backLink = tripId ? href() : '/trips';
 
   const note = tripId
     ? view?.me.kind === 'guest'

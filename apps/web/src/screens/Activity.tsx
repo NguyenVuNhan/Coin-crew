@@ -1,7 +1,7 @@
-import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { ActivityItem } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { apiFetch, type ApiClientError } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { activityLine, groupByDay, timeOf } from '../lib/activityText';
@@ -12,7 +12,7 @@ import { EmptyState } from '../components/EmptyState';
 import { cn } from '@/lib/utils';
 
 export function Activity() {
-  const { tripId } = useParams<{ tripId: string }>();
+  const { tripId, href } = useTrip();
   const t = useT();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -25,7 +25,7 @@ export function Activity() {
   const loading = isLoading || viewLoading;
 
   return (
-    <Screen title={t('activity.title')} back={`/t/${tripId}/settings`}>
+    <Screen title={t('activity.title')} back={href('/settings')}>
       <div className={cn('fsl-activity flex flex-col gap-4 py-4')}>
         {loading && !error && <SkeletonList rows={5} />}
 

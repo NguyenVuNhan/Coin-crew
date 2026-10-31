@@ -16,6 +16,7 @@ import { useT } from '../i18n';
 import { actorOf } from '../lib/rowActions';
 import { useBackToTrip } from '../lib/detailsNav';
 import { useTripAction } from '../lib/useTripAction';
+import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { Avatar } from '../components/Avatar';
 import { Pill } from '../components/Pill';
@@ -299,6 +300,7 @@ export function StarVote({
 
 export function RatingsPanel({ view }: { view: TripView }) {
   const t = useT();
+  const { href } = useTrip(view.trip.id);
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const { busy, error, run } = useTripAction(view.trip.id);
@@ -455,7 +457,7 @@ export function RatingsPanel({ view }: { view: TripView }) {
           <p className="fsl-ratings__guest-title m-0 text-base font-semibold text-foreground">{t('ratings.guestTitle')}</p>
           <p className="fsl-ratings__guest-body m-0 text-sm text-muted-foreground">{t('ratings.guestBody')}</p>
           <a
-            href={`/api/auth/google/start?returnTo=${encodeURIComponent(`/t/${view.trip.id}/ratings`)}`}
+            href={`/api/auth/google/start?returnTo=${encodeURIComponent(href('/ratings'))}`}
             className={cn(
               'fsl-button fsl-button--secondary fsl-button--block',
               buttonVariants({ variant: 'secondary' }),

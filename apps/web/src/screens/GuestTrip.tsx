@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { apiSend } from '../api/client';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
@@ -27,6 +28,7 @@ import { cn } from '@/lib/utils';
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
+  const { href } = useTrip(view.trip.id);
   const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
   // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
@@ -70,7 +72,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const addLink = (block: boolean) =>
     archived ? undefined : (
       <Link
-        to={`/t/${view.trip.id}/expenses/new`}
+        to={href('/expenses/new')}
         className={cn(
           'fsl-button',
           `fsl-button--${showsPay ? 'secondary' : 'primary'}`,
@@ -94,7 +96,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       <span>{t('guest.viewingAs', { name: myName })}</span>
       <span className="fsl-guest__banner-dot text-muted-foreground">·</span>
       <Link
-        to={`/t/${view.trip.id}/who`}
+        to={href('/who')}
         className="fsl-guest__switch-link text-primary font-semibold no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
         {t('guest.switch', { name: myName })}
@@ -143,7 +145,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         !archived && (
           <SignInButtons
             layout="inline"
-            returnTo={`/t/${view.trip.id}?becomeMember=1`}
+            returnTo={href('?becomeMember=1')}
             labels={{ google: 'guest.becomeMember', zalo: 'guest.becomeMemberZalo' }}
           />
         )
