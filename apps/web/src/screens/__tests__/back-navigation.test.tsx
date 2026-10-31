@@ -302,7 +302,7 @@ describe('screens with one hard-coded back', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Your groups' })).toBeInTheDocument();
 
-    const accountBtn = within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: 'Account' });
+    const accountBtn = await within(screen.getAllByRole('banner')[0]!).findByRole('button', { name: 'Account' });
     await userEvent.click(accountBtn);
 
     const menu = await screen.findByRole('dialog', { name: 'Account' });
@@ -324,7 +324,7 @@ describe('screens with one hard-coded back', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
 
-    const accountBtn = within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: 'Account' });
+    const accountBtn = await within(screen.getAllByRole('banner')[0]!).findByRole('button', { name: 'Account' });
     await userEvent.click(accountBtn);
     const menu = await screen.findByRole('dialog', { name: 'Account' });
     await userEvent.click(within(menu).getByRole('link', { name: 'Privacy notice' }));
