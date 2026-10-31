@@ -7,10 +7,12 @@ import {
   bankDetails,
   deviceParticipants,
   membershipRequests,
+  nicknames,
   participants,
   participantMergeRows,
   participantMerges,
   paymentRefs,
+  personLinks,
   transactions,
   transactionShares,
 } from '../db/schema';
@@ -397,6 +399,52 @@ export async function mergeParticipants(
         .update(bankDetails)
         .set({ participantId: intoId })
         .where(eq(bankDetails.participantId, fromId)),
+    );
+  }
+
+  // People-view data follows the survivor (spec goal 11): owners' links, nicknames and the request
+  // link. Otherwise a link or a settlement could land on the merged, invisible row.
+  const fromKey = `p:${fromId}`;
+  const intoKey = `p:${intoId}`;
+  const [linksToFrom, linksOfFrom, linksOfInto, nicks] = await Promise.all([
+    db.select().from(personLinks).where(eq(personLinks.personPid, fromId)),
+    db.select().from(personLinks).where(eq(personLinks.participantId, fromId)),
+    db.select().from(personLinks).where(eq(personLinks.participantId, intoId)),
+    db.select().from(nicknames).where(inArray(nicknames.personKey, [fromKey, intoKey])),
+  ]);
+  const logLink = (row: Record<string, unknown>) => log.add(personLinks, 'person_links', ['owner_user_id', 'participant_id'], row);
+
+  for (const l of linksToFrom) logLink(l);
+  if (linksToFrom.length > 0) {
+    queries.push(db.update(personLinks).set({ personPid: intoId }).where(eq(personLinks.personPid, fromId)));
+  }
+  for (const l of linksOfFrom) {
+    logLink(l);
+    // The survivor's own link for that owner wins; otherwise the link moves to the survivor.
+    const where = and(eq(personLinks.ownerUserId, l.ownerUserId), eq(personLinks.participantId, fromId));
+    queries.push(
+      linksOfInto.some((i) => i.ownerUserId === l.ownerUserId)
+        ? db.delete(personLinks).where(where)
+        : db.update(personLinks).set({ participantId: intoId }).where(where),
+    );
+  }
+
+  for (const n of nicks.filter((x) => x.personKey === fromKey)) {
+    log.add(nicknames, 'nicknames', ['owner_user_id', 'person_key'], n);
+    const where = and(eq(nicknames.ownerUserId, n.ownerUserId), eq(nicknames.personKey, fromKey));
+    queries.push(
+      nicks.some((x) => x.personKey === intoKey && x.ownerUserId === n.ownerUserId)
+        ? db.delete(nicknames).where(where)
+        : db.update(nicknames).set({ personKey: intoKey }).where(where),
+    );
+  }
+
+  // The request link keeps working on the survivor; the survivor's own link wins.
+  if (from.requestToken !== null && into.requestToken === null) {
+    logParticipant(into);
+    queries.push(
+      db.update(participants).set({ requestToken: null }).where(eq(participants.id, fromId)),
+      db.update(participants).set({ requestToken: from.requestToken }).where(eq(participants.id, intoId)),
     );
   }
 

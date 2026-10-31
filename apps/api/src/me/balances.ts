@@ -317,12 +317,14 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
     let target = key.slice(2);
     if (target === '') return null;
     const link = await db
-      .select({ personPid: personLinks.personPid })
+      .select({ personPid: personLinks.personPid, status: participants.status, mergedInto: participants.mergedInto })
       .from(personLinks)
+      .leftJoin(participants, eq(participants.id, personLinks.personPid))
       .where(and(eq(personLinks.ownerUserId, userId), eq(personLinks.participantId, target)))
       .get();
     queries += 1;
-    if (link) target = link.personPid;
+    // A link left on a merged ledger row means its survivor.
+    if (link) target = link.status === 'merged' && link.mergedInto ? link.mergedInto : link.personPid;
     canonical = `p:${target}`;
     cond = sql`p.user_id IS NULL AND (p.id = ${target} OR p.id IN (SELECT pl.participant_id FROM person_links pl WHERE pl.owner_user_id = ${userId} AND pl.person_pid = ${target}))`;
   }
