@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useNavigationType } from 'react-router';
-import type { MyActivityItem, PersonSummary, TripView } from '@fsl/core';
+import type { ExpenseView, MyActivityItem, PersonSummary, TripView } from '@fsl/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { tripView, guestChiView, viewerView, picker, PIDS } from '../../test/fixtures';
@@ -630,7 +630,8 @@ describe('finished steps', () => {
     });
     renderApp('/groups');
 
-    const newGroupLink = await screen.findByRole('link', { name: 'New group' });
+    expect(await screen.findByText('Create your first group')).toBeInTheDocument();
+    const newGroupLink = screen.getByRole('link', { name: 'New group' });
     await userEvent.click(newGroupLink);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/trips/new'));
@@ -680,7 +681,7 @@ describe('finished steps', () => {
     await userEvent.click(settingsLink);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/settings'));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Group settings' })).toBeInTheDocument();
 
     const archiveBtn = await screen.findByRole('button', { name: 'Archive group' });
     await userEvent.click(archiveBtn);
@@ -698,9 +699,8 @@ describe('finished steps', () => {
   it('leave and sign out replace the page', async () => {
     mockMedia({ wide: false });
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    let currentUser: unknown = meUser;
     mockApi({
-      'GET /api/me': () => Response.json(currentUser),
+      'GET /api/me': meUser,
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/people/summary': { people: [], incomplete: false },
       'GET /api/trips': [
@@ -709,12 +709,8 @@ describe('finished steps', () => {
       'GET /api/trips/t-1': anView(),
       'GET /api/trips/t-1/version': { version: 1 },
       'POST /api/trips/t-1/leave': null,
-      'POST /api/auth/logout': () => {
-        currentUser = { user: null };
-        return new Response(null, { status: 204 });
-      },
     });
-    renderAppWithKind('/groups');
+    const { unmount } = renderAppWithKind('/groups');
 
     const groupLink = await screen.findByRole('link', { name: /Đà Lạt/ });
     await userEvent.click(groupLink);
@@ -730,6 +726,24 @@ describe('finished steps', () => {
     await userEvent.click(leaveBtn);
 
     await waitFor(() => expect(screen.getByTestId('navigation-kind')).toHaveTextContent('REPLACE'));
+    unmount();
+
+    let currentUser: unknown = meUser;
+    mockApi({
+      'GET /api/me': () => Response.json(currentUser),
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips': [
+        { id: 't-1', name: 'Đà Lạt · Oct 2026', archived: false, myBalance: 500000 },
+      ],
+      'POST /api/auth/logout': () => {
+        currentUser = { user: null };
+        return new Response(null, { status: 204 });
+      },
+    });
+    renderAppWithKind('/groups');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your groups' })).toBeInTheDocument();
 
     const accountBtn = await within(screen.getAllByRole('banner')[0]!).findByRole('button', { name: 'Account' });
     await userEvent.click(accountBtn);
@@ -880,13 +894,13 @@ describe('finished steps', () => {
   it('new sport expense → its details → Back returns to the group', async () => {
     mockMedia({ wide: false });
     const view = sportFundView();
-    const createdExpense = {
+    const createdExpense: ExpenseView = {
       id: 'e-sport-1',
       description: 'Badminton court',
       amount: 240000,
       spentOn: '2026-10-31',
       payerId: PIDS.M,
-      mode: 'equal',
+      mode: 'equal' as const,
       status: 'approved',
       rejectReason: null,
       disabledByName: null,
@@ -912,7 +926,8 @@ describe('finished steps', () => {
     });
     renderApp('/t/t-1');
 
-    const addBtn = await screen.findByTestId('nav-add');
+    const navBar = await screen.findByTestId('app-nav-bar');
+    const addBtn = within(navBar).getByTestId('nav-add');
     await userEvent.click(addBtn);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/new'));
