@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate, useNavigationType, type NavigateFunction } from 'react-router';
 import { NavHistoryProvider, useNavEntry } from '../../lib/navHistory';
 import { AppNav, type NavSection } from '../AppNav';
@@ -44,12 +45,20 @@ function NavContainer() {
 }
 
 function mount(initialEntries: string[]) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <NavHistoryProvider>
-        <NavContainer />
-      </NavHistoryProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={initialEntries}>
+        <NavHistoryProvider>
+          <NavContainer />
+        </NavHistoryProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
