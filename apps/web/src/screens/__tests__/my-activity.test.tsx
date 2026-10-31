@@ -82,7 +82,7 @@ describe('MyActivity', () => {
         mergeRequests: { incoming: [], outgoing: [] },
       },
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
-      'GET /api/me/activity': (_init, url) => {
+      'GET /api/me/activity': (_init: RequestInit | undefined, url: string) => {
         if (url.includes('before=c1')) {
           return Response.json({
             items: [page2Item],
