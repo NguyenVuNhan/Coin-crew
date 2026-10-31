@@ -90,6 +90,29 @@ export const vi: Record<MessageKey, string> = {
   'home.peopleEmptyBody': 'Thêm một khoản chi và chọn người chia cùng.', // REVIEW
   'home.stillCounting': 'Đang cộng thêm vài nhóm…', // REVIEW
   'home.waiting': 'Chờ bạn xác nhận', // REVIEW
+  'person.title': 'Người', // REVIEW
+  'person.owesYou': 'Nợ bạn', // REVIEW
+  'person.youOwe': 'Bạn nợ', // REVIEW
+  'person.settled': 'Đã xong hết', // REVIEW
+  'person.quickExpenses': 'Khoản chi nhanh', // REVIEW
+  'person.request': 'Gửi yêu cầu', // REVIEW
+  'person.settleUp': 'Thanh toán', // REVIEW
+  'person.paidInCash': 'Đã trả tiền mặt', // REVIEW
+  'person.paidInCashTitle': '{name} đã trả bạn bao nhiêu?', // REVIEW
+  'person.amountLabel': 'Số tiền', // REVIEW
+  'person.save': 'Lưu', // REVIEW
+  'person.linkCopied': 'Đã sao chép liên kết', // REVIEW
+  'person.shareTitle': '{owner} gửi yêu cầu thanh toán', // REVIEW
+  'person.saysPaid': '{name} báo đã trả {amount}', // REVIEW
+  'person.recordedFromYou': '{name} ghi nhận {amount} từ bạn', // REVIEW
+  'person.confirm': 'Xác nhận', // REVIEW
+  'person.nickname': 'Biệt danh', // REVIEW
+  'person.nicknameHelp': 'Chỉ mình bạn thấy.', // REVIEW
+  'person.editNickname': 'Sửa biệt danh', // REVIEW
+  'person.manageIn': 'Đổi tên hoặc gộp trong {group}', // REVIEW
+  'person.samePerson': 'Cùng một người?', // REVIEW
+  'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
+  'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
   'trip.tabs': 'Các tab', // REVIEW
