@@ -2,17 +2,14 @@ import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  findSimilarNames,
   formatVnd,
   type PersonKey,
-  type PersonSummary,
   type PersonWaitingSettlement,
 } from '@fsl/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
 import {
   confirmSettlement,
-  linkPeople,
   newIdempotencyKey,
   rejectSettlement,
   renameInGroup,
@@ -33,6 +30,7 @@ import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/icons';
 import { Label } from '@/components/ui/label';
 import { Sheet } from '../components/Sheet';
+import { MergePicker } from '../components/MergePicker';
 import { Snackbar } from '../components/Snackbar';
 import { PayQr } from '../components/PayQr';
 import { InlineError } from '../components/InlineError';
@@ -85,8 +83,6 @@ export function PersonScreen(): JSX.Element {
 
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false);
   // The candidate being merged in, and the last merge's error (shown in the sheet).
-  const [mergeSending, setMergeSending] = useState<PersonKey | null>(null);
-  const [mergeError, setMergeError] = useState<unknown>(null);
   // The linked entry being split off, and the last unmerge's error (shown under its row).
   const [unmergeSending, setUnmergeSending] = useState<string | null>(null);
   const [unmergeError, setUnmergeError] = useState<{ participantId: string; error: unknown } | null>(null);
@@ -185,24 +181,13 @@ export function PersonScreen(): JSX.Element {
   };
 
   const handleOpenMerge = () => {
-    setMergeError(null);
     setMergeSheetOpen(true);
   };
 
-  const handleMerge = async (candidate: PersonSummary) => {
-    if (mergeSending) return;
-    setMergeSending(candidate.key);
-    setMergeError(null);
-    try {
-      const result = await linkPeople([person.key, candidate.key], qc);
-      setMergeSheetOpen(false);
-      setSnack(t('person.merged'));
-      navigate(`/people/${encodeURIComponent(result.key)}`, { replace: true });
-    } catch (err) {
-      setMergeError(err);
-    } finally {
-      setMergeSending(null);
-    }
+  const handleMerged = (result: { key: PersonKey; proposals: string[] }) => {
+    setMergeSheetOpen(false);
+    setSnack(result.proposals.length > 0 ? t('merge.sent') : t('person.merged'));
+    navigate(`/people/${encodeURIComponent(result.key)}`, { replace: true });
   };
 
   const handleUnmerge = async (participantId: string, name: string) => {
@@ -278,18 +263,6 @@ export function PersonScreen(): JSX.Element {
     }
   };
 
-  // Candidates for merge: similar names first (findSimilarNames), then the rest sorted A–Z by name
-  const others = (people ?? []).filter((p) => p.key !== person.key);
-  const candidateNames = others.map((o) => ({ id: o.key, name: o.name }));
-  const similar = findSimilarNames(person.name, candidateNames);
-  const similarKeys = new Set(similar.map((s) => s.id));
-  const similarPeople = similar
-    .map((s) => others.find((o) => o.key === s.id))
-    .filter((o): o is PersonSummary => o !== undefined);
-  const remaining = others
-    .filter((o) => !similarKeys.has(o.key))
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  const mergeCandidates = [...similarPeople, ...remaining];
 
   const cleanCashDigits = cashValue.replace(/\D/g, '');
   const cashAmount = cleanCashDigits ? parseInt(cleanCashDigits, 10) : 0;
@@ -664,45 +637,12 @@ export function PersonScreen(): JSX.Element {
           </div>
         </Sheet>
 
-        {/* Merge Sheet */}
-        <Sheet
+        <MergePicker
+          person={{ key: person.key, name: person.name }}
           open={mergeSheetOpen}
           onClose={() => setMergeSheetOpen(false)}
-          title={t('person.mergeWith')}
-        >
-          <div className="flex flex-col gap-3 py-2">
-            <p className="text-sm text-muted-foreground m-0">
-              {t('person.mergeHelp')}
-            </p>
-            <div className="flex flex-col gap-2">
-              {mergeCandidates.map((candidate) => {
-                const bothSignedIn = person.userId !== null && candidate.userId !== null;
-                return (
-                  <Button
-                    key={candidate.key}
-                    variant="secondary"
-                    block
-                    data-testid={`merge-pick-${candidate.key}`}
-                    disabled={bothSignedIn || mergeSending !== null}
-                    loading={mergeSending === candidate.key}
-                    onClick={() => void handleMerge(candidate)}
-                  >
-                    <span>{candidate.name}</span>
-                    {bothSignedIn && (
-                      <>
-                        {' · '}
-                        <span className="text-xs text-muted-foreground font-normal">
-                          {t('person.mergeBothSignedIn')}
-                        </span>
-                      </>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
-            {mergeError !== null && <InlineError error={mergeError} />}
-          </div>
-        </Sheet>
+          onMerged={handleMerged}
+        />
       </div>
 
       {snack !== null && <Snackbar message={snack} />}

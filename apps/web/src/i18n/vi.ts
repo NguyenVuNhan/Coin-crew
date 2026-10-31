@@ -702,10 +702,8 @@ export const vi: Record<MessageKey, string> = {
   'merge.incoming': '{name} ({who}) muốn gộp tài khoản này vào tài khoản của họ', // REVIEW
   'merge.review': 'Xem & gộp', // REVIEW
   'merge.decline': 'Từ chối', // REVIEW
-  'merge.confirmTitle': 'Gộp tài khoản?', // REVIEW
   'merge.moves': '{groups} nhóm, tài khoản ngân hàng và lịch sử của bạn sẽ chuyển sang tài khoản của {name}.', // REVIEW
   'merge.released': '{provider} {email} sẽ không còn đăng nhập vào đây', // REVIEW
-  'merge.confirm': 'Gộp tài khoản', // REVIEW
   'merge.dot': 'Có yêu cầu gộp tài khoản', // REVIEW
   'merge.sheetTitle': 'Gộp với tài khoản {name}', // REVIEW
   'merge.sheetIntro': '{provider} này đã thuộc tài khoản CoinCrew {name}. Khi gộp, nhóm, ngân hàng và lịch sử của {name} sẽ chuyển sang tài khoản này.', // REVIEW
@@ -723,6 +721,29 @@ export const vi: Record<MessageKey, string> = {
   'merge.linkAgain': 'Liên kết lại', // REVIEW
   'merge.gotIt': 'Đã hiểu', // REVIEW
   'merge.noRequestHere': 'Tài khoản này không có yêu cầu gộp nào đang chờ.', // REVIEW
+  'merge.pickTitle': 'Gộp {name} với…', // REVIEW
+  'merge.searchPlaceholder': 'Tìm tên, email hoặc nhóm', // REVIEW
+  'merge.suggested': 'Giống {name}', // REVIEW
+  'merge.everyone': 'Những người khác', // REVIEW
+  'merge.noResults': 'Không có ai khớp', // REVIEW
+  'merge.tagOnlyYou': 'Chỉ mình bạn thấy', // REVIEW
+  'merge.tagGroup': 'Gộp trong {group} cho mọi người', // REVIEW
+  'merge.tagAskAdmin': 'Cần quản trị {group} đồng ý', // REVIEW
+  'merge.tagAskUser': 'Cần {name} và quản trị {group} đồng ý', // REVIEW
+  'merge.tagAskUserOnly': 'Cần {name} đồng ý', // REVIEW
+  'merge.tagClaimPending': '{name} đã xin nhận tên này. Đang chờ quản trị {group}.', // REVIEW
+  'merge.tagBusy': 'Đã có yêu cầu đang chờ trong {group}', // REVIEW
+  'merge.pickConfirmTitle': 'Gộp {a} và {b}?', // REVIEW
+  'merge.confirmTitle': 'Gộp tài khoản?', // REVIEW
+  'merge.stepLink': 'Chỉ mình bạn: bạn sẽ thấy họ là một người. Các nhóm không thay đổi.', // REVIEW
+  'merge.stepMerge': '{b} được gộp vào {a} trong {group}. Mọi người trong {group} sẽ thấy một người tên {a}.', // REVIEW
+  'merge.stepAskAdmin': 'Quản trị {group} sẽ được hỏi để gộp.', // REVIEW
+  'merge.stepAskUser': '{name} và quản trị {group} sẽ được hỏi để đồng ý.', // REVIEW
+  'merge.stepAskUserOnly': '{name} sẽ được hỏi để đồng ý.', // REVIEW
+  'merge.pickConfirm': 'Xác nhận', // REVIEW
+  'merge.confirm': 'Gộp tài khoản', // REVIEW
+  'merge.back': 'Quay lại', // REVIEW
+  'merge.sent': 'Đã gửi yêu cầu', // REVIEW
   'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
   'entry.expense': 'Chi tiêu', // REVIEW
   'entry.income': 'Quỹ thu', // REVIEW
