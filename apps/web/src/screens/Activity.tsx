@@ -1,7 +1,7 @@
-import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { ActivityItem } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { apiFetch, type ApiClientError } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { activityLine, groupByDay, timeOf } from '../lib/activityText';
@@ -11,10 +11,8 @@ import { InlineError } from '../components/InlineError';
 import { EmptyState } from '../components/EmptyState';
 import { cn } from '@/lib/utils';
 
-/** `tripId` + `embedded`: render only the list for that trip, inside another screen (the Activity tab on Home). */
-export function Activity({ tripId: tripIdProp, embedded = false }: { tripId?: string; embedded?: boolean } = {}) {
-  const params = useParams<{ tripId: string }>();
-  const tripId = tripIdProp ?? params.tripId;
+export function Activity() {
+  const { tripId, href } = useTrip();
   const t = useT();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -26,7 +24,8 @@ export function Activity({ tripId: tripIdProp, embedded = false }: { tripId?: st
   const { view, isLoading: viewLoading } = useTripView(tripId ?? '', 0);
   const loading = isLoading || viewLoading;
 
-  const content = (
+  return (
+    <Screen title={t('activity.title')} back={href('/settings')}>
       <div className={cn('fsl-activity flex flex-col gap-4 py-4')}>
         {loading && !error && <SkeletonList rows={5} />}
 
@@ -55,12 +54,6 @@ export function Activity({ tripId: tripIdProp, embedded = false }: { tripId?: st
             </section>
           ))}
       </div>
-  );
-
-  if (embedded) return content;
-  return (
-    <Screen title={t('activity.title')} back={`/t/${tripId}/settings`}>
-      {content}
     </Screen>
   );
 }

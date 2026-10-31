@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { formatVnd, type Transfer, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { nameOf } from '../lib/tripText';
 import { Amount } from './Amount';
 import { Button } from './Button';
@@ -26,6 +27,7 @@ export function guestPayTarget(view: TripView): Transfer | null {
  */
 export function BalanceCard({ view }: { view: TripView }) {
   const t = useT();
+  const { href } = useTrip(view.trip.id);
   const me = view.me.participantId;
   const now = view.myBalance?.now ?? 0;
   const before = view.myBalance?.beforePayments ?? 0;
@@ -63,7 +65,7 @@ export function BalanceCard({ view }: { view: TripView }) {
           {payTo && (
             <div className="flex w-full flex-row gap-2 mt-3">
               <Button
-                href={`/t/${view.trip.id}/pay/${payTo.toId}`}
+                href={href(`/pay/${payTo.toId}`)}
                 variant="primary"
                 block
                 className="fsl-balance__pay flex-1"

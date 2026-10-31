@@ -62,7 +62,8 @@ async function jMeta(c: Context<AppBindings>): Promise<PageMeta> {
     const { token, snapshot } = found;
     const now = new Date();
 
-    if (segments[2] === 'e' && segments[3]) {
+    // `/e/` is the shared bill's address, `/expenses/` the page a guest is on (copied from the address bar).
+    if ((segments[2] === 'e' || segments[2] === 'expenses') && segments[3]) {
       const expense = findExpense(snapshot, segments[3]);
       if (expense) {
         const meta = pageMeta({ kind: 'expense', snapshot, expense, now });

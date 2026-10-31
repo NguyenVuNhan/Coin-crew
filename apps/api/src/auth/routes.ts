@@ -182,7 +182,9 @@ export function authRoutes(): Hono<AppBindings> {
     const oauthVerifier = getCookie(c, 'zalo_oauth_verifier');
     const oauthReturn = getCookie(c, 'zalo_oauth_return');
 
-    const failure = () => {
+    // Every failure ends in the same "auth=failed" toast, so the reason only shows in the Worker logs.
+    const failure = (reason: string) => {
+      console.warn(`Zalo sign-in failed: ${reason}`);
       clearOauthCookies(c, 'zalo_oauth');
       return c.redirect(
         withQuery(oauthReturn ? safeReturnTo(oauthReturn) : '/', 'auth', 'failed'),
@@ -194,17 +196,26 @@ export function authRoutes(): Hono<AppBindings> {
     const code = c.req.query('code');
     const state = c.req.query('state');
 
-    if (error || !code || !state || !oauthVerifier || state !== oauthState) {
-      return failure();
+    if (error) {
+      return failure(`Zalo returned error=${error}`);
+    }
+    if (!code || !state) {
+      return failure('callback is missing code or state');
+    }
+    if (!oauthVerifier || !oauthState) {
+      return failure('sign-in cookies are missing');
+    }
+    if (state !== oauthState) {
+      return failure('state does not match the cookie');
     }
 
-    let profile: { sub: string; name: string; avatarUrl: string | null };
+    let profile: Awaited<ReturnType<typeof fetchZaloProfile>>;
     try {
       const accessToken = await exchangeZaloCode(c.env, code, oauthVerifier);
       profile = await fetchZaloProfile(accessToken);
     } catch (e) {
       if (e instanceof ZaloError) {
-        return failure();
+        return failure(e.message);
       }
       clearOauthCookies(c, 'zalo_oauth');
       throw e;
@@ -216,7 +227,7 @@ export function authRoutes(): Hono<AppBindings> {
     if (intent === 'link') {
       const user = await getSessionUser(c);
       if (!user) {
-        return failure();
+        return failure('linking Zalo without a signed-in session');
       }
       const outcome = await linkIdentity(db, user.id, 'zalo', profile);
       clearOauthCookies(c, 'zalo_oauth');

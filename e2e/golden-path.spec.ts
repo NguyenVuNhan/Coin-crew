@@ -77,7 +77,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
 
   // Chi opens the group link, picks their name and adds an expense that waits for approval.
   await chi.goto(groupLink);
-  await expect(chi).toHaveURL(/\/who$/);
+  await expect(chi).toHaveURL(/\/who(\?.*)?$/);
   await chi.getByRole('radio', { name: /Chi/ }).click();
   await chi.getByRole('button', { name: 'Continue as Chi' }).click();
   await expect(chi.getByText('Viewing as Chi')).toBeVisible();

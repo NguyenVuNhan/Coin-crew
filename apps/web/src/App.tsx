@@ -8,7 +8,7 @@ import { PersonScreen } from './screens/PersonScreen';
 import { RequestPage } from './screens/RequestPage';
 import { CreateTrip } from './screens/CreateTrip';
 import { Privacy } from './screens/Privacy';
-import { Join } from './screens/Join';
+import { Join, OldExpenseLink } from './screens/Join';
 import { TripRoute } from './screens/TripRoute';
 import { WhoAreYou } from './screens/WhoAreYou';
 import { ExpenseForm } from './screens/ExpenseForm';
@@ -29,6 +29,28 @@ function TripsRoute() {
   return <Home />;
 }
 
+/** A trip's pages, mounted under `/t/:tripId` (members) and `/j/:token` (guests and view-only links). */
+const tripPages = (
+  <>
+    <Route index element={<TripRoute />} />
+    <Route path="who" element={<WhoAreYou />} />
+    <Route path="expenses/new" element={<ExpenseForm />} />
+    <Route path="expenses/:expenseId/edit" element={<ExpenseForm />} />
+    <Route path="fund/:incomeId/edit" element={<ExpenseForm />} />
+    <Route path="expenses/:expenseId" element={<TripRoute />} />
+    <Route path="payments/:paymentId" element={<TripRoute />} />
+    <Route path="fund/:incomeId" element={<TripRoute />} />
+    <Route path="approvals" element={<TripRoute />} />
+    <Route path="ratings" element={<TripRoute />} />
+    <Route path="pay/:toId" element={<PayScreen />} />
+    <Route path="bank" element={<BankDetails />} />
+    <Route path="people" element={<People />} />
+    <Route path="people/:pid/bank" element={<GuestBank />} />
+    <Route path="activity" element={<Activity />} />
+    <Route path="settings" element={<Settings />} />
+  </>
+);
+
 export function App() {
   return (
     <>
@@ -43,24 +65,11 @@ export function App() {
       <Route path="/r/:token" element={<RequestPage />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
-      <Route path="/j/:token" element={<Join />} />
-      <Route path="/j/:token/e/:expenseId" element={<Join />} />
-      <Route path="/t/:tripId" element={<TripRoute />} />
-      <Route path="/t/:tripId/who" element={<WhoAreYou />} />
-      <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
-      <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
-      <Route path="/t/:tripId/fund/:incomeId/edit" element={<ExpenseForm />} />
-      <Route path="/t/:tripId/expenses/:expenseId" element={<TripRoute />} />
-      <Route path="/t/:tripId/payments/:paymentId" element={<TripRoute />} />
-      <Route path="/t/:tripId/fund/:incomeId" element={<TripRoute />} />
-      <Route path="/t/:tripId/approvals" element={<TripRoute />} />
-      <Route path="/t/:tripId/ratings" element={<TripRoute />} />
-      <Route path="/t/:tripId/pay/:toId" element={<PayScreen />} />
-      <Route path="/t/:tripId/bank" element={<BankDetails />} />
-      <Route path="/t/:tripId/people" element={<People />} />
-      <Route path="/t/:tripId/people/:pid/bank" element={<GuestBank />} />
-      <Route path="/t/:tripId/activity" element={<Activity />} />
-      <Route path="/t/:tripId/settings" element={<Settings />} />
+      <Route path="/t/:tripId">{tripPages}</Route>
+      <Route path="/j/:token" element={<Join />}>
+        {tripPages}
+        <Route path="e/:expenseId" element={<OldExpenseLink />} />
+      </Route>
     </Routes>
     </>
   );

@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useListMode } from '../lib/useListMode';
 import { useTripAction } from '../lib/useTripAction';
+import { useTrip } from '../lib/tripBase';
 import { expenseActions, incomeActions } from '../lib/rowActions';
 import { fundOf, incomeMinimum, mergeFeed } from '../lib/fund';
 import { SwipeGroupProvider } from '../lib/useSwipeReveal';
@@ -38,10 +39,11 @@ function ExpenseItem({
 }) {
   const t = useT();
   const navigate = useNavigate();
+  const { base } = useTrip(view.trip.id);
   const { busy, error, run } = useTripAction(view.trip.id);
 
   const guardedRun = (path: string, body?: unknown) => (busy ? Promise.resolve() : run(path, body));
-  const actions = expenseActions(view, expense, { t, navigate, run: guardedRun });
+  const actions = expenseActions(view, expense, { base, t, navigate, run: guardedRun });
 
   const amount = rowAmount(expense, view);
   const label = [
@@ -75,10 +77,11 @@ function IncomeItem({
 }) {
   const t = useT();
   const navigate = useNavigate();
+  const { base } = useTrip(view.trip.id);
   const { busy, error, run } = useTripAction(view.trip.id);
 
   const guardedRun = (path: string, body?: unknown) => (busy ? Promise.resolve() : run(path, body));
-  const actions = incomeActions(view, income, { t, navigate, run: guardedRun });
+  const actions = incomeActions(view, income, { base, t, navigate, run: guardedRun });
   const label = [
     income.description,
     `+${formatVnd(income.amount)}`,

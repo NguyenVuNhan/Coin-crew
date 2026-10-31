@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { call, cookiesFrom, cookieHeader, unsignedJwt, memberSid } from './helpers';
 import { sha256Hex } from '../src/lib/ids';
+import { getDb } from '../src/db/client';
+import { upsertIdentity } from '../src/auth/identity';
 
 const realFetch = globalThis.fetch;
 
@@ -251,5 +253,17 @@ describe('users.zalo_name tracking', () => {
       .bind('u-a')
       .first<{ zalo_name: string | null; name: string }>();
     expect(uaAfterGoogleMerge?.zalo_name).toBe('A Zalo');
+  });
+
+  it('a sign-in without the name keeps the Zalo name a user already has', async () => {
+    const db = getDb(env);
+    const id = await upsertIdentity(db, 'zalo', { sub: 'z-withheld', name: 'Chi Zalo', avatarUrl: null });
+
+    await upsertIdentity(db, 'zalo', { sub: 'z-withheld', name: 'Zalo', avatarUrl: null, nameWithheld: true });
+
+    const row = await env.DB.prepare('SELECT zalo_name, name FROM users WHERE id = ?')
+      .bind(id)
+      .first<{ zalo_name: string | null; name: string }>();
+    expect(row).toEqual({ zalo_name: 'Chi Zalo', name: 'Chi Zalo' });
   });
 });

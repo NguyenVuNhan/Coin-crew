@@ -5,6 +5,7 @@ import type { BankInput } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
+import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
@@ -18,10 +19,11 @@ import { cn } from '@/lib/utils';
 type Mode = 'show' | 'form' | 'saved' | 'deleted';
 
 export function GuestBank(): JSX.Element | null {
-  const { tripId, pid } = useParams<{ tripId: string; pid: string }>();
+  const { tripId, href } = useTrip();
+  const { pid } = useParams<{ pid: string }>();
   const t = useT();
   const queryClient = useQueryClient();
-  const { view, isLoading, error, refetch } = useTripView(tripId ?? '', 0);
+  const { view, isLoading, error, refetch } = useTripView(tripId, 0);
 
   const [modeOverride, setModeOverride] = useState<Mode | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -38,7 +40,7 @@ export function GuestBank(): JSX.Element | null {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
   const person = view?.people.find((p) => p.id === pid);
-  const backLink = `/t/${tripId}/people`;
+  const backLink = href('/people');
 
   if ((isLoading && !view) || (!view && !error)) {
     return (
@@ -67,7 +69,7 @@ export function GuestBank(): JSX.Element | null {
   }
 
   if (!view || view.me.kind !== 'member' || !person || person.isMember) {
-    return <Navigate to={`/t/${tripId}`} replace />;
+    return <Navigate to={href()} replace />;
   }
 
   const isArchived = Boolean(view.trip.archived);

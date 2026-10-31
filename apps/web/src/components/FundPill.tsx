@@ -1,6 +1,7 @@
 import { useState, Fragment } from 'react';
 import { formatVnd, type TripView } from '@fsl/core';
 import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
 import { Button } from './Button';
 import { Icon } from './icons';
 import { Sheet } from './Sheet';
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils';
 /** Flat bar showing the group fund balance and opening the fund sheet (spec §7.5). */
 export function FundPill({ view }: { view: TripView }) {
   const t = useT();
+  const { href } = useTrip(view.trip.id);
   const [open, setOpen] = useState(false);
 
   if (!showFund(view)) {
@@ -105,7 +107,7 @@ export function FundPill({ view }: { view: TripView }) {
 
           {isFundAdmin(view) && (
             <Button
-              href={`/t/${view.trip.id}/expenses/new?type=income`}
+              href={href('/expenses/new?type=income')}
               variant="primary"
               block
               className="mt-2"

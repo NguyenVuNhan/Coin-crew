@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { useTrip } from './tripBase';
 
 /** Router state on a details entry that a trip list opened: the list is the entry right behind it. */
 interface DetailsState {
@@ -23,25 +24,26 @@ function entryOptions(state: unknown, switching: boolean): { replace?: true; sta
 export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment' | 'income', id: string, switching?: boolean) => void {
   const navigate = useNavigate();
   const { state } = useLocation();
+  const { href } = useTrip(tripId);
   return useCallback(
     (kind, id, switching = false) => {
       const segment = kind === 'expense' ? 'expenses' : kind === 'payment' ? 'payments' : 'fund';
-      navigate(`/t/${tripId}/${segment}/${id}`, entryOptions(state, switching));
+      navigate(href(`/${segment}/${id}`), entryOptions(state, switching));
     },
-    [navigate, state, tripId],
+    [navigate, state, href],
   );
 }
 
 /** `<Link>` props for the full approvals list, marked and replaced by the same rules as `useOpenDetails`. */
 export function useApprovalsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
   const { state } = useLocation();
-  return { to: `/t/${tripId}/approvals`, ...entryOptions(state, switching) };
+  return { to: useTrip(tripId).href('/approvals'), ...entryOptions(state, switching) };
 }
 
 /** `<Link>` props for the player ratings leaderboard, marked and replaced by the same rules as `useOpenDetails`. */
 export function useRatingsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
   const { state } = useLocation();
-  return { to: `/t/${tripId}/ratings`, ...entryOptions(state, switching) };
+  return { to: useTrip(tripId).href('/ratings'), ...entryOptions(state, switching) };
 }
 
 /**
@@ -50,13 +52,14 @@ export function useRatingsLink(tripId: string, switching = false): { to: string;
  * behind it, to the trip page (or `fallback`, e.g. the main screen for the ledger) in place of the link.
  * The phone details page's back arrow, "Back to trip" and the wide panel's × and Esc use it.
  */
-export function useBackToTrip(tripId: string, fallback = `/t/${tripId}`): () => void {
+export function useBackToTrip(tripId: string, fallback?: string): () => void {
   const navigate = useNavigate();
   const fromList = cameFromList(useLocation().state);
+  const { base } = useTrip(tripId);
   return useCallback(() => {
     if (fromList) navigate(-1);
-    else navigate(fallback, { replace: true });
-  }, [navigate, fromList, fallback]);
+    else navigate(fallback ?? base, { replace: true });
+  }, [navigate, fromList, fallback, base]);
 }
 
 /**
@@ -65,13 +68,14 @@ export function useBackToTrip(tripId: string, fallback = `/t/${tripId}`): () => 
  * from) and history does not grow. A form that was the first page of the visit (a shared or typed address) has nothing
  * of the app behind it: it is replaced by the trip page. The router gives only that first entry the key `default`.
  */
-export function useLeaveForm(tripId: string, fallback = `/t/${tripId}`): () => void {
+export function useLeaveForm(tripId: string, fallback?: string): () => void {
   const navigate = useNavigate();
   const openedInApp = useLocation().key !== 'default';
+  const { base } = useTrip(tripId);
   return useCallback(() => {
     if (openedInApp) navigate(-1);
-    else navigate(fallback, { replace: true });
-  }, [navigate, openedInApp, fallback]);
+    else navigate(fallback ?? base, { replace: true });
+  }, [navigate, openedInApp, fallback, base]);
 }
 
 function scrollWindowTo(y: number): void {

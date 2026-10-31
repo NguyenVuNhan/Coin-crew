@@ -20,6 +20,8 @@ type T = ReturnType<typeof useT>;
 export interface ActionDeps {
   t: T;
   navigate(path: string): void;
+  /** Where the trip's pages live (`useTrip().base`); `/t/<tripId>` when left out. */
+  base?: string;
   /** POST `/api/trips/:tripId` + `path`, then refresh the trip. `body` defaults to `{}`. */
   run(path: string, body?: unknown): Promise<void>;
   /**
@@ -42,6 +44,7 @@ export function actorOf(view: TripView): Actor {
 export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps): RowAction[] {
   if (view.trip.archived) return [];
   const { t, navigate, run, onReject } = deps;
+  const base = deps.base ?? `/t/${view.trip.id}`;
   const actor = actorOf(view);
   // Nobody owes a share of a fund-paid expense: only the fund's admins touch it.
   if (isFundPaid(e) && !can(actor, 'manage_fund')) return [];
@@ -58,7 +61,7 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
   }
 
   if (can(actor, 'edit_expense', { expenseCreatedById: e.createdById, expenseStatus: e.status })) {
-    actions.push({ id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`/t/${view.trip.id}/expenses/${e.id}/edit`) });
+    actions.push({ id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`${base}/expenses/${e.id}/edit`) });
   }
 
   if (can(actor, 'disable', { expenseInvolved })) {
@@ -77,8 +80,9 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
 export function incomeActions(view: TripView, income: IncomeView, deps: ActionDeps): RowAction[] {
   if (!isFundAdmin(view)) return [];
   const { t, navigate, run } = deps;
+  const base = deps.base ?? `/t/${view.trip.id}`;
   return [
-    { id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`/t/${view.trip.id}/fund/${income.id}/edit`) },
+    { id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`${base}/fund/${income.id}/edit`) },
     income.status === 'disabled'
       ? { id: 'enable', label: t('expenses.enable'), icon: 'circleCheck', onSelect: () => void run(`/fund/incomes/${income.id}/enable`) }
       : { id: 'disable', label: t('expenses.disable'), icon: 'ban', tone: 'danger', onSelect: () => void run(`/fund/incomes/${income.id}/disable`) },

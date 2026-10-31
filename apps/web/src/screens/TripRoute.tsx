@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
-import { Navigate, useLocation, useMatch, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';
 import { homeDetailsHref, useBackToTrip, useListScroll } from '../lib/detailsNav';
+import { linkTokens } from '../lib/linkTokens';
+import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { TripLayout } from '../components/TripLayout';
@@ -80,7 +82,8 @@ function TripSkeleton({ wide }: { wide: boolean }) {
 }
 
 export function TripRoute() {
-  const { tripId, expenseId, paymentId, incomeId } = useParams<{ tripId: string; expenseId: string; paymentId: string; incomeId: string }>();
+  const { expenseId, paymentId, incomeId } = useParams<{ expenseId: string; paymentId: string; incomeId: string }>();
+  const { tripId, base, viaLink, href } = useTrip();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -88,8 +91,8 @@ export function TripRoute() {
   const wide = useIsWide();
   const user = useMe().data?.user;
   const { ledger } = useLedger();
-  const onApprovals = useMatch('/t/:tripId/approvals') !== null;
-  const onRatings = useMatch('/t/:tripId/ratings') !== null;
+  const onApprovals = location.pathname === href('/approvals');
+  const onRatings = location.pathname === href('/ratings');
   const selection: Selection | null = onApprovals
     ? { kind: 'approvals' }
     : onRatings
@@ -112,9 +115,9 @@ export function TripRoute() {
 
   useEffect(() => {
     if (view && view.me.kind === 'guest' && view.me.participantId === null && tripId) {
-      navigate(`/t/${tripId}/who?next=` + encodeURIComponent(location.pathname + location.search), { replace: true });
+      navigate(href('/who') + '?next=' + encodeURIComponent(location.pathname + location.search), { replace: true });
     }
-  }, [view, tripId, navigate, location.pathname, location.search]);
+  }, [view, tripId, href, navigate, location.pathname, location.search]);
 
   // A shared link's visitor sees these first, so they carry the language switch.
   if (isLoading) {
@@ -153,6 +156,17 @@ export function TripRoute() {
     return null;
   }
 
+  // Each visitor on their own address: a member's has no secret in it, and a guest's (or view-only visitor's)
+  // carries the link token, so it opens in any browser. A guest on `/t/` from before this has the token saved here.
+  const rest = location.pathname.slice(base.length) + location.search;
+  if (viaLink && view.me.kind === 'member') {
+    return <Navigate to={`/t/${tripId}${rest}`} replace />;
+  }
+  const savedToken = !viaLink && view.me.kind !== 'member' ? linkTokens.get(tripId) : null;
+  if (savedToken) {
+    return <Navigate to={`/j/${savedToken}${rest}`} replace />;
+  }
+
   if (view.trip.preset === 'direct' && selection === null) {
     return <Navigate to="/trips" replace />;
   }
@@ -164,12 +178,12 @@ export function TripRoute() {
 
   // Only members have anything to approve: a guest or a view-only link to the list lands on the trip.
   if (selection?.kind === 'approvals' && view.me.kind !== 'member') {
-    return <Navigate to={`/t/${view.trip.id}`} replace />;
+    return <Navigate to={href()} replace />;
   }
 
   // If ratings are not enabled, visiting /ratings redirects back to the trip page.
   if (selection?.kind === 'ratings' && (view.trip.preset !== 'sport' || !view.ratings?.enabled)) {
-    return <Navigate to={`/t/${view.trip.id}`} replace />;
+    return <Navigate to={href()} replace />;
   }
 
   const page =

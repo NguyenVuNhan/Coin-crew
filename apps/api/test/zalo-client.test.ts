@@ -163,6 +163,41 @@ describe('Zalo OAuth helpers', () => {
     await expect(fetchZaloProfile('bad-token')).rejects.toThrow(ZaloError);
   });
 
+  it('falls back to the id alone when Zalo withholds personal information', async () => {
+    const urls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      urls.push(url);
+      if (url.endsWith('fields=id')) {
+        return Response.json({ id: '84123', error: 0, message: 'Success' });
+      }
+      return Response.json({
+        error: -2003,
+        message: 'Personal information is limited due to IP address not inside Vietnam: 162.158.106.64',
+      });
+    });
+
+    const profile = await fetchZaloProfile('at');
+
+    expect(urls).toEqual([
+      'https://graph.zalo.me/v2.0/me?fields=id,name,picture',
+      'https://graph.zalo.me/v2.0/me?fields=id',
+    ]);
+    expect(profile).toEqual({ sub: '84123', name: 'Zalo', avatarUrl: null, nameWithheld: true });
+  });
+
+  it('fails with both errors when the id alone is refused too', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      return String(input).endsWith('fields=id')
+        ? Response.json({ error: -2003, message: 'id refused' })
+        : Response.json({ error: -2003, message: 'profile refused' });
+    });
+
+    await expect(fetchZaloProfile('at')).rejects.toThrow(
+      'Zalo profile error: profile refused; with the id alone: id refused',
+    );
+  });
+
   it('a numeric id is rejected (precision loss)', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
       return Response.json({ id: 1234567890123456789, name: 'X' });

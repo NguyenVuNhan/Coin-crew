@@ -7,6 +7,7 @@ import type { MessageKey } from '../i18n/en';
 import { nameOf, splitText } from '../lib/tripText';
 import { formatDay } from '../lib/time';
 import { useTripAction } from '../lib/useTripAction';
+import { useTrip } from '../lib/tripBase';
 import { expenseActions } from '../lib/rowActions';
 import { ApiClientError } from '../api/client';
 import { Amount } from './Amount';
@@ -47,6 +48,7 @@ export function ExpenseDetails({
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
+  const { base } = useTrip(view.trip.id);
   const { busy, error, run } = useTripAction(view.trip.id);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
@@ -187,6 +189,7 @@ export function ExpenseDetails({
   }
 
   const actions = expenseActions(view, e, {
+    base,
     t,
     navigate,
     run,
