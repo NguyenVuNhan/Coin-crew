@@ -192,7 +192,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         return participantId;
       },
       onAddName: async (name: string) => {
-        const { participantId } = await importPerson({ name });
+        // The sheet has already shown the similar names above this button: tapping it is the "yes, someone new".
+        const { participantId } = await importPerson({ name, confirmNew: true });
         await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
         return participantId;
       },

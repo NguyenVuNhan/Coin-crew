@@ -73,3 +73,49 @@ test('a quick expense, a request link and a confirmed "I\'ve paid"', async ({ br
   await nhanContext.close();
   await minhContext.close();
 });
+
+/** New quick expense from the footer "+", split equally between me and one new name. */
+async function addQuickExpense(page: import('@playwright/test').Page, what: string, amount: string, name: string) {
+  await page.getByTestId('app-nav-bar').getByTestId('nav-add').click();
+  await page.getByLabel('What for').fill(what);
+  await page.getByLabel('Amount', { exact: true }).fill(amount);
+  await page.getByRole('button', { name: /^Split between/ }).click();
+  await page.getByLabel('Add people').fill(name);
+  await page.getByTestId('split-add-name').click();
+  await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Add expense' }).click();
+  await expect(page).toHaveURL(/\/trips$/);
+}
+
+test('two names for one friend merge into one total, and split apart again', async ({ browser }) => {
+  const context = await englishContext(browser);
+  const page = await context.newPage();
+  const login = await page.request.post('/api/test/login', { data: { sub: 'e2e-hoa', name: 'Hoa', email: 'hoa@example.com' } });
+  expect(login.ok()).toBe(true);
+  await page.goto('/trips');
+  await page.getByRole('checkbox', { name: 'I agree to the privacy notice' }).check();
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await addQuickExpense(page, 'Bún', '100.000', 'Lan');
+  await addQuickExpense(page, 'Phở', '60.000', 'Lan B');
+  const rows = page.locator('[data-testid^="person-row-"]');
+  await expect(rows).toHaveCount(2);
+
+  // Merge "Lan B" into "Lan": one row, 50.000 + 30.000.
+  await rows.filter({ hasText: 'Lan B' }).click();
+  await page.getByTestId('person-merge').click();
+  await page.locator('[data-testid^="merge-pick-"]').filter({ hasNotText: 'Lan B' }).filter({ hasText: 'Lan' }).first().click();
+  await page.goto('/trips');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('80.000');
+
+  // Split "Lan B" off again: two rows.
+  await rows.first().click();
+  await page.locator('[data-testid^="unmerge-"]').first().click();
+  await page.goto('/trips');
+  await expect(rows).toHaveCount(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+
+  await context.close();
+});

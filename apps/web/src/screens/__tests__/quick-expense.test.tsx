@@ -141,7 +141,7 @@ describe('Quick expenses (direct trip)', () => {
         (c) => c.method === 'POST' && c.path === '/api/me/ledger/people' && (c.body as Record<string, unknown>)?.name === 'Hoa',
       );
       expect(call).toBeDefined();
-      expect(call?.body).toEqual({ name: 'Hoa' });
+      expect(call?.body).toEqual({ name: 'Hoa', confirmNew: true });
     });
   });
 

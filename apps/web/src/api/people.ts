@@ -210,7 +210,7 @@ export async function unlinkPerson(
 }
 
 export async function importPerson(
-  input: { name: string } | { participantId: string },
+  input: { name: string; confirmNew?: boolean } | { participantId: string },
   queryClient?: QueryClient,
 ): Promise<{ participantId: string }> {
   const result = await apiSend<{ participantId: string }>(
