@@ -113,6 +113,10 @@ export const vi: Record<MessageKey, string> = {
   'person.samePerson': 'Cùng một người?', // REVIEW
   'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
   'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
+  'person.notReceived': 'Chưa nhận được', // REVIEW
+  'person.payTitle': 'Trả cho {name}', // REVIEW
+  'person.paidThem': 'Tôi đã trả', // REVIEW
+  'person.noBank': '{name} chưa thêm tài khoản ngân hàng. Hãy trả bằng cách khác rồi bấm Tôi đã trả.', // REVIEW
   'quick.fromGroups': 'Từ các nhóm của bạn', // REVIEW
   'quick.addName': 'Thêm “{name}” là người mới', // REVIEW
   'quick.addFailed': 'Không thêm được. Thử lại.', // REVIEW
@@ -629,6 +633,7 @@ export const vi: Record<MessageKey, string> = {
   'payments.mine': 'Khoản đã trả của bạn', // REVIEW
   'payments.all': 'Tất cả khoản đã trả', // REVIEW
   'payments.emptyMine': 'Chưa có khoản đã trả nào liên quan đến bạn.', // REVIEW
+  'payments.throughPeople': 'Đã cấn trừ qua tổng trong mục Mọi người', // REVIEW
   'payments.arrived': 'Đã nhận được', // REVIEW
   'expenses.mine': 'Khoản chi của bạn', // REVIEW
   'expenses.all': 'Tất cả khoản chi', // REVIEW

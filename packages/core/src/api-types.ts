@@ -243,6 +243,8 @@ export interface IncomeView {
 export interface PaymentView {
   id: string; fromId: string; toId: string; amountClaimed: number; amountConfirmed: number | null;
   status: PaymentStatus; notArrived: boolean; createdAt: string;
+  /** The part of a People settlement that runs against the money handed over: no cash moved in this group. */
+  throughPeople?: boolean;
 }
 export type Approval =
   | { kind: 'expense'; expenseId: string }

@@ -216,7 +216,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
 
 /**
  * Groups the caller's waiting payments into settlements (payments tagged `{"settlementId"}`),
- * per person, keeping only those the caller can confirm: at least one part pays the caller.
+ * per person, keeping only those the caller can confirm: the parts sum toward the caller.
  * One query, and only when something is waiting; it binds only the caller's id.
  */
 async function waitingSettlements(db: Db, userId: string, parts: WaitingPart[]): Promise<Map<PersonKey, PersonSummary['waiting']>> {
@@ -249,7 +249,8 @@ async function waitingSettlements(db: Db, userId: string, parts: WaitingPart[]):
     sums.set(settlementId, sum);
   }
   for (const [settlementId, sum] of sums) {
-    if (!sum.toMe) continue;
+    // Only the receiver of the real money answers a settlement (not the one who recorded it).
+    if (!sum.toMe || sum.net <= 0) continue;
     const list = out.get(sum.key) ?? [];
     list.push({ settlementId, amount: Math.abs(sum.net), direction: sum.net >= 0 ? 'toOwner' : 'fromOwner' });
     out.set(sum.key, list);

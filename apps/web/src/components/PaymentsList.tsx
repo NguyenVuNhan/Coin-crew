@@ -48,20 +48,25 @@ function PaymentItem({
   );
 
   const title = t('trip.pays', { from: who(payment.fromId), to: who(payment.toId) });
-  const label = `${title}, ${formatVnd(amount)}, ${statusText}`;
+  const label = `${title}, ${formatVnd(amount)}, ${statusText}${payment.throughPeople ? `, ${t('payments.throughPeople')}` : ''}`;
 
   return (
     <li className="fsl-payments__item" data-testid={`payment-row-${payment.id}`}>
       <ActionRow label={label} actions={actions} onOpen={onOpen} selected={selected} hintable={hintable}>
         <span className="fsl-payments__row flex min-w-0 flex-1 items-center justify-between gap-3">
-          <span
-            className={cn(
-              'fsl-payments__text min-w-0 truncate text-base font-semibold text-foreground',
-              off && 'fsl-payments__text--off text-subtle-foreground line-through',
-            )}
-            style={off ? { textDecoration: 'line-through' } : undefined}
-          >
-            {title}
+          <span className="fsl-payments__main flex min-w-0 flex-col">
+            <span
+              className={cn(
+                'fsl-payments__text min-w-0 truncate text-base font-semibold text-foreground',
+                off && 'fsl-payments__text--off text-subtle-foreground line-through',
+              )}
+              style={off ? { textDecoration: 'line-through' } : undefined}
+            >
+              {title}
+            </span>
+            {payment.throughPeople ? (
+              <span className="fsl-payments__through truncate text-sm text-muted-foreground">{t('payments.throughPeople')}</span>
+            ) : null}
           </span>
           <span className="fsl-payments__right flex shrink-0 flex-col items-end gap-1 text-right">
             <Amount value={amount} style={off ? { textDecoration: 'line-through' } : undefined} />

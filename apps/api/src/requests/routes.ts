@@ -9,8 +9,8 @@ import { getSessionUser } from '../auth/session';
 import { ApiError } from '../lib/errors';
 import { nowIso } from '../lib/ids';
 import { getOrCreateRefCode } from '../payments/refs';
-import { loadPersonItems } from '../me/balances';
-import { createSettlement } from '../me/settle';
+import { loadPersonItems, type PersonItems } from '../me/balances';
+import { createSettlement, parseIdempotencyKey, settlementForKey } from '../me/settle';
 
 /** One request link: a person's row in an owner's personal ledger. */
 export interface RequestTarget {
@@ -67,7 +67,10 @@ export async function findRequest(db: Db, token: string): Promise<RequestTarget 
 }
 
 /** Open items for the pair, from the person's side (positive: they owe the owner). */
-export async function requestItems(db: Db, target: RequestTarget): Promise<{ items: PersonItem[]; total: number; rebuilt: number }> {
+export async function requestItems(
+  db: Db,
+  target: RequestTarget,
+): Promise<{ items: PersonItem[]; total: number; rebuilt: number; person: PersonItems | null }> {
   const person = await loadPersonItems(db, target.ownerUserId, target.key);
   const items: PersonItem[] = (person?.items ?? []).map((i) => ({
     tripId: i.tripId,
@@ -76,7 +79,7 @@ export async function requestItems(db: Db, target: RequestTarget): Promise<{ ite
     amount: i.amount,
     oldestOpenAt: i.oldestOpenAt,
   }));
-  return { items, total: items.reduce((sum, i) => sum + i.amount, 0), rebuilt: person?.rebuilt ?? 0 };
+  return { items, total: items.reduce((sum, i) => sum + i.amount, 0), rebuilt: person?.rebuilt ?? 0, person };
 }
 
 /** True while a settlement the person recorded ("I've paid") still waits for the owner. */
@@ -137,8 +140,12 @@ async function parseJson<T>(c: Context): Promise<T> {
   }
 }
 
-/** Largest "I've paid" accepted, as a multiple of what is owed (typos, not overpayments, are refused). */
-const MAX_PAID_FACTOR = 10;
+/**
+ * D1 statements the "I've paid" route prepares before the settlement itself: the device lookup
+ * (up to 2), findRequest (2), the idempotency key lookup (1) and settlementWaiting (1). The pair's
+ * own load is counted by the settlement.
+ */
+const PAID_ROUTE_QUERIES = 6;
 
 export function requestRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -174,33 +181,42 @@ export function requestRoutes(): Hono<AppBindings> {
     });
   });
 
-  // "I've paid": recorded as the person, waits for the owner to confirm.
+  // "I've paid": recorded as the person, waits for the owner to confirm. At most what is owed:
+  // only the owner records an overpayment.
   app.post('/r/:token/paid', async (c) => {
     const db = getDb(c.env);
     const target = await targetFor(c);
-    const body = await parseJson<{ amount?: unknown } | null>(c);
+    const body = await parseJson<{ amount?: unknown; idempotencyKey?: unknown } | null>(c);
     const amount = body && typeof body === 'object' ? body.amount : undefined;
     if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1) {
       throw new ApiError('VALIDATION', 422, 'Invalid amount');
     }
+    const idempotencyKey = parseIdempotencyKey(body!.idempotencyKey);
+    // A retry of a submit that already landed gets that settlement back, not "already waiting".
+    if (idempotencyKey) {
+      const existing = await settlementForKey(db, idempotencyKey, target.ownerUserId);
+      if (existing) return c.json({ settlementId: existing, status: 'says_paid' as const }, 200);
+    }
     if (await settlementWaiting(db, target)) {
       throw new ApiError('ALREADY_WAITING', 409, 'Your payment is waiting for confirmation.');
     }
-    const { total, rebuilt } = await requestItems(db, target);
-    if (amount > total * MAX_PAID_FACTOR) throw new ApiError('VALIDATION', 422, 'Invalid amount');
-    // createSettlement loads the pair again; when this load had to rebuild snapshots, the two together
-    // could pass the per-invocation query limit. The caches are warm now, so a retry goes through.
-    if (rebuilt > 0) throw new ApiError('TRY_AGAIN', 409, 'Still adding things up. Try again.');
+    const { total, person } = await requestItems(db, target);
+    if (!person || amount > total) throw new ApiError('VALIDATION', 422, 'Invalid amount');
 
-    const result = await createSettlement(db, {
+    // The pair loaded here goes straight into the settlement (no second load), and the budget
+    // counts what this route already spent.
+    const { replayed, ...result } = await createSettlement(db, {
       ownerUserId: target.ownerUserId,
       key: target.key,
       paid: amount,
       direction: 'toOwner',
       recordedBy: 'guest',
       device: c.get('deviceHash') ?? null,
+      idempotencyKey,
+      person,
+      spent: PAID_ROUTE_QUERIES,
     });
-    return c.json(result, 201);
+    return c.json(result, replayed ? 200 : 201);
   });
 
   return app;

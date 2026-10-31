@@ -313,3 +313,14 @@ export const participantMergeRows = sqliteTable(
   },
   (t) => [index('participant_merge_rows_merge_id_idx').on(t.mergeId)],
 );
+
+/**
+ * One row per settlement created with a client idempotency key (one per "Paid in cash" sheet or
+ * request page load). Written first in the settlement's batch, so a retry of the same submit hits
+ * the primary key and gets the settlement that already exists instead of a second one.
+ */
+export const settlementKeys = sqliteTable('settlement_keys', {
+  key: text('key').primaryKey(),
+  settlementId: text('settlement_id').notNull(),
+  createdAt: text('created_at').notNull(),
+});

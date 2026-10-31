@@ -307,6 +307,7 @@ export async function buildSnapshot(
     status: p.status as PaymentStatus,
     notArrived: p.notArrivedAt !== null,
     createdAt: p.createdAt,
+    ...(isOffsetPart(p.metaJson) ? { throughPeople: true } : {}),
   }));
 
   const partialSnapshot: TripSnapshot = {
@@ -459,4 +460,14 @@ export async function getSnapshot(
     });
 
   return snapshot;
+}
+
+/** A settlement part marked `{"offset":true}` in metaJson (settled through the People total). */
+function isOffsetPart(metaJson: string | null): boolean {
+  if (!metaJson || !metaJson.includes('"offset"')) return false;
+  try {
+    return (JSON.parse(metaJson) as { offset?: unknown }).offset === true;
+  } catch {
+    return false;
+  }
 }

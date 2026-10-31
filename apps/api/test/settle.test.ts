@@ -116,7 +116,8 @@ describe('cross-group settlements', () => {
       ['t-din', 'din-o', 'din-m', 50, 'confirmed'],
       ['t-led', 'led-m', 'led-o', 120, 'confirmed'],
     ]);
-    for (const r of rows) expect(JSON.parse(r.meta_json!)).toEqual({ settlementId });
+    // The dinner part runs against the handover (no cash moved there): marked as settled through the People total.
+    for (const r of rows) expect(JSON.parse(r.meta_json!)).toEqual(r.trip_id === 't-din' ? { settlementId, offset: true } : { settlementId });
 
     expect(await minh()).toBeUndefined();
 
