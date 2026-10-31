@@ -151,6 +151,9 @@ export function Home(): JSX.Element {
                 {t('home.newExpense')}
               </Button>
             )}
+            <Button variant="secondary" block href="/trips/new">
+              {t('trips.new')}
+            </Button>
 
             {peopleLoading ? (
               <SkeletonList rows={3} />
