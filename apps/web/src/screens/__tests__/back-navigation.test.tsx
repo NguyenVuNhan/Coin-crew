@@ -300,9 +300,9 @@ describe('screens with one hard-coded back', () => {
     });
     renderApp('/groups');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Groups' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your groups' })).toBeInTheDocument();
 
-    const accountBtn = screen.getByRole('button', { name: 'Account' });
+    const accountBtn = within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: 'Account' });
     await userEvent.click(accountBtn);
 
     const menu = await screen.findByRole('dialog', { name: 'Account' });
@@ -324,7 +324,8 @@ describe('screens with one hard-coded back', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Account' }));
+    const accountBtn = within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: 'Account' });
+    await userEvent.click(accountBtn);
     const menu = await screen.findByRole('dialog', { name: 'Account' });
     await userEvent.click(within(menu).getByRole('link', { name: 'Privacy notice' }));
 
@@ -387,7 +388,7 @@ describe('screens with one hard-coded back', () => {
     renderApp('/t/t-1');
 
     const transferRow = await screen.findByTestId(`transfer-${PIDS.M}-${PIDS.C}`);
-    await userEvent.click(within(transferRow).getByRole('button', { name: /Chi/ }));
+    await userEvent.click(within(transferRow).getByRole('button', { name: /^You → Chi/ }));
 
     const addBankBtn = await screen.findByRole('link', { name: 'Add bank details for Chi' });
     await userEvent.click(addBankBtn);
@@ -565,7 +566,7 @@ describe('screens with one hard-coded back', () => {
     await userEvent.click(payBtn);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.M}`));
-    const backBtn = await screen.findByRole('link', { name: 'Back' });
+    const backBtn = screen.getAllByRole('link', { name: 'Back' }).find((el) => !el.classList.contains('fsl-screen__back'))!;
     await userEvent.click(backBtn);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
