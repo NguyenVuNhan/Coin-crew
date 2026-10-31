@@ -778,6 +778,12 @@ export const en = {
   'ratings.switchExplain': 'Let signed-in members anonymously give stars to rate players and show the club leaderboard.',
   'ratings.collapse': 'Collapse leaderboard',
   'ratings.expand': 'Expand leaderboard',
+
+  'nav.home': 'Quick expenses',
+  'nav.groups': 'Groups',
+  'nav.activity': 'Activity',
+  'nav.add': 'Add transaction',
+  'nav.label': 'Main menu',
 } as const;
 
 export type MessageKey = keyof typeof en;

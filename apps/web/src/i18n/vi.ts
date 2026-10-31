@@ -778,5 +778,11 @@ export const vi: Record<MessageKey, string> = {
   'ratings.switchExplain': 'Cho phép thành viên ẩn danh tặng sao đánh giá kỹ năng và hiện bảng xếp hạng CLB.', // REVIEW
   'ratings.collapse': 'Thu gọn bảng xếp hạng', // REVIEW
   'ratings.expand': 'Mở rộng bảng xếp hạng', // REVIEW
+
+  'nav.home': 'Khoản chi nhanh', // REVIEW
+  'nav.groups': 'Nhóm', // REVIEW
+  'nav.activity': 'Hoạt động', // REVIEW
+  'nav.add': 'Thêm giao dịch', // REVIEW
+  'nav.label': 'Menu chính', // REVIEW
 };
 
