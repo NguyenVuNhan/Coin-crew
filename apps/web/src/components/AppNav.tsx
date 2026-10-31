@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Link } from 'react-router';
 import { useT } from '../i18n';
 import { Icon, type IconName } from './icons';
