@@ -2,7 +2,7 @@ import { useState, type JSX } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { RequestView, PersonItem } from '@fsl/core';
-import { useT, type t as TFunction } from '../i18n';
+import { useT } from '../i18n';
 import { ApiClientError, apiFetch, apiSend } from '../api/client';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
@@ -13,7 +13,7 @@ import { EmptyState } from '../components/EmptyState';
 import { PayQr } from '../components/PayQr';
 import { cn } from '@/lib/utils';
 
-function getItemLabel(item: PersonItem, owner: string, t: TFunction): string {
+function getItemLabel(item: PersonItem, owner: string, t: ReturnType<typeof useT>): string {
   return item.kind === 'direct' ? t('request.quickExpenses', { owner }) : item.tripName;
 }
 
@@ -135,6 +135,24 @@ export function RequestPage(): JSX.Element {
           <div className="fsl-request__settled bg-card border border-border rounded-xl p-4 text-center">
             <p className="m-0 text-base font-semibold text-foreground">
               {t('request.settled', { owner })}
+            </p>
+          </div>
+        </div>
+      </Screen>
+    );
+  }
+
+  // Their "I've paid" already counts, so the total is often 0 by now: say only that it waits.
+  if (isWaiting && view.total <= 0) {
+    return (
+      <Screen title={t('request.title')}>
+        <div className="fsl-request flex flex-col gap-4 py-4">
+          <div
+            className="fsl-request__waiting bg-card border border-border rounded-xl p-4 text-center"
+            data-testid="request-waiting"
+          >
+            <p className="m-0 text-base font-semibold text-foreground">
+              {t('request.waiting', { owner })}
             </p>
           </div>
         </div>

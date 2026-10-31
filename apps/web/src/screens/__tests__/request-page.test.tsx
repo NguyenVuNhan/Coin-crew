@@ -396,8 +396,19 @@ describe('RequestPage (/r/:token)', () => {
     renderAt(<RequestPage />, { route: '/r/tok', path: '/r/:token' });
 
     expect(await screen.findByText('Nhan owes you')).toBeInTheDocument();
-    expect(screen.getByText(/150\.000/)).toBeInTheDocument();
+    expect(screen.getAllByText(/150\.000/).length).toBeGreaterThan(0);
     expect(screen.getByTestId('request-item-t-direct')).toBeInTheDocument();
+    expect(screen.queryByTestId('request-paid')).toBeNull();
+  });
+
+  it('12. Once the payment counts (total 0, waiting) only the waiting card shows', async () => {
+    mockApi({
+      'GET /api/r/tok': { ownerName: 'Nhan', total: 0, items: [], settled: false, pay: null, settlementWaiting: true },
+    });
+    renderAt(<RequestPage />, { route: '/r/tok', path: '/r/:token' });
+
+    expect(await screen.findByTestId('request-waiting')).toHaveTextContent('Waiting for Nhan to confirm');
+    expect(screen.queryByTestId('request-single')).toBeNull();
     expect(screen.queryByTestId('request-paid')).toBeNull();
   });
 });
