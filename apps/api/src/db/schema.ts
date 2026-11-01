@@ -85,6 +85,7 @@ export const participants = sqliteTable(
     normalizedName: text('normalized_name').notNull(),
     gender: text('gender', { enum: ['M', 'F'] }),
     userId: text('user_id'),
+    zaloSub: text('zalo_sub'),
     isAdmin: integer('is_admin').notNull().default(0),
     status: text('status', { enum: ['active', 'pending', 'merged', 'left'] }).notNull(),
     mergedInto: text('merged_into'),
@@ -95,6 +96,9 @@ export const participants = sqliteTable(
   },
   (t) => [
     uniqueIndex('participants_request_token_unique').on(t.requestToken),
+    uniqueIndex('participants_trip_zalo_sub_unique')
+      .on(t.tripId, t.zaloSub)
+      .where(sql`${t.zaloSub} IS NOT NULL`),
     index('participants_trip_id_idx').on(t.tripId),
     index('participants_trip_id_normalized_name_idx').on(t.tripId, t.normalizedName),
   ],
@@ -150,9 +154,21 @@ export const mergeProposals = sqliteTable(
 
 export const devices = sqliteTable('devices', {
   idHash: text('id_hash').primaryKey(),
+  zaloSub: text('zalo_sub'),
   createdAt: text('created_at').notNull(),
   lastSeenAt: text('last_seen_at').notNull(),
 });
+
+export const zaloChatLinks = sqliteTable(
+  'zalo_chat_links',
+  {
+    chatId: text('chat_id').primaryKey(),
+    tripId: text('trip_id').notNull(),
+    linkedByUserId: text('linked_by_user_id'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('zalo_chat_links_trip_id_idx').on(t.tripId)],
+);
 
 export const deviceParticipants = sqliteTable(
   'device_participants',
