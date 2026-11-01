@@ -104,27 +104,27 @@ describe('zmp oauth links', () => {
     const pendingRequest = makeRequest({ status: 'pending' });
     mockApi({ 'GET /api/me': me(['google'], [pendingRequest]) });
 
-    const { container: pendingContainer } = renderAt(
+    renderAt(
       <MergeSheet request={pendingRequest} open onClose={vi.fn()} />,
       { platform },
     );
 
-    const pendingAuthLinks = pendingContainer.querySelectorAll('[href*="/api/auth/"]');
+    const pendingAuthLinks = document.querySelectorAll('[href*="/api/auth/"]');
     expect(pendingAuthLinks).toHaveLength(0);
     expect(
       screen.getByText('Linking Google or another sign-in method works on the web app:'),
     ).toBeInTheDocument();
-    expect(pendingContainer.querySelector('.fsl-merge__open-web')).toBeInTheDocument();
+    expect(document.querySelector('.fsl-merge__open-web')).toBeInTheDocument();
 
     const declinedRequest = makeRequest({ status: 'declined' });
-    const { container: declinedContainer } = renderAt(
+    renderAt(
       <MergeSheet request={declinedRequest} open onClose={vi.fn()} />,
       { platform },
     );
 
-    const declinedAuthLinks = declinedContainer.querySelectorAll('[href*="/api/auth/"]');
+    const declinedAuthLinks = document.querySelectorAll('[href*="/api/auth/"]');
     expect(declinedAuthLinks).toHaveLength(0);
-    expect(declinedContainer.querySelector('.fsl-merge__open-web')).toBeInTheDocument();
+    expect(document.querySelector('.fsl-merge__open-web')).toBeInTheDocument();
   });
 
   it('zmp: ratings sign-in uses Zalo', () => {
