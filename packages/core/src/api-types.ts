@@ -20,7 +20,19 @@ export type ApiErrorCode =
   | 'BOTH_SIGNED_IN'
   | 'PROPOSAL_PENDING'
   | 'CONFLICT'
+  | 'ZALO_TOKEN_INVALID'
   | 'INTERNAL';
+
+/** `POST /api/auth/zalo-mini`: the Zalo Mini App handshake (and, with `consent`, its sign-up). */
+export type ZaloMiniRequest = {
+  accessToken: string;
+  consent?: true;
+  profile?: { name: string; avatar: string | null };
+};
+
+export type ZaloMiniResponse =
+  | { status: 'signed_in'; sessionToken: string }
+  | { status: 'guest'; deviceId: string };
 
 export type ActivityAction =
   | 'trip_created'

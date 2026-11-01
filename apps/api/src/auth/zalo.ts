@@ -1,5 +1,6 @@
 import { generateCodeVerifier } from 'arctic';
 import type { Env } from '../env';
+import { appSecretProof } from './zaloMini';
 
 export { zaloConfigured } from './me';
 
@@ -126,15 +127,18 @@ interface ZaloProfileResponse {
  */
 export async function fetchZaloProfile(
   accessToken: string,
+  opts?: { appSecret?: string },
 ): Promise<{ sub: string; name: string; avatarUrl: string | null; nameWithheld?: boolean }> {
+  // With an app secret, every Graph call carries appsecret_proof (the Mini App token is client-supplied).
+  const proof = opts?.appSecret ? await appSecretProof(opts.appSecret, accessToken) : undefined;
   let data: ZaloProfileResponse;
   let nameWithheld = false;
   try {
-    data = await requestZaloProfile(accessToken, 'id,name,picture');
+    data = await requestZaloProfile(accessToken, 'id,name,picture', proof);
   } catch (err) {
     if (!(err instanceof ZaloError)) throw err;
     try {
-      data = await requestZaloProfile(accessToken, 'id');
+      data = await requestZaloProfile(accessToken, 'id', proof);
     } catch (idErr) {
       if (!(idErr instanceof ZaloError)) throw idErr;
       throw new ZaloError(`${err.message}; with the id alone: ${idErr.message.replace(/^Zalo profile error: /, '')}`);
@@ -160,14 +164,20 @@ export async function fetchZaloProfile(
   return nameWithheld ? { sub, name, avatarUrl, nameWithheld } : { sub, name, avatarUrl };
 }
 
-async function requestZaloProfile(accessToken: string, fields: string): Promise<ZaloProfileResponse> {
+async function requestZaloProfile(
+  accessToken: string,
+  fields: string,
+  proof?: string,
+): Promise<ZaloProfileResponse> {
+  const headers: Record<string, string> = { access_token: accessToken };
+  if (proof) {
+    headers.appsecret_proof = proof;
+  }
   let res: Response;
   try {
     res = await fetch(`https://graph.zalo.me/v2.0/me?fields=${fields}`, {
       method: 'GET',
-      headers: {
-        access_token: accessToken,
-      },
+      headers,
       signal: AbortSignal.timeout(8000),
     });
   } catch (err) {

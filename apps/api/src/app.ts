@@ -4,6 +4,7 @@ import { errorResponse } from './lib/errors';
 import { corsMiddleware } from './lib/cors';
 import { authRoutes } from './auth/routes';
 import { accountRoutes } from './auth/accountRoutes';
+import { zaloMiniRoutes } from './auth/zaloMiniRoutes';
 import { testLoginRoutes } from './auth/testLogin';
 import { deviceMiddleware } from './access/device';
 import { accessRoutes } from './access/routes';
@@ -36,6 +37,7 @@ export function createApp(): Hono<AppBindings> {
 
   app.get('/api/health', (c) => c.json({ ok: true }));
   app.route('/api', authRoutes());
+  app.route('/api', zaloMiniRoutes());
   app.route('/api', accountRoutes());
   app.route('/api', testLoginRoutes());
   app.route('/api', accessRoutes());
