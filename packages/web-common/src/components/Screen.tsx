@@ -6,6 +6,7 @@ import { BottomBar } from './BottomBar';
 import { AppNav, type NavSection } from './AppNav';
 import { useBack, useBackLink, useNavEntry } from '../lib/navHistory';
 import { cn } from '@/lib/utils';
+import { usePlatform } from '../platform';
 
 export interface ScreenProps {
   title: string;
@@ -78,9 +79,11 @@ export function Screen({
 }: ScreenProps) {
   const t = useT();
   const { depth } = useNavEntry();
+  const platform = usePlatform();
 
   const rootClass = cn(
     'fsl-screen',
+    platform.kind === 'zmp' && 'fsl-screen--zmp',
     'min-h-screen min-h-dvh bg-background flex flex-col',
     nav && 'lg:flex-row',
     wide && 'fsl-screen--wide',

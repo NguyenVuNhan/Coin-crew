@@ -99,6 +99,9 @@
   --avatar-6: #ddd6fe; --avatar-6-fg: #4c1d95;
 
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
+
+  --zmp-safe-top: 0px;
+  --zmp-capsule-width: 0px;
 }
 
 /* Star votes on the ratings screen: a tap pops the star, an over-quota tap shakes it, a burst sends sparks out along
@@ -141,4 +144,13 @@
   textarea {
     font-size: max(16px, 1em);
   }
+}
+
+.fsl-screen--zmp .fsl-screen__header {
+  padding-top: var(--zmp-safe-top);
+  height: calc(3.5rem + var(--zmp-safe-top));
+}
+
+.fsl-screen--zmp .fsl-screen__header-inner {
+  padding-right: calc(1rem + var(--zmp-capsule-width));
 }

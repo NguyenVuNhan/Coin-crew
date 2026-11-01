@@ -503,6 +503,7 @@ export const en = {
   'settings.leave': 'Leave group',
   'settings.leaveHint': 'The group leaves your list. Your past expenses stay, and you can rejoin from the group link.',
   'settings.leaveConfirm': 'Leave {group}?',
+  'settings.zaloChatHint': "Open CoinCrew from your Zalo group chat's menu to link that chat.",
 
   'people.title': 'People',
   'people.organiser': 'Organiser',

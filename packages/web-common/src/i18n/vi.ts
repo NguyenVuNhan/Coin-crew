@@ -503,6 +503,7 @@ export const vi: Record<MessageKey, string> = {
   'settings.leave': 'Rời nhóm', // REVIEW
   'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.', // REVIEW
   'settings.leaveConfirm': 'Rời {group}?', // REVIEW
+  'settings.zaloChatHint': 'Mở CoinCrew từ menu của nhóm chat Zalo để liên kết nhóm chat đó.', // REVIEW
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW

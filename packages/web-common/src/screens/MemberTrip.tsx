@@ -26,6 +26,7 @@ import { TripTabs } from '../components/TripTabs';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { AccountMenu } from '../components/AccountMenu';
+import { usePlatform } from '../platform';
 
 /** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
@@ -101,7 +102,30 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
     />
   );
 
-  const header = (
+  const platform = usePlatform();
+  const header = platform.kind === 'zmp' ? (
+    <>
+      {canInvite && (
+        <button
+          type="button"
+          className="fsl-member__invite inline-flex min-h-11 items-center gap-1 rounded-full border-0 bg-transparent size-11 justify-center px-0 text-sm font-medium text-foreground cursor-pointer transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+          onClick={() => setInviteOpen(true)}
+          aria-label={t('invite.button')}
+          title={t('invite.button')}
+        >
+          <Icon name="userPlus" size={20} />
+        </button>
+      )}
+      <Link
+        className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+        to={href('/settings')}
+        aria-label={t('member.settings')}
+        title={t('member.settings')}
+      >
+        <Icon name="settings" size={20} />
+      </Link>
+    </>
+  ) : (
     <>
       {canInvite && (
         <button
