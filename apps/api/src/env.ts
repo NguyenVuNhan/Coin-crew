@@ -13,6 +13,8 @@ export type Env = {
   OPS_ALERT_WEBHOOK_URL?: string;
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
+  ZMP_ALLOWED_ORIGINS?: string;
+  DEVICE_SECRET?: string;
   TEST_MIGRATIONS?: D1Migration[];
 };
 
