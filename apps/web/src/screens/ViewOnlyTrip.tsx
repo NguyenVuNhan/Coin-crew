@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
+import { useMe } from '../api/hooks';
+import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
@@ -23,6 +25,11 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
   const wide = useIsWide();
   const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
+
+  const user = useMe().data?.user;
+  const { ledger } = useLedger();
+  const addHref = ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
+  const nav = user ? { section: 'groups' as const, addHref } : undefined;
 
   const banner = (
     <div className="fsl-view-only__banner flex items-center gap-2">
@@ -74,7 +81,7 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
   );
 
   return (
-    <Screen title={view.trip.name} right={<LanguageButton />} wide>
+    <Screen title={view.trip.name} right={<LanguageButton />} wide nav={nav}>
       <div className="fsl-view-only flex flex-col gap-4 py-4">
         {banner}
         {!wide ? (

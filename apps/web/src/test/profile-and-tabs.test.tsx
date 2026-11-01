@@ -213,8 +213,9 @@ describe('Task 4: 2-Tab Group View on narrow screen', () => {
     expect(screen.getByRole('region', { name: /expenses/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /payments/i })).toBeNull();
 
-    // Bottom bar "+ Add expense" is visible
-    expect(screen.getByRole('link', { name: '+ Add expense' })).toBeInTheDocument();
+    // Signed in: the app nav's "+" adds to this group (it replaces the "+ Add expense" bottom bar)
+    const navBar = await screen.findByTestId('app-nav-bar');
+    expect(within(navBar).getByTestId('nav-add')).toHaveAttribute('href', expect.stringMatching(/\/expenses\/new$/));
 
     // Switch to Payments tab
     await userEvent.click(paymentsTab);
@@ -225,8 +226,8 @@ describe('Task 4: 2-Tab Group View on narrow screen', () => {
     expect(screen.getByRole('region', { name: /payments/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /expenses/i })).toBeNull();
 
-    // Sticky "+ Add expense" remains visible on payments tab
-    expect(screen.getByRole('link', { name: '+ Add expense' })).toBeInTheDocument();
+    // The nav's "+" stays on the payments tab
+    expect(within(screen.getByTestId('app-nav-bar')).getByTestId('nav-add')).toBeInTheDocument();
   });
 
   it('GuestTrip and ViewOnlyTrip render tabs on narrow screen', async () => {

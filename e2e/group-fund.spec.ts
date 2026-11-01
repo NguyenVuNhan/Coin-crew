@@ -22,7 +22,7 @@ test('an admin fills and spends the group fund', async ({ browser }) => {
   // Xanh signs in (test-only route), accepts the privacy notice and creates the sport group.
   const login = await page.request.post('/api/test/login', { data: { sub: 'e2e-fund-xanh', name: 'Xanh', email: 'xanh@example.com' } });
   expect(login.ok()).toBe(true);
-  await page.goto('/trips');
+  await page.goto('/groups');
   await page.getByRole('checkbox', { name: 'I agree to the privacy notice' }).check();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('link', { name: 'New group' }).click();
@@ -49,7 +49,7 @@ test('an admin fills and spends the group fund', async ({ browser }) => {
   await noSidewaysScroll(page);
 
   // Drinks after the game come out of the fund: nobody owes a share.
-  await page.getByRole('link', { name: '+ Add expense' }).click();
+  await page.getByTestId('app-nav-bar').getByTestId('nav-add').click();
   await page.getByLabel('What for').fill('Nước sau trận');
   await page.getByLabel('Paid by').selectOption({ label: 'Group fund · 200.000₫' });
   await page.getByLabel('Amount', { exact: true }).fill('150k');

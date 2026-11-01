@@ -166,7 +166,8 @@ describe('transaction details', () => {
     const list = screen.getByRole('region', { name: 'Your expenses' });
     expect(within(list).getByRole('button', { name: /^Homestay Bloom/ })).toHaveAttribute('aria-current', 'true');
     expect(within(list).getByRole('button', { name: /^Lẩu gà lá é/ })).not.toHaveAttribute('aria-current');
-    expect(within(list).getByRole('link', { name: '+ Add expense' })).toBeInTheDocument();
+    // The add link waits for sign-in to be known (no flicker between it and the app nav).
+    expect(await within(list).findByRole('link', { name: '+ Add expense' })).toBeInTheDocument();
     expect(screen.queryByText("You're owed")).toBeNull(); // the panel shows the details instead of the balance
     await waitFor(() => expect(heading).toHaveFocus());
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));

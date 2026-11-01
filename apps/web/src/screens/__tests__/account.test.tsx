@@ -115,4 +115,13 @@ describe('AccountMenu', () => {
     // A bottom drawer (vaul) over the page: modal, the page behind is hidden from assistive tech.
     expect(screen.getByRole('dialog', { name: 'Account' })).toHaveAttribute('data-slot', 'drawer-content');
   });
+  it('the side-panel menu opens as a sheet even on a wide screen', async () => {
+    mockMedia({ wide: true });
+    mockApi({});
+    renderAt(<AccountMenu user={user} variant="sheet" />);
+    await userEvent.click(screen.getByRole('button', { name: 'Account' }));
+    const menu = screen.getByRole('dialog', { name: 'Account' });
+    expect(menu).not.toHaveClass('fsl-account-menu__popover');
+    expect(menu).toHaveAttribute('data-slot');
+  });
 });

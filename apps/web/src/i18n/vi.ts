@@ -81,6 +81,69 @@ export const vi: Record<MessageKey, string> = {
   'account.gender': 'Giới tính', // REVIEW
   'trips.accountAria': 'Tài khoản', // REVIEW
   'trips.signOut': 'Đăng xuất', // REVIEW
+
+  'home.title': 'Khoản chi nhanh', // REVIEW
+  'home.totalOwed': 'Mọi người nợ bạn (tất cả nhóm)', // REVIEW
+  'home.totalOwe': 'Bạn nợ {amount}', // REVIEW
+  'home.byPerson': 'Theo người · mọi nhóm', // REVIEW
+  'home.tabPeople': 'Mọi người', // REVIEW
+  'home.tabGroups': 'Nhóm', // REVIEW
+  'home.tabActivity': 'Hoạt động', // REVIEW
+  'home.newExpense': 'Thêm khoản chi', // REVIEW
+  'home.owedToYou': 'Nợ bạn', // REVIEW
+  'home.youOwe': 'Bạn nợ', // REVIEW
+  'home.peopleEmptyTitle': 'Không có khoản nợ nào', // REVIEW
+  'home.peopleEmptyBody': 'Thêm một khoản chi và chọn người chia cùng.', // REVIEW
+  'home.stillCounting': 'Đang cộng thêm vài nhóm…', // REVIEW
+  'home.waiting': 'Chờ bạn xác nhận', // REVIEW
+  'person.title': 'Người', // REVIEW
+  'person.owesYou': 'Nợ bạn', // REVIEW
+  'person.youOwe': 'Bạn nợ', // REVIEW
+  'person.settled': 'Đã xong hết', // REVIEW
+  'person.quickExpenses': 'Khoản chi nhanh', // REVIEW
+  'person.request': 'Gửi yêu cầu', // REVIEW
+  'person.settleUp': 'Thanh toán', // REVIEW
+  'person.paidInCash': 'Đã trả tiền mặt', // REVIEW
+  'person.paidInCashTitle': '{name} đã trả bạn bao nhiêu?', // REVIEW
+  'person.amountLabel': 'Số tiền', // REVIEW
+  'person.save': 'Lưu', // REVIEW
+  'person.linkCopied': 'Đã sao chép liên kết', // REVIEW
+  'person.shareTitle': '{owner} gửi yêu cầu thanh toán', // REVIEW
+  'person.saysPaid': '{name} báo đã trả {amount}', // REVIEW
+  'person.recordedFromYou': '{name} ghi nhận {amount} từ bạn', // REVIEW
+  'person.confirm': 'Xác nhận', // REVIEW
+  'person.nickname': 'Biệt danh', // REVIEW
+  'person.nicknameHelp': 'Chỉ mình bạn thấy.', // REVIEW
+  'person.editNickname': 'Sửa biệt danh', // REVIEW
+  'person.manageIn': 'Đổi tên hoặc gộp trong {group}', // REVIEW
+  'person.samePerson': 'Cùng một người?', // REVIEW
+  'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
+  'person.mergeWith': 'Gộp với…', // REVIEW
+  'person.mergeHelp': 'Họ sẽ thành một người ở đây, với một tổng. Các nhóm không thay đổi.', // REVIEW
+  'person.mergeBothSignedIn': 'Cả hai đều có tài khoản', // REVIEW
+  'person.unmerge': 'Tách {name} ra', // REVIEW
+  'person.merged': 'Đã gộp', // REVIEW
+  'person.unmerged': 'Đã tách {name} ra', // REVIEW
+  'person.linkedTitle': 'Đã gộp vào đây', // REVIEW
+  'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
+  'person.notReceived': 'Chưa nhận được', // REVIEW
+  'person.payTitle': 'Trả cho {name}', // REVIEW
+  'person.paidThem': 'Tôi đã trả', // REVIEW
+  'person.noBank': '{name} chưa thêm tài khoản ngân hàng. Hãy trả bằng cách khác rồi bấm Tôi đã trả.', // REVIEW
+  'quick.fromGroups': 'Từ các nhóm của bạn', // REVIEW
+  'quick.addName': 'Thêm “{name}” là người mới', // REVIEW
+  'quick.addFailed': 'Không thêm được. Thử lại.', // REVIEW
+  'request.title': 'Yêu cầu thanh toán', // REVIEW
+  'request.askedYou': '{owner} gửi yêu cầu', // REVIEW
+  'request.youOwe': 'Bạn nợ {owner}', // REVIEW
+  'request.ownerOwes': '{owner} nợ bạn', // REVIEW
+  'request.settled': 'Bạn đã hết nợ với {owner}', // REVIEW
+  'request.noBank': '{owner} chưa thêm tài khoản ngân hàng — hãy trả trực tiếp.', // REVIEW
+  'request.paid': 'Tôi đã trả', // REVIEW
+  'request.cashHint': 'Trả tiền mặt? Báo {owner} để họ đánh dấu.', // REVIEW
+  'request.waiting': 'Đang chờ {owner} xác nhận', // REVIEW
+  'request.quickExpenses': 'Khoản chi với {owner}', // REVIEW
+  'request.notFound': 'Liên kết này không còn hiệu lực. Hãy xin liên kết mới.', // REVIEW
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
   'trip.tabs': 'Các tab', // REVIEW
@@ -443,6 +506,7 @@ export const vi: Record<MessageKey, string> = {
 
   'activity.title': 'Hoạt động', // REVIEW
   'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
+  'activity.loadMore': 'Xem thêm', // REVIEW
   'activity.someone': 'Ai đó', // REVIEW
   'activity.line': '{actor} {action}', // REVIEW
   'activity.today': 'Hôm nay', // REVIEW
@@ -459,6 +523,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
   'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
   'activity.personRestored': '{actor} đã thêm lại {name}', // REVIEW
+  'activity.personUnlinked': '{actor} đã tách {name} ra', // REVIEW
   'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
   'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
   'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
@@ -473,6 +538,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.person_removed': 'đã xóa một người', // REVIEW
   'activity.action.person_left': 'đã rời nhóm', // REVIEW
   'activity.action.person_restored': 'đã thêm lại một người', // REVIEW
+  'activity.action.person_unlinked': 'đã tách một người ra', // REVIEW
   'activity.action.member_joined': 'đã tham gia', // REVIEW
   'activity.action.member_rejoined': 'đã vào lại', // REVIEW
   'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng', // REVIEW
@@ -584,6 +650,7 @@ export const vi: Record<MessageKey, string> = {
   'payments.mine': 'Khoản đã trả của bạn', // REVIEW
   'payments.all': 'Tất cả khoản đã trả', // REVIEW
   'payments.emptyMine': 'Chưa có khoản đã trả nào liên quan đến bạn.', // REVIEW
+  'payments.throughPeople': 'Đã cấn trừ qua tổng trong mục Mọi người', // REVIEW
   'payments.arrived': 'Đã nhận được', // REVIEW
   'expenses.mine': 'Khoản chi của bạn', // REVIEW
   'expenses.all': 'Tất cả khoản chi', // REVIEW
@@ -724,5 +791,11 @@ export const vi: Record<MessageKey, string> = {
   'ratings.switchExplain': 'Cho phép thành viên ẩn danh tặng sao đánh giá kỹ năng và hiện bảng xếp hạng CLB.', // REVIEW
   'ratings.collapse': 'Thu gọn bảng xếp hạng', // REVIEW
   'ratings.expand': 'Mở rộng bảng xếp hạng', // REVIEW
+
+  'nav.home': 'Khoản chi nhanh', // REVIEW
+  'nav.groups': 'Nhóm', // REVIEW
+  'nav.activity': 'Hoạt động', // REVIEW
+  'nav.add': 'Thêm giao dịch', // REVIEW
+  'nav.label': 'Menu chính', // REVIEW
 };
 

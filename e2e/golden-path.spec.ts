@@ -33,7 +33,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   // Minh signs in (test-only route), accepts the privacy notice and creates the trip.
   const login = await minh.request.post('/api/test/login', { data: { sub: 'e2e-minh', name: 'Minh', email: 'minh@example.com' } });
   expect(login.ok()).toBe(true);
-  await minh.goto('/trips');
+  await minh.goto('/groups');
   await minh.getByRole('checkbox', { name: 'I agree to the privacy notice' }).check();
   await minh.getByRole('button', { name: 'Continue' }).click();
   await minh.getByRole('link', { name: 'New group' }).click();

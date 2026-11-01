@@ -11,6 +11,7 @@ import { getSnapshot } from '../trips/snapshot';
 import type { PageMeta } from './text';
 import { pageMeta } from './text';
 import { injectMeta } from './html';
+import { findRequest, requestItems } from '../requests/routes';
 import { billQrPayload } from './billQr';
 import { qrCardPng } from './qrPng';
 
@@ -32,7 +33,8 @@ async function tripByToken(db: Db, rawToken: string | undefined): Promise<{ toke
     .from(trips)
     .where(or(eq(trips.groupToken, token), eq(trips.viewToken, token)))
     .get();
-  if (!trip) return null;
+  // A personal ledger's tokens are never shown and never open anything.
+  if (!trip || trip.preset === 'direct') return null;
   return { token, snapshot: await getSnapshot(db, trip) };
 }
 
@@ -83,6 +85,29 @@ async function jMeta(c: Context<AppBindings>): Promise<PageMeta> {
   }
 }
 
+/** A request link's card: "Nhan asked you for 120.000₫". Only the amount, never the items. */
+async function rMeta(c: Context<AppBindings>): Promise<PageMeta> {
+  try {
+    const rawToken = c.req.path.split('/').filter(Boolean)[1];
+    if (!rawToken) return pageMeta({ kind: 'generic' });
+    let token: string;
+    try {
+      token = decodeURIComponent(rawToken);
+    } catch {
+      return pageMeta({ kind: 'generic' });
+    }
+    const db = getDb(c.env);
+    const target = await findRequest(db, token);
+    if (!target) return pageMeta({ kind: 'generic' });
+    const { items, total } = await requestItems(db, target);
+    if (total <= 0) return pageMeta({ kind: 'generic' });
+    return pageMeta({ kind: 'request', lang: target.lang, ownerName: target.ownerName, total, itemCount: items.length });
+  } catch (err) {
+    console.error(err);
+    return pageMeta({ kind: 'generic' });
+  }
+}
+
 export function pageRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -118,6 +143,17 @@ export function pageRoutes(): Hono<AppBindings> {
     const page = await c.env.ASSETS.fetch(new Request(new URL('/', c.req.url)));
     if (!page.ok) return page;
     const meta = await jMeta(c);
+    try {
+      return injectMeta(page, meta, c.req.path, c.env.APP_ORIGIN);
+    } catch {
+      return page;
+    }
+  });
+
+  app.get('/r/*', async (c) => {
+    const page = await c.env.ASSETS.fetch(new Request(new URL('/', c.req.url)));
+    if (!page.ok) return page;
+    const meta = await rMeta(c);
     try {
       return injectMeta(page, meta, c.req.path, c.env.APP_ORIGIN);
     } catch {

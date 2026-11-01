@@ -37,3 +37,11 @@ function isDailyLimit(err: unknown): boolean {
   }
   return false;
 }
+
+/** True when a database error (or one it wraps) mentions `text`, e.g. 'UNIQUE constraint failed'. */
+export function isDbError(err: unknown, text: string): boolean {
+  for (let e: unknown = err, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
+    if (e.message.includes(text)) return true;
+  }
+  return false;
+}

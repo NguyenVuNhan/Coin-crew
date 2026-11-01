@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, desc, eq, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, lt, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type {
   ActivityAction,
@@ -29,6 +29,7 @@ import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, newToken, nowIso } from '../lib/ids';
 import { loadRecentPeople } from '../me/people';
+import { actorName as actorNameOf, loadActivityNames } from '../lib/activityNames';
 import { getSnapshot } from './snapshot';
 import { toTripView } from './view';
 
@@ -59,6 +60,7 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
+    // 'direct' is the personal ledger, created only by GET /me/ledger.
     const preset = body.preset ?? 'trip';
     if (preset !== 'trip' && preset !== 'sport') {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -278,6 +280,8 @@ export function tripRoutes(): Hono<AppBindings> {
         and(
           eq(participants.userId, user.id),
           eq(participants.status, 'active'),
+          // The personal ledger is a 'direct' trip that never shows as a group.
+          ne(trips.preset, 'direct'),
         ),
       )
       .orderBy(desc(trips.createdAt));
@@ -328,48 +332,14 @@ export function tripRoutes(): Hono<AppBindings> {
       .orderBy(desc(activityTable.createdAt))
       .limit(50);
 
-    const participantIds = Array.from(
-      new Set(
-        rows
-          .map((r) => r.actorParticipantId)
-          .filter((id): id is string => id !== null),
-      ),
+    const names = await loadActivityNames(
+      db,
+      rows.flatMap((r) => (r.actorParticipantId ? [r.actorParticipantId] : [])),
+      rows.flatMap((r) => (r.actorUserId ? [r.actorUserId] : [])),
     );
-    const userIds = Array.from(
-      new Set(
-        rows
-          .map((r) => r.actorUserId)
-          .filter((id): id is string => id !== null),
-      ),
-    );
-
-    const participantMap = new Map<string, string>();
-    if (participantIds.length > 0) {
-      const pRows = await db
-        .select({ id: participants.id, name: participants.name })
-        .from(participants)
-        .where(inArray(participants.id, participantIds));
-      for (const p of pRows) {
-        participantMap.set(p.id, p.name);
-      }
-    }
-
-    const userMap = new Map<string, string>();
-    if (userIds.length > 0) {
-      const uRows = await db
-        .select({ id: users.id, name: users.name })
-        .from(users)
-        .where(inArray(users.id, userIds));
-      for (const u of uRows) {
-        userMap.set(u.id, u.name);
-      }
-    }
 
     const items: ActivityItem[] = rows.map((r) => {
-      const actorName =
-        (r.actorParticipantId ? participantMap.get(r.actorParticipantId) : undefined) ??
-        (r.actorUserId ? userMap.get(r.actorUserId) : undefined) ??
-        null;
+      const actorName = actorNameOf(names, r);
 
       return {
         id: r.id,

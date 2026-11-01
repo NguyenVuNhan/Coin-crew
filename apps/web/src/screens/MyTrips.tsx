@@ -18,7 +18,8 @@ import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { Icon } from '../components/icons';
 import { cn } from '@/lib/utils';
 
-export function MyTrips() {
+/** `embedded`: render only the list, inside another screen (the Groups tab on Home). */
+export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
   const t = useT();
   const navigate = useNavigate();
 
@@ -64,12 +65,8 @@ export function MyTrips() {
 
   const isEmpty = tripsQuery.isSuccess && tripsQuery.data.length === 0;
 
-  return (
-    <Screen
-      title={t('trips.title')}
-      right={user ? <AccountMenu user={user} /> : undefined}
-    >
-      <ConsentSheet />
+  const content = (
+    <>
       <div className="fsl-my-trips flex flex-col gap-4 py-4">
         {incomingMerge && (
           <MergeRequestBanner
@@ -166,6 +163,17 @@ export function MyTrips() {
         )}
       </div>
       {noRequest && <Snackbar message={t('merge.noRequestHere')} />}
+    </>
+  );
+
+  if (embedded) return content;
+  return (
+    <Screen
+      title={t('trips.title')}
+      right={user ? <AccountMenu user={user} /> : undefined}
+    >
+      <ConsentSheet />
+      {content}
     </Screen>
   );
 }

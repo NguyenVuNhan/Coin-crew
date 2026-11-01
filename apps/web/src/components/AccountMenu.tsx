@@ -30,11 +30,14 @@ export type AccountMenuUser = {
 
 export interface AccountMenuProps {
   user?: AccountMenuUser | MeUserView | null;
+  /** 'sheet' opens the drawer on every screen size (the side panel sits at the bottom, with no room for a popover). */
+  variant?: 'auto' | 'sheet';
 }
 
-export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
+export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuProps = {}) {
   const t = useT();
-  const wide = useIsWide();
+  const isWide = useIsWide();
+  const wide = isWide && variant !== 'sheet';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -385,12 +388,12 @@ export function AccountMenu({ user: propUser }: AccountMenuProps = {}) {
   }
 
   return (
-    <>
+    <span className="fsl-account-menu inline-flex">
       {trigger}
       <Sheet open={open && !cropOpen} onClose={close} title={t('account.label')}>
         {body}
       </Sheet>
       {cropModal}
-    </>
+    </span>
   );
 }

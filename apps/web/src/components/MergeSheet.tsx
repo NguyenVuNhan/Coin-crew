@@ -245,7 +245,7 @@ export function MergeSheet({ request, open, onClose }: MergeSheetProps) {
                     variant="primary"
                     block
                     data-primary=""
-                    href={signInHref(provider, '/trips?mergeReview=' + request.id)}
+                    href={signInHref(provider, '/groups?mergeReview=' + request.id)}
                     disabled={busy !== null}
                     aria-disabled={busy !== null ? 'true' : undefined}
                     tabIndex={busy !== null ? -1 : undefined}

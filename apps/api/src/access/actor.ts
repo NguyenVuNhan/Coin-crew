@@ -25,6 +25,12 @@ export async function resolveActor(c: Context<AppBindings>, tripId: string): Pro
   const deviceHash = c.get('deviceHash');
   const user = await getSessionUser(c);
 
+  // A personal ledger is its organiser's alone. The people in it reach their own pair only through
+  // /me/people/*, /me/settlements/* and /r/:token, never as a member or through its (unshown) links.
+  if (trip.preset === 'direct' && (!user || user.id !== trip.organiserUserId)) {
+    throw new ApiError('FORBIDDEN', 403);
+  }
+
   if (user) {
     const participant = await db
       .select()

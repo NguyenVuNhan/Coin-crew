@@ -14,7 +14,13 @@ import { fundRoutes } from './fund/routes';
 import { ratingRoutes } from './ratings/routes';
 import { bankRoutes } from './bank/routes';
 import { paymentRoutes } from './payments/routes';
+import { balanceRoutes } from './me/balances';
 import { peopleRoutes } from './me/people';
+import { ledgerRoutes } from './me/ledger';
+import { settleRoutes } from './me/settle';
+import { personRoutes } from './me/personRoutes';
+import { myActivityRoutes } from './me/activity';
+import { requestRoutes } from './requests/routes';
 import { pageRoutes } from './og/routes';
 
 export function createApp(): Hono<AppBindings> {
@@ -38,7 +44,13 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', ratingRoutes());
   app.route('/api', bankRoutes());
   app.route('/api', paymentRoutes());
+  app.route('/api', balanceRoutes());
   app.route('/api', peopleRoutes());
+  app.route('/api', ledgerRoutes());
+  app.route('/api', settleRoutes());
+  app.route('/api', personRoutes());
+  app.route('/api', myActivityRoutes());
+  app.route('/api', requestRoutes());
   app.route('/', pageRoutes());
 
   return app;

@@ -6,7 +6,8 @@ export type PageMetaInput =
   | { kind: 'generic' }
   | { kind: 'dead' }
   | { kind: 'group'; snapshot: TripSnapshot; now: Date }
-  | { kind: 'expense'; snapshot: TripSnapshot; expense: ExpenseView; now: Date };
+  | { kind: 'expense'; snapshot: TripSnapshot; expense: ExpenseView; now: Date }
+  | { kind: 'request'; lang: 'vi' | 'en'; ownerName: string; total: number; itemCount: number };
 
 export interface PageMeta {
   title: string;
@@ -30,7 +31,10 @@ export type OgTextKey =
   | 'sportExtra'
   | 'sportMaleFemaleRate'
   | 'sportPerSlotRate'
-  | 'sportSuffix';
+  | 'sportSuffix'
+  | 'requestSingle'
+  | 'requestSeveral'
+  | 'requestDesc';
 
 export const OG_TEXT: Record<'vi' | 'en', Record<OgTextKey, string>> = {
   vi: {
@@ -47,6 +51,9 @@ export const OG_TEXT: Record<'vi' | 'en', Record<OgTextKey, string>> = {
     sportMaleFemaleRate: 'Nam {male} / Nữ {female}',
     sportPerSlotRate: 'Mỗi suất {rate}',
     sportSuffix: ' — mở để lấy mã QR.',
+    requestSingle: '{name} nhờ bạn trả {amount}',
+    requestSeveral: 'Bạn nợ {name} {amount}',
+    requestDesc: 'Mở để xem chi tiết và trả bằng VietQR.',
   },
   en: {
     appTitle: 'CoinCrew (Tiền Đâu)',
@@ -62,6 +69,9 @@ export const OG_TEXT: Record<'vi' | 'en', Record<OgTextKey, string>> = {
     sportMaleFemaleRate: 'Men {male} / Women {female}',
     sportPerSlotRate: 'Per slot {rate}',
     sportSuffix: ' — open for your QR.',
+    requestSingle: '{name} asked you for {amount}',
+    requestSeveral: 'You owe {name} {amount}',
+    requestDesc: 'Open to see the details and pay with VietQR.',
   },
 };
 
@@ -113,6 +123,17 @@ export function pageMeta(input: PageMetaInput): PageMeta {
       description: t.deadDesc,
       image: 'trip',
       locale: 'vi_VN',
+    };
+  }
+
+  if (input.kind === 'request') {
+    const t = OG_TEXT[input.lang];
+    const template = input.itemCount === 1 ? t.requestSingle : t.requestSeveral;
+    return {
+      title: truncate(interpolate(template, { name: input.ownerName, amount: formatVnd(input.total) }), 90),
+      description: t.requestDesc,
+      image: 'trip',
+      locale: input.lang === 'en' ? 'en_US' : 'vi_VN',
     };
   }
 
