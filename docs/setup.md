@@ -56,6 +56,26 @@ The Zalo buttons stay hidden until both secrets exist, so you can deploy first a
 4. Activate the app for public use. In development mode only the app's admins and testers can sign in.
 5. Run `wrangler secret put ZALO_APP_ID` and `wrangler secret put ZALO_APP_SECRET` for the live app, and add `ZALO_APP_ID` and `ZALO_APP_SECRET` to `apps/api/.dev.vars` for your machine (the tunnel uses them too; restart `npm run tunnel` after adding them).
 
+### 2.2 Zalo profile relay on a Synology DSM (optional)
+
+Zalo's profile API withholds name and avatar from callers outside Vietnam ("Personal information is limited due to IP address not inside Vietnam"); the live Worker runs on Cloudflare IPs, so Zalo users show up as "Zalo" with no avatar. A small relay on a DSM at home (Vietnamese IP) makes that one call. Without it, sign-in still works.
+
+Pieces: image `ghcr.io/nguyenvunhan/coin-crew-zalo-relay` (tags: `latest` from `main`, `edge` from a manual run of the "Zalo relay image" workflow on a branch); project files `apps/zalo-relay/compose.yaml` and `apps/zalo-relay/.env.example`.
+
+1. After the first run of the "Zalo relay image" workflow, open the package on GitHub (**Profile → Packages → coin-crew-zalo-relay → Package settings**) and set visibility to Public, once. The image holds no secrets; public means the DSM pulls without a login.
+2. Certificate: **Control Panel → Security → Certificate → Add → Let's Encrypt**; domain `<name>.diskstation.me`, Subject Alternative Name `zalo-relay.<name>.diskstation.me` (or a `*.<name>.diskstation.me` wildcard if your existing certificate already has one, then nothing to do).
+3. **Container Manager → Project → Create**: path e.g. `/docker/zalo-relay`, source "Upload compose.yaml" with `apps/zalo-relay/compose.yaml`. Put a `.env` next to it copied from `apps/zalo-relay/.env.example`; set `ZALO_RELAY_SECRET` to the output of `openssl rand -hex 32`; `RELAY_TAG=latest`; `RELAY_PORT=8080` (pick another free port if 8080 is taken). Start the project. It runs the relay and an updater that checks for a new image every 15 minutes.
+4. Reverse proxy: **Control Panel → Login Portal → Advanced → Reverse Proxy → Create**. Source: HTTPS, hostname `zalo-relay.<name>.diskstation.me`, port 443. Destination: HTTP, localhost, port `RELAY_PORT`. Then **Control Panel → Security → Certificate → Settings** and assign the certificate to that reverse proxy entry.
+5. Check from a phone on mobile data: `https://zalo-relay.<name>.diskstation.me/health` shows "ok".
+6. Tell the Worker: `npx -w @fsl/api wrangler secret put ZALO_RELAY_URL` (value `https://zalo-relay.<name>.diskstation.me`) and `npx -w @fsl/api wrangler secret put ZALO_RELAY_SECRET` (same secret as the DSM `.env`). For the tunnel on your machine, add the same two keys to `apps/api/.dev.vars` and restart `npm run tunnel`.
+7. Check: sign in with Zalo on the live app; your real name and avatar appear. The relay's log in Container Manager shows a line like `GET /me 200 312ms`.
+
+Updates: automatic. A merge to `main` that touches `apps/zalo-relay` publishes `:latest` and the updater swaps the container within about 15 minutes. To try a branch on the DSM before merging: run the "Zalo relay image" workflow by hand on that branch (`gh workflow run zalo-relay.yml --ref <branch>`), set `RELAY_TAG=edge` in the DSM `.env` and restart the project; set it back to `latest` afterwards.
+
+Rollback: delete `ZALO_RELAY_URL` and `ZALO_RELAY_SECRET` from the Worker; it goes back to calling Zalo directly.
+
+Security notes: the relay only calls Zalo's profile API, only answers requests carrying the secret, and logs no tokens; its port is bound to 127.0.0.1 so it is reachable only through the reverse proxy.
+
 ## 3. Run it on your machine
 
 Create `apps/api/.dev.vars` (git-ignored; `wrangler dev` reads it):
@@ -174,6 +194,8 @@ Open the Worker, go to **Settings → Runtime variables and secrets → Add vari
 | `GOOGLE_CLIENT_ID` | ticked | From step 2.6 |
 | `GOOGLE_CLIENT_SECRET` | ticked | From step 2.6 |
 
+If you set up the Zalo relay (2.2), `ZALO_RELAY_URL` and `ZALO_RELAY_SECRET` are added the same way.
+
 Click **Add variable and deploy**. The dashboard then suggests copying `APP_ORIGIN` into your Wrangler configuration; ignore it, because the address deliberately stays out of the repo. `keep_vars: true` in `wrangler.jsonc` stops later deploys from removing it, and secrets are always kept.
 
 You can set the two Google values from a terminal instead; each command asks for the value:
@@ -236,3 +258,4 @@ An hourly cron compares today's Workers requests and D1 rows with the free-plan 
 | Google: "Access blocked" or "app is being tested" | Add the account as a test user, or publish the app (step 2.4). |
 | Signing in on your machine lands on the live site | `apps/api/.dev.vars` is missing `APP_ORIGIN=http://localhost:8787`. |
 | Variables disappear after a deploy | `keep_vars` must stay `true` in `apps/api/wrangler.jsonc`. |
+| Zalo users show up as 'Zalo' with no avatar | Set up the Zalo profile relay (step 2.2), or check `/health` and the relay log. |
