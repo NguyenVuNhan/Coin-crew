@@ -4,6 +4,7 @@ import { useT } from '../i18n';
 import { qrPngBlob, qrSrc, saveQr, shareQr, useQrSvg } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useIsCoarsePointer } from '../lib/media';
+import { usePlatform } from '../platform';
 import { Skeleton } from './Skeleton';
 import { Amount } from './Amount';
 import { Button } from './Button';
@@ -23,18 +24,43 @@ export type PayQrProps = {
 export function PayQr(props: PayQrProps): JSX.Element | null {
   const { info, summary = true } = props;
   const t = useT();
+  const platform = usePlatform();
   const svg = useQrSvg(info.payload);
   const coarse = useIsCoarsePointer();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<'saved' | 'failed' | null>(null);
+  const [status, setStatus] = useState<'saved' | 'failed' | 'gallery' | null>(null);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
 
   if (info.amount === 0 || info.payload === null) {
     return null;
   }
 
+  async function saveToGallery() {
+    try {
+      const blob = await qrPngBlob(svg);
+      if (!blob) {
+        setStatus('failed');
+        return;
+      }
+      const fileName = `vietqr-${(info.refCode || 'qr').replace(/\s+/g, '-')}.png`;
+      const r = await platform.saveImage(blob, fileName);
+      setStatus(r === 'saved' ? 'gallery' : 'failed');
+    } catch {
+      setStatus('failed');
+    }
+  }
+
   async function share(text: string) {
+    if (platform.kind === 'zmp') {
+      setBusy(true);
+      try {
+        await saveToGallery();
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (isZaloWebView()) {
       showImage(() => qrPngBlob(svg), text);
       return;
@@ -90,6 +116,10 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
           block
           disabled={!svg}
           onClick={() => {
+            if (platform.kind === 'zmp') {
+              void saveToGallery();
+              return;
+            }
             if (isZaloWebView()) {
               showImage(() => qrPngBlob(svg));
               return;
@@ -101,7 +131,7 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
         </Button>
       </div>
       <p className="fsl-pay-qr__status m-0 text-center text-sm leading-snug text-muted-foreground empty:hidden" aria-live="polite">
-        {status === 'saved' ? t('pay.shareSaved') : status === 'failed' ? t('pay.shareFailed') : null}
+        {status === 'saved' ? t('pay.shareSaved') : status === 'gallery' ? t('pay.savedToGallery') : status === 'failed' ? t('pay.shareFailed') : null}
       </p>
       {imageSheet}
       {props.variant === 'pay' && coarse && <BankAppSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />}

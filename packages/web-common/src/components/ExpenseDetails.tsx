@@ -23,6 +23,8 @@ import { useIsMousePointer } from '../lib/media';
 import { copyText } from '../lib/clipboard';
 import { useImageSheet } from './SaveImageSheet';
 import { sportShareText, expenseLink } from '../lib/remind';
+import { sportBillCard } from '../lib/shareCards';
+import { usePlatform } from '../platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -48,6 +50,7 @@ export function ExpenseDetails({
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
+  const platform = usePlatform();
   const { base } = useTrip(view.trip.id);
   const { busy, error, run } = useTripAction(view.trip.id);
   const [rejecting, setRejecting] = useState(false);
@@ -231,6 +234,27 @@ export function ExpenseDetails({
       bank: payInfo?.bankState === 'ok' && payInfo.bank ? payInfo.bank : null,
       qrSvg: qrSvg || undefined,
     };
+
+    if (platform.kind === 'zmp') {
+      setSharing(true);
+      try {
+        const blob = await renderSportBillPng(billInput);
+        let saved = false;
+        if (blob) {
+          const refCode = payInfo?.refCode ?? e.description;
+          const fileName = `bill-${(refCode || 'sport').replace(/\s+/g, '-')}.png`;
+          const saveRes = await platform.saveImage(blob, fileName);
+          saved = saveRes === 'saved';
+        }
+        await platform.share(sportBillCard(view, e.id, msgText, platform.apiBase));
+        setShareStatus(saved ? 'saved' : 'failed');
+      } catch {
+        setShareStatus('failed');
+      } finally {
+        setSharing(false);
+      }
+      return;
+    }
 
     if (isZaloWebView()) {
       showImage(() => renderSportBillPng(billInput), msgText);
