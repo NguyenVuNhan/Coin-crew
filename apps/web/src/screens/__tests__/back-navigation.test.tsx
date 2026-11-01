@@ -1066,4 +1066,16 @@ describe('page comes back as left', () => {
     expect(await screen.findByRole('tab', { name: 'Expenses' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Payments' })).toHaveAttribute('aria-selected', 'false');
   });
+  it('wide: opening a row in the panel keeps the list where it was scrolled', async () => {
+    mockMedia({ wide: true });
+    api();
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    vi.stubGlobal('scrollY', 300);
+    renderApp('/t/t-1');
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Homestay Bloom/ }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-1'));
+    expect(scrollTo).not.toHaveBeenCalledWith(0, 0);
+  });
 });

@@ -1,10 +1,15 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTrip } from './tripBase';
+import { useIsWide } from './media';
+import { KEEP_SCROLL } from './navHistory';
 
-/** How a trip list opens a details or approvals entry; switching inside the wide panel replaces the entry and keeps its state. */
-function entryOptions(state: unknown, switching: boolean): { replace?: true; state?: unknown } {
-  return switching ? { replace: true, state } : {};
+/**
+ * How a trip list opens a details or approvals entry; switching inside the wide panel replaces the entry and keeps
+ * its state. Opening the wide panel keeps the list where it was scrolled.
+ */
+function entryOptions(state: unknown, switching: boolean, wide: boolean): { replace?: true; state?: unknown } {
+  return switching ? { replace: true, state } : wide ? { state: KEEP_SCROLL } : {};
 }
 
 /**
@@ -15,25 +20,28 @@ export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment' | '
   const navigate = useNavigate();
   const { state } = useLocation();
   const { href } = useTrip(tripId);
+  const wide = useIsWide();
   return useCallback(
     (kind, id, switching = false) => {
       const segment = kind === 'expense' ? 'expenses' : kind === 'payment' ? 'payments' : 'fund';
-      navigate(href(`/${segment}/${id}`), entryOptions(state, switching));
+      navigate(href(`/${segment}/${id}`), entryOptions(state, switching, wide));
     },
-    [navigate, state, href],
+    [navigate, state, href, wide],
   );
 }
 
 /** `<Link>` props for the full approvals list, pushed or replaced by the same rules as `useOpenDetails`. */
 export function useApprovalsLink(tripId: string, switching = false): { to: string; replace?: true; state?: unknown } {
   const { state } = useLocation();
-  return { to: useTrip(tripId).href('/approvals'), ...entryOptions(state, switching) };
+  const wide = useIsWide();
+  return { to: useTrip(tripId).href('/approvals'), ...entryOptions(state, switching, wide) };
 }
 
 /** `<Link>` props for the player ratings leaderboard, pushed or replaced by the same rules as `useOpenDetails`. */
 export function useRatingsLink(tripId: string, switching = false): { to: string; replace?: true; state?: unknown } {
   const { state } = useLocation();
-  return { to: useTrip(tripId).href('/ratings'), ...entryOptions(state, switching) };
+  const wide = useIsWide();
+  return { to: useTrip(tripId).href('/ratings'), ...entryOptions(state, switching, wide) };
 }
 
 /** Kinds of transaction details the main screen can show, and the search param each one uses on `/trips`. */

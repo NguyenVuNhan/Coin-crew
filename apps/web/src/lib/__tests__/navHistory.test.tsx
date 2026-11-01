@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate, useNavigationType, type NavigateFunction } from 'react-router';
 import type { ReactNode } from 'react';
-import { NavHistoryProvider, useBack, useEntryState, useNavEntry } from '../navHistory';
+import { KEEP_SCROLL, NavHistoryProvider, useBack, useEntryState, useNavEntry } from '../navHistory';
 
 let nav: NavigateFunction;
 let back: () => void;
@@ -216,5 +216,42 @@ describe('nav history', () => {
     expect(text('depth')).toBe('0');
     act(() => back());
     expect(text('path')).toBe('/groups');
+  });
+  it('back works again after going forward to the same entry', () => {
+    mount(['/a']);
+    go('/b');
+    act(() => back());
+    expect(text('path')).toBe('/a');
+    go(1);
+    expect(text('path')).toBe('/b');
+    act(() => back());
+    expect(text('path')).toBe('/a');
+  });
+
+  it('a replace with another page keeps the depth but starts its own opened-as address and state', () => {
+    mount(['/a'], (
+      <>
+        <Probe />
+        <Tab />
+      </>
+    ));
+    go('/trips?expense=e1');
+    act(() => setTab('payments'));
+    go('/activity', { replace: true });
+    expect(text('depth')).toBe('1');
+    expect(text('opened')).toBe('/activity');
+    go('/trips', { replace: true });
+    expect(text('opened')).toBe('/trips');
+  });
+
+  it('a push marked KEEP_SCROLL leaves the window where it is', () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    mount(['/a']);
+    act(() => {
+      void nav('/a/expenses/1', { state: KEEP_SCROLL });
+    });
+    expect(text('depth')).toBe('1');
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

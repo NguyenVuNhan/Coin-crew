@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -27,6 +28,16 @@ import { useLocation, useNavigate, useNavigationType } from 'react-router';
 const STORAGE_KEY = 'fsl:nav';
 const MAX_ENTRIES = 100;
 const MAX_RESTORE_FRAMES = 60;
+
+/**
+ * Router state for a push that keeps the window where it is: the wide layout opens details in a panel beside the
+ * list, which stays mounted, so jumping to the top would lose the user's place in it.
+ */
+export const KEEP_SCROLL = { keepScroll: true } as const;
+
+function keepsScroll(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as { keepScroll?: unknown }).keepScroll === true;
+}
 
 interface EntryRecord {
   depth: number;
@@ -146,7 +157,14 @@ export function NavHistoryProvider({ children }: { children: ReactNode }): JSX.E
       const known = location.key !== 'default' ? store[location.key] : undefined;
       entry = known ?? (location.key === 'default' && store.default ? store.default : { depth: 0, openedAs: path, t: now() });
     } else if (type === 'REPLACE') {
-      entry = prev ? { ...prev, t: now() } : { depth: 0, openedAs: path, t: now() };
+      // Same page (search params, rows switched in place): keep everything. Another page in the same slot (a tab
+      // switch, a finished step): keep the depth only, so its opener, scroll and view state start fresh.
+      const samePage = prev !== undefined && new URL(prev.openedAs, 'http://x').pathname === location.pathname;
+      entry = prev
+        ? samePage
+          ? { ...prev, t: now() }
+          : { depth: prev.depth, openedAs: path, t: now() }
+        : { depth: 0, openedAs: path, t: now() };
       if (prevKey !== location.key) delete store[prevKey];
     } else {
       if (prev) prev.scrollY = currentScrollY();
@@ -180,7 +198,7 @@ export function NavHistoryProvider({ children }: { children: ReactNode }): JSX.E
       return;
     }
     if (type === 'PUSH') {
-      scrollWindowTo(0);
+      if (!keepsScroll(location.state)) scrollWindowTo(0);
       return;
     }
     if (type === 'POP') {
@@ -210,6 +228,10 @@ export function useBack(parent?: string): { canGoBack: boolean; goBack: () => vo
   const { depth } = useNavEntry();
   const { key } = useLocation();
   const firedFor = useRef<string | null>(null);
+  // A screen that stays mounted can come back to the same entry (browser forward): its back must work again.
+  useEffect(() => {
+    firedFor.current = null;
+  }, [key]);
   const goBack = useCallback(() => {
     if (firedFor.current === key) return;
     if (depth > 0) {

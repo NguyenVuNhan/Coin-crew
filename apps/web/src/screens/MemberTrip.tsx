@@ -129,7 +129,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
     <Screen
       title={view.trip.name}
       titleAlign="left"
-      back="/groups"
+      back={selection ? href() : '/groups'}
       right={header}
       wide
       nav={signedIn ? { section: 'groups', addHref: navAddHref } : undefined}
