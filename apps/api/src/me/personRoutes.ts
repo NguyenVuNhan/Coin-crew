@@ -12,6 +12,7 @@ import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newToken, nowIso } from '../lib/ids';
 import { ensurePersonalLedger, importPerson, type PersonalLedger } from './ledger';
+import { mergeOptionsRoutes } from './mergeOptions';
 
 const NICKNAME_MAX = 40;
 const LINK_MAX_KEYS = 20;
@@ -122,7 +123,7 @@ interface LinkRequest {
   userId: string | null;
 }
 
-function parseLinkKeys(raw: unknown): LinkRequest {
+export function parseLinkKeys(raw: unknown): LinkRequest {
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > LINK_MAX_KEYS) {
     throw new ApiError('VALIDATION', 422, 'Pick at least two people');
   }
@@ -176,7 +177,7 @@ async function ensureLedgerUser(db: Db, ownerUserId: string, ledger: PersonalLed
  * so links stay one hop. Nicknames move onto the survivor's key, its own winning. Returns the
  * survivor's key.
  */
-async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkRequest, device: string | null): Promise<PersonKey> {
+export async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkRequest, device: string | null): Promise<PersonKey> {
   if (req.userId === user.id) throw new ApiError('VALIDATION', 422, "You can't merge yourself");
   const ledger = await ensurePersonalLedger(db, user);
   const target = alias(participants, 'link_target');
@@ -312,6 +313,9 @@ async function unlinkGuest(db: Db, user: { id: string; name: string }, participa
 
 export function personRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
+
+  // The person page's "Merge with…" picker.
+  app.route('/', mergeOptionsRoutes());
 
   // A Tikkie-style link: the same link every time, for one person to see and pay what they owe.
   app.post('/me/people/:key/request-link', requireUser, async (c) => {

@@ -3,7 +3,11 @@ import { Link, useSearchParams } from 'react-router';
 import type { TripView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
-import { apiSend } from '../api/client';
+import { apiSend, ApiClientError } from '../api/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { acceptProposal } from '../api/people';
+import { Button } from '../components/Button';
+import { InlineError } from '../components/InlineError';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
 import { nameOf } from '../lib/tripText';
@@ -44,6 +48,11 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const becomeMemberParam = searchParams.get('becomeMember') === '1';
   const [memberRequested, setMemberRequested] = useState(false);
   const requestedRef = useRef(false);
+  // Someone already said this guest is the caller (a merge request): accepting it is the claim.
+  const [proposal, setProposal] = useState<{ id: string; by: string } | null>(null);
+  const [proposalBusy, setProposalBusy] = useState(false);
+  const [proposalError, setProposalError] = useState<unknown>(null);
+  const qc = useQueryClient();
 
   const myId = view.me.participantId;
   const myName = myId ? nameOf(view, myId) : '?';
@@ -65,7 +74,12 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         'POST',
         { participantId: myId },
         view.trip.id,
-      ).catch(() => {});
+      ).catch((err: unknown) => {
+        if (err instanceof ApiClientError && err.code === 'PROPOSAL_PENDING' && typeof err.details.proposalId === 'string') {
+          setMemberRequested(false);
+          setProposal({ id: err.details.proposalId, by: typeof err.details.requestedByName === 'string' ? err.details.requestedByName : '' });
+        }
+      });
     }
   }, [becomeMemberParam, archived, view.me.kind, myId, view.trip.id]);
 
@@ -136,7 +150,33 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const footer = (
     <footer className="fsl-guest__footer flex items-center justify-center flex-wrap gap-2 mt-2 [&_.fsl-button]:px-2 [&_.fsl-button]:text-sm">
       <LanguageButton />
-      {memberRequested ? (
+      {proposal ? (
+        <div className="fsl-notice flex flex-col items-center gap-2 px-4 py-3 rounded-xl text-sm text-center bg-warning-soft text-warning-foreground" data-testid="proposal-claim-prompt">
+          <span>{t('proposal.alreadySaid', { by: proposal.by })}</span>
+          <Button
+            variant="primary"
+            data-testid="proposal-claim-accept"
+            loading={proposalBusy}
+            disabled={proposalBusy}
+            onClick={async () => {
+              setProposalBusy(true);
+              setProposalError(null);
+              try {
+                await acceptProposal(proposal.id, qc);
+                setProposal(null);
+                setMemberRequested(true);
+              } catch (err) {
+                setProposalError(err);
+              } finally {
+                setProposalBusy(false);
+              }
+            }}
+          >
+            {t('proposal.accept')}
+          </Button>
+          {proposalError !== null && <InlineError error={proposalError} />}
+        </div>
+      ) : memberRequested ? (
         <div className="fsl-notice fsl-notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground">
           {t('guest.memberRequested')}
         </div>

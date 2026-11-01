@@ -6,6 +6,8 @@ export class ApiClientError extends Error {
     public code: ApiErrorCode,
     public status: number,
     message: string,
+    /** Extra fields of the error body (e.g. proposalId on PROPOSAL_PENDING). */
+    public details: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -63,6 +65,7 @@ export async function apiFetch<T>(
   if (!response.ok) {
     let code: ApiErrorCode = 'INTERNAL';
     let message = response.statusText || 'Error';
+    let details: Record<string, unknown> = {};
     try {
       const data = await response.json();
       if (data && typeof data === 'object' && 'error' in data && data.error) {
@@ -72,11 +75,12 @@ export async function apiFetch<T>(
         if (typeof data.error.message === 'string') {
           message = data.error.message;
         }
+        details = data.error as Record<string, unknown>;
       }
     } catch {
       // parse failed, use fallback
     }
-    throw new ApiClientError(code, response.status, message);
+    throw new ApiClientError(code, response.status, message, details);
   }
 
   if (response.status === 204) {

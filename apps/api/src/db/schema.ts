@@ -118,6 +118,36 @@ export const membershipRequests = sqliteTable(
   ],
 );
 
+/**
+ * "This guest is that person": a merge someone asked for on behalf of others. It waits for the
+ * target user (needs_user) and/or a group admin (needs_admin). Shares the one-pending-per-guest
+ * rule with membership_requests.
+ */
+export const mergeProposals = sqliteTable(
+  'merge_proposals',
+  {
+    id: text('id').primaryKey(),
+    tripId: text('trip_id').notNull(),
+    guestPid: text('guest_pid').notNull(),
+    intoPid: text('into_pid'),
+    targetUserId: text('target_user_id'),
+    requestedByUserId: text('requested_by_user_id').notNull(),
+    needsUser: integer('needs_user').notNull().default(0),
+    needsAdmin: integer('needs_admin').notNull().default(0),
+    userAcceptedAt: text('user_accepted_at'),
+    adminAcceptedAt: text('admin_accepted_at'),
+    status: text('status', { enum: ['pending', 'approved', 'declined', 'cancelled'] }).notNull(),
+    createdAt: text('created_at').notNull(),
+    decidedAt: text('decided_at'),
+  },
+  (t) => [
+    index('merge_proposals_trip_id_idx').on(t.tripId),
+    uniqueIndex('merge_proposals_one_pending')
+      .on(t.guestPid)
+      .where(sql`${t.status} = 'pending'`),
+  ],
+);
+
 export const devices = sqliteTable('devices', {
   idHash: text('id_hash').primaryKey(),
   createdAt: text('created_at').notNull(),

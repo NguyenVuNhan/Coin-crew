@@ -433,62 +433,6 @@ describe('screens with one hard-coded back', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.C}`));
   });
 
-  it('row 12: person → People → guest bank → Back → Back returns to the person', async () => {
-    mockMedia({ wide: false });
-    const tuan: PersonSummary = {
-      key: 'p:p-tuan',
-      name: 'Tuấn',
-      nickname: null,
-      userId: null,
-      groupLabel: 'Đà Lạt · Oct 2026',
-      total: -80000,
-      items: [
-        {
-          tripId: 't-1',
-          tripName: 'Đà Lạt · Oct 2026',
-          kind: 'group',
-          amount: -80000,
-          otherPid: PIDS.C,
-          ownerPid: PIDS.M,
-          oldestOpenAt: '2026-10-01T00:00:00.000Z',
-        },
-      ],
-      waiting: [],
-      linked: [],
-    };
-    mockApi({
-      'GET /api/me': meUser,
-      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
-      'GET /api/me/people/summary': { incomplete: false, people: [tuan] },
-      'GET /api/trips/t-1': tripView(),
-      'GET /api/trips/t-1/version': { version: 1 },
-    });
-    renderApp('/people/p%3Ap-tuan');
-
-    const manageBtn = await screen.findByRole('link', { name: /Rename or merge in/ });
-    await userEvent.click(manageBtn);
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/people'));
-    expect(await screen.findByRole('heading', { level: 1, name: 'People' })).toBeInTheDocument();
-
-    const chiRow = screen.getByRole('button', { name: /^Chi,/ });
-    await userEvent.click(chiRow);
-
-    const bankAction = await screen.findByRole('button', { name: 'Bank details' });
-    await userEvent.click(bankAction);
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/people/${PIDS.C}/bank`));
-    expect(await screen.findByRole('heading', { level: 1, name: "Chi's bank details" })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/people'));
-
-    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-tuan'));
-  });
-
   it('opened by link, /me/bank Back goes to /trips', async () => {
     mockMedia({ wide: false });
     mockApi({

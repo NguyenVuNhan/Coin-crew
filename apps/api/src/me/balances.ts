@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
+import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks, trips, tripViews } from '../db/schema';
@@ -9,12 +9,19 @@ import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
 import type { TripRow } from '../access/actor';
 import { ApiError } from '../lib/errors';
 
-interface OtherRow {
+/** A participant in one of the caller's trips, with its account's identity when signed in. */
+export interface OtherRow {
   id: string;
   trip_id: string;
   name: string;
   user_id: string | null;
+  status: 'active' | 'pending' | 'merged' | 'left';
   user_name: string | null;
+  user_email: string | null;
+  user_google_sub: string | null;
+  user_zalo_sub: string | null;
+  user_zalo_name: string | null;
+  user_avatar_url: string | null;
 }
 
 interface WaitingPart {
@@ -70,6 +77,129 @@ function oldestShared(snapshot: TripSnapshot, a: string, b: string): string | nu
   return oldest;
 }
 
+/** One of the caller's active participations, with the trip and its cached view. */
+export interface MyTripRow {
+  trip: TripRow;
+  myPid: string;
+  myIsAdmin: number;
+  viewVersion: number | null;
+  viewJson: string | null;
+}
+
+/** A place of a person, with the participant's own name and account there. */
+export interface PeoplePlace extends MergePlace {
+  name: string;
+  userId: string | null;
+}
+
+/** Who a participant stands for in the caller's lists. */
+export interface ResolvedPerson {
+  key: PersonKey;
+  name: string;
+  userId: string | null;
+  /** The group of an unlinked group guest (null for accounts, linked guests and the caller's ledger). */
+  groupLabel: string | null;
+}
+
+export interface PeopleIndex {
+  /** Everyone the caller shares a trip with (merged participants left out), by canonical key. */
+  people: Map<PersonKey, { name: string; userId: string | null; places: PeoplePlace[] }>;
+  /** Trips where the caller may merge or rename: admin, organiser, and the caller's own ledger. */
+  adminTripIds: Set<string>;
+  /** Participant id -> the key it is shown under (only for participants in `people`). */
+  keyOfPid: Map<string, PersonKey>;
+  mine: MyTripRow[];
+  byPid: Map<string, OtherRow>;
+  links: { participantId: string; personPid: string; kind: 'import' | 'merge' }[];
+  nicknameOf: Map<PersonKey, string>;
+  /** The person `pid` stands for in `trip`, or null when the caller doesn't see it as someone else. */
+  resolve(pid: string, trip: TripRow): ResolvedPerson | null;
+}
+
+/**
+ * Everyone the caller shares a group or ledger with, grouped the way the people list shows them:
+ * accounts by user, guests by the ledger person they are linked to. Four fixed queries (one when the
+ * caller is in no trip), each binding only the caller's id.
+ */
+export async function loadPeopleIndex(db: Db, userId: string): Promise<PeopleIndex> {
+  const mine: MyTripRow[] = await db
+    .select({ trip: trips, myPid: participants.id, myIsAdmin: participants.isAdmin, viewVersion: tripViews.version, viewJson: tripViews.json })
+    .from(participants)
+    .innerJoin(trips, eq(trips.id, participants.tripId))
+    .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
+    .where(and(eq(participants.userId, userId), eq(participants.status, 'active')));
+
+  const [others, links, nicks] = mine.length === 0
+    ? [[], [], []]
+    : await Promise.all([
+      db.all<OtherRow>(sql`
+        SELECT p.id AS id, p.trip_id AS trip_id, p.name AS name, p.user_id AS user_id, p.status AS status, u.name AS user_name,
+          u.email AS user_email, u.google_sub AS user_google_sub, u.zalo_sub AS user_zalo_sub, u.zalo_name AS user_zalo_name,
+          u.avatar_url AS user_avatar_url
+        FROM participants p LEFT JOIN users u ON u.id = p.user_id
+        WHERE p.trip_id IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active')
+      `),
+      db.select({ participantId: personLinks.participantId, personPid: personLinks.personPid, kind: personLinks.kind }).from(personLinks).where(eq(personLinks.ownerUserId, userId)),
+      db.select({ personKey: nicknames.personKey, nickname: nicknames.nickname }).from(nicknames).where(eq(nicknames.ownerUserId, userId)),
+    ]);
+
+  const byPid = new Map(others.map((o) => [o.id, o]));
+  const linkOf = new Map(links.map((l) => [l.participantId, l.personPid]));
+  const nicknameOf = new Map(nicks.map((n) => [n.personKey as PersonKey, n.nickname]));
+
+  const resolve = (pid: string, trip: TripRow): ResolvedPerson | null => {
+    const other = byPid.get(pid);
+    if (!other || other.user_id === userId) return null;
+    const isDirect = trip.preset === 'direct';
+    const ownLedger = isDirect && trip.organiserUserId === userId;
+    // In someone else's ledger the caller has a pair with its owner only, never with the owner's contacts.
+    if (isDirect && !ownLedger && other.user_id !== trip.organiserUserId) return null;
+
+    if (other.user_id) return { key: `u:${other.user_id}`, name: other.user_name ?? other.name, userId: other.user_id, groupLabel: null };
+    const linked = linkOf.get(pid);
+    const linkTarget = linked ? byPid.get(linked) : undefined;
+    // A guest merged into an account nets under that account.
+    if (linked && linkTarget?.user_id) {
+      return { key: `u:${linkTarget.user_id}`, name: linkTarget.user_name ?? linkTarget.name, userId: linkTarget.user_id, groupLabel: null };
+    }
+    if (linked) return { key: `p:${linked}`, name: linkTarget?.name ?? other.name, userId: null, groupLabel: null };
+    return { key: `p:${pid}`, name: other.name, userId: null, groupLabel: ownLedger ? null : trip.name };
+  };
+
+  const adminTripIds = new Set<string>();
+  const people: PeopleIndex['people'] = new Map();
+  const keyOfPid = new Map<string, PersonKey>();
+  const tripOf = new Map(mine.map((r) => [r.trip.id, r.trip]));
+  // The caller's own ledger is always theirs to change (they organise it).
+  for (const r of mine) {
+    if (r.myIsAdmin === 1 || r.trip.organiserUserId === userId) adminTripIds.add(r.trip.id);
+  }
+  for (const o of others) {
+    if (o.status === 'merged') continue;
+    const trip = tripOf.get(o.trip_id);
+    const person = trip ? resolve(o.id, trip) : null;
+    if (!trip || !person) continue;
+    keyOfPid.set(o.id, person.key);
+    let entry = people.get(person.key);
+    if (!entry) {
+      entry = { name: person.name, userId: person.userId, places: [] };
+      people.set(person.key, entry);
+    }
+    entry.places.push({
+      tripId: trip.id,
+      tripName: trip.name,
+      kind: trip.preset === 'direct' ? 'direct' : 'group',
+      participantId: o.id,
+      // Nothing can be merged or requested in an archived group, nor for someone who left it.
+      archived: trip.archivedAt !== null || o.status === 'left',
+      name: o.name,
+      userId: o.user_id,
+    });
+  }
+
+  return { people, adminTripIds, keyOfPid, mine, byPid, links, nicknameOf, resolve };
+}
+
 /**
  * Everyone the caller has money open with, across their groups (archived ones too) and
  * their personal ledger. Four fixed queries, one more only when a payment waits on the caller
@@ -78,27 +208,9 @@ function oldestShared(snapshot: TripSnapshot, a: string, b: string): string | nu
  * only the caller's id (D1 allows 100 bound parameters).
  */
 export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleSummaryResponse> {
-  const mine = await db
-    .select({ trip: trips, myPid: participants.id, viewVersion: tripViews.version, viewJson: tripViews.json })
-    .from(participants)
-    .innerJoin(trips, eq(trips.id, participants.tripId))
-    .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
-    .where(and(eq(participants.userId, userId), eq(participants.status, 'active')));
+  const index = await loadPeopleIndex(db, userId);
+  const { mine, byPid, links, nicknameOf } = index;
   if (mine.length === 0) return { people: [], incomplete: false };
-
-  const [others, links, nicks] = await Promise.all([
-    db.all<OtherRow>(sql`
-      SELECT p.id AS id, p.trip_id AS trip_id, p.name AS name, p.user_id AS user_id, u.name AS user_name
-      FROM participants p LEFT JOIN users u ON u.id = p.user_id
-      WHERE p.trip_id IN (SELECT m.trip_id FROM participants m WHERE m.user_id = ${userId} AND m.status = 'active')
-    `),
-    db.select({ participantId: personLinks.participantId, personPid: personLinks.personPid, kind: personLinks.kind }).from(personLinks).where(eq(personLinks.ownerUserId, userId)),
-    db.select({ personKey: nicknames.personKey, nickname: nicknames.nickname }).from(nicknames).where(eq(nicknames.ownerUserId, userId)),
-  ]);
-
-  const byPid = new Map(others.map((o) => [o.id, o]));
-  const linkOf = new Map(links.map((l) => [l.participantId, l.personPid]));
-  const nicknameOf = new Map(nicks.map((n) => [n.personKey, n.nickname]));
   const people = new Map<PersonKey, Person>();
 
   const warm: { row: (typeof mine)[number]; snapshot: TripSnapshot }[] = [];
@@ -125,7 +237,6 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     const trip = row.trip;
     const me = row.myPid;
     const isDirect = trip.preset === 'direct';
-    const ownLedger = isDirect && trip.organiserUserId === userId;
 
     const otherPids = new Set<string>();
     for (const s of snapshot.suggestions) {
@@ -145,33 +256,9 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     }
 
     for (const pid of otherPids) {
-      const other = byPid.get(pid);
-      if (!other || other.user_id === userId) continue;
-      // In someone else's ledger the caller has a pair with its owner only, never with the owner's contacts.
-      if (isDirect && !ownLedger && other.user_id !== trip.organiserUserId) continue;
-
-      let key: PersonKey;
-      let name: string;
-      let personUserId = other.user_id;
-      let groupLabel: string | null = null;
-      const linked = other.user_id ? undefined : linkOf.get(pid);
-      const linkTarget = linked ? byPid.get(linked) : undefined;
-      if (other.user_id) {
-        key = `u:${other.user_id}`;
-        name = other.user_name ?? other.name;
-      } else if (linked && linkTarget?.user_id) {
-        // A guest merged into an account nets under that account.
-        key = `u:${linkTarget.user_id}`;
-        name = linkTarget.user_name ?? linkTarget.name;
-        personUserId = linkTarget.user_id;
-      } else if (linked) {
-        key = `p:${linked}`;
-        name = linkTarget?.name ?? other.name;
-      } else {
-        key = `p:${pid}`;
-        name = other.name;
-        if (!ownLedger) groupLabel = trip.name;
-      }
+      const resolved = index.resolve(pid, trip);
+      if (!resolved) continue;
+      const { key, name, userId: personUserId, groupLabel } = resolved;
 
       let person = people.get(key);
       if (!person) {
