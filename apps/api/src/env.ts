@@ -9,6 +9,8 @@ export type Env = {
   APP_ORIGIN: string;
   ZALO_APP_ID?: string;
   ZALO_APP_SECRET?: string;
+  ZALO_RELAY_URL?: string;
+  ZALO_RELAY_SECRET?: string;
   E2E_LOGIN?: string;
   OPS_ALERT_WEBHOOK_URL?: string;
   CF_API_TOKEN?: string;
