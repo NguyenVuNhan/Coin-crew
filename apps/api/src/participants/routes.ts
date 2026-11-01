@@ -15,6 +15,7 @@ import {
   users,
 } from '../db/schema';
 import { getSessionUser } from '../auth/session';
+import { deviceZaloSub } from '../auth/zaloSlots';
 import type { ResolvedActor } from '../access/actor';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
@@ -313,6 +314,21 @@ export function participantRoutes(): Hono<AppBindings> {
         },
       })
       .run();
+
+    // Tie the slot to this device's Zalo account, so the person is recognised on any Zalo device.
+    // Never overwrite; if another slot in the group already holds this Zalo account, leave it.
+    const zaloSub = await deviceZaloSub(db, actor.deviceHash);
+    if (zaloSub) {
+      try {
+        await db
+          .update(participants)
+          .set({ zaloSub })
+          .where(and(eq(participants.id, target.id), isNull(participants.zaloSub)))
+          .run();
+      } catch (err) {
+        if (!isDbError(err, 'UNIQUE constraint failed')) throw err;
+      }
+    }
 
     return c.body(null, 204);
   });
