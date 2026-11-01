@@ -11,6 +11,7 @@ import { InlineError } from '../components/InlineError';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
 import { nameOf } from '../lib/tripText';
+import { useEntryState } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
@@ -33,7 +34,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const t = useT();
   const wide = useIsWide();
   const { href } = useTrip(view.trip.id);
-  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
+  const [activeTab, setActiveTab] = useEntryState<'expenses' | 'payments'>('tab', 'expenses');
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
   // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
   const transfersState = useTransfersState(view);

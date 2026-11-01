@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEntryState } from '../lib/navHistory';
 import type { TripView } from '@fsl/core';
 import { formatVnd } from '@fsl/core';
 import { useT } from '../i18n';
@@ -23,7 +23,7 @@ import { TripTabs } from '../components/TripTabs';
 export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
-  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
+  const [activeTab, setActiveTab] = useEntryState<'expenses' | 'payments'>('tab', 'expenses');
   const { detail, open } = useDetailsSelection(view.trip.id, selection);
 
   const user = useMe().data?.user;

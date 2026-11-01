@@ -891,3 +891,179 @@ describe('finished steps', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
   });
 });
+
+type PaymentItem = TripView['payments'][number];
+const payment = (p: Partial<PaymentItem> & Pick<PaymentItem, 'id' | 'fromId' | 'toId' | 'status'>): PaymentItem => ({
+  amountClaimed: 100000,
+  amountConfirmed: p.status === 'confirmed' ? 100000 : null,
+  notArrived: false,
+  createdAt: '2026-10-12T08:00:00.000Z',
+  ...p,
+});
+
+describe('page comes back as left', () => {
+  it('row 6: wide, Activity → ledger item → × returns to Activity', async () => {
+    mockMedia({ wide: true });
+    api();
+    renderApp('/activity');
+
+    const item = await screen.findByRole('link', { name: /Taxi/ });
+    await userEvent.click(item);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/trips'));
+    const panel = await screen.findByRole('region', { name: 'Expense' });
+    expect(panel).toBeInTheDocument();
+
+    const closeBtn = within(panel).getByRole('button', { name: 'Close' });
+    await userEvent.click(closeBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/activity'));
+  });
+
+  it('selecting rows on Home then × stays on Home', async () => {
+    mockMedia({ wide: true });
+    api();
+    renderApp('/trips');
+
+    const row = await screen.findByRole('button', { name: /^Taxi/ });
+    await userEvent.click(row);
+
+    const panel = await screen.findByRole('region', { name: 'Expense' });
+    expect(panel).toBeInTheDocument();
+
+    const closeBtn = within(panel).getByRole('button', { name: 'Close' });
+    await userEvent.click(closeBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/trips$/));
+    expect(screen.queryByRole('region', { name: 'Expense' })).toBeNull();
+    expect(screen.getByTestId('home-total')).toBeInTheDocument();
+  });
+
+  it('group page comes back on Payments after details', async () => {
+    mockMedia({ wide: false });
+    const view = tripView({
+      payments: [
+        payment({ id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, status: 'confirmed' }),
+      ],
+    });
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips': [
+        { id: 't-1', name: 'Đà Lạt · Oct 2026', archived: false, myBalance: 500000 },
+      ],
+      'GET /api/trips/t-1': view,
+      'GET /api/trips/t-1/version': { version: 3 },
+      'GET /api/trips/t-led': ledgerView(),
+      'GET /api/trips/t-led/version': { version: 1 },
+    });
+    renderApp('/t/t-1');
+
+    const paymentsTab = await screen.findByRole('tab', { name: 'Payments' });
+    await userEvent.click(paymentsTab);
+    expect(paymentsTab).toHaveAttribute('aria-selected', 'true');
+
+    const paymentRow = await screen.findByRole('button', { name: /^Chi → You/ });
+    await userEvent.click(paymentRow);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-1'));
+    expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    expect(await screen.findByRole('tab', { name: 'Payments' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Expenses' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('Home comes back on Payments after a ledger payment', async () => {
+    mockMedia({ wide: false });
+    const ledgerWithPayment = {
+      ...ledgerView(),
+      payments: [
+        payment({ id: 'pay-led-1', fromId: 'p-minh', toId: 'p-me', status: 'confirmed' }),
+      ],
+    };
+    mockApi({
+      'GET /api/me': meUser,
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/people/summary': { people: [], incomplete: false },
+      'GET /api/trips': [],
+      'GET /api/trips/t-led': ledgerWithPayment,
+      'GET /api/trips/t-led/version': { version: 1 },
+      'GET /api/me/activity': { items: [], next: null },
+    });
+    renderApp('/trips');
+
+    const paymentsTab = await screen.findByRole('tab', { name: 'Payments' });
+    await userEvent.click(paymentsTab);
+    expect(paymentsTab).toHaveAttribute('aria-selected', 'true');
+
+    const paymentRow = await screen.findByRole('button', { name: /^Minh → You/ });
+    await userEvent.click(paymentRow);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-led/payments/pay-led-1'));
+    expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/trips$/));
+    expect(await screen.findByRole('tab', { name: 'Payments' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Expenses' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('group page comes back at its scroll position after details', async () => {
+    mockMedia({ wide: false });
+    api();
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    vi.stubGlobal('scrollY', 300);
+
+    renderApp('/t/t-1');
+
+    const row = await screen.findByRole('button', { name: /^Homestay Bloom/ });
+    await userEvent.click(row);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-1'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Expense' })).toBeInTheDocument();
+
+    vi.stubGlobal('scrollY', 0);
+
+    const backBtn = screen.getByRole('button', { name: 'Back' });
+    await userEvent.click(backBtn);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    await waitFor(() => expect(scrollTo).toHaveBeenLastCalledWith(0, 300));
+  });
+
+  it('a new visit to the group starts on Expenses', async () => {
+    mockMedia({ wide: false });
+    api();
+    renderApp('/groups');
+
+    const groupLink = await screen.findByRole('link', { name: /Đà Lạt/ });
+    await userEvent.click(groupLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+
+    const paymentsTab = await screen.findByRole('tab', { name: 'Payments' });
+    await userEvent.click(paymentsTab);
+    expect(paymentsTab).toHaveAttribute('aria-selected', 'true');
+
+    const backLink = screen.getByRole('link', { name: 'Back' });
+    await userEvent.click(backLink);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/groups$/));
+
+    const groupLinkAgain = await screen.findByRole('link', { name: /Đà Lạt/ });
+    await userEvent.click(groupLinkAgain);
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+
+    expect(await screen.findByRole('tab', { name: 'Expenses' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Payments' })).toHaveAttribute('aria-selected', 'false');
+  });
+});

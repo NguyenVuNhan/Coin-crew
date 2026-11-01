@@ -7,6 +7,7 @@ import { useLedger } from '../api/people';
 import { useTrip } from '../lib/tripBase';
 import { useIsWide } from '../lib/media';
 import { fundOf } from '../lib/fund';
+import { useEntryState } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { Icon } from '../components/icons';
 import { ApprovalQueue } from '../components/ApprovalQueue';
@@ -32,7 +33,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const wide = useIsWide();
   const { tripId, href } = useTrip(view.trip.id);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
+  const [activeTab, setActiveTab] = useEntryState<'expenses' | 'payments'>('tab', 'expenses');
 
   const meQuery = useMe();
   const user = meQuery.data?.user;

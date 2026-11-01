@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { formatVnd, type PersonSummary } from '@fsl/core';
 import { useT } from '../i18n';
@@ -7,6 +7,7 @@ import { useMe, useTripView } from '../api/hooks';
 import { useLedger, usePeopleSummary } from '../api/people';
 import { useIsWide } from '../lib/media';
 import { homeDetailsFrom, ledgerDetailsPath, useOpenDetails, type HomeDetailKind } from '../lib/detailsNav';
+import { useBack, useEntryState, useNavEntry } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { ConsentSheet } from '../components/ConsentSheet';
@@ -28,6 +29,8 @@ export function Home(): JSX.Element {
   const t = useT();
   const navigate = useNavigate();
   const wide = useIsWide();
+  const { depth, openedAs } = useNavEntry();
+  const { goBack } = useBack('/trips');
   const meQuery = useMe();
   const user = meQuery.data?.user;
 
@@ -42,7 +45,7 @@ export function Home(): JSX.Element {
     refetch: refetchPeople,
   } = usePeopleSummary();
 
-  const [activeTab, setActiveTab] = useState<'expenses' | 'payments'>('expenses');
+  const [activeTab, setActiveTab] = useEntryState<'expenses' | 'payments'>('tab', 'expenses');
   // From 1024px the open transaction lives in the search params (`/trips?expense=<id>`), so Activity, an edit's
   // return and a deep link to a ledger item all land here with it open.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,6 +59,14 @@ export function Home(): JSX.Element {
   );
   // Closing clears the main screen's own selection: no detour through the ledger's address.
   const closeDetails = useCallback(() => {
+    const openedParams = openedAs ? new URL(openedAs, 'http://x').searchParams : null;
+    const hasItemParam =
+      openedParams !== null &&
+      (openedParams.has('expense') || openedParams.has('payment') || openedParams.has('income'));
+    if (depth > 0 && hasItemParam) {
+      goBack();
+      return;
+    }
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -64,7 +75,7 @@ export function Home(): JSX.Element {
       },
       { replace: true },
     );
-  }, [setSearchParams]);
+  }, [depth, openedAs, goBack, setSearchParams]);
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
