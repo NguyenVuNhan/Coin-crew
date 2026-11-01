@@ -21,7 +21,8 @@ COPY --from=build /app/apps/zalo-relay/package.json apps/zalo-relay/
 RUN npm ci -w @fsl/zalo-relay --omit=dev --ignore-scripts
 
 FROM node:24-alpine
-ENV NODE_ENV=production
+ARG GIT_SHA=dev
+ENV NODE_ENV=production RELAY_REVISION=$GIT_SHA
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/apps/zalo-relay/package.json apps/zalo-relay/

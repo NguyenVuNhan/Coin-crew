@@ -49,6 +49,7 @@ jobs:
         with:
           context: .
           file: apps/zalo-relay/Dockerfile
+          build-args: GIT_SHA=${{ github.sha }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |

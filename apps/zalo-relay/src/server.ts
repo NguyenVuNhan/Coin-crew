@@ -10,5 +10,5 @@ try {
 }
 
 serve({ fetch: app.fetch, port: 8080 }, (info) => {
-  console.log(`zalo-relay listening on ${info.port}`);
+  console.log(`zalo-relay listening on ${info.port} (rev ${process.env.RELAY_REVISION ?? 'dev'})`);
 });
