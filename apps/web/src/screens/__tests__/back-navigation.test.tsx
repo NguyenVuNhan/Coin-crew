@@ -964,7 +964,7 @@ describe('page comes back as left', () => {
     await userEvent.click(paymentsTab);
     expect(paymentsTab).toHaveAttribute('aria-selected', 'true');
 
-    const paymentRow = await screen.findByRole('button', { name: /^Chi → You/ });
+    const paymentRow = await screen.findByRole('button', { name: /^Chi → You, 100.000₫, Paid/ });
     await userEvent.click(paymentRow);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-1'));
