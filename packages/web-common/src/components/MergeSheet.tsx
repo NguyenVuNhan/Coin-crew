@@ -5,6 +5,7 @@ import type { OutgoingMergeRequest } from '@fsl/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
+import { usePlatform } from '../platform';
 import { formatExpiry } from '../lib/time';
 import { apiSend, ApiClientError } from '../api/client';
 import { providerName } from './ProviderLogo';
@@ -45,9 +46,19 @@ function isNotFoundError(err: unknown): boolean {
 
 export function MergeSheet({ request, open, onClose }: MergeSheetProps) {
   const t = useT();
+  const platform = usePlatform();
   const location = useLocation();
   const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const isZmp = platform.kind === 'zmp';
+  const webHost = (() => {
+    try {
+      return new URL(platform.apiBase).host;
+    } catch {
+      return platform.apiBase;
+    }
+  })();
 
   const [busy, setBusy] = useState<'cancel' | 'dismiss' | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -239,7 +250,20 @@ export function MergeSheet({ request, open, onClose }: MergeSheetProps) {
         <div className={cn('fsl-merge-sheet__actions', 'flex flex-col gap-2')}>
           {request.status === 'pending' && (
             <>
-              {!isGoogleInZalo ? (
+              {isZmp ? (
+                <>
+                  <p className="fsl-merge__zmp-web m-0 text-sm text-muted-foreground">
+                    {t('account.manageOnWeb')}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    className="fsl-merge__open-web"
+                    onClick={() => void platform.openExternal(platform.apiBase + '/groups')}
+                  >
+                    {webHost}
+                  </Button>
+                </>
+              ) : !isGoogleInZalo ? (
                 <>
                   <Button
                     variant="primary"
@@ -276,17 +300,32 @@ export function MergeSheet({ request, open, onClose }: MergeSheetProps) {
 
           {request.status === 'declined' && (
             <>
-              <Button
-                variant="primary"
-                block
-                data-primary=""
-                href={signInHref(provider, location.pathname, 'link')}
-                disabled={busy !== null}
-                aria-disabled={busy !== null ? 'true' : undefined}
-                tabIndex={busy !== null ? -1 : undefined}
-              >
-                {t('merge.linkAgain')}
-              </Button>
+              {isZmp ? (
+                <>
+                  <p className="fsl-merge__zmp-web m-0 text-sm text-muted-foreground">
+                    {t('account.manageOnWeb')}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    className="fsl-merge__open-web"
+                    onClick={() => void platform.openExternal(platform.apiBase + '/groups')}
+                  >
+                    {webHost}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="primary"
+                  block
+                  data-primary=""
+                  href={signInHref(provider, location.pathname, 'link')}
+                  disabled={busy !== null}
+                  aria-disabled={busy !== null ? 'true' : undefined}
+                  tabIndex={busy !== null ? -1 : undefined}
+                >
+                  {t('merge.linkAgain')}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 block

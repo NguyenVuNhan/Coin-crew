@@ -23,6 +23,8 @@ import { Pill } from '../components/Pill';
 import { Icon } from '../components/icons';
 import { InlineError } from '../components/InlineError';
 import { PodiumTop3, podiumPlayers } from '../components/LeaderboardWidget';
+import { ZaloSignIn } from '../components/ZaloSignIn';
+import { usePlatform } from '../platform';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -300,6 +302,7 @@ export function StarVote({
 
 export function RatingsPanel({ view }: { view: TripView }) {
   const t = useT();
+  const platform = usePlatform();
   const { href } = useTrip(view.trip.id);
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -456,16 +459,20 @@ export function RatingsPanel({ view }: { view: TripView }) {
         <div className="fsl-ratings__guest-card rounded-xl bg-card border border-border p-4 flex flex-col gap-2">
           <p className="fsl-ratings__guest-title m-0 text-base font-semibold text-foreground">{t('ratings.guestTitle')}</p>
           <p className="fsl-ratings__guest-body m-0 text-sm text-muted-foreground">{t('ratings.guestBody')}</p>
-          <a
-            href={`/api/auth/google/start?returnTo=${encodeURIComponent(href('/ratings'))}`}
-            className={cn(
-              'fsl-button fsl-button--secondary fsl-button--block',
-              buttonVariants({ variant: 'secondary' }),
-              'w-full',
-            )}
-          >
-            {t('who.guestSignIn')}
-          </a>
+          {platform.kind === 'zmp' ? (
+            <ZaloSignIn />
+          ) : (
+            <a
+              href={`/api/auth/google/start?returnTo=${encodeURIComponent(href('/ratings'))}`}
+              className={cn(
+                'fsl-button fsl-button--secondary fsl-button--block',
+                buttonVariants({ variant: 'secondary' }),
+                'w-full',
+              )}
+            >
+              {t('who.guestSignIn')}
+            </a>
+          )}
         </div>
       ) : null}
 

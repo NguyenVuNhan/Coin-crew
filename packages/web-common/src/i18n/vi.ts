@@ -722,6 +722,7 @@ export const vi: Record<MessageKey, string> = {
   'account.unlinkConfirm': 'Gỡ {provider}? Bạn sẽ đăng nhập bằng cách còn lại.', // REVIEW
   'account.backupNudgeZalo': 'Liên kết thêm Google để không mất tài khoản khi đổi số Zalo', // REVIEW
   'account.backupNudgeGoogle': 'Liên kết thêm Zalo để đăng nhập ngay trong Zalo', // REVIEW
+  'account.manageOnWeb': 'Liên kết Google hoặc cách đăng nhập khác trên bản web:', // REVIEW
   'merge.cancel': 'Huỷ', // REVIEW
   'merge.chipPending': 'Chờ xác nhận', // REVIEW
   'merge.chipDeclined': 'Bị từ chối', // REVIEW

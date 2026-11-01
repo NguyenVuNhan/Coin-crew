@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { MeResponse, AuthProvider, OutgoingMergeRequest } from '@fsl/core';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
+import { usePlatform } from '../platform';
 import { apiSend } from '../api/client';
 import { signInHref } from './SignInButtons';
 import { ProviderLogo, providerName } from './ProviderLogo';
@@ -21,10 +22,20 @@ export interface LinkedAccountsProps {
 
 export function LinkedAccounts({ me }: LinkedAccountsProps) {
   const t = useT();
+  const platform = usePlatform();
   const location = useLocation();
   const returnTo = location.pathname;
   const queryClient = useQueryClient();
   const headingId = useId();
+
+  const isZmp = platform.kind === 'zmp';
+  const webHost = (() => {
+    try {
+      return new URL(platform.apiBase).host;
+    } catch {
+      return platform.apiBase;
+    }
+  })();
 
   const [confirming, setConfirming] = useState<AuthProvider | null>(null);
   const [unlinking, setUnlinking] = useState(false);
@@ -228,7 +239,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
               <div className="fsl-linked__actions flex items-center justify-end gap-2 shrink-0 empty:hidden">
                 {isLinked ? (
                   <>
-                    {!isGoogleInZalo && (
+                    {!isZmp && !isGoogleInZalo && (
                       <Button
                         variant="secondary"
                         className="fsl-linked__icon-btn size-9 min-w-9 min-h-9 p-0 rounded-full"
@@ -252,7 +263,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     )}
                   </>
                 ) : (
-                  !isGoogleInZalo && (
+                  !isZmp && !isGoogleInZalo && (
                     <Button
                       variant="primary"
                       className="fsl-linked__icon-btn size-9 min-w-9 min-h-9 p-0 rounded-full"
@@ -269,6 +280,23 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
           );
         })}
       </ul>
+
+      {isZmp && (
+        <>
+          <p className="fsl-linked__zmp-web m-0 mt-2 text-sm text-muted-foreground">
+            {t('account.manageOnWeb')}
+          </p>
+          <Button
+            variant="ghost"
+            className="fsl-linked__open-web"
+            onClick={() => {
+              void platform.openExternal(platform.apiBase + '/groups');
+            }}
+          >
+            {webHost}
+          </Button>
+        </>
+      )}
 
       {error !== null && (
         <InlineError error={error} className="fsl-linked__error mt-2" />

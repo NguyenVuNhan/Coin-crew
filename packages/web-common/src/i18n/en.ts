@@ -722,6 +722,7 @@ export const en = {
   'account.unlinkConfirm': 'Unlink {provider}? You will sign in with the other method.',
   'account.backupNudgeZalo': 'Link Google too so you don\'t lose this account if your Zalo changes',
   'account.backupNudgeGoogle': 'Link Zalo too so you can sign in from the Zalo app',
+  'account.manageOnWeb': 'Linking Google or another sign-in method works on the web app:',
   'merge.cancel': 'Cancel',
   'merge.chipPending': 'Waiting to confirm',
   'merge.chipDeclined': 'Declined',
