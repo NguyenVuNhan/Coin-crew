@@ -1,10 +1,11 @@
-# main publishes :latest (the DSM updater pulls it); a manual run on a branch publishes :edge for testing on the DSM before merge.
+# main publishes :latest (the DSM updater pulls it). A push to any other branch that touches the relay, or a manual
+# run on a branch, publishes :edge for testing on the DSM before merge.
 
 name: Zalo relay image
 
 on:
   push:
-    branches: [main]
+    branches: ['**']
     paths:
       - 'apps/zalo-relay/**'
       - '.github/workflows/zalo-relay.yml'

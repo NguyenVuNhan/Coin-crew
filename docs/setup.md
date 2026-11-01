@@ -60,7 +60,7 @@ The Zalo buttons stay hidden until both secrets exist, so you can deploy first a
 
 Zalo's profile API withholds name and avatar from callers outside Vietnam ("Personal information is limited due to IP address not inside Vietnam"); the live Worker runs on Cloudflare IPs, so Zalo users show up as "Zalo" with no avatar. A small relay on a DSM at home (Vietnamese IP) makes that one call. Without it, sign-in still works.
 
-Pieces: image `ghcr.io/nguyenvunhan/coin-crew-zalo-relay` (tags: `latest` from `main`, `edge` from a manual run of the "Zalo relay image" workflow on a branch); project files `apps/zalo-relay/compose.yaml` and `apps/zalo-relay/.env.example`.
+Pieces: image `ghcr.io/nguyenvunhan/coin-crew-zalo-relay` (tags: `latest` from `main`, `edge` from a push to any other branch that changes the relay, or a manual run of the "Zalo relay image" workflow on a branch); project files `apps/zalo-relay/compose.yaml` and `apps/zalo-relay/.env.example`.
 
 1. After the first run of the "Zalo relay image" workflow, open the package on GitHub (**Profile → Packages → coin-crew-zalo-relay → Package settings**) and set visibility to Public, once. The image holds no secrets; public means the DSM pulls without a login.
 2. Certificate: **Control Panel → Security → Certificate → Add → Let's Encrypt**; domain `<name>.diskstation.me`, Subject Alternative Name `zalo-relay.<name>.diskstation.me` (or a `*.<name>.diskstation.me` wildcard if your existing certificate already has one, then nothing to do).
@@ -70,7 +70,7 @@ Pieces: image `ghcr.io/nguyenvunhan/coin-crew-zalo-relay` (tags: `latest` from `
 6. Tell the Worker: `npx -w @fsl/api wrangler secret put ZALO_RELAY_URL` (value `https://zalo-relay.<name>.diskstation.me`) and `npx -w @fsl/api wrangler secret put ZALO_RELAY_SECRET` (same secret as the DSM `.env`). For the tunnel on your machine, add the same two keys to `apps/api/.dev.vars` and restart `npm run tunnel`.
 7. Check: sign in with Zalo on the live app; your real name and avatar appear. The relay's log in Container Manager shows a line like `GET /me 200 312ms`.
 
-Updates: automatic. A merge to `main` that touches `apps/zalo-relay` publishes `:latest` and the updater swaps the container within about 15 minutes. To try a branch on the DSM before merging: run the "Zalo relay image" workflow by hand on that branch (`gh workflow run zalo-relay.yml --ref <branch>`), set `RELAY_TAG=edge` in the DSM `.env` and restart the project; set it back to `latest` afterwards.
+Updates: automatic. A merge to `main` that touches `apps/zalo-relay` publishes `:latest` and the updater swaps the container within about 15 minutes. To try a branch on the DSM before merging: push it (or run the "Zalo relay image" workflow by hand on it with `gh workflow run zalo-relay.yml --ref <branch>`), set `RELAY_TAG=edge` in the DSM `.env` and restart the project; set it back to `latest` afterwards.
 
 Rollback: delete `ZALO_RELAY_URL` and `ZALO_RELAY_SECRET` from the Worker; it goes back to calling Zalo directly.
 

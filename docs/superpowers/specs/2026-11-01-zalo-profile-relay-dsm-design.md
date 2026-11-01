@@ -79,8 +79,9 @@ on a subdomain, behind the DSM reverse proxy, fed images from GitHub.
   unless-stopped`, `env_file: .env`) plus an auto-updater (Watchtower or a maintained equivalent) scoped
   by label to the relay container only, polling about every 15 minutes, cleaning old images.
 - Updates are automatic after merge to `main` (owner's choice).
-- The same workflow can be run by hand (`workflow_dispatch`) on any branch; it then pushes the moving tag
-  `edge` (plus the SHA) instead of `latest`. This is how a PR's relay gets onto the real DSM before merge
+- A push to any other branch touching the relay (or a manual `workflow_dispatch` run on a branch, which
+  GitHub only allows once the workflow is on `main`) pushes the moving tag `edge` (plus the SHA) instead of
+  `latest`. This is how a PR's relay gets onto the real DSM before merge
   (see "Validation on the real DSM"). The image tag is set by `RELAY_TAG` in the DSM `.env`, default
   `latest`.
 
@@ -113,7 +114,7 @@ the real DSM and the results are written in the PR description. Note: the owner'
 local sign-in would succeed even without the relay. Steps 4–5 therefore prove the relay was used by its log,
 not by the name alone.
 
-1. **Image from the branch.** Run the relay workflow by hand on the PR branch. Check that
+1. **Image from the branch.** Push the PR branch; the relay workflow runs on it. Check that
    `ghcr.io/nguyenvunhan/coin-crew-zalo-relay:edge` exists, is public, and has amd64 and arm64.
 2. **DSM setup by following the new `docs/setup.md` section word for word** with `RELAY_TAG=edge`:
    certificate, reverse proxy rule for `zalo-relay.<name>.diskstation.me`, Container Manager project,
