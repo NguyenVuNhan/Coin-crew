@@ -1,6 +1,6 @@
 # CoinCrew inside Zalo: native Zalo Mini App (`zmp-sdk`)
 
-Status: design, approved in brainstorming on 2026-11-01. Branch: `feat/zalo-mini-app`.
+Status: design, approved in brainstorming on 2026-11-01 (incl. the web / zalo / common split). Branch: `feat/zalo-mini-app`.
 
 ## Intent and why
 
@@ -51,7 +51,7 @@ are. The Mini App is a second build of the same web app, plus a thin platform la
   today. Zalo user IDs are scoped to the Zalo App, so the ID the Mini App sees equals `users.zalo_sub`.
   (Owner confirmed the App ID. That the IDs match is a reading of the docs: verify with one real account
   before relying on it in production.)
-- i18n: 100% key parity between `apps/web/src/i18n/en.ts` and `vi.ts`; every new `vi.ts` line ends with
+- i18n: 100% key parity between `packages/web-common/src/i18n/en.ts` and `vi.ts`; every new `vi.ts` line ends with
   `// REVIEW`.
 - UI rules from `CLAUDE.md`: shadcn + app wrappers, theme only in `globals.css`, `fsl-*` classes and
   `data-testid` stay on their elements, touch targets ≥44px, fields at 16px.
@@ -71,25 +71,40 @@ Also used: `openShareSheet` (`zmp_deep_link`: `title` ≤100 chars, `thumbnail` 
 
 ## Design
 
-### 1. Two build targets, one codebase
+### 1. Split the web app into web, zalo and common (step 0, ships first)
 
-- `apps/web` gains a Vite mode `zmp`: `npm run build:zmp -w @fsl/web` → `vite build --mode zmp`.
-  It sets `VITE_TARGET=zmp`, `VITE_API_ORIGIN=https://coin-crew.<subdomain>.workers.dev` (from env,
-  not hard-coded), writes to `apps/web/dist-zmp/` (not `../api/public`), and drops the PWA plugin.
-- `apps/web/app-config.json` holds the Mini App config (title, header hidden, status bar,
-  `listCSS`/`listSyncJS` as `zmp-cli` expects). `zmp-cli` is a devDependency of `@fsl/web`;
-  `npm run deploy:zmp -w @fsl/web` runs `zmp deploy` on `dist-zmp`. Builder's call: whether this needs a
-  thin `apps/zalo-mini-app` wrapper instead, only if `zmp-cli` can't be pointed at `dist-zmp`.
+Owner's decision. The split is a pure move with no behaviour change, done and merged before any Zalo
+work; all existing unit tests and the Playwright e2e run stay green. Laid out so an Nx workspace can
+adopt it later: each project has its own `package.json` (`build` / `test` / `typecheck` scripts where
+they apply) and `tsconfig`, and no project reaches into another's files by relative path.
+
+| Project | Holds | Output |
+|---|---|---|
+| `packages/web-common` (`@fsl/web-common`) | `App.tsx`, `screens/`, `components/` (incl. shadcn `ui/`), `lib/`, `i18n/`, `api/client.ts`, `styles/globals.css`, `config.ts`, `platform/` (the `PlatformBridge` interface + React context), test setup and the tests next to that code, `components.json` | none; consumed as source by the two apps |
+| `apps/web` (`@fsl/web`) | `main.tsx`, `index.html`, `public/`, Vite config with PWA, `src/platform/web.ts` | `apps/api/public` (unchanged) |
+| `apps/zalo` (`@fsl/zalo`) | `main.tsx`, `index.html`, Vite config, `app-config.json`, `zmp-cli` (dev), `zmp-sdk`, `src/platform/zaloMiniApp.ts` | `apps/zalo/dist` → `zmp deploy` |
+
+- `@fsl/web-common` exports `<App platform={...} />` (and what tests need). Each app's `main.tsx`
+  creates its platform and renders `App`. The `@/` alias keeps pointing at `web-common/src` inside
+  that package.
+- `zmp-sdk` is a dependency of `apps/zalo` only, so the web bundle cannot contain it; no dynamic-import
+  trick, no `VITE_TARGET` flag.
+- Repo references move with it: `.mcp.json` (`--cwd packages/web-common`), shadcn `add` runs in
+  `packages/web-common`, `CLAUDE.md` UI section paths, `style-guard.test.ts` paths,
+  `scripts/render-og-images.mjs` (`apps/web/public/og` stays in `apps/web`). Root scripts (`dev`,
+  `e2e`, `tunnel`) keep calling `@fsl/web`.
+- `apps/zalo` scripts: `dev` (`zmp start` or Vite with the API proxy), `build` (Vite →
+  `dist`, `VITE_API_ORIGIN=https://coin-crew.<subdomain>.workers.dev` from env, never hard-coded),
+  `deploy` (`zmp deploy`). `app-config.json` holds title, hidden Zalo header, status bar, and
+  `listCSS`/`listSyncJS` as `zmp-cli` expects.
 - Routing: the Mini App runs the same React Router routes. Card paths (`j/<token>`, `t/<tripId>/...`)
   arrive through the Mini App URL; boot reads them and navigates.
-- `zmp-sdk` is a dependency, but **only ever loaded through `import('zmp-sdk')`** inside the Mini App
-  platform module, which is itself loaded only when `VITE_TARGET === 'zmp'`. A test checks the web build
-  output contains no `zmp-sdk` code.
 
-### 2. Platform bridge (`apps/web/src/platform/`)
+### 2. Platform bridge
 
-`index.ts` exports `PlatformBridge` and `getPlatform()`. `web.ts` wraps today's behaviour;
-`zaloMiniApp.ts` wraps `zmp-sdk`. Screens call the bridge, never `navigator.share` or `zmp-sdk` directly.
+`packages/web-common/src/platform/index.ts` exports `PlatformBridge`, `PlatformProvider` and
+`usePlatform()`. `apps/web/src/platform/web.ts` wraps today's behaviour; `apps/zalo/src/platform/zaloMiniApp.ts`
+wraps `zmp-sdk`. A shared `webDefaults` helper in web-common may hold the browser implementations both reuse. Screens call the bridge, never `navigator.share` or `zmp-sdk` directly.
 
 ```ts
 interface PlatformBridge {
@@ -108,15 +123,14 @@ interface PlatformBridge {
 interface ShareCard { title: string; description: string; path: string; thumbnailUrl: string; text: string; url: string }
 ```
 
-- Detection: `VITE_TARGET === 'zmp'` at build time. (`window.ZJSBridge` sniffing is not used: the
-  Mini App always runs the `zmp` build.)
+- Detection: none at runtime; the app that is running passes its own platform.
 - Web `share` keeps today's `navigator.share` → clipboard fallback using `text`/`url`; Mini App `share`
   uses `openShareSheet({ type: 'zmp_deep_link', data: { title, description, thumbnail, path } })`,
   where `status: '0'` → `'cancelled'`.
 - Web `saveImage` keeps today's `<a download>`; Mini App converts the PNG to base64 and calls
   `saveImageToGallery({ imageBase64Data })`.
 - Storage: web uses `localStorage`; Mini App uses `zmp-sdk` `getItem`/`setItem`.
-- A React hook `usePlatform()` (context provided at the root) exposes it; tests inject a fake.
+- `usePlatform()` reads the context; tests in web-common inject a fake platform.
 
 ### 3. Session token alongside the cookie
 
@@ -127,7 +141,7 @@ relied on (iOS webviews block it).
   then the `sid` cookie. Same hash lookup, same expiry.
 - Sign-in endpoints used by the Mini App return `{ sessionToken }` in the JSON body (they never set the
   cookie for these requests). Logout accepts the bearer token and deletes that session.
-- **Client (`apps/web/src/api/client.ts`):** `apiFetch` prefixes `platform.apiBase`, adds
+- **Client (`packages/web-common/src/api/client.ts`):** `apiFetch` prefixes `platform.apiBase`, adds
   `Authorization` when a stored session token exists, and uses `credentials: 'omit'` when `apiBase` is
   cross-origin (`'include'` stays on web). `X-Device-Restore` / `X-Device-Id` keep working through
   `platform.storage`. A 401 clears the stored token.
@@ -225,7 +239,7 @@ Every share goes through `platform.share`. Paths are relative to the Mini App ro
 | `ExpenseDetails.tsx` Share sport bill | `t/<tripId>/expenses/<expenseId>?token=<groupToken>` | sport bill title / per-person summary |
 
 Thumbnail: an absolute URL on the Worker. Invites and reminders use a static brand card
-(`/brand/share-card.png`, 1200×630, added to `apps/web/public`); sport bills and reminders with a QR may
+(`/brand/share-card.png`, 1200×630, served by the Worker from `apps/web/public`); sport bills and reminders with a QR may
 use the existing `/j/:token/e/:id/qr.png` route. On the web, the same calls keep today's text + link
 behaviour (`remindText`, `sportShareText`, `groupLink`).
 
@@ -334,7 +348,8 @@ then submit for review.
 - CORS allow-list via `ZMP_ALLOWED_ORIGINS`, no credentials.
 - Zalo-derived HMAC device ID to carry guest claims across phones.
 - Chat membership ≈ invite link for joining.
-- Build mode inside `apps/web` rather than a new workspace.
+- (Superseded by the owner's split into web / zalo / web-common.) The split ships first as a pure move.
+- Package name `@fsl/web-common`.
 - No `zalo_app_user_id` column; `participants.zalo_sub` + `zalo_chat_links` only.
 
 ## Left to the builder
