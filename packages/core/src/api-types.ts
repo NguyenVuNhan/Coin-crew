@@ -17,6 +17,8 @@ export type ApiErrorCode =
   | 'TRY_AGAIN'
   | 'ALREADY_WAITING'
   | 'ALREADY_CLAIMED'
+  | 'BOTH_SIGNED_IN'
+  | 'PROPOSAL_PENDING'
   | 'CONFLICT'
   | 'INTERNAL';
 
@@ -64,7 +66,10 @@ export type ActivityAction =
   | 'income_disabled'
   | 'income_enabled'
   | 'income_rolled_back'
-  | 'ratings_changed';
+  | 'ratings_changed'
+  | 'merge_proposed'
+  | 'merge_proposal_accepted'
+  | 'merge_proposal_declined';
 
 import type { Gender, SplitEntry, SplitMode, SportParticipantEntry, SportRule } from './split';
 import type { Balances, ExpenseStatus, PaymentStatus } from './balances';
@@ -73,6 +78,7 @@ import type { ActorKind } from './permissions';
 import type { MatchReason, NameCandidate } from './names';
 import type { IncomeStatus } from './fund';
 import type { PersonKey, PersonItem } from './people';
+import type { MergePlan } from './mergePlan';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -253,7 +259,8 @@ export type Approval =
   | { kind: 'bank'; bankId: string; participantId: string; bankName: string; accountNumber: string; holderName: string }
   | { kind: 'payment'; paymentId: string }
   | { kind: 'not_arrived'; paymentId: string }
-  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null };
+  | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null }
+  | { kind: 'proposal'; proposalId: string; guestPid: string; intoPid: string | null; targetUserName: string | null; requestedByName: string };
 
 export interface RatingsView {
   enabled: boolean;
@@ -381,6 +388,29 @@ export interface PeopleSummaryResponse {
   incomplete: boolean;
 }
 
+/** A place (group or the caller's Quick Expenses ledger) a person has a participant in. */
+export interface MergeGroupRef { tripId: string; tripName: string; kind: 'group' | 'direct' }
+
+/** One row of the person page's "Merge with…" picker. */
+export interface MergeCandidate {
+  key: PersonKey;
+  name: string;
+  nickname: string | null;
+  avatarUrl: string | null;
+  /** Only when the caller shares an active group with this user. */
+  signIn: { provider: 'google' | 'zalo'; label: string } | null;
+  groups: MergeGroupRef[];
+  /** A likely duplicate of the person on the page (findSimilarNames). */
+  similar: boolean;
+  plan: MergePlan;
+}
+
+/** `GET /api/me/people/:key/merge-options`. Candidates: similar ones first, then A–Z. */
+export interface MergeOptionsResponse {
+  person: { key: PersonKey; groups: (MergeGroupRef & { participantId: string; name: string; canRename: boolean })[] };
+  candidates: MergeCandidate[];
+}
+
 export interface RequestView {
   ownerName: string;
   total: number;
@@ -389,3 +419,21 @@ export interface RequestView {
   pay: PayInfo | null;
   settlementWaiting: boolean;
 }
+
+/** A merge proposal (someone said a guest is the same person as an account, or as another guest). */
+export interface ProposalView {
+  id: string;
+  tripId: string;
+  tripName: string;
+  tripKind: 'group' | 'direct';
+  guestName: string;
+  /** The guest as the caller's people key (canonicalKey of p:guestPid). */
+  guestKey: PersonKey;
+  requestedByName: string;
+  targetUserName: string | null;
+  waitingFor: ('user' | 'admin')[];
+  status: 'pending' | 'approved' | 'declined' | 'cancelled';
+}
+
+/** `GET /api/me/proposals`. Outgoing: pending ones, plus ones decided in the last 7 days. */
+export interface ProposalsResponse { incoming: ProposalView[]; outgoing: ProposalView[] }

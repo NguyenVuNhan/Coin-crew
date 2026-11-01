@@ -56,7 +56,7 @@ export function CreateTrip() {
     mutationFn: (input: CreateTripInput) =>
       apiSend<{ tripId: string }>('/api/trips', 'POST', input),
     onSuccess: (data) => {
-      navigate(`/t/${data.tripId}`);
+      navigate(`/t/${data.tripId}`, { replace: true });
     },
     onError: (err) => {
       setSubmitError(err);
@@ -110,7 +110,7 @@ export function CreateTrip() {
   return (
     <Screen
       title={t('create.title')}
-      back="/trips"
+      back="/groups"
       bottomBar={
         <>
           {submitError ? <InlineError error={submitError} /> : null}

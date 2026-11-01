@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Approval, PersonView, TripView } from '@fsl/core';
 import { computeBalances, findBank, findSimilarNames, maskAccountNumber } from '@fsl/core';
 import type { Db } from '../db/client';
@@ -8,6 +8,7 @@ import { toLedger } from './snapshot';
 import {
   bankDetails,
   membershipRequests,
+  mergeProposals,
   participants,
   playerRatings,
   users,
@@ -100,6 +101,7 @@ export async function toTripView(
     let nameApprovals: Approval[] = [];
     let bankApprovals: Approval[] = [];
     let membershipApprovals: Approval[] = [];
+    let proposalApprovals: Approval[] = [];
 
     if (isGroupAdmin) {
       const activePeople = snapshot.people
@@ -160,6 +162,34 @@ export async function toTripView(
         userName: r.userName,
         userEmail: r.userEmail,
       }));
+
+      // Merge proposals still waiting for this group's admin side.
+      const pendingProposalRows = await db
+        .select({
+          id: mergeProposals.id,
+          guestPid: mergeProposals.guestPid,
+          intoPid: mergeProposals.intoPid,
+          targetUserName: sql<string | null>`(SELECT name FROM users WHERE id = ${mergeProposals.targetUserId})`,
+          requestedByName: sql<string | null>`(SELECT name FROM users WHERE id = ${mergeProposals.requestedByUserId})`,
+        })
+        .from(mergeProposals)
+        .where(
+          and(
+            eq(mergeProposals.tripId, actor.trip.id),
+            eq(mergeProposals.status, 'pending'),
+            eq(mergeProposals.needsAdmin, 1),
+            isNull(mergeProposals.adminAcceptedAt),
+          ),
+        )
+        .orderBy(mergeProposals.createdAt);
+      proposalApprovals = pendingProposalRows.map((r) => ({
+        kind: 'proposal',
+        proposalId: r.id,
+        guestPid: r.guestPid,
+        intoPid: r.intoPid,
+        targetUserName: r.targetUserName,
+        requestedByName: r.requestedByName ?? '',
+      }));
     }
 
     approvals = [
@@ -169,6 +199,7 @@ export async function toTripView(
       ...paymentApprovals,
       ...notArrivedApprovals,
       ...membershipApprovals,
+      ...proposalApprovals,
     ];
   }
 

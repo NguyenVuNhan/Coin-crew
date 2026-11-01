@@ -101,6 +101,12 @@ describe('MyTrips', () => {
 });
 
 describe('CreateTrip', () => {
+  it('the back arrow returns to the groups list', async () => {
+    mockApi({ 'GET /api/me': me() });
+    renderAt(<CreateTrip />);
+    expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute('href', '/groups');
+  });
+
   it('needs a trip name and at least one other person', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);

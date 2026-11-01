@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import type { ReactElement } from 'react';
 import { vi } from 'vitest';
 import { setLang } from '../i18n';
+import { NavHistoryProvider } from '../lib/navHistory';
 
 /** Shows the current path so tests can assert navigation. */
 function LocationProbe() {
@@ -18,11 +19,13 @@ export function renderAt(ui: ReactElement, { route = '/', path = '*' }: { route?
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[route]}>
-        <Routes>
-          <Route path={path} element={ui} />
-          <Route path="*" element={null} />
-        </Routes>
-        <LocationProbe />
+        <NavHistoryProvider>
+          <Routes>
+            <Route path={path} element={ui} />
+            <Route path="*" element={null} />
+          </Routes>
+          <LocationProbe />
+        </NavHistoryProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );

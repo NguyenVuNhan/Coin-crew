@@ -1,119 +1,47 @@
-import { useCallback, useLayoutEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTrip } from './tripBase';
+import { useIsWide } from './media';
+import { KEEP_SCROLL } from './navHistory';
 
-/** Router state on a details entry that a trip list opened: the list is the entry right behind it. */
-interface DetailsState {
-  fromList: true;
-}
-
-function cameFromList(state: unknown): boolean {
-  return typeof state === 'object' && state !== null && (state as Partial<DetailsState>).fromList === true;
-}
-
-/** How a trip list opens a details or approvals entry; switching inside the wide panel replaces the entry and keeps its state. */
-function entryOptions(state: unknown, switching: boolean): { replace?: true; state: unknown } {
-  return switching ? { replace: true, state } : { state: { fromList: true } satisfies DetailsState };
+/**
+ * How a trip list opens a details or approvals entry; switching inside the wide panel replaces the entry and keeps
+ * its state. Opening the wide panel keeps the list where it was scrolled.
+ */
+function entryOptions(state: unknown, switching: boolean, wide: boolean): { replace?: true; state?: unknown } {
+  return switching ? { replace: true, state } : wide ? { state: KEEP_SCROLL } : {};
 }
 
 /**
- * Opens the details of an expense, payment or fund income from a trip list. Opening marks the entry `fromList`, so leaving
- * it can go back in history. Switching to another row while details are showing (the wide panel) replaces
- * that entry and keeps its state: an entry reached from a shared link stays unmarked, one opened from the list stays marked.
+ * Opens the details of an expense, payment or fund income from a trip list. Switching to another row while
+ * details are showing (the wide panel) replaces that entry and keeps its state.
  */
 export function useOpenDetails(tripId: string): (kind: 'expense' | 'payment' | 'income', id: string, switching?: boolean) => void {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { href } = useTrip(tripId);
+  const wide = useIsWide();
   return useCallback(
     (kind, id, switching = false) => {
       const segment = kind === 'expense' ? 'expenses' : kind === 'payment' ? 'payments' : 'fund';
-      navigate(href(`/${segment}/${id}`), entryOptions(state, switching));
+      navigate(href(`/${segment}/${id}`), entryOptions(state, switching, wide));
     },
-    [navigate, state, href],
+    [navigate, state, href, wide],
   );
 }
 
-/** `<Link>` props for the full approvals list, marked and replaced by the same rules as `useOpenDetails`. */
-export function useApprovalsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
+/** `<Link>` props for the full approvals list, pushed or replaced by the same rules as `useOpenDetails`. */
+export function useApprovalsLink(tripId: string, switching = false): { to: string; replace?: true; state?: unknown } {
   const { state } = useLocation();
-  return { to: useTrip(tripId).href('/approvals'), ...entryOptions(state, switching) };
+  const wide = useIsWide();
+  return { to: useTrip(tripId).href('/approvals'), ...entryOptions(state, switching, wide) };
 }
 
-/** `<Link>` props for the player ratings leaderboard, marked and replaced by the same rules as `useOpenDetails`. */
-export function useRatingsLink(tripId: string, switching = false): { to: string; replace?: true; state: unknown } {
+/** `<Link>` props for the player ratings leaderboard, pushed or replaced by the same rules as `useOpenDetails`. */
+export function useRatingsLink(tripId: string, switching = false): { to: string; replace?: true; state?: unknown } {
   const { state } = useLocation();
-  return { to: useTrip(tripId).href('/ratings'), ...entryOptions(state, switching) };
-}
-
-/**
- * Leaves the details of a transaction: one step back in history when a trip list opened them (so the list
- * underneath is the page they left, and history does not grow), or, for a shared link that has nothing
- * behind it, to the trip page (or `fallback`, e.g. the main screen for the ledger) in place of the link.
- * The phone details page's back arrow, "Back to trip" and the wide panel's × and Esc use it.
- */
-export function useBackToTrip(tripId: string, fallback?: string): () => void {
-  const navigate = useNavigate();
-  const fromList = cameFromList(useLocation().state);
-  const { base } = useTrip(tripId);
-  return useCallback(() => {
-    if (fromList) navigate(-1);
-    else navigate(fallback ?? base, { replace: true });
-  }, [navigate, fromList, fallback, base]);
-}
-
-/**
- * Leaves the add or edit expense form, after saving or on back. When something in the app linked to the form, the
- * page it came from is right behind it, so one step back returns there (the list, or the details the edit was opened
- * from) and history does not grow. A form that was the first page of the visit (a shared or typed address) has nothing
- * of the app behind it: it is replaced by the trip page. The router gives only that first entry the key `default`.
- */
-export function useLeaveForm(tripId: string, fallback?: string): () => void {
-  const navigate = useNavigate();
-  const openedInApp = useLocation().key !== 'default';
-  const { base } = useTrip(tripId);
-  return useCallback(() => {
-    if (openedInApp) navigate(-1);
-    else navigate(fallback ?? base, { replace: true });
-  }, [navigate, openedInApp, fallback, base]);
-}
-
-function scrollWindowTo(y: number): void {
-  if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, y);
-}
-
-/** The pages a trip route can show, from the list itself down to the one opened on top of it. */
-export type TripPage = 'list' | 'approvals' | 'ratings' | 'details';
-const DEPTH: Record<TripPage, number> = { list: 0, approvals: 1, ratings: 1, details: 2 };
-
-/**
- * Keeps the window's scroll place across the trip's pages (on phones the approvals list and the details are pages
- * of their own). Going deeper remembers where the page being left was scrolled and starts the new one at its top;
- * going back puts each page where it was left, and a page that was left behind is forgotten, so opening it again
- * is a new visit that starts at the top.
- */
-export function useListScroll(page: TripPage): void {
-  const saved = useRef<Partial<Record<TripPage, number>>>({});
-  const committed = useRef(page);
-
-  // Read while rendering: React has not touched the page yet, so this is still where the page being left was scrolled.
-  if (page !== committed.current && DEPTH[page] > DEPTH[committed.current] && typeof window !== 'undefined') {
-    saved.current[committed.current] = window.scrollY;
-  }
-
-  useLayoutEffect(() => {
-    const from = committed.current;
-    if (from === page) return; // first render, or nothing changed
-    committed.current = page;
-    if (DEPTH[page] > DEPTH[from]) {
-      scrollWindowTo(0);
-      return;
-    }
-    scrollWindowTo(saved.current[page] ?? 0);
-    for (const left of Object.keys(saved.current) as TripPage[]) {
-      if (DEPTH[left] > DEPTH[page]) delete saved.current[left];
-    }
-  }, [page]);
+  const wide = useIsWide();
+  return { to: useTrip(tripId).href('/ratings'), ...entryOptions(state, switching, wide) };
 }
 
 /** Kinds of transaction details the main screen can show, and the search param each one uses on `/trips`. */

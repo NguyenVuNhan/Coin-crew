@@ -12,6 +12,7 @@ import '@fontsource/be-vietnam-pro/vietnamese-700.css';
 import '@fontsource/be-vietnam-pro/latin-700.css';
 import './styles/globals.css';
 import { App } from './App';
+import { NavHistoryProvider } from './lib/navHistory';
 import { detectLang, setLang } from './i18n';
 import { refetchOnWindowFocus } from './api/focus';
 import { ApiClientError } from './api/client';
@@ -45,7 +46,9 @@ if (rootEl) {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          <NavHistoryProvider>
+            <App />
+          </NavHistoryProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </StrictMode>,

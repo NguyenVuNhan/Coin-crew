@@ -75,54 +75,54 @@ const candidateLinh: PersonSummary = {
   linked: [],
 };
 
+const mergeOptions = {
+  person: { key: 'p:p-minh', groups: [{ tripId: 't-dl', tripName: 'Đà Lạt', kind: 'group', participantId: 'dl-m', name: 'Minh', canRename: true }] },
+  candidates: [
+    {
+      key: 'p:p-minhn', name: 'Minh N', nickname: null, avatarUrl: null, signIn: null,
+      groups: [{ tripId: 't-dl', tripName: 'Đà Lạt', kind: 'group' }], similar: true,
+      plan: { ok: true, tag: 'merge', steps: [{ kind: 'merge', tripId: 't-dl', tripName: 'Đà Lạt', fromPid: 'dl-mn', intoPid: 'dl-m' }] },
+    },
+    {
+      key: 'p:p-linh', name: 'Linh', nickname: null, avatarUrl: null, signIn: null,
+      groups: [{ tripId: 't-dl', tripName: 'Đà Lạt', kind: 'group' }], similar: false,
+      plan: { ok: true, tag: 'merge', steps: [{ kind: 'merge', tripId: 't-dl', tripName: 'Đà Lạt', fromPid: 'dl-l', intoPid: 'dl-m' }] },
+    },
+  ],
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('PersonScreen merge & unmerge', () => {
-  it('merge sheet lists everyone, similar names first', async () => {
+  // The old bare-name sheet was replaced by MergePicker (person-merge-picker spec): candidates and
+  // their plans come from merge-options, and a pick is confirmed before POST /api/me/people/merge.
+  it('merge picker lists similar names first, confirms, then navigates', async () => {
     const { calls } = mockApi({
       'GET /api/me': me(),
-      'GET /api/me/people/summary': {
-        incomplete: false,
-        // Candidate "Linh" placed before "Minh N" in API to verify sorting puts "Minh N" first
-        people: [guestMinh, candidateLinh, candidateMinhN],
-      },
-      'POST /api/me/people/link': { key: 'p:p-merged' },
+      'GET /api/me/people/summary': { incomplete: false, people: [guestMinh, candidateLinh, candidateMinhN] },
+      'GET /api/me/people/p%3Ap-minh/merge-options': mergeOptions,
+      'POST /api/me/people/merge': { key: 'p:p-merged', proposals: [] },
     });
 
-    renderAt(<PersonScreen />, {
-      route: '/people/p%3Ap-minh',
-      path: '/people/:key',
-    });
+    renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
 
-    const mergeBtn = await screen.findByTestId('person-merge');
-    await userEvent.click(mergeBtn);
-
+    await userEvent.click(await screen.findByTestId('person-merge'));
     const pickMinhN = await screen.findByTestId('merge-pick-p:p-minhn');
-    const pickLinh = screen.getByTestId('merge-pick-p:p-linh');
-
-    // "Minh N" row comes before "Linh"
-    const picks = screen.getAllByTestId(/^merge-pick-/);
-    const pickIds = picks.map((el) => el.getAttribute('data-testid'));
+    const pickIds = screen.getAllByTestId(/^merge-pick-/).map((el) => el.getAttribute('data-testid'));
     expect(pickIds.indexOf('merge-pick-p:p-minhn')).toBeLessThan(pickIds.indexOf('merge-pick-p:p-linh'));
 
-    // tapping it posts /api/me/people/link with { keys: ['p:p-minh', 'p:p-minhn'] }
     await userEvent.click(pickMinhN);
+    await userEvent.click(await screen.findByTestId('merge-confirm'));
 
     await waitFor(() => {
       expect(calls).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({
-            method: 'POST',
-            path: '/api/me/people/link',
-            body: { keys: ['p:p-minh', 'p:p-minhn'] },
-          }),
+          expect.objectContaining({ method: 'POST', path: '/api/me/people/merge', body: { keys: ['p:p-minh', 'p:p-minhn'] } }),
         ]),
       );
     });
-
-    // and navigates to /people/<returned key>
     await waitFor(() => {
       expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-merged');
     });
@@ -219,25 +219,29 @@ describe('PersonScreen merge & unmerge feedback', () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/me/people/summary': { incomplete: false, people: [guestMinh, candidateMinhN] },
-      'POST /api/me/people/link': failure,
+      'GET /api/me/people/p%3Ap-minh/merge-options': mergeOptions,
+      'POST /api/me/people/merge': failure,
     });
     renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
     await userEvent.click(await screen.findByTestId('person-merge'));
     await userEvent.click(await screen.findByTestId('merge-pick-p:p-minhn'));
+    await userEvent.click(await screen.findByTestId('merge-confirm'));
     expect(await screen.findByText('Not a merge')).toBeInTheDocument();
-    expect(screen.getByTestId('merge-pick-p:p-minhn')).toBeInTheDocument();
+    expect(screen.getByTestId('merge-confirm')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-minh');
   });
 
-  it('a merge shows a snackbar', async () => {
+  it('a merge shows a snackbar; a request shows "Request sent"', async () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/me/people/summary': { incomplete: false, people: [guestMinh, candidateMinhN] },
-      'POST /api/me/people/link': { key: 'p:p-minh' },
+      'GET /api/me/people/p%3Ap-minh/merge-options': mergeOptions,
+      'POST /api/me/people/merge': { key: 'p:p-minh', proposals: [] },
     });
     renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
     await userEvent.click(await screen.findByTestId('person-merge'));
     await userEvent.click(await screen.findByTestId('merge-pick-p:p-minhn'));
+    await userEvent.click(await screen.findByTestId('merge-confirm'));
     expect(await screen.findByRole('status')).toHaveTextContent('Merged');
   });
 

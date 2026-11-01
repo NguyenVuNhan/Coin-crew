@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { can } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
+import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
 import { useTripView } from '../api/hooks';
 import { apiSend, type ApiClientError } from '../api/client';
@@ -22,6 +23,7 @@ export function Settings() {
   const queryClient = useQueryClient();
   const t = useT();
   const headingId = useId();
+  const { goBack } = useBack(href());
 
   const { view, error, isLoading, refetch } = useTripView(tripId ?? '', 0);
   const [archiving, setArchiving] = useState(false);
@@ -59,7 +61,7 @@ export function Settings() {
     try {
       await apiSend(`/api/trips/${tripId}/${archived ? 'unarchive' : 'archive'}`, 'POST', undefined, tripId);
       await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      navigate(href());
+      goBack();
     } catch (err) {
       setArchiveError(err as ApiClientError);
       setArchiving(false);
@@ -75,7 +77,7 @@ export function Settings() {
     try {
       await apiSend(`/api/trips/${tripId}/leave`, 'POST', undefined, tripId);
       queryClient.resetQueries();
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err) {
       setLeaveError(err as ApiClientError);
       setLeaving(false);

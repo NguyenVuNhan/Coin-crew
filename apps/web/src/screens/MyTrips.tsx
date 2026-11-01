@@ -15,6 +15,7 @@ import { AccountMenu } from '../components/AccountMenu';
 import { Button } from '../components/Button';
 import { Snackbar } from '../components/Snackbar';
 import { MergeRequestBanner } from '../components/MergeRequestBanner';
+import { ProposalBanner } from '../components/ProposalBanner';
 import { Icon } from '../components/icons';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +76,7 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
             autoOpen={!!reviewMatch}
           />
         )}
+        <ProposalBanner />
         {!isEmpty && (
           <Button variant="primary" block href="/trips/new">
             {t('trips.new')}

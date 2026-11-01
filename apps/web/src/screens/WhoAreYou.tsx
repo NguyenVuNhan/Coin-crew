@@ -9,6 +9,7 @@ import { apiFetch, apiSend, ApiClientError } from '../api/client';
 import { formatAgo } from '../lib/time';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useTrip } from '../lib/tripBase';
+import { useBack } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Avatar } from '../components/Avatar';
@@ -50,6 +51,7 @@ export function WhoAreYou() {
   const signedIn = Boolean(me?.user);
 
   const target = safeTripPath(searchParams.get('next'), tripId, base);
+  const { goBack } = useBack(target);
 
   const guestNoteId = useId();
 
@@ -134,7 +136,11 @@ export function WhoAreYou() {
       );
       // Drop the cached "no name yet" view: the trip page would otherwise send us straight back here.
       queryClient.removeQueries({ queryKey: ['trip', tripId] });
-      navigate(becomeMember ? `${target}${target.includes('?') ? '&' : '?'}becomeMember=1` : target);
+      if (searchParams.get('next') !== null || becomeMember) {
+        navigate(becomeMember ? `${target}${target.includes('?') ? '&' : '?'}becomeMember=1` : target, { replace: true });
+      } else {
+        goBack();
+      }
     } catch (err) {
       setActionError(err);
     } finally {
@@ -151,7 +157,11 @@ export function WhoAreYou() {
       queryClient.removeQueries({ queryKey: ['trip', tripId] });
       queryClient.invalidateQueries({ queryKey: ['picker', tripId] });
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      navigate(target);
+      if (searchParams.get('next') !== null) {
+        navigate(target, { replace: true });
+      } else {
+        goBack();
+      }
     } catch (err) {
       setActionError(err);
     } finally {

@@ -4,6 +4,7 @@ import { useT } from '../i18n';
 import { Icon } from './icons';
 import { BottomBar } from './BottomBar';
 import { AppNav, type NavSection } from './AppNav';
+import { useBack, useBackLink, useNavEntry } from '../lib/navHistory';
 import { cn } from '@/lib/utils';
 
 export interface ScreenProps {
@@ -12,6 +13,7 @@ export interface ScreenProps {
   back?: string;
   /** Goes back by itself instead of linking to `back` (the trip details use it to return to the list in history). */
   onBack?: () => void;
+  backInApp?: boolean;
   right?: ReactNode;
   bottomBar?: ReactNode;
   wide?: boolean;
@@ -20,11 +22,53 @@ export interface ScreenProps {
   className?: string;
 }
 
+interface BackLinkProps {
+  to: string;
+  className: string;
+  label: string;
+}
+
+function BackLink({ to, className, label }: BackLinkProps) {
+  const back = useBackLink(to);
+  return (
+    <Link
+      to={back.to}
+      className={className}
+      aria-label={label}
+      title={label}
+      onClick={back.onClick}
+    >
+      <Icon name="back" size={24} />
+    </Link>
+  );
+}
+
+interface BackInAppButtonProps {
+  className: string;
+  label: string;
+}
+
+function BackInAppButton({ className, label }: BackInAppButtonProps) {
+  const { goBack } = useBack();
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label={label}
+      title={label}
+      onClick={goBack}
+    >
+      <Icon name="back" size={24} />
+    </button>
+  );
+}
+
 export function Screen({
   title,
   titleAlign = 'center',
   back,
   onBack,
+  backInApp,
   right,
   bottomBar,
   wide,
@@ -33,6 +77,7 @@ export function Screen({
   className,
 }: ScreenProps) {
   const t = useT();
+  const { depth } = useNavEntry();
 
   const rootClass = cn(
     'fsl-screen',
@@ -76,14 +121,9 @@ export function Screen({
               <Icon name="back" size={24} />
             </button>
           ) : back ? (
-            <Link
-              to={back}
-              className={backLinkClass}
-              aria-label={t('common.back')}
-              title={t('common.back')}
-            >
-              <Icon name="back" size={24} />
-            </Link>
+            <BackLink to={back} className={backLinkClass} label={t('common.back')} />
+          ) : backInApp && depth > 0 ? (
+            <BackInAppButton className={backButtonClass} label={t('common.back')} />
           ) : (
             <div className="fsl-screen__header-spacer size-11 shrink-0" aria-hidden="true" />
           )}
