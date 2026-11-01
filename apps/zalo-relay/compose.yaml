@@ -1,0 +1,20 @@
+# Container Manager project for the Zalo profile relay. See docs/setup.md section 2.2.
+# Put a .env next to this file (copy .env.example).
+services:
+  zalo-relay:
+    image: ghcr.io/nguyenvunhan/coin-crew-zalo-relay:${RELAY_TAG:-latest}
+    env_file: .env
+    ports:
+      # Loopback only: the DSM reverse proxy is the one way in.
+      - "127.0.0.1:${RELAY_PORT:-8080}:8080"
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  updater:
+    # Maintained fork of Watchtower (containrrr/watchtower was archived in Dec 2025).
+    image: ghcr.io/nicholas-fedor/watchtower:1.23.2
+    command: --label-enable --cleanup --interval 900
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
