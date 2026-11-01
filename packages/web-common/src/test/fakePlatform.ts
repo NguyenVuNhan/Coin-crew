@@ -1,10 +1,14 @@
 import type { PlatformBridge, PlatformStorage, ShareCard, ZaloFriend } from '../platform';
 
-export function fakePlatform(
-  overrides: Partial<PlatformBridge> = {},
-): PlatformBridge & { calls: Record<string, unknown[][]>; store: Map<string, string> } {
+/** Every recorded method, so `calls.share` etc. are always defined. */
+export type FakeCallName =
+  | 'share' | 'saveImage' | 'openExternal' | 'zaloAccessToken' | 'zaloUserInfo' | 'chatContext' | 'pickZaloFriends'
+  | 'storage.get' | 'storage.set' | 'storage.remove';
+export type FakePlatform = PlatformBridge & { calls: Record<FakeCallName, unknown[][]>; store: Map<string, string> };
+
+export function fakePlatform(overrides: Partial<PlatformBridge> = {}): FakePlatform {
   const store = new Map<string, string>();
-  const calls: Record<string, unknown[][]> = {
+  const calls: Record<FakeCallName, unknown[][]> = {
     share: [],
     saveImage: [],
     openExternal: [],
@@ -17,8 +21,7 @@ export function fakePlatform(
     'storage.remove': [],
   };
 
-  function record(method: string, args: unknown[]): void {
-    if (!calls[method]) calls[method] = [];
+  function record(method: FakeCallName, args: unknown[]): void {
     calls[method].push(args);
   }
 
@@ -46,7 +49,7 @@ export function fakePlatform(
     },
   };
 
-  const platform: PlatformBridge & { calls: Record<string, unknown[][]>; store: Map<string, string> } = {
+  const platform: FakePlatform = {
     kind: overrides.kind ?? 'zmp',
     apiBase: overrides.apiBase ?? 'https://api.test',
     storage,
