@@ -449,3 +449,8 @@ export interface ProposalView {
 
 /** `GET /api/me/proposals`. Outgoing: pending ones, plus ones decided in the last 7 days. */
 export interface ProposalsResponse { incoming: ProposalView[]; outgoing: ProposalView[] }
+
+export type ZaloChatLookup =
+  | { linked: false }
+  | { linked: true; tripId: string; tripName: string; joinToken: string; isMember: boolean };
+
