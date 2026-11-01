@@ -1,0 +1,57 @@
+# main publishes :latest (the DSM updater pulls it); a manual run on a branch publishes :edge for testing on the DSM before merge.
+
+name: Zalo relay image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/zalo-relay/**'
+      - '.github/workflows/zalo-relay.yml'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+concurrency:
+  group: zalo-relay-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test -w @fsl/zalo-relay
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tag
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=edge" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/zalo-relay/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/nguyenvunhan/coin-crew-zalo-relay:${{ steps.tag.outputs.tag }}
+            ghcr.io/nguyenvunhan/coin-crew-zalo-relay:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/NguyenVuNhan/coin-crew
