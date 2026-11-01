@@ -124,7 +124,7 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     await user.click(saveBtn);
 
     await waitFor(() => expect(fake.calls.saveImage.length).toBeGreaterThan(0));
-    expect(fake.calls.saveImage[0][1]).toMatch(/^vietqr-/);
+    expect(fake.calls.saveImage[0]![1]).toMatch(/^vietqr-/);
     expect(await screen.findByText('QR saved to your photos')).toBeInTheDocument();
   });
 
@@ -166,8 +166,8 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     await user.click(bankBtn!);
 
     await waitFor(() => expect(fake.calls.openExternal.length).toBe(1));
-    expect(typeof fake.calls.openExternal[0][0]).toBe('string');
-    expect(fake.calls.openExternal[0][0]).toMatch(/^https?:\/\/|^[a-z]+:\/\//);
+    expect(typeof fake.calls.openExternal[0]![0]).toBe('string');
+    expect(fake.calls.openExternal[0]![0]).toMatch(/^https?:\/\/|^[a-z]+:\/\//);
     expect(await screen.findByText(en['pay.bankFallback'])).toBeInTheDocument();
   });
 
@@ -209,10 +209,10 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     await user.click(shareBtn);
 
     await waitFor(() => expect(fake.calls.saveImage.length).toBe(1));
-    expect(fake.calls.saveImage[0][1]).toMatch(/^bill-/);
+    expect(fake.calls.saveImage[0]![1]).toMatch(/^bill-/);
 
     await waitFor(() => expect(fake.calls.share.length).toBe(1));
-    const card = fake.calls.share[0][0] as { path: string };
+    const card = fake.calls.share[0]![0] as { path: string };
     expect(card.path).toContain('/expenses/');
 
     expect(await screen.findByText(en['pay.shareSaved'])).toBeInTheDocument();
@@ -244,7 +244,7 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     await user.click(shareBtn);
 
     await waitFor(() => expect(fake.calls.saveImage.length).toBe(1));
-    expect(fake.calls.saveImage[0][1]).toMatch(/^vietqr-/);
+    expect(fake.calls.saveImage[0]![1]).toMatch(/^vietqr-/);
     expect(shareQr).not.toHaveBeenCalled();
     expect(await screen.findByText('QR saved to your photos')).toBeInTheDocument();
   });
