@@ -161,7 +161,8 @@ export interface BankFields { bin: string; accountNumber: string; holderName: st
 /** The signed-in user's own saved bank details (GET /api/me/bank). */
 export type MyBankResponse = BankFields;
 /** A person to add when creating a trip: a plain name, or someone with an account from the recent-people list. */
-export type CreateTripPerson = { name: string; userId?: string; gender?: Gender | null };
+/** `zaloSub`: a Zalo friend's id (1–64 chars, once per request); they become this person's member on sign-in. */
+export type CreateTripPerson = { name: string; userId?: string; gender?: Gender | null; zaloSub?: string };
 /** Plain strings are still accepted so an older open client keeps working. */
 export interface CreateTripInput {
   name: string;
@@ -195,6 +196,8 @@ export interface PersonView {
   /** The person who created the trip. Left out by an older server. */
   isOrganiser?: boolean;
   isAdmin?: boolean;
+  /** Tied to a Zalo account (never the id itself). Left out by an older server. */
+  zaloLinked?: boolean;
   /** A guest's current account (the approved one, else the one waiting). Sent only to members and to that guest. */
   bankAccount?: { bankName: string; accountNumberMasked: string; holderName: string };
   gender?: Gender | null;
@@ -324,7 +327,8 @@ export interface MyActivityPage {
 }
 
 export interface PickerView {
-  people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
+  /** `zaloLinked`: tied to a Zalo account (never the id itself); left out by an older server. */
+  people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; zaloLinked?: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
   myPick: string | null;
   /** The signed-in viewer when they are not a member here. Left out by an older server. */
   account?: { name: string; needsGender: boolean } | null;
