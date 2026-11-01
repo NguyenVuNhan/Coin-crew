@@ -646,9 +646,14 @@ export const vi: Record<MessageKey, string> = {
   'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
   'signIn.zalo': 'Đăng nhập bằng Zalo', // REVIEW
   'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.', // REVIEW
+  'signIn.zaloContinue': 'Tiếp tục với tài khoản Zalo', // REVIEW
+  'signIn.zaloDeclined': 'Cần tên và ảnh Zalo để tạo tài khoản', // REVIEW
+  'signIn.zaloGoogleWarning': 'Đã dùng CoinCrew bằng Google? Hãy liên kết Zalo trên web trước', // REVIEW
   'guest.becomeMemberZalo': 'Đăng nhập bằng Zalo để trở thành thành viên', // REVIEW
   'who.guestSignInZalo': 'Đăng nhập bằng Zalo để dùng đầy đủ', // REVIEW
   'who.nameMatch': 'Có phải bạn là {name}? Đã chọn sẵn theo tên tài khoản của bạn.', // REVIEW
+  'who.zaloMatch': 'Bạn là {name} phải không?', // REVIEW
+  'who.zaloMatchContinue': 'Tiếp tục với tên {name}', // REVIEW
   'who.signInTitle': 'Đăng nhập', // REVIEW
   'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ', // REVIEW
   'myBank.title': 'Thông tin ngân hàng của bạn', // REVIEW

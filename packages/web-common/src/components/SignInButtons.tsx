@@ -4,6 +4,8 @@ import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { Button } from './Button';
 import { ProviderLogo } from './ProviderLogo';
+import { ZaloSignIn } from './ZaloSignIn';
+import { usePlatform } from '../platform';
 import { cn } from '@/lib/utils';
 
 export interface SignInButtonsProps {
@@ -33,12 +35,17 @@ export function SignInButtons({
 }: SignInButtonsProps) {
   const t = useT();
   const me = useMe();
+  const platform = usePlatform();
   const inZalo = isZaloWebView();
   const zaloOn = me.data?.signIn.zalo === true;
 
   const googleKey = labels?.google ?? 'landing.signIn';
   const zaloKey = labels?.zalo ?? 'signIn.zalo';
   const isStack = layout === 'stack';
+
+  if (platform.kind === 'zmp') {
+    return <ZaloSignIn />;
+  }
 
   if (inZalo) {
     return (

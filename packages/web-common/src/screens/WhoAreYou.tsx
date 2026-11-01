@@ -22,6 +22,8 @@ import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
+import { ZaloSignIn } from '../components/ZaloSignIn';
+import { usePlatform } from '../platform';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +51,9 @@ export function WhoAreYou() {
 
   const me = useMe().data;
   const signedIn = Boolean(me?.user);
+  const platform = usePlatform();
+  const isZmp = platform.kind === 'zmp';
+  const [zaloName, setZaloName] = useState<string | null>(null);
 
   const target = safeTripPath(searchParams.get('next'), tripId, base);
   const { goBack } = useBack(target);
@@ -81,6 +86,34 @@ export function WhoAreYou() {
   const account = picker?.account ?? null;
   const myLeft = picker?.myLeftName ?? null;
 
+  // In Zalo: the Zalo name of a signed-in Zalo user, else the one remembered from the last Zalo sign-in.
+  const meZaloName = me?.user?.providers.includes('zalo') ? (me.user.zaloName ?? me.user.name) : null;
+  useEffect(() => {
+    if (!isZmp) return;
+    if (meZaloName) {
+      setZaloName(meZaloName);
+      return;
+    }
+    let live = true;
+    platform.storage.get('zaloName').then(
+      (n) => live && setZaloName(n || null),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [isZmp, platform, meZaloName]);
+
+  // One clear best look-alike among the names not taken by a member, else no suggestion.
+  let zaloMatch: { id: string; name: string } | null = null;
+  if (isZmp && zaloName && picker && !myLeft && !picker.myPick) {
+    const matches = findSimilarNames(zaloName, picker.people.filter((p) => !p.isMember));
+    const bestRank = matches[0]?.reason;
+    const best = bestRank ? matches.filter((m) => m.reason === bestRank) : [];
+    if (best.length === 1) zaloMatch = { id: best[0]!.id, name: best[0]!.name };
+  }
+  const zaloMatchId = zaloMatch?.id ?? null;
+
   useEffect(() => {
     // Auto-select only until the user has chosen a row themselves.
     if (userTouched.current) return;
@@ -93,6 +126,9 @@ export function WhoAreYou() {
             null);
       if (initial) {
         setSelectedId(initial);
+        setNameMatchId(null);
+      } else if (zaloMatchId) {
+        setSelectedId(zaloMatchId);
         setNameMatchId(null);
       } else if (me?.user) {
         const rows = picker.people.filter((p) => !p.isMember);
@@ -112,7 +148,7 @@ export function WhoAreYou() {
         setNameMatchId(null);
       }
     }
-  }, [picker, myLeft, me?.user?.name]);
+  }, [picker, myLeft, me?.user?.name, zaloMatchId]);
 
   const selectedPerson = picker?.people.find((p) => p.id === selectedId);
 
@@ -318,6 +354,8 @@ export function WhoAreYou() {
           !!actionError && 'fsl-who--bar-error max-lg:pb-24',
         )}
       >
+        {isZmp && !signedIn && <ZaloSignIn />}
+
         {!signedIn && account === null && (
           <section
             className="fsl-who__guest-note flex flex-col gap-2 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-sm leading-snug text-warning-foreground"
@@ -332,11 +370,13 @@ export function WhoAreYou() {
               <li>{t('who.guestExpenses')}</li>
               <li>{t('who.guestBank')}</li>
             </ul>
-            <SignInButtons
-              returnTo={target}
-              layout="inline"
-              labels={{ google: 'who.guestSignIn', zalo: 'who.guestSignInZalo' }}
-            />
+            {!isZmp && (
+              <SignInButtons
+                returnTo={target}
+                layout="inline"
+                labels={{ google: 'who.guestSignIn', zalo: 'who.guestSignInZalo' }}
+              />
+            )}
           </section>
         )}
 
@@ -373,6 +413,25 @@ export function WhoAreYou() {
                 {t('who.count', { shown: visible.length, total: people.length })}
               </p>
             </>
+          )}
+
+          {zaloMatch && (
+            <section
+              className="fsl-who__zalo-match flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3"
+              role="status"
+            >
+              <p className="fsl-who__zalo-match-text m-0 text-base font-semibold text-foreground">
+                {t('who.zaloMatch', { name: zaloMatch.name })}
+              </p>
+              <Button
+                variant="primary"
+                block
+                disabled={isSubmitting}
+                onClick={() => zaloMatch && handlePickPerson(zaloMatch.id)}
+              >
+                {t('who.zaloMatchContinue', { name: zaloMatch.name })}
+              </Button>
+            </section>
           )}
 
           {nameMatchId && selectedId === nameMatchId && selectedPerson && (
