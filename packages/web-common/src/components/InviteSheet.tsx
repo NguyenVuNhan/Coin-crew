@@ -4,6 +4,9 @@ import type { TripView } from '@fsl/core';
 import { cn } from '@/lib/utils';
 import { useT, useLang } from '../i18n';
 import { apiSend } from '../api/client';
+import { usePlatform } from '../platform';
+import { appOrigin } from '../platform/session';
+import { inviteCard } from '../lib/shareCards';
 import { Button } from './Button';
 import { Sheet } from './Sheet';
 import { Icon } from './icons';
@@ -13,6 +16,7 @@ import { Input } from '@/components/ui/input';
 function useLinkActions(view: TripView, url: string) {
   const t = useT();
   const [copied, setCopied] = useState(false);
+  const platform = usePlatform();
 
   async function copy() {
     try {
@@ -25,6 +29,14 @@ function useLinkActions(view: TripView, url: string) {
   }
 
   async function share() {
+    if (platform.kind === 'zmp') {
+      const r = await platform.share(inviteCard(view, platform.apiBase));
+      if (r === 'copied') {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+      return;
+    }
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
         await navigator.share({
@@ -66,7 +78,7 @@ function LinkBlock({
   const legendId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const url = `${location.origin}/j/${token}?lang=${lang}`;
+  const url = `${appOrigin()}/j/${token}?lang=${lang}`;
   const { copied, copy, share } = useLinkActions(view, url);
 
   async function regenerate() {
@@ -159,7 +171,7 @@ export function InviteCard({ view }: { view: TripView }) {
   const t = useT();
   const [lang] = useLang();
   const titleId = useId();
-  const url = view.links ? `${location.origin}/j/${view.links.group}?lang=${lang}` : '';
+  const url = view.links ? `${appOrigin()}/j/${view.links.group}?lang=${lang}` : '';
   const { copied, copy, share } = useLinkActions(view, url);
 
   if (!view.links) return null;

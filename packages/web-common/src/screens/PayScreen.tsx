@@ -19,6 +19,8 @@ import { InlineError } from '../components/InlineError';
 import { Skeleton } from '../components/Skeleton';
 import { PayQr } from '../components/PayQr';
 import { Icon } from '../components/icons';
+import { usePlatform } from '../platform';
+import { remindCard } from '../lib/shareCards';
 import { cn } from '@/lib/utils';
 
 type Recorded = { id: string; amount: number; status: string };
@@ -45,6 +47,7 @@ export function PayScreen() {
   const { toId = '' } = useParams<{ toId: string }>();
   const t = useT();
   const queryClient = useQueryClient();
+  const platform = usePlatform();
 
   const {
     view,
@@ -151,13 +154,20 @@ export function PayScreen() {
     }
   };
 
-  const handleRemind = () => {
+  const handleRemind = async () => {
     if (!view) return;
     const text = t('pay.remindBankText', {
       name: payInfo?.to.name ?? '',
       trip: view.trip.name,
       link: groupLink(view),
     });
+    if (platform.kind === 'zmp') {
+      const r = await platform.share(remindCard(view, text, platform.apiBase));
+      if (r === 'copied') {
+        setRemindCopied(true);
+      }
+      return;
+    }
     void remind(text).then((r) => setRemindCopied(r === 'copied'));
   };
 

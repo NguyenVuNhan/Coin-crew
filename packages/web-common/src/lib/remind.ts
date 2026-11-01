@@ -3,6 +3,7 @@ import type { Lang } from '../i18n';
 import { en } from '../i18n/en';
 import { vi } from '../i18n/vi';
 import { linkTokens } from './linkTokens';
+import { appOrigin } from '../platform/session';
 
 export interface SportShareParticipant {
   participantId: string;
@@ -87,7 +88,7 @@ export function sportShareText(lang: Lang, input: SportShareTextInput): string {
 /** The group link that goes into a reminder: a member's view carries it, a guest still has the link they came by. */
 export function groupLink(view: TripView): string {
   const token = view.links?.group ?? linkTokens.get(view.trip.id) ?? '';
-  return `${typeof window !== 'undefined' ? window.location.origin : ''}/j/${token}`;
+  return `${appOrigin()}/j/${token}`;
 }
 
 export function expenseLink(view: TripView, id: string): string {

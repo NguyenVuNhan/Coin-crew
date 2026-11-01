@@ -72,3 +72,8 @@ export const sessionStore = {
     currentDeviceId = null;
   },
 };
+
+/** Origin for links people share or copy: the web app's (the Worker's) origin, also inside the Mini App. */
+export function appOrigin(): string {
+  return sessionStore.apiBase() || (typeof window !== 'undefined' ? window.location.origin : '');
+}

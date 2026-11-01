@@ -21,10 +21,13 @@ import { PayQr } from './PayQr';
 import { Pill } from './Pill';
 import { Skeleton } from './Skeleton';
 import { Snackbar } from './Snackbar';
+import { usePlatform } from '../platform';
+import { remindCard } from '../lib/shareCards';
 
 /** In-place detail for an open transfer row, showing QR code or bank status. */
 function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.Element | null {
   const t = useT();
+  const platform = usePlatform();
   const { tripId, href } = useTrip(view.trip.id);
   const me = view.me.participantId as string;
   const owed = row.toId === me;
@@ -92,12 +95,19 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
           <Button
             variant="secondary"
             block
-            onClick={() => {
+            onClick={async () => {
               const text = t('pay.remindBankText', {
                 name: info.to.name,
                 trip: view.trip.name,
                 link: groupLink(view),
               });
+              if (platform.kind === 'zmp') {
+                const r = await platform.share(remindCard(view, text, platform.apiBase));
+                if (r === 'copied') {
+                  setCopied(true);
+                }
+                return;
+              }
               void remind(text).then((r) => setCopied(r === 'copied'));
             }}
           >

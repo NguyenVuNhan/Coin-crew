@@ -39,6 +39,8 @@ import { InlineError } from '../components/InlineError';
 import { SkeletonList } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
 import { Input } from '@/components/ui/input';
+import { usePlatform } from '../platform';
+import { requestCard } from '../lib/shareCards';
 import { cn } from '@/lib/utils';
 
 export function PersonScreen(): JSX.Element {
@@ -48,6 +50,7 @@ export function PersonScreen(): JSX.Element {
   const t = useT();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const platform = usePlatform();
 
   const meQuery = useMe();
   const me = meQuery.data;
@@ -267,6 +270,15 @@ export function PersonScreen(): JSX.Element {
   const handleRequestLink = async () => {
     try {
       const { url } = await requestLink(person.key);
+      if (platform.kind === 'zmp') {
+        const r = await platform.share(
+          requestCard(url, t('person.shareTitle', { owner: me?.user?.name ?? '' })),
+        );
+        if (r === 'copied') {
+          setSnack(t('person.linkCopied'));
+        }
+        return;
+      }
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         try {
           await navigator.share({
