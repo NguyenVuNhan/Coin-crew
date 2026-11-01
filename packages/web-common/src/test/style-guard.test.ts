@@ -26,9 +26,13 @@ describe('style guard', () => {
     expect(files.filter((f) => f.endsWith('.css'))).toEqual(['styles/globals.css']);
   });
 
-  it('only main.tsx imports CSS', () => {
+  it('walks the real source tree', () => {
+    expect(code.length).toBeGreaterThan(100);
+  });
+
+  it('no file in web-common imports CSS (the shells import globals.css)', () => {
     const importers = code.filter((f) => /import\s+['"][^'"]+\.css['"]/.test(readFileSync(join(src, f), 'utf8')));
-    expect(importers).toEqual(['main.tsx']);
+    expect(importers).toEqual([]);
   });
 
   it('no raw hex colours in code', () => {

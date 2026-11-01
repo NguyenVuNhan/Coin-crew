@@ -31,6 +31,10 @@ function tags(name: string): { at: string; tag: string }[] {
 const RAW_INPUT_OK = [/type="file"/, /type="range"/, /fsl-split-sheet__input/, /fsl-ratings__search-input/];
 
 describe('shadcn form controls', () => {
+  it('walks the real source tree', () => {
+    expect(code.length).toBeGreaterThan(50);
+  });
+
   it('text fields use Input', () => {
     expect(tags('input').filter(({ tag }) => !RAW_INPUT_OK.some((ok) => ok.test(tag))).map(({ at }) => at)).toEqual([]);
   });
