@@ -837,6 +837,20 @@ export const en = {
   'nav.activity': 'Activity',
   'nav.add': 'Add transaction',
   'nav.label': 'Main menu',
+
+  'feedback.menu': 'Send feedback',
+  'feedback.title': 'Send feedback',
+  'feedback.hint': "Anonymous — we don't see who you are.",
+  'feedback.bug': 'Bug',
+  'feedback.idea': 'Idea',
+  'feedback.other': 'Other',
+  'feedback.placeholder': 'What happened, or what would make CoinCrew better?',
+  'feedback.contactMe': 'You can contact me about this (shares your name)',
+  'feedback.contactField': 'Your name or Zalo',
+  'feedback.send': 'Send',
+  'feedback.thanks': 'Thanks — we read every message.',
+  'feedback.error': "Couldn't send. Please try again.",
+  'feedback.rateLimited': "You've sent a lot just now — try again later.",
 } as const;
 
 export type MessageKey = keyof typeof en;

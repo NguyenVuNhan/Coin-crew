@@ -14,6 +14,7 @@ import {
   Copy,
   Crown,
   Download,
+  Headset,
   History,
   House,
   Info,
@@ -51,7 +52,7 @@ export type IconName =
   | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
-  | 'star' | 'crown' | 'user' | 'home';
+  | 'star' | 'crown' | 'user' | 'home' | 'headset';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -85,6 +86,7 @@ const SHAPES: Record<IconName, LucideIcon> = {
   edit: Pencil,
   ban: Ban,
   merge: Merge,
+  headset: Headset,
   trash: Trash2,
   pie: PieChart,
   plus: Plus,
