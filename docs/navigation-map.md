@@ -2,7 +2,9 @@
 
 Audit of every route and navigation path in `apps/web/src` (React Router v7, `App.tsx`). Written 2026-10-31 on
 branch `feat/no-group-expenses`, **including the uncommitted working-tree changes** (CreateTrip back `/groups`,
-People `?from=`, PersonScreen "Rename or merge" link). All paths below are relative to `apps/web/src/`.
+People `?from=`, PersonScreen "Rename or merge" link). Updated 2026-11-01 after the back-navigation work: §3 and §6
+describe the code now, §4 keeps the audit with an outcome column, and line numbers in §1-§2 are from the audit.
+All paths below are relative to `apps/web/src/`.
 
 Terms:
 
@@ -96,7 +98,7 @@ load / external.)
 | `/groups` | L: AppNav groups `AppNav.tsx:25`. L back: MemberTrip `MemberTrip.tsx:131`, CreateTrip `CreateTrip.tsx:113`. R: TripsRoute `App.tsx:27`. X: OAuth return `MergeSheet.tsx:248` (`/groups?mergeReview=<id>`) |
 | `/activity` | L: AppNav activity `AppNav.tsx:26` only |
 | `/trips/new` | B: MyTrips "New group" `MyTrips.tsx:79` and empty state `MyTrips.tsx:98` |
-| `/people/:key` | L: Home person row `Home.tsx:113-115`. L back: People when `?from=` is a person path `People.tsx:32`. N: after merge `PersonScreen.tsx:164` (replace) |
+| `/people/:key` | L: Home person row `Home.tsx:113-115`. N: after merge `PersonScreen.tsx:164` (replace) |
 | `/r/:token` | X only: URL from `requestLink()` shared/copied in `PersonScreen.tsx` (`handleRequestLink`, ~l.222-238) |
 | `/privacy` | L: AccountMenu `AccountMenu.tsx:336`; ConsentSheet `ConsentSheet.tsx:40` (on Home, Groups, CreateTrip); Landing `Landing.tsx:86`; BankDetails `BankDetails.tsx:211`; GuestBank `GuestBank.tsx:221` |
 | `/me/bank` | L: AccountMenu `AccountMenu.tsx:317`; BalanceCard "add bank" prompt on a member trip `BalanceCard.tsx:106-107` |
@@ -112,7 +114,7 @@ load / external.)
 | `<base>/fund/:id/edit` | N: `incomeActions` edit `lib/rowActions.ts:85` (`ExpenseList.tsx:84`); IncomeDetails `IncomeDetails.tsx:164` |
 | `<base>/pay/:toId` | B: BalanceCard "Pay" `BalanceCard.tsx:68` |
 | `<base>/bank` | B: YourTransfers "Add bank" `YourTransfers.tsx:64`; L: MyBankRow (guest trip) `MyBankRow.tsx:76-77` |
-| `<base>/people` | L: Settings `Settings.tsx:97-98`. B: PersonScreen "Rename or merge in …" `PersonScreen.tsx:481` (`?from=/people/<key>`). L back: GuestBank `GuestBank.tsx:43` |
+| `<base>/people` | L: Settings `Settings.tsx:97-98`. B: PersonScreen "Rename or merge in …" `PersonScreen.tsx:481`. L back: GuestBank `GuestBank.tsx:43` |
 | `<base>/people/:pid/bank` | N: People row action `People.tsx:115`. B: YourTransfers `YourTransfers.tsx:107`; PayScreen `PayScreen.tsx:302` |
 | `<base>/activity` | L: Settings `Settings.tsx:108-109` |
 | `<base>/settings` | L: MemberTrip gear `MemberTrip.tsx:115-117`. L back: People (default) `People.tsx:32`; Activity `Activity.tsx:28` |
@@ -121,75 +123,75 @@ load / external.)
 
 ## 3. Exits per route
 
-Kinds: **hard** = hard-coded `back="…"` / `Link`; **hist** = `navigate(-1)` (with a fallback); **param** = depends on a
-search param or router state; **none** = no back control.
+Every back control now goes through one mechanism, `lib/navHistory.tsx` (see §6): **back returns to the page the
+user came from**; with no app page behind (a shared link, a new tab, a reload of the first page) it replaces the
+page with its **natural parent** below. "Arrow" = the header back on `<Screen back="…">` (`BackLink` ->
+`useBackLink`); "in-page" = Back buttons inside the page (`useBackLink`); "close" = `useBack(parent).goBack`.
 
-| Route | Back / close / cancel | Kind | After action |
+| Route | Back / close / cancel | Natural parent (used only with nothing behind) | After a finished action |
 |---|---|---|---|
-| `/` | none | none | sign-in -> OAuth -> `/trips` |
-| `/trips` (Home) | none (tab). Wide panel × / Esc: clear `?expense/payment/income` (replace) `Home.tsx:58-67`, `DetailsPanel.tsx:42-48,67` | param | phone row tap -> `/t/<ledger>/<seg>/<id>` push+`fromList` |
-| `/groups` | none (tab) | none | - |
-| `/activity` | none (tab) | none | - |
-| `/trips/new` | `back="/groups"` `CreateTrip.tsx:113` | hard | create -> `navigate('/t/<id>')` push `CreateTrip.tsx:59` |
-| `/people/:key` | `back="/trips"` `PersonScreen.tsx:96,104,112,262` | hard | merge -> replace to merged key `:164` |
-| `/r/:token` | none | none | - |
-| `/privacy` | `back="/"` `Privacy.tsx:11`; `/` replaces a signed-in user to `/trips` | hard | - |
-| `/me/bank` | `back="/trips"` (no trip, `BankDetails.tsx:63,109,125,139,152`); success "Back" Link same `:182-183` | hard | save -> success state in place |
-| trip index, member | `back="/groups"` `MemberTrip.tsx:131` | hard | - |
-| trip index, guest | none (`GuestTrip.tsx:157`) | none | - |
-| trip index, view-only | none (`ViewOnlyTrip.tsx:84`); AppNav when signed in | none | - |
-| details, phone | `DetailsPage` `onBack` + "Back to trip" (not-found state) = `useBackToTrip(tripId, ledger ? '/trips' : undefined)` `TripRoute.tsx:47-58` | hist | `fromList` -> `-1`; else replace to trip (ledger: `/trips`) |
-| details, wide | panel × / Esc = `useBackToTrip(tripId)` `DetailsPanel.tsx:23-25`; row switching replaces the entry and keeps its state `DetailsPanel.tsx:107-109`. The trip header back arrow (`/groups`) is still shown | hist | same; ledger wide never reaches here (redirected to Home) |
-| approvals, phone | `onBack = useBackToTrip` `Approvals.tsx:64-66`; leaves by itself when the list empties `Approvals.tsx:20-26` | hist | - |
-| approvals, wide | panel × (as details) | hist | auto-close when empty |
-| ratings, phone | `onBack = useBackToTrip` `RatingsScreen.tsx:545-547` | hist | - |
-| ratings, wide | panel × (as details) | hist | - |
-| `who` | none (`WhoAreYou.tsx:210,219,242`) | none | pick / join -> `navigate(target)` push `:137,:154`; `target` = safe `?next=` or trip (`:52`) |
-| `expenses/new`, `…/edit`, `fund/…/edit` | `onBack = useLeaveForm(tripId, ledger ? '/trips' : undefined)` `ExpenseForm.tsx:1548`, used at :706, :1561-1675; `IncomeForm.tsx:95` | hist | save -> `leave()` (`ExpenseForm.tsx:632,661,684`, `IncomeForm.tsx:80`); **new sport expense** -> replace to its details, no state `ExpenseForm.tsx:665` |
-| `pay/:toId` | `back={href()}` `PayScreen.tsx:164,178,393`; "Back to trip" B `:223`; "Back" B `:280` | hard | - |
-| `bank` (trip) | `back={href()}` `BankDetails.tsx:63` | hard | success "Back" Link -> trip |
-| `people` | `back` = `?from` if it matches `/people/<x>`, else `href('/settings')` `People.tsx:31-32` | param | - |
-| `people/:pid/bank` | `back={href('/people')}` `GuestBank.tsx:43,47,63,140` (hidden after save/delete); success "Back" Links `:231-232,:244-245` | hard | save/delete -> success state in place |
-| `activity` (trip) | `back={href('/settings')}` `Activity.tsx:28` | hard | - |
-| `settings` | `back={href()}` `Settings.tsx:34,44,86` | hard | archive -> `navigate(href())` push `:62`; leave -> `navigate('/')` push `:78` |
+| `/` | none | - | sign-in -> OAuth -> `/trips` |
+| `/trips` (Home) | none (tab). Wide panel × / Esc: back to the opener when the panel was opened from another page (`Home.tsx:61-69`), else clears `?expense/payment/income` (replace) | - | phone row tap -> ledger details (push) |
+| `/groups`, `/activity` | none (tabs; switching tabs replaces, `AppNav.tsx`) | - | - |
+| `/trips/new` | arrow | `/groups` | create -> trip, **replace** (`CreateTrip.tsx:59`) |
+| `/people/:key` | arrow | `/trips` | merge -> replace to the merged key |
+| `/r/:token` | none | - | - |
+| `/privacy` | arrow | `/` | - |
+| `/me/bank` | arrow; success "Back" in-page | `/trips` | save -> success state in place |
+| trip index, member | arrow | `/groups` | - |
+| trip index, guest / view-only | arrow only when an app page is behind (`backInApp`, `GuestTrip.tsx:158`, `ViewOnlyTrip.tsx:84`) | none (no arrow) | - |
+| details, phone | arrow + "Back to trip" (not-found) = close (`TripRoute.tsx:49`) | trip (ledger: `/trips`) | - |
+| details, wide | panel × / Esc = close (`DetailsPanel.tsx:26`); switching rows replaces the entry | trip | - |
+| approvals / ratings | close (`Approvals.tsx:66`, `RatingsScreen.tsx:546`); approvals also closes itself when empty | trip | - |
+| `who` | none | - | pick: with `?next` or becoming a member -> **replace** to the target; from "Switch" -> back (`WhoAreYou.tsx:54`) |
+| `expenses/new`, `…/edit`, `fund/…/edit` | close (`ExpenseForm.tsx:1549`, `IncomeForm`) | trip (ledger: `/trips`) | save -> back; new sport expense -> its details, **replace** |
+| `pay/:toId` | arrow; "Back to trip" and "Back" in-page (`PayScreen.tsx:44`) | trip | - |
+| `bank` (trip) | arrow; success "Back" in-page | trip | - |
+| `people` | arrow (`?from=` removed) | `settings` | - |
+| `people/:pid/bank` | arrow (hidden after save/delete); success "Back" in-page | `people` | save/delete -> success state in place |
+| `activity` (trip) | arrow | `settings` | - |
+| `settings` | arrow | trip | archive -> back (`Settings.tsx:26`); leave -> `/`, **replace** |
+| account menu sign-out | - | - | -> `/`, **replace** (`AccountMenu.tsx`) |
 
-Guest vs member: every trip-relative exit uses `href()` / `base` from `useTrip()`, so a guest stays under
-`/j/<token>` and a member under `/t/<id>`. The only member-only hard-coded exit is MemberTrip's `/groups`; guest and
-view-only trip pages have no back arrow at all.
+Guest vs member: natural parents are trip-relative via `href()` / `base`, so a guest stays under `/j/<token>` and a
+member under `/t/<id>`.
 
-Ledger: details and forms fall back to `/trips` instead of the trip; the ledger index is redirected to `/trips`
-(`TripRoute.tsx:170-172`); on wide its details open on Home (`TripRoute.tsx:175-177`). Settings/People/Activity of
-the ledger exist (reached from PersonScreen "Quick expenses") and their `href()` back links land on `/t/<ledger>`,
-which redirects to `/trips`.
+Ledger: details and forms have `/trips` as natural parent; the ledger index redirects to `/trips`; on wide its details
+open on Home's panel.
+
+Pages come back as they were left: going back restores the window's scroll position and the trip pages' / Home's
+Expenses-Payments tab (`useEntryState('tab', …)`); a new visit starts at the top on Expenses.
 
 ---
 
 ## 4. Mismatches (back control does not return to where the user came from)
 
-C = confirmed by reading the code paths; S = suspected (depends on runtime, or minor / history-only).
+C = confirmed by reading the code paths; S = suspected (depends on runtime, or minor / history-only). The "Now"
+column records the outcome of the back-navigation work (`docs/superpowers/plans/2026-10-31-back-navigation.md`);
+the rest of the table is the audit as found.
 
-| # | From -> to | Back control does | User expects | Where | |
-|---|---|---|---|---|---|
-| 1 | `/people/<key>` -> `/t/<id>` (group row) | `/groups` | `/people/<key>` | `PersonScreen.tsx:385` -> `MemberTrip.tsx:131` | C |
-| 2 | `/people/<key>` -> `/t/<id>` for a group where the user is a guest / viewer (redirected to `/j/<token>`) | no back arrow (view-only has the nav only) | `/people/<key>` | `TripRoute.tsx:165-168`, `GuestTrip.tsx:157`, `ViewOnlyTrip.tsx:84` | S |
-| 3 | `/activity` -> group item `/t/<id>/expenses/<e>` (phone) | details back: no `fromList` -> replace to `/t/<id>`; then trip back -> `/groups` | `/activity` | `MyActivity.tsx:67,98` -> `TripRoute.tsx:47`, `detailsNav.ts:61` | C |
-| 4 | `/activity` -> group item (wide) | panel × replaces to `/t/<id>`; header back -> `/groups` | `/activity` | `MyActivity.tsx:67` -> `DetailsPanel.tsx:23`, `MemberTrip.tsx:131` | C |
-| 5 | `/activity` -> ledger item (phone) `/t/<ledger>/expenses/<e>` | replace to `/trips` (fallback) | `/activity` | `MyActivity.tsx:67` -> `TripRoute.tsx:47` | C |
-| 6 | `/activity` -> ledger item (wide) `/trips?expense=<e>` | × clears the param and stays on Home; Home has no back arrow | `/activity` | `MyActivity.tsx:66` -> `Home.tsx:58-67` | C |
-| 7 | trip page -> BalanceCard "add bank" -> `/me/bank` | `/trips` | the trip | `BalanceCard.tsx:107` -> `BankDetails.tsx:63` | C |
-| 8 | Groups / Activity / trip / PersonScreen -> AccountMenu -> `/me/bank` | `/trips` | the page the menu was opened on | `AccountMenu.tsx:317` -> `BankDetails.tsx:63` | C (only correct from Home) |
-| 9 | any page -> `/privacy` (AccountMenu, ConsentSheet, BankDetails, GuestBank) | `/` -> signed-in users replaced to `/trips`; guests land on Landing and lose the trip | the opener | `Privacy.tsx:11`; links `AccountMenu.tsx:336`, `ConsentSheet.tsx:40`, `BankDetails.tsx:211`, `GuestBank.tsx:221` | C (correct only from Landing, or Home for members) |
-| 10 | trip page -> YourTransfers "Add bank for X" -> `people/:pid/bank` | `<base>/people` | the trip | `YourTransfers.tsx:107` -> `GuestBank.tsx:43` | C |
-| 11 | PayScreen -> "Add bank for X" -> `people/:pid/bank` | `<base>/people` | `pay/:toId` | `PayScreen.tsx:302` -> `GuestBank.tsx:43` | C |
-| 12 | `/people/<key>` -> People (`?from`) -> GuestBank -> back | GuestBank -> `<base>/people` without `?from`; People then backs to `/settings` | People, then `/people/<key>` | `GuestBank.tsx:43`, `People.tsx:32` | C |
-| 13 | `/people/<key>` -> People (`?from`) -> back | `/people/<key>` (push) | `/people/<key>` | `People.tsx:32` | OK in the working tree (fixed); still pushes a new entry |
-| 14 | MyTrips / CreateTrip -> trip -> back | `/groups` | `/groups` | `MemberTrip.tsx:131` | OK, but it pushes (history becomes `/groups, /t/x, /groups`) |
-| 15 | new sport expense saved -> its details (phone) -> back | details have no `fromList`: replace to trip; the trip entry under the form stays, so history is `trip, trip` | trip | `ExpenseForm.tsx:665` | S (history duplicate) |
-| 16 | details -> rollback history -> back | rollback replaces the details entry without state: back now replaces to the trip instead of `-1` (ledger: `/trips`) | the list it came from | `ExpenseHistoryList.tsx:57` | S (lands right visually; duplicate entry; from Home phone the ledger fallback is right) |
-| 17 | Settings -> archive / unarchive | push to the trip; browser back returns to Settings | trip, Settings gone | `Settings.tsx:62` | S (history only) |
-| 18 | guest trip "Switch" -> `who` -> pick | push to trip; browser back returns to `who` | trip | `GuestTrip.tsx:99`, `WhoAreYou.tsx:137` | S (history only) |
-| 19 | trip page -> details on wide with the panel open | header back arrow (`/groups`) is still active next to the panel × | close the panel first | `MemberTrip.tsx:131`, `DetailsPanel.tsx:67` | S (design question) |
-| 20 | FORBIDDEN trip page (signed in) | no back arrow, nav only | the opener | `TripRoute.tsx:141` | S |
+| # | From -> to | Back control does | User expects | Where | | Now |
+|---|---|---|---|---|---|---|
+| 1 | `/people/<key>` -> `/t/<id>` (group row) | `/groups` | `/people/<key>` | `PersonScreen.tsx:385` -> `MemberTrip.tsx:131` | C | Resolved: the arrow goes back (Task 2) |
+| 2 | `/people/<key>` -> `/t/<id>` for a group where the user is a guest / viewer (redirected to `/j/<token>`) | no back arrow (view-only has the nav only) | `/people/<key>` | `TripRoute.tsx:165-168`, `GuestTrip.tsx:157`, `ViewOnlyTrip.tsx:84` | S | Resolved: `backInApp` arrow (Task 5) |
+| 3 | `/activity` -> group item `/t/<id>/expenses/<e>` (phone) | details back: no `fromList` -> replace to `/t/<id>`; then trip back -> `/groups` | `/activity` | `MyActivity.tsx:67,98` -> `TripRoute.tsx:47`, `detailsNav.ts:61` | C | Resolved: depth-based back (Task 3) |
+| 4 | `/activity` -> group item (wide) | panel × replaces to `/t/<id>`; header back -> `/groups` | `/activity` | `MyActivity.tsx:67` -> `DetailsPanel.tsx:23`, `MemberTrip.tsx:131` | C | Resolved (Task 3) |
+| 5 | `/activity` -> ledger item (phone) `/t/<ledger>/expenses/<e>` | replace to `/trips` (fallback) | `/activity` | `MyActivity.tsx:67` -> `TripRoute.tsx:47` | C | Resolved (Task 3) |
+| 6 | `/activity` -> ledger item (wide) `/trips?expense=<e>` | × clears the param and stays on Home; Home has no back arrow | `/activity` | `MyActivity.tsx:66` -> `Home.tsx:58-67` | C | Resolved: × goes back to the opener (Task 6) |
+| 7 | trip page -> BalanceCard "add bank" -> `/me/bank` | `/trips` | the trip | `BalanceCard.tsx:107` -> `BankDetails.tsx:63` | C | Resolved (Task 4) |
+| 8 | Groups / Activity / trip / PersonScreen -> AccountMenu -> `/me/bank` | `/trips` | the page the menu was opened on | `AccountMenu.tsx:317` -> `BankDetails.tsx:63` | C (only correct from Home) | Resolved (Task 4) |
+| 9 | any page -> `/privacy` (AccountMenu, ConsentSheet, BankDetails, GuestBank) | `/` -> signed-in users replaced to `/trips`; guests land on Landing and lose the trip | the opener | `Privacy.tsx:11`; links `AccountMenu.tsx:336`, `ConsentSheet.tsx:40`, `BankDetails.tsx:211`, `GuestBank.tsx:221` | C (correct only from Landing, or Home for members) | Resolved (Task 4) |
+| 10 | trip page -> YourTransfers "Add bank for X" -> `people/:pid/bank` | `<base>/people` | the trip | `YourTransfers.tsx:107` -> `GuestBank.tsx:43` | C | Resolved (Task 4) |
+| 11 | PayScreen -> "Add bank for X" -> `people/:pid/bank` | `<base>/people` | `pay/:toId` | `PayScreen.tsx:302` -> `GuestBank.tsx:43` | C | Resolved (Task 4) |
+| 12 | `/people/<key>` -> People (`?from`) -> GuestBank -> back | GuestBank -> `<base>/people` without `?from`; People then backs to `/settings` | People, then `/people/<key>` | `GuestBank.tsx:43`, `People.tsx:32` | C | Resolved: `?from=` removed, plain history (Task 4) |
+| 13 | `/people/<key>` -> People (`?from`) -> back | `/people/<key>` (push) | `/people/<key>` | `People.tsx:32` | OK in the working tree (fixed); still pushes a new entry | Resolved: `?from=` removed (Task 4) |
+| 14 | MyTrips / CreateTrip -> trip -> back | `/groups` | `/groups` | `MemberTrip.tsx:131` | OK, but it pushes (history becomes `/groups, /t/x, /groups`) | Resolved: no push, history stays `/groups, /t/x` (Task 2) |
+| 15 | new sport expense saved -> its details (phone) -> back | details have no `fromList`: replace to trip; the trip entry under the form stays, so history is `trip, trip` | trip | `ExpenseForm.tsx:665` | S (history duplicate) | Resolved: the replace keeps the depth, back -> trip (Task 5) |
+| 16 | details -> rollback history -> back | rollback replaces the details entry without state: back now replaces to the trip instead of `-1` (ledger: `/trips`) | the list it came from | `ExpenseHistoryList.tsx:57` | S (lands right visually; duplicate entry; from Home phone the ledger fallback is right) | Resolved: a replace keeps the entry's depth (Task 1) |
+| 17 | Settings -> archive / unarchive | push to the trip; browser back returns to Settings | trip, Settings gone | `Settings.tsx:62` | S (history only) | Resolved: archive goes back (Task 5) |
+| 18 | guest trip "Switch" -> `who` -> pick | push to trip; browser back returns to `who` | trip | `GuestTrip.tsx:99`, `WhoAreYou.tsx:137` | S (history only) | Resolved: pick goes back or replaces (Task 5) |
+| 19 | trip page -> details on wide with the panel open | header back arrow (`/groups`) is still active next to the panel × | close the panel first | `MemberTrip.tsx:131`, `DetailsPanel.tsx:67` | S (design question) | Resolved: the panel is its own entry, so the arrow and × both step back to the list |
+| 20 | FORBIDDEN trip page (signed in) | no back arrow, nav only | the opener | `TripRoute.tsx:141` | S | Kept: nav only, by design (the no-access page has no single opener worth guessing) |
 
 Correct today (checked): list -> details/approvals/ratings -> back (`fromList`, `-1`); any in-app entry -> expense /
 income form -> back or save (`useLeaveForm`, `-1`), including the "+" from Home, Groups, Activity and PersonScreen
@@ -220,7 +222,7 @@ flowchart LR
   ACT -- "ledger item" --> LDET
   ACT -- "ledger item (wide)" --> HOMEP
   PERSON -- group row --> TRIP
-  PERSON -- "Rename or merge" --> PEOPLE["/t/:id/people?from"]
+  PERSON -- "Rename or merge" --> PEOPLE["/t/:id/people"]
   TRIP -- row --> DET
   TRIP --> APPR["approvals"]
   TRIP --> RAT["ratings"]
@@ -249,42 +251,39 @@ flowchart LR
   MEBANK -. "back: /trips" .-> HOME
   PRIV -. "back: /" .-> LAND
   GBANK -. "back: people" .-> PEOPLE
-  PEOPLE -. "back: ?from or settings" .-> SET
+  PEOPLE -. "back: settings" .-> SET
   SET -. "back: trip" .-> TRIP
   DET -. "back: -1 or trip" .-> TRIP
   LDET -. "back: -1 or /trips" .-> HOME
   FORM -. "back/save: -1 or trip" .-> TRIP
 ```
 
-Dotted arrows are the back controls; solid arrows are forward links.
+Solid arrows are forward links. Dotted arrows are each screen's natural parent, used only when no app page is behind; otherwise every back returns to the page it was opened from (§6).
 
 ---
 
-## 6. Back-navigation patterns in use today
+## 6. Back navigation: one mechanism
 
-1. **Hard-coded `back` path on `<Screen>`** (renders a `<Link>`, push). Absolute: MemberTrip `/groups`, CreateTrip
-   `/groups`, PersonScreen `/trips`, Privacy `/`, `/me/bank` `/trips`. Trip-relative via `href()`: Settings, PayScreen,
-   BankDetails (trip), GuestBank (`/people`), Activity (`/settings`). Also in-page "Back" / "Back to trip" buttons on
-   PayScreen, BankDetails, GuestBank.
-2. **History with router-state marker, `useBackToTrip`** (`lib/detailsNav.ts:55-63`): `-1` when the entry carries
-   `state.fromList` (set by `useOpenDetails`, `useApprovalsLink`, `useRatingsLink`), else replace to the trip or a
-   fallback (`/trips` for the ledger). Used by phone details, Approvals, Ratings, the wide DetailsPanel × / Esc and
-   the details' "Back to trip" button.
-3. **History by entry key, `useLeaveForm`** (`lib/detailsNav.ts:71-79`): `-1` unless `location.key === 'default'`
-   (first page of the visit), else replace to the trip / `/trips`. Used by ExpenseForm and IncomeForm for back and
-   after save.
-4. **Search param `?from=`**: People only (`People.tsx:31-32`), set by PersonScreen (`PersonScreen.tsx:481`),
-   validated against `/people/<x>`.
-5. **Search params as UI state on Home** (wide): `?expense|payment|income=`; close = delete the param with replace.
-   On phones Home turns the same params into a redirect to the ledger's details page.
-6. **Safe `?next=` return target**: WhoAreYou (`safeTripPath`, `WhoAreYou.tsx:29-40,52`), set by TripRoute's guest
-   guard. Sign-in uses `returnTo` handed to `/api/auth/<provider>/start` (`SignInButtons.tsx:19-26`): Landing,
-   NoAccess, GuestTrip, WhoAreYou, RatingsScreen, LinkedAccounts (current path), MergeSheet.
-7. **Replace-redirects** that keep the user's address canonical (TripRoute `/t` <-> `/j`, ledger -> Home, TripsRoute
-   -> `/groups`, OldExpenseLink, signed-out guards).
-8. **No back control**: tabs (Home, Groups, Activity), GuestTrip, ViewOnlyTrip, WhoAreYou, RequestPage, Landing.
+`apps/web/src/lib/navHistory.tsx`, mounted once inside the router (`main.tsx`):
 
-## Observations
+1. **`NavHistoryProvider`** keeps a record per history entry (`location.key`, in `sessionStorage` under `fsl:nav`):
+   how many app pages are behind it (PUSH = +1, REPLACE keeps the slot, POP reads the record; the first entry of a
+   page load is depth 0), the address it was opened as, its scroll position and small view state. A push starts at
+   the top; going back restores the scroll once the page is tall enough.
+2. **`useBack(parent)`**: `navigate(-1)` when depth > 0, else replace with `parent`. A double tap never skips past the
+   opener. Used by every close / cancel / save-and-leave.
+3. **`useBackLink(parent)`**: the same for `<Link>`s (the header arrow and in-page Back buttons); a modified or
+   middle click still opens `parent` as a normal link.
+4. **`useEntryState(name, initial)`**: `useState` kept on the entry (the Expenses/Payments tab).
+5. **Finished steps replace** instead of push (create group, sign-out, leave group, who-are-you with `?next`, new
+   sport expense -> details), and tab switches replace, so history does not pile up.
+
+Still in place by design: safe `?next=` / `returnTo` targets for sign-in and who-are-you, the replace-redirects that
+keep addresses canonical (`/t` <-> `/j`, ledger -> Home), and Home's wide `?expense|payment|income=` panel state.
+
+Removed: `useBackToTrip`, `useLeaveForm`, router-state `fromList`, `useListScroll` and People's `?from=`.
+
+## Observations (as audited, before the change)
 
 - Only patterns 2 and 3 know where the user came from; every hard-coded back (pattern 1) assumes one parent, which
   breaks for screens with several entry points (MemberTrip, `/me/bank`, `/privacy`, GuestBank).
