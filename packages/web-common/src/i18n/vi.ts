@@ -397,6 +397,12 @@ export const vi: Record<MessageKey, string> = {
   'invite.share': 'Chia sẻ', // REVIEW
   'invite.shareText': 'Tham gia "{trip}" để chia tiền:', // REVIEW
 
+  'share.inviteTitle': 'Tham gia nhóm {trip} trên CoinCrew', // REVIEW
+  'share.inviteDescription': 'Chia tiền nhóm, trả nhau bằng VietQR.', // REVIEW
+  'share.remindTitle': 'Nhắc thanh toán · {trip}', // REVIEW
+  'share.sportTitle': 'Hoá đơn {trip}', // REVIEW
+  'share.requestDescription': 'Mở để xem số tiền và trả bằng VietQR.', // REVIEW
+
   'expenses.emptyTitle': 'Thêm khoản chi đầu tiên', // REVIEW
   'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.', // REVIEW
   'expenses.emptyViewer': 'Chưa có khoản chi nào.', // REVIEW
@@ -606,6 +612,8 @@ export const vi: Record<MessageKey, string> = {
   'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
   'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.', // REVIEW
   'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
+  'pay.savedToGallery': 'Đã lưu ảnh QR vào thư viện ảnh', // REVIEW
+  'pay.bankFallback': 'Mở app ngân hàng → Quét QR → chọn ảnh từ thư viện', // REVIEW
 
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW

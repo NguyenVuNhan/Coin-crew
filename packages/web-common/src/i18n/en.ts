@@ -397,6 +397,12 @@ export const en = {
   'invite.share': 'Share',
   'invite.shareText': 'Join "{trip}" to split costs:',
 
+  'share.inviteTitle': 'Join {trip} on CoinCrew',
+  'share.inviteDescription': 'Split group costs and pay each other with VietQR.',
+  'share.remindTitle': 'Payment reminder · {trip}',
+  'share.sportTitle': 'Bill for {trip}',
+  'share.requestDescription': 'Open to see what you owe and pay with VietQR.',
+
   'expenses.emptyTitle': 'Add the first expense',
   'expenses.emptyBody': 'Homestay, food, fuel: anything the group shares.',
   'expenses.emptyViewer': 'No expenses yet.',
@@ -606,6 +612,8 @@ export const en = {
   'pay.shareSaved': 'QR saved and message copied.',
   'pay.shareFailed': "Couldn't share. Try Save QR.",
   'pay.remindBankText': 'Hi {name}! Please add your bank details in "{trip}" so I can pay you back with VietQR: {link}',
+  'pay.savedToGallery': 'QR saved to your photos',
+  'pay.bankFallback': 'Open your bank app → Scan QR → pick the image from your photos',
 
   'bankForm.title': 'Your bank details',
   'bankForm.guestNote': 'A member approves new bank details before anyone can pay you.',
