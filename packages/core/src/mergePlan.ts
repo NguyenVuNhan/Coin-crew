@@ -68,13 +68,17 @@ export function planMerge(a: MergeSide, b: MergeSide, ctx: MergePlanContext): Me
     return { ok: true, tag: 'ask_user', steps };
   }
 
-  // Both guests: merge (or ask an admin to) in every live trip they share; link for the rest.
+  // Both guests: merge (or ask an admin to) in every live group they share; link for the rest.
   const intoByTrip = new Map<string, MergePlace>();
-  for (const p of a.places) if (!p.archived && !intoByTrip.has(p.tripId)) intoByTrip.set(p.tripId, p);
+  for (const p of a.places) if (p.kind === 'group' && !p.archived && !intoByTrip.has(p.tripId)) intoByTrip.set(p.tripId, p);
 
   const mergeSteps: MergeStep[] = [];
   let needsLink = false;
   for (const from of b.places) {
+    if (from.kind !== 'group') {
+      needsLink = true;
+      continue;
+    }
     const into = from.archived ? undefined : intoByTrip.get(from.tripId);
     if (!into) {
       needsLink = true;

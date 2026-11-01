@@ -106,6 +106,8 @@ test('two names for one friend merge into one total, and split apart again', asy
   await rows.filter({ hasText: 'Lan B' }).click();
   await page.getByTestId('person-merge').click();
   await page.locator('[data-testid^="merge-pick-"]').filter({ hasNotText: 'Lan B' }).filter({ hasText: 'Lan' }).first().click();
+  await page.getByTestId('merge-confirm').click();
+  await expect(page.getByTestId('merge-confirm')).not.toBeVisible();
   await page.goto('/trips');
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('80.000');
@@ -113,6 +115,7 @@ test('two names for one friend merge into one total, and split apart again', asy
   // Split "Lan B" off again: two rows.
   await rows.first().click();
   await page.locator('[data-testid^="unmerge-"]').first().click();
+  await expect(page.locator('[data-testid^="unmerge-"]')).toHaveCount(0);
   await page.goto('/trips');
   await expect(rows).toHaveCount(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);

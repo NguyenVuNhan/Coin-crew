@@ -179,7 +179,7 @@ describe('POST /api/me/people/merge', () => {
     })]);
   });
 
-  it('two ledger people, one also a guest elsewhere → link, then merge in the ledger', async () => {
+  it('two ledger people, one also a guest elsewhere → link', async () => {
     await seed();
     await run(
       'INSERT INTO trips (id, name, preset, currency, fewest_transfers, organiser_user_id, group_token, view_token, version, created_at) VALUES (?, ?, \'direct\', \'VND\', 1, ?, ?, ?, 0, ?)',
@@ -193,11 +193,8 @@ describe('POST /api/me/people/merge', () => {
 
     const body = await ok(['p:led-x', 'p:led-y']);
     expect(body).toEqual({ key: 'p:led-x', proposals: [] });
-    const [y] = await all<{ status: string; merged_into: string }>('SELECT status, merged_into FROM participants WHERE id = ?', 'led-y');
-    expect(y).toEqual({ status: 'merged', merged_into: 'led-x' });
-    expect(await all('SELECT * FROM person_links WHERE participant_id = person_pid')).toEqual([]);
     const opts = await loadMergeOptions(db(), OWNER, 'p:led-x');
-    expect(opts!.person.groups.map((g) => g.participantId).sort()).toEqual(['led-x', 'p-minh']);
+    expect(opts!.person.groups.map((g) => g.participantId).sort()).toEqual(['led-x', 'led-y', 'p-minh']);
   });
 
   it('re-plans: a guest merged after loading gives 409 and writes nothing', async () => {

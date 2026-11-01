@@ -223,7 +223,6 @@ async function executeMerge(c: Context<AppBindings>, user: { id: string; name: s
   const linked = plan.steps.some((s) => s.kind === 'link');
   if (linked) key = await linkGuests(db, user, parseLinkKeys([a.key, b.key]), device);
 
-  let mergedLinkedLedger = false;
   for (const step of plan.steps) {
     if (step.kind !== 'merge') continue;
     const actor = await resolveActor(c, step.tripId);
@@ -233,11 +232,6 @@ async function executeMerge(c: Context<AppBindings>, user: { id: string; name: s
     await mergeParticipants(db, step.tripId, step.fromPid, step.intoPid, actor);
     // Owners' links to the merged row now point at the survivor.
     if (key === `p:${step.fromPid}`) key = `p:${step.intoPid}`;
-    if (linked && actor.trip.preset === 'direct') mergedLinkedLedger = true;
-  }
-  if (mergedLinkedLedger) {
-    // Linking then merging two ledger rows leaves the survivor linked to itself.
-    await db.delete(personLinks).where(and(eq(personLinks.ownerUserId, user.id), eq(personLinks.participantId, personLinks.personPid)));
   }
 
   return { key, proposals: proposalIds };

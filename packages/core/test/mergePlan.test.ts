@@ -26,6 +26,15 @@ describe('planMerge', () => {
     expect(plan).toEqual({ ok: true, tag: 'link', steps: [{ kind: 'link' }] });
   });
 
+  it('two guests in the personal ledger → link only', () => {
+    const plan = planMerge(
+      guest('pA', [place('d1', 'pA', { kind: 'direct', tripName: 'Quick' })]),
+      guest('pB', [place('d1', 'pB', { kind: 'direct', tripName: 'Quick' })]),
+      ctx({ adminTripIds: new Set(['d1']) }),
+    );
+    expect(plan).toEqual({ ok: true, tag: 'link', steps: [{ kind: 'link' }] });
+  });
+
   it('two guests in the same group, caller admin → merge B into A', () => {
     const plan = planMerge(guest('pA', [place('t1', 'pA')]), guest('pB', [place('t1', 'pB')]), ctx({ adminTripIds: new Set(['t1']) }));
     expect(plan).toEqual({
