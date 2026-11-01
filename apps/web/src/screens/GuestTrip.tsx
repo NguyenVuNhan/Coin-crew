@@ -29,6 +29,7 @@ import { TripTabs } from '../components/TripTabs';
 import { SignInButtons } from '../components/SignInButtons';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { FeedbackButton } from '../components/FeedbackButton';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
@@ -195,7 +196,13 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   );
 
   return (
-    <Screen title={view.trip.name} wide bottomBar={!wide && hasFeed ? addLink(true) : undefined} backInApp>
+    <Screen
+      title={view.trip.name}
+      wide
+      bottomBar={!wide && hasFeed ? addLink(true) : undefined}
+      backInApp
+      right={<FeedbackButton signedIn={false} testId="guest-feedback" />}
+    >
       <div className="fsl-guest flex flex-col gap-4 py-4">
         {banner}
         {notice}

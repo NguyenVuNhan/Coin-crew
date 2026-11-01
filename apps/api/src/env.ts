@@ -11,6 +11,9 @@ export type Env = {
   ZALO_APP_SECRET?: string;
   E2E_LOGIN?: string;
   OPS_ALERT_WEBHOOK_URL?: string;
+  /** Google Apps Script web app that appends feedback to the Sheet (docs/setup.md §4.8). */
+  FEEDBACK_SHEET_WEBHOOK_URL?: string;
+  FEEDBACK_SHEET_TOKEN?: string;
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
   TEST_MIGRATIONS?: D1Migration[];

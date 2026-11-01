@@ -12,6 +12,7 @@ The live deployment's own values (database ID, public address, Google credential
 | `APP_ORIGIN` | Google sign-in redirect | Cloudflare runtime variable (Text); `apps/api/.dev.vars` locally |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in | Cloudflare secrets; `apps/api/.dev.vars` locally |
 | `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `OPS_ALERT_WEBHOOK_URL` | Optional usage alerts | Cloudflare secrets |
+| `FEEDBACK_SHEET_WEBHOOK_URL`, `FEEDBACK_SHEET_TOKEN` | Optional user feedback to Google Sheet | Cloudflare secrets |
 
 ## 1. Prerequisites
 
@@ -202,6 +203,28 @@ An hourly cron compares today's Workers requests and D1 rows with the free-plan 
 - `CF_API_TOKEN`: an API token with **Account Analytics: Read**.
 - `CF_ACCOUNT_ID`: your account ID (shown by `npx wrangler whoami`).
 - `OPS_ALERT_WEBHOOK_URL`: any endpoint that accepts `{ "text": "…" }`, such as a Slack or Discord-compatible webhook.
+
+### 4.8 Optional: user feedback to Google Sheet
+
+1. Create a Google Sheet named "CoinCrew feedback".
+2. **Extensions › Apps Script**, paste `scripts/feedback-apps-script.gs`.
+3. **Project Settings › Script Properties**: add `TOKEN` = a long random string (e.g. `openssl rand -hex 32`).
+4. **Deploy › New deployment › Web app**, set **Execute as: Me**, **Who has access: Anyone**. Copy the URL.
+5. Add Worker secrets `FEEDBACK_SHEET_WEBHOOK_URL` (the URL) and `FEEDBACK_SHEET_TOKEN` (same token). Without them, feedback stays in D1 only; the hourly cron sends anything not yet delivered once they are set.
+6. **Triggers › Add trigger**: `sendWeeklyDigest`, time-driven, week timer, Monday, 7am–8am. Make sure the script's time zone (**Project Settings**) is `Asia/Ho_Chi_Minh`.
+7. In the Gemini app, create a scheduled action, weekly on Monday around 8:00, with exactly this prompt:
+
+```
+Find this week's email titled "CoinCrew feedback – week of …" in my Gmail (or open my Google Sheet "CoinCrew feedback" and use rows from the last 7 days). Messages may be in Vietnamese or English.
+1. Ignore noise: test messages, gibberish, empty or one-word messages, duplicates from the same hour.
+2. Defects: list each real bug with a one-line summary, the screen, device, and language, and the contact if given. Merge reports that describe the same problem and show the count.
+3. Feature requests: group by theme, show the count per theme, and quote one or two example messages.
+4. Other: anything worth knowing that isn't a bug or idea.
+Write the whole digest twice: first in Vietnamese, then in English. Start with a 3-line summary of the most important items. Email it to me.
+```
+
+8. **Rotating the token:** change the Script Property and the Worker secret together.
+9. **Check:** run `sendWeeklyDigest` once from the editor; send a test POST with `curl` to the URL and see a row appear.
 
 ## 5. Day to day
 

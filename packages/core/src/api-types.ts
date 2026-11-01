@@ -437,3 +437,18 @@ export interface ProposalView {
 
 /** `GET /api/me/proposals`. Outgoing: pending ones, plus ones decided in the last 7 days. */
 export interface ProposalsResponse { incoming: ProposalView[]; outgoing: ProposalView[] }
+
+export type FeedbackType = 'bug' | 'idea' | 'other';
+
+/** `POST /api/feedback`. Anonymous unless `contactMe`; `contactText` is only read for guests. */
+export interface FeedbackRequest {
+  message: string;
+  type: FeedbackType | null;
+  /** Route name such as `trip-expenses`, never a URL. */
+  screen: string;
+  device: 'phone' | 'desktop';
+  lang: 'vi' | 'en';
+  appVersion: string;
+  contactMe: boolean;
+  contactText?: string;
+}

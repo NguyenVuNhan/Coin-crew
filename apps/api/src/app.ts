@@ -23,6 +23,7 @@ import { myActivityRoutes } from './me/activity';
 import { requestRoutes } from './requests/routes';
 import { proposalRoutes } from './proposals/routes';
 import { pageRoutes } from './og/routes';
+import { feedbackRoutes } from './feedback/routes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -53,6 +54,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', myActivityRoutes());
   app.route('/api', requestRoutes());
   app.route('/api', proposalRoutes());
+  app.route('/api', feedbackRoutes());
   app.route('/', pageRoutes());
 
   return app;

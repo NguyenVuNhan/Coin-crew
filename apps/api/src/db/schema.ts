@@ -357,3 +357,36 @@ export const settlementKeys = sqliteTable('settlement_keys', {
   settlementId: text('settlement_id').notNull(),
   createdAt: text('created_at').notNull(),
 });
+
+/** Anonymous in-app feedback (no user/device/trip column on purpose). See migration 0013. */
+export const feedback = sqliteTable(
+  'feedback',
+  {
+    id: text('id').primaryKey(),
+    type: text('type'),
+    message: text('message').notNull(),
+    screen: text('screen').notNull(),
+    device: text('device').notNull(),
+    lang: text('lang').notNull(),
+    appVersion: text('app_version').notNull(),
+    contact: text('contact'),
+    /** Rounded down to the hour. */
+    createdAt: text('created_at').notNull(),
+    deliveredAt: text('delivered_at'),
+  },
+  (t) => [
+    index('feedback_delivered_at_idx').on(t.deliveredAt),
+    index('feedback_created_at_idx').on(t.createdAt),
+  ],
+);
+
+/** Feedback sent per device per hour; key = sha256(deviceHash + bucket), unlinked from `feedback`. */
+export const feedbackRate = sqliteTable(
+  'feedback_rate',
+  {
+    key: text('key').primaryKey(),
+    bucket: text('bucket').notNull(),
+    count: integer('count').notNull(),
+  },
+  (t) => [index('feedback_rate_bucket_idx').on(t.bucket)],
+);
