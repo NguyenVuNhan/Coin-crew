@@ -11,8 +11,6 @@ import '@fontsource/be-vietnam-pro/latin-700.css';
 import '@fsl/web-common/styles.css';
 import { AppRoot, bootApp } from '@fsl/web-common';
 
-bootApp();
-
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -22,11 +20,13 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigato
   });
 }
 
-const rootEl = document.getElementById('root');
-if (rootEl) {
-  createRoot(rootEl).render(
-    <StrictMode>
-      <AppRoot />
-    </StrictMode>,
-  );
-}
+void bootApp().then(() => {
+  const rootEl = document.getElementById('root');
+  if (rootEl) {
+    createRoot(rootEl).render(
+      <StrictMode>
+        <AppRoot />
+      </StrictMode>,
+    );
+  }
+});

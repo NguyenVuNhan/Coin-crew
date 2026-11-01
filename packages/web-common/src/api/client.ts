@@ -1,5 +1,6 @@
 import type { ApiErrorCode } from '@fsl/core';
 import { linkTokens } from '../lib/linkTokens';
+import { sessionStore } from '../platform/session';
 
 export class ApiClientError extends Error {
   constructor(
@@ -32,19 +33,23 @@ export async function apiFetch<T>(
     }
   }
 
-  try {
-    const deviceId = localStorage.getItem('deviceId');
-    if (deviceId) {
-      headers.set('X-Device-Restore', deviceId);
-    }
-  } catch {
-    // storage access error
+  const token = sessionStore.token();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
+
+  const deviceId = sessionStore.deviceId();
+  if (deviceId) {
+    headers.set('X-Device-Restore', deviceId);
+  }
+
+  const apiBase = sessionStore.apiBase();
+  const url = apiBase + path;
 
   let response: Response;
   try {
-    response = await fetch(path, {
-      credentials: 'include',
+    response = await fetch(url, {
+      credentials: apiBase === '' ? 'include' : 'omit',
       ...restInit,
       headers,
     });
@@ -55,14 +60,13 @@ export async function apiFetch<T>(
 
   const deviceIdHeader = response.headers.get('X-Device-Id');
   if (deviceIdHeader) {
-    try {
-      localStorage.setItem('deviceId', deviceIdHeader);
-    } catch {
-      // ignore
-    }
+    void sessionStore.setDeviceId(deviceIdHeader);
   }
 
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      void sessionStore.setToken(null);
+    }
     let code: ApiErrorCode = 'INTERNAL';
     let message = response.statusText || 'Error';
     let details: Record<string, unknown> = {};

@@ -5,6 +5,7 @@ import type { ReactElement } from 'react';
 import { vi } from 'vitest';
 import { setLang } from '../i18n';
 import { NavHistoryProvider } from '../lib/navHistory';
+import { browserPlatform, PlatformProvider, type PlatformBridge } from '../platform';
 
 /** Shows the current path so tests can assert navigation. */
 function LocationProbe() {
@@ -13,21 +14,30 @@ function LocationProbe() {
 }
 
 /** Render `ui` at `route` (matched by `path`) inside the app's providers, in English. */
-export function renderAt(ui: ReactElement, { route = '/', path = '*' }: { route?: string; path?: string } = {}) {
+export function renderAt(
+  ui: ReactElement,
+  {
+    route = '/',
+    path = '*',
+    platform = browserPlatform,
+  }: { route?: string; path?: string; platform?: PlatformBridge } = {},
+) {
   setLang('en');
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
-    <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[route]}>
-        <NavHistoryProvider>
-          <Routes>
-            <Route path={path} element={ui} />
-            <Route path="*" element={null} />
-          </Routes>
-          <LocationProbe />
-        </NavHistoryProvider>
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <PlatformProvider platform={platform}>
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[route]}>
+          <NavHistoryProvider>
+            <Routes>
+              <Route path={path} element={ui} />
+              <Route path="*" element={null} />
+            </Routes>
+            <LocationProbe />
+          </NavHistoryProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </PlatformProvider>,
   );
 }
 
