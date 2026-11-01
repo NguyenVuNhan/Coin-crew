@@ -1,0 +1,14 @@
+{
+  "app": {
+    "title": "CoinCrew (Tiền Đâu)",
+    "headerColor": "#f6f7f4",
+    "textColor": "black",
+    "statusBar": "transparent",
+    "actionBarHidden": true,
+    "hideIOSSafeAreaBottom": false,
+    "hideAndroidBottomNavigationBar": false
+  },
+  "listCSS": [],
+  "listSyncJS": [],
+  "listAsyncJS": []
+}
