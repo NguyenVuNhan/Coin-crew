@@ -54,7 +54,7 @@ describe('BankPickerSheet', () => {
 
     const rows = document.querySelectorAll('.fsl-bank-row');
     expect(rows.length).toBe(4);
-    expect(rows[0].textContent).toContain('ACB ONE');
+    expect(rows[0]!.textContent).toContain('ACB ONE');
 
     const popularLabel = screen.getByText('Popular');
     expect(popularLabel).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('BankPickerSheet', () => {
 
     const rows = document.querySelectorAll('.fsl-bank-row');
     expect(rows).toHaveLength(1);
-    expect(rows[0].textContent).toContain('ACB ONE');
+    expect(rows[0]!.textContent).toContain('ACB ONE');
   });
 
   it('no match shows the empty line', async () => {

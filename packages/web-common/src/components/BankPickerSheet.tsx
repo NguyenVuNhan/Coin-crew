@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type JSX } from 'react';
+import { Input } from '@/components/ui/input';
 import { searchBankApps, type BankApp } from '@fsl/core';
 import { bankAppLogo } from '../lib/bankApps';
 import { Sheet } from './Sheet';
@@ -67,13 +68,13 @@ export function BankPickerSheet({
             className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none"
             aria-hidden="true"
           />
-          <input
+          <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label={t('pay.searchBank')}
             placeholder={t('pay.searchBank')}
-            className="w-full text-base min-h-11 rounded-xl border border-border bg-card pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full text-base min-h-11 rounded-xl bg-card pl-10 pr-4"
           />
         </div>
 
