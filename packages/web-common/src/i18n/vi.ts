@@ -47,6 +47,11 @@ export const vi: Record<MessageKey, string> = {
   'pay.bankNone': '{name} chưa thêm thông tin ngân hàng', // REVIEW
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
   'pay.saveQr': 'Lưu mã QR', // REVIEW
+  'pay.pickBank': 'Chọn ngân hàng của bạn', // REVIEW
+  'pay.searchBank': 'Tìm: vcb, techcom, Á Châu…', // REVIEW
+  'pay.recentBank': 'Dùng gần đây', // REVIEW
+  'pay.popularBanks': 'Phổ biến', // REVIEW
+  'pay.noBankMatch': 'Không tìm thấy ngân hàng "{q}"', // REVIEW
 
   'landing.headline': 'Chia tiền chuyến đi. Thanh toán bằng VietQR.', // REVIEW
   'landing.tagline': 'Bạn bè tham gia từ một liên kết trong nhóm chat, không cần tài khoản.', // REVIEW

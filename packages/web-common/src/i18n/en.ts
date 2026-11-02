@@ -47,6 +47,11 @@ export const en = {
   'pay.bankNone': "{name} hasn't added bank details yet", // SPEC
   'pay.openBankApp': 'Open bank app', // SPEC 2026-10-14
   'pay.saveQr': 'Save QR', // SPEC
+  'pay.pickBank': 'Choose your bank', // SPEC
+  'pay.searchBank': 'Search: vcb, techcom, Á Châu…', // SPEC
+  'pay.recentBank': 'Recently used', // SPEC
+  'pay.popularBanks': 'Popular', // SPEC
+  'pay.noBankMatch': 'No bank matches "{q}"', // SPEC
 
   'landing.headline': 'Split trip costs. Settle up with VietQR.',
   'landing.tagline': 'Friends join from one link in the group chat, no account needed.',
