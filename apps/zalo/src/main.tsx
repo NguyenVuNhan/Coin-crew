@@ -20,7 +20,7 @@ const platform = createZaloPlatform(sdk as unknown as ZmpSdk, apiOrigin);
 void sdk.configAppView({ actionBar: { hide: true }, statusBarType: 'transparent', headerTextColor: 'black' }).catch(() => {});
 const root = document.documentElement;
 root.style.setProperty('--zmp-safe-top', 'var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 0px))');
-root.style.setProperty('--zmp-capsule-width', '96px');
+root.style.setProperty('--zmp-capsule-width', '88px');
 
 void bootApp(platform).then(() => {
   // Zalo's runtime mounts the app into #app; a local `vite dev` uses index.html's #root.

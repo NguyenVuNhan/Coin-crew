@@ -152,5 +152,14 @@
 }
 
 .fsl-screen--zmp .fsl-screen__header-inner {
-  padding-right: calc(1rem + var(--zmp-capsule-width));
+  padding-right: calc(0.5rem + var(--zmp-capsule-width));
+}
+
+/* No back button: the spacer only balanced a centred title, and in Zalo it reads as a gap before the title. */
+.fsl-screen--zmp .fsl-screen__header-spacer {
+  display: none;
+}
+
+.fsl-screen--zmp .fsl-screen__title {
+  text-align: left;
 }
