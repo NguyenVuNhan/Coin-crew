@@ -387,7 +387,8 @@ reverted before release. The API (Tasks 5 and 6), the migration and the platform
   with two accounts).
 - **Group chat:** `getContextAsync` only returns a chat when the Mini App is opened from the chat's
   extended menu, and CoinCrew does not appear there while it only has testing versions. Retest after
-  the first publish.
+  the first publish. Settings' one-line hint ("open CoinCrew from the Zalo group chat's menu") was
+  removed on 2026-11-03 because nothing links the chat now; it comes back with §8.
 - **Instead, for now:** People (Mini App only, groups with an invite link, not archived) shows
   "Mời bạn bè Zalo", which shares the group's invite card; Zalo's share sheet lets the user pick a
   friend or a group chat.
