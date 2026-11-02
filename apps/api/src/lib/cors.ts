@@ -9,6 +9,10 @@ export const corsMiddleware: MiddlewareHandler<AppBindings> = async (c, next) =>
     .filter(Boolean);
 
   if (!origin || !allowed.includes(origin)) {
+    // Cross-origin callers that aren't on the list: logged so the Mini App's real origin can be found and added.
+    if (origin && allowed.length > 0 && origin !== new URL(c.req.url).origin) {
+      console.warn(`CORS: origin not in ZMP_ALLOWED_ORIGINS: ${origin}`);
+    }
     await next();
     return;
   }

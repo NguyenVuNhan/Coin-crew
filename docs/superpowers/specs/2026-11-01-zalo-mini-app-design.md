@@ -55,7 +55,7 @@ are. The Mini App is a second build of the same web app, plus a thin platform la
   `// REVIEW`.
 - UI rules from `CLAUDE.md`: shadcn + app wrappers, theme only in `globals.css`, `fsl-*` classes and
   `data-testid` stay on their elements, touch targets ≥44px, fields at 16px.
-- Migrations already run to `0012`; the new one is **`0013_zalo_mini_app.sql`**, additive only.
+- Migrations already run to `0012`; the new one is **`0014_zalo_mini_app.sql`**, additive only.
 
 ## What Zalo gives us (research summary)
 
@@ -202,7 +202,7 @@ banner above the cards: "Bạn là {name} phải không?" with the primary butto
 and pre-select that card. If the slot has `participants.zalo_sub` equal to the verified ID, skip
 WhoAreYou entirely (§7).
 
-### 5. Schema: `0013_zalo_mini_app.sql`
+### 5. Schema: `0014_zalo_mini_app.sql`
 
 ```sql
 ALTER TABLE participants ADD COLUMN zalo_sub text;

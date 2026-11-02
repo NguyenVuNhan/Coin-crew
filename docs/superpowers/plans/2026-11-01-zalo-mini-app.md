@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Migration file is `apps/api/migrations/0013_zalo_mini_app.sql`, additive only; Drizzle schema in `apps/api/src/db/schema.ts` matches it.
+- Migration file is `apps/api/migrations/0014_zalo_mini_app.sql`, additive only; Drizzle schema in `apps/api/src/db/schema.ts` matches it.
 - The web build's behaviour does not change: cookie sessions, `navigator.share`/clipboard, `<a download>`, header layout. Everything new is keyed off `platform.kind === 'zmp'` or off request headers the web never sends.
 - `zmp-sdk` and `zmp-cli` are dependencies of `apps/zalo` only.
 - No account is created without the user tapping "Tiếp tục với tài khoản Zalo" (`consent: true`).
@@ -37,7 +37,7 @@
 ### Task 1: Migration 0013 and schema
 
 **Files:**
-- Create: `apps/api/migrations/0013_zalo_mini_app.sql`
+- Create: `apps/api/migrations/0014_zalo_mini_app.sql`
 - Modify: `apps/api/src/db/schema.ts` (`participants`, `devices`, new `zaloChatLinks`)
 - Test: `apps/api/test/zalo-schema.test.ts`
 
