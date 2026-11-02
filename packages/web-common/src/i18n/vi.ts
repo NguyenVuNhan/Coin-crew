@@ -874,5 +874,13 @@ export const vi: Record<MessageKey, string> = {
   'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.', // REVIEW
   'feedback.error': 'Chưa gửi được. Vui lòng thử lại.', // REVIEW
   'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.', // REVIEW
+
+  'zaloFriends.button': 'Chọn từ bạn bè Zalo', // REVIEW
+  'zaloFriends.matchTitle': 'Đã có trong nhóm?', // REVIEW
+  'zaloFriends.linkTo': '{friend} có phải là {person}?', // REVIEW
+  'zaloFriends.link': 'Gắn với {person}', // REVIEW
+  'zaloFriends.addNew': 'Thêm mới', // REVIEW
+  'zaloFriends.alreadyIn': '{name} đã có trong nhóm', // REVIEW
+  'zaloFriends.failed': 'Không thêm được {name}. Thử lại nhé.', // REVIEW
 };
 

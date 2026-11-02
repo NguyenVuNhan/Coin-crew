@@ -1,7 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import type { CreateTripInput, GroupPreset, Gender } from '@fsl/core';
+import type { CreateTripInput, GroupPreset, Gender, CreateTripPerson } from '@fsl/core';
+import type { ZaloFriend } from '../platform';
 import { useT, useLang } from '../i18n';
 import { useMe } from '../api/hooks';
 import { apiSend } from '../api/client';
@@ -12,6 +13,7 @@ import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '../components/Skeleton';
 import { PeopleInput } from '../components/PeopleInput';
+import { ZaloFriendPicker } from '../components/ZaloFriendPicker';
 import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
@@ -54,6 +56,25 @@ export function CreateTrip() {
     myName.trim().length > 0 &&
     people.some((p) => p.name.trim().length > 0);
 
+  const handlePickedZaloFriends = (friends: ZaloFriend[]) => {
+    setPeople((prev) => {
+      const existingZaloSubs = new Set(prev.flatMap((p) => (p.zaloSub ? [p.zaloSub] : [])));
+      const newEntries: PersonEntry[] = [];
+      for (const friend of friends) {
+        if (!existingZaloSubs.has(friend.zaloId)) {
+          existingZaloSubs.add(friend.zaloId);
+          newEntries.push({
+            ...newPersonEntry(friend.name),
+            zaloSub: friend.zaloId,
+          });
+        }
+      }
+      if (newEntries.length === 0) return prev;
+      const nonEmpty = prev.filter((p) => p.name.trim() !== '' || p.userId || p.zaloSub);
+      return [...nonEmpty, ...newEntries, newPersonEntry()];
+    });
+  };
+
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
       apiSend<{ tripId: string }>('/api/trips', 'POST', input),
@@ -85,12 +106,16 @@ export function CreateTrip() {
         const name = p.name.trim();
         if (name === '') return [];
         if (preset === 'sport') {
-          const personObj: { name: string; userId?: string; gender?: Gender } = { name };
+          const personObj: CreateTripPerson = { name };
           if (p.userId) personObj.userId = p.userId;
           if (p.gender) personObj.gender = p.gender;
+          if (p.zaloSub) personObj.zaloSub = p.zaloSub;
           return [personObj];
         }
-        return [p.userId ? { name, userId: p.userId } : { name }];
+        const personObj: CreateTripPerson = { name };
+        if (p.userId) personObj.userId = p.userId;
+        if (p.zaloSub) personObj.zaloSub = p.zaloSub;
+        return [personObj];
       }),
     };
 
@@ -225,6 +250,7 @@ export function CreateTrip() {
         </div>
 
         <PeopleInput value={people} onChange={setPeople} showGender={preset === 'sport'} />
+        <ZaloFriendPicker mode="create" onPicked={handlePickedZaloFriends} />
 
         <details className={cn('fsl-create-trip__details group rounded-xl border border-border bg-card overflow-hidden')}>
           <summary

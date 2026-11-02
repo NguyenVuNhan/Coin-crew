@@ -874,6 +874,14 @@ export const en = {
   'feedback.thanks': 'Thanks — we read every message.',
   'feedback.error': "Couldn't send. Please try again.",
   'feedback.rateLimited': "You've sent a lot just now — try again later.",
+
+  'zaloFriends.button': 'Choose from Zalo friends',
+  'zaloFriends.matchTitle': 'Already in the group?',
+  'zaloFriends.linkTo': 'Is {friend} the same as {person}?',
+  'zaloFriends.link': 'Link to {person}',
+  'zaloFriends.addNew': 'Add as new',
+  'zaloFriends.alreadyIn': '{name} is already in this group',
+  'zaloFriends.failed': "Couldn't add {name}. Try again.",
 } as const;
 
 export type MessageKey = keyof typeof en;
