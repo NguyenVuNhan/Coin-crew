@@ -188,7 +188,7 @@ describe('Zalo profile relay app', () => {
 
   it('log spy: after a successful /me, log called once, and no logged line contains \'tok\' or the secret', async () => {
     const logSpy = vi.fn<(line: string) => void>();
-    const secret = 'super-secret-key-123';
+    const secret = 'test-secret';
     const token = 'my-zalo-token-456';
 
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
