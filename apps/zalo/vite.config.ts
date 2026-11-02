@@ -6,15 +6,16 @@ import tailwindcss from '@tailwindcss/vite';
 
 /**
  * Zalo's runtime does not read index.html: it loads the files listed in app-config.json. This writes
- * dist/app-config.json from ./app-config.json plus the built entry, chunks and CSS (what the official
- * zmp-vite-plugin does; that plugin only supports Vite 4-5).
+ * app-config.json from ./app-config.base.json plus the built entry, chunks and CSS (what the official
+ * zmp-vite-plugin does; that plugin only supports Vite 4-5) into dist/ and into the project root,
+ * because `zmp-cli deploy` reads the asset lists from the root file (it stays gitignored).
  */
 function zaloAppConfig(): Plugin {
   return {
     name: 'coincrew-zalo-app-config',
     apply: 'build',
     writeBundle(options, bundle) {
-      const base = JSON.parse(readFileSync(new URL('./app-config.json', import.meta.url), 'utf8')) as Record<string, unknown>;
+      const base = JSON.parse(readFileSync(new URL('./app-config.base.json', import.meta.url), 'utf8')) as Record<string, unknown>;
       const files = Object.values(bundle);
       const entries = files.filter((f) => f.type === 'chunk' && f.isEntry);
       const imported = new Set<string>();
@@ -35,7 +36,9 @@ function zaloAppConfig(): Plugin {
         listSyncJS: entries.map((f) => f.fileName),
         listAsyncJS: [...imported],
       };
-      writeFileSync(`${options.dir}/app-config.json`, JSON.stringify(config, null, 2));
+      const json = JSON.stringify(config, null, 2);
+      writeFileSync(`${options.dir}/app-config.json`, json);
+      writeFileSync(new URL('./app-config.json', import.meta.url), json);
     },
   };
 }
