@@ -123,4 +123,11 @@ describe('zmpBasename', () => {
     expect(zmpBasename('/zapps/1234567')).toBe('/zapps/1234567');
     expect(zmpBasename('/j/gtok-1')).toBe('');
   });
+
+  it('keeps the version segment of a testing build', () => {
+    expect(zmpBasename('/zapps/2974436365831148474/6/')).toBe('/zapps/2974436365831148474/6');
+    expect(zmpBasename('/zapps/2974436365831148474/6/j/gtok-1')).toBe('/zapps/2974436365831148474/6');
+    expect(zmpBasename('/zapps/2974436365831148474/6')).toBe('/zapps/2974436365831148474/6');
+    expect(zmpBasename('/zapps/2974436365831148474/j/gtok-1')).toBe('/zapps/2974436365831148474');
+  });
 });

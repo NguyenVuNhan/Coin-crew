@@ -130,8 +130,11 @@ export function createZaloPlatform(sdk: ZmpSdk, apiOrigin: string): PlatformBrid
   };
 }
 
-/** The path prefix Zalo serves the Mini App under (`/zapps/<appId>`), or '' when run locally. */
+/**
+ * The path prefix Zalo serves the Mini App under, or '' when run locally: `/zapps/<appId>` for the live version,
+ * `/zapps/<appId>/<version>` for a development or testing version (app routes never start with a number).
+ */
 export function zmpBasename(pathname: string): string {
-  const match = /^\/zapps\/[^/]+/.exec(pathname);
+  const match = /^\/zapps\/[^/]+(?:\/\d+(?=\/|$))?/.exec(pathname);
   return match ? match[0] : '';
 }
