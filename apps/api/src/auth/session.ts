@@ -20,12 +20,21 @@ export async function createSession(db: Db, userId: string): Promise<string> {
   return token;
 }
 
+export function readSessionToken(c: Context<AppBindings>): string | undefined {
+  const auth = c.req.header('Authorization');
+  const match = auth?.match(/^Bearer\s+(\S+)$/i);
+  if (match) {
+    return match[1];
+  }
+  return getCookie(c, 'sid');
+}
+
 export async function getSessionUser(c: Context<AppBindings>): Promise<UserRow | null> {
   const cached = c.get('user');
   if (cached !== undefined) {
     return cached;
   }
-  const sid = getCookie(c, 'sid');
+  const sid = readSessionToken(c);
   if (!sid) {
     c.set('user', null);
     return null;

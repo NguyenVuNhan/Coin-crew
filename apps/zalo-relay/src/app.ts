@@ -53,10 +53,17 @@ export function createApp(opts: CreateAppOptions): Hono {
       return c.json({ error: 'missing token' }, 400);
     }
 
+    // Mini App tokens come with appsecret_proof; nginx drops underscored headers, so it arrives as X-Zalo-Appsecret-Proof.
+    const upstreamHeaders: Record<string, string> = { access_token: token };
+    const proof = c.req.header('x-zalo-appsecret-proof');
+    if (proof) {
+      upstreamHeaders.appsecret_proof = proof;
+    }
+
     try {
       const upstreamRes = await fetchFn(`${UPSTREAM_URL}?fields=${fields}`, {
         method: 'GET',
-        headers: { access_token: token },
+        headers: upstreamHeaders,
         signal: AbortSignal.timeout(5000),
       });
 

@@ -1,5 +1,6 @@
 import { generateCodeVerifier } from 'arctic';
 import type { Env } from '../env';
+import { appSecretProof } from './zaloMini';
 
 export { zaloConfigured } from './me';
 
@@ -130,11 +131,14 @@ type RelayEnv = Pick<Env, 'ZALO_RELAY_URL' | 'ZALO_RELAY_SECRET'>;
 export async function fetchZaloProfile(
   accessToken: string,
   env?: RelayEnv,
+  opts?: { appSecret?: string },
 ): Promise<{ sub: string; name: string; avatarUrl: string | null; nameWithheld?: boolean }> {
+  // With an app secret, every Graph call carries appsecret_proof (the Mini App token is client-supplied).
+  const proof = opts?.appSecret ? await appSecretProof(opts.appSecret, accessToken) : undefined;
   let data: ZaloProfileResponse | undefined;
   if (env?.ZALO_RELAY_URL && env.ZALO_RELAY_SECRET) {
     try {
-      data = await requestViaRelay(env.ZALO_RELAY_URL, env.ZALO_RELAY_SECRET, accessToken);
+      data = await requestViaRelay(env.ZALO_RELAY_URL, env.ZALO_RELAY_SECRET, accessToken, proof);
     } catch (err) {
       if (!(err instanceof ZaloError)) throw err;
       console.warn(`Zalo relay failed, calling Zalo directly: ${err.message}`);
@@ -144,11 +148,11 @@ export async function fetchZaloProfile(
   let nameWithheld = false;
   if (!data) {
     try {
-      data = await requestZaloProfile(accessToken, 'id,name,picture');
+      data = await requestZaloProfile(accessToken, 'id,name,picture', proof);
     } catch (err) {
       if (!(err instanceof ZaloError)) throw err;
       try {
-        data = await requestZaloProfile(accessToken, 'id');
+        data = await requestZaloProfile(accessToken, 'id', proof);
       } catch (idErr) {
         if (!(idErr instanceof ZaloError)) throw idErr;
         throw new ZaloError(`${err.message}; with the id alone: ${idErr.message.replace(/^Zalo profile error: /, '')}`);
@@ -180,13 +184,18 @@ async function requestViaRelay(
   relayUrl: string,
   secret: string,
   accessToken: string,
+  proof?: string,
 ): Promise<ZaloProfileResponse> {
+  // The DSM reverse proxy (nginx) drops headers with underscores, so the token and the proof travel as X-Zalo-*.
+  const headers: Record<string, string> = { Authorization: `Bearer ${secret}`, 'X-Zalo-Access-Token': accessToken };
+  if (proof) {
+    headers['X-Zalo-Appsecret-Proof'] = proof;
+  }
   let res: Response;
   try {
-    // The DSM reverse proxy (nginx) drops headers with underscores, so the token travels as X-Zalo-Access-Token.
     res = await fetch(`${relayUrl.replace(/\/+$/, '')}/me?fields=id,name,picture`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${secret}`, 'X-Zalo-Access-Token': accessToken },
+      headers,
       signal: AbortSignal.timeout(3000),
     });
   } catch (err) {
@@ -195,14 +204,20 @@ async function requestViaRelay(
   return parseZaloProfile(res, 'Zalo relay');
 }
 
-async function requestZaloProfile(accessToken: string, fields: string): Promise<ZaloProfileResponse> {
+async function requestZaloProfile(
+  accessToken: string,
+  fields: string,
+  proof?: string,
+): Promise<ZaloProfileResponse> {
+  const headers: Record<string, string> = { access_token: accessToken };
+  if (proof) {
+    headers.appsecret_proof = proof;
+  }
   let res: Response;
   try {
     res = await fetch(`https://graph.zalo.me/v2.0/me?fields=${fields}`, {
       method: 'GET',
-      headers: {
-        access_token: accessToken,
-      },
+      headers,
       signal: AbortSignal.timeout(8000),
     });
   } catch (err) {

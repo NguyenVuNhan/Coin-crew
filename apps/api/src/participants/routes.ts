@@ -15,6 +15,7 @@ import {
   users,
 } from '../db/schema';
 import { getSessionUser } from '../auth/session';
+import { deviceZaloSub } from '../auth/zaloSlots';
 import type { ResolvedActor } from '../access/actor';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
@@ -43,6 +44,34 @@ async function parseOptionalJson<T>(c: Context): Promise<T | null> {
   }
 }
 
+/** A Zalo account id an admin ties a slot to: 1–64 characters. */
+function parseZaloSub(value: unknown): string {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 64) {
+    throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
+  return value;
+}
+
+/** Whoever holds a slot's zalo_sub becomes its member on sign-in, so only group admins set it. */
+function ensureMayTieZalo(actor: ResolvedActor): void {
+  if (actor.kind !== 'member' || !(Boolean(actor.isAdmin) || actor.isOrganiser)) {
+    throw new ApiError('FORBIDDEN', 403);
+  }
+}
+
+function isZaloSubConflict(err: unknown): boolean {
+  return isDbError(err, 'participants.zalo_sub') || isDbError(err, 'participants_trip_zalo_sub_unique');
+}
+
+async function zaloSubTaken(db: Db, tripId: string, zaloSub: string): Promise<boolean> {
+  const row = await db
+    .select({ id: participants.id })
+    .from(participants)
+    .where(and(eq(participants.tripId, tripId), eq(participants.zaloSub, zaloSub)))
+    .get();
+  return Boolean(row);
+}
+
 async function getActor(c: Context<AppBindings>, tripId: string): Promise<ResolvedActor> {
   const actor = await resolveActor(c, tripId);
   if (actor.kind === 'viewer') {
@@ -60,9 +89,15 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
   assertWritable(actor.trip);
   ensure(actor, 'add_person');
 
-  const body = input as { name?: unknown; confirmNew?: unknown; gender?: unknown } | null;
+  const body = input as { name?: unknown; confirmNew?: unknown; gender?: unknown; zaloSub?: unknown } | null;
   if (typeof body?.name !== 'string') {
     throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
+
+  let zaloSub: string | null = null;
+  if (body.zaloSub !== undefined) {
+    ensureMayTieZalo(actor);
+    zaloSub = parseZaloSub(body.zaloSub);
   }
 
   let gender: 'M' | 'F' | null = null;
@@ -76,6 +111,11 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
   const name = body.name.trim();
   if (name.length < 1 || name.length > 40) {
     throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
+
+  // Before the similar-name check. Any status counts: the unique index covers left people too.
+  if (zaloSub && (await zaloSubTaken(db, tripId, zaloSub))) {
+    throw new ApiError('CONFLICT', 409, 'This Zalo friend is already in this group.');
   }
 
   const existing = await db
@@ -129,6 +169,7 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
     normalizedName: normalizeName(name),
     gender,
     userId: null,
+    zaloSub,
     status,
     sortOrder,
     createdByDevice: actor.deviceHash,
@@ -156,13 +197,20 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
     queries.push(upsertDevice);
   }
 
-  await commitTripWrite(db, tripId, queries, {
-    action: 'name_added',
-    actorParticipantId: actor.participantId,
-    actorUserId: actor.userId,
-    actorDevice: actor.deviceHash,
-    details: { name },
-  });
+  try {
+    await commitTripWrite(db, tripId, queries, {
+      action: 'name_added',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: { name },
+    });
+  } catch (err) {
+    if (zaloSub && isZaloSubConflict(err)) {
+      throw new ApiError('CONFLICT', 409, 'This Zalo friend is already in this group.');
+    }
+    throw err;
+  }
 
   return participantId;
 }
@@ -216,6 +264,7 @@ export function participantRoutes(): Hono<AppBindings> {
         name: p.name,
         status: p.status as 'active' | 'pending',
         isMember: p.userId !== null,
+        zaloLinked: p.zaloSub !== null,
         lastUsedHere,
         activeElsewhere,
       };
@@ -314,6 +363,21 @@ export function participantRoutes(): Hono<AppBindings> {
       })
       .run();
 
+    // Tie the slot to this device's Zalo account, so the person is recognised on any Zalo device.
+    // Never overwrite; if another slot in the group already holds this Zalo account, leave it.
+    const zaloSub = await deviceZaloSub(db, actor.deviceHash);
+    if (zaloSub) {
+      try {
+        await db
+          .update(participants)
+          .set({ zaloSub })
+          .where(and(eq(participants.id, target.id), isNull(participants.zaloSub)))
+          .run();
+      } catch (err) {
+        if (!isDbError(err, 'UNIQUE constraint failed')) throw err;
+      }
+    }
+
     return c.body(null, 204);
   });
 
@@ -375,9 +439,16 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('FORBIDDEN', 403);
     }
 
-    const body = await parseJson<{ name?: unknown; gender?: unknown }>(c);
+    const body = await parseJson<{ name?: unknown; gender?: unknown; zaloSub?: unknown }>(c);
     if (!body || typeof body !== 'object') {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    let zaloSub: string | null = null;
+    if ('zaloSub' in body) {
+      // Checked before anything is written: only admins tie a person to a Zalo account.
+      ensureMayTieZalo(actor);
+      zaloSub = parseZaloSub(body.zaloSub);
     }
 
     const updates: { name?: string; normalizedName?: string; gender?: 'M' | 'F' | null } = {};
@@ -404,19 +475,54 @@ export function participantRoutes(): Hono<AppBindings> {
       updates.gender = body.gender;
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && zaloSub === null) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
     const db = getDb(c.env);
     const participant = await db
-      .select({ id: participants.id })
+      .select({ id: participants.id, userId: participants.userId, zaloSub: participants.zaloSub })
       .from(participants)
       .where(and(eq(participants.id, pid), eq(participants.tripId, tripId)))
       .get();
 
     if (!participant) {
       throw new ApiError('NOT_FOUND', 404, 'Participant not found');
+    }
+
+    if (zaloSub !== null) {
+      // Never overwrite a Zalo tie, and never tie someone who already has an account.
+      if (participant.zaloSub !== null || participant.userId !== null) {
+        throw new ApiError('CONFLICT', 409, 'This person is already linked.');
+      }
+      if (await zaloSubTaken(db, tripId, zaloSub)) {
+        throw new ApiError('CONFLICT', 409, 'This Zalo friend is already in this group.');
+      }
+
+      // The same conditions sit in the UPDATE, so a concurrent link or claim can't be overwritten.
+      let linked: { id: string }[];
+      try {
+        [linked] = await db.batch([
+          db
+            .update(participants)
+            .set({ ...updates, zaloSub })
+            .where(and(eq(participants.id, pid), isNull(participants.zaloSub), isNull(participants.userId)))
+            .returning({ id: participants.id }),
+          db
+            .update(trips)
+            .set({ version: sql`${trips.version} + 1` })
+            .where(eq(trips.id, tripId)),
+        ]);
+      } catch (err) {
+        if (isZaloSubConflict(err)) {
+          throw new ApiError('CONFLICT', 409, 'This Zalo friend is already in this group.');
+        }
+        throw err;
+      }
+      if (linked.length === 0) {
+        throw new ApiError('CONFLICT', 409, 'This person is already linked.');
+      }
+      return c.body(null, 204);
     }
 
     await db.batch([

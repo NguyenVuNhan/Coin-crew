@@ -157,6 +157,7 @@ export async function buildSnapshot(
       avatarUrl: p.userId !== null ? (userAvatarMap.get(p.userId) ?? null) : null,
       status: p.status as 'active' | 'pending' | 'left',
       isMember: p.userId !== null && p.status !== 'left',
+      zaloLinked: p.zaloSub !== null,
       isOrganiser,
       isAdmin,
       bank,
