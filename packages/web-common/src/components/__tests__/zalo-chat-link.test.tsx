@@ -53,6 +53,32 @@ describe('Zalo chat linking', () => {
     });
   });
 
+  it('after the chat redirect, the landing page redirects signed-in users again', async () => {
+    const { useChatRoutePending } = await import('../../platform/useChatRoute');
+    let pendingNow = true;
+    function PendingProbe() {
+      pendingNow = useChatRoutePending();
+      return null;
+    }
+    const fake = fakePlatform({
+      chatContext: async () => ({ type: 'group', id: 'chat-1' }),
+    });
+    mockApi({
+      'GET /api/me': {
+        user: { id: 'u-1', email: 'an@example.com', name: 'An', consentAt: '2026-10-12T00:00:00.000Z' },
+        signIn: { zalo: true },
+        mergeRequests: { incoming: [], outgoing: [] },
+      },
+      'GET /api/zalo/chats/chat-1': { linked: true, tripId: 't-1', tripName: 'Trip 1', joinToken: 'gtok-1', isMember: true },
+      'GET /api/trips/t-1': tripView(),
+    });
+
+    renderAt(<><App /><PendingProbe /></>, { platform: fake });
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+    await waitFor(() => expect(pendingNow).toBe(false));
+  });
+
   it('linked chat and not a member opens the join page', async () => {
     const fake = fakePlatform({
       chatContext: async () => ({ type: 'group', id: 'chat-1' }),

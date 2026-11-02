@@ -115,7 +115,7 @@ describe('ZaloFriendPicker', () => {
     });
     const { calls } = mockApi({
       'GET /api/trips/t-1': tripView(),
-      'POST /api/trips/t-1/people': async (init) => {
+      'POST /api/trips/t-1/people': async (init: RequestInit | undefined) => {
         const body = JSON.parse(String(init?.body));
         if (body.zaloSub === 'z-dung') {
           return Response.json(

@@ -42,7 +42,7 @@ export function ZaloFriendPicker(props: ZaloFriendPickerProps) {
 
   const is409 = (err: unknown): boolean =>
     (err instanceof ApiClientError && err.status === 409) ||
-    (Boolean(err) && typeof err === 'object' && 'status' in err && (err as { status: unknown }).status === 409);
+    (typeof err === 'object' && err !== null && 'status' in err && (err as { status: unknown }).status === 409);
 
   const handleClick = async () => {
     if (busy) return;
