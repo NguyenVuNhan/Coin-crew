@@ -43,11 +43,11 @@ describe('createZaloPlatform', () => {
     expect(await createZaloPlatform(fakeSdk({ openShareSheet: async () => { throw new Error('x'); } }), '').share(card)).toBe('failed');
   });
 
-  it('saves a PNG to the gallery as base64', async () => {
+  it('saves a PNG to the gallery as a base64 data URL (the format zmp-sdk documents)', async () => {
     const sdk = fakeSdk();
     const p = createZaloPlatform(sdk, '');
     expect(await p.saveImage(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }), 'qr.png')).toBe('saved');
-    expect(sdk.saveImageToGallery).toHaveBeenCalledWith({ imageBase64Data: 'AQID' });
+    expect(sdk.saveImageToGallery).toHaveBeenCalledWith({ imageBase64Data: 'data:image/png;base64,AQID' });
   });
 
   it('a refused gallery save failed', async () => {
