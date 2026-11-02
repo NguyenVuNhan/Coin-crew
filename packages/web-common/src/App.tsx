@@ -19,6 +19,8 @@ import { PayScreen } from './screens/PayScreen';
 import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
 import { AuthNotice } from './components/AuthNotice';
+import { useChatRoute } from './platform/useChatRoute';
+import { LinkChatSheet } from './components/LinkChatSheet';
 
 function TripsRoute() {
   const { search } = useLocation();
@@ -52,9 +54,12 @@ const tripPages = (
 );
 
 export function App() {
+  const { sheetChatId, closeSheet } = useChatRoute();
+
   return (
     <>
       <AuthNotice />
+      <LinkChatSheet chatId={sheetChatId} onClose={closeSheet} />
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/trips" element={<TripsRoute />} />

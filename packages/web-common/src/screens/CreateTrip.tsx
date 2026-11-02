@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import type { CreateTripInput, GroupPreset, Gender } from '@fsl/core';
 import { useT, useLang } from '../i18n';
@@ -23,6 +23,8 @@ export function CreateTrip() {
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const zaloChat = searchParams.get('zaloChat');
 
   const meQuery = useMe();
 
@@ -55,7 +57,14 @@ export function CreateTrip() {
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
       apiSend<{ tripId: string }>('/api/trips', 'POST', input),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      if (zaloChat) {
+        try {
+          await apiSend('/api/zalo/chats/' + encodeURIComponent(zaloChat) + '/link', 'POST', { tripId: data.tripId });
+        } catch {
+          // failure is ignored; the group still opens
+        }
+      }
       navigate(`/t/${data.tripId}`, { replace: true });
     },
     onError: (err) => {
