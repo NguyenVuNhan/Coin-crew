@@ -46,7 +46,9 @@ export const vi: Record<MessageKey, string> = {
   'pay.bankPending': 'Thông tin ngân hàng của {name} đang chờ duyệt', // REVIEW
   'pay.bankNone': '{name} chưa thêm thông tin ngân hàng', // REVIEW
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
-  'pay.saveQr': 'Lưu mã QR', // REVIEW
+  'pay.openApp': 'Mở {app}', // REVIEW
+  'pay.switchBank': 'Đổi ngân hàng', // REVIEW
+  'pay.downloadQr': 'Tải mã QR', // REVIEW
   'pay.pickBank': 'Chọn ngân hàng của bạn', // REVIEW
   'pay.searchBank': 'Tìm: vcb, techcom, Á Châu…', // REVIEW
   'pay.recentBank': 'Dùng gần đây', // REVIEW
@@ -611,9 +613,6 @@ export const vi: Record<MessageKey, string> = {
   'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
   'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
   'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
-  'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
-  'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
-  'pay.zaloBankHint': 'Ứng dụng ngân hàng không mở? Lưu mã QR, rồi trong app ngân hàng chọn Quét QR → chọn ảnh. Hoặc nhấn ⋯ → Mở bằng trình duyệt.', // REVIEW
   'pay.remindThem': 'Nhắc {name}', // REVIEW
   'pay.share': 'Chia sẻ', // REVIEW
   'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
@@ -633,7 +632,6 @@ export const vi: Record<MessageKey, string> = {
   'pay.notOpened': 'Chưa mở được?', // REVIEW
   'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
   'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
-  'pay.bankFallback': 'Mở app ngân hàng → Quét QR → chọn ảnh từ thư viện', // REVIEW
 
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW

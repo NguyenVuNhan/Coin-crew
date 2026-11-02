@@ -111,12 +111,6 @@ function download(blob: Blob, refCode: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Downloads the QR as a PNG named after the transfer note. Does nothing where the picture cannot be made. */
-export async function saveQr(svg: string, refCode: string): Promise<void> {
-  const blob = await qrPngBlob(svg);
-  if (blob) download(blob, refCode);
-}
-
 /**
  * Shares the QR picture with a message through the share sheet. Without file sharing it saves the picture and copies
  * the message instead ('saved'); 'failed' when neither worked. Closing the share sheet counts as 'shared'.

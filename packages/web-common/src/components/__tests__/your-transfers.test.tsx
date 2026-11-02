@@ -131,7 +131,7 @@ describe('Your transfers: the QR in place', () => {
     expect(screen.getByText('Techcombank · NGUYEN VAN MINH')).toBeInTheDocument();
     expect(screen.getByText('DALAT C7K2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save QR' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download QR' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open bank app' })).toBeNull();
 
     // Share sends the picture with the usual reminder text for that person.
@@ -165,17 +165,17 @@ describe('Your transfers: the QR in place', () => {
     await screen.findByRole('img', { name: /VietQR code/ });
     expect(fetched(fetchMock)).toContain(PAY_TO_MINH);
     expect(screen.getByText('Techcombank · NGUYEN VAN MINH')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save QR' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download QR' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Share' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Open bank app' }));
-    expect(await screen.findByRole('dialog', { name: 'Choose your bank app' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Choose your bank' })).toBeInTheDocument();
     phone.unmount();
 
     mockMedia({ coarse: false });
     renderAt(<YourTransfers view={chi()} />);
     await userEvent.click(row(/^You → Minh/));
     await screen.findByRole('img', { name: /VietQR code/ });
-    expect(screen.getByRole('button', { name: 'Save QR' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download QR' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open bank app' })).toBeNull();
   });
 

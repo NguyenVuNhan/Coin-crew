@@ -1,14 +1,18 @@
 import { useState, type JSX } from 'react';
-import { formatVnd, type PayInfo } from '@fsl/core';
+import { ArrowLeftRight, Download } from 'lucide-react';
+import { formatVnd, type BankApp, type PayInfo } from '@fsl/core';
 import { useT } from '../i18n';
-import { qrPngBlob, qrSrc, saveQr, shareQr, useQrSvg } from '../lib/qr';
+import { qrPngBlob, qrSrc, shareQr, useQrSvg } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useIsCoarsePointer } from '../lib/media';
+import { bankAppLogo, deviceBankApps, useRememberedBankApp } from '../lib/bankApps';
 import { usePlatform } from '../platform';
+import { isIosDevice } from '../platform/browser';
 import { Skeleton } from './Skeleton';
 import { Amount } from './Amount';
 import { Button } from './Button';
-import { BankAppSheet } from './BankAppSheet';
+import { BankPickerSheet } from './BankPickerSheet';
+import { BankHandoffSheet } from './BankHandoffSheet';
 import { useImageSheet } from './SaveImageSheet';
 
 export type PayQrProps = {
@@ -27,7 +31,9 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
   const platform = usePlatform();
   const svg = useQrSvg(info.payload);
   const coarse = useIsCoarsePointer();
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const { app: bankApp, remember } = useRememberedBankApp();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [handoffApp, setHandoffApp] = useState<BankApp | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<'saved' | 'failed' | 'gallery' | null>(null);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
@@ -36,33 +42,44 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
     return null;
   }
 
-  async function saveToGallery() {
+  const fileName = `vietqr-${(info.refCode || 'qr').replace(/\s+/g, '-')}.png`;
+  const makePng = () => qrPngBlob(svg);
+  const showBankButton = props.variant === 'pay' && coarse;
+
+  /** iPhone without file sharing: offer the long-press picture instead. */
+  function saveFailed() {
+    if (platform.kind === 'web' && isIosDevice()) {
+      showImage(makePng);
+    }
+  }
+
+  async function download() {
+    setBusy(true);
     try {
-      const blob = await qrPngBlob(svg);
-      if (!blob) {
+      const blob = await makePng();
+      const r = blob ? await platform.saveImage(blob, fileName) : 'failed';
+      if (r === 'saved') {
+        setStatus('gallery');
+      } else if (r === 'failed') {
         setStatus('failed');
-        return;
+        saveFailed();
+      } else {
+        setStatus(null);
       }
-      const fileName = `vietqr-${(info.refCode || 'qr').replace(/\s+/g, '-')}.png`;
-      const r = await platform.saveImage(blob, fileName);
-      setStatus(r === 'saved' ? 'gallery' : 'failed');
     } catch {
       setStatus('failed');
+    } finally {
+      setBusy(false);
     }
   }
 
   async function share(text: string) {
     if (platform.kind === 'zmp') {
-      setBusy(true);
-      try {
-        await saveToGallery();
-      } finally {
-        setBusy(false);
-      }
+      await download();
       return;
     }
     if (isZaloWebView()) {
-      showImage(() => qrPngBlob(svg), text);
+      showImage(makePng, text);
       return;
     }
     setBusy(true);
@@ -73,6 +90,14 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
       setBusy(false);
     }
   }
+
+  function pick(app: BankApp) {
+    remember(app);
+    setPickerOpen(false);
+    setHandoffApp(app);
+  }
+
+  const bankLogo = bankApp ? bankAppLogo(bankApp.appId) : undefined;
 
   return (
     <div className="fsl-pay-qr mx-auto flex w-full max-w-[360px] flex-col items-center gap-3 py-2">
@@ -99,42 +124,73 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
           </div>
         </>
       )}
-      <div className="fsl-pay-qr__actions flex w-full gap-2">
+      <div className={`fsl-pay-qr__actions flex w-full gap-2 ${showBankButton ? 'flex-col' : ''}`}>
         {props.variant === 'receive' && (
-          <Button variant="primary" block disabled={!svg} loading={busy} onClick={() => void share(props.shareText)}>
+          <Button variant="primary" block className="flex-1 min-w-0" disabled={!svg} loading={busy} onClick={() => void share(props.shareText)}>
             {t('pay.share')}
           </Button>
         )}
-        {props.variant === 'pay' && coarse && (
-          <Button variant="primary" block disabled={!svg} onClick={() => setSheetOpen(true)}>
-            {t('pay.openBankApp')}
-          </Button>
+        {showBankButton && (
+          <div className="fsl-bank-open flex w-full gap-2">
+            {bankApp ? (
+              <>
+                <Button variant="primary" block className="flex-1 min-w-0" disabled={!svg} onClick={() => setHandoffApp(bankApp)}>
+                  {bankLogo && <img alt="" src={bankLogo} className="size-6 rounded-md" />}
+                  <span className="truncate">{t('pay.openApp', { app: bankApp.appName })}</span>
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="fsl-bank-switch size-11 shrink-0 p-0"
+                  aria-label={t('pay.switchBank')}
+                  title={t('pay.switchBank')}
+                  onClick={() => setPickerOpen(true)}
+                >
+                  <ArrowLeftRight className="size-5" aria-hidden="true" />
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" block disabled={!svg} onClick={() => setPickerOpen(true)}>
+                {t('pay.openBankApp')}
+              </Button>
+            )}
+          </div>
         )}
-        {/* A lone Save (the web pays by scanning the QR) is the primary action. */}
+        {/* A lone Download (the web pays by scanning the QR) is the primary action. */}
         <Button
           variant={props.variant === 'pay' && !coarse ? 'primary' : 'secondary'}
           block
+          className="flex-1 min-w-0"
           disabled={!svg}
-          onClick={() => {
-            if (platform.kind === 'zmp') {
-              void saveToGallery();
-              return;
-            }
-            if (isZaloWebView()) {
-              showImage(() => qrPngBlob(svg));
-              return;
-            }
-            void saveQr(svg, info.refCode);
-          }}
+          loading={props.variant === 'pay' && busy}
+          onClick={() => void download()}
         >
-          {t('pay.saveQr')}
+          <Download className="size-5" aria-hidden="true" />
+          <span className="truncate">{t('pay.downloadQr')}</span>
         </Button>
       </div>
       <p className="fsl-pay-qr__status m-0 text-center text-sm leading-snug text-muted-foreground empty:hidden" aria-live="polite">
         {status === 'saved' ? t('pay.shareSaved') : status === 'gallery' ? t('pay.savedToGallery') : status === 'failed' ? t('pay.shareFailed') : null}
       </p>
       {imageSheet}
-      {props.variant === 'pay' && coarse && <BankAppSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />}
+      {showBankButton && (
+        <BankPickerSheet
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          apps={deviceBankApps()}
+          recent={bankApp}
+          onPick={pick}
+        />
+      )}
+      {showBankButton && handoffApp && (
+        <BankHandoffSheet
+          open={handoffApp !== null}
+          onClose={() => setHandoffApp(null)}
+          app={handoffApp}
+          makePng={makePng}
+          fileName={fileName}
+          onSaveFailed={saveFailed}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { qrSrc, saveQr, shareQr, useQrSvg } from '../qr';
+import { qrSrc, shareQr, useQrSvg } from '../qr';
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><path d="M0 0h1v1H0z"/></svg>';
 
@@ -43,22 +43,6 @@ describe('qrSrc', () => {
   it('turns the SVG into an image source, and nothing into nothing', () => {
     expect(qrSrc(SVG)).toBe('data:image/svg+xml;utf8,' + encodeURIComponent(SVG));
     expect(qrSrc('')).toBe('');
-  });
-});
-
-describe('saveQr', () => {
-  it('downloads a PNG named after the transfer note', async () => {
-    stubCanvas();
-    const downloads = captureDownloads();
-    await saveQr(SVG, 'DALAT C7K2');
-    expect(downloads).toEqual(['vietqr-DALAT-C7K2.png']);
-  });
-
-  it('does nothing where the picture cannot be drawn', async () => {
-    stubCanvas(false);
-    const downloads = captureDownloads();
-    await saveQr(SVG, 'DALAT C7K2');
-    expect(downloads).toEqual([]);
   });
 });
 

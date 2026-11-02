@@ -46,7 +46,9 @@ export const en = {
   'pay.bankPending': "{name}'s bank details are waiting for approval", // SPEC
   'pay.bankNone': "{name} hasn't added bank details yet", // SPEC
   'pay.openBankApp': 'Open bank app', // SPEC 2026-10-14
-  'pay.saveQr': 'Save QR', // SPEC
+  'pay.openApp': 'Open {app}', // SPEC
+  'pay.switchBank': 'Change bank', // SPEC
+  'pay.downloadQr': 'Download QR', // SPEC
   'pay.pickBank': 'Choose your bank', // SPEC
   'pay.searchBank': 'Search: vcb, techcom, Á Châu…', // SPEC
   'pay.recentBank': 'Recently used', // SPEC
@@ -611,9 +613,6 @@ export const en = {
   'pay.tapToCheck': 'Tap to check again',
   'pay.waitingConfirm': 'Waiting for {name} to confirm',
   'pay.nothingOwed': "You don't owe {name} anything right now.",
-  'pay.chooseApp': 'Choose your bank app',
-  'pay.fillsIn': 'fills in the payment',
-  'pay.zaloBankHint': "Bank app didn't open? Save the QR, then in your bank app choose Scan QR → pick the picture. Or tap ⋯ → Open in browser.",
   'pay.remindThem': 'Remind {name}',
   'pay.share': 'Share',
   'pay.shareSaved': 'QR saved and message copied.',
@@ -633,7 +632,6 @@ export const en = {
   'pay.notOpened': "Didn't open?", // SPEC
   'pay.zaloAsks': 'Zalo will ask: choose "Continue"', // SPEC
   'pay.handoffTip': 'In {app}: Scan QR → upload picture → pick the saved QR.', // SPEC
-  'pay.bankFallback': 'Open your bank app → Scan QR → pick the image from your photos',
 
   'bankForm.title': 'Your bank details',
   'bankForm.guestNote': 'A member approves new bank details before anyone can pay you.',

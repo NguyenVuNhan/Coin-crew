@@ -383,13 +383,13 @@ describe('PayScreen', () => {
     const mouse = renderAt(<PayScreen />, payRoute);
     await screen.findByText('DALAT C7K2');
     expect(screen.queryByRole('button', { name: 'Open bank app' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save QR' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download QR' })).toBeInTheDocument();
     mouse.unmount();
 
     mockMedia({ coarse: true });
     renderAt(<PayScreen />, payRoute);
     expect(await screen.findByRole('button', { name: 'Open bank app' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save QR' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download QR' })).toBeInTheDocument();
     expect(screen.queryByText("Scan the QR with your phone's banking app.")).not.toBeInTheDocument();
   });
 
@@ -416,12 +416,16 @@ describe('PayScreen', () => {
     expect(document.querySelector('.fsl-bottom-bar')).toBeNull();
   });
 
-  it('lists bank apps that open with the VietQR deeplink', async () => {
+  it('Open bank app opens a searchable bank picker', async () => {
     mockMedia({ coarse: true });
     api(payInfo());
     renderAt(<PayScreen />, payRoute);
     await userEvent.click(await screen.findByRole('button', { name: 'Open bank app' }));
-    expect(await screen.findByRole('link', { name: /Vietcombank/ })).toHaveAttribute('href', 'https://dl.vietqr.io/pay?app=vcb');
+    const picker = await screen.findByRole('dialog', { name: 'Choose your bank' });
+    await userEvent.type(within(picker).getByRole('searchbox'), 'vcb');
+    const rows = picker.querySelectorAll('.fsl-bank-row');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0]!.textContent).toContain('Vietcombank');
   });
 
   it('stops checking after 10 minutes and offers to check again', async () => {
