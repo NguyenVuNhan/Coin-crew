@@ -1,5 +1,9 @@
 import type { AuthProvider } from '@fsl/core';
 import { cn } from '@/lib/utils';
+// Imported (not served from a public/ folder) so each app's build bundles them and resolves the URL
+// against its own `base`: the Zalo Mini App is served from a /<version>/ path where `/brand/…` 404s.
+import googleIcon from '@/assets/brand/google-signin-icon.png';
+import zaloIcon from '@/assets/brand/zalo-app-icon.png';
 
 // Official artwork, used verbatim (PNG, not redrawn):
 // - Google: pre-approved icon-only "Theme=Light, Show text=No, Shape=Square" button @4x, from
@@ -8,8 +12,8 @@ import { cn } from '@/lib/utils';
 // - Zalo: App Store icon, app id 579523206 (VNG ONLINE CO.,LTD), from Apple's lookup API
 //   https://itunes.apple.com/lookup?id=579523206 (Zalo publishes no official SVG of its app icon).
 const SRC: Record<AuthProvider, string> = {
-  google: '/brand/google-signin-icon.png',
-  zalo: '/brand/zalo-app-icon.png',
+  google: googleIcon,
+  zalo: zaloIcon,
 };
 
 export function providerName(provider: AuthProvider): 'Google' | 'Zalo' {
