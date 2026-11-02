@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
-    "deploy": "npx zmp-cli@4 deploy --existing --dir dist",
+    "deploy": "npx zmp-cli@4 deploy --existing --outputDir dist",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "deploy:testing": "npx zmp-cli@4 deploy --existing --testing --dir dist"
+    "deploy:testing": "npx zmp-cli@4 deploy --existing --testing --outputDir dist"
   },
   "dependencies": {
     "@fsl/web-common": "*",
