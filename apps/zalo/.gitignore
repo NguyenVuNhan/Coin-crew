@@ -2,3 +2,4 @@ dist
 .env
 .env.local
 app-config.json
+.env.production
