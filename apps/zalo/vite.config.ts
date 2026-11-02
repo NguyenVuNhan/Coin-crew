@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -43,12 +44,22 @@ function zaloAppConfig(): Plugin {
   };
 }
 
+/** Short git sha of the build, sent with feedback so reports can be matched to a deploy. */
+function appVersion(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'dev';
+  } catch {
+    return 'dev';
+  }
+}
+
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), 'VITE_');
   if (command === 'build' && !env.VITE_API_ORIGIN) {
     throw new Error('Set VITE_API_ORIGIN (the Worker origin, e.g. https://coin-crew.<subdomain>.workers.dev) to build the Mini App.');
   }
   return {
+    define: { __APP_VERSION__: JSON.stringify(appVersion()) },
     // shadcn files in @fsl/web-common import `@/…`, which points into that package.
     resolve: { alias: { '@': fileURLToPath(new URL('../../packages/web-common/src', import.meta.url)) } },
     plugins: [react(), tailwindcss(), zaloAppConfig()],

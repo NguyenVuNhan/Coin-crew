@@ -213,7 +213,7 @@ export function authRoutes(): Hono<AppBindings> {
     let profile: Awaited<ReturnType<typeof fetchZaloProfile>>;
     try {
       const accessToken = await exchangeZaloCode(c.env, code, oauthVerifier);
-      profile = await fetchZaloProfile(accessToken);
+      profile = await fetchZaloProfile(accessToken, c.env);
     } catch (e) {
       if (e instanceof ZaloError) {
         return failure(e.message);

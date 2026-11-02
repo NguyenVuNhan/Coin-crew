@@ -10,6 +10,7 @@ import { useMyActivity } from '../api/myActivity';
 import { activityLine, groupByDay, timeOf } from '../lib/activityText';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
+import { FeedbackButton } from '../components/FeedbackButton';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { EmptyState } from '../components/EmptyState';
@@ -37,7 +38,12 @@ export function MyActivity(): JSX.Element {
   return (
     <Screen
       title={t('nav.activity')}
-      right={<AccountMenu />}
+      right={
+        <>
+          {user && <FeedbackButton signedIn />}
+          <AccountMenu />
+        </>
+      }
       nav={user ? { section: 'activity', addHref } : undefined}
       className="fsl-my-activity"
     >

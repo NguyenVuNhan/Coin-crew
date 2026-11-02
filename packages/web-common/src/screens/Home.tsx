@@ -10,6 +10,7 @@ import { homeDetailsFrom, ledgerDetailsPath, useOpenDetails, type HomeDetailKind
 import { useBack, useEntryState, useNavEntry } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
+import { FeedbackButton } from '../components/FeedbackButton';
 import { ConsentSheet } from '../components/ConsentSheet';
 import { Avatar } from '../components/Avatar';
 import { Amount } from '../components/Amount';
@@ -246,7 +247,14 @@ export function Home(): JSX.Element {
   return (
     <Screen
       title={t('home.title')}
-      right={user ? <AccountMenu user={user} /> : undefined}
+      right={
+        user ? (
+          <>
+            <FeedbackButton signedIn />
+            <AccountMenu user={user} />
+          </>
+        ) : undefined
+      }
       wide
       nav={navProps}
     >

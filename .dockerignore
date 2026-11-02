@@ -1,0 +1,13 @@
+# Only what the Zalo relay image needs; see apps/zalo-relay/Dockerfile.
+**/node_modules
+**/dist
+**/.wrangler
+**/.dev.vars
+**/.env
+.git
+.claude
+.superpowers
+.worktrees
+.agents
+playwright-report
+test-results

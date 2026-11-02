@@ -88,7 +88,7 @@ export function zaloMiniRoutes(): Hono<AppBindings> {
 
     let profile: Awaited<ReturnType<typeof fetchZaloProfile>>;
     try {
-      profile = await fetchZaloProfile(body.accessToken, { appSecret });
+      profile = await fetchZaloProfile(body.accessToken, c.env, { appSecret });
     } catch (e) {
       if (e instanceof ZaloError) {
         console.warn(`Zalo mini sign-in failed: ${e.message}`);

@@ -120,31 +120,46 @@ interface ZaloProfileResponse {
   message?: string;
 }
 
+type RelayEnv = Pick<Env, 'ZALO_RELAY_URL' | 'ZALO_RELAY_SECRET'>;
+
 /**
  * The user's Zalo id, name and avatar. Zalo withholds personal information from callers outside Vietnam (the prod
- * Worker calls from a Cloudflare IP), so when the full profile is refused, ask for the id alone: sign-in only needs
- * the id, and the name falls back to "Zalo".
+ * Worker calls from a Cloudflare IP). When ZALO_RELAY_URL and ZALO_RELAY_SECRET are set, ask the relay on the home
+ * DSM (a Vietnamese IP) first; if that fails, or no relay is set up, call Zalo directly, and when the full profile is
+ * refused there, ask for the id alone: sign-in only needs the id, and the name falls back to "Zalo".
  */
 export async function fetchZaloProfile(
   accessToken: string,
+  env?: RelayEnv,
   opts?: { appSecret?: string },
 ): Promise<{ sub: string; name: string; avatarUrl: string | null; nameWithheld?: boolean }> {
   // With an app secret, every Graph call carries appsecret_proof (the Mini App token is client-supplied).
   const proof = opts?.appSecret ? await appSecretProof(opts.appSecret, accessToken) : undefined;
-  let data: ZaloProfileResponse;
-  let nameWithheld = false;
-  try {
-    data = await requestZaloProfile(accessToken, 'id,name,picture', proof);
-  } catch (err) {
-    if (!(err instanceof ZaloError)) throw err;
+  let data: ZaloProfileResponse | undefined;
+  if (env?.ZALO_RELAY_URL && env.ZALO_RELAY_SECRET) {
     try {
-      data = await requestZaloProfile(accessToken, 'id', proof);
-    } catch (idErr) {
-      if (!(idErr instanceof ZaloError)) throw idErr;
-      throw new ZaloError(`${err.message}; with the id alone: ${idErr.message.replace(/^Zalo profile error: /, '')}`);
+      data = await requestViaRelay(env.ZALO_RELAY_URL, env.ZALO_RELAY_SECRET, accessToken, proof);
+    } catch (err) {
+      if (!(err instanceof ZaloError)) throw err;
+      console.warn(`Zalo relay failed, calling Zalo directly: ${err.message}`);
     }
-    nameWithheld = true;
-    console.warn(`Zalo profile without name and avatar: ${err.message}`);
+  }
+
+  let nameWithheld = false;
+  if (!data) {
+    try {
+      data = await requestZaloProfile(accessToken, 'id,name,picture', proof);
+    } catch (err) {
+      if (!(err instanceof ZaloError)) throw err;
+      try {
+        data = await requestZaloProfile(accessToken, 'id', proof);
+      } catch (idErr) {
+        if (!(idErr instanceof ZaloError)) throw idErr;
+        throw new ZaloError(`${err.message}; with the id alone: ${idErr.message.replace(/^Zalo profile error: /, '')}`);
+      }
+      nameWithheld = true;
+      console.warn(`Zalo profile without name and avatar: ${err.message}`);
+    }
   }
 
   // A JSON number would lose precision for ~19-digit ids; only accept strings.
@@ -154,6 +169,7 @@ export async function fetchZaloProfile(
 
   const sub = data.id;
   const rawName = typeof data.name === 'string' ? data.name.trim() : '';
+  if (rawName.length === 0) nameWithheld = true;
   const name = rawName.length > 0 ? rawName : 'Zalo';
   const rawAvatarUrl = data.picture?.data?.url;
   const avatarUrl =
@@ -162,6 +178,30 @@ export async function fetchZaloProfile(
       : null;
 
   return nameWithheld ? { sub, name, avatarUrl, nameWithheld } : { sub, name, avatarUrl };
+}
+
+async function requestViaRelay(
+  relayUrl: string,
+  secret: string,
+  accessToken: string,
+  proof?: string,
+): Promise<ZaloProfileResponse> {
+  // The DSM reverse proxy (nginx) drops headers with underscores, so the token and the proof travel as X-Zalo-*.
+  const headers: Record<string, string> = { Authorization: `Bearer ${secret}`, 'X-Zalo-Access-Token': accessToken };
+  if (proof) {
+    headers['X-Zalo-Appsecret-Proof'] = proof;
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${relayUrl.replace(/\/+$/, '')}/me?fields=id,name,picture`, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch (err) {
+    throw new ZaloError(`Zalo relay unreachable: ${(err as Error).message}`, { cause: err });
+  }
+  return parseZaloProfile(res, 'Zalo relay');
 }
 
 async function requestZaloProfile(
@@ -188,27 +228,30 @@ async function requestZaloProfile(
       cause: err,
     });
   }
+  return parseZaloProfile(res, 'Zalo profile');
+}
 
+async function parseZaloProfile(res: Response, source: string): Promise<ZaloProfileResponse> {
   if (!res.ok) {
-    throw new ZaloError(`Zalo profile request failed with status ${res.status}`);
+    throw new ZaloError(`${source} request failed with status ${res.status}`);
   }
 
   let data: ZaloProfileResponse;
   try {
     data = (await res.json()) as ZaloProfileResponse;
   } catch (err) {
-    throw new ZaloError('Zalo profile response is not valid JSON', {
+    throw new ZaloError(`${source} response is not valid JSON`, {
       cause: err,
     });
   }
 
   if (!data || typeof data !== 'object') {
-    throw new ZaloError('Zalo profile response is not an object');
+    throw new ZaloError(`${source} response is not an object`);
   }
 
   if (data.error != null && data.error !== 0 && data.error !== '0') {
     const message = data.message ?? data.error_name ?? String(data.error);
-    throw new ZaloError(`Zalo profile error: ${message}`);
+    throw new ZaloError(`${source} error: ${message}`);
   }
 
   return data;

@@ -852,5 +852,19 @@ export const vi: Record<MessageKey, string> = {
   'nav.activity': 'Hoạt động', // REVIEW
   'nav.add': 'Thêm giao dịch', // REVIEW
   'nav.label': 'Menu chính', // REVIEW
+
+  'feedback.menu': 'Gửi góp ý', // REVIEW
+  'feedback.title': 'Gửi góp ý', // REVIEW
+  'feedback.hint': 'Ẩn danh — chúng mình không biết bạn là ai.', // REVIEW
+  'feedback.bug': 'Lỗi', // REVIEW
+  'feedback.idea': 'Ý tưởng', // REVIEW
+  'feedback.other': 'Khác', // REVIEW
+  'feedback.placeholder': 'Có gì chưa ổn, hay điều gì giúp CoinCrew tốt hơn?', // REVIEW
+  'feedback.contactMe': 'Có thể liên hệ mình về việc này (chia sẻ tên của bạn)', // REVIEW
+  'feedback.contactField': 'Tên hoặc Zalo của bạn', // REVIEW
+  'feedback.send': 'Gửi', // REVIEW
+  'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.', // REVIEW
+  'feedback.error': 'Chưa gửi được. Vui lòng thử lại.', // REVIEW
+  'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.', // REVIEW
 };
 

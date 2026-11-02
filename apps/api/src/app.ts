@@ -26,6 +26,7 @@ import { requestRoutes } from './requests/routes';
 import { proposalRoutes } from './proposals/routes';
 import { zaloChatRoutes } from './zalo/chatRoutes';
 import { pageRoutes } from './og/routes';
+import { feedbackRoutes } from './feedback/routes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -59,6 +60,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', requestRoutes());
   app.route('/api', proposalRoutes());
   app.route('/api', zaloChatRoutes());
+  app.route('/api', feedbackRoutes());
   app.route('/', pageRoutes());
 
   return app;
