@@ -516,6 +516,7 @@ export const vi: Record<MessageKey, string> = {
   'people.mergeInto': 'Hợp nhất {name} vào…', // REVIEW
   'people.mergeConfirm': 'Chuyển toàn bộ khoản chi và thanh toán từ {from} sang {into}?', // REVIEW
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
+  'people.inviteZalo': 'Mời bạn bè Zalo', // REVIEW
   'people.remove': 'Xóa', // REVIEW
   'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
   'people.removeConfirm': 'Xóa {name} khỏi nhóm? Các khoản chi và thanh toán trước đây vẫn được giữ.', // REVIEW

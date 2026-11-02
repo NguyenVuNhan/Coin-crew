@@ -290,6 +290,8 @@ Nothing in Tasks 13–14 is built until this passes. Done by the owner with the 
 
 ### Task 13: Group chat → group
 
+> **Moved to the next epic (2026-11-02).** Built, then reverted before release; see the spec's "Moved to the next epic".
+
 **Files:**
 - Create: `packages/web-common/src/components/LinkChatSheet.tsx`, `packages/web-common/src/platform/useChatRoute.ts`
 - Modify: `packages/web-common/src/AppRoot.tsx` (mount `useChatRoute`), `screens/Settings.tsx` (linked-chats list + unlink for admins, hint from Task 9), `i18n/en.ts`, `i18n/vi.ts`
@@ -304,6 +306,8 @@ Nothing in Tasks 13–14 is built until this passes. Done by the owner with the 
 - [ ] **Step 5: Commit** `feat(web): open the group linked to a Zalo chat`.
 
 ### Task 14: Add members from Zalo friends
+
+> **Moved to the next epic (2026-11-02).** Built, then reverted before release; see the spec's "Moved to the next epic".
 
 **Files:**
 - Create: `packages/web-common/src/components/ZaloFriendPicker.tsx`

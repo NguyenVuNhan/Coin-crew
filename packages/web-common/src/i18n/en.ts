@@ -516,6 +516,7 @@ export const en = {
   'people.mergeInto': 'Merge {name} into…',
   'people.mergeConfirm': 'Move every expense and payment from {from} to {into}?',
   'people.mergeExplain': 'Merge moves every expense and payment from one name to another, for duplicates that slipped through.',
+  'people.inviteZalo': 'Invite Zalo friends',
   'people.remove': 'Remove',
   'people.useMerge': 'Use merge instead',
   'people.removeConfirm': 'Remove {name} from the group? Their past expenses and payments stay.',

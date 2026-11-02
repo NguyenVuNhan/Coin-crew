@@ -24,10 +24,14 @@ import {
   InputGroupInput,
 } from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
+import { usePlatform } from '../platform';
+import { inviteCard } from '../lib/shareCards';
+import { Icon } from '../components/icons';
 
 export function People() {
   const { tripId, href } = useTrip();
   const t = useT();
+  const platform = usePlatform();
   const navigate = useNavigate();
   const leftHeadingId = useId();
 
@@ -328,6 +332,18 @@ export function People() {
               {t('create.addPerson')}
             </Button>
           </form>
+        )}
+        {platform.kind === 'zmp' && !view.trip.archived && view.links !== null && (
+          // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
+          <Button
+            variant="secondary"
+            block
+            className={cn('fsl-people__invite-zalo mt-2')}
+            onClick={() => void platform.share(inviteCard(view, platform.apiBase))}
+          >
+            <Icon name="share" size={18} />
+            {t('people.inviteZalo')}
+          </Button>
         )}
         {actingId === 'new-person' && Boolean(error) && (
           <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">
