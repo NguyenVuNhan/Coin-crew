@@ -73,7 +73,7 @@ export function createZaloPlatform(sdk: ZmpSdk, apiOrigin: string): PlatformBrid
         return 'failed';
       }
     },
-    async saveImage(png: Blob) {
+    async saveImage(png: Blob): Promise<'saved' | 'cancelled' | 'failed'> {
       try {
         // Native SAVE_IMAGE_GALLERY wants a full data URL, not bare base64 (see the zmp-sdk docs example).
         const type = png.type || 'image/png';
