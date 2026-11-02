@@ -39,6 +39,7 @@ import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { Icon } from '../components/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { cn } from '@/lib/utils';
 
@@ -1176,7 +1177,11 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                           {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
 
                           {isAdminOrOrganiser ? (
-                            <div className={cn('fsl-gender-popover-anchor relative inline-flex')}>
+                            <Popover
+                              open={genderPopoverId === person.id}
+                              onOpenChange={(open) => setGenderPopoverId(open ? person.id : null)}
+                            >
+                              <PopoverTrigger asChild>
                               <button
                                 type="button"
                                 className={cn(
@@ -1184,14 +1189,16 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                                 )}
                                 data-testid={`gender-badge-${person.id}`}
                                 aria-label={t('sport.editGender')}
-                                onClick={() =>
-                                  setGenderPopoverId(genderPopoverId === person.id ? null : person.id)
-                                }
                               >
                                 {badgeText}
                               </button>
-                              {genderPopoverId === person.id && (
-                                <div className={cn('fsl-gender-popover absolute top-full left-0 mt-1 z-10 inline-flex gap-1 p-1 bg-card border border-border rounded-xl shadow-md')} role="dialog" aria-label={t('sport.editGender')}>
+                              </PopoverTrigger>
+                                <PopoverContent
+                                  align="start"
+                                  collisionPadding={8}
+                                  className={cn('fsl-gender-popover w-auto flex-row gap-1 p-1 rounded-xl')}
+                                  aria-label={t('sport.editGender')}
+                                >
                                   <button
                                     type="button"
                                     className={cn(
@@ -1212,9 +1219,8 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                                     <Icon name="venus" size={14} />
                                     <span>{t('people.genderFemale')}</span>
                                   </button>
-                                </div>
-                              )}
-                            </div>
+                                </PopoverContent>
+                            </Popover>
                           ) : (
                             <span className={cn('fsl-sport-badge inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium tabular-nums shrink-0')}>{badgeText}</span>
                           )}
