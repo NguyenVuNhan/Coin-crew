@@ -121,7 +121,9 @@ export function createZaloPlatform(sdk: ZmpSdk, apiOrigin: string): PlatformBrid
     },
     async pickZaloFriends(max: number) {
       try {
-        const { users } = await sdk.openProfilePicker({ maxProfile: max });
+        // zmp-sdk rejects maxProfile outside 1..10 before the picker opens.
+        const maxProfile = Math.min(10, Math.max(1, Math.floor(max)));
+        const { users } = await sdk.openProfilePicker({ maxProfile });
         return users
           .filter((u) => (u.code === undefined || u.code === 0) && u.id && u.profile?.name)
           .map((u): ZaloFriend => ({ zaloId: u.id, name: u.profile!.name!, avatar: u.profile?.avatar ?? '' }));

@@ -110,6 +110,12 @@ describe('createZaloPlatform', () => {
     expect(sdk.openProfilePicker).toHaveBeenCalledWith({ maxProfile: 10 });
   });
 
+  it('friend picker asks for at most 10 people (zmp-sdk rejects more)', async () => {
+    const sdk = fakeSdk();
+    await createZaloPlatform(sdk, '').pickZaloFriends(20);
+    expect(sdk.openProfilePicker).toHaveBeenCalledWith({ maxProfile: 10 });
+  });
+
   it('kind and apiBase', () => {
     const p = createZaloPlatform(fakeSdk(), 'https://coin-crew.example.workers.dev');
     expect(p.kind).toBe('zmp');

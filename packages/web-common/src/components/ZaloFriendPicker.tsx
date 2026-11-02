@@ -49,7 +49,7 @@ export function ZaloFriendPicker(props: ZaloFriendPickerProps) {
     setAlreadyIn([]);
     setErrors([]);
 
-    const friends = await platform.pickZaloFriends(20);
+    const friends = await platform.pickZaloFriends(10);
     if (!friends || friends.length === 0) return;
 
     if (props.mode === 'create') {
