@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import type { BankApp } from '@fsl/core';
 import { fakePlatform } from '../../test/fakePlatform';
@@ -177,6 +178,39 @@ describe('BankHandoffSheet', () => {
     });
 
     expect(onSaveFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('a fallback picture on screen keeps the bank from opening by itself', async () => {
+    const platform = fakePlatform({ saveImage: async () => 'failed' });
+    renderHandoff({ onSaveFailed: () => true }, platform);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    });
+
+    expect(platform.calls.openExternal).toHaveLength(0);
+    expect(document.querySelector('[data-step="2"]')).toHaveAttribute('data-state', 'open-failed');
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+  });
+
+  it('runs the whole flow under StrictMode', async () => {
+    setLang('en');
+    const platform = fakePlatform();
+    render(
+      <StrictMode>
+        <PlatformProvider platform={platform}>
+          <BankHandoffSheet open onClose={vi.fn()} app={fixtureApp} makePng={defaultMakePng} fileName="vietqr-test.png" />
+        </PlatformProvider>
+      </StrictMode>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(document.querySelector('[data-step="1"]')).toHaveAttribute('data-state', 'saved');
+    expect(platform.calls.saveImage).toHaveLength(1);
+    expect(platform.calls.openExternal).toHaveLength(1);
   });
 
   it('closing mid-flow cancels the open', async () => {

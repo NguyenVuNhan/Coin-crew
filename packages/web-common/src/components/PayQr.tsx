@@ -35,6 +35,7 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [handoffApp, setHandoffApp] = useState<BankApp | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'saved' | 'failed' | 'gallery' | null>(null);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
 
@@ -46,15 +47,17 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
   const makePng = () => qrPngBlob(svg);
   const showBankButton = props.variant === 'pay' && coarse;
 
-  /** iPhone without file sharing: offer the long-press picture instead. */
-  function saveFailed() {
+  /** iPhone without file sharing: offer the long-press picture instead. True when it is showing. */
+  function saveFailed(): boolean {
     if (platform.kind === 'web' && isIosDevice()) {
       showImage(makePng);
+      return true;
     }
+    return false;
   }
 
   async function download() {
-    setBusy(true);
+    setSaving(true);
     try {
       const blob = await makePng();
       const r = blob ? await platform.saveImage(blob, fileName) : 'failed';
@@ -69,13 +72,18 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
     } catch {
       setStatus('failed');
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   }
 
   async function share(text: string) {
     if (platform.kind === 'zmp') {
-      await download();
+      setBusy(true);
+      try {
+        await download();
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     if (isZaloWebView()) {
@@ -161,7 +169,7 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
           block
           className="flex-1 min-w-0"
           disabled={!svg}
-          loading={props.variant === 'pay' && busy}
+          loading={saving}
           onClick={() => void download()}
         >
           <Download className="size-5" aria-hidden="true" />

@@ -1,9 +1,8 @@
 import { useEffect, useReducer, useRef, type JSX } from 'react';
 import { Loader2, Check } from 'lucide-react';
 import { bankAppLink, type BankApp } from '@fsl/core';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
 import { Sheet } from './Sheet';
+import { Button } from './Button';
 import { usePlatform } from '../platform';
 import { bankAppLogo } from '../lib/bankApps';
 import { isIosDevice } from '../platform/browser';
@@ -16,7 +15,8 @@ export interface BankHandoffSheetProps {
   app: BankApp;
   makePng(): Promise<Blob | null>;
   fileName: string;
-  onSaveFailed?(): void;
+  /** Saving failed outright. Return true when a fallback (e.g. the long-press picture) is now showing: the bank then waits for the Open button instead of opening by itself. */
+  onSaveFailed?(): boolean | void;
 }
 
 type Step1State = 'saving' | 'saved' | 'save-failed';
@@ -74,7 +74,7 @@ export function BankHandoffSheet({
   const platform = usePlatform();
   const [state, dispatch] = useReducer(handoffReducer, initialHandoffState);
 
-  const hasRunRef = useRef(false);
+  const aliveRef = useRef(false);
 
   const makePngRef = useRef(makePng);
   makePngRef.current = makePng;
@@ -93,6 +93,7 @@ export function BankHandoffSheet({
     let png: Blob | null = null;
     try {
       png = await makePngRef.current();
+      if (!aliveRef.current) return;
       if (png) {
         r = await platformRef.current.saveImage(png, fileNameRef.current);
       } else {
@@ -101,6 +102,7 @@ export function BankHandoffSheet({
     } catch {
       r = 'failed';
     }
+    if (!aliveRef.current) return;
 
     if (r === 'saved') {
       dispatch({ type: 'STEP1_SAVED' });
@@ -114,13 +116,9 @@ export function BankHandoffSheet({
 
   useEffect(() => {
     if (!open) {
-      hasRunRef.current = false;
       return;
     }
-    if (hasRunRef.current) {
-      return;
-    }
-    hasRunRef.current = true;
+    aliveRef.current = true;
     dispatch({ type: 'RESET' });
 
     let cancelled = false;
@@ -164,13 +162,20 @@ export function BankHandoffSheet({
 
       if (cancelled) return;
 
+      let fallbackShown = false;
       if (r === 'saved') {
         dispatch({ type: 'STEP1_SAVED' });
       } else {
         dispatch({ type: 'STEP1_FAILED' });
         if (r === 'failed' || !png) {
-          onSaveFailedRef.current?.();
+          fallbackShown = onSaveFailedRef.current?.() === true;
         }
+      }
+
+      if (fallbackShown) {
+        // Leaving the page now would take the picture away before it can be saved.
+        dispatch({ type: 'STEP2_FAILED' });
+        return;
       }
 
       timer500 = setTimeout(async () => {
@@ -205,6 +210,7 @@ export function BankHandoffSheet({
 
     return () => {
       cancelled = true;
+      aliveRef.current = false;
       if (timer500) clearTimeout(timer500);
       if (timer3000) clearTimeout(timer3000);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -240,7 +246,7 @@ export function BankHandoffSheet({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground leading-normal">
+              <p className="text-sm font-semibold text-foreground leading-normal" aria-live="polite">
                 {state.step1 === 'saving' && t('pay.saving')}
                 {state.step1 === 'saved' && t('pay.savedStep')}
                 {state.step1 === 'save-failed' && t('pay.saveStep')}
@@ -253,18 +259,9 @@ export function BankHandoffSheet({
             </div>
           </div>
           {state.step1 === 'save-failed' && (
-            <button
-              type="button"
-              onClick={() => {
-                void handleRetryStep1();
-              }}
-              className={cn(
-                buttonVariants({ variant: 'secondary', size: 'sm' }),
-                'min-h-11 px-4 text-sm font-semibold rounded-full inline-flex items-center justify-center shrink-0 text-foreground',
-              )}
-            >
+            <Button variant="secondary" className="min-h-11 shrink-0 px-4" onClick={() => void handleRetryStep1()}>
               {t('pay.saveAction')}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -290,7 +287,7 @@ export function BankHandoffSheet({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground leading-normal">
+              <p className="text-sm font-semibold text-foreground leading-normal" aria-live="polite">
                 {state.step2 === 'waiting' && t('pay.openStep', { app: app.appName })}
                 {state.step2 === 'opening' && t('pay.opening', { app: app.appName })}
                 {state.step2 === 'opened' && t('pay.openedStep', { app: app.appName })}
@@ -310,28 +307,17 @@ export function BankHandoffSheet({
           </div>
           {state.step2 === 'open-failed' &&
             (platform.kind === 'web' ? (
-              <a
-                href={bankAppLink(app.appId)}
-                className={cn(
-                  buttonVariants({ variant: 'secondary', size: 'sm' }),
-                  'min-h-11 px-4 text-sm font-semibold rounded-full inline-flex items-center justify-center no-underline shrink-0 text-foreground',
-                )}
-              >
+              <Button variant="secondary" className="min-h-11 shrink-0 px-4" href={bankAppLink(app.appId)}>
                 {t('pay.openAction')}
-              </a>
+              </Button>
             ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  void platform.openExternal(bankAppLink(app.appId));
-                }}
-                className={cn(
-                  buttonVariants({ variant: 'secondary', size: 'sm' }),
-                  'min-h-11 px-4 text-sm font-semibold rounded-full inline-flex items-center justify-center shrink-0 text-foreground',
-                )}
+              <Button
+                variant="secondary"
+                className="min-h-11 shrink-0 px-4"
+                onClick={() => void platform.openExternal(bankAppLink(app.appId))}
               >
                 {t('pay.openAction')}
-              </button>
+              </Button>
             ))}
         </div>
 
