@@ -168,6 +168,14 @@ describe('useTripView', () => {
     await waitFor(() => expect(result.current.view?.trip.version).toBe(2));
   });
 
+  it('makes no request while the trip id is empty', async () => {
+    mockTrip();
+    const { result } = renderHook(() => useTripView('', 20), { wrapper });
+    await new Promise((r) => setTimeout(r, 100));
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.current.view).toBeUndefined();
+  });
+
   it('does not poll while the page is hidden', async () => {
     const spy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     const state = mockTrip();

@@ -18,7 +18,7 @@ describe('ProviderLogo', () => {
     const img = container.querySelector('img[data-provider="google"]');
 
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', '/brand/google-signin-icon.png');
+    expect(img).toHaveAttribute('src', expect.stringMatching(//assets/brand/google-signin-icon.png$/));
     expect(img).toHaveAttribute('alt', '');
     expect(img).toHaveAttribute('aria-hidden', 'true');
     expect(img).toHaveAttribute('width', '20');
@@ -32,7 +32,7 @@ describe('ProviderLogo', () => {
     const img = container.querySelector('img[data-provider="zalo"]');
 
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', '/brand/zalo-app-icon.png');
+    expect(img).toHaveAttribute('src', expect.stringMatching(//assets/brand/zalo-app-icon.png$/));
     expect(img).toHaveAttribute('alt', '');
     expect(img).toHaveAttribute('aria-hidden', 'true');
     expect(img).toHaveAttribute('width', '20');

@@ -77,6 +77,8 @@ export function useTripView(
   const viewQuery = useQuery({
     queryKey: ['trip', tripId],
     queryFn: () => apiFetch<TripView>(`/api/trips/${tripId}`, { tripId }),
+    // Callers pass '' while the id is still loading (e.g. Home before the ledger arrives): no `/api/trips/` 404.
+    enabled: tripId !== '',
   });
 
   const view = viewQuery.data;
