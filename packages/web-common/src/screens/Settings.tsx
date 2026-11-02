@@ -17,7 +17,6 @@ import { FewestSwitch } from '../components/FewestSwitch';
 import { RatingsSwitch } from '../components/RatingsSwitch';
 import { cn } from '@/lib/utils';
 import { usePlatform } from '../platform';
-import { useTripZaloChats, unlinkZaloChat } from '../api/zaloChats';
 
 export function Settings() {
   const platform = usePlatform();
@@ -33,22 +32,6 @@ export function Settings() {
   const [archiveError, setArchiveError] = useState<ApiClientError | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<ApiClientError | null>(null);
-
-  const isZmpAdmin = platform.kind === 'zmp' && (view?.me.isAdmin === true || view?.me.isOrganiser === true);
-  const zaloChatsQuery = useTripZaloChats(tripId ?? '', isZmpAdmin);
-  const [unlinkingChatId, setUnlinkingChatId] = useState<string | null>(null);
-
-  const handleUnlink = async (chatId: string) => {
-    setUnlinkingChatId(chatId);
-    try {
-      await unlinkZaloChat(chatId);
-      await zaloChatsQuery.refetch();
-    } catch {
-      // ignore
-    } finally {
-      setUnlinkingChatId(null);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -137,38 +120,6 @@ export function Settings() {
             </Link>
           </li>
         </ul>
-
-        {isZmpAdmin && (zaloChatsQuery.data?.chats?.length ?? 0) > 0 && (
-          <section className="fsl-settings__zalo-chats flex flex-col gap-2">
-            <h2 className={cn('fsl-settings__heading m-0 text-xs font-bold uppercase tracking-wider text-muted-foreground')}>
-              {t('settings.zaloChats')}
-            </h2>
-            <ul className={cn('fsl-settings__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border')}>
-              {zaloChatsQuery.data!.chats.map((c) => (
-                <li
-                  key={c.chatId}
-                  className="fsl-settings__zalo-chat flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 bg-card"
-                >
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-medium text-foreground">{t('zaloChat.linked')}</span>
-                    <span className="text-muted-foreground text-sm">
-                      {new Date(c.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    disabled={unlinkingChatId === c.chatId}
-                    loading={unlinkingChatId === c.chatId}
-                    className="fsl-settings__zalo-unlink min-h-11 text-danger hover:text-danger hover:bg-danger-soft shrink-0"
-                    onClick={() => handleUnlink(c.chatId)}
-                  >
-                    {t('zaloChat.unlink')}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         {platform.kind === 'zmp' && (
           <p className="fsl-settings__zalo-hint m-0 px-1 text-sm text-muted-foreground">{t('settings.zaloChatHint')}</p>

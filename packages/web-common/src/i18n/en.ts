@@ -504,14 +504,6 @@ export const en = {
   'settings.leaveHint': 'The group leaves your list. Your past expenses stay, and you can rejoin from the group link.',
   'settings.leaveConfirm': 'Leave {group}?',
   'settings.zaloChatHint': "Open CoinCrew from your Zalo group chat's menu to link that chat.",
-  'settings.zaloChats': 'Linked Zalo chats',
-  'zaloChat.linkTitle': 'Link this chat to a CoinCrew group',
-  'zaloChat.createNew': 'Create a new group',
-  'zaloChat.noGroups': 'You have no groups yet.',
-  'zaloChat.signInFirst': 'Sign in to link this chat to one of your groups.',
-  'zaloChat.linkFailed': "Couldn't link this chat. Only members can link it, and a chat linked to another group needs that group's admin.",
-  'zaloChat.linked': 'Zalo group chat',
-  'zaloChat.unlink': 'Unlink',
 
   'people.title': 'People',
   'people.organiser': 'Organiser',
@@ -874,14 +866,6 @@ export const en = {
   'feedback.thanks': 'Thanks — we read every message.',
   'feedback.error': "Couldn't send. Please try again.",
   'feedback.rateLimited': "You've sent a lot just now — try again later.",
-
-  'zaloFriends.button': 'Choose from Zalo friends',
-  'zaloFriends.matchTitle': 'Already in the group?',
-  'zaloFriends.linkTo': 'Is {friend} the same as {person}?',
-  'zaloFriends.link': 'Link to {person}',
-  'zaloFriends.addNew': 'Add as new',
-  'zaloFriends.alreadyIn': '{name} is already in this group',
-  'zaloFriends.failed': "Couldn't add {name}. Try again.",
 } as const;
 
 export type MessageKey = keyof typeof en;

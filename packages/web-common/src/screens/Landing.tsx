@@ -1,6 +1,5 @@
 import { Fragment, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useChatRoutePending } from '../platform/useChatRoute';
 import { APP_NAME } from '../config';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
@@ -24,13 +23,12 @@ export function Landing() {
   const meQuery = useMe();
 
   const user = meQuery.data?.user;
-  const chatRoutePending = useChatRoutePending();
 
   useEffect(() => {
-    if (user && !chatRoutePending) {
+    if (user) {
       navigate('/trips', { replace: true });
     }
-  }, [user, chatRoutePending, navigate]);
+  }, [user, navigate]);
 
   if (user) {
     return null;

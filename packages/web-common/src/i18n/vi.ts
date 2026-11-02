@@ -504,14 +504,6 @@ export const vi: Record<MessageKey, string> = {
   'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.', // REVIEW
   'settings.leaveConfirm': 'Rời {group}?', // REVIEW
   'settings.zaloChatHint': 'Mở CoinCrew từ menu của nhóm chat Zalo để liên kết nhóm chat đó.', // REVIEW
-  'settings.zaloChats': 'Nhóm chat Zalo đã liên kết', // REVIEW
-  'zaloChat.linkTitle': 'Liên kết nhóm chat này với một nhóm CoinCrew', // REVIEW
-  'zaloChat.createNew': 'Tạo nhóm mới', // REVIEW
-  'zaloChat.noGroups': 'Bạn chưa có nhóm nào.', // REVIEW
-  'zaloChat.signInFirst': 'Đăng nhập để liên kết nhóm chat này với nhóm của bạn.', // REVIEW
-  'zaloChat.linkFailed': 'Không liên kết được. Chỉ thành viên mới liên kết được, và nhóm chat đã liên kết với nhóm khác cần quản trị viên của nhóm đó.', // REVIEW
-  'zaloChat.linked': 'Nhóm chat Zalo', // REVIEW
-  'zaloChat.unlink': 'Huỷ liên kết', // REVIEW
 
   'people.title': 'Thành viên', // REVIEW
   'people.organiser': 'Trưởng nhóm', // REVIEW
@@ -874,13 +866,5 @@ export const vi: Record<MessageKey, string> = {
   'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.', // REVIEW
   'feedback.error': 'Chưa gửi được. Vui lòng thử lại.', // REVIEW
   'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.', // REVIEW
-
-  'zaloFriends.button': 'Chọn từ bạn bè Zalo', // REVIEW
-  'zaloFriends.matchTitle': 'Đã có trong nhóm?', // REVIEW
-  'zaloFriends.linkTo': '{friend} có phải là {person}?', // REVIEW
-  'zaloFriends.link': 'Gắn với {person}', // REVIEW
-  'zaloFriends.addNew': 'Thêm mới', // REVIEW
-  'zaloFriends.alreadyIn': '{name} đã có trong nhóm', // REVIEW
-  'zaloFriends.failed': 'Không thêm được {name}. Thử lại nhé.', // REVIEW
 };
 

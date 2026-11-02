@@ -18,7 +18,6 @@ import { ActionSheet } from '../components/ActionSheet';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { GenderToggle } from '../components/GenderToggle';
-import { ZaloFriendPicker } from '../components/ZaloFriendPicker';
 import {
   InputGroup,
   InputGroupAddon,
@@ -302,43 +301,33 @@ export function People() {
         {!view.trip.archived &&
           view.me.kind === 'member' &&
           (view.me.isAdmin || view.me.isOrganiser) && (
-          <>
-            <form onSubmit={handleAddPerson} className={cn('fsl-people__add-form flex items-center gap-2 mt-2')}>
-              <InputGroup className="fsl-people__add-group flex-1">
-                <InputGroupInput
-                  ref={inputRef}
-                  type="text"
-                  className="fsl-input"
-                  placeholder={t('create.otherPlaceholder')}
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  maxLength={40}
-                  aria-label={t('create.otherPlaceholder')}
-                />
-                {view.trip.preset === 'sport' && (
-                  <InputGroupAddon align="inline-end">
-                    <GenderToggle
-                      variant="inline"
-                      name={newName.trim() || t('create.otherPlaceholder')}
-                      value={newGender}
-                      onChange={setNewGender}
-                    />
-                  </InputGroupAddon>
-                )}
-              </InputGroup>
-              <Button type="submit" variant="secondary" disabled={!newName.trim()}>
-                {t('create.addPerson')}
-              </Button>
-            </form>
-            <ZaloFriendPicker
-              mode="group"
-              tripId={tripId ?? ''}
-              people={view.people}
-              onDone={() => {
-                void refetch();
-              }}
-            />
-          </>
+          <form onSubmit={handleAddPerson} className={cn('fsl-people__add-form flex items-center gap-2 mt-2')}>
+            <InputGroup className="fsl-people__add-group flex-1">
+              <InputGroupInput
+                ref={inputRef}
+                type="text"
+                className="fsl-input"
+                placeholder={t('create.otherPlaceholder')}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                maxLength={40}
+                aria-label={t('create.otherPlaceholder')}
+              />
+              {view.trip.preset === 'sport' && (
+                <InputGroupAddon align="inline-end">
+                  <GenderToggle
+                    variant="inline"
+                    name={newName.trim() || t('create.otherPlaceholder')}
+                    value={newGender}
+                    onChange={setNewGender}
+                  />
+                </InputGroupAddon>
+              )}
+            </InputGroup>
+            <Button type="submit" variant="secondary" disabled={!newName.trim()}>
+              {t('create.addPerson')}
+            </Button>
+          </form>
         )}
         {actingId === 'new-person' && Boolean(error) && (
           <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">

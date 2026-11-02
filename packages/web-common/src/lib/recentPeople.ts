@@ -2,7 +2,7 @@ import { normalizeName, type RecentPerson, type Gender } from '@fsl/core';
 import { matchesWordStart } from './nameSearch';
 
 /** One line of the "Who else is coming?" list. A `userId` makes it a picked account (a locked row). */
-export type PersonEntry = { key: string; name: string; userId?: string; gender?: Gender | null; zaloSub?: string };
+export type PersonEntry = { key: string; name: string; userId?: string; gender?: Gender | null };
 
 let lastKey = 0;
 
