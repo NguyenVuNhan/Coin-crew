@@ -16,6 +16,8 @@ export default defineConfig(async () => {
             APP_ORIGIN: 'http://localhost:8787',
             ZALO_APP_ID: 'test-zalo-app',
             ZALO_APP_SECRET: 'test-zalo-secret',
+            DEVICE_SECRET: 'test-device-secret',
+            ZMP_ALLOWED_ORIGINS: 'https://h5.zdn.vn,http://localhost:3000',
           },
         },
       }),

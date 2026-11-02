@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import type { AppBindings } from './env';
 import { errorResponse } from './lib/errors';
+import { corsMiddleware } from './lib/cors';
 import { authRoutes } from './auth/routes';
 import { accountRoutes } from './auth/accountRoutes';
+import { zaloMiniRoutes } from './auth/zaloMiniRoutes';
 import { testLoginRoutes } from './auth/testLogin';
 import { deviceMiddleware } from './access/device';
 import { accessRoutes } from './access/routes';
@@ -22,6 +24,7 @@ import { personRoutes } from './me/personRoutes';
 import { myActivityRoutes } from './me/activity';
 import { requestRoutes } from './requests/routes';
 import { proposalRoutes } from './proposals/routes';
+import { zaloChatRoutes } from './zalo/chatRoutes';
 import { pageRoutes } from './og/routes';
 import { feedbackRoutes } from './feedback/routes';
 
@@ -31,10 +34,12 @@ export function createApp(): Hono<AppBindings> {
   app.onError((err) => errorResponse(err));
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Not found' } }, 404));
 
+  app.use('/api/*', corsMiddleware);
   app.use('/api/*', deviceMiddleware);
 
   app.get('/api/health', (c) => c.json({ ok: true }));
   app.route('/api', authRoutes());
+  app.route('/api', zaloMiniRoutes());
   app.route('/api', accountRoutes());
   app.route('/api', testLoginRoutes());
   app.route('/api', accessRoutes());
@@ -54,6 +59,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', myActivityRoutes());
   app.route('/api', requestRoutes());
   app.route('/api', proposalRoutes());
+  app.route('/api', zaloChatRoutes());
   app.route('/api', feedbackRoutes());
   app.route('/', pageRoutes());
 

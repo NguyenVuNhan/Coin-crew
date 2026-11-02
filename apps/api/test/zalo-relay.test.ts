@@ -38,6 +38,24 @@ describe('fetchZaloProfile through the DSM relay', () => {
     expect(calls[0]!.headers.get('access_token')).toBeNull();
   });
 
+  it('Mini App sign-in: the relay gets the appsecret proof as X-Zalo-Appsecret-Proof', async () => {
+    const calls = mockFetch(() => Response.json(fullProfile));
+    await fetchZaloProfile('tok', relayEnv, { appSecret: 'app-secret' });
+
+    expect(calls).toHaveLength(1);
+    expect(isRelay(calls[0]!)).toBe(true);
+    expect(calls[0]!.headers.get('x-zalo-appsecret-proof')).toMatch(/^[0-9a-f]{64}$/);
+    expect(calls[0]!.headers.get('appsecret_proof')).toBeNull();
+  });
+
+  it('Mini App sign-in: falling back to Zalo directly still sends appsecret_proof', async () => {
+    const calls = mockFetch((c) => (isRelay(c) ? new Response('bad', { status: 502 }) : Response.json(fullProfile)));
+    await fetchZaloProfile('tok', relayEnv, { appSecret: 'app-secret' });
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.headers.get('appsecret_proof')).toBe(calls[0]!.headers.get('x-zalo-appsecret-proof'));
+  });
+
   it('copes with a trailing slash on the relay URL', async () => {
     const calls = mockFetch(() => Response.json(fullProfile));
     await fetchZaloProfile('tok', { ...relayEnv, ZALO_RELAY_URL: 'https://relay.example/' });

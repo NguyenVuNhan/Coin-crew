@@ -11,7 +11,8 @@ Split trip expenses with friends and settle up with VietQR. Friends join from on
 |---|---|
 | `packages/core` | Pure TypeScript: money, splits, balances, transfers, name matching, VietQR, permissions, API types |
 | `apps/api` | One Cloudflare Worker (Hono + D1 via Drizzle). Serves `/api/*` and the built web app from `apps/api/public` |
-| `apps/web` | React + Vite PWA. `npm run build -w @fsl/web` writes into `apps/api/public` |
+| `packages/web-common` | The React app: screens, components, i18n, API client, styles and their tests |
+| `apps/web` | Browser shell (Vite PWA). `npm run build -w @fsl/web` writes into `apps/api/public` |
 | `e2e` | Playwright golden path at 375px |
 
 ## Run it locally
@@ -69,6 +70,6 @@ See the design's §14:
 1. Which bank apps open with the payment already filled in through `dl.vietqr.io`, and the exact parameters. Flip `PREFILL_VERIFIED` in `packages/core/src/banks.ts` once confirmed.
 2. Transfer-note length and character limits at the major banks.
 3. The current D1 and Workers free-plan numbers. Update `FREE_LIMITS` and the `DAILY_LIMIT` error matcher in `apps/api/src/lib/errors.ts`.
-4. What Vietnam's personal-data rules require. Replace the draft privacy notice in `apps/web/src/screens/Privacy.tsx`.
+4. What Vietnam's personal-data rules require. Replace the draft privacy notice in `packages/web-common/src/screens/Privacy.tsx`.
 
-Also review the Vietnamese copy in `apps/web/src/i18n/vi.ts`: every line marked `// REVIEW` is a draft translation.
+Also review the Vietnamese copy in `packages/web-common/src/i18n/vi.ts`: every line marked `// REVIEW` is a draft translation.

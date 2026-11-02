@@ -104,6 +104,23 @@ describe('Zalo profile relay app', () => {
     expect(await res.json()).toEqual({ id: '123', name: 'An' });
   });
 
+  it('X-Zalo-Appsecret-Proof is passed on as appsecret_proof; without it no appsecret_proof is sent', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ id: '123' }));
+    const app = createApp({ secret: 'test-secret', fetch: fetchMock });
+
+    await app.request('/me?fields=id', {
+      headers: { Authorization: 'Bearer test-secret', 'X-Zalo-Access-Token': 'tok', 'X-Zalo-Appsecret-Proof': 'pr00f' },
+    });
+    await app.request('/me?fields=id', {
+      headers: { Authorization: 'Bearer test-secret', 'X-Zalo-Access-Token': 'tok' },
+    });
+
+    const withProof = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    const withoutProof = fetchMock.mock.calls[1]?.[1]?.headers as Record<string, string>;
+    expect(withProof.appsecret_proof).toBe('pr00f');
+    expect(withoutProof.appsecret_proof).toBeUndefined();
+  });
+
   it('upstream 500 with JSON body {error:1} -> relay 500 same body', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ error: 1 }), {
@@ -171,7 +188,7 @@ describe('Zalo profile relay app', () => {
 
   it('log spy: after a successful /me, log called once, and no logged line contains \'tok\' or the secret', async () => {
     const logSpy = vi.fn<(line: string) => void>();
-    const secret = 'super-secret-key-123';
+    const secret = 'test-secret';
     const token = 'my-zalo-token-456';
 
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(

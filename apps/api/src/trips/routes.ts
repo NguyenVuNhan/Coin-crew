@@ -90,15 +90,16 @@ export function tripRoutes(): Hono<AppBindings> {
     }
 
     // Each entry is a plain name (older clients) or { name, userId?, gender? } for someone with an account/gender.
-    const people: { name: string; userId: string | null; gender: 'M' | 'F' | null }[] = [];
+    const people: { name: string; userId: string | null; gender: 'M' | 'F' | null; zaloSub: string | null }[] = [];
     for (const p of body.people as unknown[]) {
       let rawName: unknown;
       let userId: string | null = null;
       let gender: 'M' | 'F' | null = null;
+      let zaloSub: string | null = null;
       if (typeof p === 'string') {
         rawName = p;
       } else if (p && typeof p === 'object' && !Array.isArray(p)) {
-        const entry = p as { name?: unknown; userId?: unknown; gender?: unknown };
+        const entry = p as { name?: unknown; userId?: unknown; gender?: unknown; zaloSub?: unknown };
         rawName = entry.name;
         if (entry.userId !== undefined) {
           if (typeof entry.userId !== 'string' || entry.userId.length < 1) {
@@ -112,6 +113,13 @@ export function tripRoutes(): Hono<AppBindings> {
           }
           gender = entry.gender;
         }
+        // A Zalo friend the creator (organiser, so an admin) ties to this person.
+        if (entry.zaloSub !== undefined) {
+          if (typeof entry.zaloSub !== 'string' || entry.zaloSub.length < 1 || entry.zaloSub.length > 64) {
+            throw new ApiError('VALIDATION', 422, 'Invalid request');
+          }
+          zaloSub = entry.zaloSub;
+        }
       }
       if (typeof rawName !== 'string') {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -120,7 +128,12 @@ export function tripRoutes(): Hono<AppBindings> {
       if (trimmed.length < 1 || trimmed.length > 40) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
-      people.push({ name: trimmed, userId, gender });
+      people.push({ name: trimmed, userId, gender, zaloSub });
+    }
+
+    const zaloSubs = people.flatMap((p) => (p.zaloSub ? [p.zaloSub] : []));
+    if (new Set(zaloSubs).size !== zaloSubs.length) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
     // Only people the caller already shares a trip with can be added by account, each once.
@@ -203,6 +216,7 @@ export function tripRoutes(): Hono<AppBindings> {
         normalizedName: normalizeName(p.name),
         gender: p.gender ?? null,
         userId: p.userId,
+        zaloSub: p.zaloSub,
         status: 'active',
         sortOrder: index + 1,
         createdAt: now,

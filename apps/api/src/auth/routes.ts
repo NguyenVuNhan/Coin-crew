@@ -13,7 +13,8 @@ import { nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
 import { linkIdentity, upsertIdentity } from './identity';
 import { buildMeResponse, toMeUserView } from './me';
-import { createSession, getSessionUser, requireUser, setSessionCookie } from './session';
+import { createSession, getSessionUser, readSessionToken, requireUser, setSessionCookie } from './session';
+import { linkZaloSlots } from './zaloSlots';
 import {
   exchangeZaloCode,
   fetchZaloProfile,
@@ -230,6 +231,9 @@ export function authRoutes(): Hono<AppBindings> {
         return failure('linking Zalo without a signed-in session');
       }
       const outcome = await linkIdentity(db, user.id, 'zalo', profile);
+      if (outcome.result === 'linked') {
+        await linkZaloSlots(db, user.id, profile.sub);
+      }
       clearOauthCookies(c, 'zalo_oauth');
       const target = safeReturnTo(oauthReturn);
       const destination =
@@ -240,6 +244,7 @@ export function authRoutes(): Hono<AppBindings> {
     }
 
     const userId = await upsertIdentity(db, 'zalo', profile);
+    await linkZaloSlots(db, userId, profile.sub);
     const token = await createSession(db, userId);
     setSessionCookie(c, token);
 
@@ -249,7 +254,7 @@ export function authRoutes(): Hono<AppBindings> {
   });
 
   app.post('/auth/logout', async (c) => {
-    const sid = getCookie(c, 'sid');
+    const sid = readSessionToken(c);
     if (sid) {
       const idHash = await sha256Hex(sid);
       const db = getDb(c.env);

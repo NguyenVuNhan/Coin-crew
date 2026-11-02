@@ -449,6 +449,15 @@ export async function mergeParticipants(
     );
   }
 
+  // The Zalo tie follows the survivor when it has none. Clear it first: (trip, zalo_sub) is unique.
+  if (from.zaloSub !== null && into.zaloSub === null) {
+    logParticipant(into);
+    queries.push(
+      db.update(participants).set({ zaloSub: null }).where(eq(participants.id, fromId)),
+      db.update(participants).set({ zaloSub: from.zaloSub }).where(eq(participants.id, intoId)),
+    );
+  }
+
   const logRows = [...log.rows.values()];
   for (let i = 0; i < logRows.length; i += MERGE_ROWS_PER_INSERT) {
     queries.push(

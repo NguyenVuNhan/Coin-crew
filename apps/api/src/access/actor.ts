@@ -5,6 +5,7 @@ import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { deviceParticipants, participants, trips } from '../db/schema';
 import { getSessionUser } from '../auth/session';
+import { claimZaloSlot } from '../auth/zaloSlots';
 import { ApiError } from '../lib/errors';
 
 export type TripRow = typeof trips.$inferSelect;
@@ -64,6 +65,9 @@ export async function resolveActor(c: Context<AppBindings>, tripId: string): Pro
     if (token === trip.groupToken) {
       let participantId: string | null = null;
       let participantPending = false;
+
+      // A Zalo guest's first visit lands on the slot the owner tied to that Zalo account.
+      await claimZaloSlot(db, deviceHash, tripId);
 
       const dp = await db
         .select()

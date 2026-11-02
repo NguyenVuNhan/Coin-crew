@@ -1,7 +1,5 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@fontsource/be-vietnam-pro/vietnamese-400.css';
 import '@fontsource/be-vietnam-pro/latin-400.css';
 import '@fontsource/be-vietnam-pro/vietnamese-500.css';
@@ -10,15 +8,8 @@ import '@fontsource/be-vietnam-pro/vietnamese-600.css';
 import '@fontsource/be-vietnam-pro/latin-600.css';
 import '@fontsource/be-vietnam-pro/vietnamese-700.css';
 import '@fontsource/be-vietnam-pro/latin-700.css';
-import './styles/globals.css';
-import { App } from './App';
-import { NavHistoryProvider } from './lib/navHistory';
-import { detectLang, setLang } from './i18n';
-import { refetchOnWindowFocus } from './api/focus';
-import { ApiClientError } from './api/client';
-
-setLang(detectLang());
-refetchOnWindowFocus();
+import '@fsl/web-common/styles.css';
+import { AppRoot, bootApp } from '@fsl/web-common';
 
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
   let refreshing = false;
@@ -29,28 +20,13 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigato
   });
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // A 4xx (no access, not found…) answers the same the second time.
-      retry: (failures, error) =>
-        failures < 1 && !(error instanceof ApiClientError && error.status >= 400 && error.status < 500),
-      refetchOnWindowFocus: true,
-    },
-  },
+void bootApp().then(() => {
+  const rootEl = document.getElementById('root');
+  if (rootEl) {
+    createRoot(rootEl).render(
+      <StrictMode>
+        <AppRoot />
+      </StrictMode>,
+    );
+  }
 });
-
-const rootEl = document.getElementById('root');
-if (rootEl) {
-  createRoot(rootEl).render(
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <NavHistoryProvider>
-            <App />
-          </NavHistoryProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </StrictMode>,
-  );
-}
