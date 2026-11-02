@@ -620,6 +620,19 @@ export const vi: Record<MessageKey, string> = {
   'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.', // REVIEW
   'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
   'pay.savedToGallery': 'Đã lưu ảnh QR vào thư viện ảnh', // REVIEW
+  'pay.handoffTitle': 'Thanh toán bằng {app}', // REVIEW
+  'pay.saving': 'Đang lưu mã QR…', // REVIEW
+  'pay.savingIos': 'Chọn "Lưu hình ảnh"', // REVIEW
+  'pay.savedStep': 'Đã lưu mã QR', // REVIEW
+  'pay.saveStep': 'Lưu mã QR', // REVIEW
+  'pay.saveAction': 'Lưu', // REVIEW
+  'pay.opening': 'Đang mở {app}…', // REVIEW
+  'pay.openedStep': 'Đã mở {app}', // REVIEW
+  'pay.openStep': 'Mở {app}', // REVIEW
+  'pay.openAction': 'Mở', // REVIEW
+  'pay.notOpened': 'Chưa mở được?', // REVIEW
+  'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
+  'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
   'pay.bankFallback': 'Mở app ngân hàng → Quét QR → chọn ảnh từ thư viện', // REVIEW
 
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW

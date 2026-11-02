@@ -620,6 +620,19 @@ export const en = {
   'pay.shareFailed': "Couldn't share. Try Save QR.",
   'pay.remindBankText': 'Hi {name}! Please add your bank details in "{trip}" so I can pay you back with VietQR: {link}',
   'pay.savedToGallery': 'QR saved to your photos',
+  'pay.handoffTitle': 'Pay with {app}', // SPEC
+  'pay.saving': 'Saving the QR…', // SPEC
+  'pay.savingIos': 'Choose "Save Image"', // SPEC
+  'pay.savedStep': 'QR saved', // SPEC
+  'pay.saveStep': 'Save the QR', // SPEC
+  'pay.saveAction': 'Save', // SPEC
+  'pay.opening': 'Opening {app}…', // SPEC
+  'pay.openedStep': '{app} opened', // SPEC
+  'pay.openStep': 'Open {app}', // SPEC
+  'pay.openAction': 'Open', // SPEC
+  'pay.notOpened': "Didn't open?", // SPEC
+  'pay.zaloAsks': 'Zalo will ask: choose "Continue"', // SPEC
+  'pay.handoffTip': 'In {app}: Scan QR → upload picture → pick the saved QR.', // SPEC
   'pay.bankFallback': 'Open your bank app → Scan QR → pick the image from your photos',
 
   'bankForm.title': 'Your bank details',
