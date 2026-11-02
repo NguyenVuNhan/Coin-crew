@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json && vite build",
     "deploy": "npx zmp-cli@4 deploy --existing --dir dist",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "deploy:testing": "npx zmp-cli@4 deploy --existing --testing --dir dist"
   },
   "dependencies": {
     "@fsl/web-common": "*",
