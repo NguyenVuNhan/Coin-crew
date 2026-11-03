@@ -633,6 +633,14 @@ export const en = {
   'pay.zaloAsks': 'Zalo will ask: choose "Continue"', // SPEC
   'pay.handoffTip': 'In {app}: Scan QR → upload picture → pick the saved QR.', // SPEC
 
+  'expensePay.title': 'Pay {name}',
+  'expensePay.rowLabel': "{name}'s share",
+  'expensePay.allPaid': 'All paid ✓',
+  'expensePay.friendOf': "{name}'s friend",
+  'expensePay.nameOrFriend': "{name} (or {name}'s friend)",
+  'expensePay.paidLine': '{who} paid {amount}',
+  'expensePay.notReceived': "{payer} didn't receive {amount}",
+
   'bankForm.title': 'Your bank details',
   'bankForm.guestNote': 'A member approves new bank details before anyone can pay you.',
   'bankForm.memberNote': 'Saved to your profile and used in all your trips.',
