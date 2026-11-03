@@ -9,8 +9,7 @@ import { setLang } from '../../i18n';
 import { en } from '../../i18n/en';
 import { PayQr } from '../PayQr';
 import { ExpenseDetails } from '../ExpenseDetails';
-import { BankAppSheet } from '../BankAppSheet';
-import { saveQr, shareQr } from '../../lib/qr';
+import { shareQr } from '../../lib/qr';
 
 vi.mock('../../lib/qr', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/qr')>();
@@ -18,7 +17,6 @@ vi.mock('../../lib/qr', async (importOriginal) => {
     ...actual,
     qrPngBlob: vi.fn(async () => new Blob(['x'], { type: 'image/png' })),
     renderSportBillPng: vi.fn(async () => new Blob(['x'], { type: 'image/png' })),
-    saveQr: vi.fn(async () => undefined),
     shareQr: vi.fn(async () => 'shared' as const),
     shareSportBill: vi.fn(async () => 'shared' as const),
   };
@@ -119,7 +117,7 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
 
     renderAt(<PayQr variant="pay" info={samplePayInfo()} />, { platform: fake });
 
-    const saveBtn = await screen.findByRole('button', { name: 'Save QR' });
+    const saveBtn = await screen.findByRole('button', { name: 'Download QR' });
     await waitFor(() => expect(saveBtn).toBeEnabled());
     await user.click(saveBtn);
 
@@ -137,14 +135,14 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
 
     renderAt(<PayQr variant="pay" info={samplePayInfo()} />, { platform: fake });
 
-    const saveBtn = await screen.findByRole('button', { name: 'Save QR' });
+    const saveBtn = await screen.findByRole('button', { name: 'Download QR' });
     await waitFor(() => expect(saveBtn).toBeEnabled());
     await user.click(saveBtn);
 
     expect(await screen.findByText(en['pay.shareFailed'])).toBeInTheDocument();
   });
 
-  it('zmp: bank app blocked shows the fallback', async () => {
+  it('zmp: bank app blocked shows how to open it by hand', async () => {
     setLang('en');
     mockMedia({ coarse: true });
     const fake = fakePlatform({
@@ -158,17 +156,16 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     await waitFor(() => expect(openBtn).toBeEnabled());
     await user.click(openBtn);
 
-    const sheet = await screen.findByRole('dialog', { name: 'Choose your bank app' });
-    expect(sheet).toBeInTheDocument();
-
-    const bankBtn = within(sheet).getAllByRole('button').find((b) => b.classList.contains('fsl-bank-app-sheet__row'));
+    const picker = await screen.findByRole('dialog', { name: 'Choose your bank' });
+    const bankBtn = within(picker).getAllByRole('button').find((b) => b.classList.contains('fsl-bank-row'));
     expect(bankBtn).toBeDefined();
     await user.click(bankBtn!);
 
-    await waitFor(() => expect(fake.calls.openExternal.length).toBe(1));
-    expect(typeof fake.calls.openExternal[0]![0]).toBe('string');
-    expect(fake.calls.openExternal[0]![0]).toMatch(/^https?:\/\/|^[a-z]+:\/\//);
-    expect(await screen.findByText(en['pay.bankFallback'])).toBeInTheDocument();
+    await waitFor(() => expect(fake.calls.openExternal.length).toBe(1), { timeout: 2000 });
+    expect(fake.calls.openExternal[0]![0]).toMatch(/^https:\/\/dl\.vietqr\.io\/pay\?app=/);
+    await waitFor(() => expect(document.querySelector('[data-step="2"]')).toHaveAttribute('data-state', 'open-failed'));
+    expect(screen.getByText(/yourself, then Scan QR/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open' })).toBeNull();
   });
 
   it('zmp: sport bill saves the picture and shares a card', async () => {
@@ -218,18 +215,19 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     expect(await screen.findByText(en['pay.shareSaved'])).toBeInTheDocument();
   });
 
-  it('web: Save QR keeps the download path', async () => {
+  it('web: Download QR saves through the browser platform', async () => {
     setLang('en');
     const user = userEvent.setup();
+    const web = fakePlatform({ kind: 'web' });
 
-    renderAt(<PayQr variant="pay" info={samplePayInfo()} />);
+    renderAt(<PayQr variant="pay" info={samplePayInfo()} />, { platform: web });
 
-    const saveBtn = await screen.findByRole('button', { name: 'Save QR' });
+    const saveBtn = await screen.findByRole('button', { name: 'Download QR' });
     await waitFor(() => expect(saveBtn).toBeEnabled());
     await user.click(saveBtn);
 
-    await waitFor(() => expect(saveQr).toHaveBeenCalled());
-    expect(screen.queryByText('QR saved to your photos')).toBeNull();
+    await waitFor(() => expect(web.calls.saveImage).toHaveLength(1));
+    expect(web.calls.saveImage[0]![1]).toBe('vietqr-DALAT-C7K2.png');
   });
 
   it('zmp: receive variant share button saves to gallery without shareQr', async () => {
@@ -249,14 +247,4 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     expect(await screen.findByText('QR saved to your photos')).toBeInTheDocument();
   });
 
-  it('zmp: bank app sheet hides the Zalo hint in ZMP', () => {
-    setLang('en');
-    const fake = fakePlatform({ kind: 'zmp' });
-    const uaSpy = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 Zalo/12.0');
-
-    renderAt(<BankAppSheet open onClose={() => {}} />, { platform: fake });
-
-    expect(screen.queryByText(en['pay.zaloBankHint'])).toBeNull();
-    uaSpy.mockRestore();
-  });
 });

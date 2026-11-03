@@ -60,7 +60,7 @@ export function fakePlatform(overrides: Partial<PlatformBridge> = {}): FakePlatf
       }
       return 'shared';
     },
-    async saveImage(png: Blob, fileName: string): Promise<'saved' | 'failed'> {
+    async saveImage(png: Blob, fileName: string): Promise<'saved' | 'cancelled' | 'failed'> {
       record('saveImage', [png, fileName]);
       if (overrides.saveImage) {
         return overrides.saveImage(png, fileName);

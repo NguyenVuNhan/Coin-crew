@@ -27,7 +27,7 @@ export interface PlatformBridge {
   apiBase: string;
   storage: PlatformStorage;
   share(card: ShareCard): Promise<'shared' | 'copied' | 'cancelled' | 'failed'>;
-  saveImage(png: Blob, fileName: string): Promise<'saved' | 'failed'>;
+  saveImage(png: Blob, fileName: string): Promise<'saved' | 'cancelled' | 'failed'>;
   openExternal(url: string): Promise<'opened' | 'blocked'>;
   zaloAccessToken(): Promise<string | null>;
   zaloUserInfo(): Promise<{ name: string; avatar: string } | 'declined' | null>;

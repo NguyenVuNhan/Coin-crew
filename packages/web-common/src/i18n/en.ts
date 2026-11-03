@@ -46,7 +46,14 @@ export const en = {
   'pay.bankPending': "{name}'s bank details are waiting for approval", // SPEC
   'pay.bankNone': "{name} hasn't added bank details yet", // SPEC
   'pay.openBankApp': 'Open bank app', // SPEC 2026-10-14
-  'pay.saveQr': 'Save QR', // SPEC
+  'pay.openApp': 'Open {app}', // SPEC
+  'pay.switchBank': 'Change bank', // SPEC
+  'pay.downloadQr': 'Download QR', // SPEC
+  'pay.pickBank': 'Choose your bank', // SPEC
+  'pay.searchBank': 'Search: vcb, techcom, Á Châu…', // SPEC
+  'pay.recentBank': 'Recently used', // SPEC
+  'pay.popularBanks': 'Popular', // SPEC
+  'pay.noBankMatch': 'No bank matches "{q}"', // SPEC
 
   'landing.headline': 'Split trip costs. Settle up with VietQR.',
   'landing.tagline': 'Friends join from one link in the group chat, no account needed.',
@@ -605,16 +612,26 @@ export const en = {
   'pay.tapToCheck': 'Tap to check again',
   'pay.waitingConfirm': 'Waiting for {name} to confirm',
   'pay.nothingOwed': "You don't owe {name} anything right now.",
-  'pay.chooseApp': 'Choose your bank app',
-  'pay.fillsIn': 'fills in the payment',
-  'pay.zaloBankHint': "Bank app didn't open? Save the QR, then in your bank app choose Scan QR → pick the picture. Or tap ⋯ → Open in browser.",
   'pay.remindThem': 'Remind {name}',
   'pay.share': 'Share',
   'pay.shareSaved': 'QR saved and message copied.',
   'pay.shareFailed': "Couldn't share. Try Save QR.",
   'pay.remindBankText': 'Hi {name}! Please add your bank details in "{trip}" so I can pay you back with VietQR: {link}',
   'pay.savedToGallery': 'QR saved to your photos',
-  'pay.bankFallback': 'Open your bank app → Scan QR → pick the image from your photos',
+  'pay.handoffTitle': 'Pay with {app}', // SPEC
+  'pay.saving': 'Saving the QR…', // SPEC
+  'pay.savingIos': 'Choose "Save Image"', // SPEC
+  'pay.savedStep': 'QR saved', // SPEC
+  'pay.saveStep': 'Save the QR', // SPEC
+  'pay.saveAction': 'Save', // SPEC
+  'pay.opening': 'Opening {app}…', // SPEC
+  'pay.openedStep': '{app} opened', // SPEC
+  'pay.openStep': 'Open {app}', // SPEC
+  'pay.openAction': 'Open', // SPEC
+  'pay.notOpened': "Didn't open?", // SPEC
+  'pay.openManually': 'Open {app} yourself, then Scan QR → upload picture', // SPEC
+  'pay.zaloAsks': 'Zalo will ask: choose "Continue"', // SPEC
+  'pay.handoffTip': 'In {app}: Scan QR → upload picture → pick the saved QR.', // SPEC
 
   'bankForm.title': 'Your bank details',
   'bankForm.guestNote': 'A member approves new bank details before anyone can pay you.',

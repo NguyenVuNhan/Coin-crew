@@ -9,9 +9,9 @@ import { mockMedia } from '../../test/media';
 import { setLang } from '../../i18n';
 import { en } from '../../i18n/en';
 import { PayQr } from '../PayQr';
-import { BankAppSheet } from '../BankAppSheet';
+import { fakePlatform } from '../../test/fakePlatform';
 import { TripRoute } from '../../screens/TripRoute';
-import { saveQr, shareQr, shareSportBill } from '../../lib/qr';
+import { shareQr, shareSportBill } from '../../lib/qr';
 import { copyText } from '../../lib/clipboard';
 
 vi.mock('../../lib/qr', async (importOriginal) => {
@@ -20,7 +20,6 @@ vi.mock('../../lib/qr', async (importOriginal) => {
     ...actual,
     qrPngBlob: vi.fn(async () => new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })),
     renderSportBillPng: vi.fn(async () => new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })),
-    saveQr: vi.fn(async () => undefined),
     shareQr: vi.fn(async () => 'shared' as const),
     shareSportBill: vi.fn(async () => 'shared' as const),
   };
@@ -123,22 +122,20 @@ const viewWithSportExpense: TripView = {
 };
 
 describe('Zalo webview picture sharing', () => {
-  it('Save QR opens the picture sheet inside Zalo', async () => {
+  it('Download QR saves through the platform inside Zalo, without the picture sheet', async () => {
     uaSpy = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ZALO_UA);
     mockMedia({});
     const user = userEvent.setup();
+    const platform = fakePlatform({ kind: 'web' });
 
-    renderAt(<PayQr variant="pay" info={payInfo()} />);
+    renderAt(<PayQr variant="pay" info={payInfo()} />, { platform });
 
-    const saveBtn = await screen.findByRole('button', { name: 'Save QR' });
+    const saveBtn = await screen.findByRole('button', { name: 'Download QR' });
     await waitFor(() => expect(saveBtn).toBeEnabled());
     await user.click(saveBtn);
 
-    const dialog = await screen.findByRole('dialog', { name: 'Save the picture' });
-    expect(dialog).toBeInTheDocument();
-    const img = await within(dialog).findByRole('img');
-    expect(img).toBeInTheDocument();
-    expect(saveQr).not.toHaveBeenCalled();
+    await waitFor(() => expect(platform.calls.saveImage).toHaveLength(1));
+    expect(screen.queryByRole('dialog', { name: 'Save the picture' })).toBeNull();
     expect(copyText).not.toHaveBeenCalled();
   });
 
@@ -212,17 +209,18 @@ describe('Zalo webview picture sharing', () => {
     expect(dialog).toBeInTheDocument();
   });
 
-  it('outside Zalo the old paths run', async () => {
+  it('outside Zalo, Download saves through the platform and Share uses the share sheet', async () => {
     uaSpy = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(CHROME_UA);
     mockMedia({});
     const user = userEvent.setup();
+    const platform = fakePlatform({ kind: 'web' });
 
-    const payRender = renderAt(<PayQr variant="pay" info={payInfo()} />);
-    const saveBtn = await screen.findByRole('button', { name: 'Save QR' });
+    const payRender = renderAt(<PayQr variant="pay" info={payInfo()} />, { platform });
+    const saveBtn = await screen.findByRole('button', { name: 'Download QR' });
     await waitFor(() => expect(saveBtn).toBeEnabled());
     await user.click(saveBtn);
 
-    expect(saveQr).toHaveBeenCalled();
+    await waitFor(() => expect(platform.calls.saveImage).toHaveLength(1));
     expect(screen.queryByRole('dialog', { name: 'Save the picture' })).toBeNull();
     payRender.unmount();
 
@@ -233,16 +231,5 @@ describe('Zalo webview picture sharing', () => {
 
     expect(shareQr).toHaveBeenCalled();
     expect(screen.queryByRole('dialog', { name: 'Save the picture' })).toBeNull();
-  });
-
-  it('the bank app sheet shows the Zalo hint only in Zalo', () => {
-    uaSpy = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ZALO_UA);
-    const zaloRender = renderAt(<BankAppSheet open onClose={() => {}} />);
-    expect(screen.getByText(en['pay.zaloBankHint'])).toBeInTheDocument();
-    zaloRender.unmount();
-
-    uaSpy.mockReturnValue(CHROME_UA);
-    renderAt(<BankAppSheet open onClose={() => {}} />);
-    expect(screen.queryByText(en['pay.zaloBankHint'])).toBeNull();
   });
 });

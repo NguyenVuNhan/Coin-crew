@@ -31,6 +31,6 @@ describe('makeRefCode', () => {
 
 describe('bank data', () => {
   it('finds Techcombank by BIN', () => expect(findBank('970407')?.shortName).toBe('Techcombank'));
-  it('five Android apps can prefill (spec §9.3)', () => expect(BANK_APPS.android.filter((a) => a.autofill)).toHaveLength(5));
+  it('apps come most installed first', () => expect(BANK_APPS.android[0]!.monthlyInstall).toBeGreaterThanOrEqual(BANK_APPS.android[1]!.monthlyInstall));
   it('deeplink format', () => expect(bankAppLink('vcb')).toBe('https://dl.vietqr.io/pay?app=vcb'));
 });

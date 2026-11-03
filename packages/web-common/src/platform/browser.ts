@@ -1,5 +1,10 @@
 import type { PlatformBridge, PlatformStorage, ShareCard, ZaloFriend } from './index';
 
+export function isIosDevice(nav: Navigator = navigator): boolean {
+  const ua = nav?.userAgent ?? '';
+  return /iPhone|iPad|iPod/.test(ua) || (ua.includes('Macintosh') && (nav?.maxTouchPoints ?? 0) > 1);
+}
+
 const browserStorage: PlatformStorage = {
   async get(key: string): Promise<string | null> {
     try {
@@ -54,16 +59,45 @@ export const browserPlatform: PlatformBridge = {
     return 'failed';
   },
 
-  async saveImage(png: Blob, fileName: string): Promise<'saved' | 'failed'> {
+  async saveImage(png: Blob, fileName: string): Promise<'saved' | 'cancelled' | 'failed'> {
+    if (isIosDevice()) {
+      try {
+        const files = [new File([png], fileName, { type: 'image/png' })];
+        if (typeof navigator !== 'undefined' && typeof navigator.canShare === 'function' && navigator.canShare({ files })) {
+          try {
+            await navigator.share({ files });
+            return 'saved';
+          } catch (err: unknown) {
+            if (typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError') {
+              return 'cancelled';
+            }
+            return 'failed';
+          }
+        }
+        return 'failed';
+      } catch {
+        return 'failed';
+      }
+    }
+
     try {
-      const url = URL.createObjectURL(png);
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error ?? new Error('Failed to read blob'));
+        reader.onabort = () => reject(new Error('Read aborted'));
+        reader.readAsDataURL(png);
+      });
+
       const a = document.createElement('a');
       a.download = fileName;
-      a.href = url;
+      a.href = dataUrl;
       document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      try {
+        a.click();
+      } finally {
+        a.remove();
+      }
       return 'saved';
     } catch {
       return 'failed';

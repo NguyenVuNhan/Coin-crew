@@ -46,7 +46,14 @@ export const vi: Record<MessageKey, string> = {
   'pay.bankPending': 'Thông tin ngân hàng của {name} đang chờ duyệt', // REVIEW
   'pay.bankNone': '{name} chưa thêm thông tin ngân hàng', // REVIEW
   'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
-  'pay.saveQr': 'Lưu mã QR', // REVIEW
+  'pay.openApp': 'Mở {app}', // REVIEW
+  'pay.switchBank': 'Đổi ngân hàng', // REVIEW
+  'pay.downloadQr': 'Tải mã QR', // REVIEW
+  'pay.pickBank': 'Chọn ngân hàng của bạn', // REVIEW
+  'pay.searchBank': 'Tìm: vcb, techcom, Á Châu…', // REVIEW
+  'pay.recentBank': 'Dùng gần đây', // REVIEW
+  'pay.popularBanks': 'Phổ biến', // REVIEW
+  'pay.noBankMatch': 'Không tìm thấy ngân hàng "{q}"', // REVIEW
 
   'landing.headline': 'Chia tiền chuyến đi. Thanh toán bằng VietQR.', // REVIEW
   'landing.tagline': 'Bạn bè tham gia từ một liên kết trong nhóm chat, không cần tài khoản.', // REVIEW
@@ -605,16 +612,26 @@ export const vi: Record<MessageKey, string> = {
   'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
   'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
   'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
-  'pay.chooseApp': 'Chọn ứng dụng ngân hàng của bạn', // REVIEW
-  'pay.fillsIn': 'tự động điền thông tin thanh toán', // REVIEW
-  'pay.zaloBankHint': 'Ứng dụng ngân hàng không mở? Lưu mã QR, rồi trong app ngân hàng chọn Quét QR → chọn ảnh. Hoặc nhấn ⋯ → Mở bằng trình duyệt.', // REVIEW
   'pay.remindThem': 'Nhắc {name}', // REVIEW
   'pay.share': 'Chia sẻ', // REVIEW
   'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
   'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.', // REVIEW
   'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
   'pay.savedToGallery': 'Đã lưu ảnh QR vào thư viện ảnh', // REVIEW
-  'pay.bankFallback': 'Mở app ngân hàng → Quét QR → chọn ảnh từ thư viện', // REVIEW
+  'pay.handoffTitle': 'Thanh toán bằng {app}', // REVIEW
+  'pay.saving': 'Đang lưu mã QR…', // REVIEW
+  'pay.savingIos': 'Chọn "Lưu hình ảnh"', // REVIEW
+  'pay.savedStep': 'Đã lưu mã QR', // REVIEW
+  'pay.saveStep': 'Lưu mã QR', // REVIEW
+  'pay.saveAction': 'Lưu', // REVIEW
+  'pay.opening': 'Đang mở {app}…', // REVIEW
+  'pay.openedStep': 'Đã mở {app}', // REVIEW
+  'pay.openStep': 'Mở {app}', // REVIEW
+  'pay.openAction': 'Mở', // REVIEW
+  'pay.notOpened': 'Chưa mở được?', // REVIEW
+  'pay.openManually': 'Tự mở {app}, rồi Quét QR → tải ảnh lên', // REVIEW
+  'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
+  'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
 
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW
