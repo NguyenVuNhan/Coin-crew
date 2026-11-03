@@ -3,10 +3,11 @@ import { Hono } from 'hono';
 import { and, asc, eq, isNull, max, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PickerView } from '@fsl/core';
-import { findSimilarNames, normalizeName } from '@fsl/core';
+import { expenseShareOf, findSimilarNames, isFundPaid, normalizeName, rowSlots } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import {
+  deviceExpenseGrants,
   deviceParticipants,
   membershipRequests,
   mergeProposals,
@@ -23,6 +24,7 @@ import { commitTripWrite } from '../lib/commit';
 import { ApiError, isDbError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
 import { pendingProposalFor } from '../proposals/store';
+import { getSnapshot } from '../trips/snapshot';
 import { mergeParticipants } from './merge';
 import { takeOutOfTrip } from './remove';
 
@@ -224,6 +226,19 @@ export function participantRoutes(): Hono<AppBindings> {
     const actor = await getActor(c, tripId);
     const db = getDb(c.env);
 
+    const expenseId = c.req.query('expense');
+    const expense = expenseId
+      ? (await getSnapshot(db, actor.trip)).expenses.find(
+          (e) =>
+            (e.id === expenseId || e.rootId === expenseId) &&
+            (e.status === 'approved' || e.status === 'pending') &&
+            !isFundPaid(e),
+        )
+      : undefined;
+    if (expenseId && !expense) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
     const participantList = await db
       .select()
       .from(participants)
@@ -242,7 +257,11 @@ export function participantRoutes(): Hono<AppBindings> {
 
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const people = participantList.map((p) => {
+    const filteredParticipants = expense
+      ? participantList.filter((p) => p.id !== expense.payerId && expenseShareOf(expense, p.id) > 0)
+      : participantList;
+
+    const people = filteredParticipants.map((p) => {
       const lastUsedHere = dpRows.some(
         (dp) => dp.deviceHash === actor.deviceHash && dp.participantId === p.id,
       );
@@ -267,6 +286,7 @@ export function participantRoutes(): Hono<AppBindings> {
         zaloLinked: p.zaloSub !== null,
         lastUsedHere,
         activeElsewhere,
+        ...(expense ? { slots: rowSlots(expense, p.id) } : {}),
       };
     });
 
@@ -306,6 +326,7 @@ export function participantRoutes(): Hono<AppBindings> {
       myPick: actor.participantId,
       account,
       myLeftName,
+      ...(expense ? { expense: { id: expense.rootId ?? expense.id, payerId: expense.payerId } } : {}),
     };
 
     return c.json(view);
@@ -377,6 +398,77 @@ export function participantRoutes(): Hono<AppBindings> {
         if (!isDbError(err, 'UNIQUE constraint failed')) throw err;
       }
     }
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/expenses/:eid/friend
+  app.post('/trips/:id/expenses/:eid/friend', async (c) => {
+    const tripId = c.req.param('id');
+    const expenseId = c.req.param('eid');
+    const actor = await getActor(c, tripId);
+    if (actor.kind !== 'guest') {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    const body = await parseJson<{ participantId?: unknown }>(c);
+    if (typeof body?.participantId !== 'string') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const db = getDb(c.env);
+    const snapshot = await getSnapshot(db, actor.trip);
+    const expense = snapshot.expenses.find(
+      (e) =>
+        (e.id === expenseId || e.rootId === expenseId) &&
+        (e.status === 'approved' || e.status === 'pending') &&
+        !isFundPaid(e),
+    );
+    if (!expense) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const target = await db
+      .select()
+      .from(participants)
+      .where(
+        and(
+          eq(participants.id, body.participantId),
+          eq(participants.tripId, tripId),
+          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
+        ),
+      )
+      .get();
+
+    if (
+      !target ||
+      target.userId === null ||
+      target.id === expense.payerId ||
+      rowSlots(expense, target.id) < 2
+    ) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    const expenseRootId = expense.rootId ?? expense.id;
+    const now = nowIso();
+    await db
+      .insert(deviceExpenseGrants)
+      .values({
+        deviceHash: actor.deviceHash,
+        tripId,
+        expenseRootId,
+        participantId: target.id,
+        createdAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [deviceExpenseGrants.deviceHash, deviceExpenseGrants.expenseRootId],
+        set: {
+          tripId,
+          participantId: target.id,
+          createdAt: now,
+        },
+      })
+      .run();
 
     return c.body(null, 204);
   });

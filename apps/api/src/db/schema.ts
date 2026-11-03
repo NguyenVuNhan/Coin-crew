@@ -184,6 +184,21 @@ export const deviceParticipants = sqliteTable(
   ],
 );
 
+export const deviceExpenseGrants = sqliteTable(
+  'device_expense_grants',
+  {
+    deviceHash: text('device_hash').notNull(),
+    tripId: text('trip_id').notNull(),
+    expenseRootId: text('expense_root_id').notNull(),
+    participantId: text('participant_id').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.deviceHash, t.expenseRootId] }),
+    index('device_expense_grants_trip_idx').on(t.tripId),
+  ],
+);
+
 export const bankDetails = sqliteTable(
   'bank_details',
   {
