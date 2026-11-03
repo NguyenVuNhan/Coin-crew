@@ -338,6 +338,8 @@ export function approvalKey(a: Approval): string {
       return `b-${a.bankId}`;
     case 'payment':
       return `p-${a.paymentId}`;
+    case 'expense_payments':
+      return `ep-${a.expenseId}`;
     case 'not_arrived':
       return `x-${a.paymentId}`;
     case 'membership':
@@ -369,6 +371,8 @@ export function ApprovalItem({
       return <BankApproval view={view} a={approval} />;
     case 'payment':
       return <PaymentApproval view={view} paymentId={approval.paymentId} switching={switching} />;
+    case 'expense_payments':
+      return null; // Task 9 renders the grouped card.
     case 'not_arrived':
       return <NotArrivedApproval view={view} paymentId={approval.paymentId} />;
     case 'membership':
