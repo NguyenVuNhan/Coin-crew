@@ -9,13 +9,13 @@ import type { Db } from '../db/client';
 import { getDb } from '../db/client';
 import { bankDetails, participants } from '../db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
-import { assertWritable, resolveActor } from '../access/actor';
+import { assertWritable, resolveActor, type TripRow } from '../access/actor';
 import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
 import { getOrCreateRefCode } from '../payments/refs';
-import { getSnapshot } from '../trips/snapshot';
+import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -552,122 +552,164 @@ export function bankRoutes(): Hono<AppBindings> {
     ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting, isExpensePayer });
 
     const amount = self && !forPayer ? 0 : (suggestion?.amount ?? 0);
+    const info = await buildPayInfo(db, actor.trip, {
+      payerId,
+      toId,
+      amount,
+      snapshot,
+      forPayer,
+      bill: isBill ? { expenseId: c.req.query('expense') } : undefined,
+    });
 
-    let approvedRow: typeof bankDetails.$inferSelect | undefined;
-    let guestHasPending = false;
+    return c.json<PayInfo>(info);
+  });
 
-    if (toParticipant.userId !== null) {
-      approvedRow = await db
-        .select()
-        .from(bankDetails)
-        .where(
-          and(
-            eq(bankDetails.userId, toParticipant.userId),
-            eq(bankDetails.status, 'approved'),
-          ),
-        )
-        .get();
-    } else {
-      approvedRow = await db
-        .select()
+  return app;
+}
+
+export async function buildPayInfo(
+  db: Db,
+  trip: TripRow,
+  opts: {
+    payerId: string | null;
+    toId: string;
+    amount: number;
+    snapshot: TripSnapshot;
+    forPayer?: boolean;
+    bill?: { expenseId?: string };
+  },
+): Promise<PayInfo> {
+  const { payerId, toId, amount, snapshot, forPayer, bill } = opts;
+
+  const toParticipant = await db
+    .select()
+    .from(participants)
+    .where(
+      and(
+        eq(participants.id, toId),
+        eq(participants.tripId, trip.id),
+        inArray(participants.status, ['active', 'pending', 'left']),
+      ),
+    )
+    .get();
+
+  if (!toParticipant) {
+    throw new ApiError('NOT_FOUND', 404);
+  }
+
+  let approvedRow: typeof bankDetails.$inferSelect | undefined;
+  let guestHasPending = false;
+
+  if (toParticipant.userId !== null) {
+    approvedRow = await db
+      .select()
+      .from(bankDetails)
+      .where(
+        and(
+          eq(bankDetails.userId, toParticipant.userId),
+          eq(bankDetails.status, 'approved'),
+        ),
+      )
+      .get();
+  } else {
+    approvedRow = await db
+      .select()
+      .from(bankDetails)
+      .where(
+        and(
+          eq(bankDetails.participantId, toParticipant.id),
+          eq(bankDetails.status, 'approved'),
+        ),
+      )
+      .get();
+
+    if (!approvedRow) {
+      const pendingRow = await db
+        .select({ id: bankDetails.id })
         .from(bankDetails)
         .where(
           and(
             eq(bankDetails.participantId, toParticipant.id),
-            eq(bankDetails.status, 'approved'),
+            eq(bankDetails.status, 'pending'),
           ),
         )
         .get();
+      guestHasPending = pendingRow !== undefined;
+    }
+  }
 
-      if (!approvedRow) {
-        const pendingRow = await db
-          .select({ id: bankDetails.id })
-          .from(bankDetails)
-          .where(
-            and(
-              eq(bankDetails.participantId, toParticipant.id),
-              eq(bankDetails.status, 'pending'),
-            ),
+  const bankState: PayInfo['bankState'] = approvedRow
+    ? 'ok'
+    : (guestHasPending ? 'pending' : 'none');
+
+  const bank: PayInfo['bank'] = approvedRow
+    ? {
+        bin: approvedRow.bin,
+        bankName: findBank(approvedRow.bin)?.shortName ?? approvedRow.bin,
+        accountNumber: approvedRow.accountNumber,
+        accountNumberMasked: maskAccountNumber(approvedRow.accountNumber),
+        holderName: approvedRow.holderName,
+      }
+    : null;
+
+  const refCode = payerId && payerId !== toId
+    ? await getOrCreateRefCode(db, trip, payerId, toId)
+    : '';
+
+  const self = payerId === toId;
+  // The payer's screen keeps its QR while a payment waits for confirmation (amount 0); the receiver's
+  // QR only exists while something is owed.
+  let payload: string | null = null;
+  if (bill) {
+    if (bankState === 'ok' && approvedRow) {
+      const billNote = refCode || toTransferNote(trip.name, 25);
+      // The bill of one expense this person paid asks for the share when everyone owes the same.
+      const expenseId = bill.expenseId;
+      const billExpense = expenseId
+        ? snapshot.expenses.find(
+            (e) =>
+              (e.id === expenseId || e.rootId === expenseId) &&
+              e.payerId === toId &&
+              (e.status === 'approved' || e.status === 'pending') &&
+              !isFundPaid(e),
           )
-          .get();
-        guestHasPending = pendingRow !== undefined;
-      }
+        : undefined;
+      payload = buildVietQrPayload({
+        bin: approvedRow.bin,
+        accountNumber: approvedRow.accountNumber,
+        amount: billExpense ? (equalBillShare(billExpense) ?? 0) : 0,
+        note: billNote,
+      });
     }
+  } else {
+    payload =
+      bankState === 'ok' && approvedRow && (forPayer ? amount > 0 : !self)
+        ? buildVietQrPayload({
+            bin: approvedRow.bin,
+            accountNumber: approvedRow.accountNumber,
+            amount,
+            note: refCode,
+          })
+        : null;
+  }
 
-    const bankState: PayInfo['bankState'] = approvedRow
-      ? 'ok'
-      : (guestHasPending ? 'pending' : 'none');
+  const inFlight = snapshot.payments.filter(
+    (p) =>
+      p.status === 'says_paid' &&
+      p.fromId === payerId &&
+      p.toId === toId,
+  );
 
-    const bank: PayInfo['bank'] = approvedRow
-      ? {
-          bin: approvedRow.bin,
-          bankName: findBank(approvedRow.bin)?.shortName ?? approvedRow.bin,
-          accountNumber: approvedRow.accountNumber,
-          accountNumberMasked: maskAccountNumber(approvedRow.accountNumber),
-          holderName: approvedRow.holderName,
-        }
-      : null;
-
-    const refCode = payerId && payerId !== toId
-      ? await getOrCreateRefCode(db, actor.trip, payerId, toId)
-      : '';
-
-    // The payer's screen keeps its QR while a payment waits for confirmation (amount 0); the receiver's
-    // QR only exists while something is owed.
-    let payload: string | null = null;
-    if (isBill) {
-      if (bankState === 'ok' && approvedRow) {
-        const billNote = refCode || toTransferNote(actor.trip.name, 25);
-        // The bill of one expense this person paid asks for the share when everyone owes the same.
-        const expenseId = c.req.query('expense');
-        const billExpense = expenseId
-          ? snapshot.expenses.find(
-              (e) =>
-                (e.id === expenseId || e.rootId === expenseId) &&
-                e.payerId === toId &&
-                (e.status === 'approved' || e.status === 'pending') &&
-                !isFundPaid(e),
-            )
-          : undefined;
-        payload = buildVietQrPayload({
-          bin: approvedRow.bin,
-          accountNumber: approvedRow.accountNumber,
-          amount: billExpense ? (equalBillShare(billExpense) ?? 0) : 0,
-          note: billNote,
-        });
-      }
-    } else {
-      payload =
-        bankState === 'ok' && approvedRow && (forPayer ? amount > 0 : !self)
-          ? buildVietQrPayload({
-              bin: approvedRow.bin,
-              accountNumber: approvedRow.accountNumber,
-              amount,
-              note: refCode,
-            })
-          : null;
-    }
-
-    const inFlight = snapshot.payments.filter(
-      (p) =>
-        p.status === 'says_paid' &&
-        p.fromId === payerId &&
-        p.toId === toId,
-    );
-
-    return c.json<PayInfo>({
-      to: {
-        id: toParticipant.id,
-        name: toParticipant.name,
-      },
-      amount,
-      bankState,
-      bank,
-      refCode,
-      payload,
-      inFlight,
-    });
-  });
-
-  return app;
+  return {
+    to: {
+      id: toParticipant.id,
+      name: toParticipant.name,
+    },
+    amount,
+    bankState,
+    bank,
+    refCode,
+    payload,
+    inFlight,
+  };
 }

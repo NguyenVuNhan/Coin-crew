@@ -12,6 +12,7 @@ import { tripRoutes } from './trips/routes';
 import { participantRoutes } from './participants/routes';
 import { joinRoutes } from './participants/join';
 import { expenseRoutes } from './expenses/routes';
+import { expensePayRoutes } from './expenses/payView';
 import { fundRoutes } from './fund/routes';
 import { ratingRoutes } from './ratings/routes';
 import { bankRoutes } from './bank/routes';
@@ -47,6 +48,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', participantRoutes());
   app.route('/api', joinRoutes());
   app.route('/api', expenseRoutes());
+  app.route('/api', expensePayRoutes());
   app.route('/api', fundRoutes());
   app.route('/api', ratingRoutes());
   app.route('/api', bankRoutes());
