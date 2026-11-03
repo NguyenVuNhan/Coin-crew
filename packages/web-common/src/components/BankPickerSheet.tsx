@@ -78,7 +78,7 @@ export function BankPickerSheet({
           />
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto space-y-4">
+        <div className="space-y-4">
           {isQueryEmpty ? (
             <>
               {recent && (

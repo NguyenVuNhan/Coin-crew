@@ -31,12 +31,13 @@ export function bankAppLink(appId: string): string {
   return `https://dl.vietqr.io/pay?app=${encodeURIComponent(appId)}`;
 }
 
+/** Apps whose id, code, app name or bank name has a word starting with the query (accents ignored), most installed first. */
 export function searchBankApps(apps: BankApp[], query: string): BankApp[] {
   const q = normalizeName(query.trim());
   const filtered = q
     ? apps.filter((app) =>
         [app.appId, app.appName, app.bankShortName, app.bankCode, app.bankName].some(
-          (field) => field !== null && normalizeName(field).includes(q),
+          (field) => field !== null && ` ${normalizeName(field)}`.includes(` ${q}`),
         ),
       )
     : [...apps];

@@ -630,6 +630,7 @@ export const vi: Record<MessageKey, string> = {
   'pay.openStep': 'Mở {app}', // REVIEW
   'pay.openAction': 'Mở', // REVIEW
   'pay.notOpened': 'Chưa mở được?', // REVIEW
+  'pay.openManually': 'Tự mở {app}, rồi Quét QR → tải ảnh lên', // REVIEW
   'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
   'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
 

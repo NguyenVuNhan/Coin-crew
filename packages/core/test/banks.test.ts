@@ -19,6 +19,11 @@ describe('searchBankApps', () => {
     expect(searchBankApps(apps, 'vietcom').map((a) => a.appId)).toEqual(['vcb']);
     expect(searchBankApps(apps, 'buu dien').map((a) => a.appId)).toEqual(['lpb']);
   });
+  it('matches from the start of a word, so vcb does not find pvcb', () => {
+    const withPvcb: BankApp[] = [...apps, { appId: 'pvcb', appName: 'PVConnect', bankName: 'Ngân hàng TMCP Đại Chúng Việt Nam', bankShortName: 'PVcomBank', bankCode: 'PVCB', monthlyInstall: 900000 }];
+    expect(searchBankApps(withPvcb, 'vcb').map((a) => a.appId)).toEqual(['vcb']);
+    expect(searchBankApps(withPvcb, 'pv').map((a) => a.appId)).toEqual(['pvcb']);
+  });
   it('no match gives an empty list', () => {
     expect(searchBankApps(apps, 'zzz')).toEqual([]);
   });

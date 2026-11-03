@@ -73,7 +73,7 @@ describe('BankHandoffSheet', () => {
   });
 
   it('shows the Open button after 3 s when the page never hid', async () => {
-    const platform = fakePlatform();
+    const platform = fakePlatform({ kind: 'web' });
     renderHandoff({}, platform);
 
     await act(async () => {
@@ -92,6 +92,7 @@ describe('BankHandoffSheet', () => {
 
   it('blocked opens the fallback at once', async () => {
     const platform = fakePlatform({
+      kind: 'web',
       openExternal: async () => 'blocked',
     });
     renderHandoff({}, platform);
@@ -181,7 +182,7 @@ describe('BankHandoffSheet', () => {
   });
 
   it('a fallback picture on screen keeps the bank from opening by itself', async () => {
-    const platform = fakePlatform({ saveImage: async () => 'failed' });
+    const platform = fakePlatform({ kind: 'web', saveImage: async () => 'failed' });
     renderHandoff({ onSaveFailed: () => true }, platform);
 
     await act(async () => {
@@ -190,7 +191,21 @@ describe('BankHandoffSheet', () => {
 
     expect(platform.calls.openExternal).toHaveLength(0);
     expect(document.querySelector('[data-step="2"]')).toHaveAttribute('data-state', 'open-failed');
-    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open' })).toBeInTheDocument();
+  });
+
+  it('Mini App: a refused open shows how to open the bank by hand, with no dead button', async () => {
+    const platform = fakePlatform({ kind: 'zmp', openExternal: async () => 'blocked' });
+    renderHandoff({}, platform);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(document.querySelector('[data-step="2"]')).toHaveAttribute('data-state', 'open-failed');
+    expect(screen.getByText('Open ACB ONE yourself, then Scan QR → upload picture')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
   });
 
   it('runs the whole flow under StrictMode', async () => {

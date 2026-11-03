@@ -299,26 +299,18 @@ export function BankHandoffSheet({
                 </p>
               )}
               {state.step2 === 'open-failed' && (
-                <p className="text-xs text-muted-foreground mt-0.5 leading-normal">
-                  {t('pay.notOpened')}
+                <p className="fsl-bank-step__manual text-xs text-muted-foreground mt-0.5 leading-normal">
+                  {platform.kind === 'web' ? t('pay.notOpened') : t('pay.openManually', { app: app.appName })}
                 </p>
               )}
             </div>
           </div>
-          {state.step2 === 'open-failed' &&
-            (platform.kind === 'web' ? (
-              <Button variant="secondary" className="min-h-11 shrink-0 px-4" href={bankAppLink(app.appId)}>
-                {t('pay.openAction')}
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                className="min-h-11 shrink-0 px-4"
-                onClick={() => void platform.openExternal(bankAppLink(app.appId))}
-              >
-                {t('pay.openAction')}
-              </Button>
-            ))}
+          {/* The Mini App can't open other apps until Zalo grants openOutApp, so it gets the instruction above instead. */}
+          {state.step2 === 'open-failed' && platform.kind === 'web' && (
+            <Button variant="secondary" className="min-h-11 shrink-0 px-4" href={bankAppLink(app.appId)}>
+              {t('pay.openAction')}
+            </Button>
+          )}
         </div>
 
         {/* Tip under the steps */}

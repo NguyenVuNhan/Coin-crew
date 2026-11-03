@@ -630,6 +630,7 @@ export const en = {
   'pay.openStep': 'Open {app}', // SPEC
   'pay.openAction': 'Open', // SPEC
   'pay.notOpened': "Didn't open?", // SPEC
+  'pay.openManually': 'Open {app} yourself, then Scan QR → upload picture', // SPEC
   'pay.zaloAsks': 'Zalo will ask: choose "Continue"', // SPEC
   'pay.handoffTip': 'In {app}: Scan QR → upload picture → pick the saved QR.', // SPEC
 

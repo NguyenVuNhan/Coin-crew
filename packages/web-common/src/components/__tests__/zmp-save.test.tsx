@@ -142,7 +142,7 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     expect(await screen.findByText(en['pay.shareFailed'])).toBeInTheDocument();
   });
 
-  it('zmp: bank app blocked shows the Open button in the hand-off sheet', async () => {
+  it('zmp: bank app blocked shows how to open it by hand', async () => {
     setLang('en');
     mockMedia({ coarse: true });
     const fake = fakePlatform({
@@ -164,6 +164,8 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
     await waitFor(() => expect(fake.calls.openExternal.length).toBe(1), { timeout: 2000 });
     expect(fake.calls.openExternal[0]![0]).toMatch(/^https:\/\/dl\.vietqr\.io\/pay\?app=/);
     await waitFor(() => expect(document.querySelector('[data-step="2"]')).toHaveAttribute('data-state', 'open-failed'));
+    expect(screen.getByText(/yourself, then Scan QR/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open' })).toBeNull();
   });
 
   it('zmp: sport bill saves the picture and shares a card', async () => {
