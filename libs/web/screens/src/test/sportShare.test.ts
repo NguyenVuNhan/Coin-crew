@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { APP_NAME } from '../config';
 import { sportShareText } from '../lib/remind';
 import { splitText } from '../lib/tripText';
-import { t, setLang } from '../i18n';
+import { t, setLang } from '@cc/web-i18n';
 import type { ExpenseView } from '@cc/core';
 
 describe('APP_NAME and group copy', () => {

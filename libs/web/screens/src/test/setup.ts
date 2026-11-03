@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import { setLang } from '../i18n';
+import { setLang } from '@cc/web-i18n';
 
 // Radix and vaul (shadcn's Dialog, Drawer, menus) call browser APIs jsdom lacks.
 if (!('ResizeObserver' in globalThis)) {

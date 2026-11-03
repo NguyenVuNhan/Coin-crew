@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ExpenseView, TripView } from '@cc/core';
 import { formatVnd, isFundPaid } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Button } from './Button';
 import { Icon } from './icons';
 import { Sheet } from './Sheet';

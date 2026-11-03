@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { Link, useLocation } from 'react-router';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Icon, type IconName } from './icons';
 import { Button } from './Button';
 import { AccountMenu } from './AccountMenu';

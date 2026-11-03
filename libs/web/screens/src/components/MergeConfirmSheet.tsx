@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IncomingMergeRequest } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';
 import { Button } from './Button';

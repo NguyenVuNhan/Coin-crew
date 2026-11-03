@@ -1,6 +1,6 @@
 import { formatVnd, type ActivityItem, type TripView } from '@cc/core';
-import type { MessageKey } from '../i18n/en';
-import { t as translate } from '../i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
+import { t as translate } from '@cc/web-i18n';
 import { formatDay } from './time';
 import { nameOf } from './tripText';
 

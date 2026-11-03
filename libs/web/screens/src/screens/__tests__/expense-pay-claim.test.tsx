@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import type { ExpensePayView, PayInfo, TripView, MeResponse, IncomingMergeRequest, PickerView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { guestChiView, PIDS, picker } from '../../test/fixtures';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { ExpensePay } from '../ExpensePay';
 import { WhoAreYou } from '../WhoAreYou';
 

@@ -12,7 +12,7 @@ import {
   RATING_MAX_STARS_PER_TARGET,
   RATING_SEARCH_THRESHOLD,
 } from '../config';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { actorOf } from '../lib/rowActions';
 import { useBack } from '../lib/navHistory';
 import { useTripAction } from '../lib/useTripAction';

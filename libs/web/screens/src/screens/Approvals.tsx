@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useBack } from '../lib/navHistory';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';

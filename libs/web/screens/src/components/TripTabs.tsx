@@ -1,6 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 
 export interface TripTabsProps {
   activeTab: 'expenses' | 'payments';

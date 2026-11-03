@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { tripView } from '../../test/fixtures';
 import { linkTokens } from '../linkTokens';
 import {

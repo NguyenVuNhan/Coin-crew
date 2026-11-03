@@ -18,7 +18,7 @@ import { Settings } from '../screens/Settings';
 import { TripRoute } from '../screens/TripRoute';
 import { CreateTrip } from '../screens/CreateTrip';
 import { InviteSheet } from '../components/InviteSheet';
-import { setLang, getLang } from '../i18n';
+import { setLang, getLang } from '@cc/web-i18n';
 
 afterEach(() => {
   vi.unstubAllGlobals();

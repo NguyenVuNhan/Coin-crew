@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react';
 import type { ActivityAction, ActivityItem, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
-import { t } from '../../i18n';
+import { t } from '@cc/web-i18n';
 import { activityLine } from '../../lib/activityText';
 import { YourTransfers } from '../YourTransfers';
 import { ExpenseDetails } from '../ExpenseDetails';

@@ -1,7 +1,7 @@
 import { useMe } from '../api/hooks';
 import { isZaloWebView } from '../lib/zaloEnv';
-import { useT } from '../i18n';
-import type { MessageKey } from '../i18n/en';
+import { useT } from '@cc/web-i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
 import { Button } from './Button';
 import { ProviderLogo } from './ProviderLogo';
 import { ZaloSignIn } from './ZaloSignIn';

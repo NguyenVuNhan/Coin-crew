@@ -1,4 +1,4 @@
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import type { ListMode } from '../lib/useListMode';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

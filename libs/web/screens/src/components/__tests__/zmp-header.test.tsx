@@ -5,7 +5,7 @@ import { fakePlatform } from '../../test/fakePlatform';
 import { tripView } from '../../test/fixtures';
 import { MemberTrip } from '../../screens/MemberTrip';
 import { Settings } from '../../screens/Settings';
-import { en } from '../../i18n/en';
+import { en } from '@cc/web-i18n/en';
 
 afterEach(() => {
   vi.unstubAllGlobals();

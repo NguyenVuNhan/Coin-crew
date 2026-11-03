@@ -2,7 +2,7 @@ import { useId, type JSX } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { Icon, type IconName } from './icons';
 

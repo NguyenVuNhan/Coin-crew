@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Modal } from './Modal';
 import { Button } from './Button';
 

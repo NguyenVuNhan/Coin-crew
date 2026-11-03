@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import type { PaymentView, TripView } from '@cc/core';
-import { useT } from '../i18n';
-import type { MessageKey } from '../i18n/en';
+import { useT } from '@cc/web-i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
 import { nameOf } from '../lib/tripText';
 import { formatWhen } from '../lib/time';
 import { useTripAction } from '../lib/useTripAction';

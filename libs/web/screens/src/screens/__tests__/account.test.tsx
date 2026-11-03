@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { AccountMenu } from '../../components/AccountMenu';
 
 const user = { name: 'Minh', email: 'minh@example.com' };

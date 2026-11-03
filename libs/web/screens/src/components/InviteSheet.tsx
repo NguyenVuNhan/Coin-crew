@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT, useLang } from '../i18n';
+import { useT, useLang } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
 import { usePlatform } from '../platform';
 import { appOrigin } from '../platform/session';

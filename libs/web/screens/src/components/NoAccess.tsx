@@ -1,4 +1,4 @@
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { EmptyState } from './EmptyState';
 import { SignInButtons } from './SignInButtons';
 

@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { guestChiView, picker, tripView } from '../../test/fixtures';
 import { WhoAreYou, safeTripPath } from '../WhoAreYou';
 import { TripRoute } from '../TripRoute';

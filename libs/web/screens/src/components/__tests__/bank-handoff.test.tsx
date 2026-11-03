@@ -4,7 +4,7 @@ import { render, screen, act, fireEvent } from '@testing-library/react';
 import type { BankApp } from '@cc/core';
 import { fakePlatform } from '../../test/fakePlatform';
 import { PlatformProvider } from '../../platform';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { BankHandoffSheet } from '../BankHandoffSheet';
 
 const fixtureApp: BankApp = {

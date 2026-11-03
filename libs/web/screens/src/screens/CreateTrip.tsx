@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import type { CreateTripInput, GroupPreset, Gender } from '@cc/core';
-import { useT, useLang } from '../i18n';
+import { useT, useLang } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { apiSend } from '../api/client';
 import { Screen } from '../components/Screen';

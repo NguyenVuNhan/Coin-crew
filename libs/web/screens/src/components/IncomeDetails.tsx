@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { IncomeHistoryItem, IncomeView, TripView } from '@cc/core';
 import { formatVnd } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { nameOf } from '../lib/tripText';
 import { formatDay } from '../lib/time';
 import { useTripAction } from '../lib/useTripAction';

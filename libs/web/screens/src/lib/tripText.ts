@@ -1,5 +1,5 @@
 import type { ExpenseView, TripView } from '@cc/core';
-import type { MessageKey } from '../i18n/en';
+import type { MessageKey } from '@cc/web-i18n/en';
 
 export function nameOf(view: TripView, id: string): string {
   const person = view.people.find((p) => p.id === id);

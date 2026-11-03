@@ -1,6 +1,6 @@
 import { useState, Fragment } from 'react';
 import { formatVnd, type TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { Button } from './Button';
 import { Icon } from './icons';

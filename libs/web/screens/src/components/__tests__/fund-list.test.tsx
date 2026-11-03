@@ -5,7 +5,7 @@ import type { TripView } from '@cc/core';
 import { renderAt } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
 import { sportFundView, sportMemberView } from '../../test/fundFixtures';
-import { t } from '../../i18n';
+import { t } from '@cc/web-i18n';
 import { incomeActions, expenseActions } from '../../lib/rowActions';
 import { ExpenseList } from '../ExpenseList';
 

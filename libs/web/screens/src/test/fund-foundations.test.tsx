@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ActivityAction } from '@cc/core';
-import { en } from '../i18n/en';
-import { vi as viMessages } from '../i18n/vi';
-import viSource from '../i18n/vi.ts?raw';
-import { t } from '../i18n';
+import { en } from '@cc/web-i18n/en';
+import { vi as viMessages } from '@cc/web-i18n/vi';
+import viSource from '@cc/web-i18n/vi?raw';
+import { t } from '@cc/web-i18n';
 import { Icon } from '../components/icons';
 import { InlineError } from '../components/InlineError';
 import { activityLine } from '../lib/activityText';

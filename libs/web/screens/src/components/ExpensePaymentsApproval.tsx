@@ -12,7 +12,7 @@ import {
 } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { apiSend } from '../api/client';
-import { useT, getLang } from '../i18n';
+import { useT, getLang } from '@cc/web-i18n';
 import { expenseLink, remind, remindText } from '../lib/remind';
 import { nameOf } from '../lib/tripText';
 import { formatDay } from '../lib/time';

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PersonView } from '@cc/core';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import type { RecentGroup } from '../../lib/recentGroups';
 import { SplitPeopleSheet } from '../SplitPeopleSheet';
 

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { SplitMode } from '@cc/core';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { SplitModePicker } from '../SplitModePicker';
 
 function Controlled({ start = 'equal', onChange }: { start?: SplitMode; onChange?: (m: SplitMode) => void }) {

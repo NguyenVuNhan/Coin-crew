@@ -18,7 +18,7 @@ import { Button } from '../components/Button';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
 import { IncomeDetails } from '../components/IncomeDetails';
-import { useT, applyInheritedLang } from '../i18n';
+import { useT, applyInheritedLang } from '@cc/web-i18n';
 import { GuestTrip } from './GuestTrip';
 import { ViewOnlyTrip } from './ViewOnlyTrip';
 import { MemberTrip } from './MemberTrip';

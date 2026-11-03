@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { searchBankApps, type BankApp } from '@cc/core';
 import { bankAppLogo } from '../lib/bankApps';
 import { Sheet } from './Sheet';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Search, Check } from 'lucide-react';
 
 export interface BankPickerSheetProps {

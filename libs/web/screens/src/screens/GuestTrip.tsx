@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';

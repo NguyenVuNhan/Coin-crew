@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { useIsWide } from '../lib/media';
 import { homeDetailsHref } from '../lib/detailsNav';

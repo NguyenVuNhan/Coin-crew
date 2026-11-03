@@ -1,7 +1,7 @@
 import { formatVnd, type TripView, type Gender } from '@cc/core';
-import type { Lang } from '../i18n';
-import { en } from '../i18n/en';
-import { vi } from '../i18n/vi';
+import type { Lang } from '@cc/web-i18n';
+import { en } from '@cc/web-i18n/en';
+import { vi } from '@cc/web-i18n/vi';
 import { linkTokens } from './linkTokens';
 import { appOrigin } from '../platform/session';
 

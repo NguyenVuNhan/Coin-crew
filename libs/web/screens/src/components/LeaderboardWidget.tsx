@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { rankPlayers, type RankedPlayer, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useRatingsLink } from '../lib/detailsNav';
 import { Avatar } from './Avatar';
 import { Icon } from './icons';

@@ -1,5 +1,5 @@
 import { formatVnd, type IncomeView, type TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { nameOf } from '../lib/tripText';
 import { cn } from '@/lib/utils';
 import { Icon } from './icons';

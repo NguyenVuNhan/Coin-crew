@@ -2,7 +2,7 @@ import { useId } from 'react';
 import type { TripView } from '@cc/core';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTripAction } from '../lib/useTripAction';
 import { InlineError } from './InlineError';
 

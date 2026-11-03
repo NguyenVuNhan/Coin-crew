@@ -1,4 +1,4 @@
-import { getLang, t } from '../i18n';
+import { getLang, t } from '@cc/web-i18n';
 
 export function formatAgo(iso: string, now = new Date()): string {
   const date = new Date(iso);

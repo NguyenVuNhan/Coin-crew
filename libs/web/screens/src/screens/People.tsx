@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { findSimilarNames, formatVnd, type Gender, type PersonView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { useTripView } from '../api/hooks';
 import { ApiClientError } from '../api/client';

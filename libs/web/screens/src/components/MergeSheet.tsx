@@ -3,7 +3,7 @@ import { useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { OutgoingMergeRequest } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { usePlatform } from '../platform';
 import { formatExpiry } from '../lib/time';

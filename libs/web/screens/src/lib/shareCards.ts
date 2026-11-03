@@ -1,5 +1,5 @@
 import type { TripView } from '@cc/core';
-import { t } from '../i18n';
+import { t } from '@cc/web-i18n';
 import type { ShareCard } from '../platform';
 import { linkTokens } from './linkTokens';
 

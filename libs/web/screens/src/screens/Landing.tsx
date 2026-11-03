@@ -1,8 +1,8 @@
 import { Fragment, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { APP_NAME } from '../config';
-import { useT } from '../i18n';
-import type { MessageKey } from '../i18n/en';
+import { useT } from '@cc/web-i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
 import { useMe } from '../api/hooks';
 import { Screen } from '../components/Screen';
 import { SignInButtons } from '../components/SignInButtons';

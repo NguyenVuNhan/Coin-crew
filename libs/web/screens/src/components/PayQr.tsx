@@ -1,7 +1,7 @@
 import { useState, type JSX } from 'react';
 import { ArrowLeftRight, Download } from 'lucide-react';
 import { formatVnd, type BankApp, type PayInfo } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { qrPngBlob, qrSrc, shareQr, useQrSvg } from '../lib/qr';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { useIsCoarsePointer } from '../lib/media';

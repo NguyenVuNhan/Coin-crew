@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Icon } from './icons';
 import { BottomBar } from './BottomBar';
 import { AppNav, type NavSection } from './AppNav';

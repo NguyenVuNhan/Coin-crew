@@ -12,7 +12,7 @@ import {
   type TripView,
 } from '@cc/core';
 import type { RowAction } from '../components/ActionRow';
-import type { useT } from '../i18n';
+import type { useT } from '@cc/web-i18n';
 import { isFundAdmin } from './fund';
 
 type T = ReturnType<typeof useT>;

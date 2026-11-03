@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { useLang, useT } from '../i18n';
+import { useLang, useT } from '@cc/web-i18n';
 import { Icon } from './icons';
 
 export interface LanguageButtonProps {

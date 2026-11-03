@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { BankApp } from '@cc/core';
 import { renderAt } from '../../test/render';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { BankPickerSheet } from '../BankPickerSheet';
 
 const apps: BankApp[] = [

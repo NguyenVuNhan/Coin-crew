@@ -7,7 +7,7 @@ import type { ExpensePayView, PayInfo, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { guestChiView, PIDS } from '../../test/fixtures';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { ExpensePay } from '../ExpensePay';
 import { App } from '../../App';
 

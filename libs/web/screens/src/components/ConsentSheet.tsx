@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';

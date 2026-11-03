@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { formatVnd } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Icon } from './icons';
 
 /**

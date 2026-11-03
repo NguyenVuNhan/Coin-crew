@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { usePlatform } from '../platform';
 import { zaloSignIn } from '../platform/zaloSession';
 import { Button } from './Button';

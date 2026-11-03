@@ -1,4 +1,4 @@
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Sheet } from './Sheet';
 import { SignInButtons } from './SignInButtons';
 

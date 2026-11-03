@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { formatVnd, type ExpenseView, type IncomeView, type TripView } from '@cc/core';
-import { useT } from '../i18n';
-import type { MessageKey } from '../i18n/en';
+import { useT } from '@cc/web-i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
 import { useListMode } from '../lib/useListMode';
 import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';

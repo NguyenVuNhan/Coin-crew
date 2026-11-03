@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
 import { can, formatVnd, isFundPaid } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { nameOf } from '../lib/tripText';
 import { actorOf } from '../lib/rowActions';

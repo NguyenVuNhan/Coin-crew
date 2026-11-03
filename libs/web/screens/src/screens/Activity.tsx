@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ActivityItem } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { apiFetch, type ApiClientError } from '../api/client';
 import { useTripView } from '../api/hooks';

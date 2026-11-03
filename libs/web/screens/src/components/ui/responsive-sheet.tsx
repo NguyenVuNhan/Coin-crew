@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
-import { useT } from "@/i18n"
+import { useT } from "@cc/web-i18n"
 import { XIcon } from "lucide-react"
 
 export interface ResponsiveSheetProps {

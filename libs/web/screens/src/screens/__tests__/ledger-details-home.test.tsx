@@ -7,7 +7,7 @@ import type { MyActivityItem, TripView } from '@cc/core';
 import { mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { tripView } from '../../test/fixtures';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { App } from '../../App';
 
 afterEach(() => {

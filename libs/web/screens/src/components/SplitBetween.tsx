@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { PersonView } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Avatar } from './Avatar';
 
 export interface SplitBetweenProps {

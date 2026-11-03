@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, type JoiningMergeRequest } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';
 import { Avatar } from './Avatar';

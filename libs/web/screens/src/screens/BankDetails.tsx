@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BankInput, MyBankResponse } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { useTrip } from '../lib/tripBase';

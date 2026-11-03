@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { formatVnd, isFundPaid, type ExpenseView, type TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { nameOf, splitText } from '../lib/tripText';
 import { cn } from '@/lib/utils';
 import { Amount } from './Amount';

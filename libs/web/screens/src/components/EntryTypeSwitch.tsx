@@ -1,8 +1,8 @@
 import type { JSX } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
-import type { MessageKey } from '../i18n/en';
+import { useT } from '@cc/web-i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
 
 export type EntryType = 'expense' | 'income';
 

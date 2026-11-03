@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useOpenDetails } from '../lib/detailsNav';
 import { useBack } from '../lib/navHistory';
 import { useTrip } from '../lib/tripBase';

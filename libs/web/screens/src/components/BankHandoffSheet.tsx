@@ -7,7 +7,7 @@ import { usePlatform } from '../platform';
 import { bankAppLogo } from '../lib/bankApps';
 import { isIosDevice } from '../platform/browser';
 import { isZaloWebView } from '../lib/zaloEnv';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 
 export interface BankHandoffSheetProps {
   open: boolean;

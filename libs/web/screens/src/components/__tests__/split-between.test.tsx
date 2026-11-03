@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PersonView } from '@cc/core';
-import { setLang } from '../../i18n';
+import { setLang } from '@cc/web-i18n';
 import { SplitBetween } from '../SplitBetween';
 
 const person = (id: string, name: string): PersonView => ({ id, name, status: 'active', isMember: false, bank: 'none' });

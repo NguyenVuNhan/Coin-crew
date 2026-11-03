@@ -2,7 +2,7 @@ import { useState, useId } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { can } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';

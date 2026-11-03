@@ -1,4 +1,4 @@
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Button } from './Button';
 import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';

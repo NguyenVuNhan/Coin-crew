@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type JSX } from 'react';
 import { formatVnd, type PaymentView, type Transfer, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT, getLang } from '../i18n';
+import { useT, getLang } from '@cc/web-i18n';
 import { nameOf } from '../lib/tripText';
 import { canManageBankOf } from '../lib/rowActions';
 import { groupLink, remind, remindText } from '../lib/remind';

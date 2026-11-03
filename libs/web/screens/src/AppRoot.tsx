@@ -3,7 +3,7 @@ import type { MeResponse } from '@cc/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { NavHistoryProvider } from './lib/navHistory';
-import { detectLang, setLang } from './i18n';
+import { detectLang, setLang } from '@cc/web-i18n';
 import { refetchOnWindowFocus } from './api/focus';
 import { ApiClientError, apiFetch } from './api/client';
 import { browserPlatform, PlatformProvider, type PlatformBridge } from './platform';

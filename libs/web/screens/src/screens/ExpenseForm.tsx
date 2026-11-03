@@ -13,8 +13,8 @@ import type {
   SportRule,
 } from '@cc/core';
 import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@cc/core';
-import { useT } from '../i18n';
-import type { MessageKey } from '../i18n/en';
+import { useT } from '@cc/web-i18n';
+import type { MessageKey } from '@cc/web-i18n/en';
 import { useTripView } from '../api/hooks';
 import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '../api/client';

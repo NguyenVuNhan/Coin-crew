@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { Screen } from '../components/Screen';

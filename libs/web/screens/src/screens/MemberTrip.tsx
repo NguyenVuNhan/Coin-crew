@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useTrip } from '../lib/tripBase';

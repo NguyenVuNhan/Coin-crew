@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import type { ReactElement } from 'react';
 import { vi } from 'vitest';
-import { setLang } from '../i18n';
+import { setLang } from '@cc/web-i18n';
 import { NavHistoryProvider } from '../lib/navHistory';
 import { browserPlatform, PlatformProvider, type PlatformBridge } from '../platform';
 

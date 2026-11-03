@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { formatVnd, type PaymentView, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { nameOf } from '../lib/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { paymentActions } from '../lib/rowActions';

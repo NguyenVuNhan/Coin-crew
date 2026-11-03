@@ -3,9 +3,9 @@ import { render, screen, renderHook, waitFor, act } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { en } from '../i18n/en';
-import { vi as viMessages } from '../i18n/vi';
-import { t, setLang } from '../i18n';
+import { en } from '@cc/web-i18n/en';
+import { vi as viMessages } from '@cc/web-i18n/vi';
+import { t, setLang } from '@cc/web-i18n';
 import { InlineError } from '../components/InlineError';
 import { Amount } from '../components/Amount';
 import { apiFetch, ApiClientError } from '../api/client';

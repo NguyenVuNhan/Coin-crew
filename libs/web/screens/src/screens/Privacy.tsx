@@ -1,4 +1,4 @@
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';
 import { Pill } from '../components/Pill';

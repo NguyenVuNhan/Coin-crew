@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router';
 import type { Approval, TripView } from '@cc/core';
-import { setLang } from '../i18n';
+import { setLang } from '@cc/web-i18n';
 import { renderAt, mockApi } from './render';
 import { tripView, PIDS } from './fixtures';
 import { useMe } from '../api/hooks';

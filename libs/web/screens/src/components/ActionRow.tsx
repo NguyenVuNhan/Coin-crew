@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useSwipeReveal } from '../lib/useSwipeReveal';
 import { useIsCoarsePointer, usePrefersReducedMotion } from '../lib/media';
 import { Icon, type IconName } from './icons';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { cn } from '@/lib/utils';
 
 /** Width of one revealed action button on a phone. */

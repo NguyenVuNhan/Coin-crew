@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { Icon } from './icons';
 import { FeedbackSheet } from './FeedbackSheet';
 

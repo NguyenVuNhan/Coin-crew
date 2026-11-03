@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { Sheet } from './Sheet';
 import { Avatar } from './Avatar';

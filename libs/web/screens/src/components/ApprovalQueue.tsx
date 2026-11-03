@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type JSX } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useApprovalsLink } from '../lib/detailsNav';
 import { usePrefersReducedMotion } from '../lib/media';
 import { ApprovalItem, approvalKey, waitingApprovals } from './ApprovalsCard';

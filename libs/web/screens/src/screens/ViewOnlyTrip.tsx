@@ -1,7 +1,7 @@
 import { useEntryState } from '../lib/navHistory';
 import type { TripView } from '@cc/core';
 import { formatVnd } from '@cc/core';
-import { useT } from '../i18n';
+import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';
