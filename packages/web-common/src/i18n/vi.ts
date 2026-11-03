@@ -222,6 +222,8 @@ export const vi: Record<MessageKey, string> = {
   'who.joinButton': 'Tham gia với tên {name}', // REVIEW
   'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
   'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn', // REVIEW
+  'who.nameOrFriend': '{name} hoặc bạn của {name}', // REVIEW
+  'who.slots': '{n} suất', // REVIEW
 
   'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
   'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW

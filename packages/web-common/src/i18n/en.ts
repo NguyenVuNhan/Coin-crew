@@ -222,6 +222,8 @@ export const en = {
   'who.joinButton': 'Join as {name}',
   'who.rejoinAs': 'Rejoin as {name}',
   'who.rejoinHint': 'You left this group · your past expenses are still here',
+  'who.nameOrFriend': "{name} or {name}'s friend",
+  'who.slots': '{n} slots',
 
   'guest.viewingAs': 'Viewing as {name}',
   'guest.switch': 'Not {name}? Switch',
