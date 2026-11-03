@@ -105,3 +105,18 @@ export function arrivedOutcome(actor: Actor, p: { toId: string; status: PaymentS
   if (!receiverIsMember && actor.kind === 'guest' && p.status === 'confirmed' && p.notArrived) return 'clear';
   return 'forbidden';
 }
+
+export function canRevisePayment(
+  actor: Actor,
+  p: { toId: string; status: PaymentStatus; confirmedById?: string | null },
+  receiverIsMember: boolean,
+): boolean {
+  return (
+    actor.kind === 'member' &&
+    receiverIsMember &&
+    actor.participantId !== null &&
+    actor.participantId === p.toId &&
+    p.status === 'confirmed' &&
+    p.confirmedById === actor.participantId
+  );
+}

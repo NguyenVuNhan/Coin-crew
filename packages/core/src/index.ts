@@ -12,3 +12,4 @@ export * from './ratings';
 export * from './people';
 export * from './api-types';
 export * from './mergePlan';
+export * from './expensePay';

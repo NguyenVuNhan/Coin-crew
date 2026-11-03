@@ -262,17 +262,33 @@ export interface IncomeView {
   history: IncomeHistoryItem[];
 }
 
+export type PaidBy = 'self' | 'friend';
+export interface PaymentMeta { expenseId: string; paidBy: PaidBy }
+export interface SlotTile { gender: 'F' | 'M'; amount: number }
+export interface ExpensePayView {
+  expense: { id: string; description: string; spentOn: string; amount: number };
+  payer: { id: string; name: string };
+  row: { participantId: string; name: string; isMember: boolean; slots: number; share: number; remaining: number; tiles: SlotTile[] };
+  viewer: PaidBy;
+  paid: { paymentId: string; amount: number; status: PaymentStatus; paidBy: PaidBy; notArrived: boolean }[];
+  pay: PayInfo | null;
+}
+
 export interface PaymentView {
   id: string; fromId: string; toId: string; amountClaimed: number; amountConfirmed: number | null;
   status: PaymentStatus; notArrived: boolean; createdAt: string;
   /** The part of a People settlement that runs against the money handed over: no cash moved in this group. */
   throughPeople?: boolean;
+  expenseId?: string;
+  paidBy?: PaidBy;
+  confirmedById?: string | null;
 }
 export type Approval =
   | { kind: 'expense'; expenseId: string }
   | { kind: 'name'; participantId: string; matches: (NameCandidate & { reason: MatchReason })[] }
   | { kind: 'bank'; bankId: string; participantId: string; bankName: string; accountNumber: string; holderName: string }
   | { kind: 'payment'; paymentId: string }
+  | { kind: 'expense_payments'; expenseId: string; paymentIds: string[] }
   | { kind: 'not_arrived'; paymentId: string }
   | { kind: 'membership'; requestId: string; participantId: string; userName: string; userEmail: string | null }
   | { kind: 'proposal'; proposalId: string; guestPid: string; intoPid: string | null; targetUserName: string | null; requestedByName: string };
@@ -328,12 +344,13 @@ export interface MyActivityPage {
 
 export interface PickerView {
   /** `zaloLinked`: tied to a Zalo account (never the id itself); left out by an older server. */
-  people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; zaloLinked?: boolean; lastUsedHere: boolean; activeElsewhere: string | null }[];
+  people: { id: string; name: string; status: 'active' | 'pending'; isMember: boolean; zaloLinked?: boolean; lastUsedHere: boolean; activeElsewhere: string | null; slots?: number }[];
   myPick: string | null;
   /** The signed-in viewer when they are not a member here. Left out by an older server. */
   account?: { name: string; needsGender: boolean } | null;
   /** That viewer's own name in this group, if they left it. */
   myLeftName?: { id: string; name: string } | null;
+  expense?: { id: string; payerId: string } | null;
 }
 
 export interface JoinResponse { participantId: string; rejoined: boolean }
