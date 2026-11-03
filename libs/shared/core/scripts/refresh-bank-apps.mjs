@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const banksJsonPath = resolve(scriptDir, '../src/data/banks.json');
 const bankAppsJsonPath = resolve(scriptDir, '../src/data/bank-apps.json');
-const logosDir = resolve(scriptDir, '../../web-common/src/assets/bank-apps');
+const logosDir = resolve(scriptDir, '../../../web/screens/src/assets/bank-apps');
 
 const ENDPOINTS = {
   android: 'https://api.vietqr.io/v2/android-app-deeplinks',

@@ -13,7 +13,7 @@
     "deploy:tunnel": "npm run build -- --mode tunnel && npx zmp-cli@4 deploy --existing --testing --outputDir dist"
   },
   "dependencies": {
-    "@cc/web-common": "*",
+    "@cc/web-screens": "*",
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

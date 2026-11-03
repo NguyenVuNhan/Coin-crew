@@ -2,8 +2,8 @@
   "name": "coin-crew",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "apps/*",
+    "libs/*/*"
   ],
   "scripts": {
     "test": "nx run-many -t test --parallel=1",

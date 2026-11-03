@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "paths": { "@/*": ["../../packages/web-common/src/*"] },
+    "paths": { "@/*": ["../../libs/web/screens/src/*"] },
     "types": ["vite/client"]
   },
   "include": ["src", "vite.config.ts", "vitest.config.ts"]

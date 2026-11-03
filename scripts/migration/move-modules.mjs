@@ -106,6 +106,16 @@ function probeFile(root, basePath) {
       }
     }
   }
+  // TypeScript's NodeNext style: './app.js' names './app.ts' (and '.mjs' names '.mts').
+  const jsExt = cleanBase.match(/\.(m?)js$/);
+  if (jsExt) {
+    const stem = cleanBase.slice(0, -jsExt[0].length);
+    for (const ext of jsExt[1] ? ['.mts'] : ['.ts', '.tsx']) {
+      const candidate = stem + ext;
+      const full = path.join(root, candidate);
+      if (fs.existsSync(full) && fs.statSync(full).isFile()) return candidate.replace(/\\/g, '/');
+    }
+  }
   return null;
 }
 

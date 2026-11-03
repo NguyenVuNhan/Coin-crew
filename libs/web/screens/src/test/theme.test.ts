@@ -26,7 +26,7 @@ describe('Friendly theme (spec: shadcn Friendly redesign)', () => {
 
   it('loads Be Vietnam Pro with the vietnamese subset', () => {
     // Fonts are loaded by each shell's entry file, not by this package.
-    const main = readFileSync(resolve(src, '../../../apps/web/src/main.tsx'), 'utf8');
+    const main = readFileSync(resolve(src, '../../../../apps/web/src/main.tsx'), 'utf8');
     for (const weight of [400, 500, 600, 700]) {
       expect(main).toContain(`@fontsource/be-vietnam-pro/vietnamese-${weight}.css`);
       expect(main).toContain(`@fontsource/be-vietnam-pro/latin-${weight}.css`);

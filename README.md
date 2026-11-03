@@ -9,9 +9,9 @@ Split trip expenses with friends and settle up with VietQR. Friends join from on
 
 | Path | What |
 |---|---|
-| `packages/core` | Pure TypeScript: money, splits, balances, transfers, name matching, VietQR, permissions, API types |
+| `libs/shared/core` | Pure TypeScript: money, splits, balances, transfers, name matching, VietQR, permissions, API types |
 | `apps/api` | One Cloudflare Worker (Hono + D1 via Drizzle). Serves `/api/*` and the built web app from `apps/api/public` |
-| `packages/web-common` | The React app: screens, components, i18n, API client, styles and their tests |
+| `libs/web/screens` | The React app: screens, components, i18n, API client, styles and their tests |
 | `apps/web` | Browser shell (Vite PWA). `npm run build -w @cc/web` writes into `apps/api/public` |
 | `e2e` | Playwright golden path at 375px |
 
@@ -67,9 +67,9 @@ Every push to `main` deploys through Cloudflare Workers Builds. The database ID,
 
 See the design's §14:
 
-1. Which bank apps open with the payment already filled in through `dl.vietqr.io`, and the exact parameters. Flip `PREFILL_VERIFIED` in `packages/core/src/banks.ts` once confirmed.
+1. Which bank apps open with the payment already filled in through `dl.vietqr.io`, and the exact parameters. Flip `PREFILL_VERIFIED` in `libs/shared/core/src/banks.ts` once confirmed.
 2. Transfer-note length and character limits at the major banks.
 3. The current D1 and Workers free-plan numbers. Update `FREE_LIMITS` and the `DAILY_LIMIT` error matcher in `apps/api/src/lib/errors.ts`.
-4. What Vietnam's personal-data rules require. Replace the draft privacy notice in `packages/web-common/src/screens/Privacy.tsx`.
+4. What Vietnam's personal-data rules require. Replace the draft privacy notice in `libs/web/screens/src/screens/Privacy.tsx`.
 
-Also review the Vietnamese copy in `packages/web-common/src/i18n/vi.ts`: every line marked `// REVIEW` is a draft translation.
+Also review the Vietnamese copy in `libs/web/screens/src/i18n/vi.ts`: every line marked `// REVIEW` is a draft translation.

@@ -3,7 +3,7 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
-COPY packages/core/package.json packages/core/
+COPY libs/shared/core/package.json libs/shared/core/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/zalo-relay/package.json apps/zalo-relay/
@@ -14,7 +14,7 @@ RUN npm run build -w @cc/zalo-relay
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY --from=build /app/package.json /app/package-lock.json ./
-COPY --from=build /app/packages/core/package.json packages/core/
+COPY --from=build /app/libs/shared/core/package.json libs/shared/core/
 COPY --from=build /app/apps/api/package.json apps/api/
 COPY --from=build /app/apps/web/package.json apps/web/
 COPY --from=build /app/apps/zalo-relay/package.json apps/zalo-relay/

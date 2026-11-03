@@ -2,7 +2,7 @@
   "mcpServers": {
     "shadcn": {
       "command": "npx",
-      "args": ["shadcn", "mcp", "--cwd", "packages/web-common"]
+      "args": ["shadcn", "mcp", "--cwd", "libs/web/screens"]
     }
   }
 }

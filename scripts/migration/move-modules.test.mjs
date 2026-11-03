@@ -206,6 +206,20 @@ describe('moveModules', () => {
 
     expect(after).toBe(before);
   });
+
+  it("resolves a NodeNext '.js' specifier to its '.ts' file", async () => {
+    // relay-style "import { app } from './app.js'" where only app.ts exists: resolvable, so untouched
+    const { root, read } = createRepo({
+      'libs/web/screens/src/app.ts': 'export const app = 1;',
+      'libs/web/screens/src/server.ts': "import { app } from './app.js';\n",
+    });
+
+    const before = read('libs/web/screens/src/server.ts');
+    await moveModules({ root, git: false, scan: ['libs'], moves: [] });
+    await repairImports({ root, history: [], scan: ['libs'] });
+
+    expect(read('libs/web/screens/src/server.ts')).toBe(before);
+  });
 });
 
 describe('repairImports', () => {
