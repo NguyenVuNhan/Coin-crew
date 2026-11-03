@@ -211,6 +211,38 @@ describe('pay info', () => {
     const other = await json<PayInfo>(call(`${base}/pay/${PID.M}?bill=1&expense=e-2`, { headers: await guestHeaders(PID.A) }));
     expect(other.payload?.startsWith('000201010211')).toBe(true);
   });
+
+  it('?bill=1 respects roundTransfers toggle for single-bill QR amount', async () => {
+    await env.DB.prepare(
+      "INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-bill-3way', 'e-bill-3way', NULL, 1, ?, 'expense', 'Ăn sáng', 50000, 'VND', '2026-10-12', ?, 'equal', 'approved', ?, '2026-10-12T00:00:00.000Z', '2026-10-12T00:00:00.000Z')",
+    )
+      .bind(T.tripId, PID.M, PID.M)
+      .run();
+    await env.DB.prepare(
+      "INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-bill-3way', ?, 1, 16666), ('e-bill-3way', ?, 1, 16667), ('e-bill-3way', ?, 1, 16667)",
+    )
+      .bind(PID.M, PID.A, PID.B)
+      .run();
+
+    // roundTransfers disabled: 16.667 ₫
+    const unrounded = await json<PayInfo>(
+      call(`${base}/pay/${PID.M}?bill=1&expense=e-bill-3way`, { headers: await guestHeaders(PID.A) }),
+    );
+    expect(unrounded.payload).toBe(
+      buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 16667, note: unrounded.refCode }),
+    );
+
+    // roundTransfers enabled: rounds to 17.000 ₫
+    await env.DB.prepare('UPDATE trips SET round_transfers = 1, version = version + 1 WHERE id = ?')
+      .bind(T.tripId)
+      .run();
+    const rounded = await json<PayInfo>(
+      call(`${base}/pay/${PID.M}?bill=1&expense=e-bill-3way`, { headers: await guestHeaders(PID.A) }),
+    );
+    expect(rounded.payload).toBe(
+      buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 17000, note: rounded.refCode }),
+    );
+  });
 });
 
 describe('pay info for the receiver', () => {
