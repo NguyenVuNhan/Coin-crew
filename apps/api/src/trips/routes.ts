@@ -182,6 +182,7 @@ export function tripRoutes(): Hono<AppBindings> {
       preset,
       currency: 'VND',
       fewestTransfers: 0,
+      roundTransfers: 0,
       defaultLang,
       organiserUserId: user.id,
       groupToken: newToken(),
@@ -456,14 +457,20 @@ export function tripRoutes(): Hono<AppBindings> {
     const actor = await resolveActor(c, tripId);
     assertWritable(actor.trip);
 
-    const body = await parseJson<{ fewestTransfers?: unknown; ratingsEnabled?: unknown }>(c);
+    const body = await parseJson<{
+      fewestTransfers?: unknown;
+      roundTransfers?: unknown;
+      ratingsEnabled?: unknown;
+    }>(c);
     const hasFewest = body?.fewestTransfers !== undefined;
+    const hasRound = body?.roundTransfers !== undefined;
     const hasRatings = body?.ratingsEnabled !== undefined;
 
     if (
-      (!hasFewest && !hasRatings) ||
+      (!hasFewest && !hasRatings && !hasRound) ||
       (hasFewest && typeof body.fewestTransfers !== 'boolean') ||
-      (hasRatings && typeof body.ratingsEnabled !== 'boolean')
+      (hasRatings && typeof body.ratingsEnabled !== 'boolean') ||
+      (hasRound && typeof body.roundTransfers !== 'boolean')
     ) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
@@ -474,13 +481,14 @@ export function tripRoutes(): Hono<AppBindings> {
       }
       ensure(actor, 'manage_ratings');
     }
-    if (hasFewest) {
+    if (hasFewest || hasRound) {
       ensure(actor, 'set_fewest');
     }
 
     const db = getDb(c.env);
     const patchSet: Partial<typeof trips.$inferInsert> = {};
     if (hasFewest) patchSet.fewestTransfers = body.fewestTransfers ? 1 : 0;
+    if (hasRound) patchSet.roundTransfers = body.roundTransfers ? 1 : 0;
     if (hasRatings) patchSet.ratingsEnabled = body.ratingsEnabled ? 1 : 0;
 
     const updateQuery = db
@@ -488,11 +496,11 @@ export function tripRoutes(): Hono<AppBindings> {
       .set(patchSet)
       .where(eq(trips.id, tripId));
 
-    const action = hasRatings && !hasFewest ? 'ratings_changed' : 'fewest_changed';
-    const details =
-      hasRatings && !hasFewest
-        ? { ratingsEnabled: body.ratingsEnabled as boolean }
-        : { fewestTransfers: body.fewestTransfers as boolean };
+    const action = hasRatings && !hasFewest && !hasRound ? 'ratings_changed' : 'fewest_changed';
+    const details: Record<string, unknown> = {};
+    if (hasRatings) details.ratingsEnabled = body.ratingsEnabled as boolean;
+    if (hasFewest) details.fewestTransfers = body.fewestTransfers as boolean;
+    if (hasRound) details.roundTransfers = body.roundTransfers as boolean;
 
     await commitTripWrite(db, tripId, [updateQuery], {
       action,

@@ -304,7 +304,7 @@ export interface RatingsView {
   myAllocations: Record<string, number>;
 }
 export interface TripView {
-  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean };
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean };
   me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
   people: PersonView[];
   balances: Balances;
