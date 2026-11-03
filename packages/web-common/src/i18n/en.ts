@@ -28,6 +28,9 @@ export const en = {
   'fewest.title': 'Fewest transfers', // SPEC
   'fewest.explain': "We combine everyone's debts so people make as few bank transfers as possible. What each person owes in total stays the same.", // SPEC
 
+  'roundTransfers.title': 'Round transfer amounts',
+  'roundTransfers.explain': 'Round suggested transfers and QR codes to the nearest 1,000 ₫.',
+
   'who.lastUsedHere': 'You picked this on this phone last time', // SPEC
   'who.activeElsewhere': 'Active on another phone · {ago}', // SPEC
   'who.someoneNew': 'Not on the list? Add your name', // SPEC 2026-10-14

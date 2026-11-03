@@ -28,6 +28,9 @@ export const vi: Record<MessageKey, string> = {
   'fewest.title': 'Ít lần chuyển khoản nhất', // REVIEW
   'fewest.explain': 'Khoản nợ của mọi người được gom lại để số lần chuyển khoản là ít nhất. Tổng số tiền mỗi người phải trả không đổi.', // REVIEW
 
+  'roundTransfers.title': 'Làm tròn số tiền trả', // REVIEW
+  'roundTransfers.explain': 'Làm tròn số tiền chuyển khoản và mã QR đến 1.000 ₫ gần nhất.', // REVIEW
+
   'who.lastUsedHere': 'Lần trước bạn đã chọn người này trên điện thoại này', // REVIEW
   'who.activeElsewhere': 'Đang hoạt động trên máy khác · {ago}', // REVIEW
   'who.someoneNew': 'Không có trong danh sách? Thêm tên của bạn', // REVIEW
