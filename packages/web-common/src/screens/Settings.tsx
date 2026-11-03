@@ -16,10 +16,8 @@ import { Icon } from '../components/icons';
 import { FewestSwitch } from '../components/FewestSwitch';
 import { RatingsSwitch } from '../components/RatingsSwitch';
 import { cn } from '@/lib/utils';
-import { usePlatform } from '../platform';
 
 export function Settings() {
-  const platform = usePlatform();
   const { tripId, href } = useTrip();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -120,10 +118,6 @@ export function Settings() {
             </Link>
           </li>
         </ul>
-
-        {platform.kind === 'zmp' && (
-          <p className="fsl-settings__zalo-hint m-0 px-1 text-sm text-muted-foreground">{t('settings.zaloChatHint')}</p>
-        )}
 
         {view.me.kind === 'member' && !view.trip.archived && (
           <FewestSwitch view={view} />

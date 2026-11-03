@@ -69,7 +69,8 @@ describe('Zalo Mini App header and capsule spacing', () => {
     expect(header.querySelector('.fsl-account-menu')).toBeNull();
   });
 
-  it('zmp: Settings shows the chat-link hint', async () => {
+  // Linking a Zalo group chat moved to the next epic, so no hint points to it.
+  it('zmp: Settings has no chat-link hint', async () => {
     mockApi({
       'GET /api/trips/t-1': tripView(),
     });
@@ -80,24 +81,8 @@ describe('Zalo Mini App header and capsule spacing', () => {
       platform: fakePlatform(),
     });
 
-    const hint = await screen.findByText(en['settings.zaloChatHint']);
-    expect(hint).toBeInTheDocument();
-    expect(hint).toHaveClass('fsl-settings__zalo-hint');
-    expect(container.querySelector('.fsl-settings__zalo-hint')).toBeInTheDocument();
-  });
-
-  it('web: no hint', async () => {
-    mockApi({
-      'GET /api/trips/t-1': tripView(),
-    });
-
-    const { container } = renderAt(<Settings />, {
-      route: '/t/t-1/settings',
-      path: '/t/:tripId/settings',
-    });
-
-    await screen.findByText(en['settings.title']);
-    expect(screen.queryByText(en['settings.zaloChatHint'])).toBeNull();
+    await screen.findByText(en['settings.people']);
+    expect(screen.queryByText(/group chat's menu/)).toBeNull();
     expect(container.querySelector('.fsl-settings__zalo-hint')).toBeNull();
   });
 });
