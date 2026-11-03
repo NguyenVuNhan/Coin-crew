@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import {
   call,
   json,

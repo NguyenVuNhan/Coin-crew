@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { ActivityItem, TripListItem, TripView } from '@fsl/core';
+import type { ActivityItem, TripListItem, TripView } from '@cc/core';
 import { call, json, byKey, seedTrip, seedUser, seedExpenses, seedMinhBank, memberSid, linkMember, guestHeaders, T, U, PID } from './helpers';
 
 const view = (headers: Record<string, string>, tripId: string = T.tripId) => json<TripView>(call(`/api/trips/${tripId}`, { headers }));

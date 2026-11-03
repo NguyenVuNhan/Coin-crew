@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import type { PersonView } from '@fsl/core';
+import type { PersonView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Avatar } from './Avatar';

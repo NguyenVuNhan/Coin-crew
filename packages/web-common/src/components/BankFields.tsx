@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BANKS, toTransferNote, normalizeName } from '@fsl/core';
+import { BANKS, toTransferNote, normalizeName } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Input } from '@/components/ui/input';

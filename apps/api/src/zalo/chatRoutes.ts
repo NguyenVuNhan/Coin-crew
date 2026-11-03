@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, asc, eq } from 'drizzle-orm';
-import type { ZaloChatLookup } from '@fsl/core';
+import type { ZaloChatLookup } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { devices, participants, trips, zaloChatLinks } from '../db/schema';

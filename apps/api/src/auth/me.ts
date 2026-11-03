@@ -7,7 +7,7 @@ import type {
   MeResponse,
   MeUserView,
   OutgoingMergeRequest,
-} from '@fsl/core';
+} from '@cc/core';
 import type { Db } from '../db/client';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { accountMergeRequests, participants, transactions, trips, users } from '../db/schema';

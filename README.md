@@ -12,7 +12,7 @@ Split trip expenses with friends and settle up with VietQR. Friends join from on
 | `packages/core` | Pure TypeScript: money, splits, balances, transfers, name matching, VietQR, permissions, API types |
 | `apps/api` | One Cloudflare Worker (Hono + D1 via Drizzle). Serves `/api/*` and the built web app from `apps/api/public` |
 | `packages/web-common` | The React app: screens, components, i18n, API client, styles and their tests |
-| `apps/web` | Browser shell (Vite PWA). `npm run build -w @fsl/web` writes into `apps/api/public` |
+| `apps/web` | Browser shell (Vite PWA). `npm run build -w @cc/web` writes into `apps/api/public` |
 | `e2e` | Playwright golden path at 375px |
 
 ## Run it locally
@@ -34,14 +34,14 @@ APP_ORIGIN=http://localhost:8787
 Create the local database, then build the app and start the Worker:
 
 ```bash
-npx -w @fsl/api wrangler d1 migrations apply fsl --local
+npx -w @cc/api wrangler d1 migrations apply fsl --local
 ```
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:8787. For front-end work with hot reload, run `npm run dev -w @fsl/web` (port 5173, proxies `/api` to 8787) next to `npm run dev -w @fsl/api`.
+Open http://localhost:8787. For front-end work with hot reload, run `npm run dev -w @cc/web` (port 5173, proxies `/api` to 8787) next to `npm run dev -w @cc/api`.
 
 Google sign-in needs an OAuth client; [docs/setup.md](docs/setup.md#2-google-sign-in-oauth-client) shows how to create one.
 

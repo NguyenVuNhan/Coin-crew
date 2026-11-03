@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router';
-import type { MyActivityItem, TripView } from '@fsl/core';
+import type { MyActivityItem, TripView } from '@cc/core';
 import { mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { tripView } from '../../test/fixtures';

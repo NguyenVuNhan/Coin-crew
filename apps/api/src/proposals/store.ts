@@ -1,5 +1,5 @@
 import { and, eq, isNull, or, sql } from 'drizzle-orm';
-import { normalizeName } from '@fsl/core';
+import { normalizeName } from '@cc/core';
 import type { Db } from '../db/client';
 import { mergeProposals, participants, users } from '../db/schema';
 import { commitTripWrite } from '../lib/commit';

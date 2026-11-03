@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { RecentPerson } from '@fsl/core';
+import type { RecentPerson } from '@cc/core';
 import { filterRecentPeople } from '../recentPeople';
 
 const person = (userId: string, name: string, trips: string[] = ['Phú Quốc']): RecentPerson => ({ userId, name, trips });

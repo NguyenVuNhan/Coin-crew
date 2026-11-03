@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import type { FeedbackType } from '@fsl/core';
+import type { FeedbackType } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { feedback } from '../db/schema';

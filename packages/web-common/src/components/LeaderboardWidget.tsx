@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { rankPlayers, type RankedPlayer, type TripView } from '@fsl/core';
+import { rankPlayers, type RankedPlayer, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { useT } from '../i18n';

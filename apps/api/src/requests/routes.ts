@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, type PayInfo, type PersonItem, type PersonKey, type RequestView } from '@fsl/core';
+import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, type PayInfo, type PersonItem, type PersonKey, type RequestView } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { bankDetails, deviceParticipants, participants, personLinks, trips, users } from '../db/schema';

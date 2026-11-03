@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import type { ExpenseView, TripView } from '@fsl/core';
-import { formatVnd, computeSportShares, isFundPaid } from '@fsl/core';
+import type { ExpenseView, TripView } from '@cc/core';
+import { formatVnd, computeSportShares, isFundPaid } from '@cc/core';
 import { useT, useLang } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { nameOf, splitText } from '../lib/tripText';

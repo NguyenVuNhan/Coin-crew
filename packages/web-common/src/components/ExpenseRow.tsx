@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { formatVnd, isFundPaid, type ExpenseView, type TripView } from '@fsl/core';
+import { formatVnd, isFundPaid, type ExpenseView, type TripView } from '@cc/core';
 import { useT } from '../i18n';
 import { nameOf, splitText } from '../lib/tripText';
 import { cn } from '@/lib/utils';

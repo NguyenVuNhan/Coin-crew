@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { memberSid, call, json, cookiesFrom, cookieHeader, unsignedJwt } from './helpers';
 import { safeReturnTo } from '../src/auth/routes';
 

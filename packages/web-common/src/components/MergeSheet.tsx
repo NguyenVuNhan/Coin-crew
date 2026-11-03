@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { OutgoingMergeRequest } from '@fsl/core';
+import type { OutgoingMergeRequest } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';

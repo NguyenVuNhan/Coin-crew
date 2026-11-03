@@ -1,4 +1,4 @@
-import { normalizeName } from '@fsl/core';
+import { normalizeName } from '@cc/core';
 
 /** Matches the start of any word in a name, ignoring accents. */
 export function matchesWordStart(query: string, name: string): boolean {

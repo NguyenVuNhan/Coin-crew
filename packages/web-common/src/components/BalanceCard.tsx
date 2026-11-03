@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { formatVnd, type Transfer, type TripView } from '@fsl/core';
+import { formatVnd, type Transfer, type TripView } from '@cc/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
 import { nameOf } from '../lib/tripText';

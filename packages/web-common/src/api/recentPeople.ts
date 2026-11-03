@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { RecentPerson } from '@fsl/core';
+import type { RecentPerson } from '@cc/core';
 import { apiFetch } from './client';
 
 /**

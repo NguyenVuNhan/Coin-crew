@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { PeopleSummaryResponse, RequestView } from '@fsl/core';
+import type { PeopleSummaryResponse, RequestView } from '@cc/core';
 import { call, json, memberSid, seedUser } from './helpers';
 
 const OWNER = 'u-owner';

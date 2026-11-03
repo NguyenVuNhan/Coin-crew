@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi, type MockInstance } from 'vitest';
 import { screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AuthProvider, MeResponse, OutgoingMergeRequest } from '@fsl/core';
+import type { AuthProvider, MeResponse, OutgoingMergeRequest } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { useMe } from '../../api/hooks';
 import { signInHref } from '../SignInButtons';

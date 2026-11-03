@@ -1,4 +1,4 @@
-import type { ActivityAction } from '@fsl/core';
+import type { ActivityAction } from '@cc/core';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { eq, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';

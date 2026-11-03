@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { sql } from 'drizzle-orm';
-import type { GroupPerson, RecentPerson } from '@fsl/core';
+import type { GroupPerson, RecentPerson } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { getSessionUser, requireUser } from '../auth/session';

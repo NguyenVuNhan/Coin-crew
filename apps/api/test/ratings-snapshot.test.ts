@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { call, guestHeaders, json, linkMember, memberSid, PID, seedExpenses, seedTrip, T, U } from './helpers';
 import { bumpVersion, makeSport } from './fund-helpers';
 

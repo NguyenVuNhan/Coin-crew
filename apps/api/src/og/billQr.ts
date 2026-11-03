@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
-import type { ExpenseView } from '@fsl/core';
-import { buildVietQrPayload, equalBillShare, isFundPaid, buildTransferNote } from '@fsl/core';
+import type { ExpenseView } from '@cc/core';
+import { buildVietQrPayload, equalBillShare, isFundPaid, buildTransferNote } from '@cc/core';
 import type { Db } from '../db/client';
 import { bankDetails, participants } from '../db/schema';
 import type { TripSnapshot } from '../trips/snapshot';

@@ -1,8 +1,8 @@
 import { useState, useEffect, useId, useRef } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PickerView, Gender } from '@fsl/core';
-import { normalizeName, findSimilarNames } from '@fsl/core';
+import type { PickerView, Gender } from '@cc/core';
+import { normalizeName, findSimilarNames } from '@cc/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
 import { apiFetch, apiSend, ApiClientError } from '../api/client';

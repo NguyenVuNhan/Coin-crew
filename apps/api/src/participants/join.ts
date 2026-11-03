@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, max, or } from 'drizzle-orm';
-import type { JoinResponse } from '@fsl/core';
-import { findSimilarNames, normalizeName } from '@fsl/core';
+import type { JoinResponse } from '@cc/core';
+import { findSimilarNames, normalizeName } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import {

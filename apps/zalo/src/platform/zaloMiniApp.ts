@@ -1,4 +1,4 @@
-import type { PlatformBridge, ShareCard, ZaloFriend } from '@fsl/web-common';
+import type { PlatformBridge, ShareCard, ZaloFriend } from '@cc/web-common';
 
 /** The slice of `zmp-sdk` the platform uses; tests hand in a fake with the same shape. */
 export interface ZmpSdk {

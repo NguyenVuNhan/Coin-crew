@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { sportFundView } from '../../test/fundFixtures';
 import { fundPaidCheck, incomeMinimum } from '../fund';
 

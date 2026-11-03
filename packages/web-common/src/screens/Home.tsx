@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { formatVnd, type PersonSummary } from '@fsl/core';
+import { formatVnd, type PersonSummary } from '@cc/core';
 import { useT } from '../i18n';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger, usePeopleSummary } from '../api/people';

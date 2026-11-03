@@ -1,5 +1,5 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { makeRefCode } from '@fsl/core';
+import { makeRefCode } from '@cc/core';
 import type { Db } from '../db/client';
 import { paymentRefs } from '../db/schema';
 import { nowIso } from '../lib/ids';

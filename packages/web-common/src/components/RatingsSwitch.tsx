@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useT } from '../i18n';

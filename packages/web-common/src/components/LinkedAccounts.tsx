@@ -1,7 +1,7 @@
 import { useState, useId } from 'react';
 import { useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { MeResponse, AuthProvider, OutgoingMergeRequest } from '@fsl/core';
+import type { MeResponse, AuthProvider, OutgoingMergeRequest } from '@cc/core';
 import { useT } from '../i18n';
 import { isZaloWebView } from '../lib/zaloEnv';
 import { usePlatform } from '../platform';

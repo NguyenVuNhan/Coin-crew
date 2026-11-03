@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { MergeCandidate } from '@fsl/core';
+import type { MergeCandidate } from '@cc/core';
 import { searchPeople } from '../searchPeople';
 
 const cand = (over: Partial<MergeCandidate> & { key: MergeCandidate['key']; name: string }): MergeCandidate => ({

@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { GroupPerson, MergeOptionsResponse, PayInfo, PersonKey, PersonSummary, PeopleSummaryResponse, ProposalsResponse } from '@fsl/core';
+import type { GroupPerson, MergeOptionsResponse, PayInfo, PersonKey, PersonSummary, PeopleSummaryResponse, ProposalsResponse } from '@cc/core';
 import { apiFetch, apiSend, ApiClientError } from './client';
 
 export const PEOPLE_SUMMARY_QUERY_KEY = ['me', 'people', 'summary'] as const;

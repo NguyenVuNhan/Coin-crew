@@ -1,6 +1,6 @@
 import { useEntryState } from '../lib/navHistory';
-import type { TripView } from '@fsl/core';
-import { formatVnd } from '@fsl/core';
+import type { TripView } from '@cc/core';
+import { formatVnd } from '@cc/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
 import { useLedger } from '../api/people';

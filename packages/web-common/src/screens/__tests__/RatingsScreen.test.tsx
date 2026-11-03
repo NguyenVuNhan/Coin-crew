@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PersonView, TripView } from '@fsl/core';
+import type { PersonView, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { PIDS, guestChiView } from '../../test/fixtures';
 import { sportFundView } from '../../test/fundFixtures';

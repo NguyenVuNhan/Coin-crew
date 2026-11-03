@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { setLang } from '../../i18n';

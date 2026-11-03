@@ -1,5 +1,5 @@
 import { useId, useState, type JSX } from 'react';
-import { formatVnd, parseVnd, payerLabel, rowSlots, type Approval, type TripView } from '@fsl/core';
+import { formatVnd, parseVnd, payerLabel, rowSlots, type Approval, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { ApiClientError } from '../api/client';

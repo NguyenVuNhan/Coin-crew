@@ -1,4 +1,4 @@
-import type { AuthProvider } from '@fsl/core';
+import type { AuthProvider } from '@cc/core';
 import { cn } from '@/lib/utils';
 // Imported (not served from a public/ folder) so each app's build bundles them and resolves the URL
 // against its own `base`: the Zalo Mini App is served from a /<version>/ path where `/brand/…` 404s.

@@ -1,7 +1,7 @@
 import { useState, useId } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { can } from '@fsl/core';
+import { can } from '@cc/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
 import { useBack } from '../lib/navHistory';

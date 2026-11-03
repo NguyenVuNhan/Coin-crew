@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { StrictMode } from 'react';
 import { render, screen, act, fireEvent } from '@testing-library/react';
-import type { BankApp } from '@fsl/core';
+import type { BankApp } from '@cc/core';
 import { fakePlatform } from '../../test/fakePlatform';
 import { PlatformProvider } from '../../platform';
 import { setLang } from '../../i18n';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ProposalView } from '@fsl/core';
+import type { ProposalView } from '@cc/core';
 import { useT } from '../i18n';
 import {
   acceptProposal,

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { drizzle } from 'drizzle-orm/d1';
-import type { PersonKey } from '@fsl/core';
+import type { PersonKey } from '@cc/core';
 import * as schema from '../src/db/schema';
 import { loadMergeOptions } from '../src/me/mergeOptions';
 import { call, json, memberSid, seedUser } from './helpers';

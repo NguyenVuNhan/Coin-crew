@@ -7,12 +7,12 @@ import type {
   ActivityItem,
   CreateTripInput,
   TripListItem,
-} from '@fsl/core';
+} from '@cc/core';
 import {
   findBank,
   normalizeName,
   toTransferNote,
-} from '@fsl/core';
+} from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import {

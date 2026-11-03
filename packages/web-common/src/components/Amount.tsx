@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { formatVnd } from '@fsl/core';
+import { formatVnd } from '@cc/core';
 import { cn } from '@/lib/utils';
 
 export interface AmountProps {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { RecentPerson } from '@fsl/core';
+import type { RecentPerson } from '@cc/core';
 import { call, json, memberSid, seedUser, U } from './helpers';
 
 async function addTrip(

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { useT } from '../i18n';
 import { useBack } from '../lib/navHistory';
 import { useTrip } from '../lib/tripBase';

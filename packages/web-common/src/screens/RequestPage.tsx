@@ -1,7 +1,7 @@
 import { useState, type JSX } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import type { RequestView, PersonItem } from '@fsl/core';
+import type { RequestView, PersonItem } from '@cc/core';
 import { useT } from '../i18n';
 import { ApiClientError, apiFetch, apiSend } from '../api/client';
 import { newIdempotencyKey } from '../api/people';

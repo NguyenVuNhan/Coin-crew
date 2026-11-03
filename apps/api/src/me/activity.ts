@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm';
-import type { ActivityAction, MyActivityItem, MyActivityPage } from '@fsl/core';
+import type { ActivityAction, MyActivityItem, MyActivityPage } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { activity, participants, trips } from '../db/schema';

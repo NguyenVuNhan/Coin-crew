@@ -1,4 +1,4 @@
-import { formatVnd, type ActivityItem, type TripView } from '@fsl/core';
+import { formatVnd, type ActivityItem, type TripView } from '@cc/core';
 import type { MessageKey } from '../i18n/en';
 import { t as translate } from '../i18n';
 import { formatDay } from './time';

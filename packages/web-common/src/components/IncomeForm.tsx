@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type JSX, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatVnd, MAX_AMOUNT, parseVnd, type IncomeView, type TripView } from '@fsl/core';
+import { formatVnd, MAX_AMOUNT, parseVnd, type IncomeView, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';

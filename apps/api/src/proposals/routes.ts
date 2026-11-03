@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { PersonKey, ProposalView, ProposalsResponse } from '@fsl/core';
+import type { PersonKey, ProposalView, ProposalsResponse } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { mergeProposals, participants, trips } from '../db/schema';

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatVnd, type ExpensePayView, type PaidBy } from '@fsl/core';
+import { formatVnd, type ExpensePayView, type PaidBy } from '@cc/core';
 import { useT } from '../i18n';
 import { Sheet } from './Sheet';
 import { Button } from './Button';

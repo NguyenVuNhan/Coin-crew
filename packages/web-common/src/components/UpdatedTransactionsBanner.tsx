@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { ExpenseView, TripView } from '@fsl/core';
-import { formatVnd, isFundPaid } from '@fsl/core';
+import type { ExpenseView, TripView } from '@cc/core';
+import { formatVnd, isFundPaid } from '@cc/core';
 import { useT } from '../i18n';
 import { Button } from './Button';
 import { Icon } from './icons';

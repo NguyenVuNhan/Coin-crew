@@ -1,4 +1,4 @@
-import type { AuthProvider } from '@fsl/core';
+import type { AuthProvider } from '@cc/core';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { and, asc, eq, exists, inArray, ne, notExists, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';

@@ -1,5 +1,5 @@
-import type { SplitMode } from '@fsl/core';
-import { parseVnd, formatVnd } from '@fsl/core';
+import type { SplitMode } from '@cc/core';
+import { parseVnd, formatVnd } from '@cc/core';
 
 export function toEntryValue(mode: SplitMode, display: string): number | null {
   switch (mode) {

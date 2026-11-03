@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { RequestView } from '@fsl/core';
+import type { RequestView } from '@cc/core';
 import { app, call, json, memberSid, newDevice, seedUser, U } from './helpers';
 import { INDEX_HTML } from './fixtures/indexHtml';
 

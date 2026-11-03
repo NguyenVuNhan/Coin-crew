@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
-import type { ActivityAction, ActivityItem, TripView } from '@fsl/core';
+import type { ActivityAction, ActivityItem, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
 import { t } from '../../i18n';

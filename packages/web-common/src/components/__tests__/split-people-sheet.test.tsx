@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PersonView } from '@fsl/core';
+import type { PersonView } from '@cc/core';
 import { setLang } from '../../i18n';
 import type { RecentGroup } from '../../lib/recentGroups';
 import { SplitPeopleSheet } from '../SplitPeopleSheet';

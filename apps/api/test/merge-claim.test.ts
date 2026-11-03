@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { call, json, memberSid, PID, seedTrip, T, U } from './helpers';
 import { getDb } from '../src/db/client';
 import { requestClaim, upsertIdentity } from '../src/auth/identity';

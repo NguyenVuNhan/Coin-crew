@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { SplitMode } from '@fsl/core';
+import type { SplitMode } from '@cc/core';
 import { setLang } from '../../i18n';
 import { SplitModePicker } from '../SplitModePicker';
 

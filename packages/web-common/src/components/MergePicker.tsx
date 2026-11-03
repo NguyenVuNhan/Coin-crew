@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { MergeCandidate, MergeStep, PersonKey } from '@fsl/core';
+import type { MergeCandidate, MergeStep, PersonKey } from '@cc/core';
 import { useT } from '../i18n';
 import { useMergeOptions, mergePeople } from '../api/people';
 import { searchPeople } from '../lib/searchPeople';

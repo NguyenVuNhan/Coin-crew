@@ -11,7 +11,7 @@ import {
   type MergePlanContext,
   type MergeSide,
   type PersonKey,
-} from '@fsl/core';
+} from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { personLinks } from '../db/schema';

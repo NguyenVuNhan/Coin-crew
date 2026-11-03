@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX, KeyboardEvent, MouseEvent } from 'react';
-import { normalizeName, type PersonView } from '@fsl/core';
+import { normalizeName, type PersonView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Sheet } from './Sheet';

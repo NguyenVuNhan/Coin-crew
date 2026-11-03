@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { RATING_MAX_STARS_PER_TARGET, maxStarsForGroup } from '@fsl/core';
+import { RATING_MAX_STARS_PER_TARGET, maxStarsForGroup } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { participants, playerRatings, trips } from '../db/schema';

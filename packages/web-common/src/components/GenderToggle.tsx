@@ -1,4 +1,4 @@
-import type { Gender } from '@fsl/core';
+import type { Gender } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { Icon } from './icons';

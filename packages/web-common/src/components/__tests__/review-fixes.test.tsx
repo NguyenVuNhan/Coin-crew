@@ -7,7 +7,7 @@ import { AvatarCropModal } from '../AvatarCropModal';
 import { Button } from '../Button';
 import { Pill } from '../Pill';
 import { PayQr } from '../PayQr';
-import type { PayInfo } from '@fsl/core';
+import type { PayInfo } from '@cc/core';
 import { renderAt } from '../../test/render';
 
 /** Answers `(min-width: 640px)` as given; every other query is false. */

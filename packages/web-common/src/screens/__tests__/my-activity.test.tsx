@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { MyActivityItem, MyActivityPage } from '@fsl/core';
+import type { MyActivityItem, MyActivityPage } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { MyActivity } from '../MyActivity';

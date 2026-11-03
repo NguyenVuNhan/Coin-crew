@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { call, json, memberSid } from './helpers';
 
 async function seedMergeRequest({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { MyBankResponse } from '@fsl/core';
+import type { MyBankResponse } from '@cc/core';
 import { call, json, memberSid } from './helpers';
 
 describe('GET /api/me/bank', () => {

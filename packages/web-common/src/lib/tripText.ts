@@ -1,4 +1,4 @@
-import type { ExpenseView, TripView } from '@fsl/core';
+import type { ExpenseView, TripView } from '@cc/core';
 import type { MessageKey } from '../i18n/en';
 
 export function nameOf(view: TripView, id: string): string {

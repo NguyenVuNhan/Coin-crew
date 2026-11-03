@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { BankInput, MyBankResponse } from '@fsl/core';
+import type { BankInput, MyBankResponse } from '@cc/core';
 import { useT } from '../i18n';
 import { apiFetch, apiSend } from '../api/client';
 import { useTripView } from '../api/hooks';

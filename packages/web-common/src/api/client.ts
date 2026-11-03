@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@fsl/core';
+import type { ApiErrorCode } from '@cc/core';
 import { linkTokens } from '../lib/linkTokens';
 import { sessionStore } from '../platform/session';
 

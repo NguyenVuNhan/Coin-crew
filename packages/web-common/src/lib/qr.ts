@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { formatVnd } from '@fsl/core';
+import { formatVnd } from '@cc/core';
 
 const PNG_SIZE = 1024;
 

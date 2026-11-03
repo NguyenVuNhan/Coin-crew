@@ -1,4 +1,4 @@
-import type { FeedbackRequest } from '@fsl/core';
+import type { FeedbackRequest } from '@cc/core';
 import { apiFetch } from './client';
 
 /** `POST /api/feedback`. Throws `ApiClientError` (e.g. `RATE_LIMITED`) like every other call. */

@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useQuery } from '@tanstack/react-query';
-import type { PayInfo, PaymentView, TripView } from '@fsl/core';
+import type { PayInfo, PaymentView, TripView } from '@cc/core';
 import { apiFetch } from '../../api/client';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';

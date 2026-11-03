@@ -1,4 +1,4 @@
-import { normalizeName, type RecentPerson, type Gender } from '@fsl/core';
+import { normalizeName, type RecentPerson, type Gender } from '@cc/core';
 import { matchesWordStart } from './nameSearch';
 
 /** One line of the "Who else is coming?" list. A `userId` makes it a picked account (a locked row). */

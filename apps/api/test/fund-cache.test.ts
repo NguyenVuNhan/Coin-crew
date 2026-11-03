@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { env } from 'cloudflare:test';
 import { call, json, memberSid, seedExpenses, seedTrip, T, U } from './helpers';
 import { makeSport, seedIncome } from './fund-helpers';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 
 let minh: Record<string, string>;
 const view = () => json<TripView>(call(`/api/trips/${T.tripId}`, { headers: minh }));

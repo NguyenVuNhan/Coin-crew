@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import type { ExpenseMeta, FundItem, IncomeStatus, LedgerIncome } from '@fsl/core';
-import { fundEffect, fundSummary } from '@fsl/core';
+import type { ExpenseMeta, FundItem, IncomeStatus, LedgerIncome } from '@cc/core';
+import { fundEffect, fundSummary } from '@cc/core';
 import type { Db } from '../db/client';
 import { transactions } from '../db/schema';
 import type { TripRow } from '../access/actor';

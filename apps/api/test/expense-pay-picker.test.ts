@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { PickerView } from '@fsl/core';
+import type { PickerView } from '@cc/core';
 import { getDb } from '../src/db/client';
 import { getFriendGrant } from '../src/expenses/friendGrant';
 import { sha256Hex } from '../src/lib/ids';

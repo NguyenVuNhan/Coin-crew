@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { IncomingMergeRequest, JoiningMergeRequest } from '@fsl/core';
+import type { IncomingMergeRequest, JoiningMergeRequest } from '@cc/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { Button } from './Button';

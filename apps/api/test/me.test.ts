@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { MeResponse, TripView } from '@fsl/core';
+import type { MeResponse, TripView } from '@cc/core';
 import { app, call, json, memberSid, seedTrip, T, U, PID } from './helpers';
 
 describe('GET /api/me', () => {

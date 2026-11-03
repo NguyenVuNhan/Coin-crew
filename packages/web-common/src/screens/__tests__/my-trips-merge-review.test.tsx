@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { useLocation } from 'react-router';
-import type { IncomingMergeRequest, MeResponse, MeUserView } from '@fsl/core';
+import type { IncomingMergeRequest, MeResponse, MeUserView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { MyTrips } from '../MyTrips';
 

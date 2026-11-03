@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import type { MyActivityItem, MyActivityPage } from '@fsl/core';
+import type { MyActivityItem, MyActivityPage } from '@cc/core';
 import { apiFetch, type ApiClientError } from './client';
 
 export function useMyActivity(opts?: { enabled?: boolean }): {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
-import type { FeedbackRequest, FeedbackType } from '@fsl/core';
+import type { FeedbackRequest, FeedbackType } from '@cc/core';
 import { sendFeedback } from '../api/feedback';
 import { screenName } from '../lib/screenName';
 import { useT, useLang } from '../i18n';

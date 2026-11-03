@@ -1,4 +1,4 @@
-import type { ExpenseView, PersonView } from '@fsl/core';
+import type { ExpenseView, PersonView } from '@cc/core';
 
 export interface RecentGroup {
   expenseId: string;

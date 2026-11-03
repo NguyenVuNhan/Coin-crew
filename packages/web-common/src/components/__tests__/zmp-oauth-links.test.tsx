@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AuthProvider, MeResponse, OutgoingMergeRequest, TripView } from '@fsl/core';
+import type { AuthProvider, MeResponse, OutgoingMergeRequest, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { fakePlatform } from '../../test/fakePlatform';
 import { PIDS, guestChiView } from '../../test/fixtures';

@@ -15,7 +15,7 @@ import type {
   SplitMode,
   Transfer,
   TripView,
-} from '@fsl/core';
+} from '@cc/core';
 import {
   computeBalances,
   fundSummary,
@@ -23,7 +23,7 @@ import {
   maxStarsForGroup,
   pairwiseTransfers,
   suggestTransfers,
-} from '@fsl/core';
+} from '@cc/core';
 import type { Db } from '../db/client';
 import type { TripRow } from '../access/actor';
 import {

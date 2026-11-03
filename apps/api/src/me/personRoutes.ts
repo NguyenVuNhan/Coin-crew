@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import type { BatchItem } from 'drizzle-orm/batch';
-import type { PersonKey } from '@fsl/core';
+import type { PersonKey } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks } from '../db/schema';

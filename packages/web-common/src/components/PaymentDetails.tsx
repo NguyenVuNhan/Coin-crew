@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import type { PaymentView, TripView } from '@fsl/core';
+import type { PaymentView, TripView } from '@cc/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { nameOf } from '../lib/tripText';

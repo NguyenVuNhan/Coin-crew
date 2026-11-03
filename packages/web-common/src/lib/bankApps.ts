@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BANK_APPS, type BankApp } from '@fsl/core';
+import { BANK_APPS, type BankApp } from '@cc/core';
 import { isIosDevice } from '../platform/browser';
 import { usePlatform, type PlatformStorage } from '../platform';
 

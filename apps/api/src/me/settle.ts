@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, MAX_AMOUNT, normalizeName, spreadSettlement, type PayInfo, type PersonKey } from '@fsl/core';
+import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, MAX_AMOUNT, normalizeName, spreadSettlement, type PayInfo, type PersonKey } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { activity, bankDetails, participants, personLinks, settlementKeys, transactions, transactionShares, trips, users } from '../db/schema';

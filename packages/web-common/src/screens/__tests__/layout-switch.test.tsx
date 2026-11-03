@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { act, cleanup, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PayInfo } from '@fsl/core';
+import type { PayInfo } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMediaLive } from '../../test/media';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';

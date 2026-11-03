@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, type JSX } from 'react';
 import { Loader2, Check } from 'lucide-react';
-import { bankAppLink, type BankApp } from '@fsl/core';
+import { bankAppLink, type BankApp } from '@cc/core';
 import { Sheet } from './Sheet';
 import { Button } from './Button';
 import { usePlatform } from '../platform';

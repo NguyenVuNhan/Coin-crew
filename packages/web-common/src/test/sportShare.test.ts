@@ -3,7 +3,7 @@ import { APP_NAME } from '../config';
 import { sportShareText } from '../lib/remind';
 import { splitText } from '../lib/tripText';
 import { t, setLang } from '../i18n';
-import type { ExpenseView } from '@fsl/core';
+import type { ExpenseView } from '@cc/core';
 
 describe('APP_NAME and group copy', () => {
   it('uses CoinCrew (Tiền Đâu) as APP_NAME and generalized group strings', () => {

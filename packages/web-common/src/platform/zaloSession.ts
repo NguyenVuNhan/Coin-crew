@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { ZaloMiniRequest, ZaloMiniResponse } from '@fsl/core';
+import type { ZaloMiniRequest, ZaloMiniResponse } from '@cc/core';
 import { apiSend } from '../api/client';
 import type { PlatformBridge } from './index';
 import { sessionStore } from './session';

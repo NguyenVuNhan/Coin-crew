@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PaymentView, TripView } from '@fsl/core';
+import type { PaymentView, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
 import { TripRoute } from '../TripRoute';

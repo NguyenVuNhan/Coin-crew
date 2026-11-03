@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@fsl/core';
+import type { ApiErrorCode } from '@cc/core';
 
 export class ApiError extends Error {
   constructor(

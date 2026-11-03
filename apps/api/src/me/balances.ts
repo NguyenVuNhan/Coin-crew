@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
+import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { nicknames, participants, personLinks, trips, tripViews } from '../db/schema';

@@ -1,4 +1,4 @@
-import { formatVnd, type IncomeView, type TripView } from '@fsl/core';
+import { formatVnd, type IncomeView, type TripView } from '@cc/core';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { cn } from '@/lib/utils';

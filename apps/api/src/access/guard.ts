@@ -1,5 +1,5 @@
-import type { Action, ActionContext } from '@fsl/core';
-import { can } from '@fsl/core';
+import type { Action, ActionContext } from '@cc/core';
+import { can } from '@cc/core';
 import type { ResolvedActor } from './actor';
 import { ApiError } from '../lib/errors';
 

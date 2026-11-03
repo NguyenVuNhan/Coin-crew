@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { ExpensePayNoRow, ExpensePayView, PaidBy } from '@fsl/core';
+import type { ExpensePayNoRow, ExpensePayView, PaidBy } from '@cc/core';
 import {
   MAX_AMOUNT,
   expenseRemaining,
@@ -11,7 +11,7 @@ import {
   rowSlots,
   slotTiles,
   statusForNewPayment,
-} from '@fsl/core';
+} from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { accountMergeRequests, participants } from '../db/schema';

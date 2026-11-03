@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { useNavigate } from 'react-router';
-import type { IncomeHistoryItem, IncomeView, TripView } from '@fsl/core';
-import { formatVnd } from '@fsl/core';
+import type { IncomeHistoryItem, IncomeView, TripView } from '@cc/core';
+import { formatVnd } from '@cc/core';
 import { useT } from '../i18n';
 import { nameOf } from '../lib/tripText';
 import { formatDay } from '../lib/time';

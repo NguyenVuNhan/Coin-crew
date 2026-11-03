@@ -1,4 +1,4 @@
-import type { AuthProvider } from '@fsl/core';
+import type { AuthProvider } from '@cc/core';
 import { and, eq, gt } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { accountMergeRequests, participants, users } from '../db/schema';

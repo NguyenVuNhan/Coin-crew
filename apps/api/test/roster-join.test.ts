@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { JoinResponse, PickerView, TripView } from '@fsl/core';
+import type { JoinResponse, PickerView, TripView } from '@cc/core';
 import { call, json, seedTrip, seedExpenses, memberSid, guestHeaders, linkMember, T, U, PID } from './helpers';
 
 const base = `/api/trips/${T.tripId}`;

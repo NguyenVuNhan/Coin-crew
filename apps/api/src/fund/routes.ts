@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, or } from 'drizzle-orm';
-import { MAX_AMOUNT } from '@fsl/core';
+import { MAX_AMOUNT } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { transactions } from '../db/schema';

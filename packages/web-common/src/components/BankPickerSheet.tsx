@@ -1,6 +1,6 @@
 import { useState, useEffect, type JSX } from 'react';
 import { Input } from '@/components/ui/input';
-import { searchBankApps, type BankApp } from '@fsl/core';
+import { searchBankApps, type BankApp } from '@cc/core';
 import { bankAppLogo } from '../lib/bankApps';
 import { Sheet } from './Sheet';
 import { useT } from '../i18n';

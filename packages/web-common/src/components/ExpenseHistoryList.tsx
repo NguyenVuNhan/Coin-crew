@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ExpenseHistoryItem, ExpenseView, TripView } from '@fsl/core';
-import { can, formatVnd, isFundPaid } from '@fsl/core';
+import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
+import { can, formatVnd, isFundPaid } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';

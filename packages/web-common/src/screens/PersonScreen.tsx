@@ -5,7 +5,7 @@ import {
   formatVnd,
   type PersonKey,
   type PersonWaitingSettlement,
-} from '@fsl/core';
+} from '@cc/core';
 import { useT } from '../i18n';
 import { useMe } from '../api/hooks';
 import {

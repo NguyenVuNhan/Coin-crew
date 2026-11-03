@@ -9,7 +9,7 @@ import {
   notArrivedOutcome,
   arrivedOutcome,
   statusForNewPayment,
-} from '@fsl/core';
+} from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { participants, transactions, transactionShares } from '../db/schema';

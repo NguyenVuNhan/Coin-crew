@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TripView, MeResponse } from '@fsl/core';
+import type { TripView, MeResponse } from '@cc/core';
 import { apiFetch, ApiClientError } from './client';
 
 function useIsDocumentVisible(): boolean {

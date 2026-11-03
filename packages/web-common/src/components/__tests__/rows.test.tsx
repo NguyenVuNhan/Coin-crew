@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
-import type { ExpenseView } from '@fsl/core';
+import type { ExpenseView } from '@cc/core';
 import { renderAt } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
 import { ExpenseRow } from '../ExpenseRow';

@@ -1,4 +1,4 @@
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { t } from '../i18n';
 import type { ShareCard } from '../platform';
 import { linkTokens } from './linkTokens';

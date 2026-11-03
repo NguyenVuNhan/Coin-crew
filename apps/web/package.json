@@ -1,5 +1,5 @@
 {
-  "name": "@fsl/web",
+  "name": "@cc/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@fsl/web-common": "*",
+    "@cc/web-common": "*",
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

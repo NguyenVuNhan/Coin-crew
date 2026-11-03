@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ExpenseHistoryItem, ExpenseView, TripView } from '@fsl/core';
+import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
 import { renderAt, mockApi } from './render';
 import { tripView, guestChiView, PIDS } from './fixtures';
 import { ExpenseHistoryList } from '../components/ExpenseHistoryList';

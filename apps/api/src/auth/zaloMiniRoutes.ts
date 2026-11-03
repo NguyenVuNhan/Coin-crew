@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, isNull } from 'drizzle-orm';
-import type { ZaloMiniRequest, ZaloMiniResponse } from '@fsl/core';
+import type { ZaloMiniRequest, ZaloMiniResponse } from '@cc/core';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';
 import { devices, users } from '../db/schema';

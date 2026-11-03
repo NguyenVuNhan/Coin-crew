@@ -1,4 +1,4 @@
-import { formatVnd, type TripView, type Gender } from '@fsl/core';
+import { formatVnd, type TripView, type Gender } from '@cc/core';
 import type { Lang } from '../i18n';
 import { en } from '../i18n/en';
 import { vi } from '../i18n/vi';

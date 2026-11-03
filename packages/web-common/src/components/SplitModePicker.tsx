@@ -1,6 +1,6 @@
 import { useRef, type JSX, type KeyboardEvent, type ReactNode } from 'react';
 import { PieChart, Trophy } from 'lucide-react';
-import type { SplitMode } from '@fsl/core';
+import type { SplitMode } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';

@@ -16,7 +16,7 @@ function appVersion(): string {
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion()) },
-  // shadcn files in @fsl/web-common import `@/…`, which points into that package.
+  // shadcn files in @cc/web-common import `@/…`, which points into that package.
   resolve: { alias: { '@': fileURLToPath(new URL('../../packages/web-common/src', import.meta.url)) } },
   plugins: [
     react(),

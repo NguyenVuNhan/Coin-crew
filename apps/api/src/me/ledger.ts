@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, max } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { normalizeName } from '@fsl/core';
+import { normalizeName } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { participants, personLinks, trips } from '../db/schema';

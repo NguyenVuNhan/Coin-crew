@@ -2,8 +2,8 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, asc, eq, isNull, max, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import type { PickerView } from '@fsl/core';
-import { expenseShareOf, findSimilarNames, isFundPaid, normalizeName, rowSlots } from '@fsl/core';
+import type { PickerView } from '@cc/core';
+import { expenseShareOf, findSimilarNames, isFundPaid, normalizeName, rowSlots } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import {

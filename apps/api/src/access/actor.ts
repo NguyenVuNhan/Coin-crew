@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { and, eq } from 'drizzle-orm';
-import type { Actor } from '@fsl/core';
+import type { Actor } from '@cc/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { deviceParticipants, participants, trips } from '../db/schema';

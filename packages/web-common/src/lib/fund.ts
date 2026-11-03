@@ -1,4 +1,4 @@
-import { can, fundEffect, isFundPaid, type ExpenseView, type IncomeView, type TripView } from '@fsl/core';
+import { can, fundEffect, isFundPaid, type ExpenseView, type IncomeView, type TripView } from '@cc/core';
 import { actorOf } from './rowActions';
 
 /** The group fund of a sport group; null for any other kind of group. */

@@ -1,4 +1,4 @@
-import type { ExpenseView, IncomeView, TripView } from '@fsl/core';
+import type { ExpenseView, IncomeView, TripView } from '@cc/core';
 import { PIDS, tripView } from './fixtures';
 
 export const income = (id: string, description: string, amount: number, extra: Partial<IncomeView> = {}): IncomeView => ({

@@ -10,7 +10,7 @@ import {
   type PaymentView,
   type PersonView,
   type TripView,
-} from '@fsl/core';
+} from '@cc/core';
 import type { RowAction } from '../components/ActionRow';
 import type { useT } from '../i18n';
 import { isFundAdmin } from './fund';
@@ -31,7 +31,7 @@ export interface ActionDeps {
   onReject?: () => void;
 }
 
-/** The signed-in person as the permission rules in `@fsl/core` see them. */
+/** The signed-in person as the permission rules in `@cc/core` see them. */
 export function actorOf(view: TripView): Actor {
   const { kind, participantId, participantPending, isOrganiser, isAdmin } = view.me;
   return { kind, participantId, participantPending, isOrganiser, isAdmin };

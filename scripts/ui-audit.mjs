@@ -4,7 +4,7 @@
 // (resizing a live page across 1024px would show a re-rendered page instead).
 //
 // How to run:
-// 1. Start the server: npm run e2e:server -w @fsl/api
+// 1. Start the server: npm run e2e:server -w @cc/api
 // 2. Run the audit script: node scripts/ui-audit.mjs
 // (On Windows, run this command outside the shell sandbox).
 
@@ -25,11 +25,11 @@ for (const file of fs.readdirSync(OUT)) {
 try {
   const healthRes = await fetch(`${BASE}/api/health`);
   if (!healthRes.ok) {
-    console.log(`Server not reachable at ${BASE}. Start it with: npm run e2e:server -w @fsl/api`);
+    console.log(`Server not reachable at ${BASE}. Start it with: npm run e2e:server -w @cc/api`);
     process.exit(1);
   }
 } catch {
-  console.log(`Server not reachable at ${BASE}. Start it with: npm run e2e:server -w @fsl/api`);
+  console.log(`Server not reachable at ${BASE}. Start it with: npm run e2e:server -w @cc/api`);
   process.exit(1);
 }
 

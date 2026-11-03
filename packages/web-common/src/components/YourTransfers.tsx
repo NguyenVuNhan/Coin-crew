@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type JSX } from 'react';
-import { formatVnd, type PaymentView, type Transfer, type TripView } from '@fsl/core';
+import { formatVnd, type PaymentView, type Transfer, type TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT, getLang } from '../i18n';
 import { nameOf } from '../lib/tripText';

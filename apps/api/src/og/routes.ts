@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { eq, or } from 'drizzle-orm';
-import type { ExpenseView } from '@fsl/core';
+import type { ExpenseView } from '@cc/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';

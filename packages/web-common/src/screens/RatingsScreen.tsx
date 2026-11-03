@@ -6,7 +6,7 @@ import {
   ratingBudget,
   type RankedPlayer,
   type TripView,
-} from '@fsl/core';
+} from '@cc/core';
 import {
   RATING_INITIAL_VISIBLE,
   RATING_MAX_STARS_PER_TARGET,

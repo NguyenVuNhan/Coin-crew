@@ -9,7 +9,7 @@ import {
   expenseShareOf,
   type PaymentView,
   type TripView,
-} from '@fsl/core';
+} from '@cc/core';
 import { cn } from '@/lib/utils';
 import { apiSend } from '../api/client';
 import { useT, getLang } from '../i18n';

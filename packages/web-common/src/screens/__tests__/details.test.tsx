@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useNavigate, useNavigationType } from 'react-router';
-import type { PaymentView, TripView } from '@fsl/core';
+import type { PaymentView, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';

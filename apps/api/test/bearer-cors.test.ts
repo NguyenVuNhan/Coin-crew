@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { call, json, memberSid, U } from './helpers';
 
 const ZMP = 'https://h5.zdn.vn';

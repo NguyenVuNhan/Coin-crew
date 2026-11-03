@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { PayInfo } from '@fsl/core';
+import type { PayInfo } from '@cc/core';
 import { apiFetch } from './client';
 
 /**

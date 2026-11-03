@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '../api/client';

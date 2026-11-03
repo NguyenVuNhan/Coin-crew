@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PickerView } from '@fsl/core';
+import type { PickerView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { picker, PIDS } from '../../test/fixtures';
 import { WhoAreYou } from '../WhoAreYou';

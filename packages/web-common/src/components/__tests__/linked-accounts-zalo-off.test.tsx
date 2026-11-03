@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AuthProvider, MeResponse } from '@fsl/core';
+import type { AuthProvider, MeResponse } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { useMe } from '../../api/hooks';
 import { LinkedAccounts } from '../LinkedAccounts';

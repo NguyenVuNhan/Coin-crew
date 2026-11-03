@@ -3,7 +3,7 @@ import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router';
-import type { Approval, TripView } from '@fsl/core';
+import type { Approval, TripView } from '@cc/core';
 import { setLang } from '../i18n';
 import { renderAt, mockApi } from './render';
 import { tripView, PIDS } from './fixtures';

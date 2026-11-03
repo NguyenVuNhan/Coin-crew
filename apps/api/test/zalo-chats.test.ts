@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { ZaloChatLookup } from '@fsl/core';
+import type { ZaloChatLookup } from '@cc/core';
 import { sha256Hex } from '../src/lib/ids';
 import { call, json, memberSid, seedTrip, seedUser, T, U, PID } from './helpers';
 

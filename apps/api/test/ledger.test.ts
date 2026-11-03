@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { TripListItem } from '@fsl/core';
+import type { TripListItem } from '@cc/core';
 import { call, json, linkMember, memberSid, seedTrip, PID, U } from './helpers';
 
 type Ledger = { tripId: string; ownerPid: string };

@@ -1,5 +1,5 @@
 import { BrowserRouter } from 'react-router';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { NavHistoryProvider } from './lib/navHistory';

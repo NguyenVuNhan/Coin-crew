@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { ExpenseInput, TripView } from '@fsl/core';
+import type { ExpenseInput, TripView } from '@cc/core';
 import { call, json, seedTrip, seedExpenses, memberSid, guestHeaders, linkMember, T, U, PID } from './helpers';
 
 const base = `/api/trips/${T.tripId}`;

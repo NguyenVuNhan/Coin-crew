@@ -1,4 +1,4 @@
-import { normalizeName, type MergeCandidate } from '@fsl/core';
+import { normalizeName, type MergeCandidate } from '@cc/core';
 
 /**
  * Filters merge candidates by name, nickname, sign-in label (email / Zalo name) and group name,

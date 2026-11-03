@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { GroupPerson } from '@fsl/core';
+import type { GroupPerson } from '@cc/core';
 import { call, json, memberSid, seedUser, U } from './helpers';
 
 const NOW = '2026-10-20T00:00:00.000Z';

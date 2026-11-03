@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
-import type { TripView } from '@fsl/core';
+import type { TripView } from '@cc/core';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useIsWide } from '../lib/media';

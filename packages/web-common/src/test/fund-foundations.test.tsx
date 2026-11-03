@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { ActivityAction } from '@fsl/core';
+import type { ActivityAction } from '@cc/core';
 import { en } from '../i18n/en';
 import { vi as viMessages } from '../i18n/vi';
 import viSource from '../i18n/vi.ts?raw';

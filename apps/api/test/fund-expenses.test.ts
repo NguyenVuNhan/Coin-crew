@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MAX_AMOUNT } from '@fsl/core';
-import type { ActivityItem, TripView } from '@fsl/core';
+import { MAX_AMOUNT } from '@cc/core';
+import type { ActivityItem, TripView } from '@cc/core';
 import { call, guestHeaders, json, linkMember, memberSid, PID, seedExpenses, seedTrip, T, U } from './helpers';
 import { bumpVersion, makeAdmin, makeSport, seedFundExpense } from './fund-helpers';
 

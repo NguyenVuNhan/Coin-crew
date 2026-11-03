@@ -11,8 +11,8 @@ import type {
   SplitResult,
   SportParticipantEntry,
   SportRule,
-} from '@fsl/core';
-import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@fsl/core';
+} from '@cc/core';
+import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@cc/core';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/en';
 import { useTripView } from '../api/hooks';

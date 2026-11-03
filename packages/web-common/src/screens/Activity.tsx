@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { ActivityItem } from '@fsl/core';
+import type { ActivityItem } from '@cc/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
 import { apiFetch, type ApiClientError } from '../api/client';

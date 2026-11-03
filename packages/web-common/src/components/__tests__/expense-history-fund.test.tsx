@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { screen, within } from '@testing-library/react';
-import type { ExpenseHistoryItem, ExpenseView, TripView } from '@fsl/core';
+import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
 import { renderAt } from '../../test/render';
 import { PIDS } from '../../test/fixtures';
 import { sportFundView, sportMemberView } from '../../test/fundFixtures';

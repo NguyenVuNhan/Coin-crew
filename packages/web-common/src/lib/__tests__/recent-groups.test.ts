@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ExpenseStatus, ExpenseView, PersonView } from '@fsl/core';
+import type { ExpenseStatus, ExpenseView, PersonView } from '@cc/core';
 import { recentGroups } from '../recentGroups';
 
 const person = (id: string): PersonView => ({ id, name: id.toUpperCase(), status: 'active', isMember: false, bank: 'none' });

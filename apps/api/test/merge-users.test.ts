@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { app, call, json } from './helpers';
 import { sha256Hex } from '../src/lib/ids';
 import { getDb } from '../src/db/client';

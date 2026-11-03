@@ -1095,7 +1095,7 @@
   "no-access.test.tsx :: a signed-in member on the who page goes straight to the trip and never picks a name :: passed",
   "no-access.test.tsx :: no access to the group the trip page offers sign-in instead of a retry :: passed",
   "no-access.test.tsx :: no access to the group the who page offers sign-in, returning to the trip :: passed",
-  "no-sdk-in-web.test.ts :: web bundle contains no zmp-sdk code (run `npm run build -w @fsl/web` first) :: passed",
+  "no-sdk-in-web.test.ts :: web bundle contains no zmp-sdk code (run `npm run build -w @cc/web` first) :: passed",
   "og-bill-qr.test.ts :: billQrPayload amount asks for no amount when the shares differ :: passed",
   "og-bill-qr.test.ts :: billQrPayload amount asks for the larger share when the split only differs by a rounding dong :: passed",
   "og-bill-qr.test.ts :: billQrPayload amount asks for the share when everyone else owes the same :: passed",

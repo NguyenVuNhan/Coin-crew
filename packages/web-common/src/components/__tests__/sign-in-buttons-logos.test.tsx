@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi, type MockInstance } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import type { MeResponse } from '@fsl/core';
+import type { MeResponse } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { SignInButtons } from '../SignInButtons';
 

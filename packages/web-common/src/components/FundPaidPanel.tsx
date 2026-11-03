@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { formatVnd } from '@fsl/core';
+import { formatVnd } from '@cc/core';
 import { useT } from '../i18n';
 import { Icon } from './icons';
 

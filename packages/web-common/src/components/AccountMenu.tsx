@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { MeUserView, Gender } from '@fsl/core';
+import type { MeUserView, Gender } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { useIsWide } from '../lib/media';

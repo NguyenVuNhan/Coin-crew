@@ -1,5 +1,5 @@
 {
-  "name": "@fsl/zalo-relay",
+  "name": "@cc/zalo-relay",
   "version": "0.0.0",
   "private": true,
   "type": "module",

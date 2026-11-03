@@ -1,4 +1,4 @@
-import type { ExpenseView, PickerView, TripView } from '@fsl/core';
+import type { ExpenseView, PickerView, TripView } from '@cc/core';
 
 /** The mockup trip (docs/superpowers/mockups/v1-flow.html) as the API returns it. */
 export const PIDS = { M: 'p-minh', A: 'p-an', B: 'p-binh', C: 'p-chi' } as const;
