@@ -206,7 +206,6 @@ export function NavHistoryProvider({ children }: { children: ReactNode }): JSX.E
       if (y !== undefined) return restoreScroll(y);
     }
     return;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per entry
   }, [location.key]);
 
   return <NavHistoryContext.Provider value={contextRef.current}>{children}</NavHistoryContext.Provider>;

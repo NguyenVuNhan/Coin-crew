@@ -23,5 +23,11 @@
     "@cloudflare/workers-types": "^5.20261012.1",
     "drizzle-kit": "^0.31.11",
     "wrangler": "^4.149.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:api",
+      "type:app"
+    ]
   }
 }

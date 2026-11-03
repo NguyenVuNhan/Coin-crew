@@ -6,17 +6,24 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "nx run-many -t test --parallel=1",
+    "typecheck": "nx run-many -t typecheck",
+    "lint": "nx run-many -t lint",
     "dev": "concurrently --kill-others \"npm run dev -w @cc/web\" \"npm run dev -w @cc/api\"",
     "e2e": "npm run build -w @cc/web && playwright test",
     "tunnel": "npm run build -w @cc/web && concurrently --kill-others \"npm run dev -w @cc/web\" \"npm run dev -w @cc/api -- --var APP_ORIGIN:https://sawfish-dear-heron.ngrok-free.app\" \"ngrok http 8787 --url https://sawfish-dear-heron.ngrok-free.app\""
   },
   "devDependencies": {
+    "@nx/eslint": "24.0.3",
+    "@nx/eslint-plugin": "24.0.3",
     "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "concurrently": "^10.0.6",
-    "typescript": "^7.0.2",
+    "eslint": "^10.14.0",
+    "nx": "24.0.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.11"
   }
 }

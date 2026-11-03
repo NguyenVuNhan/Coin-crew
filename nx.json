@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "plugins": [{ "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } }],
+  "pluginsConfig": { "@nx/js": { "analyzeSourceFiles": true, "analyzePackageJson": true } },
+  "namedInputs": {
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.base.json",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/package-lock.json",
+      "{workspaceRoot}/eslint.config.mjs"
+    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"]
+  },
+  "targetDefaults": {
+    "typecheck": { "cache": true, "inputs": ["default", "^default"] },
+    "test": { "cache": true, "inputs": ["default", "^default"] },
+    "lint": { "cache": true, "inputs": ["default", "^default"] },
+    "build": { "cache": false }
+  }
+}

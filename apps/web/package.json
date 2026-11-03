@@ -22,5 +22,11 @@
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4",
     "vite-plugin-pwa": "^2.0.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:web",
+      "type:app"
+    ]
   }
 }

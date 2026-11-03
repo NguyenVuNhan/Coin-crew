@@ -26,5 +26,11 @@
     "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4"
+  },
+  "nx": {
+    "tags": [
+      "scope:web",
+      "type:app"
+    ]
   }
 }
