@@ -10,7 +10,6 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
     "deploy:testing": "npm run build && npx zmp-cli@4 deploy --existing --testing --outputDir dist",
-    "permissions": "node scripts/app-permissions.mjs",
     "deploy:tunnel": "npm run build -- --mode tunnel && npx zmp-cli@4 deploy --existing --testing --outputDir dist"
   },
   "dependencies": {
