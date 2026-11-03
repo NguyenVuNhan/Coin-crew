@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router';
-import { formatVnd, payerLabel, type ExpensePayView } from '@fsl/core';
+import { formatVnd, payerLabel, type ExpensePayView, type PaidBy } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
 import { useTripView } from '../api/hooks';
@@ -12,6 +12,7 @@ import { PayQr } from '../components/PayQr';
 import { Icon } from '../components/icons';
 import { Skeleton } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
+import { WhoPaidSheet } from '../components/WhoPaidSheet';
 import { formatDay } from '../lib/time';
 
 export function ExpensePay() {
@@ -36,6 +37,7 @@ export function ExpensePay() {
 
   const reportMutation = useReportExpensePayment(tripId, expenseId);
   const [submitError, setSubmitError] = useState<unknown>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   if (viewError || payError) {
     return (
@@ -80,6 +82,10 @@ export function ExpensePay() {
   const v = payData as ExpensePayView;
 
   const onPaid = async () => {
+    if (v.row.slots >= 2) {
+      setSheetOpen(true);
+      return;
+    }
     setSubmitError(null);
     try {
       await reportMutation.mutateAsync({
@@ -88,6 +94,16 @@ export function ExpensePay() {
       });
     } catch (err) {
       setSubmitError(err);
+    }
+  };
+
+  const handleSheetReport = async (r: { amount: number; paidBy: PaidBy }) => {
+    setSubmitError(null);
+    try {
+      await reportMutation.mutateAsync(r);
+    } catch (err) {
+      setSubmitError(err);
+      throw err;
     }
   };
 
@@ -199,6 +215,13 @@ export function ExpensePay() {
           </div>
         )}
       </div>
+      <WhoPaidSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        row={v.row}
+        viewer={v.viewer}
+        onReport={handleSheetReport}
+      />
     </Screen>
   );
 }
