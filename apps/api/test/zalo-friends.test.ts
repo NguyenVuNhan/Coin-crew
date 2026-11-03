@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { PickerView, TripView } from '@cc/core';
-import { getDb } from '../src/db/client';
+import { getDb } from '@cc/api-db/client';
 import { linkZaloSlots } from '../src/auth/zaloSlots';
 import { call, json, guestHeaders, linkMember, memberSid, seedTrip, T, U, PID } from './helpers';
 

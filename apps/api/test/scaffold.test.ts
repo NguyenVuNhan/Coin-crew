@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { createApp } from '../src/app';
-import { ApiError } from '../src/lib/errors';
-import { getDb } from '../src/db/client';
-import { commitTripWrite } from '../src/lib/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { getDb } from '@cc/api-db/client';
+import { commitTripWrite } from '@cc/api-db/commit';
 
 const call = (app: ReturnType<typeof createApp>, path: string) => app.request(path, {}, env);
 

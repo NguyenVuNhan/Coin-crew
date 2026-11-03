@@ -13,23 +13,23 @@ import {
   normalizeName,
   toTransferNote,
 } from '@cc/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
 import {
   activity as activityTable,
   bankDetails,
   participants,
   trips,
   users,
-} from '../db/schema';
+} from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { newId, newToken, nowIso } from '../lib/ids';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { newId, newToken, nowIso } from '@cc/api-util/ids';
 import { loadRecentPeople } from '../me/people';
-import { actorName as actorNameOf, loadActivityNames } from '../lib/activityNames';
+import { actorName as actorNameOf, loadActivityNames } from '@cc/api-db/activityNames';
 import { getSnapshot } from './snapshot';
 import { toTripView } from './view';
 

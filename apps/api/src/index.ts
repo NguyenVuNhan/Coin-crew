@@ -1,5 +1,5 @@
 import { createApp } from './app';
-import type { Env } from './env';
+import type { Env } from '@cc/api-db/env';
 import { checkUsage } from './ops/usage';
 import { retryUndeliveredFeedback } from './feedback/deliver';
 

@@ -1,9 +1,9 @@
 import type { ActivityAction } from '@cc/core';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { eq, sql } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { activity as activityTable, trips } from '../db/schema';
-import { newId, nowIso } from './ids';
+import type { Db } from './client';
+import { activity as activityTable, trips } from './schema';
+import { newId, nowIso } from '@cc/api-util/ids';
 
 export interface ActivityInput {
   action: ActivityAction;

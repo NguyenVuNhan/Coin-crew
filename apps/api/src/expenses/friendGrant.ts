@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { deviceExpenseGrants } from '../db/schema';
+import type { Db } from '@cc/api-db/client';
+import { deviceExpenseGrants } from '@cc/api-db/schema';
 
 export async function getFriendGrant(
   db: Db,

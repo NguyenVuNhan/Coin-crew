@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { call, seedTrip, seedUser, memberSid, guestHeaders, T, U, PID } from './helpers';
-import { getDb } from '../src/db/client';
+import { getDb } from '@cc/api-db/client';
 import { insertProposal, pendingProposalFor } from '../src/proposals/store';
 
 const base = `/api/trips/${T.tripId}`;

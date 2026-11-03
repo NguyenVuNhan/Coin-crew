@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from 'hono';
-import type { AppBindings } from '../env';
+import type { AppBindings } from '@cc/api-db/env';
 
 export const corsMiddleware: MiddlewareHandler<AppBindings> = async (c, next) => {
   const origin = c.req.header('Origin');

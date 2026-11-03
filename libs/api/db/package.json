@@ -1,0 +1,23 @@
+{
+  "name": "@cc/api-db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cc/api-util": "*",
+    "@cc/core": "*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.0"
+  },
+  "nx": {
+    "tags": ["scope:api", "type:data-access"]
+  }
+}

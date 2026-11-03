@@ -1,8 +1,8 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { makeRefCode } from '@cc/core';
-import type { Db } from '../db/client';
-import { paymentRefs } from '../db/schema';
-import { nowIso } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { paymentRefs } from '@cc/api-db/schema';
+import { nowIso } from '@cc/api-util/ids';
 
 /**
  * The transfer note for one payer -> receiver pair in a trip: the first code ever issued for the pair,

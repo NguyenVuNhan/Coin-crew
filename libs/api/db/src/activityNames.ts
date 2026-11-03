@@ -1,6 +1,6 @@
 import { inArray } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { participants, users } from '../db/schema';
+import type { Db } from './client';
+import { participants, users } from './schema';
 
 /** D1 allows 100 bound parameters per query; stay well under it. */
 const CHUNK = 90;

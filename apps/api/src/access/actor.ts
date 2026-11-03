@@ -1,12 +1,12 @@
 import type { Context } from 'hono';
 import { and, eq } from 'drizzle-orm';
 import type { Actor } from '@cc/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { deviceParticipants, participants, trips } from '../db/schema';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { deviceParticipants, participants, trips } from '@cc/api-db/schema';
 import { getSessionUser } from '../auth/session';
 import { claimZaloSlot } from '../auth/zaloSlots';
-import { ApiError } from '../lib/errors';
+import { ApiError } from '@cc/api-util/errors';
 
 export type TripRow = typeof trips.$inferSelect;
 export type ResolvedActor = Actor & { userId: string | null; deviceHash: string; trip: TripRow };

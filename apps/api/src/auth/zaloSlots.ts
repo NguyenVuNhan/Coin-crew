@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { deviceParticipants, devices, participants } from '../db/schema';
-import { nowIso } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { deviceParticipants, devices, participants } from '@cc/api-db/schema';
+import { nowIso } from '@cc/api-util/ids';
 
 /** The Zalo account this device signed in with as a guest, if any. */
 export async function deviceZaloSub(db: Db, deviceHash: string): Promise<string | null> {

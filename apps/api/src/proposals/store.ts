@@ -1,10 +1,10 @@
 import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { normalizeName } from '@cc/core';
-import type { Db } from '../db/client';
-import { mergeProposals, participants, users } from '../db/schema';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError, isDbError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { mergeProposals, participants, users } from '@cc/api-db/schema';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError, isDbError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 import { mergeParticipants } from '../participants/merge';
 
 export type ProposalRow = typeof mergeProposals.$inferSelect;

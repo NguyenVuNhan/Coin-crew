@@ -8,11 +8,11 @@ import type {
   MeUserView,
   OutgoingMergeRequest,
 } from '@cc/core';
-import type { Db } from '../db/client';
+import type { Db } from '@cc/api-db/client';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { accountMergeRequests, participants, transactions, trips, users } from '../db/schema';
-import type { Env } from '../env';
-import { nowIso } from '../lib/ids';
+import { accountMergeRequests, participants, transactions, trips, users } from '@cc/api-db/schema';
+import type { Env } from '@cc/api-db/env';
+import { nowIso } from '@cc/api-util/ids';
 import type { UserRow } from './session';
 
 export function zaloConfigured(env: Env): boolean {

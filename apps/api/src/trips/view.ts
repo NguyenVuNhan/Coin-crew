@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Approval, PersonView, TripView } from '@cc/core';
 import { computeBalances, findBank, findSimilarNames, maskAccountNumber } from '@cc/core';
-import type { Db } from '../db/client';
+import type { Db } from '@cc/api-db/client';
 import type { ResolvedActor } from '../access/actor';
 import type { TripSnapshot } from './snapshot';
 import { toLedger } from './snapshot';
@@ -12,7 +12,7 @@ import {
   participants,
   playerRatings,
   users,
-} from '../db/schema';
+} from '@cc/api-db/schema';
 
 export async function toTripView(
   db: Db,

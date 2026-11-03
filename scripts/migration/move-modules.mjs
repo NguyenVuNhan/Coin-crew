@@ -550,10 +550,18 @@ export async function moveModules({ root, moves, aliases = {}, scan, git = true 
 
   // Move files on disk
   if (git) {
+    // `git mv` refuses untracked files (e.g. one created for this move), so those are renamed plainly.
+    const tracked = new Set(
+      execFileSync('git', ['ls-files', '-z', '--', ...concreteMoves.map((m) => m.from)], { cwd: normRoot })
+        .toString()
+        .split('\0')
+        .filter(Boolean),
+    );
     for (const { from, to } of concreteMoves) {
       const toFull = path.join(normRoot, to);
       fs.mkdirSync(path.dirname(toFull), { recursive: true });
-      execFileSync('git', ['mv', from, to], { cwd: normRoot, stdio: 'pipe' });
+      if (tracked.has(from)) execFileSync('git', ['mv', from, to], { cwd: normRoot, stdio: 'pipe' });
+      else fs.renameSync(path.join(normRoot, from), toFull);
     }
   } else {
     for (const { from, to } of concreteMoves) {

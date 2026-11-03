@@ -4,16 +4,16 @@ import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { MyBankResponse, PayInfo } from '@cc/core';
 import { buildTransferNote, buildVietQrPayload, can, SETTLE_PURPOSE, equalBillShare, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@cc/core';
-import type { AppBindings } from '../env';
-import type { Db } from '../db/client';
-import { getDb } from '../db/client';
-import { bankDetails, participants } from '../db/schema';
+import type { AppBindings } from '@cc/api-db/env';
+import type { Db } from '@cc/api-db/client';
+import { getDb } from '@cc/api-db/client';
+import { bankDetails, participants } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '../auth/session';
 import { assertWritable, resolveActor, type TripRow } from '../access/actor';
 import { ensure } from '../access/guard';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {

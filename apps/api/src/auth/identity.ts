@@ -1,8 +1,8 @@
 import type { AuthProvider } from '@cc/core';
 import { and, eq, gt } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { accountMergeRequests, participants, users } from '../db/schema';
-import { newId, nowIso } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { accountMergeRequests, participants, users } from '@cc/api-db/schema';
+import { newId, nowIso } from '@cc/api-util/ids';
 
 export type ClaimOutcome =
   | { result: 'self' }

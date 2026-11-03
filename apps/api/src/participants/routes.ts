@@ -4,8 +4,8 @@ import { and, asc, eq, isNull, max, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { PickerView } from '@cc/core';
 import { expenseShareOf, findSimilarNames, isFundPaid, normalizeName, rowSlots } from '@cc/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
 import {
   deviceExpenseGrants,
   deviceParticipants,
@@ -14,15 +14,15 @@ import {
   participants,
   trips,
   users,
-} from '../db/schema';
+} from '@cc/api-db/schema';
 import { getSessionUser } from '../auth/session';
 import { deviceZaloSub } from '../auth/zaloSlots';
 import type { ResolvedActor } from '../access/actor';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError, isDbError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError, isDbError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 import { pendingProposalFor } from '../proposals/store';
 import { getSnapshot } from '../trips/snapshot';
 import { mergeParticipants } from './merge';

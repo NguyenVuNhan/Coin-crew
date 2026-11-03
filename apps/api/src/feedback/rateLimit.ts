@@ -1,8 +1,8 @@
 import { count, eq, sql } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { feedback, feedbackRate } from '../db/schema';
-import { ApiError } from '../lib/errors';
-import { sha256Hex } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { feedback, feedbackRate } from '@cc/api-db/schema';
+import { ApiError } from '@cc/api-util/errors';
+import { sha256Hex } from '@cc/api-util/ids';
 import { hourBucket } from './time';
 
 export const FEEDBACK_PER_DEVICE_PER_HOUR = 5;

@@ -3,9 +3,9 @@ import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import type { MeResponse } from '@cc/core';
 import { app, call, json } from './helpers';
-import { sha256Hex } from '../src/lib/ids';
-import { getDb } from '../src/db/client';
-import { accountMergeRequests } from '../src/db/schema';
+import { sha256Hex } from '@cc/api-util/ids';
+import { getDb } from '@cc/api-db/client';
+import { accountMergeRequests } from '@cc/api-db/schema';
 import { upsertIdentity } from '../src/auth/identity';
 import { mergeUsers } from '../src/auth/mergeUsers';
 

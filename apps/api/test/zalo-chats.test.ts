@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { ZaloChatLookup } from '@cc/core';
-import { sha256Hex } from '../src/lib/ids';
+import { sha256Hex } from '@cc/api-util/ids';
 import { call, json, memberSid, seedTrip, seedUser, T, U, PID } from './helpers';
 
 async function zaloGuestDevice(id = 'dev-zalo-guest') {

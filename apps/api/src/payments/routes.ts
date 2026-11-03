@@ -10,14 +10,14 @@ import {
   arrivedOutcome,
   statusForNewPayment,
 } from '@cc/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
-import { participants, transactions, transactionShares } from '../db/schema';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import { participants, transactions, transactionShares } from '@cc/api-db/schema';
 import { assertWritable, resolveActor } from '../access/actor';
 import { ensure } from '../access/guard';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 import { getSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {

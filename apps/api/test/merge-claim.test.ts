@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { MeResponse } from '@cc/core';
 import { call, json, memberSid, PID, seedTrip, T, U } from './helpers';
-import { getDb } from '../src/db/client';
+import { getDb } from '@cc/api-db/client';
 import { requestClaim, upsertIdentity } from '../src/auth/identity';
-import { sha256Hex } from '../src/lib/ids';
+import { sha256Hex } from '@cc/api-util/ids';
 
 const CREATED = '2026-10-12T00:00:00.000Z';
 

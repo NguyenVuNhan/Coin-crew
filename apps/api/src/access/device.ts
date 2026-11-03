@@ -1,10 +1,10 @@
 import type { MiddlewareHandler } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { eq } from 'drizzle-orm';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { devices } from '../db/schema';
-import { newToken, nowIso, sha256Hex } from '../lib/ids';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { devices } from '@cc/api-db/schema';
+import { newToken, nowIso, sha256Hex } from '@cc/api-util/ids';
 
 export const deviceMiddleware: MiddlewareHandler<AppBindings> = async (c, next) => {
   const cookieDid = getCookie(c, 'did');

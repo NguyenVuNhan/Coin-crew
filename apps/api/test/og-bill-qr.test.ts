@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import { seedTrip, seedMinhBank, T, PID } from './helpers';
-import { getDb } from '../src/db/client';
-import { trips } from '../src/db/schema';
+import { getDb } from '@cc/api-db/client';
+import { trips } from '@cc/api-db/schema';
 import { getSnapshot } from '../src/trips/snapshot';
 import { billQrPayload } from '../src/og/billQr';
 

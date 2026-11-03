@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { ZaloMiniRequest, ZaloMiniResponse } from '@cc/core';
-import type { Db } from '../db/client';
-import { getDb } from '../db/client';
-import { devices, users } from '../db/schema';
-import type { AppBindings } from '../env';
-import { ApiError } from '../lib/errors';
-import { nowIso, sha256Hex } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { getDb } from '@cc/api-db/client';
+import { devices, users } from '@cc/api-db/schema';
+import type { AppBindings } from '@cc/api-db/env';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso, sha256Hex } from '@cc/api-util/ids';
 import { upsertIdentity } from './identity';
 import { createSession } from './session';
 import { fetchZaloProfile, zaloConfigured, ZaloError } from './zalo';

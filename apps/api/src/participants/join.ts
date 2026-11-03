@@ -3,18 +3,18 @@ import { Hono } from 'hono';
 import { and, eq, max, or } from 'drizzle-orm';
 import type { JoinResponse } from '@cc/core';
 import { findSimilarNames, normalizeName } from '@cc/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
 import {
   deviceParticipants,
   membershipRequests,
   participants,
-} from '../db/schema';
+} from '@cc/api-db/schema';
 import { getSessionUser } from '../auth/session';
 import { assertWritable, resolveActor } from '../access/actor';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {

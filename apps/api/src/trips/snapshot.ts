@@ -24,7 +24,7 @@ import {
   pairwiseTransfers,
   suggestTransfers,
 } from '@cc/core';
-import type { Db } from '../db/client';
+import type { Db } from '@cc/api-db/client';
 import type { TripRow } from '../access/actor';
 import {
   bankDetails,
@@ -34,8 +34,8 @@ import {
   transactions,
   tripViews,
   users,
-} from '../db/schema';
-import { nowIso } from '../lib/ids';
+} from '@cc/api-db/schema';
+import { nowIso } from '@cc/api-util/ids';
 
 export type TripSnapshot = Omit<TripView, 'me' | 'myBalance' | 'approvals' | 'links'>;
 

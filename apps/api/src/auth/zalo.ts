@@ -1,5 +1,5 @@
 import { generateCodeVerifier } from 'arctic';
-import type { Env } from '../env';
+import type { Env } from '@cc/api-db/env';
 import { appSecretProof } from './zaloMini';
 
 export { zaloConfigured } from './me';

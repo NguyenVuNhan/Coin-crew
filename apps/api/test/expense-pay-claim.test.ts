@@ -14,10 +14,10 @@ import {
   U,
   PID,
 } from './helpers';
-import { getDb } from '../src/db/client';
+import { getDb } from '@cc/api-db/client';
 import { requestClaim, upsertIdentity } from '../src/auth/identity';
 import { getClaimGrant } from '../src/expenses/claimGrant';
-import { sha256Hex } from '../src/lib/ids';
+import { sha256Hex } from '@cc/api-util/ids';
 
 const base = `/api/trips/${T.tripId}`;
 const post = (path: string, headers: Record<string, string>, body?: unknown) =>

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { drizzle } from 'drizzle-orm/d1';
 import type { PersonSummary } from '@cc/core';
-import * as schema from '../src/db/schema';
+import * as schema from '@cc/api-db/schema';
 import { loadPeopleSummary } from '../src/me/balances';
 import { confirmSettlement, createSettlement } from '../src/me/settle';
 import { seedUser, U } from './helpers';

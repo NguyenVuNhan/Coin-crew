@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { eq, or } from 'drizzle-orm';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { trips } from '../db/schema';
-import { ApiError } from '../lib/errors';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { trips } from '@cc/api-db/schema';
+import { ApiError } from '@cc/api-util/errors';
 
 export function accessRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();

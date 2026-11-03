@@ -1,14 +1,15 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { and, eq, gt } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { getDb } from '../db/client';
-import { sessions, users } from '../db/schema';
-import type { AppBindings } from '../env';
-import { ApiError } from '../lib/errors';
-import { newToken, nowIso, sha256Hex } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { getDb } from '@cc/api-db/client';
+import { sessions, users } from '@cc/api-db/schema';
+import type { AppBindings } from '@cc/api-db/env';
+import { ApiError } from '@cc/api-util/errors';
+import { newToken, nowIso, sha256Hex } from '@cc/api-util/ids';
+import type { UserRow } from '@cc/api-db/types';
 
-export type UserRow = typeof users.$inferSelect;
+export type { UserRow } from '@cc/api-db/types';
 
 export const SESSION_DAYS = 30;
 

@@ -1,5 +1,5 @@
 import type { D1Migration } from '@cloudflare/vitest-plugin';
-import type { UserRow } from './auth/session';
+import type { UserRow } from './types';
 
 export type Env = {
   DB: D1Database;

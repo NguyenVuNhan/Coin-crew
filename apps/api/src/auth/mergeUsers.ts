@@ -3,7 +3,7 @@ import type { BatchItem } from 'drizzle-orm/batch';
 import { and, asc, eq, exists, inArray, ne, notExists, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import type { ResolvedActor } from '../access/actor';
-import type { Db } from '../db/client';
+import type { Db } from '@cc/api-db/client';
 import {
   accountMergeRequests,
   activity,
@@ -24,9 +24,9 @@ import {
   trips,
   users,
   zaloChatLinks,
-} from '../db/schema';
-import { ApiError } from '../lib/errors';
-import { nowIso } from '../lib/ids';
+} from '@cc/api-db/schema';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso } from '@cc/api-util/ids';
 import { mergeParticipants } from '../participants/merge';
 import type { UserRow } from './session';
 

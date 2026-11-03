@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import type { AppBindings } from './env';
-import { errorResponse } from './lib/errors';
+import type { AppBindings } from '@cc/api-db/env';
+import { errorResponse } from '@cc/api-util/errors';
 import { corsMiddleware } from './lib/cors';
 import { authRoutes } from './auth/routes';
 import { accountRoutes } from './auth/accountRoutes';

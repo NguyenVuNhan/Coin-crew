@@ -42,7 +42,7 @@ export async function seedUser(id: string, name: string): Promise<void> {
 
 /** A session cookie value for the user (creates the user if needed). */
 export async function memberSid(userId: string, name = userId): Promise<string> {
-  const { sha256Hex } = await import('../src/lib/ids');
+  const { sha256Hex } = await import('@cc/api-util/ids');
   await seedUser(userId, name);
   const sid = `sid-${userId}-${crypto.randomUUID()}`;
   await sql('INSERT INTO sessions (id_hash, user_id, expires_at) VALUES (?, ?, ?)', await sha256Hex(sid), userId, '2099-01-01T00:00:00.000Z');
@@ -70,7 +70,7 @@ export async function newDevice(): Promise<{ deviceId: string; cookie: string }>
 
 /** Make a device's current pick in the trip (as POST people/pick will do in Task 11). */
 export async function pickAs(deviceId: string, participantId: string, tripId: string = T.tripId): Promise<void> {
-  const { sha256Hex } = await import('../src/lib/ids');
+  const { sha256Hex } = await import('@cc/api-util/ids');
   await sql('INSERT OR REPLACE INTO device_participants (device_hash, trip_id, participant_id, last_used_at) VALUES (?, ?, ?, ?)',
     await sha256Hex(deviceId), tripId, participantId, new Date().toISOString());
 }
