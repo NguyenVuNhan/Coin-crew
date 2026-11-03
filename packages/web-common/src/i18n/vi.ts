@@ -633,6 +633,14 @@ export const vi: Record<MessageKey, string> = {
   'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
   'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
 
+  'expensePay.title': 'Trả cho {name}', // REVIEW
+  'expensePay.rowLabel': 'Phần của {name}', // REVIEW
+  'expensePay.allPaid': 'Đã trả đủ ✓', // REVIEW
+  'expensePay.friendOf': 'Bạn của {name}', // REVIEW
+  'expensePay.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
+  'expensePay.paidLine': '{who} đã trả {amount}', // REVIEW
+  'expensePay.notReceived': '{payer} chưa nhận được {amount}', // REVIEW
+
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW
   'bankForm.memberNote': 'Đã lưu vào hồ sơ của bạn và được dùng trong tất cả chuyến đi.', // REVIEW
