@@ -304,7 +304,10 @@ export function tripRoutes(): Hono<AppBindings> {
     const list: TripListItem[] = [];
     for (const row of rows) {
       const snapshot = await getSnapshot(db, row.trip);
-      const myBalance = snapshot.balances[row.participantId] ?? 0;
+      let myBalance = snapshot.balances[row.participantId] ?? 0;
+      if (row.trip.roundTransfers === 1) {
+        myBalance = Math.abs(myBalance) <= 500 ? 0 : Math.round(myBalance / 1000) * 1000;
+      }
       list.push({
         id: row.trip.id,
         name: row.trip.name,

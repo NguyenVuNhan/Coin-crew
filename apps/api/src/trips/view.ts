@@ -35,11 +35,15 @@ export async function toTripView(
   ) {
     const pid = actor.participantId;
     const ledger = toLedger(snapshot);
-    const now = snapshot.balances[pid] ?? 0;
-    const beforePayments =
+    const roundBal = (val: number) =>
+      snapshot.trip.roundTransfers ? (Math.abs(val) <= 500 ? 0 : Math.round(val / 1000) * 1000) : val;
+
+    const now = roundBal(snapshot.balances[pid] ?? 0);
+    const beforePayments = roundBal(
       computeBalances(ledger.order, ledger.expenses, ledger.payments, {
         ignorePayments: true,
-      })[pid] ?? 0;
+      })[pid] ?? 0,
+    );
     const hasPendingExpense = ledger.expenses.some(
       (e) => e.status === 'pending' && e.createdById === pid,
     );

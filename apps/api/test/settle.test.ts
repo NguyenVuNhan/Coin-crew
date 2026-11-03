@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { drizzle } from 'drizzle-orm/d1';
-import type { ActivityItem, PeopleSummaryResponse, PersonSummary } from '@fsl/core';
+import type { ActivityItem, PeopleSummaryResponse, PersonSummary, TripListItem, TripView } from '@fsl/core';
 import * as schema from '../src/db/schema';
 import { createSettlement } from '../src/me/settle';
 import { call, json, memberSid, seedUser, U } from './helpers';
@@ -13,10 +13,17 @@ async function run(query: string, ...binds: unknown[]) {
   await env.DB.prepare(query).bind(...binds).run();
 }
 
-async function addTrip(id: string, name: string, opts: { preset?: 'trip' | 'sport' | 'direct'; archived?: boolean } = {}) {
+async function addTrip(id: string, name: string, opts: { preset?: 'trip' | 'sport' | 'direct'; archived?: boolean; roundTransfers?: boolean } = {}) {
   await run(
-    'INSERT INTO trips (id, name, preset, currency, fewest_transfers, organiser_user_id, group_token, view_token, version, created_at, archived_at) VALUES (?, ?, ?, \'VND\', 1, ?, ?, ?, 0, ?, ?)',
-    id, name, opts.preset ?? 'trip', OWNER, `g-${id}`, `v-${id}`, NOW, opts.archived ? NOW : null,
+    'INSERT INTO trips (id, name, preset, currency, fewest_transfers, round_transfers, organiser_user_id, group_token, view_token, version, created_at, archived_at) VALUES (?, ?, ?, \'VND\', 1, ?, ?, ?, ?, 0, ?, ?)',
+    id, name, opts.preset ?? 'trip', opts.roundTransfers ? 1 : 0, OWNER, `g-${id}`, `v-${id}`, NOW, opts.archived ? NOW : null,
+  );
+}
+
+async function addPayment(tripId: string, id: string, fromId: string, toId: string, amount: number, status = 'confirmed', createdAt = NOW) {
+  await run(
+    "INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, amount_confirmed, currency, spent_on, payer_id, to_id, split_mode, status, created_by_participant_id, confirmed_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'payment', '', ?, ?, 'VND', '2026-10-10', ?, ?, 'equal', ?, ?, ?, ?, ?)",
+    id, id, tripId, amount, status === 'confirmed' ? amount : null, fromId, toId, status, fromId, status === 'confirmed' ? toId : null, createdAt, createdAt,
   );
 }
 
@@ -274,5 +281,108 @@ describe('cross-group settlements', () => {
     });
     expect(await payments()).toHaveLength(4);
     expect(statements).toBeLessThan(50);
+  });
+});
+
+describe('roundTransfers in settlement snapshot', () => {
+  it('equal split 50.000 ₫ 3 ways -> suggestions are 17.000 ₫ when roundTransfers is enabled', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-round-3way', 'Split 50k 3-way', { roundTransfers: true });
+    await addPerson('t-round-3way', 'p-o', 'Owen', OWNER, 0);
+    await addPerson('t-round-3way', 'p-b', 'Bob', null, 1);
+    await addPerson('t-round-3way', 'p-c', 'Charlie', null, 2);
+    await addExpense('t-round-3way', 'e-50k', 'p-o', 50_000, ['p-o', 'p-b', 'p-c']);
+
+    const res = await call('/api/trips/t-round-3way', { headers: await auth() });
+    expect(res.status).toBe(200);
+    const view = await json<TripView>(res);
+    expect(view.trip.roundTransfers).toBe(true);
+    expect(view.suggestions).toHaveLength(2);
+    expect(view.suggestions.map((s) => s.amount)).toEqual([17_000, 17_000]);
+
+    const listRes = await call('/api/trips', { headers: await auth() });
+    expect(listRes.status).toBe(200);
+    const list = await json<TripListItem[]>(listRes);
+    const item = list.find((t) => t.id === 't-round-3way');
+    expect(item?.myBalance).toBe(33_000);
+  });
+
+  it('equal split 500.000 ₫ 6 ways -> suggestions are 83.000 ₫ when roundTransfers is enabled', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-round-6way', 'Split 500k 6-way', { roundTransfers: true });
+    await addPerson('t-round-6way', 'p-o', 'Owen', OWNER, 0);
+    for (let i = 1; i <= 5; i++) {
+      await addPerson('t-round-6way', `p-${i}`, `P${i}`, null, i);
+    }
+    const all = ['p-o', 'p-1', 'p-2', 'p-3', 'p-4', 'p-5'];
+    await addExpense('t-round-6way', 'e-500k', 'p-o', 500_000, all);
+
+    const res = await call('/api/trips/t-round-6way', { headers: await auth() });
+    expect(res.status).toBe(200);
+    const view = await json<TripView>(res);
+    expect(view.suggestions).toHaveLength(5);
+    expect(view.suggestions.map((s) => s.amount)).toEqual([83_000, 83_000, 83_000, 83_000, 83_000]);
+  });
+
+  it('extinguishing residual debts <= 500 ₫: after paying 83.000 ₫ on an 83.333 ₫ debt, suggestions is empty and view.myBalance.now is 0', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-extinguish', 'Residual debt', { roundTransfers: true });
+    await addPerson('t-extinguish', 'p-o', 'Owen', OWNER, 0);
+    await addPerson('t-extinguish', 'p-a', 'Alice', null, 1);
+    // Owen owes 83.333 ₫: Alice pays 166.667 ₫ for Alice and Owen
+    await addExpense('t-extinguish', 'e-split', 'p-a', 166_667, ['p-a', 'p-o']);
+    // Owen pays 83.000 ₫ to Alice -> leaving a ~333.5 ₫ residual
+    await addPayment('t-extinguish', 'pay-1', 'p-o', 'p-a', 83_000);
+
+    const res = await call('/api/trips/t-extinguish', { headers: await auth() });
+    expect(res.status).toBe(200);
+    const view = await json<TripView>(res);
+    expect(view.suggestions).toHaveLength(0);
+    expect(view.myBalance?.now).toBe(0);
+
+    const listRes = await call('/api/trips', { headers: await auth() });
+    expect(listRes.status).toBe(200);
+    const list = await json<TripListItem[]>(listRes);
+    const item = list.find((t) => t.id === 't-extinguish');
+    expect(item?.myBalance).toBe(0);
+  });
+
+  it('overpayment <= 500 ₫ does not ping-pong: paying 8.000 ₫ on a 7.500 ₫ debt produces a 500 ₫ credit, which extinguishes', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-pingpong', 'Overpayment pingpong', { roundTransfers: true });
+    await addPerson('t-pingpong', 'p-o', 'Owen', OWNER, 0);
+    await addPerson('t-pingpong', 'p-a', 'Alice', null, 1);
+    // Alice pays 15.000 ₫ for Alice and Owen -> Owen owes 7.500 ₫
+    await addExpense('t-pingpong', 'e-split', 'p-a', 15_000, ['p-a', 'p-o']);
+    // Owen pays 8.000 ₫ to Alice -> Owen has 500 ₫ credit
+    await addPayment('t-pingpong', 'pay-1', 'p-o', 'p-a', 8_000);
+
+    const res = await call('/api/trips/t-pingpong', { headers: await auth() });
+    expect(res.status).toBe(200);
+    const view = await json<TripView>(res);
+    expect(view.suggestions).toHaveLength(0);
+    expect(view.myBalance?.now).toBe(0);
+  });
+
+  it('when roundTransfers is disabled (default), exact unrounded suggestions are retained', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    await addTrip('t-exact', 'Exact suggestions', { roundTransfers: false });
+    await addPerson('t-exact', 'p-o', 'Owen', OWNER, 0);
+    await addPerson('t-exact', 'p-b', 'Bob', null, 1);
+    await addPerson('t-exact', 'p-c', 'Charlie', null, 2);
+    await addExpense('t-exact', 'e-50k', 'p-o', 50_000, ['p-o', 'p-b', 'p-c']);
+
+    const res = await call('/api/trips/t-exact', { headers: await auth() });
+    expect(res.status).toBe(200);
+    const view = await json<TripView>(res);
+    expect(view.trip.roundTransfers).toBe(false);
+    expect(view.suggestions).toHaveLength(2);
+    expect(view.suggestions[0].amount).toBeCloseTo(16666.67, 1);
+    expect(view.suggestions[0].amount).not.toBe(17000);
   });
 });
