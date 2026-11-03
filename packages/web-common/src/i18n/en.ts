@@ -883,6 +883,18 @@ export const en = {
   'feedback.thanks': 'Thanks — we read every message.',
   'feedback.error': "Couldn't send. Please try again.",
   'feedback.rateLimited': "You've sent a lot just now — try again later.",
+
+  'epa.reported': '{n} reported paying',
+  'epa.progress': '{got} / {total} received',
+  'epa.notReported': '{n} not paid yet',
+  'epa.confirmAll': 'Got all · {sum}',
+  'epa.confirmed': 'Confirmed {name} · {amount}',
+  'epa.undo': 'Undo',
+  'epa.received': 'Got {amount}',
+  'epa.other': 'Other amount',
+  'epa.notReceived': "Didn't arrive",
+  'epa.friendOf': "{name}'s friend",
+  'epa.nameOrFriend': "{name} (or {name}'s friend)",
 } as const;
 
 export type MessageKey = keyof typeof en;

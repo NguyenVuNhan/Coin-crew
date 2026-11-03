@@ -883,5 +883,17 @@ export const vi: Record<MessageKey, string> = {
   'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.', // REVIEW
   'feedback.error': 'Chưa gửi được. Vui lòng thử lại.', // REVIEW
   'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.', // REVIEW
+
+  'epa.reported': '{n} người báo đã trả', // REVIEW
+  'epa.progress': '{got} / {total} đã về', // REVIEW
+  'epa.notReported': 'còn {n} người chưa trả', // REVIEW
+  'epa.confirmAll': 'Đã nhận tất cả · {sum}', // REVIEW
+  'epa.confirmed': 'Đã xác nhận {name} · {amount}', // REVIEW
+  'epa.undo': 'Hoàn tác', // REVIEW
+  'epa.received': 'Đã nhận {amount}', // REVIEW
+  'epa.other': 'Số khác', // REVIEW
+  'epa.notReceived': 'Chưa nhận', // REVIEW
+  'epa.friendOf': 'Bạn của {name}', // REVIEW
+  'epa.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
 };
 

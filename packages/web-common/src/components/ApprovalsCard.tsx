@@ -1,5 +1,5 @@
 import { useId, useState, type JSX } from 'react';
-import { formatVnd, parseVnd, type Approval, type TripView } from '@fsl/core';
+import { formatVnd, parseVnd, payerLabel, rowSlots, type Approval, type TripView } from '@fsl/core';
 import { cn } from '@/lib/utils';
 import { useT } from '../i18n';
 import { ApiClientError } from '../api/client';
@@ -8,6 +8,7 @@ import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
+import { ExpensePaymentsApproval } from './ExpensePaymentsApproval';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -189,6 +190,24 @@ function PaymentApproval({
   const parsed = parseVnd(received);
   const amount = showAmount ? parsed : p.amountClaimed;
 
+  const exp = p.expenseId ? view.expenses.find((e) => e.id === p.expenseId || e.rootId === p.expenseId) : undefined;
+  const fromPerson = view.people.find((person) => person.id === p.fromId);
+  const rawName = nameOf(view, p.fromId);
+  let senderName = rawName;
+  if (p.expenseId) {
+    const slots = exp ? rowSlots(exp, p.fromId) : 1;
+    const labelKind = payerLabel({
+      paidBy: p.paidBy ?? 'self',
+      fromIsMember: fromPerson?.isMember ?? false,
+      slots,
+    });
+    if (labelKind === 'friend') {
+      senderName = t('epa.friendOf', { name: rawName });
+    } else if (labelKind === 'name_or_friend') {
+      senderName = t('epa.nameOrFriend', { name: rawName });
+    }
+  }
+
   return (
     <div className="fsl-approval flex flex-col gap-3">
       <button
@@ -197,9 +216,11 @@ function PaymentApproval({
         onClick={() => openDetails('payment', p.id, switching)}
       >
         <span className="fsl-approval__title m-0 block text-base font-semibold text-foreground break-words group-hover/btn:underline">
-          {t('approvals.paidYou', { name: nameOf(view, p.fromId), amount: formatVnd(p.amountClaimed) })}
+          {t('approvals.paidYou', { name: senderName, amount: formatVnd(p.amountClaimed) })}
         </span>
-        <span className="fsl-approval__sub m-0 block text-sm font-normal text-muted-foreground">{t('approvals.didItArrive')}</span>
+        <span className="fsl-approval__sub m-0 block text-sm font-normal text-muted-foreground">
+          {exp ? exp.description : t('approvals.didItArrive')}
+        </span>
       </button>
       {showAmount && (
         <div className="fsl-approval__form flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -372,7 +393,13 @@ export function ApprovalItem({
     case 'payment':
       return <PaymentApproval view={view} paymentId={approval.paymentId} switching={switching} />;
     case 'expense_payments':
-      return null; // Task 9 renders the grouped card.
+      return (
+        <ExpensePaymentsApproval
+          view={view}
+          expenseId={approval.expenseId}
+          paymentIds={approval.paymentIds}
+        />
+      );
     case 'not_arrived':
       return <NotArrivedApproval view={view} paymentId={approval.paymentId} />;
     case 'membership':
