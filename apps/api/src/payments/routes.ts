@@ -59,6 +59,91 @@ async function receiverIsMember(
   return p?.userId !== null && p?.userId !== undefined;
 }
 
+export interface InsertPaymentArgs {
+  tripId: string;
+  fromId: string;
+  toId: string;
+  amount: number;
+  status: 'says_paid' | 'confirmed';
+  createdByParticipantId: string;
+  actorParticipantId: string | null;
+  actorUserId: string | null;
+  actorDevice: string;
+  metaJson?: string | null;
+  expenseId?: string;
+}
+
+export async function insertPayment(
+  db: Db,
+  args: InsertPaymentArgs,
+): Promise<string> {
+  const {
+    tripId,
+    fromId,
+    toId,
+    amount,
+    status,
+    createdByParticipantId,
+    actorParticipantId,
+    actorUserId,
+    actorDevice,
+    metaJson = null,
+    expenseId,
+  } = args;
+  const paymentId = newId();
+  const now = nowIso();
+
+  const paymentRow = db.insert(transactions).values({
+    id: paymentId,
+    rootId: paymentId,
+    parentId: null,
+    isLatest: 1,
+    tripId,
+    type: 'payment',
+    description: '',
+    amount,
+    amountConfirmed: status === 'confirmed' ? amount : null,
+    currency: 'VND',
+    spentOn: now.slice(0, 10),
+    payerId: fromId,
+    toId,
+    splitMode: 'equal',
+    status,
+    rejectReason: null,
+    notArrivedAt: null,
+    disabledByUserId: null,
+    createdByParticipantId,
+    createdByDevice: actorDevice,
+    confirmedByParticipantId: status === 'confirmed' ? actorParticipantId : null,
+    metaJson,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const shareRow = db.insert(transactionShares).values({
+    transactionId: paymentId,
+    participantId: toId,
+    inputValue: amount,
+    amount: status === 'confirmed' ? amount : amount,
+  });
+
+  await commitTripWrite(db, tripId, [paymentRow, shareRow], {
+    action: 'payment_recorded',
+    actorParticipantId,
+    actorUserId,
+    actorDevice,
+    details: {
+      fromId,
+      toId,
+      amount,
+      status,
+      ...(expenseId !== undefined ? { expenseId } : {}),
+    },
+  });
+
+  return paymentId;
+}
+
 export function paymentRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -151,54 +236,16 @@ export function paymentRoutes(): Hono<AppBindings> {
       }
     }
 
-    const paymentId = newId();
-    const now = nowIso();
-
-    const insertPayment = db.insert(transactions).values({
-      id: paymentId,
-      rootId: paymentId,
-      parentId: null,
-      isLatest: 1,
+    const paymentId = await insertPayment(db, {
       tripId,
-      type: 'payment',
-      description: '',
-      amount,
-      amountConfirmed: status === 'confirmed' ? amount : null,
-      currency: 'VND',
-      spentOn: now.slice(0, 10),
-      payerId: fromId,
+      fromId,
       toId,
-      splitMode: 'equal',
+      amount,
       status,
-      rejectReason: null,
-      notArrivedAt: null,
-      disabledByUserId: null,
       createdByParticipantId: actor.participantId!,
-      createdByDevice: actor.deviceHash,
-      confirmedByParticipantId: status === 'confirmed' ? actor.participantId : null,
-      metaJson: null,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const insertShare = db.insert(transactionShares).values({
-      transactionId: paymentId,
-      participantId: toId,
-      inputValue: amount,
-      amount: status === 'confirmed' ? amount : amount,
-    });
-
-    await commitTripWrite(db, tripId, [insertPayment, insertShare], {
-      action: 'payment_recorded',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
-      details: {
-        fromId,
-        toId,
-        amount,
-        status,
-      },
     });
 
     return c.json({ paymentId, status }, 201);

@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { ExpensePayView, PaidBy } from '@fsl/core';
 import {
+  MAX_AMOUNT,
   expenseRemaining,
   expenseShareOf,
   isFundPaid,
@@ -9,13 +10,15 @@ import {
   pairwiseTransfers,
   rowSlots,
   slotTiles,
+  statusForNewPayment,
 } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { participants } from '../db/schema';
-import { resolveActor, type ResolvedActor } from '../access/actor';
+import { assertWritable, resolveActor, type ResolvedActor } from '../access/actor';
 import { buildPayInfo } from '../bank/routes';
 import { ApiError } from '../lib/errors';
+import { insertPayment } from '../payments/routes';
 import { getSnapshot, toLedger } from '../trips/snapshot';
 import { getFriendGrant } from './friendGrant';
 
@@ -146,6 +149,119 @@ export function expensePayRoutes(): Hono<AppBindings> {
 
     const result = await buildExpensePayView(db, actor, expenseId);
     return c.json(result);
+  });
+
+  // POST /trips/:id/expenses/:eid/pay-report
+  app.post('/trips/:id/expenses/:eid/pay-report', async (c) => {
+    const tripId = c.req.param('id');
+    const expenseId = c.req.param('eid');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+
+    if (actor.kind === 'viewer' || actor.participantPending) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    let body: { amount?: unknown; paidBy?: unknown };
+    try {
+      body = await c.req.json();
+    } catch {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    if (!body || typeof body !== 'object') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const db = getDb(c.env);
+    const view = await buildExpensePayView(db, actor, expenseId);
+    if (!view.row) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    if (
+      typeof body.amount !== 'number' ||
+      !Number.isSafeInteger(body.amount) ||
+      body.amount < 1 ||
+      body.amount > MAX_AMOUNT
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+    }
+    const amount = body.amount;
+
+    if (
+      view.viewer === 'self' &&
+      body.paidBy !== 'self' &&
+      body.paidBy !== 'friend'
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    const paidBy: PaidBy = view.viewer === 'friend' ? 'friend' : (body.paidBy as PaidBy);
+
+    if (view.row.remaining === 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+
+    if (amount > view.row.remaining) {
+      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+    }
+
+    const rowId = view.row.participantId;
+    const payerId = view.payer.id;
+    const rootId = view.expense.id;
+
+    const tripParticipants = await db
+      .select()
+      .from(participants)
+      .where(
+        and(
+          eq(participants.tripId, tripId),
+          inArray(participants.id, [rowId, payerId]),
+          inArray(participants.status, ['active', 'left']),
+        ),
+      );
+
+    const fromP = tripParticipants.find((p) => p.id === rowId);
+    const toP = tripParticipants.find((p) => p.id === payerId);
+    if (!fromP || !toP) {
+      throw new ApiError('VALIDATION', 422, 'Participants must be active members of the trip');
+    }
+
+    const receiverIsMember = toP.userId !== null && toP.status === 'active';
+    const payerIsMember = fromP.userId !== null && fromP.status === 'active';
+
+    let status: 'says_paid' | 'confirmed';
+    if (view.viewer === 'self') {
+      const s = statusForNewPayment({
+        actorId: rowId,
+        fromId: rowId,
+        toId: payerId,
+        receiverIsMember,
+        payerIsMember,
+      });
+      if (s === 'forbidden') {
+        throw new ApiError('FORBIDDEN', 403);
+      }
+      status = s;
+    } else {
+      status = receiverIsMember ? 'says_paid' : 'confirmed';
+    }
+
+    const paymentId = await insertPayment(db, {
+      tripId,
+      fromId: rowId,
+      toId: payerId,
+      amount,
+      status,
+      createdByParticipantId: rowId,
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      metaJson: JSON.stringify({ expenseId: rootId, paidBy }),
+      expenseId: rootId,
+    });
+
+    return c.json({ paymentId, status }, 201);
   });
 
   return app;
