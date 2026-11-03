@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   Ban,
+  Bell,
   Camera,
   Check,
   ChevronDown,
@@ -52,10 +53,11 @@ export type IconName =
   | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
-  | 'star' | 'crown' | 'user' | 'home' | 'headset';
+  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
+  bell: Bell,
   swap: ArrowLeftRight,
   back: ArrowLeft,
   settings: Settings,
