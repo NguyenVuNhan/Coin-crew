@@ -39,6 +39,32 @@ export default [
             { sourceTag: 'scope:web', onlyDependOnLibsWithTags: ['scope:web', 'scope:shared'] },
             { sourceTag: 'scope:api', onlyDependOnLibsWithTags: ['scope:api', 'scope:shared'] },
             { sourceTag: 'scope:relay', onlyDependOnLibsWithTags: [] },
+            // By kind (spec §5/§6 "May import"): lower kinds never reach up.
+            { sourceTag: 'type:util', onlyDependOnLibsWithTags: ['type:util', 'type:i18n'] },
+            { sourceTag: 'type:i18n', onlyDependOnLibsWithTags: ['type:util'] },
+            { sourceTag: 'type:ui', onlyDependOnLibsWithTags: ['type:ui', 'type:util', 'type:i18n'] },
+            { sourceTag: 'type:platform', onlyDependOnLibsWithTags: ['type:platform', 'type:util'] },
+            {
+              sourceTag: 'type:data-access',
+              onlyDependOnLibsWithTags: ['type:data-access', 'type:platform', 'type:util', 'type:i18n'],
+            },
+            { sourceTag: 'type:auth', onlyDependOnLibsWithTags: ['type:auth', 'type:data-access', 'type:util'] },
+            {
+              sourceTag: 'type:screens',
+              onlyDependOnLibsWithTags: ['type:screens', 'type:data-access', 'type:platform', 'type:ui', 'type:i18n', 'type:util'],
+            },
+            {
+              sourceTag: 'type:app',
+              onlyDependOnLibsWithTags: [
+                'type:screens',
+                'type:data-access',
+                'type:platform',
+                'type:ui',
+                'type:i18n',
+                'type:util',
+                'type:auth',
+              ],
+            },
           ],
         },
       ],
