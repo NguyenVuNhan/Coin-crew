@@ -5,7 +5,7 @@ import { useBack } from '../lib/navHistory';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { ApprovalItem, approvalKey, waitingApprovals } from '../components/ApprovalsCard';
-import { FocusWatch } from '../components/FocusWatch';
+import { FocusWatch } from '@cc/web-ui/components/FocusWatch';
 
 /**
  * Every approval that is waiting, each with its own actions. Handled ones drop out as the trip refreshes,

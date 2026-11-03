@@ -3,11 +3,11 @@ import { formatVnd, type Transfer, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { nameOf } from '@cc/web-util/tripText';
-import { Amount } from './Amount';
-import { Button } from './Button';
-import { Icon } from './icons';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { Button } from '@cc/web-ui/components/Button';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Card } from '@cc/web-ui/components/ui/card';
+import { cn } from '@cc/web-ui/lib/utils';
 
 /**
  * The one transfer a guest pays straight from their balance card: they owe exactly one person. With several debts

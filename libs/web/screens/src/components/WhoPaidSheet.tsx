@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { formatVnd, type ExpensePayView, type PaidBy } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { Sheet } from './Sheet';
-import { Button } from './Button';
-import { Icon } from './icons';
-import { Input } from './ui/input';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Input } from '@cc/web-ui/components/ui/input';
 
 export interface WhoPaidSheetProps {
   open: boolean;

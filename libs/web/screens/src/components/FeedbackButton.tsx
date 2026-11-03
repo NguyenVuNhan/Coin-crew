@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useT } from '@cc/web-i18n';
-import { Icon } from './icons';
+import { Icon } from '@cc/web-ui/components/icons';
 import { FeedbackSheet } from './FeedbackSheet';
 
 /** Header icon that opens the anonymous feedback sheet. Sits top right, away from the bottom nav and the add button. */

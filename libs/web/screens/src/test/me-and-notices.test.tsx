@@ -11,7 +11,7 @@ import { useMe } from '../api/hooks';
 import { AuthNotice } from '../components/AuthNotice';
 import { AccountMenu } from '../components/AccountMenu';
 import { ApprovalItem } from '../components/ApprovalsCard';
-import { InlineError } from '../components/InlineError';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { ApiClientError } from '../api/client';
 
 afterEach(() => {

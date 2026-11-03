@@ -7,9 +7,9 @@ import {
   declineProposal,
   useProposals,
 } from '../api/people';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
-import { Snackbar } from './Snackbar';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 
 interface ProposalCardProps {
   by: string;

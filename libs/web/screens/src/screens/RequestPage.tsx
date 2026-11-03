@@ -6,13 +6,13 @@ import { useT } from '@cc/web-i18n';
 import { ApiClientError, apiFetch, apiSend } from '../api/client';
 import { newIdempotencyKey } from '../api/people';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { Amount } from '../components/Amount';
-import { SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
-import { EmptyState } from '../components/EmptyState';
+import { Button } from '@cc/web-ui/components/Button';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { PayQr } from '../components/PayQr';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 function getItemLabel(item: PersonItem, owner: string, t: ReturnType<typeof useT>): string {
   return item.kind === 'direct' ? t('request.quickExpenses', { owner }) : item.tripName;

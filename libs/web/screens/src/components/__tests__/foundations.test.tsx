@@ -7,10 +7,10 @@ import { renderAt } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { useMediaQuery, useIsWide, useIsCoarsePointer, usePrefersReducedMotion } from '@cc/web-util/media';
 import { Screen } from '../Screen';
-import { EmptyState } from '../EmptyState';
-import { BottomBar } from '../BottomBar';
-import { LanguageButton } from '../LanguageButton';
-import { Button } from '../Button';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { BottomBar } from '@cc/web-ui/components/BottomBar';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
+import { Button } from '@cc/web-ui/components/Button';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -130,11 +130,11 @@ describe('media hooks', () => {
 describe('design tokens', () => {
   it('fields use the 16px input token', () => {
     // Vitest turns CSS imports (even ?raw) into empty strings, so read the file itself.
-    const globalsCss = readFileSync(resolve(import.meta.dirname, '../../styles/globals.css'), 'utf8');
+    const globalsCss = readFileSync(resolve(import.meta.dirname, '../../../../ui/src/styles/globals.css'), 'utf8');
     expect(globalsCss).toMatch(/input,\s*select,\s*textarea\s*\{[^}]*font-size:\s*max\(16px/);
     // shadcn's fields must not shrink below 16px on wider screens either.
     for (const file of ['input.tsx', 'textarea.tsx']) {
-      expect(readFileSync(resolve(import.meta.dirname, '../ui', file), 'utf8')).not.toMatch(/md:text-sm/);
+      expect(readFileSync(resolve(import.meta.dirname, '../../../../ui/src/components/ui', file), 'utf8')).not.toMatch(/md:text-sm/);
     }
   });
 });

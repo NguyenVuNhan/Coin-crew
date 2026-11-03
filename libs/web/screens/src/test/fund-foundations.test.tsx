@@ -5,8 +5,8 @@ import { en } from '@cc/web-i18n/en';
 import { vi as viMessages } from '@cc/web-i18n/vi';
 import viSource from '@cc/web-i18n/vi?raw';
 import { t } from '@cc/web-i18n';
-import { Icon } from '../components/icons';
-import { InlineError } from '../components/InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { activityLine } from '@cc/web-util/activityText';
 import { renderAt } from './render';
 

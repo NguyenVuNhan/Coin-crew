@@ -9,7 +9,7 @@ import '@fontsource/be-vietnam-pro/vietnamese-600.css';
 import '@fontsource/be-vietnam-pro/latin-600.css';
 import '@fontsource/be-vietnam-pro/vietnamese-700.css';
 import '@fontsource/be-vietnam-pro/latin-700.css';
-import '@cc/web-screens/styles.css';
+import '@cc/web-ui/styles.css';
 import { AppRoot, bootApp } from '@cc/web-screens';
 import { createZaloPlatform, zmpBasename, type ZmpSdk } from './platform/zaloMiniApp';
 

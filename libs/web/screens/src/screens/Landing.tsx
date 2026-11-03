@@ -6,9 +6,9 @@ import type { MessageKey } from '@cc/web-i18n/en';
 import { useMe } from '../api/hooks';
 import { Screen } from '../components/Screen';
 import { SignInButtons } from '../components/SignInButtons';
-import { Icon, type IconName } from '../components/icons';
-import { LanguageButton } from '../components/LanguageButton';
-import { cn } from '@/lib/utils';
+import { Icon, type IconName } from '@cc/web-ui/components/icons';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
+import { cn } from '@cc/web-ui/lib/utils';
 
 const STEPS: { icon: IconName; title: MessageKey; body: MessageKey }[] = [
   { icon: 'map', title: 'landing.step1', body: 'landing.step1Body' },

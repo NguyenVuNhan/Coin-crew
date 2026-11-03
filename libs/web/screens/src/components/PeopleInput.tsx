@@ -2,14 +2,14 @@ import { useState, useRef, useId, useMemo, useEffect } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
 import { UserCheck, X } from 'lucide-react';
 import { normalizeName, type RecentPerson, type Gender } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { newPersonEntry, filterRecentPeople, type PersonEntry } from '@cc/web-util/recentPeople';
 import { useRecentPeople } from '../api/recentPeople';
-import { Button } from './Button';
-import { Avatar } from './Avatar';
+import { Button } from '@cc/web-ui/components/Button';
+import { Avatar } from '@cc/web-ui/components/Avatar';
 import { GenderToggle } from './GenderToggle';
-import { Input } from '@/components/ui/input';
+import { Input } from '@cc/web-ui/components/ui/input';
 
 function withEmptyLineAfter(list: PersonEntry[], index: number): { list: PersonEntry[]; focusKey: string; added: boolean } {
   const nextEntry = list[index + 1];

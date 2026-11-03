@@ -3,17 +3,24 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // App code builds form controls from the shadcn parts in components/ui, never by hand (CLAUDE.md "Use real components").
-const src = join(import.meta.dirname, '..');
+// Walks the src folder of every web library under libs/web; file ids read "<library>/src/...".
+const src = join(import.meta.dirname, '../../..');
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
+    if (name === 'node_modules') return [];
     const path = join(dir, name);
     return statSync(path).isDirectory() ? walk(path) : [relative(src, path).split(sep).join('/')];
   });
 }
 
 const code = walk(src).filter(
-  (f) => f.endsWith('.tsx') && !f.startsWith('test/') && !f.includes('__tests__/') && !f.startsWith('components/ui/'),
+  (f) =>
+    /^[^/]+\/src\//.test(f) &&
+    f.endsWith('.tsx') &&
+    !/^[^/]+\/src\/test\//.test(f) &&
+    !f.includes('__tests__/') &&
+    !f.startsWith('ui/src/components/ui/'),
 );
 
 /** Each raw tag in app code with its opening tag text, up to the first `>` that closes it. */

@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useT } from '@cc/web-i18n';
-import { Icon } from './icons';
-import { BottomBar } from './BottomBar';
+import { Icon } from '@cc/web-ui/components/icons';
+import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { AppNav, type NavSection } from './AppNav';
 import { useBack, useBackLink, useNavEntry } from '../lib/navHistory';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { usePlatform } from '../platform';
 
 export interface ScreenProps {

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IncomingMergeRequest } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
-import { Sheet } from './Sheet';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 
 export interface MergeConfirmSheetProps {
   request: IncomingMergeRequest;

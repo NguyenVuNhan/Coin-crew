@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
-import { ActionRow, type RowAction } from '../ActionRow';
-import { ActionSheet } from '../ActionSheet';
+import { ActionRow, type RowAction } from '@cc/web-ui/components/ActionRow';
+import { ActionSheet } from '@cc/web-ui/components/ActionSheet';
 
 afterEach(() => {
   vi.unstubAllGlobals();

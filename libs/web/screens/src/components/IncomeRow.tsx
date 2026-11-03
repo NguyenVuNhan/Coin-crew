@@ -1,9 +1,9 @@
 import { formatVnd, type IncomeView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { nameOf } from '@cc/web-util/tripText';
-import { cn } from '@/lib/utils';
-import { Icon } from './icons';
-import { Pill } from './Pill';
+import { cn } from '@cc/web-ui/lib/utils';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Pill } from '@cc/web-ui/components/Pill';
 
 export interface IncomeRowProps {
   income: IncomeView;

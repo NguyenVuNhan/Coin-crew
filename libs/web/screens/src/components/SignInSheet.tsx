@@ -1,5 +1,5 @@
 import { useT } from '@cc/web-i18n';
-import { Sheet } from './Sheet';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SignInButtons } from './SignInButtons';
 
 export interface SignInSheetProps {

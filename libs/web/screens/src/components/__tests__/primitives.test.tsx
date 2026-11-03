@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { renderAt } from '../../test/render';
-import { Button } from '../Button';
-import { Snackbar } from '../Snackbar';
-import { Avatar } from '../Avatar';
-import { Sheet } from '../Sheet';
-import { Pill } from '../Pill';
+import { Button } from '@cc/web-ui/components/Button';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Pill } from '@cc/web-ui/components/Pill';
 
 describe('shared primitives on shadcn', () => {
   it('Button primary renders the teal pill and keeps its test hooks', () => {

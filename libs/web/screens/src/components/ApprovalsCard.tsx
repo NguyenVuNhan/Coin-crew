@@ -1,16 +1,16 @@
 import { useId, useState, type JSX } from 'react';
 import { formatVnd, parseVnd, payerLabel, rowSlots, type Approval, type TripView } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '../api/client';
 import { maskAccount, nameOf, splitText } from '@cc/web-util/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { ExpensePaymentsApproval } from './ExpensePaymentsApproval';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
 
 function ExpenseApproval({ view, expenseId, switching }: { view: TripView; expenseId: string; switching?: boolean }) {
   const t = useT();

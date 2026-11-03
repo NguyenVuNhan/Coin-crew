@@ -1,8 +1,8 @@
 import type { JSX } from 'react';
 import type { PersonView } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { Avatar } from './Avatar';
+import { Avatar } from '@cc/web-ui/components/Avatar';
 
 export interface SplitBetweenProps {
   people: readonly PersonView[];

@@ -10,13 +10,13 @@ import { expenseActions, incomeActions } from '../lib/rowActions';
 import { fundOf, incomeMinimum, mergeFeed } from '../lib/fund';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { ApiClientError } from '../api/client';
-import { cn } from '@/lib/utils';
-import { ActionRow } from './ActionRow';
+import { cn } from '@cc/web-ui/lib/utils';
+import { ActionRow } from '@cc/web-ui/components/ActionRow';
 import { ExpenseRow, rowAmount } from './ExpenseRow';
-import { EmptyState } from './EmptyState';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { IncomeRow } from './IncomeRow';
-import { InlineError } from './InlineError';
-import { ListModeChip } from './ListModeChip';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { ListModeChip } from '@cc/web-ui/components/ListModeChip';
 
 const STATUS: Record<'pending' | 'rejected' | 'disabled', MessageKey> = {
   pending: 'status.waiting',

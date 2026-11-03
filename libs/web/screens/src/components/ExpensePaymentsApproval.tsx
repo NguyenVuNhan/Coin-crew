@@ -10,19 +10,19 @@ import {
   type PaymentView,
   type TripView,
 } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { apiSend } from '../api/client';
 import { useT, getLang } from '@cc/web-i18n';
 import { expenseLink, remind, remindText } from '../lib/remind';
 import { nameOf } from '@cc/web-util/tripText';
 import { formatDay } from '@cc/web-util/time';
-import { Avatar } from './Avatar';
-import { Button } from './Button';
-import { Icon } from './icons';
-import { Sheet } from './Sheet';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Button } from '@cc/web-ui/components/Button';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { showUndo } from './UndoSnackbarHost';
-import { InlineError } from './InlineError';
-import { Input } from '@/components/ui/input';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Input } from '@cc/web-ui/components/ui/input';
 
 export interface ExpensePaymentsApprovalProps {
   view: TripView;

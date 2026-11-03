@@ -12,19 +12,19 @@ import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { FeedbackButton } from '../components/FeedbackButton';
 import { ConsentSheet } from '../components/ConsentSheet';
-import { Avatar } from '../components/Avatar';
-import { Amount } from '../components/Amount';
-import { EmptyState } from '../components/EmptyState';
-import { SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
-import { Card } from '@/components/ui/card';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Card } from '@cc/web-ui/components/ui/card';
 import { TripTabs } from '../components/TripTabs';
 import { ExpenseList } from '../components/ExpenseList';
 import { PaymentsList } from '../components/PaymentsList';
 import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
 import { DetailsPanel } from './DetailsPanel';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function Home(): JSX.Element {
   const t = useT();

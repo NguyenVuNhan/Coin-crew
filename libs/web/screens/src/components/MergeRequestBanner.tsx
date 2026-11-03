@@ -3,11 +3,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { IncomingMergeRequest, JoiningMergeRequest } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { MergeConfirmSheet } from './MergeConfirmSheet';
 import { JoinRequestSheet } from './JoinRequestSheet';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export interface JoinRequestBannerProps {
   request: JoiningMergeRequest;

@@ -26,22 +26,22 @@ import {
 } from '../api/people';
 import { copyText } from '@cc/web-util/clipboard';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { Amount } from '../components/Amount';
-import { Avatar } from '../components/Avatar';
-import { Icon } from '../components/icons';
-import { Label } from '@/components/ui/label';
-import { Sheet } from '../components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { MergePicker } from '../components/MergePicker';
-import { Snackbar } from '../components/Snackbar';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { PayQr } from '../components/PayQr';
-import { InlineError } from '../components/InlineError';
-import { SkeletonList } from '../components/Skeleton';
-import { EmptyState } from '../components/EmptyState';
-import { Input } from '@/components/ui/input';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Input } from '@cc/web-ui/components/ui/input';
 import { usePlatform } from '../platform';
 import { requestCard } from '../lib/shareCards';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function PersonScreen(): JSX.Element {
   const { key: rawKey } = useParams<{ key: string }>();

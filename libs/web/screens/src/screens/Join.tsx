@@ -5,9 +5,9 @@ import { apiFetch } from '../api/client';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { TripBaseProvider } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
-import { LanguageButton } from '../components/LanguageButton';
-import { Skeleton } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
+import { Skeleton } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 
 interface LinkResponse {
   tripId: string;

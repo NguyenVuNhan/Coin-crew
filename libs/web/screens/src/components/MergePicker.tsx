@@ -4,13 +4,13 @@ import type { MergeCandidate, MergeStep, PersonKey } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useMergeOptions, mergePeople } from '../api/people';
 import { searchPeople } from '@cc/web-util/searchPeople';
-import { Sheet } from './Sheet';
-import { Button } from './Button';
-import { Avatar } from './Avatar';
-import { Pill } from './Pill';
-import { InlineError } from './InlineError';
-import { SkeletonList } from './Skeleton';
-import { Input } from '@/components/ui/input';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { Input } from '@cc/web-ui/components/ui/input';
 
 export interface MergePickerProps {
   person: { key: PersonKey; name: string };

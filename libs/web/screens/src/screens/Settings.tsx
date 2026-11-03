@@ -9,14 +9,14 @@ import { actorOf } from '../lib/rowActions';
 import { useTripView } from '../api/hooks';
 import { apiSend, type ApiClientError } from '../api/client';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
-import { Icon } from '../components/icons';
+import { Button } from '@cc/web-ui/components/Button';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
 import { FewestSwitch } from '../components/FewestSwitch';
 import { RoundTransfersSwitch } from '../components/RoundTransfersSwitch';
 import { RatingsSwitch } from '../components/RatingsSwitch';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function Settings() {
   const { tripId, href } = useTrip();

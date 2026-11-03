@@ -2,11 +2,11 @@ import { useState, Fragment } from 'react';
 import { formatVnd, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
-import { Button } from './Button';
-import { Icon } from './icons';
-import { Sheet } from './Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { fundOf, isFundAdmin, showFund } from '../lib/fund';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 /** Flat bar showing the group fund balance and opening the fund sheet (spec §7.5). */
 export function FundPill({ view }: { view: TripView }) {

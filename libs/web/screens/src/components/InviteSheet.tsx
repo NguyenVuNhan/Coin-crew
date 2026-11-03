@@ -1,17 +1,17 @@
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TripView } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT, useLang } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
 import { usePlatform } from '../platform';
 import { appOrigin } from '../platform/session';
 import { inviteCard } from '../lib/shareCards';
-import { Button } from './Button';
-import { Sheet } from './Sheet';
-import { Icon } from './icons';
-import { InlineError } from './InlineError';
-import { Input } from '@/components/ui/input';
+import { Button } from '@cc/web-ui/components/Button';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Input } from '@cc/web-ui/components/ui/input';
 
 function useLinkActions(view: TripView, url: string) {
   const t = useT();

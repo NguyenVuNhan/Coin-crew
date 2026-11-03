@@ -11,7 +11,7 @@ import {
   type PersonView,
   type TripView,
 } from '@cc/core';
-import type { RowAction } from '../components/ActionRow';
+import type { RowAction } from '@cc/web-ui/components/ActionRow';
 import type { useT } from '@cc/web-i18n';
 import { isFundAdmin } from './fund';
 

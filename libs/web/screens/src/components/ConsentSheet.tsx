@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { apiSend } from '../api/client';
-import { Sheet } from './Sheet';
-import { Button } from './Button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
+import { Label } from '@cc/web-ui/components/ui/label';
 
 export function ConsentSheet() {
   const t = useT();

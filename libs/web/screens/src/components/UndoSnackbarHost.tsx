@@ -1,5 +1,5 @@
 import { useSyncExternalStore, type JSX } from 'react';
-import { Snackbar } from './Snackbar';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 
 /**
  * One app-wide undo snackbar. A confirmation can remove the card that showed it (the last waiting payment of a

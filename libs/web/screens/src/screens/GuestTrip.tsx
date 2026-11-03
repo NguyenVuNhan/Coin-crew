@@ -6,14 +6,14 @@ import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '../api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { acceptProposal } from '../api/people';
-import { Button } from '../components/Button';
-import { InlineError } from '../components/InlineError';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { useIsWide } from '@cc/web-util/media';
 import { fundOf } from '../lib/fund';
 import { nameOf } from '@cc/web-util/tripText';
 import { useEntryState } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
-import { LanguageButton } from '../components/LanguageButton';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
 import { BalanceCard, guestPayTarget } from '../components/BalanceCard';
 import { FundPill } from '../components/FundPill';
 import { LeaderboardWidget } from '../components/LeaderboardWidget';
@@ -27,8 +27,8 @@ import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import { TripTabs } from '../components/TripTabs';
 import { SignInButtons } from '../components/SignInButtons';
-import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { buttonVariants } from '@cc/web-ui/components/ui/button';
+import { cn } from '@cc/web-ui/lib/utils';
 import { FeedbackButton } from '../components/FeedbackButton';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {

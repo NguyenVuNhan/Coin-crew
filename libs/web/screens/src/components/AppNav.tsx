@@ -1,10 +1,10 @@
 import type { JSX } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useT } from '@cc/web-i18n';
-import { Icon, type IconName } from './icons';
-import { Button } from './Button';
+import { Icon, type IconName } from '@cc/web-ui/components/icons';
+import { Button } from '@cc/web-ui/components/Button';
 import { AccountMenu } from './AccountMenu';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export type NavSection = 'home' | 'groups' | 'activity';
 

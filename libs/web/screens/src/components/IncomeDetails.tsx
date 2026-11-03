@@ -9,12 +9,12 @@ import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';
 import { fundOf, incomeMinimum, isFundAdmin } from '../lib/fund';
 import { ApiClientError } from '../api/client';
-import { Pill } from './Pill';
-import { Button } from './Button';
-import { EmptyState } from './EmptyState';
-import { InlineError } from './InlineError';
-import { Icon } from './icons';
-import { cn } from '@/lib/utils';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { Button } from '@cc/web-ui/components/Button';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export interface IncomeDetailsProps {
   view: TripView;

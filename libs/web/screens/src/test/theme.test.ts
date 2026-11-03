@@ -7,7 +7,7 @@ const read = (path: string) => readFileSync(resolve(src, path), 'utf8');
 
 describe('Friendly theme (spec: shadcn Friendly redesign)', () => {
   it('defines the Friendly theme', () => {
-    const css = read('styles/globals.css');
+    const css = read('../../ui/src/styles/globals.css');
     for (const decl of [
       '--background: #f6f7f4',
       '--primary: #0f766e',

@@ -18,15 +18,15 @@ import { useBack } from '../lib/navHistory';
 import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
-import { Avatar } from '../components/Avatar';
-import { Pill } from '../components/Pill';
-import { Icon } from '../components/icons';
-import { InlineError } from '../components/InlineError';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { PodiumTop3, podiumPlayers } from '../components/LeaderboardWidget';
 import { ZaloSignIn } from '../components/ZaloSignIn';
 import { usePlatform } from '../platform';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@cc/web-ui/lib/utils';
+import { buttonVariants } from '@cc/web-ui/components/ui/button';
 
 /**
  * Pure function that builds a 24x24 SVG `<path d="...">` morphing a 5-pointed star

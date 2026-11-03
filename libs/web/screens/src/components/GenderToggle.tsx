@@ -1,7 +1,7 @@
 import type { Gender } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { Icon } from './icons';
+import { Icon } from '@cc/web-ui/components/icons';
 import { nextGender } from '@cc/web-util/recentPeople';
 
 export interface GenderToggleProps {

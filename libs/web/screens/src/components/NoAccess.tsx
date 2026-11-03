@@ -1,5 +1,5 @@
 import { useT } from '@cc/web-i18n';
-import { EmptyState } from './EmptyState';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { SignInButtons } from './SignInButtons';
 
 /** A group answered 403: no member session and no link token on this device. Retrying can't help, signing in or the invite link can. */

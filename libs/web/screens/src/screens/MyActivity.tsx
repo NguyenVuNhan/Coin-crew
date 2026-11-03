@@ -11,11 +11,11 @@ import { activityLine, groupByDay, timeOf } from '@cc/web-util/activityText';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { FeedbackButton } from '../components/FeedbackButton';
-import { SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
-import { EmptyState } from '../components/EmptyState';
-import { Button } from '../components/Button';
-import { cn } from '@/lib/utils';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Button } from '@cc/web-ui/components/Button';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function MyActivity(): JSX.Element {
   const t = useT();

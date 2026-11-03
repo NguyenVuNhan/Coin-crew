@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
-import { Sheet } from './Sheet';
-import { Avatar } from './Avatar';
-import { Button } from './Button';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Button } from '@cc/web-ui/components/Button';
 import { ProviderLogo } from './ProviderLogo';
 import { signInHref } from './SignInButtons';
 import { browserUrl } from '@cc/web-util/openInBrowser';

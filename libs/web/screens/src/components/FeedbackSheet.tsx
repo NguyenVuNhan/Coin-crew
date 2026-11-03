@@ -5,14 +5,14 @@ import { sendFeedback } from '../api/feedback';
 import { screenName } from '@cc/web-util/screenName';
 import { useT, useLang } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
-import { cn } from '@/lib/utils';
-import { Sheet } from './Sheet';
-import { Snackbar } from './Snackbar';
-import { Button } from './Button';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { cn } from '@cc/web-ui/lib/utils';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
+import { Button } from '@cc/web-ui/components/Button';
+import { Textarea } from '@cc/web-ui/components/ui/textarea';
+import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { Input } from '@cc/web-ui/components/ui/input';
 
 const DRAFT_KEY = 'fsl_feedback_draft';
 

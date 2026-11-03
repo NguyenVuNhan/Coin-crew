@@ -7,17 +7,17 @@ import { useMe } from '../api/hooks';
 import { apiFetch } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
-import { SkeletonList } from '../components/Skeleton';
-import { EmptyState } from '../components/EmptyState';
-import { InlineError } from '../components/InlineError';
-import { Amount } from '../components/Amount';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Amount } from '@cc/web-ui/components/Amount';
 import { AccountMenu } from '../components/AccountMenu';
-import { Button } from '../components/Button';
-import { Snackbar } from '../components/Snackbar';
+import { Button } from '@cc/web-ui/components/Button';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { ProposalBanner } from '../components/ProposalBanner';
-import { Icon } from '../components/icons';
-import { cn } from '@/lib/utils';
+import { Icon } from '@cc/web-ui/components/icons';
+import { cn } from '@cc/web-ui/lib/utils';
 
 /** `embedded`: render only the list, inside another screen (the Groups tab on Home). */
 export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {

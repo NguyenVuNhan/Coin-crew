@@ -1,8 +1,8 @@
 import { useT } from '@cc/web-i18n';
 import { Screen } from '../components/Screen';
-import { LanguageButton } from '../components/LanguageButton';
-import { Pill } from '../components/Pill';
-import { cn } from '@/lib/utils';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function Privacy() {
   const t = useT();

@@ -1,17 +1,17 @@
 import { useNavigate } from 'react-router';
 import { formatVnd, type PaymentView, type TripView } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { nameOf } from '@cc/web-util/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { paymentActions } from '../lib/rowActions';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { useListMode } from '@cc/web-util/useListMode';
-import { ActionRow } from './ActionRow';
-import { Amount } from './Amount';
-import { Pill } from './Pill';
-import { InlineError } from './InlineError';
-import { ListModeChip } from './ListModeChip';
+import { ActionRow } from '@cc/web-ui/components/ActionRow';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { ListModeChip } from '@cc/web-ui/components/ListModeChip';
 import { paymentStatus } from './PaymentDetails';
 
 function PaymentItem({

@@ -6,13 +6,13 @@ import { nameOf } from '@cc/web-util/tripText';
 import { formatWhen } from '@cc/web-util/time';
 import { useTripAction } from '../lib/useTripAction';
 import { paymentActions } from '../lib/rowActions';
-import { Amount } from './Amount';
-import { Pill, type PillProps } from './Pill';
-import { Button } from './Button';
-import { EmptyState } from './EmptyState';
-import { InlineError } from './InlineError';
-import { Icon } from './icons';
-import { cn } from '@/lib/utils';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { Pill, type PillProps } from '@cc/web-ui/components/Pill';
+import { Button } from '@cc/web-ui/components/Button';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
+import { cn } from '@cc/web-ui/lib/utils';
 
 /** A payment's status as a pill: the payments list and the details say the same thing. */
 export function paymentStatus(p: PaymentView): { tone: PillProps['tone']; label: MessageKey } {

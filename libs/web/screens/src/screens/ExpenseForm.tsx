@@ -31,17 +31,17 @@ import { IncomeForm } from '../components/IncomeForm';
 import { FundPaidPanel } from '../components/FundPaidPanel';
 import { SplitModePicker } from '../components/SplitModePicker';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { Avatar } from '../components/Avatar';
-import { Pill } from '../components/Pill';
-import { InlineError } from '../components/InlineError';
-import { Skeleton, SkeletonList } from '../components/Skeleton';
-import { Icon } from '../components/icons';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
-import { cn } from '@/lib/utils';
+import { Button } from '@cc/web-ui/components/Button';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
+import { NativeSelect, NativeSelectOption } from '@cc/web-ui/components/ui/native-select';
+import { cn } from '@cc/web-ui/lib/utils';
 
 function getTodayLocalDate(): string {
   const now = new Date();

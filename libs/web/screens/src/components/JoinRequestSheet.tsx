@@ -3,12 +3,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, type JoiningMergeRequest } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
-import { Sheet } from './Sheet';
-import { Avatar } from './Avatar';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
-import { Snackbar } from './Snackbar';
-import { cn } from '@/lib/utils';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export interface JoinRequestSheetProps {
   request: JoiningMergeRequest;

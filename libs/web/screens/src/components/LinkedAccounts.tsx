@@ -8,13 +8,13 @@ import { usePlatform } from '../platform';
 import { apiSend } from '../api/client';
 import { signInHref } from './SignInButtons';
 import { ProviderLogo, providerName } from './ProviderLogo';
-import { Button } from './Button';
-import { Sheet } from './Sheet';
-import { InlineError } from './InlineError';
-import { Pill, type PillProps } from './Pill';
-import { Icon, type IconName } from './icons';
+import { Button } from '@cc/web-ui/components/Button';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Pill, type PillProps } from '@cc/web-ui/components/Pill';
+import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { MergeSheet } from './MergeSheet';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export interface LinkedAccountsProps {
   me: MeResponse;

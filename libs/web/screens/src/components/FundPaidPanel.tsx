@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { formatVnd } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { Icon } from './icons';
+import { Icon } from '@cc/web-ui/components/icons';
 
 /**
  * Stands in for the split section when an expense is paid from the group fund (spec §7.3): nobody owes a share.

@@ -9,12 +9,12 @@ import { useBack } from '../lib/navHistory';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
-import { LanguageButton } from '../components/LanguageButton';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
 import { TripLayout } from '../components/TripLayout';
-import { Skeleton, SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
+import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { NoAccess } from '../components/NoAccess';
-import { Button } from '../components/Button';
+import { Button } from '@cc/web-ui/components/Button';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
 import { IncomeDetails } from '../components/IncomeDetails';
@@ -24,7 +24,7 @@ import { ViewOnlyTrip } from './ViewOnlyTrip';
 import { MemberTrip } from './MemberTrip';
 import { Approvals } from './Approvals';
 import { RatingsScreen } from './RatingsScreen';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 /** What the address points at inside the trip: the transaction whose details are open, the approvals list, or player ratings. */
 export type Selection =

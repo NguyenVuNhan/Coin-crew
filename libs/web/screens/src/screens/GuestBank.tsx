@@ -8,14 +8,14 @@ import { useTripView } from '../api/hooks';
 import { useTrip } from '../lib/tripBase';
 import { useBackLink } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { InlineError } from '../components/InlineError';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
-import { Skeleton } from '../components/Skeleton';
-import { buttonVariants } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { Skeleton } from '@cc/web-ui/components/Skeleton';
+import { buttonVariants } from '@cc/web-ui/components/ui/button';
+import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { cn } from '@cc/web-ui/lib/utils';
 
 type Mode = 'show' | 'form' | 'saved' | 'deleted';
 

@@ -2,11 +2,11 @@ import { useMe } from '../api/hooks';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
-import { Button } from './Button';
+import { Button } from '@cc/web-ui/components/Button';
 import { ProviderLogo } from './ProviderLogo';
 import { ZaloSignIn } from './ZaloSignIn';
 import { usePlatform } from '../platform';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export interface SignInButtonsProps {
   returnTo: string;

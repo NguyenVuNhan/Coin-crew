@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { useApprovalsLink } from '../lib/detailsNav';
 import { usePrefersReducedMotion } from '@cc/web-util/media';
 import { ApprovalItem, approvalKey, waitingApprovals } from './ApprovalsCard';
-import { FocusWatch } from './FocusWatch';
-import { Icon } from './icons';
-import { Pill } from './Pill';
+import { FocusWatch } from '@cc/web-ui/components/FocusWatch';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Pill } from '@cc/web-ui/components/Pill';
 
 type Direction = 'next' | 'prev';
 interface Cursor {

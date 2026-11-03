@@ -6,10 +6,10 @@ import { apiFetch, type ApiClientError } from '../api/client';
 import { useTripView } from '../api/hooks';
 import { activityLine, groupByDay, timeOf } from '@cc/web-util/activityText';
 import { Screen } from '../components/Screen';
-import { SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
-import { EmptyState } from '../components/EmptyState';
-import { cn } from '@/lib/utils';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function Activity() {
   const { tripId, href } = useTrip();

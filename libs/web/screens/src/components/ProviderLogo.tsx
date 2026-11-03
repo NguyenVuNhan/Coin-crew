@@ -1,9 +1,9 @@
 import type { AuthProvider } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 // Imported (not served from a public/ folder) so each app's build bundles them and resolves the URL
 // against its own `base`: the Zalo Mini App is served from a /<version>/ path where `/brand/…` 404s.
-import googleIcon from '@/assets/brand/google-signin-icon.png';
-import zaloIcon from '@/assets/brand/zalo-app-icon.png';
+import googleIcon from '../assets/brand/google-signin-icon.png';
+import zaloIcon from '../assets/brand/zalo-app-icon.png';
 
 // Official artwork, used verbatim (PNG, not redrawn):
 // - Google: pre-approved icon-only "Theme=Light, Show text=No, Shape=Square" button @4x, from

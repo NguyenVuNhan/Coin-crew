@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useRef, type JSX } from 'react';
 import { Loader2, Check } from 'lucide-react';
 import { bankAppLink, type BankApp } from '@cc/core';
-import { Sheet } from './Sheet';
-import { Button } from './Button';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
 import { usePlatform } from '../platform';
 import { bankAppLogo } from '../lib/bankApps';
 import { isIosDevice } from '../platform/browser';

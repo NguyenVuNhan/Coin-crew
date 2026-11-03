@@ -2,10 +2,10 @@ import { Link } from 'react-router';
 import { formatVnd, isFundPaid, type ExpenseView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { nameOf, splitText } from '@cc/web-util/tripText';
-import { cn } from '@/lib/utils';
-import { Amount } from './Amount';
-import { Icon } from './icons';
-import { Pill } from './Pill';
+import { cn } from '@cc/web-ui/lib/utils';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Pill } from '@cc/web-ui/components/Pill';
 
 export function rowAmount(expense: ExpenseView, view: TripView): number {
   const me = view.me.participantId;

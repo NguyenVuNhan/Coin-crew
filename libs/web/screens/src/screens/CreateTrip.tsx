@@ -7,15 +7,15 @@ import { useMe } from '../api/hooks';
 import { apiSend } from '../api/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
-import { Button } from '../components/Button';
-import { InlineError } from '../components/InlineError';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { PeopleInput } from '../components/PeopleInput';
-import { Icon } from '../components/icons';
+import { Icon } from '@cc/web-ui/components/icons';
 import { newPersonEntry, type PersonEntry } from '@cc/web-util/recentPeople';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { cn } from '@cc/web-ui/lib/utils';
 
 export function CreateTrip() {
   const t = useT();

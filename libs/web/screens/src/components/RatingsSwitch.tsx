@@ -1,10 +1,10 @@
 import { useId } from 'react';
 import type { TripView } from '@cc/core';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { Switch } from '@cc/web-ui/components/ui/switch';
 import { useT } from '@cc/web-i18n';
 import { useTripAction } from '../lib/useTripAction';
-import { InlineError } from './InlineError';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 
 /**
  * The "Player ratings" switch with its explanation in sport group Settings (admins only).

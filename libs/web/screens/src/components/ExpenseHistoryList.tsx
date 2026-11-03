@@ -2,15 +2,15 @@ import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
 import { can, formatVnd, isFundPaid } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { nameOf } from '@cc/web-util/tripText';
 import { actorOf } from '../lib/rowActions';
 import { formatDay } from '@cc/web-util/time';
 import { apiSend } from '../api/client';
-import { Icon } from './icons';
-import { InlineError } from './InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 
 export interface ExpenseHistoryListProps {
   view: TripView;

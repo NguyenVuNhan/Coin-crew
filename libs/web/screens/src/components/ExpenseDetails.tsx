@@ -10,12 +10,12 @@ import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';
 import { expenseActions } from '../lib/rowActions';
 import { ApiClientError } from '../api/client';
-import { Amount } from './Amount';
-import { Pill, type PillProps } from './Pill';
-import { Button } from './Button';
-import { EmptyState } from './EmptyState';
-import { InlineError } from './InlineError';
-import { Icon } from './icons';
+import { Amount } from '@cc/web-ui/components/Amount';
+import { Pill, type PillProps } from '@cc/web-ui/components/Pill';
+import { Button } from '@cc/web-ui/components/Button';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
 import { usePayInfo } from '../api/payInfo';
 import { useQrSvg, shareSportBill, renderSportBillPng, type SportBillCardInput } from '@cc/web-util/qr';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
@@ -26,9 +26,9 @@ import { sportShareText, expenseLink } from '../lib/remind';
 import { sportBillCard } from '../lib/shareCards';
 import { usePlatform } from '../platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
-import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { cn } from '@cc/web-ui/lib/utils';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
 
 const STATUS: Record<ExpenseView['status'], { tone: PillProps['tone']; label: MessageKey }> = {
   approved: { tone: 'success', label: 'status.approved' },

@@ -3,27 +3,29 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Keeps the Friendly redesign's rules from eroding: one stylesheet, theme colours only (spec 2026-10-28-shadcn-friendly-redesign).
-const src = join(import.meta.dirname, '..');
+// Walks the src folder of every web library under libs/web; file ids read "<library>/src/...".
+const src = join(import.meta.dirname, '../../..');
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
+    if (name === 'node_modules') return [];
     const path = join(dir, name);
     return statSync(path).isDirectory() ? walk(path) : [relative(src, path).split(sep).join('/')];
   });
 }
 
-const files = walk(src);
-const isTest = (f: string) => f.startsWith('test/') || f.includes('__tests__/');
+const files = walk(src).filter((f) => /^[^/]+\/src\//.test(f));
+const isTest = (f: string) => /^[^/]+\/src\/test\//.test(f) || f.includes('__tests__/');
 const code = files.filter((f) => /\.tsx?$/.test(f) && !isTest(f));
 
 /** Hex colours that are not styling: pixels painted onto a canvas for a saved picture. */
 const CANVAS_PAINT = /(fillStyle|strokeStyle|shadowColor)\s*=\s*['"]#/;
 /** Files that draw pictures (the QR code and the shareable cost image), where colours are pixels, not page styling. */
-const IMAGE_PAINTERS = ['lib/qr.ts'];
+const IMAGE_PAINTERS = ['util/src/qr.ts'];
 
 describe('style guard', () => {
   it('globals.css is the only stylesheet', () => {
-    expect(files.filter((f) => f.endsWith('.css'))).toEqual(['styles/globals.css']);
+    expect(files.filter((f) => f.endsWith('.css'))).toEqual(['ui/src/styles/globals.css']);
   });
 
   it('walks the real source tree', () => {

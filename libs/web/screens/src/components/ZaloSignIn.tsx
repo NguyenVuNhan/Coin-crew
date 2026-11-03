@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useT } from '@cc/web-i18n';
 import { usePlatform } from '../platform';
 import { zaloSignIn } from '../platform/zaloSession';
-import { Button } from './Button';
+import { Button } from '@cc/web-ui/components/Button';
 import { ProviderLogo } from './ProviderLogo';
 
 /** The Mini App's only way to sign in: share the Zalo name and photo, then continue. */

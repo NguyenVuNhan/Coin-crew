@@ -1,16 +1,16 @@
 import { useState, type FormEvent, type JSX, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, MAX_AMOUNT, parseVnd, type IncomeView, type TripView } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
 import { incomeMinimum } from '../lib/fund';
 import { fromEntryValue } from '@cc/web-util/splitInput';
 import { Screen } from './Screen';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
 
 function getTodayLocalDate(): string {
   const now = new Date();

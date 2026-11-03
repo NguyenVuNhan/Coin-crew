@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { OutgoingMergeRequest } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { usePlatform } from '../platform';
@@ -10,10 +10,10 @@ import { formatExpiry } from '@cc/web-util/time';
 import { apiSend, ApiClientError } from '../api/client';
 import { providerName } from './ProviderLogo';
 import { signInHref } from './SignInButtons';
-import { Sheet } from './Sheet';
-import { Button } from './Button';
-import { InlineError } from './InlineError';
-import { Icon } from './icons';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Button } from '@cc/web-ui/components/Button';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Icon } from '@cc/web-ui/components/icons';
 
 export interface MergeSheetProps {
   request: OutgoingMergeRequest;

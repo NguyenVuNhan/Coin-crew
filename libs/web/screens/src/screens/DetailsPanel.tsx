@@ -4,7 +4,7 @@ import { useT } from '@cc/web-i18n';
 import { useOpenDetails } from '../lib/detailsNav';
 import { useBack } from '../lib/navHistory';
 import { useTrip } from '../lib/tripBase';
-import { Icon } from '../components/icons';
+import { Icon } from '@cc/web-ui/components/icons';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { PaymentDetails } from '../components/PaymentDetails';
 import { IncomeDetails } from '../components/IncomeDetails';

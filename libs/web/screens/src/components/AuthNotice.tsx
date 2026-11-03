@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useT } from '@cc/web-i18n';
-import { Snackbar } from './Snackbar';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 
 const LABELS: Record<string, string> = { google: 'Google', zalo: 'Zalo' };
 const KEYS = ['auth', 'linked', 'merge', 'provider'];

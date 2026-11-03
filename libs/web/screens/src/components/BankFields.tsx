@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { BANKS, toTransferNote, normalizeName } from '@cc/core';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
 import {
   Command,
   CommandEmpty,
@@ -12,7 +12,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@cc/web-ui/components/ui/command';
 import { ChevronDown } from 'lucide-react';
 
 export interface BankFieldsValue {

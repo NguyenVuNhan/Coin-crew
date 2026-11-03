@@ -9,24 +9,24 @@ import { useTripAction } from '../lib/useTripAction';
 import { personActions } from '../lib/rowActions';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { Screen } from '../components/Screen';
-import { Avatar } from '../components/Avatar';
-import { Pill } from '../components/Pill';
-import { Button } from '../components/Button';
-import { Sheet } from '../components/Sheet';
-import { ActionRow } from '../components/ActionRow';
-import { ActionSheet } from '../components/ActionSheet';
-import { SkeletonList } from '../components/Skeleton';
-import { InlineError } from '../components/InlineError';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Pill } from '@cc/web-ui/components/Pill';
+import { Button } from '@cc/web-ui/components/Button';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { ActionRow } from '@cc/web-ui/components/ActionRow';
+import { ActionSheet } from '@cc/web-ui/components/ActionSheet';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { InlineError } from '@cc/web-ui/components/InlineError';
 import { GenderToggle } from '../components/GenderToggle';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@/components/ui/input-group';
-import { cn } from '@/lib/utils';
+} from '@cc/web-ui/components/ui/input-group';
+import { cn } from '@cc/web-ui/lib/utils';
 import { usePlatform } from '../platform';
 import { inviteCard } from '../lib/shareCards';
-import { Icon } from '../components/icons';
+import { Icon } from '@cc/web-ui/components/icons';
 
 export function People() {
   const { tripId, href } = useTrip();

@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, type JSX } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { Sheet } from './Sheet';
-import { Skeleton } from './Skeleton';
-import { Button } from './Button';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Skeleton } from '@cc/web-ui/components/Skeleton';
+import { Button } from '@cc/web-ui/components/Button';
 import { copyText } from '@cc/web-util/clipboard';
 import { blobToDataUrl } from '@cc/web-util/qr';
 

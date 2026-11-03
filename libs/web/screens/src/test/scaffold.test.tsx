@@ -6,13 +6,13 @@ import type { ReactNode } from 'react';
 import { en } from '@cc/web-i18n/en';
 import { vi as viMessages } from '@cc/web-i18n/vi';
 import { t, setLang } from '@cc/web-i18n';
-import { InlineError } from '../components/InlineError';
-import { Amount } from '../components/Amount';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Amount } from '@cc/web-ui/components/Amount';
 import { apiFetch, ApiClientError } from '../api/client';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { useTripView } from '../api/hooks';
 
-import { Icon } from '../components/icons';
+import { Icon } from '@cc/web-ui/components/icons';
 
 afterEach(() => {
   vi.unstubAllGlobals();

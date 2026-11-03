@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { rankPlayers, type RankedPlayer, type TripView } from '@cc/core';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@cc/web-ui/lib/utils';
+import { buttonVariants } from '@cc/web-ui/components/ui/button';
 import { useT } from '@cc/web-i18n';
 import { useRatingsLink } from '../lib/detailsNav';
-import { Avatar } from './Avatar';
-import { Icon } from './icons';
+import { Avatar } from '@cc/web-ui/components/Avatar';
+import { Icon } from '@cc/web-ui/components/icons';
 
 const COLLAPSE_SCROLL_Y = 40;
 const HIDE_SCROLL_Y = 200;
