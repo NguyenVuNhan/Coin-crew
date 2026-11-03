@@ -20,6 +20,7 @@ import { ExpensePay } from './screens/ExpensePay';
 import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
 import { AuthNotice } from './components/AuthNotice';
+import { UndoSnackbarHost } from './components/UndoSnackbarHost';
 
 function TripsRoute() {
   const { search } = useLocation();
@@ -57,6 +58,7 @@ export function App() {
   return (
     <>
       <AuthNotice />
+      <UndoSnackbarHost />
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/trips" element={<TripsRoute />} />

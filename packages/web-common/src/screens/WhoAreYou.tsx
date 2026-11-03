@@ -180,6 +180,7 @@ export function WhoAreYou() {
       );
       // Drop the cached "no name yet" view: the trip page would otherwise send us straight back here.
       queryClient.removeQueries({ queryKey: ['trip', tripId] });
+      queryClient.removeQueries({ queryKey: ['expense-pay', tripId] });
       if (searchParams.get('next') !== null || becomeMember) {
         navigate(becomeMember ? `${target}${target.includes('?') ? '&' : '?'}becomeMember=1` : target, { replace: true });
       } else {
@@ -203,6 +204,8 @@ export function WhoAreYou() {
         { participantId },
         tripId,
       );
+      // The pay screen cached "no row" before the pick: drop it so it asks again.
+      queryClient.removeQueries({ queryKey: ['expense-pay', tripId] });
       navigate(target, { replace: true });
     } catch (err) {
       setActionError(err);

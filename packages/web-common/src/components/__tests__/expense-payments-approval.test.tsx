@@ -7,6 +7,7 @@ import { renderAt, mockApi } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
 import { ApprovalItem, approvalKey } from '../ApprovalsCard';
 import { ExpensePaymentsApproval } from '../ExpensePaymentsApproval';
+import { UndoSnackbarHost } from '../UndoSnackbarHost';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -103,7 +104,8 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
     expect(screen.getByText('1 reported paying')).toBeInTheDocument();
 
     // Progress bar
-    expect(screen.getByText(/45\.000₫\s*\/\s*180\.000₫\s*received/)).toBeInTheDocument();
+    // 180.000₫ minus the payer's own 45.000₫ share.
+    expect(screen.getByText(/45\.000₫\s*\/\s*135\.000₫\s*received/)).toBeInTheDocument();
     expect(screen.getByText('1 not paid yet')).toBeInTheDocument();
 
     // Split people rows (An, Bình, Chi)
@@ -157,11 +159,14 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
     });
 
     renderAt(
-      <ExpensePaymentsApproval
-        view={view}
-        expenseId="e-badminton"
-        paymentIds={['pay-a']}
-      />,
+      <>
+        <ExpensePaymentsApproval
+          view={view}
+          expenseId="e-badminton"
+          paymentIds={['pay-a']}
+        />
+        <UndoSnackbarHost />
+      </>,
     );
 
     // Click the tick button for An

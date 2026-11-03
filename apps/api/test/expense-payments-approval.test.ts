@@ -100,6 +100,16 @@ describe('grouped expense payment approvals and payment revision', () => {
     }
   });
 
+  it('confirming one of two reports keeps the grouped card for the one still waiting', async () => {
+    const p1 = await friendReportOnSport(45000);
+    const { paymentId: p2 } = await guestReportOnSport(45000);
+    const minh = { Cookie: `sid=${await memberSid(U.minh, 'Minh')}` };
+    expect((await post(`/payments/${p2}/confirm`, minh)).status).toBe(204);
+
+    const view = await json<TripView>(call(base, { headers: minh }));
+    expect(view.approvals).toEqual([{ kind: 'expense_payments', expenseId: 'e-sport', paymentIds: [p1] }]);
+  });
+
   it('one linked report → plain payment approval', async () => {
     const { paymentId } = await guestReportOnSport(45000);
 
@@ -142,7 +152,8 @@ describe('grouped expense payment approvals and payment revision', () => {
     expect((await post(`/payments/${p1}/confirm`, minh, { amount: 40000 })).status).toBe(204);
 
     const afterConfirm = await json<TripView>(call(base, { headers: minh }));
-    expect(afterConfirm.approvals).toEqual([{ kind: 'payment', paymentId: p2 }]);
+    // Still one grouped card: p1 is confirmed, p2 still waits.
+    expect(afterConfirm.approvals).toEqual([{ kind: 'expense_payments', expenseId: 'e-sport', paymentIds: [p2] }]);
 
     const undoRes = await post(`/payments/${p1}/revise`, minh, { action: 'undo' });
     expect(undoRes.status).toBe(204);

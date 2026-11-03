@@ -20,7 +20,7 @@ import { Avatar } from './Avatar';
 import { Button } from './Button';
 import { Icon } from './icons';
 import { Sheet } from './Sheet';
-import { Snackbar } from './Snackbar';
+import { showUndo } from './UndoSnackbarHost';
 import { InlineError } from './InlineError';
 import { Input } from '@/components/ui/input';
 
@@ -55,13 +55,6 @@ export function ExpensePaymentsApproval({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
-  // Undo Snackbar state
-  const [snackbar, setSnackbar] = useState<{
-    paymentId: string;
-    message: string;
-  } | null>(null);
-  const snackbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Detail Sheet state
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<SplitRowInfo | null>(null);
@@ -72,48 +65,17 @@ export function ExpensePaymentsApproval({
     (e) => e.id === expenseId || e.rootId === expenseId,
   );
 
-  useEffect(() => {
-    return () => {
-      if (snackbarTimerRef.current) {
-        clearTimeout(snackbarTimerRef.current);
-      }
-    };
-  }, []);
-
+  // The undo lives in the app-wide host: confirming the last waiting row removes this card.
   const showSnackbar = (paymentId: string, name: string, amount: number) => {
-    if (snackbarTimerRef.current) {
-      clearTimeout(snackbarTimerRef.current);
-    }
-    setSnackbar({
-      paymentId,
+    showUndo({
       message: t('epa.confirmed', { name, amount: formatVnd(amount) }),
+      actionLabel: t('epa.undo'),
+      onAction: () => {
+        void apiSend(`/api/trips/${tripId}/payments/${paymentId}/revise`, 'POST', { action: 'undo' }, tripId)
+          .then(() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] }))
+          .catch(() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] }));
+      },
     });
-    snackbarTimerRef.current = setTimeout(() => {
-      setSnackbar(null);
-    }, 6000);
-  };
-
-  const handleUndo = async () => {
-    if (!snackbar) return;
-    const { paymentId } = snackbar;
-    setSnackbar(null);
-    if (snackbarTimerRef.current) {
-      clearTimeout(snackbarTimerRef.current);
-    }
-    try {
-      setBusy(true);
-      await apiSend(
-        `/api/trips/${tripId}/payments/${paymentId}/revise`,
-        'POST',
-        { action: 'undo' },
-        tripId,
-      );
-      await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
   };
 
   if (!expense) return null;
@@ -212,9 +174,11 @@ export function ExpensePaymentsApproval({
     0,
   );
   const notReportedCount = rows.filter((r) => r.state === 'not_reported').length;
+  // What the others owe the payer: the payer's own share never comes in.
+  const owedTotal = expense.amount - expenseShareOf(expense, expense.payerId);
   const progressPct =
-    expense.amount > 0
-      ? Math.min(100, Math.round((confirmedSum / expense.amount) * 100))
+    owedTotal > 0
+      ? Math.min(100, Math.round((confirmedSum / owedTotal) * 100))
       : 0;
 
   const handleConfirm = async (payment: PaymentView, name: string) => {
@@ -250,7 +214,7 @@ export function ExpensePaymentsApproval({
       if (waitingPayments.length > 0) {
         const last = waitingPayments[waitingPayments.length - 1]!;
         const r = rows.find((row) => row.pid === last.fromId);
-        showSnackbar(last.id, r?.rawName ?? nameOf(view, last.fromId), last.amountClaimed);
+        showSnackbar(last.id, r?.nameLabel ?? nameOf(view, last.fromId), last.amountClaimed);
       }
     } catch (err) {
       setError(err);
@@ -289,7 +253,7 @@ export function ExpensePaymentsApproval({
     if (!selectedPayment || !selectedRow) return;
     setDetailOpen(false);
     if (selectedPayment.status === 'says_paid') {
-      await handleConfirm(selectedPayment, selectedRow.rawName);
+      await handleConfirm(selectedPayment, selectedRow.nameLabel);
     }
   };
 
@@ -312,7 +276,7 @@ export function ExpensePaymentsApproval({
           { amount: otherAmount },
           tripId,
         );
-        showSnackbar(selectedPayment.id, selectedRow.rawName, otherAmount);
+        showSnackbar(selectedPayment.id, selectedRow.nameLabel, otherAmount);
       }
       await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
     } catch (err) {
@@ -377,7 +341,7 @@ export function ExpensePaymentsApproval({
           <span>
             {t('epa.progress', {
               got: formatVnd(confirmedSum),
-              total: formatVnd(expense.amount),
+              total: formatVnd(owedTotal),
             })}
           </span>
           <span>{t('epa.notReported', { n: notReportedCount })}</span>
@@ -448,7 +412,7 @@ export function ExpensePaymentsApproval({
                   data-testid={`epa-tick-${row.pid}`}
                   aria-label={t('approvals.confirm')}
                   className="min-h-11 min-w-11 size-11 rounded-full p-0 flex items-center justify-center border border-muted-foreground/30 text-muted-foreground hover:border-foreground hover:bg-muted/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-                  onClick={() => handleConfirm(row.waitingPayment!, row.rawName)}
+                  onClick={() => handleConfirm(row.waitingPayment!, row.nameLabel)}
                 >
                   <Icon name="check" size={20} />
                 </button>
@@ -590,15 +554,6 @@ export function ExpensePaymentsApproval({
           </div>
         )}
       </Sheet>
-
-      {/* Snackbar Undo */}
-      {snackbar && (
-        <Snackbar
-          message={snackbar.message}
-          actionLabel={t('epa.undo')}
-          onAction={handleUndo}
-        />
-      )}
     </div>
   );
 }
