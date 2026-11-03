@@ -80,12 +80,37 @@ export async function toTripView(
       expenseId: e.id,
     }));
 
-    const paymentApprovals: Approval[] = snapshot.payments
-      .filter((p) => p.status === 'says_paid' && p.toId === actor.participantId)
-      .map((p) => ({
-        kind: 'payment',
-        paymentId: p.id,
-      }));
+    const waitingPayments = snapshot.payments.filter(
+      (p) => p.status === 'says_paid' && p.toId === actor.participantId,
+    );
+    const byExpense = new Map<string, string[]>();
+    for (const p of waitingPayments) {
+      if (p.expenseId) {
+        const list = byExpense.get(p.expenseId) ?? [];
+        list.push(p.id);
+        byExpense.set(p.expenseId, list);
+      }
+    }
+    const emittedExpenses = new Set<string>();
+    const paymentApprovals: Approval[] = [];
+    for (const p of waitingPayments) {
+      const group = p.expenseId ? byExpense.get(p.expenseId) : undefined;
+      if (p.expenseId && group && group.length >= 2) {
+        if (!emittedExpenses.has(p.expenseId)) {
+          emittedExpenses.add(p.expenseId);
+          paymentApprovals.push({
+            kind: 'expense_payments',
+            expenseId: p.expenseId,
+            paymentIds: group,
+          });
+        }
+      } else {
+        paymentApprovals.push({
+          kind: 'payment',
+          paymentId: p.id,
+        });
+      }
+    }
 
     const notArrivedApprovals: Approval[] = snapshot.payments
       .filter((p) => {

@@ -2,8 +2,10 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
+  type PaymentStatus,
   MAX_AMOUNT,
   canConfirmPayment,
+  canRevisePayment,
   notArrivedOutcome,
   arrivedOutcome,
   statusForNewPayment,
@@ -335,6 +337,137 @@ export function paymentRoutes(): Hono<AppBindings> {
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: { amount: confirmed },
+    });
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/payments/:pid/revise
+  app.post('/trips/:id/payments/:pid/revise', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+
+    const db = getDb(c.env);
+    const payment = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
+      .get();
+
+    if (!payment || !payment.toId) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const isMember = await receiverIsMember(db, tripId, payment.toId);
+    if (
+      !canRevisePayment(
+        actor,
+        {
+          toId: payment.toId,
+          status: payment.status as PaymentStatus,
+          confirmedById: payment.confirmedByParticipantId,
+        },
+        isMember,
+      )
+    ) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    const body = await parseJson<{
+      action?: unknown;
+      amount?: unknown;
+    }>(c);
+
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      (body.action !== 'undo' &&
+        body.action !== 'amount' &&
+        body.action !== 'not_arrived')
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const action = body.action;
+    let newAmount: number | undefined;
+    if (action === 'amount') {
+      if (!isValidAmount(body.amount)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+      newAmount = body.amount;
+    }
+
+    const now = nowIso();
+    const setValues =
+      action === 'undo'
+        ? {
+            status: 'says_paid' as const,
+            amountConfirmed: null,
+            confirmedByParticipantId: null,
+            updatedAt: now,
+          }
+        : action === 'amount'
+          ? {
+              amountConfirmed: newAmount!,
+              updatedAt: now,
+            }
+          : {
+              status: 'rejected' as const,
+              updatedAt: now,
+            };
+
+    const r = await db
+      .update(transactions)
+      .set(setValues)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'confirmed'),
+        ),
+      )
+      .run();
+
+    if (r.meta.changes === 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+
+    const extraQueries = [];
+    if (action === 'undo' || action === 'amount') {
+      const shareAmount = action === 'undo' ? payment.amount : newAmount!;
+      extraQueries.push(
+        db
+          .update(transactionShares)
+          .set({ amount: shareAmount })
+          .where(
+            and(
+              eq(transactionShares.transactionId, pid),
+              eq(transactionShares.participantId, payment.toId),
+            ),
+          ),
+      );
+    }
+
+    await commitTripWrite(db, tripId, extraQueries, {
+      action: 'payment_revised',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: {
+        action,
+        ...(newAmount !== undefined ? { amount: newAmount } : {}),
+      },
     });
 
     return c.body(null, 204);
