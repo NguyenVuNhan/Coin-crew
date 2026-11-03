@@ -24,7 +24,7 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { PodiumTop3, podiumPlayers } from '../components/LeaderboardWidget';
 import { ZaloSignIn } from '../components/ZaloSignIn';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { cn } from '@cc/web-ui/lib/utils';
 import { buttonVariants } from '@cc/web-ui/components/ui/button';
 

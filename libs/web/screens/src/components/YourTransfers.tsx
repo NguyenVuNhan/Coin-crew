@@ -21,7 +21,7 @@ import { PayQr } from './PayQr';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { remindCard } from '../lib/shareCards';
 
 /** In-place detail for an open transfer row, showing QR code or bank status. */

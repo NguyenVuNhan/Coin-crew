@@ -3,7 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type { BankApp } from '@cc/core';
 import { fakePlatform } from '../../test/fakePlatform';
-import { PlatformProvider } from '../../platform';
+import { PlatformProvider } from '@cc/web-platform';
 import {
   BANK_APP_KEY,
   deviceBankApps,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BANK_APPS, type BankApp } from '@cc/core';
-import { isIosDevice } from '../platform/browser';
-import { usePlatform, type PlatformStorage } from '../platform';
+import { isIosDevice } from '@cc/web-platform/browser';
+import { usePlatform, type PlatformStorage } from '@cc/web-platform';
 
 export const BANK_APP_KEY = 'fsl.bankApp';
 

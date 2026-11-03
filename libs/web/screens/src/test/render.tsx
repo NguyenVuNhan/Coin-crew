@@ -5,7 +5,7 @@ import type { ReactElement } from 'react';
 import { vi } from 'vitest';
 import { setLang } from '@cc/web-i18n';
 import { NavHistoryProvider } from '../lib/navHistory';
-import { browserPlatform, PlatformProvider, type PlatformBridge } from '../platform';
+import { browserPlatform, PlatformProvider, type PlatformBridge } from '@cc/web-platform';
 
 /** Shows the current path so tests can assert navigation. */
 function LocationProbe() {

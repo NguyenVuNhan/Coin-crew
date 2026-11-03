@@ -25,7 +25,7 @@ import { SignInSheet } from '../components/SignInSheet';
 import { ClaimSheet } from '../components/ClaimSheet';
 import { ZaloSignIn } from '../components/ZaloSignIn';
 import { browserUrl } from '@cc/web-util/openInBrowser';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { cn } from '@cc/web-ui/lib/utils';
 

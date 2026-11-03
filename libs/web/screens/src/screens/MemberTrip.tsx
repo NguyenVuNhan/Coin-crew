@@ -26,7 +26,7 @@ import { TripTabs } from '../components/TripTabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { buttonVariants } from '@cc/web-ui/components/ui/button';
 import { AccountMenu } from '../components/AccountMenu';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 
 /** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {

@@ -39,7 +39,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Input } from '@cc/web-ui/components/ui/input';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { requestCard } from '../lib/shareCards';
 import { cn } from '@cc/web-ui/lib/utils';
 

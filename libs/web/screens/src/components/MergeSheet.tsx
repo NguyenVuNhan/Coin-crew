@@ -5,7 +5,7 @@ import type { OutgoingMergeRequest } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { formatExpiry } from '@cc/web-util/time';
 import { apiSend, ApiClientError } from '../api/client';
 import { providerName } from './ProviderLogo';

@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { MeResponse, AuthProvider, OutgoingMergeRequest } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { apiSend } from '../api/client';
 import { signInHref } from './SignInButtons';
 import { ProviderLogo, providerName } from './ProviderLogo';

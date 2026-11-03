@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { fakePlatform } from '../../test/fakePlatform';
 import { picker, PIDS } from '../../test/fixtures';
-import { sessionStore } from '../../platform/session';
+import { sessionStore } from '@cc/web-platform/session';
 import { Landing } from '../Landing';
 import { WhoAreYou } from '../WhoAreYou';
 

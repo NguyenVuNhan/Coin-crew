@@ -6,7 +6,7 @@ import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { AppNav, type NavSection } from './AppNav';
 import { useBack, useBackLink, useNavEntry } from '../lib/navHistory';
 import { cn } from '@cc/web-ui/lib/utils';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 
 export interface ScreenProps {
   title: string;

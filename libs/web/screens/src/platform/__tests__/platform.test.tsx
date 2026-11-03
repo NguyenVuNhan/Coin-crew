@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { usePlatform, PlatformProvider, browserPlatform, type ShareCard } from '../index';
+import { usePlatform, PlatformProvider, browserPlatform, type ShareCard } from '@cc/web-platform';
 import { fakePlatform } from '../../test/fakePlatform';
 
 describe('platform', () => {

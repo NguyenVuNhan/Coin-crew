@@ -24,7 +24,7 @@ import {
   InputGroupInput,
 } from '@cc/web-ui/components/ui/input-group';
 import { cn } from '@cc/web-ui/lib/utils';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { inviteCard } from '../lib/shareCards';
 import { Icon } from '@cc/web-ui/components/icons';
 

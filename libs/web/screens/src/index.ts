@@ -6,5 +6,5 @@ export {
   type PlatformBridge,
   type ShareCard,
   type ZaloFriend,
-} from './platform';
-export { sessionStore } from './platform/session';
+} from '@cc/web-platform';
+export { sessionStore } from '@cc/web-platform/session';

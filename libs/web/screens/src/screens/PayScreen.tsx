@@ -19,7 +19,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { PayQr } from '../components/PayQr';
 import { Icon } from '@cc/web-ui/components/icons';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { remindCard } from '../lib/shareCards';
 import { cn } from '@cc/web-ui/lib/utils';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { browserPlatform, isIosDevice } from '../browser';
+import { browserPlatform, isIosDevice } from '@cc/web-platform/browser';
 
 describe('browserPlatform.saveImage & isIosDevice', () => {
   let originalUserAgent: PropertyDescriptor | undefined;

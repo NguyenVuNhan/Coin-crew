@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { picker } from '../../test/fixtures';
-import { browserPlatform } from '../../platform';
+import { browserPlatform } from '@cc/web-platform';
 import { ClaimSheet } from '../ClaimSheet';
 import { WhoAreYou } from '../../screens/WhoAreYou';
 

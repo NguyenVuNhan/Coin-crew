@@ -6,8 +6,8 @@ import { NavHistoryProvider } from './lib/navHistory';
 import { detectLang, setLang } from '@cc/web-i18n';
 import { refetchOnWindowFocus } from './api/focus';
 import { ApiClientError, apiFetch } from './api/client';
-import { browserPlatform, PlatformProvider, type PlatformBridge } from './platform';
-import { sessionStore } from './platform/session';
+import { browserPlatform, PlatformProvider, type PlatformBridge } from '@cc/web-platform';
+import { sessionStore } from '@cc/web-platform/session';
 import { zaloHandshake } from './platform/zaloSession';
 
 /** One-time start-up shared by every shell (web, Zalo): language and focus refetch. */

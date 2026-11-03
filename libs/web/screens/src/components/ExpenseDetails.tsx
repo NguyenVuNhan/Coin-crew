@@ -24,7 +24,7 @@ import { copyText } from '@cc/web-util/clipboard';
 import { useImageSheet } from './SaveImageSheet';
 import { sportShareText, expenseLink } from '../lib/remind';
 import { sportBillCard } from '../lib/shareCards';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Input } from '@cc/web-ui/components/ui/input';

@@ -1,4 +1,4 @@
-import type { PlatformBridge, PlatformStorage, ShareCard, ZaloFriend } from '../platform';
+import type { PlatformBridge, PlatformStorage, ShareCard, ZaloFriend } from '@cc/web-platform';
 
 /** Every recorded method, so `calls.share` etc. are always defined. */
 export type FakeCallName =

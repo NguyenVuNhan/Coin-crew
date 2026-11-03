@@ -1,8 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { ZaloMiniRequest, ZaloMiniResponse } from '@cc/core';
 import { apiSend } from '../api/client';
-import type { PlatformBridge } from './index';
-import { sessionStore } from './session';
+import type { PlatformBridge } from '@cc/web-platform';
+import { sessionStore } from '@cc/web-platform/session';
 
 const ENDPOINT = '/api/auth/zalo-mini';
 

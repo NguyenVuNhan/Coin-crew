@@ -5,7 +5,7 @@ import type { MessageKey } from '@cc/web-i18n/en';
 import { Button } from '@cc/web-ui/components/Button';
 import { ProviderLogo } from './ProviderLogo';
 import { ZaloSignIn } from './ZaloSignIn';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { cn } from '@cc/web-ui/lib/utils';
 
 export interface SignInButtonsProps {

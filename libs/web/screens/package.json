@@ -13,6 +13,7 @@
   "dependencies": {
     "@cc/core": "*",
     "@cc/web-i18n": "*",
+    "@cc/web-platform": "*",
     "@cc/web-ui": "*",
     "@cc/web-util": "*",
     "@tailwindcss/vite": "^4.3.3",

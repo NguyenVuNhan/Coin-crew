@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { fakePlatform } from '../../test/fakePlatform';
 import { tripView } from '../../test/fixtures';
-import type { ShareCard } from '../../platform';
+import type { ShareCard } from '@cc/web-platform';
 import { People } from '../../screens/People';
 
 afterEach(() => {

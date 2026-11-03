@@ -2,9 +2,9 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { mockApi } from '../../test/render';
 import { fakePlatform } from '../../test/fakePlatform';
-import { sessionStore } from '../session';
+import { sessionStore } from '@cc/web-platform/session';
 import { zaloHandshake, zaloSignIn } from '../zaloSession';
-import { browserPlatform } from '../index';
+import { browserPlatform } from '@cc/web-platform';
 import { bootApp } from '../../AppRoot';
 
 afterEach(() => {

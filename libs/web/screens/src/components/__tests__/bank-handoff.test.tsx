@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import type { BankApp } from '@cc/core';
 import { fakePlatform } from '../../test/fakePlatform';
-import { PlatformProvider } from '../../platform';
+import { PlatformProvider } from '@cc/web-platform';
 import { setLang } from '@cc/web-i18n';
 import { BankHandoffSheet } from '../BankHandoffSheet';
 

@@ -3,9 +3,9 @@ import { Loader2, Check } from 'lucide-react';
 import { bankAppLink, type BankApp } from '@cc/core';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Button } from '@cc/web-ui/components/Button';
-import { usePlatform } from '../platform';
+import { usePlatform } from '@cc/web-platform';
 import { bankAppLogo } from '../lib/bankApps';
-import { isIosDevice } from '../platform/browser';
+import { isIosDevice } from '@cc/web-platform/browser';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useT } from '@cc/web-i18n';
 

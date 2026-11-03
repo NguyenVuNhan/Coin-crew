@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { fakePlatform } from '../../test/fakePlatform';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
-import type { ShareCard } from '../../platform';
+import type { ShareCard } from '@cc/web-platform';
 import { InviteSheet } from '../InviteSheet';
 import { YourTransfers } from '../YourTransfers';
 import { PersonScreen } from '../../screens/PersonScreen';
