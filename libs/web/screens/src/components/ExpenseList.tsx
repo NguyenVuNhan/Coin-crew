@@ -9,7 +9,7 @@ import { useTrip } from '../lib/tripBase';
 import { expenseActions, incomeActions } from '../lib/rowActions';
 import { fundOf, incomeMinimum, mergeFeed } from '../lib/fund';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
-import { ApiClientError } from '../api/client';
+import { ApiClientError } from '@cc/web-data-access/client';
 import { cn } from '@cc/web-ui/lib/utils';
 import { ActionRow } from '@cc/web-ui/components/ActionRow';
 import { ExpenseRow, rowAmount } from './ExpenseRow';

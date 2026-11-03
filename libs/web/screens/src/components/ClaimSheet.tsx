@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useT } from '@cc/web-i18n';
-import { useMe } from '../api/hooks';
+import { useMe } from '@cc/web-data-access/hooks';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Button } from '@cc/web-ui/components/Button';

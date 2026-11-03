@@ -1,0 +1,22 @@
+{
+  "name": "@cc/web-data-access",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cc/core": "*",
+    "@cc/web-platform": "*",
+    "@cc/web-util": "*",
+    "@tanstack/react-query": "^5.104.2",
+    "react": "^19.3.0"
+  },
+  "nx": {
+    "tags": ["scope:web", "type:data-access"]
+  }
+}

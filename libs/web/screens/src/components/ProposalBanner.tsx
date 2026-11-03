@@ -6,7 +6,7 @@ import {
   acceptProposal,
   declineProposal,
   useProposals,
-} from '../api/people';
+} from '@cc/web-data-access/people';
 import { Button } from '@cc/web-ui/components/Button';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';

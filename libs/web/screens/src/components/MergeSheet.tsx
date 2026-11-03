@@ -7,7 +7,7 @@ import { useT } from '@cc/web-i18n';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { usePlatform } from '@cc/web-platform';
 import { formatExpiry } from '@cc/web-util/time';
-import { apiSend, ApiClientError } from '../api/client';
+import { apiSend, ApiClientError } from '@cc/web-data-access/client';
 import { providerName } from './ProviderLogo';
 import { signInHref } from './SignInButtons';
 import { Sheet } from '@cc/web-ui/components/Sheet';

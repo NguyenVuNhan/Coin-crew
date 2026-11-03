@@ -15,10 +15,10 @@ import type {
 import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
-import { useTripView } from '../api/hooks';
+import { useTripView } from '@cc/web-data-access/hooks';
 import { useTrip } from '../lib/tripBase';
-import { apiSend, ApiClientError } from '../api/client';
-import { useGroupPeople, importPerson } from '../api/people';
+import { apiSend, ApiClientError } from '@cc/web-data-access/client';
+import { useGroupPeople, importPerson } from '@cc/web-data-access/people';
 import { readSplitInput, fromEntryValue } from '@cc/web-util/splitInput';
 import { recentGroups } from '@cc/web-util/recentGroups';
 import { SplitBetween } from '../components/SplitBetween';

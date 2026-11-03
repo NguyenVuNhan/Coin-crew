@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { TripView } from '@cc/core';
-import { useMe, useTripView } from '../api/hooks';
-import { useLedger } from '../api/people';
+import { useMe, useTripView } from '@cc/web-data-access/hooks';
+import { useLedger } from '@cc/web-data-access/people';
 import { useIsWide } from '@cc/web-util/media';
 import { homeDetailsHref } from '../lib/detailsNav';
 import { useBack } from '../lib/navHistory';

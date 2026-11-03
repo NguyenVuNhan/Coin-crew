@@ -11,7 +11,7 @@ import {
   type TripView,
 } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { useT, getLang } from '@cc/web-i18n';
 import { expenseLink, remind, remindText } from '../lib/remind';
 import { nameOf } from '@cc/web-util/tripText';

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { TripView } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
 import { useT, useLang } from '@cc/web-i18n';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { usePlatform } from '@cc/web-platform';
 import { appOrigin } from '@cc/web-platform/session';
 import { inviteCard } from '../lib/shareCards';

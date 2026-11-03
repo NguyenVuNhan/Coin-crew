@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import type { FeedbackRequest, FeedbackType } from '@cc/core';
-import { sendFeedback } from '../api/feedback';
+import { sendFeedback } from '@cc/web-data-access/feedback';
 import { screenName } from '@cc/web-util/screenName';
 import { useT, useLang } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';

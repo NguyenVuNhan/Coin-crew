@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useT } from '@cc/web-i18n';
-import { useMe } from '../api/hooks';
-import { useLedger } from '../api/people';
+import { useMe } from '@cc/web-data-access/hooks';
+import { useLedger } from '@cc/web-data-access/people';
 import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { FeedbackButton } from '../components/FeedbackButton';

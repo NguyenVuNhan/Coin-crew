@@ -7,12 +7,12 @@ import type { Approval, TripView } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
 import { renderAt, mockApi } from './render';
 import { tripView, PIDS } from './fixtures';
-import { useMe } from '../api/hooks';
+import { useMe } from '@cc/web-data-access/hooks';
 import { AuthNotice } from '../components/AuthNotice';
 import { AccountMenu } from '../components/AccountMenu';
 import { ApprovalItem } from '../components/ApprovalsCard';
 import { InlineError } from '@cc/web-ui/components/InlineError';
-import { ApiClientError } from '../api/client';
+import { ApiClientError } from '@cc/web-data-access/client';
 
 afterEach(() => {
   vi.unstubAllGlobals();

@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { mockApi } from '../../test/render';
 import { fakePlatform } from '../../test/fakePlatform';
 import { sessionStore } from '@cc/web-platform/session';
-import { zaloHandshake, zaloSignIn } from '../zaloSession';
+import { zaloHandshake, zaloSignIn } from '@cc/web-data-access/zaloSession';
 import { browserPlatform } from '@cc/web-platform';
 import { bootApp } from '../../AppRoot';
 

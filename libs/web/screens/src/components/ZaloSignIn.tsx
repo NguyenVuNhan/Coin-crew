@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useT } from '@cc/web-i18n';
 import { usePlatform } from '@cc/web-platform';
-import { zaloSignIn } from '../platform/zaloSession';
+import { zaloSignIn } from '@cc/web-data-access/zaloSession';
 import { Button } from '@cc/web-ui/components/Button';
 import { ProviderLogo } from './ProviderLogo';
 

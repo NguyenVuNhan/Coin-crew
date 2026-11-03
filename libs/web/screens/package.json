@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@cc/core": "*",
+    "@cc/web-data-access": "*",
     "@cc/web-i18n": "*",
     "@cc/web-platform": "*",
     "@cc/web-ui": "*",

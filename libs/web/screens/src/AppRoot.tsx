@@ -4,11 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { NavHistoryProvider } from './lib/navHistory';
 import { detectLang, setLang } from '@cc/web-i18n';
-import { refetchOnWindowFocus } from './api/focus';
-import { ApiClientError, apiFetch } from './api/client';
+import { refetchOnWindowFocus } from '@cc/web-data-access/focus';
+import { ApiClientError, apiFetch } from '@cc/web-data-access/client';
 import { browserPlatform, PlatformProvider, type PlatformBridge } from '@cc/web-platform';
 import { sessionStore } from '@cc/web-platform/session';
-import { zaloHandshake } from './platform/zaloSession';
+import { zaloHandshake } from '@cc/web-data-access/zaloSession';
 
 /** One-time start-up shared by every shell (web, Zalo): language and focus refetch. */
 export async function bootApp(platform: PlatformBridge = browserPlatform): Promise<void> {

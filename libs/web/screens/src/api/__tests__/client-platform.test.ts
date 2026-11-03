@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { apiFetch } from '../client';
+import { apiFetch } from '@cc/web-data-access/client';
 import { sessionStore } from '@cc/web-platform/session';
 import { fakePlatform } from '../../test/fakePlatform';
 

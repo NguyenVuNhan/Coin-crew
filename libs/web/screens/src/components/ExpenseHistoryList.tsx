@@ -8,7 +8,7 @@ import { useTrip } from '../lib/tripBase';
 import { nameOf } from '@cc/web-util/tripText';
 import { actorOf } from '../lib/rowActions';
 import { formatDay } from '@cc/web-util/time';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 

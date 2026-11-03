@@ -5,7 +5,7 @@ import type { MeResponse, AuthProvider, OutgoingMergeRequest } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { usePlatform } from '@cc/web-platform';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { signInHref } from './SignInButtons';
 import { ProviderLogo, providerName } from './ProviderLogo';
 import { Button } from '@cc/web-ui/components/Button';

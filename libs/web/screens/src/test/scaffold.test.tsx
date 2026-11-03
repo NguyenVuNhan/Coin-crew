@@ -8,9 +8,9 @@ import { vi as viMessages } from '@cc/web-i18n/vi';
 import { t, setLang } from '@cc/web-i18n';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Amount } from '@cc/web-ui/components/Amount';
-import { apiFetch, ApiClientError } from '../api/client';
+import { apiFetch, ApiClientError } from '@cc/web-data-access/client';
 import { linkTokens } from '@cc/web-util/linkTokens';
-import { useTripView } from '../api/hooks';
+import { useTripView } from '@cc/web-data-access/hooks';
 
 import { Icon } from '@cc/web-ui/components/icons';
 

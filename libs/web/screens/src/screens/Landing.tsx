@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { APP_NAME } from '../config';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
-import { useMe } from '../api/hooks';
+import { useMe } from '@cc/web-data-access/hooks';
 import { Screen } from '../components/Screen';
 import { SignInButtons } from '../components/SignInButtons';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';

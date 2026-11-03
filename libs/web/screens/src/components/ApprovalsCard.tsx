@@ -2,7 +2,7 @@ import { useId, useState, type JSX } from 'react';
 import { formatVnd, parseVnd, payerLabel, rowSlots, type Approval, type TripView } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { ApiClientError } from '../api/client';
+import { ApiClientError } from '@cc/web-data-access/client';
 import { maskAccount, nameOf, splitText } from '@cc/web-util/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';

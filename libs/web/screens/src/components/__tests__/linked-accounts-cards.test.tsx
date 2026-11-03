@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AuthProvider, MeResponse, OutgoingMergeRequest } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
-import { useMe } from '../../api/hooks';
+import { useMe } from '@cc/web-data-access/hooks';
 import { LinkedAccounts } from '../LinkedAccounts';
 
 const ZALO_UA =

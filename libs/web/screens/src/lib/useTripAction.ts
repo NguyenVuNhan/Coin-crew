@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ApiClientError, apiSend } from '../api/client';
+import { ApiClientError, apiSend } from '@cc/web-data-access/client';
 
 /**
  * Runs a POST (or a PATCH, or a DELETE, which sends no body) under `/api/trips/:tripId`, then refreshes the trip (after

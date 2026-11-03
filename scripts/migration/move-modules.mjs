@@ -140,7 +140,8 @@ function findSpecifiers(content) {
   }
 
   // 1. import ... from '...' or export ... from '...'
-  const fromRegex = /(?:^|[;\s])(?:import|export)\b(?:(?!import|export)[\s\S])*?\bfrom\s*(['"])([^'"]+)\1/g;
+  // Whole-word keywords only: an identifier like `importPerson` must not end the statement early.
+  const fromRegex = /(?:^|[;\s])(?:import|export)\b(?:(?!\b(?:import|export)\b)[\s\S])*?\bfrom\s*(['"])([^'"]+)\1/g;
   let match;
   while ((match = fromRegex.exec(content)) !== null) {
     const quote = match[1];

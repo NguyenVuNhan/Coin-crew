@@ -3,8 +3,8 @@ import { Navigate, useLocation, useParams, useSearchParams } from 'react-router'
 import { formatVnd, payerLabel, type ExpensePayView, type PaidBy } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
-import { useTripView, useMe } from '../api/hooks';
-import { useExpensePay, useReportExpensePayment } from '../api/expensePay';
+import { useTripView, useMe } from '@cc/web-data-access/hooks';
+import { useExpensePay, useReportExpensePayment } from '@cc/web-data-access/expensePay';
 import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { Amount } from '@cc/web-ui/components/Amount';

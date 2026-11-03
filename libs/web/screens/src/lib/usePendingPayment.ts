@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ApiClientError, apiSend } from '../api/client';
+import { ApiClientError, apiSend } from '@cc/web-data-access/client';
 
 export interface PendingPayment {
   fromId: string;

@@ -5,7 +5,7 @@ import { normalizeName, type RecentPerson, type Gender } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { newPersonEntry, filterRecentPeople, type PersonEntry } from '@cc/web-util/recentPeople';
-import { useRecentPeople } from '../api/recentPeople';
+import { useRecentPeople } from '@cc/web-data-access/recentPeople';
 import { Button } from '@cc/web-ui/components/Button';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { GenderToggle } from './GenderToggle';

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, type JoiningMergeRequest } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Button } from '@cc/web-ui/components/Button';

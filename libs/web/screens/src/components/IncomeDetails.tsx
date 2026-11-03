@@ -8,7 +8,7 @@ import { formatDay } from '@cc/web-util/time';
 import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';
 import { fundOf, incomeMinimum, isFundAdmin } from '../lib/fund';
-import { ApiClientError } from '../api/client';
+import { ApiClientError } from '@cc/web-data-access/client';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';

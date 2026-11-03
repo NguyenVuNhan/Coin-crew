@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, MAX_AMOUNT, parseVnd, type IncomeView, type TripView } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { incomeMinimum } from '../lib/fund';
 import { fromEntryValue } from '@cc/web-util/splitInput';
 import { Screen } from './Screen';

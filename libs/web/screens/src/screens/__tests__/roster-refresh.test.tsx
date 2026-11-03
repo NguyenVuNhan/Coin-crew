@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
-import { refetchOnWindowFocus } from '../../api/focus';
+import { refetchOnWindowFocus } from '@cc/web-data-access/focus';
 import { People } from '../People';
 import { ExpenseForm } from '../ExpenseForm';
 

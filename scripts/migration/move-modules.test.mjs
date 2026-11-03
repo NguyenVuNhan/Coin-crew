@@ -207,6 +207,26 @@ describe('moveModules', () => {
     expect(after).toBe(before);
   });
 
+  it('rewrites an import whose names contain the word import or export', async () => {
+    // "import { useGroupPeople, importPerson } from '../lib/time'" (multi-line too) must not be skipped
+    const { root, read } = createRepo({
+      'libs/web/screens/src/lib/time.ts': 'export const importPerson = 1; export const exportRows = 2;',
+      'libs/web/screens/src/components/Row.tsx':
+        "import { importPerson } from '../lib/time';\nimport {\n  exportRows,\n} from '../lib/time';\n",
+    });
+
+    await moveModules({
+      root,
+      git: false,
+      scan: ['libs'],
+      moves: [{ from: 'libs/web/screens/src/lib/time.ts', to: 'libs/web/util/src/time.ts' }],
+    });
+
+    const text = read('libs/web/screens/src/components/Row.tsx');
+    expect(text).not.toContain("'../lib/time'");
+    expect(text.match(/from '@x\/util\/time'/g)).toHaveLength(2);
+  });
+
   it("resolves a NodeNext '.js' specifier to its '.ts' file", async () => {
     // relay-style "import { app } from './app.js'" where only app.ts exists: resolvable, so untouched
     const { root, read } = createRepo({

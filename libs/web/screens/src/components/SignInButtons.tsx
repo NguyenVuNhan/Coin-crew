@@ -1,4 +1,4 @@
-import { useMe } from '../api/hooks';
+import { useMe } from '@cc/web-data-access/hooks';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';

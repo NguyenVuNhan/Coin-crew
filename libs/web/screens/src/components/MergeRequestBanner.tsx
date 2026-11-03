@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IncomingMergeRequest, JoiningMergeRequest } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { apiSend } from '../api/client';
+import { apiSend } from '@cc/web-data-access/client';
 import { Button } from '@cc/web-ui/components/Button';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { MergeConfirmSheet } from './MergeConfirmSheet';

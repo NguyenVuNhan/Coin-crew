@@ -7,7 +7,7 @@ import {
   type PersonWaitingSettlement,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { useMe } from '../api/hooks';
+import { useMe } from '@cc/web-data-access/hooks';
 import {
   confirmSettlement,
   newIdempotencyKey,
@@ -23,7 +23,7 @@ import {
   cancelProposal,
   usePeopleSummary,
   usePersonPay,
-} from '../api/people';
+} from '@cc/web-data-access/people';
 import { copyText } from '@cc/web-util/clipboard';
 import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';

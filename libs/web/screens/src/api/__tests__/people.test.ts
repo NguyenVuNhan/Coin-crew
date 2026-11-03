@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
-import { ApiClientError } from '../client';
+import { ApiClientError } from '@cc/web-data-access/client';
 import { mockApi } from '../../test/render';
 import {
   usePeopleSummary,
@@ -15,7 +15,7 @@ import {
   linkPeople,
   importPerson,
   PEOPLE_SUMMARY_QUERY_KEY,
-} from '../people';
+} from '@cc/web-data-access/people';
 
 afterEach(() => {
   vi.useRealTimers();
