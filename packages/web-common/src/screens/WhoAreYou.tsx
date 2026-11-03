@@ -49,6 +49,9 @@ export function WhoAreYou() {
   const queryClient = useQueryClient();
   const t = useT();
 
+  const expenseId = searchParams.get('expense');
+  const isExpenseMode = Boolean(expenseId);
+
   const me = useMe().data;
   const signedIn = Boolean(me?.user);
   const platform = usePlatform();
@@ -77,9 +80,14 @@ export function WhoAreYou() {
     isLoading,
     refetch,
   } = useQuery<PickerView>({
-    queryKey: ['picker', tripId],
+    queryKey: expenseId ? ['picker', tripId, expenseId] : ['picker', tripId],
     queryFn: () =>
-      apiFetch<PickerView>(`/api/trips/${tripId}/people/picker`, { tripId }),
+      apiFetch<PickerView>(
+        expenseId
+          ? `/api/trips/${tripId}/people/picker?expense=${encodeURIComponent(expenseId)}`
+          : `/api/trips/${tripId}/people/picker`,
+        { tripId },
+      ),
     enabled: Boolean(tripId),
   });
 
@@ -119,7 +127,7 @@ export function WhoAreYou() {
     if (userTouched.current) return;
     if (picker) {
       const initial =
-        myLeft
+        !isExpenseMode && myLeft
           ? REJOIN
           : (picker.myPick ??
             picker.people.find((p) => p.lastUsedHere)?.id ??
@@ -148,7 +156,7 @@ export function WhoAreYou() {
         setNameMatchId(null);
       }
     }
-  }, [picker, myLeft, me?.user?.name, zaloMatchId]);
+  }, [picker, myLeft, me?.user?.name, zaloMatchId, isExpenseMode]);
 
   const selectedPerson = picker?.people.find((p) => p.id === selectedId);
 
@@ -182,6 +190,42 @@ export function WhoAreYou() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handlePickFriend(participantId: string) {
+    if (!tripId || !expenseId) return;
+    setActionError(null);
+    setIsSubmitting(true);
+    try {
+      await apiSend(
+        `/api/trips/${tripId}/expenses/${expenseId}/friend`,
+        'POST',
+        { participantId },
+        tripId,
+      );
+      navigate(target, { replace: true });
+    } catch (err) {
+      setActionError(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function renderNameOrFriend(name: string) {
+    const fullText = t('who.nameOrFriend', { name });
+    const rest = fullText.startsWith(name) ? fullText.slice(name.length) : null;
+    const match = rest ? rest.match(/^(\s+(?:hoặc|or)\s+)(.+)$/) : null;
+    if (match) {
+      return (
+        <span>
+          {name}
+          {match[1]}
+          <Icon name="userPlus" size={14} className="inline mr-1 align-[-1px]" />
+          {match[2]}
+        </span>
+      );
+    }
+    return fullText;
   }
 
   async function join(body: Record<string, unknown>) {
@@ -324,7 +368,7 @@ export function WhoAreYou() {
             >
               {t('who.joinButton', { name: account.name })}
             </Button>
-          ) : selectedId === REJOIN && myLeft ? (
+          ) : !isExpenseMode && selectedId === REJOIN && myLeft ? (
             <Button
               variant="primary"
               block
@@ -338,7 +382,14 @@ export function WhoAreYou() {
               variant="primary"
               block
               disabled={!chosen || isSubmitting}
-              onClick={() => chosen && handlePickPerson(chosen.id)}
+              onClick={() => {
+                if (!chosen) return;
+                if (isExpenseMode && chosen.isMember && (chosen.slots ?? 0) >= 2) {
+                  void handlePickFriend(chosen.id);
+                } else {
+                  void handlePickPerson(chosen.id);
+                }
+              }}
             >
               {chosen
                 ? t('who.continueAs', { name: chosen.name })
@@ -440,13 +491,13 @@ export function WhoAreYou() {
             </p>
           )}
 
-          {(visible.length > 0 || myLeft !== null) && (
+          {(visible.length > 0 || (!isExpenseMode && myLeft !== null)) && (
             <div
               role="radiogroup"
               aria-label={t('who.title')}
               className="fsl-who__list flex flex-col bg-card rounded-xl border border-border divide-y divide-border overflow-hidden"
             >
-              {myLeft && (
+              {!isExpenseMode && myLeft && (
                 <button
                   key="rejoin"
                   type="button"
@@ -477,7 +528,9 @@ export function WhoAreYou() {
               )}
 
               {visible.map((person) => {
-                if (person.isMember) {
+                const hasMultipleSlots = (person.slots ?? 0) >= 2;
+
+                if (person.isMember && (!isExpenseMode || !hasMultipleSlots)) {
                   return (
                     <a
                       key={person.id}
@@ -523,13 +576,20 @@ export function WhoAreYou() {
                   >
                     <Avatar name={person.name} />
                     <div className="fsl-who__row-info flex flex-1 flex-col gap-1 min-w-0">
-                      <div className="fsl-who__row-name truncate text-base font-semibold text-foreground">{person.name}</div>
-                      {person.lastUsedHere && (
+                      <div className="fsl-who__row-name truncate text-base font-semibold text-foreground">
+                        {hasMultipleSlots ? renderNameOrFriend(person.name) : person.name}
+                      </div>
+                      {hasMultipleSlots && (
+                        <div className="fsl-who__row-sub text-sm text-muted-foreground">
+                          {t('who.slots', { n: person.slots! })}
+                        </div>
+                      )}
+                      {person.lastUsedHere && !hasMultipleSlots && (
                         <div className="fsl-who__row-sub text-sm text-muted-foreground">
                           {t('who.lastUsedHere')}
                         </div>
                       )}
-                      {person.activeElsewhere && (
+                      {person.activeElsewhere && !hasMultipleSlots && (
                         <div className="fsl-who__row-sub text-sm text-muted-foreground">
                           {t('who.activeElsewhere', {
                             ago: formatAgo(person.activeElsewhere),
@@ -546,7 +606,7 @@ export function WhoAreYou() {
             </div>
           )}
 
-          {account && !myLeft && (
+          {!isExpenseMode && account && !myLeft && (
             <>
               <button
                 type="button"
