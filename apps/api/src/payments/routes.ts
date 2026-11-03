@@ -2,8 +2,10 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
+  type PaymentStatus,
   MAX_AMOUNT,
   canConfirmPayment,
+  canRevisePayment,
   notArrivedOutcome,
   arrivedOutcome,
   statusForNewPayment,
@@ -57,6 +59,91 @@ async function receiverIsMember(
     .get();
 
   return p?.userId !== null && p?.userId !== undefined;
+}
+
+export interface InsertPaymentArgs {
+  tripId: string;
+  fromId: string;
+  toId: string;
+  amount: number;
+  status: 'says_paid' | 'confirmed';
+  createdByParticipantId: string;
+  actorParticipantId: string | null;
+  actorUserId: string | null;
+  actorDevice: string;
+  metaJson?: string | null;
+  expenseId?: string;
+}
+
+export async function insertPayment(
+  db: Db,
+  args: InsertPaymentArgs,
+): Promise<string> {
+  const {
+    tripId,
+    fromId,
+    toId,
+    amount,
+    status,
+    createdByParticipantId,
+    actorParticipantId,
+    actorUserId,
+    actorDevice,
+    metaJson = null,
+    expenseId,
+  } = args;
+  const paymentId = newId();
+  const now = nowIso();
+
+  const paymentRow = db.insert(transactions).values({
+    id: paymentId,
+    rootId: paymentId,
+    parentId: null,
+    isLatest: 1,
+    tripId,
+    type: 'payment',
+    description: '',
+    amount,
+    amountConfirmed: status === 'confirmed' ? amount : null,
+    currency: 'VND',
+    spentOn: now.slice(0, 10),
+    payerId: fromId,
+    toId,
+    splitMode: 'equal',
+    status,
+    rejectReason: null,
+    notArrivedAt: null,
+    disabledByUserId: null,
+    createdByParticipantId,
+    createdByDevice: actorDevice,
+    confirmedByParticipantId: status === 'confirmed' ? actorParticipantId : null,
+    metaJson,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const shareRow = db.insert(transactionShares).values({
+    transactionId: paymentId,
+    participantId: toId,
+    inputValue: amount,
+    amount: status === 'confirmed' ? amount : amount,
+  });
+
+  await commitTripWrite(db, tripId, [paymentRow, shareRow], {
+    action: 'payment_recorded',
+    actorParticipantId,
+    actorUserId,
+    actorDevice,
+    details: {
+      fromId,
+      toId,
+      amount,
+      status,
+      ...(expenseId !== undefined ? { expenseId } : {}),
+    },
+  });
+
+  return paymentId;
 }
 
 export function paymentRoutes(): Hono<AppBindings> {
@@ -151,54 +238,16 @@ export function paymentRoutes(): Hono<AppBindings> {
       }
     }
 
-    const paymentId = newId();
-    const now = nowIso();
-
-    const insertPayment = db.insert(transactions).values({
-      id: paymentId,
-      rootId: paymentId,
-      parentId: null,
-      isLatest: 1,
+    const paymentId = await insertPayment(db, {
       tripId,
-      type: 'payment',
-      description: '',
-      amount,
-      amountConfirmed: status === 'confirmed' ? amount : null,
-      currency: 'VND',
-      spentOn: now.slice(0, 10),
-      payerId: fromId,
+      fromId,
       toId,
-      splitMode: 'equal',
+      amount,
       status,
-      rejectReason: null,
-      notArrivedAt: null,
-      disabledByUserId: null,
       createdByParticipantId: actor.participantId!,
-      createdByDevice: actor.deviceHash,
-      confirmedByParticipantId: status === 'confirmed' ? actor.participantId : null,
-      metaJson: null,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const insertShare = db.insert(transactionShares).values({
-      transactionId: paymentId,
-      participantId: toId,
-      inputValue: amount,
-      amount: status === 'confirmed' ? amount : amount,
-    });
-
-    await commitTripWrite(db, tripId, [insertPayment, insertShare], {
-      action: 'payment_recorded',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
-      details: {
-        fromId,
-        toId,
-        amount,
-        status,
-      },
     });
 
     return c.json({ paymentId, status }, 201);
@@ -288,6 +337,137 @@ export function paymentRoutes(): Hono<AppBindings> {
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: { amount: confirmed },
+    });
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/payments/:pid/revise
+  app.post('/trips/:id/payments/:pid/revise', async (c) => {
+    const tripId = c.req.param('id');
+    const pid = c.req.param('pid');
+    const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
+
+    const db = getDb(c.env);
+    const payment = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+        ),
+      )
+      .get();
+
+    if (!payment || !payment.toId) {
+      throw new ApiError('NOT_FOUND', 404);
+    }
+
+    const isMember = await receiverIsMember(db, tripId, payment.toId);
+    if (
+      !canRevisePayment(
+        actor,
+        {
+          toId: payment.toId,
+          status: payment.status as PaymentStatus,
+          confirmedById: payment.confirmedByParticipantId,
+        },
+        isMember,
+      )
+    ) {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+
+    const body = await parseJson<{
+      action?: unknown;
+      amount?: unknown;
+    }>(c);
+
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      (body.action !== 'undo' &&
+        body.action !== 'amount' &&
+        body.action !== 'not_arrived')
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const action = body.action;
+    let newAmount: number | undefined;
+    if (action === 'amount') {
+      if (!isValidAmount(body.amount)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+      newAmount = body.amount;
+    }
+
+    const now = nowIso();
+    const setValues =
+      action === 'undo'
+        ? {
+            status: 'says_paid' as const,
+            amountConfirmed: null,
+            confirmedByParticipantId: null,
+            updatedAt: now,
+          }
+        : action === 'amount'
+          ? {
+              amountConfirmed: newAmount!,
+              updatedAt: now,
+            }
+          : {
+              status: 'rejected' as const,
+              updatedAt: now,
+            };
+
+    const r = await db
+      .update(transactions)
+      .set(setValues)
+      .where(
+        and(
+          eq(transactions.id, pid),
+          eq(transactions.tripId, tripId),
+          eq(transactions.type, 'payment'),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, 'confirmed'),
+        ),
+      )
+      .run();
+
+    if (r.meta.changes === 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    }
+
+    const extraQueries = [];
+    if (action === 'undo' || action === 'amount') {
+      const shareAmount = action === 'undo' ? payment.amount : newAmount!;
+      extraQueries.push(
+        db
+          .update(transactionShares)
+          .set({ amount: shareAmount })
+          .where(
+            and(
+              eq(transactionShares.transactionId, pid),
+              eq(transactionShares.participantId, payment.toId),
+            ),
+          ),
+      );
+    }
+
+    await commitTripWrite(db, tripId, extraQueries, {
+      action: 'payment_revised',
+      actorParticipantId: actor.participantId,
+      actorUserId: actor.userId,
+      actorDevice: actor.deviceHash,
+      details: {
+        action,
+        ...(newAmount !== undefined ? { amount: newAmount } : {}),
+      },
     });
 
     return c.body(null, 204);

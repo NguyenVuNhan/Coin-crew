@@ -299,17 +299,30 @@ export async function buildSnapshot(
   }));
 
   const activePaymentRows = txRows.filter((tx) => tx.type === 'payment' && tx.isLatest === 1);
-  const paymentViews: PaymentView[] = activePaymentRows.map((p) => ({
-    id: p.id,
-    fromId: p.payerId,
-    toId: p.toId!,
-    amountClaimed: p.amount,
-    amountConfirmed: p.amountConfirmed,
-    status: p.status as PaymentStatus,
-    notArrived: p.notArrivedAt !== null,
-    createdAt: p.createdAt,
-    ...(isOffsetPart(p.metaJson) ? { throughPeople: true } : {}),
-  }));
+  const paymentViews: PaymentView[] = activePaymentRows.map((p) => {
+    let meta: { expenseId?: string; paidBy?: 'self' | 'friend' } | null = null;
+    if (p.metaJson) {
+      try {
+        meta = JSON.parse(p.metaJson) as { expenseId?: string; paidBy?: 'self' | 'friend' };
+      } catch {
+        meta = null;
+      }
+    }
+    return {
+      id: p.id,
+      fromId: p.payerId,
+      toId: p.toId!,
+      amountClaimed: p.amount,
+      amountConfirmed: p.amountConfirmed,
+      status: p.status as PaymentStatus,
+      notArrived: p.notArrivedAt !== null,
+      createdAt: p.createdAt,
+      confirmedById: p.confirmedByParticipantId,
+      ...(isOffsetPart(p.metaJson) ? { throughPeople: true } : {}),
+      ...(typeof meta?.expenseId === 'string' ? { expenseId: meta.expenseId } : {}),
+      ...(meta?.paidBy === 'self' || meta?.paidBy === 'friend' ? { paidBy: meta.paidBy } : {}),
+    };
+  });
 
   const partialSnapshot: TripSnapshot = {
     trip: {

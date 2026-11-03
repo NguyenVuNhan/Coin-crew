@@ -1,0 +1,227 @@
+import { useState } from 'react';
+import { Navigate, useLocation, useParams } from 'react-router';
+import { formatVnd, payerLabel, type ExpensePayView, type PaidBy } from '@fsl/core';
+import { useT } from '../i18n';
+import { useTrip } from '../lib/tripBase';
+import { useTripView } from '../api/hooks';
+import { useExpensePay, useReportExpensePayment } from '../api/expensePay';
+import { Screen } from '../components/Screen';
+import { Button } from '../components/Button';
+import { Amount } from '../components/Amount';
+import { PayQr } from '../components/PayQr';
+import { Icon } from '../components/icons';
+import { Skeleton } from '../components/Skeleton';
+import { InlineError } from '../components/InlineError';
+import { WhoPaidSheet } from '../components/WhoPaidSheet';
+import { formatDay } from '../lib/time';
+
+export function ExpensePay() {
+  const { tripId, href } = useTrip();
+  const { expenseId = '' } = useParams<{ expenseId: string }>();
+  const location = useLocation();
+  const t = useT();
+
+  const {
+    view,
+    error: viewError,
+    isLoading: isViewLoading,
+    refetch: refetchView,
+  } = useTripView(tripId, 5000, { stopAfterMs: 10 * 60_000 });
+
+  const {
+    data: payData,
+    error: payError,
+    isLoading: isPayLoading,
+    refetch: refetchPay,
+  } = useExpensePay(tripId, expenseId, view?.trip.version ?? 0);
+
+  const reportMutation = useReportExpensePayment(tripId, expenseId);
+  const [submitError, setSubmitError] = useState<unknown>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  if (viewError || payError) {
+    return (
+      <Screen title="" back={tripId ? href('/') : undefined}>
+        <InlineError
+          error={viewError || payError}
+          onRetry={() => {
+            if (viewError) refetchView();
+            if (payError) refetchPay();
+          }}
+        />
+      </Screen>
+    );
+  }
+
+  if (isViewLoading || isPayLoading || !view || !payData) {
+    return (
+      <Screen title="" back={tripId ? href('/') : undefined}>
+        <div className="fsl-expense-pay flex flex-col gap-4 py-2">
+          <Skeleton height={80} radius="lg" />
+          <Skeleton width={240} height={240} radius="lg" className="mx-auto" />
+        </div>
+      </Screen>
+    );
+  }
+
+  const row = 'row' in payData ? payData.row : null;
+
+  if (!row) {
+    if (view.me.participantId === null) {
+      const currentPath = location.pathname + location.search;
+      return (
+        <Navigate
+          to={`${href('/who')}?expense=${encodeURIComponent(expenseId)}&next=${encodeURIComponent(currentPath)}`}
+          replace
+        />
+      );
+    }
+    return <Navigate to={href(`/expenses/${encodeURIComponent(expenseId)}`)} replace />;
+  }
+
+  const v = payData as ExpensePayView;
+
+  const onPaid = async () => {
+    if (v.row.slots >= 2) {
+      setSheetOpen(true);
+      return;
+    }
+    setSubmitError(null);
+    try {
+      await reportMutation.mutateAsync({
+        amount: v.row.remaining,
+        paidBy: v.viewer,
+      });
+    } catch (err) {
+      setSubmitError(err);
+    }
+  };
+
+  const handleSheetReport = async (r: { amount: number; paidBy: PaidBy }) => {
+    setSubmitError(null);
+    try {
+      await reportMutation.mutateAsync(r);
+    } catch (err) {
+      setSubmitError(err);
+      throw err;
+    }
+  };
+
+  return (
+    <Screen title={t('expensePay.title', { name: v.payer.name })} back={href('/')}>
+      <div className="fsl-expense-pay flex flex-col gap-4 max-w-[480px] mx-auto w-full py-4">
+        <div className="fsl-expense-pay__header flex flex-col items-center text-center gap-1">
+          <p className="fsl-expense-pay__subtitle m-0 text-sm text-muted-foreground">
+            {`${v.expense.description} · ${formatDay(v.expense.spentOn)}`}
+          </p>
+          <p className="fsl-expense-pay__row-label m-0 text-base font-medium text-foreground">
+            {t('expensePay.rowLabel', { name: v.row.name })}
+          </p>
+        </div>
+
+        {v.row.remaining > 0 ? (
+          <>
+            {v.pay && v.pay.bankState === 'ok' ? (
+              <PayQr variant="pay" info={v.pay} />
+            ) : (
+              <>
+                <div className="fsl-expense-pay__amount flex justify-center py-2">
+                  <Amount value={v.row.remaining} size="lg" />
+                </div>
+                <p className="fsl-expense-pay__bank-notice m-0 text-sm text-muted-foreground text-center">
+                  {t(v.pay?.bankState === 'pending' ? 'pay.bankPending' : 'pay.bankNone', {
+                    name: v.payer.name,
+                  })}
+                </p>
+              </>
+            )}
+
+            {submitError !== null && <InlineError error={submitError} onRetry={onPaid} />}
+
+            <Button
+              variant="primary"
+              block
+              loading={reportMutation.isPending}
+              onClick={onPaid}
+            >
+              {t('pay.iPaid')}
+            </Button>
+          </>
+        ) : (
+          <div className="fsl-expense-pay__all-paid flex items-center justify-center p-4 text-center font-medium text-success">
+            <span>{t('expensePay.allPaid')}</span>
+          </div>
+        )}
+
+        {v.paid.length > 0 && (
+          <div className="fsl-expense-pay__paid-list flex flex-col gap-2 pt-2 border-t border-border">
+            {v.paid.map((p) => {
+              const isNotReceived = p.notArrived || p.status === 'rejected';
+              const labelKind = payerLabel({
+                paidBy: p.paidBy,
+                fromIsMember: v.row.isMember,
+                slots: v.row.slots,
+              });
+              let who = v.row.name;
+              if (labelKind === 'friend') {
+                who = t('expensePay.friendOf', { name: v.row.name });
+              } else if (labelKind === 'name_or_friend') {
+                who = t('expensePay.nameOrFriend', { name: v.row.name });
+              }
+
+              if (isNotReceived) {
+                return (
+                  <div
+                    key={p.paymentId}
+                    className="fsl-expense-pay__paid flex items-center gap-2 min-h-11 text-sm text-danger"
+                  >
+                    <Icon name="x" size={16} className="shrink-0" />
+                    <span className="tabular-nums">
+                      {t('expensePay.notReceived', {
+                        payer: v.payer.name,
+                        amount: formatVnd(p.amount),
+                      })}
+                    </span>
+                  </div>
+                );
+              }
+
+              const isWaiting = p.status === 'says_paid';
+
+              return (
+                <div
+                  key={p.paymentId}
+                  className="fsl-expense-pay__paid flex items-center flex-wrap gap-2 min-h-11 text-sm text-muted-foreground"
+                >
+                  <Icon
+                    name={isWaiting ? 'clock' : 'circleCheck'}
+                    size={16}
+                    className={isWaiting ? 'text-muted-foreground shrink-0' : 'text-success shrink-0'}
+                  />
+                  <span className="tabular-nums text-foreground">
+                    {t('expensePay.paidLine', {
+                      who,
+                      amount: formatVnd(p.amount),
+                    })}
+                  </span>
+                  {isWaiting && (
+                    <span className="text-muted-foreground">
+                      {t('pay.waitingConfirm', { name: v.payer.name })}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <WhoPaidSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        row={v.row}
+        viewer={v.viewer}
+        onReport={handleSheetReport}
+      />
+    </Screen>
+  );
+}

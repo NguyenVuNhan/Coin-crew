@@ -80,12 +80,45 @@ export async function toTripView(
       expenseId: e.id,
     }));
 
-    const paymentApprovals: Approval[] = snapshot.payments
-      .filter((p) => p.status === 'says_paid' && p.toId === actor.participantId)
-      .map((p) => ({
-        kind: 'payment',
-        paymentId: p.id,
-      }));
+    const waitingPayments = snapshot.payments.filter(
+      (p) => p.status === 'says_paid' && p.toId === actor.participantId,
+    );
+    const byExpense = new Map<string, string[]>();
+    for (const p of waitingPayments) {
+      if (p.expenseId) {
+        const list = byExpense.get(p.expenseId) ?? [];
+        list.push(p.id);
+        byExpense.set(p.expenseId, list);
+      }
+    }
+    // An expense with two or more reports to the actor (waiting or already confirmed) stays one grouped card while
+    // anything still waits, so confirming one row doesn't turn the card into a single-payment one.
+    const linkedToMe = new Map<string, number>();
+    for (const p of snapshot.payments) {
+      if (p.expenseId && p.toId === actor.participantId && (p.status === 'says_paid' || p.status === 'confirmed')) {
+        linkedToMe.set(p.expenseId, (linkedToMe.get(p.expenseId) ?? 0) + 1);
+      }
+    }
+    const emittedExpenses = new Set<string>();
+    const paymentApprovals: Approval[] = [];
+    for (const p of waitingPayments) {
+      const group = p.expenseId ? byExpense.get(p.expenseId) : undefined;
+      if (p.expenseId && group && (linkedToMe.get(p.expenseId) ?? 0) >= 2) {
+        if (!emittedExpenses.has(p.expenseId)) {
+          emittedExpenses.add(p.expenseId);
+          paymentApprovals.push({
+            kind: 'expense_payments',
+            expenseId: p.expenseId,
+            paymentIds: group,
+          });
+        }
+      } else {
+        paymentApprovals.push({
+          kind: 'payment',
+          paymentId: p.id,
+        });
+      }
+    }
 
     const notArrivedApprovals: Approval[] = snapshot.payments
       .filter((p) => {

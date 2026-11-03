@@ -222,6 +222,8 @@ export const en = {
   'who.joinButton': 'Join as {name}',
   'who.rejoinAs': 'Rejoin as {name}',
   'who.rejoinHint': 'You left this group · your past expenses are still here',
+  'who.nameOrFriend': "{name} or {name}'s friend",
+  'who.slots': '{n} slots',
 
   'guest.viewingAs': 'Viewing as {name}',
   'guest.switch': 'Not {name}? Switch',
@@ -633,6 +635,21 @@ export const en = {
   'pay.zaloAsks': 'Zalo will ask: choose "Continue"', // SPEC
   'pay.handoffTip': 'In {app}: Scan QR → upload picture → pick the saved QR.', // SPEC
 
+  'expensePay.title': 'Pay {name}',
+  'expensePay.rowLabel': "{name}'s share",
+  'expensePay.allPaid': 'All paid ✓',
+  'expensePay.friendOf': "{name}'s friend",
+  'expensePay.nameOrFriend': "{name} (or {name}'s friend)",
+  'expensePay.paidLine': '{who} paid {amount}',
+  'expensePay.notReceived': "{payer} didn't receive {amount}",
+
+  'whoPaid.title': 'Who are you paying for?',
+  'whoPaid.wholeRow': "All of {name}'s share · {amount}",
+  'whoPaid.mySlot': 'Only my part · {amount}',
+  'whoPaid.other': 'Other amount',
+  'whoPaid.otherConfirm': 'Paid {amount}',
+  'whoPaid.tooMuch': 'At most {amount}',
+
   'bankForm.title': 'Your bank details',
   'bankForm.guestNote': 'A member approves new bank details before anyone can pay you.',
   'bankForm.memberNote': 'Saved to your profile and used in all your trips.',
@@ -883,6 +900,18 @@ export const en = {
   'feedback.thanks': 'Thanks — we read every message.',
   'feedback.error': "Couldn't send. Please try again.",
   'feedback.rateLimited': "You've sent a lot just now — try again later.",
+
+  'epa.reported': '{n} reported paying',
+  'epa.progress': '{got} / {total} received',
+  'epa.notReported': '{n} not paid yet',
+  'epa.confirmAll': 'Got all · {sum}',
+  'epa.confirmed': 'Confirmed {name} · {amount}',
+  'epa.undo': 'Undo',
+  'epa.received': 'Got {amount}',
+  'epa.other': 'Other amount',
+  'epa.notReceived': "Didn't arrive",
+  'epa.friendOf': "{name}'s friend",
+  'epa.nameOrFriend': "{name} (or {name}'s friend)",
 } as const;
 
 export type MessageKey = keyof typeof en;

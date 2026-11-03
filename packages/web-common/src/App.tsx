@@ -16,9 +16,11 @@ import { Settings } from './screens/Settings';
 import { People } from './screens/People';
 import { Activity } from './screens/Activity';
 import { PayScreen } from './screens/PayScreen';
+import { ExpensePay } from './screens/ExpensePay';
 import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
 import { AuthNotice } from './components/AuthNotice';
+import { UndoSnackbarHost } from './components/UndoSnackbarHost';
 
 function TripsRoute() {
   const { search } = useLocation();
@@ -37,6 +39,7 @@ const tripPages = (
     <Route path="expenses/new" element={<ExpenseForm />} />
     <Route path="expenses/:expenseId/edit" element={<ExpenseForm />} />
     <Route path="fund/:incomeId/edit" element={<ExpenseForm />} />
+    <Route path="expenses/:expenseId/pay" element={<ExpensePay />} />
     <Route path="expenses/:expenseId" element={<TripRoute />} />
     <Route path="payments/:paymentId" element={<TripRoute />} />
     <Route path="fund/:incomeId" element={<TripRoute />} />
@@ -55,6 +58,7 @@ export function App() {
   return (
     <>
       <AuthNotice />
+      <UndoSnackbarHost />
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/trips" element={<TripsRoute />} />

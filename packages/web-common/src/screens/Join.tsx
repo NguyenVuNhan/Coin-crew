@@ -65,5 +65,5 @@ export function Join() {
 /** `/j/:token/e/:expenseId`, the address reminders and shared bills use: the expense's page under the link. */
 export function OldExpenseLink() {
   const { token, expenseId } = useParams<{ token: string; expenseId: string }>();
-  return <Navigate to={`/j/${token}/expenses/${encodeURIComponent(expenseId ?? '')}`} replace />;
+  return <Navigate to={`/j/${token}/expenses/${encodeURIComponent(expenseId ?? '')}/pay`} replace />;
 }

@@ -222,6 +222,8 @@ export const vi: Record<MessageKey, string> = {
   'who.joinButton': 'Tham gia với tên {name}', // REVIEW
   'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
   'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn', // REVIEW
+  'who.nameOrFriend': '{name} hoặc bạn của {name}', // REVIEW
+  'who.slots': '{n} suất', // REVIEW
 
   'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
   'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
@@ -633,6 +635,21 @@ export const vi: Record<MessageKey, string> = {
   'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
   'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
 
+  'expensePay.title': 'Trả cho {name}', // REVIEW
+  'expensePay.rowLabel': 'Phần của {name}', // REVIEW
+  'expensePay.allPaid': 'Đã trả đủ ✓', // REVIEW
+  'expensePay.friendOf': 'Bạn của {name}', // REVIEW
+  'expensePay.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
+  'expensePay.paidLine': '{who} đã trả {amount}', // REVIEW
+  'expensePay.notReceived': '{payer} chưa nhận được {amount}', // REVIEW
+
+  'whoPaid.title': 'Bạn trả cho ai?', // REVIEW
+  'whoPaid.wholeRow': 'Cả phần của {name} · {amount}', // REVIEW
+  'whoPaid.mySlot': 'Chỉ phần của tôi · {amount}', // REVIEW
+  'whoPaid.other': 'Số khác', // REVIEW
+  'whoPaid.otherConfirm': 'Đã trả {amount}', // REVIEW
+  'whoPaid.tooMuch': 'Tối đa {amount}', // REVIEW
+
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW
   'bankForm.memberNote': 'Đã lưu vào hồ sơ của bạn và được dùng trong tất cả chuyến đi.', // REVIEW
@@ -883,5 +900,17 @@ export const vi: Record<MessageKey, string> = {
   'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.', // REVIEW
   'feedback.error': 'Chưa gửi được. Vui lòng thử lại.', // REVIEW
   'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.', // REVIEW
+
+  'epa.reported': '{n} người báo đã trả', // REVIEW
+  'epa.progress': '{got} / {total} đã về', // REVIEW
+  'epa.notReported': 'còn {n} người chưa trả', // REVIEW
+  'epa.confirmAll': 'Đã nhận tất cả · {sum}', // REVIEW
+  'epa.confirmed': 'Đã xác nhận {name} · {amount}', // REVIEW
+  'epa.undo': 'Hoàn tác', // REVIEW
+  'epa.received': 'Đã nhận {amount}', // REVIEW
+  'epa.other': 'Số khác', // REVIEW
+  'epa.notReceived': 'Chưa nhận', // REVIEW
+  'epa.friendOf': 'Bạn của {name}', // REVIEW
+  'epa.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
 };
 

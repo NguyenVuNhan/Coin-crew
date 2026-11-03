@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  can, initialExpenseStatus, statusForNewPayment, canConfirmPayment, notArrivedOutcome, arrivedOutcome,
+  can, initialExpenseStatus, statusForNewPayment, canConfirmPayment, notArrivedOutcome, arrivedOutcome, canRevisePayment,
   type Actor, type Action, type ActionContext,
 } from '../src/permissions';
 
@@ -145,4 +145,14 @@ describe('arrivedOutcome', () => {
   it("a member on a guest's report", () => expect(arrivedOutcome(member('M'), { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('forbidden'));
   it('the payer', () => expect(arrivedOutcome(guest('C'), { toId: 'M', status: 'rejected', notArrived: false }, true)).toBe('forbidden'));
   it('viewer', () => expect(arrivedOutcome(viewer, { toId: 'C', status: 'confirmed', notArrived: true }, false)).toBe('forbidden'));
+});
+
+describe('canRevisePayment', () => {
+  it('canRevisePayment: only the member receiver who confirmed it', () => {
+    const nhan = { kind: 'member', participantId: 'nhan', participantPending: false, isOrganiser: false } as const;
+    expect(canRevisePayment(nhan, { toId: 'nhan', status: 'confirmed', confirmedById: 'nhan' }, true)).toBe(true);
+    expect(canRevisePayment(nhan, { toId: 'nhan', status: 'confirmed', confirmedById: 'lan' }, true)).toBe(false);
+    expect(canRevisePayment(nhan, { toId: 'nhan', status: 'says_paid', confirmedById: null }, true)).toBe(false);
+    expect(canRevisePayment({ ...nhan, kind: 'guest' }, { toId: 'nhan', status: 'confirmed', confirmedById: 'nhan' }, false)).toBe(false);
+  });
 });
