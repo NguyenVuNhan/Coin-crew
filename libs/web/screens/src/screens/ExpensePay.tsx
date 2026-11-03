@@ -14,8 +14,8 @@ import { Skeleton } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { WhoPaidSheet } from '../components/WhoPaidSheet';
 import { MergeConfirmSheet } from '../components/MergeConfirmSheet';
-import { browserUrl } from '../lib/openInBrowser';
-import { formatDay } from '../lib/time';
+import { browserUrl } from '@cc/web-util/openInBrowser';
+import { formatDay } from '@cc/web-util/time';
 
 function ClaimWaitingStrip({ name }: { name: string }) {
   const t = useT();

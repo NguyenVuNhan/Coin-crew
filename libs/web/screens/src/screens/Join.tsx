@@ -2,7 +2,7 @@ import { Navigate, Outlet, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useT } from '@cc/web-i18n';
 import { apiFetch } from '../api/client';
-import { linkTokens } from '../lib/linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 import { TripBaseProvider } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';

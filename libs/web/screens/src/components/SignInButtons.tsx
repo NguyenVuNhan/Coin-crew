@@ -1,5 +1,5 @@
 import { useMe } from '../api/hooks';
-import { isZaloWebView } from '../lib/zaloEnv';
+import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { Button } from './Button';

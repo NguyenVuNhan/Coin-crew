@@ -3,7 +3,7 @@ import { formatVnd, parseVnd, payerLabel, rowSlots, type Approval, type TripView
 import { cn } from '@/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '../api/client';
-import { maskAccount, nameOf, splitText } from '../lib/tripText';
+import { maskAccount, nameOf, splitText } from '@cc/web-util/tripText';
 import { useTripAction } from '../lib/useTripAction';
 import { useOpenDetails } from '../lib/detailsNav';
 import { Button } from './Button';

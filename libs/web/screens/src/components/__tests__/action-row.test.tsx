@@ -3,7 +3,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
 import { mockMedia } from '../../test/media';
-import { SwipeGroupProvider } from '../../lib/useSwipeReveal';
+import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { ActionRow, type RowAction } from '../ActionRow';
 import { ActionSheet } from '../ActionSheet';
 

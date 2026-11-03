@@ -4,7 +4,7 @@ import { UserCheck, X } from 'lucide-react';
 import { normalizeName, type RecentPerson, type Gender } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { newPersonEntry, filterRecentPeople, type PersonEntry } from '../lib/recentPeople';
+import { newPersonEntry, filterRecentPeople, type PersonEntry } from '@cc/web-util/recentPeople';
 import { useRecentPeople } from '../api/recentPeople';
 import { Button } from './Button';
 import { Avatar } from './Avatar';

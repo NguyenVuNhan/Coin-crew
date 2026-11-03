@@ -31,6 +31,9 @@ export default [
         {
           enforceBuildableLibDependency: false,
           allow: [],
+          // Nx's "lazy-loaded library" check is about bundle splitting, not layering: one test's
+          // `await import('@cc/web-util/qr')` would otherwise flag every static import of @cc/web-util.
+          checkDynamicDependenciesExceptions: ['@cc/**'],
           depConstraints: [
             { sourceTag: 'scope:shared', onlyDependOnLibsWithTags: ['scope:shared'] },
             { sourceTag: 'scope:web', onlyDependOnLibsWithTags: ['scope:web', 'scope:shared'] },

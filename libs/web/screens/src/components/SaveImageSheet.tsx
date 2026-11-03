@@ -4,8 +4,8 @@ import { useT } from '@cc/web-i18n';
 import { Sheet } from './Sheet';
 import { Skeleton } from './Skeleton';
 import { Button } from './Button';
-import { copyText } from '../lib/clipboard';
-import { blobToDataUrl } from '../lib/qr';
+import { copyText } from '@cc/web-util/clipboard';
+import { blobToDataUrl } from '@cc/web-util/qr';
 
 export interface SaveImageSheetProps {
   open: boolean;

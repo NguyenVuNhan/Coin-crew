@@ -7,7 +7,7 @@ import { useTripView } from '../api/hooks';
 import { ApiClientError } from '../api/client';
 import { useTripAction } from '../lib/useTripAction';
 import { personActions } from '../lib/rowActions';
-import { SwipeGroupProvider } from '../lib/useSwipeReveal';
+import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { Screen } from '../components/Screen';
 import { Avatar } from '../components/Avatar';
 import { Pill } from '../components/Pill';

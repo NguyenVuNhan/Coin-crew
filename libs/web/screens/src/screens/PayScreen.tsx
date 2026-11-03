@@ -10,7 +10,7 @@ import { useBackLink } from '../lib/navHistory';
 import { canManageBankOf } from '../lib/rowActions';
 import { usePayInfo } from '../api/payInfo';
 import { groupLink, remind } from '../lib/remind';
-import { useIsWide, useIsCoarsePointer } from '../lib/media';
+import { useIsWide, useIsCoarsePointer } from '@cc/web-util/media';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Amount } from '../components/Amount';

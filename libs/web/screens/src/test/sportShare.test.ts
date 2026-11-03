@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { APP_NAME } from '../config';
 import { sportShareText } from '../lib/remind';
-import { splitText } from '../lib/tripText';
+import { splitText } from '@cc/web-util/tripText';
 import { t, setLang } from '@cc/web-i18n';
 import type { ExpenseView } from '@cc/core';
 
@@ -115,13 +115,13 @@ describe('renderSportBillPng and shareSportBill', () => {
   };
 
   it('renders bill PNG or resolves null gracefully in headless environment', async () => {
-    const { renderSportBillPng } = await import('../lib/qr');
+    const { renderSportBillPng } = await import('@cc/web-util/qr');
     const result = await renderSportBillPng(billInput);
     expect(result === null || result instanceof Blob).toBe(true);
   });
 
   it('shares sport bill with fallback', async () => {
-    const { shareSportBill } = await import('../lib/qr');
+    const { shareSportBill } = await import('@cc/web-util/qr');
     const res = await shareSportBill(billInput, 'text', 'DALAT123');
     expect(['shared', 'saved', 'failed']).toContain(res);
   });

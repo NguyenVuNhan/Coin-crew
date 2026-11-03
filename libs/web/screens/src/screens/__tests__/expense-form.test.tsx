@@ -5,7 +5,7 @@ import { Link, Route, Routes, useNavigationType } from 'react-router';
 import { renderAt, mockApi } from '../../test/render';
 import { guestChiView, tripView, PIDS } from '../../test/fixtures';
 import { ExpenseForm } from '../ExpenseForm';
-import { toEntryValue, fromEntryValue } from '../../lib/splitInput';
+import { toEntryValue, fromEntryValue } from '@cc/web-util/splitInput';
 
 afterEach(() => {
   vi.unstubAllGlobals();

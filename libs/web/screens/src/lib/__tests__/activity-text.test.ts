@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import type { ActivityItem } from '@cc/core';
 import { setLang, t } from '@cc/web-i18n';
 import { tripView, PIDS } from '../../test/fixtures';
-import { activityLine, groupByDay, timeOf } from '../activityText';
+import { activityLine, groupByDay, timeOf } from '@cc/web-util/activityText';
 
 afterEach(() => setLang('en'));
 

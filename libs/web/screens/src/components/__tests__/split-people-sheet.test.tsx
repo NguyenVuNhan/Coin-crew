@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PersonView } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
-import type { RecentGroup } from '../../lib/recentGroups';
+import type { RecentGroup } from '@cc/web-util/recentGroups';
 import { SplitPeopleSheet } from '../SplitPeopleSheet';
 
 const person = (name: string): PersonView => ({

@@ -24,7 +24,7 @@ import {
   usePeopleSummary,
   usePersonPay,
 } from '../api/people';
-import { copyText } from '../lib/clipboard';
+import { copyText } from '@cc/web-util/clipboard';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
 import { Amount } from '../components/Amount';

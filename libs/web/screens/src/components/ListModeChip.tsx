@@ -1,5 +1,5 @@
 import { useT } from '@cc/web-i18n';
-import type { ListMode } from '../lib/useListMode';
+import type { ListMode } from '@cc/web-util/useListMode';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 

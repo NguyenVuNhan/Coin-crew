@@ -6,7 +6,7 @@ import { Button } from './Button';
 import { usePlatform } from '../platform';
 import { bankAppLogo } from '../lib/bankApps';
 import { isIosDevice } from '../platform/browser';
-import { isZaloWebView } from '../lib/zaloEnv';
+import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useT } from '@cc/web-i18n';
 
 export interface BankHandoffSheetProps {

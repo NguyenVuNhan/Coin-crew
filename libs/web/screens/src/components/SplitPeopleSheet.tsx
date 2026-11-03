@@ -8,9 +8,9 @@ import { Avatar } from './Avatar';
 import { Button } from './Button';
 import { Pill } from './Pill';
 import { Icon } from './icons';
-import { formatDay } from '../lib/time';
-import { matchesWordStart } from '../lib/nameSearch';
-import type { RecentGroup } from '../lib/recentGroups';
+import { formatDay } from '@cc/web-util/time';
+import { matchesWordStart } from '@cc/web-util/nameSearch';
+import type { RecentGroup } from '@cc/web-util/recentGroups';
 
 export interface SplitPeopleSheetProps {
   open: boolean;

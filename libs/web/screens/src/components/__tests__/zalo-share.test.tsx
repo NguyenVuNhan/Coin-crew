@@ -11,11 +11,11 @@ import { en } from '@cc/web-i18n/en';
 import { PayQr } from '../PayQr';
 import { fakePlatform } from '../../test/fakePlatform';
 import { TripRoute } from '../../screens/TripRoute';
-import { shareQr, shareSportBill } from '../../lib/qr';
-import { copyText } from '../../lib/clipboard';
+import { shareQr, shareSportBill } from '@cc/web-util/qr';
+import { copyText } from '@cc/web-util/clipboard';
 
-vi.mock('../../lib/qr', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/qr')>();
+vi.mock('@cc/web-util/qr', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@cc/web-util/qr')>();
   return {
     ...actual,
     qrPngBlob: vi.fn(async () => new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })),
@@ -25,7 +25,7 @@ vi.mock('../../lib/qr', async (importOriginal) => {
   };
 });
 
-vi.mock('../../lib/clipboard', () => ({
+vi.mock('@cc/web-util/clipboard', () => ({
   copyText: vi.fn(async () => true),
 }));
 

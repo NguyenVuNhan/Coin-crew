@@ -1,7 +1,7 @@
 import type { TripView } from '@cc/core';
 import { t } from '@cc/web-i18n';
 import type { ShareCard } from '../platform';
-import { linkTokens } from './linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 
 export function clip(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max - 1) + '…';

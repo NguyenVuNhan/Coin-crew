@@ -6,7 +6,7 @@ import type { ExpenseView, MyActivityItem, PersonSummary, TripView } from '@cc/c
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { tripView, guestChiView, viewerView, picker, PIDS } from '../../test/fixtures';
-import { linkTokens } from '../../lib/linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 import { sportFundView } from '../../test/fundFixtures';
 import { App } from '../../App';
 

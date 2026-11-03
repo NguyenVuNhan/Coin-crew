@@ -1,5 +1,5 @@
 import type { ApiErrorCode } from '@cc/core';
-import { linkTokens } from '../lib/linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 import { sessionStore } from '../platform/session';
 
 export class ApiClientError extends Error {

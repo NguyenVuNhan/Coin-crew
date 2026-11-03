@@ -5,7 +5,7 @@ import { renderHook, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
 import { mockMedia } from '../../test/media';
-import { useMediaQuery, useIsWide, useIsCoarsePointer, usePrefersReducedMotion } from '../../lib/media';
+import { useMediaQuery, useIsWide, useIsCoarsePointer, usePrefersReducedMotion } from '@cc/web-util/media';
 import { Screen } from '../Screen';
 import { EmptyState } from '../EmptyState';
 import { BottomBar } from '../BottomBar';

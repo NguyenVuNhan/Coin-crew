@@ -9,7 +9,7 @@ import { t, setLang } from '@cc/web-i18n';
 import { InlineError } from '../components/InlineError';
 import { Amount } from '../components/Amount';
 import { apiFetch, ApiClientError } from '../api/client';
-import { linkTokens } from '../lib/linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 import { useTripView } from '../api/hooks';
 
 import { Icon } from '../components/icons';

@@ -12,7 +12,7 @@ import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { PeopleInput } from '../components/PeopleInput';
 import { Icon } from '../components/icons';
-import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
+import { newPersonEntry, type PersonEntry } from '@cc/web-util/recentPeople';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';

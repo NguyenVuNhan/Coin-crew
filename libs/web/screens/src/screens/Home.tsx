@@ -5,7 +5,7 @@ import { formatVnd, type PersonSummary } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger, usePeopleSummary } from '../api/people';
-import { useIsWide } from '../lib/media';
+import { useIsWide } from '@cc/web-util/media';
 import { homeDetailsFrom, ledgerDetailsPath, useOpenDetails, type HomeDetailKind } from '../lib/detailsNav';
 import { useBack, useEntryState, useNavEntry } from '../lib/navHistory';
 import { Screen } from '../components/Screen';

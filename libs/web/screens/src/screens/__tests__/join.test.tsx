@@ -7,7 +7,7 @@ import { guestChiView, picker, viewerView, tripView, PIDS } from '../../test/fix
 import { App } from '../../App';
 import { WhoAreYou } from '../WhoAreYou';
 import { TripRoute } from '../TripRoute';
-import { linkTokens } from '../../lib/linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 
 afterEach(() => {
   vi.unstubAllGlobals();

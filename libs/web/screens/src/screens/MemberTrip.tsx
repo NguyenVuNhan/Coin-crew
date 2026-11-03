@@ -5,7 +5,7 @@ import { useT } from '@cc/web-i18n';
 import { useMe } from '../api/hooks';
 import { useLedger } from '../api/people';
 import { useTrip } from '../lib/tripBase';
-import { useIsWide } from '../lib/media';
+import { useIsWide } from '@cc/web-util/media';
 import { fundOf } from '../lib/fund';
 import { useEntryState } from '../lib/navHistory';
 import { Screen } from '../components/Screen';

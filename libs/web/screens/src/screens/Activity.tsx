@@ -4,7 +4,7 @@ import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { apiFetch, type ApiClientError } from '../api/client';
 import { useTripView } from '../api/hooks';
-import { activityLine, groupByDay, timeOf } from '../lib/activityText';
+import { activityLine, groupByDay, timeOf } from '@cc/web-util/activityText';
 import { Screen } from '../components/Screen';
 import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';

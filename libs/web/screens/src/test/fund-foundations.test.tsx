@@ -7,7 +7,7 @@ import viSource from '@cc/web-i18n/vi?raw';
 import { t } from '@cc/web-i18n';
 import { Icon } from '../components/icons';
 import { InlineError } from '../components/InlineError';
-import { activityLine } from '../lib/activityText';
+import { activityLine } from '@cc/web-util/activityText';
 import { renderAt } from './render';
 
 describe('group fund foundations', () => {

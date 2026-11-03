@@ -6,7 +6,7 @@ import { Avatar } from './Avatar';
 import { Button } from './Button';
 import { ProviderLogo } from './ProviderLogo';
 import { signInHref } from './SignInButtons';
-import { browserUrl } from '../lib/openInBrowser';
+import { browserUrl } from '@cc/web-util/openInBrowser';
 
 export interface ClaimSheetProps {
   open: boolean;

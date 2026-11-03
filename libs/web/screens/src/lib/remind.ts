@@ -2,7 +2,7 @@ import { formatVnd, type TripView, type Gender } from '@cc/core';
 import type { Lang } from '@cc/web-i18n';
 import { en } from '@cc/web-i18n/en';
 import { vi } from '@cc/web-i18n/vi';
-import { linkTokens } from './linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 import { appOrigin } from '../platform/session';
 
 export interface SportShareParticipant {

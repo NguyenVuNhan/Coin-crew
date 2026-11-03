@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { apiSend } from '../api/client';
 import { incomeMinimum } from '../lib/fund';
-import { fromEntryValue } from '../lib/splitInput';
+import { fromEntryValue } from '@cc/web-util/splitInput';
 import { Screen } from './Screen';
 import { Button } from './Button';
 import { InlineError } from './InlineError';

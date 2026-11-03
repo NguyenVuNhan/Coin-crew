@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, act, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
-import { copyText } from '../../lib/clipboard';
+import { copyText } from '@cc/web-util/clipboard';
 import { useImageSheet } from '../SaveImageSheet';
 
-vi.mock('../../lib/clipboard', () => ({
+vi.mock('@cc/web-util/clipboard', () => ({
   copyText: vi.fn(),
 }));
 

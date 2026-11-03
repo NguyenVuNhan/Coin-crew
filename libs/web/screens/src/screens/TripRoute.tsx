@@ -3,10 +3,10 @@ import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from '
 import type { TripView } from '@cc/core';
 import { useMe, useTripView } from '../api/hooks';
 import { useLedger } from '../api/people';
-import { useIsWide } from '../lib/media';
+import { useIsWide } from '@cc/web-util/media';
 import { homeDetailsHref } from '../lib/detailsNav';
 import { useBack } from '../lib/navHistory';
-import { linkTokens } from '../lib/linkTokens';
+import { linkTokens } from '@cc/web-util/linkTokens';
 import { useTrip } from '../lib/tripBase';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '../components/LanguageButton';

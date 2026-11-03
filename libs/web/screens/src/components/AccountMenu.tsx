@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { MeUserView, Gender } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '@cc/web-i18n';
-import { useIsWide } from '../lib/media';
+import { useIsWide } from '@cc/web-util/media';
 import { apiSend } from '../api/client';
 import { useMe } from '../api/hooks';
 import { Sheet } from './Sheet';

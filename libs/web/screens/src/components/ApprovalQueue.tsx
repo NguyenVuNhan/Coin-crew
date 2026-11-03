@@ -4,7 +4,7 @@ import type { TripView } from '@cc/core';
 import { cn } from '@/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { useApprovalsLink } from '../lib/detailsNav';
-import { usePrefersReducedMotion } from '../lib/media';
+import { usePrefersReducedMotion } from '@cc/web-util/media';
 import { ApprovalItem, approvalKey, waitingApprovals } from './ApprovalsCard';
 import { FocusWatch } from './FocusWatch';
 import { Icon } from './icons';

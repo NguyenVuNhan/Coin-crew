@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { formatVnd, type Transfer, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
-import { nameOf } from '../lib/tripText';
+import { nameOf } from '@cc/web-util/tripText';
 import { Amount } from './Amount';
 import { Button } from './Button';
 import { Icon } from './icons';

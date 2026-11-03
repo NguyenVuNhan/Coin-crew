@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTrip } from './tripBase';
-import { useIsWide } from './media';
+import { useIsWide } from '@cc/web-util/media';
 import { KEEP_SCROLL } from './navHistory';
 
 /**

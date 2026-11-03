@@ -2,8 +2,8 @@
    Components use the theme's Tailwind colours (bg-primary, text-muted-foreground…), never raw hex.
    Values are plain hex so colours still show in older in-app webviews. Contrast notes are against the surface named. */
 @import "tailwindcss";
-/* The shells (apps/web, apps/zalo) build from their own folder, so name where the classes live. */
-@source "..";
+/* The shells (apps/web, apps/zalo) build from their own folder, so name where the classes live: every web library under libs/web. */
+@source "../../..";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

@@ -12,10 +12,10 @@ import { WhoAreYou, safeTripPath } from '../WhoAreYou';
 import { TripRoute } from '../TripRoute';
 import { expenseLink, groupLink } from '../../lib/remind';
 
-import { shareSportBill } from '../../lib/qr';
+import { shareSportBill } from '@cc/web-util/qr';
 
-vi.mock('../../lib/qr', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/qr')>();
+vi.mock('@cc/web-util/qr', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@cc/web-util/qr')>();
   return {
     ...actual,
     qrPngBlob: vi.fn(async () => new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })),

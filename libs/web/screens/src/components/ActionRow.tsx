@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useSwipeReveal } from '../lib/useSwipeReveal';
-import { useIsCoarsePointer, usePrefersReducedMotion } from '../lib/media';
+import { useSwipeReveal } from '@cc/web-util/useSwipeReveal';
+import { useIsCoarsePointer, usePrefersReducedMotion } from '@cc/web-util/media';
 import { Icon, type IconName } from './icons';
 import { useT } from '@cc/web-i18n';
 import { cn } from '@/lib/utils';

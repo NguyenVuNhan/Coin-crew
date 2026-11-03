@@ -4,7 +4,7 @@ import type { ActivityAction, ActivityItem, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView, PIDS } from '../../test/fixtures';
 import { t } from '@cc/web-i18n';
-import { activityLine } from '../../lib/activityText';
+import { activityLine } from '@cc/web-util/activityText';
 import { YourTransfers } from '../YourTransfers';
 import { ExpenseDetails } from '../ExpenseDetails';
 

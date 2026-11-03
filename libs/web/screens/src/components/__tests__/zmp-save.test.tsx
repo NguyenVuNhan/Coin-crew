@@ -9,10 +9,10 @@ import { setLang } from '@cc/web-i18n';
 import { en } from '@cc/web-i18n/en';
 import { PayQr } from '../PayQr';
 import { ExpenseDetails } from '../ExpenseDetails';
-import { shareQr } from '../../lib/qr';
+import { shareQr } from '@cc/web-util/qr';
 
-vi.mock('../../lib/qr', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/qr')>();
+vi.mock('@cc/web-util/qr', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@cc/web-util/qr')>();
   return {
     ...actual,
     qrPngBlob: vi.fn(async () => new Blob(['x'], { type: 'image/png' })),

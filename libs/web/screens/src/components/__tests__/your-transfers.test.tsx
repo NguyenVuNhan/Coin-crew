@@ -6,13 +6,13 @@ import type { PayInfo, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { guestChiView, tripView, viewerView, PIDS } from '../../test/fixtures';
-import { shareQr } from '../../lib/qr';
+import { shareQr } from '@cc/web-util/qr';
 import { YourTransfers } from '../YourTransfers';
 import { PayQr } from '../PayQr';
 
 // Building the PNG needs a real canvas, which jsdom does not have: the share step is replaced, the QR itself is real.
-vi.mock('../../lib/qr', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../lib/qr')>()),
+vi.mock('@cc/web-util/qr', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@cc/web-util/qr')>()),
   shareQr: vi.fn(async () => 'shared' as const),
 }));
 
