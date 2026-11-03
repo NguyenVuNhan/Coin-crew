@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { app, call, cookiesFrom, cookieHeader, memberSid, seedTrip, PID, U } from './helpers';
 import { sha256Hex } from '@cc/api-util/ids';
-import { zaloDeviceId } from '../src/auth/zaloMini';
+import { zaloDeviceId } from '@cc/api-auth/zaloMini';
 
 const realFetch = globalThis.fetch;
 

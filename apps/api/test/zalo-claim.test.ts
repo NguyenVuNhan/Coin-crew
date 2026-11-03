@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { call, cookiesFrom, cookieHeader, linkMember, memberSid, newDevice, pickAs, PID, seedTrip, T, U } from './helpers';
 import { getDb } from '@cc/api-db/client';
-import { requestClaim } from '../src/auth/identity';
+import { requestClaim } from '@cc/api-auth/identity';
 
 const realFetch = globalThis.fetch;
 

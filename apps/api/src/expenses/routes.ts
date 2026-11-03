@@ -22,8 +22,8 @@ import {
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { participants, transactions, transactionShares } from '@cc/api-db/schema';
-import { assertWritable, resolveActor, type ResolvedActor } from '../access/actor';
-import { ensure } from '../access/guard';
+import { assertWritable, resolveActor, type ResolvedActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
 import { assertFundCovers, assertSportGroup, currentFundBalance } from '../fund/check';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';

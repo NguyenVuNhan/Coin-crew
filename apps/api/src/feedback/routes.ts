@@ -4,7 +4,7 @@ import type { FeedbackType } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { feedback } from '@cc/api-db/schema';
-import { getSessionUser, type UserRow } from '../auth/session';
+import { getSessionUser, type UserRow } from '@cc/api-auth/session';
 import { ApiError } from '@cc/api-util/errors';
 import { newId } from '@cc/api-util/ids';
 import { deliverFeedback } from './deliver';

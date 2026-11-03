@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { getDb } from '@cc/api-db/client';
-import { linkZaloSlots } from '../src/auth/zaloSlots';
+import { linkZaloSlots } from '@cc/api-auth/zaloSlots';
 import { sha256Hex } from '@cc/api-util/ids';
 import { call, json, memberSid, seedTrip, seedUser, T, U, PID } from './helpers';
 

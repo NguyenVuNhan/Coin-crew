@@ -7,11 +7,11 @@ import { devices, users } from '@cc/api-db/schema';
 import type { AppBindings } from '@cc/api-db/env';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso, sha256Hex } from '@cc/api-util/ids';
-import { upsertIdentity } from './identity';
-import { createSession } from './session';
-import { fetchZaloProfile, zaloConfigured, ZaloError } from './zalo';
-import { zaloDeviceId } from './zaloMini';
-import { linkZaloSlots } from './zaloSlots';
+import { upsertIdentity } from '@cc/api-auth/identity';
+import { createSession } from '@cc/api-auth/session';
+import { fetchZaloProfile, zaloConfigured, ZaloError } from '@cc/api-auth/zalo';
+import { zaloDeviceId } from '@cc/api-auth/zaloMini';
+import { linkZaloSlots } from '@cc/api-auth/zaloSlots';
 
 const MAX_TOKEN = 2048;
 const MAX_NAME = 80;

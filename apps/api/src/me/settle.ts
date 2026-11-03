@@ -6,7 +6,7 @@ import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAc
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { activity, bankDetails, participants, personLinks, settlementKeys, transactions, transactionShares, trips, users } from '@cc/api-db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { loadPersonItems, type PersonItems } from './balances';

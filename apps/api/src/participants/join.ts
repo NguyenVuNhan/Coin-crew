@@ -10,8 +10,8 @@ import {
   membershipRequests,
   participants,
 } from '@cc/api-db/schema';
-import { getSessionUser } from '../auth/session';
-import { assertWritable, resolveActor } from '../access/actor';
+import { getSessionUser } from '@cc/api-auth/session';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';

@@ -5,8 +5,8 @@ import { RATING_MAX_STARS_PER_TARGET, maxStarsForGroup } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { participants, playerRatings, trips } from '@cc/api-db/schema';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ensure } from '../access/guard';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 

@@ -2,7 +2,7 @@ import type { BatchItem } from 'drizzle-orm/batch';
 import { and, eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db } from '@cc/api-db/client';
-import type { ResolvedActor } from '../access/actor';
+import type { ResolvedActor } from '@cc/api-auth/actor';
 import {
   bankDetails,
   deviceParticipants,

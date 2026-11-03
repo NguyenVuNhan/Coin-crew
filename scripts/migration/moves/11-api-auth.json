@@ -1,0 +1,52 @@
+{
+  "moves": [
+    {
+      "from": "apps/api/src/auth/session.ts",
+      "to": "libs/api/auth/src/session.ts"
+    },
+    {
+      "from": "apps/api/src/auth/identity.ts",
+      "to": "libs/api/auth/src/identity.ts"
+    },
+    {
+      "from": "apps/api/src/auth/google.ts",
+      "to": "libs/api/auth/src/google.ts"
+    },
+    {
+      "from": "apps/api/src/auth/zalo.ts",
+      "to": "libs/api/auth/src/zalo.ts"
+    },
+    {
+      "from": "apps/api/src/auth/zaloMini.ts",
+      "to": "libs/api/auth/src/zaloMini.ts"
+    },
+    {
+      "from": "apps/api/src/auth/zaloSlots.ts",
+      "to": "libs/api/auth/src/zaloSlots.ts"
+    },
+    {
+      "from": "apps/api/src/auth/me.ts",
+      "to": "libs/api/auth/src/me.ts"
+    },
+    {
+      "from": "apps/api/src/access/actor.ts",
+      "to": "libs/api/auth/src/actor.ts"
+    },
+    {
+      "from": "apps/api/src/access/device.ts",
+      "to": "libs/api/auth/src/device.ts"
+    },
+    {
+      "from": "apps/api/src/access/guard.ts",
+      "to": "libs/api/auth/src/guard.ts"
+    },
+    {
+      "from": "apps/api/src/lib/cors.ts",
+      "to": "libs/api/auth/src/cors.ts"
+    }
+  ],
+  "scan": [
+    "apps/api",
+    "libs/api"
+  ]
+}

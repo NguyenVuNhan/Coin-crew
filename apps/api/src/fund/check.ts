@@ -3,7 +3,7 @@ import type { ExpenseMeta, FundItem, IncomeStatus, LedgerIncome } from '@cc/core
 import { fundEffect, fundSummary } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
 import { transactions } from '@cc/api-db/schema';
-import type { TripRow } from '../access/actor';
+import type { TripRow } from '@cc/api-auth/actor';
 import { ApiError } from '@cc/api-util/errors';
 
 export function assertSportGroup(trip: TripRow): void {

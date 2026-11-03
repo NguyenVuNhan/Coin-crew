@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '@cc/api-db/env';
 import { errorResponse } from '@cc/api-util/errors';
-import { corsMiddleware } from './lib/cors';
+import { corsMiddleware } from '@cc/api-auth/cors';
 import { authRoutes } from './auth/routes';
 import { accountRoutes } from './auth/accountRoutes';
 import { zaloMiniRoutes } from './auth/zaloMiniRoutes';
 import { testLoginRoutes } from './auth/testLogin';
-import { deviceMiddleware } from './access/device';
+import { deviceMiddleware } from '@cc/api-auth/device';
 import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
 import { participantRoutes } from './participants/routes';

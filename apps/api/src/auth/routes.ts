@@ -10,11 +10,11 @@ import { getDb } from '@cc/api-db/client';
 import { deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso, sha256Hex } from '@cc/api-util/ids';
-import { GOOGLE_SCOPES, googleClient } from './google';
-import { linkIdentity, requestClaim, upsertIdentity } from './identity';
-import { buildMeResponse, toMeUserView } from './me';
-import { createSession, getSessionUser, readSessionToken, requireUser, setSessionCookie } from './session';
-import { linkZaloSlots } from './zaloSlots';
+import { GOOGLE_SCOPES, googleClient } from '@cc/api-auth/google';
+import { linkIdentity, requestClaim, upsertIdentity } from '@cc/api-auth/identity';
+import { buildMeResponse, toMeUserView } from '@cc/api-auth/me';
+import { createSession, getSessionUser, readSessionToken, requireUser, setSessionCookie } from '@cc/api-auth/session';
+import { linkZaloSlots } from '@cc/api-auth/zaloSlots';
 import {
   exchangeZaloCode,
   fetchZaloProfile,
@@ -22,7 +22,7 @@ import {
   zaloConfigured,
   zaloPkce,
   ZaloError,
-} from './zalo';
+} from '@cc/api-auth/zalo';
 
 /** Only same-site paths: "/x" but not "//host" or "/\host" (browsers read a backslash as a slash). */
 export function safeReturnTo(raw: string | undefined): string {

@@ -6,7 +6,7 @@ import { app, call, json } from './helpers';
 import { sha256Hex } from '@cc/api-util/ids';
 import { getDb } from '@cc/api-db/client';
 import { accountMergeRequests } from '@cc/api-db/schema';
-import { upsertIdentity } from '../src/auth/identity';
+import { upsertIdentity } from '@cc/api-auth/identity';
 import { mergeUsers } from '../src/auth/mergeUsers';
 
 const CREATED = '2026-10-12T00:00:00.000Z';

@@ -7,7 +7,7 @@ import type { PersonKey } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { nicknames, participants, personLinks } from '@cc/api-db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newToken, nowIso } from '@cc/api-util/ids';

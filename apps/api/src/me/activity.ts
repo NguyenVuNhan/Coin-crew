@@ -4,7 +4,7 @@ import type { ActivityAction, MyActivityItem, MyActivityPage } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { activity, participants, trips } from '@cc/api-db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { ApiError } from '@cc/api-util/errors';
 import { actorName, loadActivityNames } from '@cc/api-db/activityNames';
 

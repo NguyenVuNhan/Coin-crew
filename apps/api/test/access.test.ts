@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { createApp } from '../src/app';
-import { resolveActor, assertWritable } from '../src/access/actor';
+import { resolveActor, assertWritable } from '@cc/api-auth/actor';
 import { call, cookiesFrom, seedTrip, memberSid, newDevice, pickAs, T, U, PID } from './helpers';
 
 const probe = createApp();

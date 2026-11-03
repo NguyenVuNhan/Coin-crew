@@ -15,9 +15,9 @@ import {
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { personLinks } from '@cc/api-db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ensure } from '../access/guard';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { mergeParticipants } from '../participants/merge';

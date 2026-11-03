@@ -4,8 +4,8 @@ import type { Actor } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { deviceParticipants, participants, trips } from '@cc/api-db/schema';
-import { getSessionUser } from '../auth/session';
-import { claimZaloSlot } from '../auth/zaloSlots';
+import { getSessionUser } from './session';
+import { claimZaloSlot } from './zaloSlots';
 import { ApiError } from '@cc/api-util/errors';
 
 export type TripRow = typeof trips.$inferSelect;

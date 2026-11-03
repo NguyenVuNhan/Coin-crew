@@ -5,9 +5,9 @@ import type { ZaloChatLookup } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { devices, participants, trips, zaloChatLinks } from '@cc/api-db/schema';
-import { getSessionUser } from '../auth/session';
-import type { ResolvedActor } from '../access/actor';
-import { assertWritable, resolveActor } from '../access/actor';
+import { getSessionUser } from '@cc/api-auth/session';
+import type { ResolvedActor } from '@cc/api-auth/actor';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 

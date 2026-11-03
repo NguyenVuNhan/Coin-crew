@@ -15,7 +15,7 @@ import {
   PID,
 } from './helpers';
 import { getDb } from '@cc/api-db/client';
-import { requestClaim, upsertIdentity } from '../src/auth/identity';
+import { requestClaim, upsertIdentity } from '@cc/api-auth/identity';
 import { getClaimGrant } from '../src/expenses/claimGrant';
 import { sha256Hex } from '@cc/api-util/ids';
 

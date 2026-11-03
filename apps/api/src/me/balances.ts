@@ -4,9 +4,9 @@ import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryRespons
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { nicknames, participants, personLinks, trips, tripViews } from '@cc/api-db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
-import type { TripRow } from '../access/actor';
+import type { TripRow } from '@cc/api-auth/actor';
 import { ApiError } from '@cc/api-util/errors';
 
 /** A participant in one of the caller's trips, with its account's identity when signed in. */

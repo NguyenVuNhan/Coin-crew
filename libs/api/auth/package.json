@@ -1,0 +1,23 @@
+{
+  "name": "@cc/api-auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cc/api-db": "*",
+    "@cc/api-util": "*",
+    "@cc/core": "*",
+    "arctic": "^3.7.0",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13"
+  },
+  "nx": {
+    "tags": ["scope:api", "type:auth"]
+  }
+}

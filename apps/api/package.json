@@ -12,6 +12,7 @@
     "e2e:server": "node ../../e2e/reset-state.mjs && wrangler d1 migrations apply fsl --local --persist-to .wrangler/e2e && wrangler dev --local --port 8788 --inspector-port 9230 --persist-to .wrangler/e2e --var E2E_LOGIN:1 --var APP_ORIGIN:http://localhost:8788 --var GOOGLE_CLIENT_ID:e2e --var GOOGLE_CLIENT_SECRET:e2e"
   },
   "dependencies": {
+    "@cc/api-auth": "*",
     "@cc/api-db": "*",
     "@cc/api-util": "*",
     "@cc/core": "*",

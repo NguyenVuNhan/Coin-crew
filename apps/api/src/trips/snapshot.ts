@@ -25,7 +25,7 @@ import {
   suggestTransfers,
 } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
-import type { TripRow } from '../access/actor';
+import type { TripRow } from '@cc/api-auth/actor';
 import {
   bankDetails,
   participants,

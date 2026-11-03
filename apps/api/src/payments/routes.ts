@@ -13,8 +13,8 @@ import {
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { participants, transactions, transactionShares } from '@cc/api-db/schema';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ensure } from '../access/guard';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';

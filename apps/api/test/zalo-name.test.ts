@@ -3,7 +3,7 @@ import { env } from 'cloudflare:test';
 import { call, cookiesFrom, cookieHeader, unsignedJwt, memberSid } from './helpers';
 import { sha256Hex } from '@cc/api-util/ids';
 import { getDb } from '@cc/api-db/client';
-import { upsertIdentity } from '../src/auth/identity';
+import { upsertIdentity } from '@cc/api-auth/identity';
 
 const realFetch = globalThis.fetch;
 

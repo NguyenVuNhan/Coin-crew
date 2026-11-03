@@ -15,11 +15,11 @@ import {
   trips,
   users,
 } from '@cc/api-db/schema';
-import { getSessionUser } from '../auth/session';
-import { deviceZaloSub } from '../auth/zaloSlots';
-import type { ResolvedActor } from '../access/actor';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ensure } from '../access/guard';
+import { getSessionUser } from '@cc/api-auth/session';
+import { deviceZaloSub } from '@cc/api-auth/zaloSlots';
+import type { ResolvedActor } from '@cc/api-auth/actor';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';

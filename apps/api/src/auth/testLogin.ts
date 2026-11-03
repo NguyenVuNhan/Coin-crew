@@ -5,7 +5,7 @@ import { getDb } from '@cc/api-db/client';
 import { users } from '@cc/api-db/schema';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import { createSession, setSessionCookie } from './session';
+import { createSession, setSessionCookie } from '@cc/api-auth/session';
 
 /** Sign-in shortcut for the end-to-end tests. Answers 404 unless the Worker runs with E2E_LOGIN=1 (never set in wrangler.jsonc). */
 export function testLoginRoutes(): Hono<AppBindings> {
