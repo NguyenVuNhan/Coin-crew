@@ -641,6 +641,13 @@ export const vi: Record<MessageKey, string> = {
   'expensePay.paidLine': '{who} đã trả {amount}', // REVIEW
   'expensePay.notReceived': '{payer} chưa nhận được {amount}', // REVIEW
 
+  'whoPaid.title': 'Bạn trả cho ai?', // REVIEW
+  'whoPaid.wholeRow': 'Cả phần của {name} · {amount}', // REVIEW
+  'whoPaid.mySlot': 'Chỉ phần của tôi · {amount}', // REVIEW
+  'whoPaid.other': 'Số khác', // REVIEW
+  'whoPaid.otherConfirm': 'Đã trả {amount}', // REVIEW
+  'whoPaid.tooMuch': 'Tối đa {amount}', // REVIEW
+
   'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
   'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW
   'bankForm.memberNote': 'Đã lưu vào hồ sơ của bạn và được dùng trong tất cả chuyến đi.', // REVIEW

@@ -641,6 +641,13 @@ export const en = {
   'expensePay.paidLine': '{who} paid {amount}',
   'expensePay.notReceived': "{payer} didn't receive {amount}",
 
+  'whoPaid.title': 'Who are you paying for?',
+  'whoPaid.wholeRow': "All of {name}'s share · {amount}",
+  'whoPaid.mySlot': 'Only my part · {amount}',
+  'whoPaid.other': 'Other amount',
+  'whoPaid.otherConfirm': 'Paid {amount}',
+  'whoPaid.tooMuch': 'At most {amount}',
+
   'bankForm.title': 'Your bank details',
   'bankForm.guestNote': 'A member approves new bank details before anyone can pay you.',
   'bankForm.memberNote': 'Saved to your profile and used in all your trips.',
