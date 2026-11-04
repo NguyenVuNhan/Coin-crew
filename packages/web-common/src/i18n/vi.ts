@@ -588,6 +588,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.trip_archived': 'đã lưu trữ chuyến đi', // REVIEW
   'activity.action.trip_unarchived': 'đã bỏ lưu trữ chuyến đi', // REVIEW
   'activity.action.fewest_changed': 'đã thay đổi cài đặt ít lần chuyển khoản nhất', // REVIEW
+  'activity.action.round_transfers_changed': 'đã thay đổi làm tròn số tiền trả', // REVIEW
   'activity.action.membership_requested': 'đã yêu cầu trở thành thành viên', // REVIEW
   'activity.action.membership_approved': 'đã duyệt thành viên mới', // REVIEW
   'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW

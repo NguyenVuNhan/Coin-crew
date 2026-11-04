@@ -38,7 +38,16 @@ export async function toTripView(
     const roundBal = (val: number) =>
       snapshot.trip.roundTransfers ? (Math.abs(val) <= 500 ? 0 : Math.round(val / 1000) * 1000) : val;
 
-    const now = roundBal(snapshot.balances[pid] ?? 0);
+    let now = snapshot.balances[pid] ?? 0;
+    if (snapshot.trip.roundTransfers) {
+      const owedToMe = snapshot.suggestions
+        .filter((s) => s.toId === pid)
+        .reduce((sum, s) => sum + s.amount, 0);
+      const iOwe = snapshot.suggestions
+        .filter((s) => s.fromId === pid)
+        .reduce((sum, s) => sum + s.amount, 0);
+      now = owedToMe - iOwe;
+    }
     const beforePayments = roundBal(
       computeBalances(ledger.order, ledger.expenses, ledger.payments, {
         ignorePayments: true,
@@ -47,12 +56,13 @@ export async function toTripView(
     const hasPendingExpense = ledger.expenses.some(
       (e) => e.status === 'pending' && e.createdById === pid,
     );
-    const ifPendingApproved =
+    const rawPending =
       actor.kind === 'guest' && hasPendingExpense
         ? (computeBalances(ledger.order, ledger.expenses, ledger.payments, {
             includePendingCreatedBy: pid,
           })[pid] ?? 0)
         : null;
+    const ifPendingApproved = rawPending !== null ? roundBal(rawPending) : null;
     const waitingConfirm = snapshot.payments
       .filter((p) => p.status === 'says_paid' && p.fromId === pid)
       .reduce((sum, p) => sum + p.amountClaimed, 0);

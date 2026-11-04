@@ -107,9 +107,9 @@ export async function linkMember(participantId: string, userId: string, name: st
 }
 
 /** Headers for a guest device that picked `participantId` (or nobody). */
-export async function guestHeaders(participantId?: string, token: string = T.groupToken): Promise<Record<string, string>> {
+export async function guestHeaders(participantId?: string, token: string = T.groupToken, tripId: string = T.tripId): Promise<Record<string, string>> {
   const { deviceId, cookie } = await newDevice();
-  if (participantId) await pickAs(deviceId, participantId);
+  if (participantId) await pickAs(deviceId, participantId, tripId);
   return { Cookie: cookie, 'X-Link-Token': token };
 }
 

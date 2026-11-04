@@ -306,7 +306,13 @@ export function tripRoutes(): Hono<AppBindings> {
       const snapshot = await getSnapshot(db, row.trip);
       let myBalance = snapshot.balances[row.participantId] ?? 0;
       if (row.trip.roundTransfers === 1) {
-        myBalance = Math.abs(myBalance) <= 500 ? 0 : Math.round(myBalance / 1000) * 1000;
+        const owedToMe = snapshot.suggestions
+          .filter((s) => s.toId === row.participantId)
+          .reduce((sum, s) => sum + s.amount, 0);
+        const iOwe = snapshot.suggestions
+          .filter((s) => s.fromId === row.participantId)
+          .reduce((sum, s) => sum + s.amount, 0);
+        myBalance = owedToMe - iOwe;
       }
       list.push({
         id: row.trip.id,
@@ -499,7 +505,12 @@ export function tripRoutes(): Hono<AppBindings> {
       .set(patchSet)
       .where(eq(trips.id, tripId));
 
-    const action = hasRatings && !hasFewest && !hasRound ? 'ratings_changed' : 'fewest_changed';
+    const action =
+      hasRound && !hasFewest && !hasRatings
+        ? 'round_transfers_changed'
+        : hasRatings && !hasFewest && !hasRound
+          ? 'ratings_changed'
+          : 'fewest_changed';
     const details: Record<string, unknown> = {};
     if (hasRatings) details.ratingsEnabled = body.ratingsEnabled as boolean;
     if (hasFewest) details.fewestTransfers = body.fewestTransfers as boolean;

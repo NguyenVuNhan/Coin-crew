@@ -68,6 +68,7 @@ export type ActivityAction =
   | 'trip_archived'
   | 'trip_unarchived'
   | 'fewest_changed'
+  | 'round_transfers_changed'
   | 'membership_requested'
   | 'membership_approved'
   | 'membership_rejected'

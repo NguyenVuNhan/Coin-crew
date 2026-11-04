@@ -240,6 +240,9 @@ describe('trip view', () => {
     expect(patch.status).toBe(204);
     const v = await view(headers);
     expect(v.trip.roundTransfers).toBe(true);
+
+    const acts = await json<ActivityItem[]>(call(`/api/trips/${T.tripId}/activity`, { headers }));
+    expect(acts[0]).toMatchObject({ action: 'round_transfers_changed', actorName: 'Minh' });
   });
 
   it('version endpoint matches the view', async () => {

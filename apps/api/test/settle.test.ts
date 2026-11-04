@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import type { ActivityItem, PeopleSummaryResponse, PersonSummary, TripListItem, TripView } from '@fsl/core';
 import * as schema from '../src/db/schema';
 import { createSettlement } from '../src/me/settle';
-import { call, json, memberSid, seedUser, U } from './helpers';
+import { call, guestHeaders, json, memberSid, seedUser, U } from './helpers';
 
 const OWNER = 'u-owner';
 const NOW = '2026-10-20T00:00:00.000Z';
@@ -305,7 +305,7 @@ describe('roundTransfers in settlement snapshot', () => {
     expect(listRes.status).toBe(200);
     const list = await json<TripListItem[]>(listRes);
     const item = list.find((t) => t.id === 't-round-3way');
-    expect(item?.myBalance).toBe(33_000);
+    expect(item?.myBalance).toBe(34_000);
   });
 
   it('equal split 500.000 ₫ 6 ways -> suggestions are 83.000 ₫ when roundTransfers is enabled', async () => {
@@ -368,6 +368,99 @@ describe('roundTransfers in settlement snapshot', () => {
     expect(view.myBalance?.now).toBe(0);
   });
 
+  it('full settlement of 3-way (50k) split leaves suggestions empty and myBalance.now === 0 for all participants', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    const tripId = 't-round-3way-settled';
+    await addTrip(tripId, 'Split 50k 3-way Settled', { roundTransfers: true });
+    await addPerson(tripId, 'p-o', 'Owen', OWNER, 0);
+    await addPerson(tripId, 'p-b', 'Bob', null, 1);
+    await addPerson(tripId, 'p-c', 'Charlie', null, 2);
+    await addExpense(tripId, 'e-50k', 'p-o', 50_000, ['p-o', 'p-b', 'p-c']);
+
+    // Pre-settlement: 2 suggestions of 17.000 ₫
+    const preOwenRes = await call(`/api/trips/${tripId}`, { headers: await auth() });
+    expect(preOwenRes.status).toBe(200);
+    const preOwenView = await json<TripView>(preOwenRes);
+    expect(preOwenView.suggestions).toHaveLength(2);
+    expect(preOwenView.myBalance?.now).toBe(34_000);
+
+    const preBobHeaders = await guestHeaders('p-b', `g-${tripId}`, tripId);
+    const preBobView = await json<TripView>(call(`/api/trips/${tripId}`, { headers: preBobHeaders }));
+    expect(preBobView.myBalance?.now).toBe(-17_000);
+
+    // Both suggested transfers are paid
+    await addPayment(tripId, 'pay-b', 'p-b', 'p-o', 17_000);
+    await addPayment(tripId, 'pay-c', 'p-c', 'p-o', 17_000);
+    await run('UPDATE trips SET version = version + 1 WHERE id = ?', tripId);
+
+    // Verify for Owen (creditor)
+    const owenRes = await call(`/api/trips/${tripId}`, { headers: await auth() });
+    expect(owenRes.status).toBe(200);
+    const owenView = await json<TripView>(owenRes);
+    expect(owenView.suggestions).toHaveLength(0);
+    expect(owenView.myBalance?.now).toBe(0);
+
+    // Verify for Bob (debtor)
+    const bobHeaders = await guestHeaders('p-b', `g-${tripId}`, tripId);
+    const bobRes = await call(`/api/trips/${tripId}`, { headers: bobHeaders });
+    expect(bobRes.status).toBe(200);
+    const bobView = await json<TripView>(bobRes);
+    expect(bobView.suggestions).toHaveLength(0);
+    expect(bobView.myBalance?.now).toBe(0);
+
+    // Verify for Charlie (debtor)
+    const charlieHeaders = await guestHeaders('p-c', `g-${tripId}`, tripId);
+    const charlieRes = await call(`/api/trips/${tripId}`, { headers: charlieHeaders });
+    expect(charlieRes.status).toBe(200);
+    const charlieView = await json<TripView>(charlieRes);
+    expect(charlieView.suggestions).toHaveLength(0);
+    expect(charlieView.myBalance?.now).toBe(0);
+  });
+
+  it('full settlement of 6-way (500k) split leaves suggestions empty and myBalance.now === 0 for all participants', async () => {
+    ownerSid = null;
+    await seedUser(OWNER, 'Owen');
+    const tripId = 't-round-6way-settled';
+    await addTrip(tripId, 'Split 500k 6-way Settled', { roundTransfers: true });
+    await addPerson(tripId, 'p-o', 'Owen', OWNER, 0);
+    for (let i = 1; i <= 5; i++) {
+      await addPerson(tripId, `p-${i}`, `P${i}`, null, i);
+    }
+    const all = ['p-o', 'p-1', 'p-2', 'p-3', 'p-4', 'p-5'];
+    await addExpense(tripId, 'e-500k', 'p-o', 500_000, all);
+
+    // Pre-settlement: 5 suggestions of 83.000 ₫ each (total 415.000 ₫)
+    const preOwenRes = await call(`/api/trips/${tripId}`, { headers: await auth() });
+    expect(preOwenRes.status).toBe(200);
+    const preOwenView = await json<TripView>(preOwenRes);
+    expect(preOwenView.suggestions).toHaveLength(5);
+    expect(preOwenView.myBalance?.now).toBe(415_000);
+
+    // All 5 debtors pay 83.000 ₫
+    for (let i = 1; i <= 5; i++) {
+      await addPayment(tripId, `pay-${i}`, `p-${i}`, 'p-o', 83_000);
+    }
+    await run('UPDATE trips SET version = version + 1 WHERE id = ?', tripId);
+
+    // Verify for Owen (creditor)
+    const owenRes = await call(`/api/trips/${tripId}`, { headers: await auth() });
+    expect(owenRes.status).toBe(200);
+    const owenView = await json<TripView>(owenRes);
+    expect(owenView.suggestions).toHaveLength(0);
+    expect(owenView.myBalance?.now).toBe(0);
+
+    // Verify for all debtors (p-1 through p-5)
+    for (let i = 1; i <= 5; i++) {
+      const debtorHeaders = await guestHeaders(`p-${i}`, `g-${tripId}`, tripId);
+      const debtorRes = await call(`/api/trips/${tripId}`, { headers: debtorHeaders });
+      expect(debtorRes.status).toBe(200);
+      const debtorView = await json<TripView>(debtorRes);
+      expect(debtorView.suggestions).toHaveLength(0);
+      expect(debtorView.myBalance?.now).toBe(0);
+    }
+  });
+
   it('when roundTransfers is disabled (default), exact unrounded suggestions are retained', async () => {
     ownerSid = null;
     await seedUser(OWNER, 'Owen');
@@ -382,7 +475,7 @@ describe('roundTransfers in settlement snapshot', () => {
     const view = await json<TripView>(res);
     expect(view.trip.roundTransfers).toBe(false);
     expect(view.suggestions).toHaveLength(2);
-    expect(view.suggestions[0].amount).toBeCloseTo(16666.67, 1);
-    expect(view.suggestions[0].amount).not.toBe(17000);
+    expect(view.suggestions[0]!.amount).toBeCloseTo(16666.67, 1);
+    expect(view.suggestions[0]!.amount).not.toBe(17000);
   });
 });

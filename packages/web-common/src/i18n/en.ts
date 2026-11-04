@@ -588,6 +588,7 @@ export const en = {
   'activity.action.trip_archived': 'archived the trip',
   'activity.action.trip_unarchived': 'unarchived the trip',
   'activity.action.fewest_changed': 'changed Fewest transfers',
+  'activity.action.round_transfers_changed': 'changed transfer rounding',
   'activity.action.membership_requested': 'asked to become a member',
   'activity.action.membership_approved': 'approved a new member',
   'activity.action.membership_rejected': 'declined a new member',
