@@ -922,6 +922,7 @@ export const vi: Record<MessageKey, string> = {
   'claim.browserSteps': 'Nhấn ⋯ → Mở trong trình duyệt', // REVIEW
   'claim.zaloOff': 'Đăng nhập Zalo hiện không khả dụng. Mở trong trình duyệt để dùng Google.', // REVIEW
   'claim.waiting': 'Đang chờ {name} phê duyệt trong trình duyệt', // REVIEW
+  'claim.nothingToPay': '{name} không cần trả gì cho khoản chi này.', // REVIEW
   'claim.taken': '{name} đã đăng nhập bằng một tài khoản Zalo khác', // REVIEW
   'claim.waitingWho': 'Bạn đã yêu cầu tham gia tài khoản của {name}. Đang chờ phê duyệt trong trình duyệt.', // REVIEW
   'claim.paymentFlag': 'Được đánh dấu bởi tài khoản Zalo đang chờ tham gia {name}', // REVIEW

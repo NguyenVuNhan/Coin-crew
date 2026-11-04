@@ -2,12 +2,12 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { decodeIdToken, generateCodeVerifier, generateState } from 'arctic';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { UpdateProfileInput } from '@fsl/core';
 import { normalizeName } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
-import { participants, sessions, trips, users } from '../db/schema';
+import { deviceParticipants, participants, sessions, trips, users } from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
@@ -282,6 +282,17 @@ export function authRoutes(): Hono<AppBindings> {
       const outcome = claim
         ? await requestClaim(db, userId, claim)
         : ({ result: 'invalid' } as const);
+      if (claim && outcome.result !== 'invalid') {
+        // They said who they are: the guest pick this device remembered (someone else) no longer applies.
+        await db
+          .delete(deviceParticipants)
+          .where(
+            and(
+              eq(deviceParticipants.deviceHash, c.get('deviceHash')),
+              eq(deviceParticipants.tripId, claim.tripId),
+            ),
+          );
+      }
       return c.redirect(withQuery(target, 'claim', outcome.result), 302);
     }
 

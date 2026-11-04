@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import { call, cookiesFrom, cookieHeader, linkMember, memberSid, PID, seedTrip, T, U } from './helpers';
+import { call, cookiesFrom, cookieHeader, linkMember, memberSid, newDevice, pickAs, PID, seedTrip, T, U } from './helpers';
 import { getDb } from '../src/db/client';
 import { requestClaim } from '../src/auth/identity';
 
@@ -319,5 +319,17 @@ describe('Zalo claim merge request', () => {
       callbackQuery: `trip=${T.tripId}&pid=${PID.M}`, // active member in query params (must be ignored)
     });
     expect(claimRun.cb.headers.get('Location')).toBe(`/t/${T.groupToken}?claim=invalid`);
+  });
+
+  it("forgets the device's guest pick in that trip, so the claimed person isn't shown as someone else again", async () => {
+    await seedTrip();
+    const dev = await newDevice();
+    await pickAs(dev.deviceId, PID.A);
+    const { cb } = await claimViaZalo({ extraCookies: { did: dev.deviceId } });
+    expect(cb.status).toBe(302);
+    const left = await env.DB.prepare('SELECT count(*) AS n FROM device_participants WHERE trip_id = ?')
+      .bind(T.tripId)
+      .first<{ n: number }>();
+    expect(left?.n).toBe(0);
   });
 });

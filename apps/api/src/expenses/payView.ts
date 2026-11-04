@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { ExpensePayView, PaidBy } from '@fsl/core';
+import type { ExpensePayNoRow, ExpensePayView, PaidBy } from '@fsl/core';
 import {
   MAX_AMOUNT,
   expenseRemaining,
@@ -27,7 +27,7 @@ export async function buildExpensePayView(
   db: Db,
   actor: ResolvedActor,
   expenseId: string,
-): Promise<ExpensePayView | { row: null }> {
+): Promise<ExpensePayView | ExpensePayNoRow> {
   const tripId = actor.trip.id;
   const snapshot = await getSnapshot(db, actor.trip);
   const expense = snapshot.expenses.find(
@@ -64,8 +64,10 @@ export async function buildExpensePayView(
       viewer = 'friend';
     }
   }
+  let waitingClaim: { participantId: string; requestId: string } | null = null;
   if (!rowId) {
     const claimGrant = await getClaimGrant(db, actor.userId, tripId);
+    waitingClaim = claimGrant;
     if (
       claimGrant &&
       claimGrant.participantId !== expense.payerId &&
@@ -78,6 +80,17 @@ export async function buildExpensePayView(
   }
 
   if (!rowId) {
+    if (waitingClaim) {
+      const claimed = snapshot.people.find((p) => p.id === waitingClaim.participantId);
+      const reqRow = await db
+        .select({ expiresAt: accountMergeRequests.expiresAt })
+        .from(accountMergeRequests)
+        .where(eq(accountMergeRequests.id, waitingClaim.requestId))
+        .get();
+      if (claimed && reqRow) {
+        return { row: null, claim: { name: claimed.name, expiresAt: reqRow.expiresAt } };
+      }
+    }
     return { row: null };
   }
 

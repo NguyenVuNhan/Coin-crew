@@ -210,7 +210,7 @@ describe('expense pay view and report with a pending Zalo claim', () => {
     expect(selfView.row.participantId).toBe(PID.C);
   });
 
-  it("returns row: null on an expense Minh doesn't share or where Minh is the payer", async () => {
+  it("returns row: null with the waiting claim on an expense Minh doesn't share or where Minh is the payer", async () => {
     const zaloUserId = await createZaloUser('z-claim-null', 'Minh Zalo', 'sid-zalo-null');
     await requestClaim(getDb(env), zaloUserId, {
       tripId: T.tripId,
@@ -223,12 +223,12 @@ describe('expense pay view and report with a pending Zalo claim', () => {
     const unshared = await json<{ row: null }>(
       call(`${base}/expenses/e-no-minh/pay`, { headers }),
     );
-    expect(unshared).toEqual({ row: null });
+    expect(unshared).toEqual({ row: null, claim: { name: 'Minh', expiresAt: expect.any(String) } });
 
     const asPayer = await json<{ row: null }>(
       call(`${base}/expenses/e-minh-paid/pay`, { headers }),
     );
-    expect(asPayer).toEqual({ row: null });
+    expect(asPayer).toEqual({ row: null, claim: { name: 'Minh', expiresAt: expect.any(String) } });
   });
 
   it('pay-report creates says_paid with claimRequestId set even when the receiver is a guest, and forces paidBy to self', async () => {

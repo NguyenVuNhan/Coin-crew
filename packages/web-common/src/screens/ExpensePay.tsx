@@ -132,6 +132,23 @@ export function ExpensePay() {
   const row = 'row' in payData ? payData.row : null;
 
   if (!row) {
+    const waiting = payData.row === null ? payData.claim : undefined;
+    if (waiting) {
+      // A Zalo account waiting to join someone who owes nothing here: stay locked, never back to "Who are you?".
+      return (
+        <Screen title="">
+          <div
+            data-testid="pay-locked"
+            className="fsl-expense-pay flex flex-col gap-4 max-w-[480px] mx-auto w-full py-4"
+          >
+            <ClaimWaitingStrip name={waiting.name} />
+            <p className="fsl-expense-pay__nothing m-0 text-base text-center text-muted-foreground">
+              {t('claim.nothingToPay', { name: waiting.name })}
+            </p>
+          </div>
+        </Screen>
+      );
+    }
     if (view.me.participantId === null) {
       const currentPath = location.pathname + location.search;
       return (

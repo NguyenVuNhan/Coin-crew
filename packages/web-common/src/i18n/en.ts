@@ -922,6 +922,7 @@ export const en = {
   'claim.browserSteps': 'Tap ⋯ → Open in browser',
   'claim.zaloOff': "Zalo sign-in isn't available right now. Open in browser to use Google.",
   'claim.waiting': 'Waiting for {name} to approve in a browser',
+  'claim.nothingToPay': '{name} has nothing to pay for this expense.',
   'claim.taken': '{name} already signs in with a different Zalo account',
   'claim.waitingWho': "You asked to join {name}'s account. Waiting for approval in a browser.",
   'claim.paymentFlag': 'Marked by a Zalo account waiting to join {name}',

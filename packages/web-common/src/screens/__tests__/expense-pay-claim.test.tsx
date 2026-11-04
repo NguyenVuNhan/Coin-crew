@@ -81,7 +81,7 @@ function mockMe(overrides: Partial<MeResponse> = {}): MeResponse {
 }
 
 const api = (
-  payData: ExpensePayView | { row: null },
+  payData: ExpensePayView | { row: null; claim?: { name: string; expiresAt: string } },
   extra: Record<string, unknown> = {},
   trip: TripView = guestChiView(),
 ) =>
@@ -138,6 +138,16 @@ describe('ExpensePay claim and locked screen', () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Chi's share")).toBeInTheDocument();
     expect(screen.getByText(/Badminton court/)).toBeInTheDocument();
+  });
+
+  it('a waiting claim with nothing to pay stays locked instead of going back to "Who are you?"', async () => {
+    api({ row: null, claim: { name: 'Nhân', expiresAt: '2026-11-11T00:00:00.000Z' } });
+    renderAt(<ExpensePay />, payRoute);
+
+    expect(await screen.findByTestId('pay-locked')).toBeInTheDocument();
+    expect(document.querySelector('.fsl-screen__back')).toBeNull();
+    expect(screen.getByText('Waiting for Nhân to approve in a browser')).toBeInTheDocument();
+    expect(screen.getByText('Nhân has nothing to pay for this expense.')).toBeInTheDocument();
   });
 
   it('viewer: "claim" clicking Open in browser reveals fallback steps when intent is unsupported', async () => {

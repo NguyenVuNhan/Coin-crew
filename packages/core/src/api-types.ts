@@ -291,6 +291,12 @@ export interface IncomeView {
 export type PaidBy = 'self' | 'friend';
 export interface PaymentMeta { expenseId: string; paidBy: PaidBy }
 export interface SlotTile { gender: 'F' | 'M'; amount: number }
+/** No row to pay. `claim` is set when a Zalo account waiting to join someone opened it: they owe nothing here. */
+export interface ExpensePayNoRow {
+  row: null;
+  claim?: { name: string; expiresAt: string };
+}
+
 export interface ExpensePayView {
   expense: { id: string; description: string; spentOn: string; amount: number };
   payer: { id: string; name: string };
