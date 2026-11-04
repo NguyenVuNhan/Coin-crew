@@ -534,6 +534,8 @@ export const en = {
   'people.leftOwes': 'Owes {amount}',
   'people.leftOwed': 'Is owed {amount}',
   'people.leftSettled': 'Settled up',
+  'people.similar': '"{typed}" looks like "{name}", who\'s already in this group.',
+  'people.addAnyway': 'Add anyway',
   'people.restore': 'Bring back',
 
   'activity.title': 'Activity',

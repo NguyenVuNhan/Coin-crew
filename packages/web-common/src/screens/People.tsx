@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { formatVnd, type Gender, type PersonView } from '@fsl/core';
+import { findSimilarNames, formatVnd, type Gender, type PersonView } from '@fsl/core';
 import { useT } from '../i18n';
 import { useTrip } from '../lib/tripBase';
 import { useTripView } from '../api/hooks';
@@ -46,6 +46,8 @@ export function People() {
   const [newGender, setNewGender] = useState<Gender | null>('M');
   const inputRef = useRef<HTMLInputElement>(null);
   const lastAddedName = useRef('');
+  /** A typed name that looks like someone already here: wait for "Add anyway" before sending it. */
+  const [similar, setSimilar] = useState<{ name: string; gender: Gender | null; match: string } | null>(null);
 
   useEffect(() => {
     if (actingId === 'new-person' && error && !newName) {
@@ -157,21 +159,32 @@ export function People() {
     await run('/people/merge', { fromId: sourceId, intoId: target.id });
   };
 
-  const handleAddPerson = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    lastAddedName.current = trimmed;
-    const genderToSubmit = newGender;
+  const submitPerson = async (name: string, gender: Gender | null, confirmNew: boolean) => {
+    lastAddedName.current = name;
+    setSimilar(null);
     setNewName('');
     setNewGender('M');
     inputRef.current?.focus();
     setActingId('new-person');
-    const payload: { name: string; gender?: Gender | null } = { name: trimmed };
-    if (view.trip.preset === 'sport' && genderToSubmit) {
-      payload.gender = genderToSubmit;
+    const payload: { name: string; gender?: Gender | null; confirmNew?: true } = { name };
+    if (view.trip.preset === 'sport' && gender) {
+      payload.gender = gender;
     }
+    // The server refuses a look-alike name unless told it's someone new.
+    if (confirmNew) payload.confirmNew = true;
     await run('/people', payload, 'POST');
+  };
+
+  const handleAddPerson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const [match] = findSimilarNames(trimmed, view.people.filter((p) => p.status !== 'left'));
+    if (match) {
+      setSimilar({ name: trimmed, gender: newGender, match: match.name });
+      return;
+    }
+    await submitPerson(trimmed, newGender, false);
   };
 
   const mainPeople = view.people.filter((p) => p.status !== 'left');
@@ -332,6 +345,25 @@ export function People() {
               {t('create.addPerson')}
             </Button>
           </form>
+        )}
+        {similar && (
+          <div className={cn('fsl-people__similar flex flex-col gap-2')} role="alert">
+            <p className={cn('m-0 text-sm leading-snug text-foreground')}>
+              {t('people.similar', { typed: similar.name, name: similar.match })}
+            </p>
+            <div className={cn('flex gap-2')}>
+              <Button
+                variant="primary"
+                disabled={busy}
+                onClick={() => void submitPerson(similar.name, similar.gender, true)}
+              >
+                {t('people.addAnyway')}
+              </Button>
+              <Button variant="ghost" onClick={() => setSimilar(null)}>
+                {t('common.cancel')}
+              </Button>
+            </div>
+          </div>
         )}
         {platform.kind === 'zmp' && !view.trip.archived && view.links !== null && (
           // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
