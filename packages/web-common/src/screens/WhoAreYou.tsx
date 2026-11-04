@@ -24,6 +24,7 @@ import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
 import { ClaimSheet } from '../components/ClaimSheet';
 import { ZaloSignIn } from '../components/ZaloSignIn';
+import { browserUrl } from '../lib/openInBrowser';
 import { usePlatform } from '../platform';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,48 @@ export function safeTripPath(next: string | null, tripId: string, base = `/t/${t
     if (code < 0x20 || code === 0x7f) return fallback;
   }
   return next;
+}
+
+function ClaimWaitingWhoStrip({ name }: { name: string }) {
+  const t = useT();
+  const [showSteps, setShowSteps] = useState(false);
+  const currentHref = typeof window !== 'undefined' && window.location ? window.location.href : '';
+  const openBrowserHref = browserUrl(currentHref);
+
+  return (
+    <div className="rounded-xl bg-warning-soft px-4 py-3 flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-sm text-foreground">
+        <Icon name="clock" size={16} className="shrink-0" />
+        <span>{t('claim.waitingWho', { name })}</span>
+      </div>
+      {openBrowserHref ? (
+        <Button
+          variant="ghost"
+          block
+          href={openBrowserHref}
+          className="min-h-11 justify-center"
+        >
+          {t('claim.openBrowser')}
+        </Button>
+      ) : (
+        <>
+          <Button
+            variant="ghost"
+            block
+            onClick={() => setShowSteps((s) => !s)}
+            className="min-h-11 justify-center"
+          >
+            {t('claim.openBrowser')}
+          </Button>
+          {showSteps && (
+            <p className="m-0 text-sm text-muted-foreground text-center">
+              {t('claim.browserSteps')}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 export function WhoAreYou() {
@@ -440,6 +483,10 @@ export function WhoAreYou() {
         <p className="fsl-who__subtitle m-0 text-sm text-muted-foreground">{t('who.subtitle')}</p>
 
         <div className="fsl-who__pick-step flex flex-col gap-4">
+          {me?.mergeRequests?.claim && (
+            <ClaimWaitingWhoStrip name={me.mergeRequests.claim.name} />
+          )}
+
           {showSearch && (
             <>
               <div className="fsl-who__search relative flex items-center">
