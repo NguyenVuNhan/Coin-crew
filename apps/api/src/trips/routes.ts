@@ -85,7 +85,7 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    if (!Array.isArray(body.people) || body.people.length < 1) {
+    if (!Array.isArray(body.people)) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 

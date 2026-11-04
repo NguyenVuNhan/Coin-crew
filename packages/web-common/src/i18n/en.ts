@@ -167,7 +167,7 @@ export const en = {
   'create.presetSport': 'Sport group',
   'create.sportNamePlaceholder': 'Thursday Badminton',
   'create.myName': 'Your name',
-  'create.others': 'Who else is coming?',
+  'create.others': 'Who else is coming? (optional)',
   'create.otherPlaceholder': 'Name',
   'create.addPerson': 'Add person',
   'create.removePerson': 'Remove {name}',

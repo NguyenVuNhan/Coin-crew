@@ -49,8 +49,7 @@ export function CreateTrip() {
 
   const isFormValid =
     tripName.trim().length > 0 &&
-    myName.trim().length > 0 &&
-    people.some((p) => p.name.trim().length > 0);
+    myName.trim().length > 0;
 
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
