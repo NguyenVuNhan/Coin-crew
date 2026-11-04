@@ -924,5 +924,15 @@ export const vi: Record<MessageKey, string> = {
   'claim.waiting': 'Đang chờ {name} phê duyệt trong trình duyệt', // REVIEW
   'claim.taken': '{name} đã đăng nhập bằng một tài khoản Zalo khác', // REVIEW
   'claim.waitingWho': 'Bạn đã yêu cầu tham gia tài khoản của {name}. Đang chờ phê duyệt trong trình duyệt.', // REVIEW
+  'claim.paymentFlag': 'Được đánh dấu bởi tài khoản Zalo đang chờ tham gia {name}', // REVIEW
+
+  'join.banner': 'Tài khoản Zalo ({name}) muốn tham gia tài khoản của bạn', // REVIEW
+  'join.title': 'Yêu cầu tham gia', // REVIEW
+  'join.body': 'Tài khoản Zalo này sẽ trở thành một phương thức đăng nhập vào tài khoản của bạn.', // REVIEW
+  'join.groupsMove': 'Các nhóm này sẽ chuyển sang tài khoản của bạn:', // REVIEW
+  'join.collapse': 'Trong {group}, {zaloPersonName} và {yourPersonName} sẽ trở thành một người', // REVIEW
+  'join.accept': 'Chấp nhận', // REVIEW
+  'join.decline': 'Từ chối', // REVIEW
+  'join.accepted': 'Đã tham gia tài khoản Zalo', // REVIEW
 };
 

@@ -16,6 +16,7 @@ import { Icon } from './icons';
 import { AvatarCropModal } from './AvatarCropModal';
 import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
+import { Snackbar } from './Snackbar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -45,8 +46,11 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
 
   const u = propUser !== undefined ? propUser : meQuery.data?.user;
   const incomingMerge = meQuery.data?.mergeRequests.incoming[0];
+  const joiningRequests = meQuery.data?.mergeRequests.joining ?? [];
+  const hasMerge = Boolean(incomingMerge || joiningRequests.length > 0);
 
   const [open, setOpen] = useState(false);
+  const [acceptedJoin, setAcceptedJoin] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -67,6 +71,12 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       setGender(u.gender ?? null);
     }
   }, [u?.name, u?.gender]);
+
+  useEffect(() => {
+    if (!acceptedJoin) return;
+    const timer = setTimeout(() => setAcceptedJoin(false), 4000);
+    return () => clearTimeout(timer);
+  }, [acceptedJoin]);
 
   const close = () => {
     setOpen(false);
@@ -194,7 +204,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       onClick={() => setOpen((prev) => !prev)}
     >
       <Avatar name={u.name} avatarUrl={u.avatarUrl} size="sm" />
-      {incomingMerge && (
+      {hasMerge && (
         <span
           className="fsl-account-menu__dot absolute top-1.5 right-1.5 size-2.5 rounded-full bg-danger ring-2 ring-card"
           role="img"
@@ -309,6 +319,13 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       </div>
 
       {incomingMerge && <MergeRequestBanner request={incomingMerge} />}
+      {joiningRequests.map((req) => (
+        <MergeRequestBanner
+          key={req.id}
+          request={req}
+          onAccepted={() => setAcceptedJoin(true)}
+        />
+      ))}
 
       {meQuery.data && <LinkedAccounts me={meQuery.data} />}
 
@@ -347,6 +364,8 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       {error !== null && (
         <InlineError error={error} className="fsl-account-menu__error m-0" />
       )}
+
+      {acceptedJoin && <Snackbar message={t('join.accepted')} />}
 
       <Button
         variant="secondary"

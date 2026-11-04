@@ -67,6 +67,13 @@ export function PaymentDetails({
 
       <Amount value={p.amountConfirmed ?? p.amountClaimed} size="xl" className="text-3xl font-bold tabular-nums" />
 
+      {p.status === 'says_paid' && p.claimPending && (
+        <div className="flex items-center gap-1.5 text-sm text-warning-foreground">
+          <Icon name="info" size={16} className="shrink-0" />
+          <span>{t('claim.paymentFlag', { name: nameOf(view, p.fromId) })}</span>
+        </div>
+      )}
+
       <dl className="fsl-details__facts m-0 bg-card rounded-xl border border-border divide-y divide-border overflow-hidden">
         <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
           <dt className="text-sm text-muted-foreground">{t('details.amountClaimed')}</dt>

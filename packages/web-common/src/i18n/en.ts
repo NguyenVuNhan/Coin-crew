@@ -924,6 +924,16 @@ export const en = {
   'claim.waiting': 'Waiting for {name} to approve in a browser',
   'claim.taken': '{name} already signs in with a different Zalo account',
   'claim.waitingWho': "You asked to join {name}'s account. Waiting for approval in a browser.",
+  'claim.paymentFlag': 'Marked by a Zalo account waiting to join {name}',
+
+  'join.banner': 'A Zalo account ({name}) wants to join your account',
+  'join.title': 'Join request',
+  'join.body': 'This Zalo login will become a way to sign in to your account.',
+  'join.groupsMove': 'These groups move to your account:',
+  'join.collapse': 'In {group}, {zaloPersonName} and {yourPersonName} become one person',
+  'join.accept': 'Accept',
+  'join.decline': 'Decline',
+  'join.accepted': 'Zalo account joined',
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -1,19 +1,53 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { IncomingMergeRequest } from '@fsl/core';
+import type { IncomingMergeRequest, JoiningMergeRequest } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
 import { MergeConfirmSheet } from './MergeConfirmSheet';
+import { JoinRequestSheet } from './JoinRequestSheet';
 import { cn } from '@/lib/utils';
 
-export interface MergeRequestBannerProps {
+export interface JoinRequestBannerProps {
+  request: JoiningMergeRequest;
+  autoOpen?: boolean;
+  onAccepted?: () => void;
+}
+
+export function JoinRequestBanner({ request, autoOpen = false, onAccepted }: JoinRequestBannerProps) {
+  const t = useT();
+  const [open, setOpen] = useState(autoOpen);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          'fsl-merge-banner fsl-join-banner block w-full text-left min-h-11 rounded-xl bg-warning-soft text-warning-foreground p-4 box-border cursor-pointer transition-colors hover:bg-warning-soft/80',
+        )}
+      >
+        <p className="fsl-merge-banner__text m-0 text-sm text-warning-foreground text-left break-words">
+          {t('join.banner', { name: request.zalo.name })}
+        </p>
+      </button>
+      <JoinRequestSheet
+        request={request}
+        open={open}
+        onClose={() => setOpen(false)}
+        onAccepted={onAccepted}
+      />
+    </>
+  );
+}
+
+export interface IncomingMergeBannerProps {
   request: IncomingMergeRequest;
   autoOpen?: boolean;
 }
 
-export function MergeRequestBanner({ request, autoOpen = false }: MergeRequestBannerProps) {
+export function IncomingMergeBanner({ request, autoOpen = false }: IncomingMergeBannerProps) {
   const t = useT();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(autoOpen);
@@ -70,4 +104,17 @@ export function MergeRequestBanner({ request, autoOpen = false }: MergeRequestBa
       />
     </div>
   );
+}
+
+export interface MergeRequestBannerProps {
+  request: IncomingMergeRequest | JoiningMergeRequest;
+  autoOpen?: boolean;
+  onAccepted?: () => void;
+}
+
+export function MergeRequestBanner({ request, autoOpen = false, onAccepted }: MergeRequestBannerProps) {
+  if ('zalo' in request) {
+    return <JoinRequestBanner request={request} autoOpen={autoOpen} onAccepted={onAccepted} />;
+  }
+  return <IncomingMergeBanner request={request} autoOpen={autoOpen} />;
 }
