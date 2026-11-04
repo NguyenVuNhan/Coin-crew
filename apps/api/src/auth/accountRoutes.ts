@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
 import { accountMergeRequests, users } from '../db/schema';
@@ -11,7 +11,7 @@ import { mergeUsers } from './mergeUsers';
 import { getSessionUser, requireUser } from './session';
 
 /**
- * Decline (as B, the merged account) or cancel (as A, the survivor) an open request in one conditional write.
+ * Decline (on the side that must approve) or cancel (on the side that started it) an open request in one conditional write.
  * 404 when the request is not this user's on that side, or is no longer pending, or has expired.
  */
 async function closeRequest(
@@ -21,13 +21,23 @@ async function closeRequest(
 ): Promise<Response> {
   const user = (await getSessionUser(c))!;
   const now = nowIso();
+  const matchesSide =
+    side === 'merged'
+      ? or(
+          and(eq(accountMergeRequests.initiatedBy, 'survivor'), eq(accountMergeRequests.mergedUserId, user.id)),
+          and(eq(accountMergeRequests.initiatedBy, 'merged'), eq(accountMergeRequests.survivorUserId, user.id)),
+        )
+      : or(
+          and(eq(accountMergeRequests.initiatedBy, 'survivor'), eq(accountMergeRequests.survivorUserId, user.id)),
+          and(eq(accountMergeRequests.initiatedBy, 'merged'), eq(accountMergeRequests.mergedUserId, user.id)),
+        );
   const closed = await getDb(c.env)
     .update(accountMergeRequests)
     .set({ status, decidedAt: now })
     .where(
       and(
         eq(accountMergeRequests.id, c.req.param('id') ?? ''),
-        eq(side === 'merged' ? accountMergeRequests.mergedUserId : accountMergeRequests.survivorUserId, user.id),
+        matchesSide,
         eq(accountMergeRequests.status, 'pending'),
         gt(accountMergeRequests.expiresAt, now),
       ),
@@ -82,7 +92,7 @@ export function accountRoutes(): Hono<AppBindings> {
     return c.json({ user: toMeUserView(updated) }, 200);
   });
 
-  /** B confirms: B is merged into A, and this session (like all of B's) now belongs to A. */
+  /** Approver confirms: B is merged into A, and all of B's sessions now belong to A. */
   app.post('/me/merge-requests/:id/accept', requireUser, async (c) => {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
@@ -93,7 +103,10 @@ export function accountRoutes(): Hono<AppBindings> {
       .where(
         and(
           eq(accountMergeRequests.id, c.req.param('id')),
-          eq(accountMergeRequests.mergedUserId, user.id),
+          or(
+            and(eq(accountMergeRequests.initiatedBy, 'survivor'), eq(accountMergeRequests.mergedUserId, user.id)),
+            and(eq(accountMergeRequests.initiatedBy, 'merged'), eq(accountMergeRequests.survivorUserId, user.id)),
+          ),
           eq(accountMergeRequests.status, 'pending'),
           gt(accountMergeRequests.expiresAt, nowIso()),
         ),
@@ -103,12 +116,27 @@ export function accountRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const survivor = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, request.survivorUserId))
-      .get();
-    const heldSub = request.provider === 'google' ? user.googleSub : user.zaloSub;
+    const survivor =
+      request.initiatedBy === 'merged'
+        ? user
+        : await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.id, request.survivorUserId))
+            .get();
+    const mergedUser =
+      request.initiatedBy === 'merged'
+        ? await db
+            .select({ googleSub: users.googleSub, zaloSub: users.zaloSub })
+            .from(users)
+            .where(eq(users.id, request.mergedUserId))
+            .get()
+        : user;
+    const heldSub = mergedUser
+      ? request.provider === 'google'
+        ? mergedUser.googleSub
+        : mergedUser.zaloSub
+      : null;
     if (!survivor || heldSub !== request.providerSub) {
       await db
         .update(accountMergeRequests)

@@ -260,7 +260,11 @@ export async function mergeUsers(
         ),
       ),
     db.update(bankDetails).set({ userId: aId }).where(eq(bankDetails.userId, bId)),
-    // 5. This request is accepted; any other pending request involving B is moot.
+    // 5. This request is accepted; any other pending request involving B (or another claim on A) is moot.
+    db
+      .update(transactions)
+      .set({ claimRequestId: null })
+      .where(eq(transactions.claimRequestId, request.id)),
     db
       .update(accountMergeRequests)
       .set({ status: 'accepted', decidedAt: now })
@@ -271,7 +275,11 @@ export async function mergeUsers(
       .where(
         and(
           eq(accountMergeRequests.status, 'pending'),
-          or(eq(accountMergeRequests.survivorUserId, bId), eq(accountMergeRequests.mergedUserId, bId)),
+          or(
+            eq(accountMergeRequests.survivorUserId, bId),
+            eq(accountMergeRequests.mergedUserId, bId),
+            and(eq(accountMergeRequests.survivorUserId, aId), eq(accountMergeRequests.initiatedBy, 'merged')),
+          ),
           ne(accountMergeRequests.id, request.id),
         ),
       ),
