@@ -27,6 +27,41 @@ describe('POST /api/trips', () => {
     expect(acts[0]?.action).toBe('trip_created');
   });
 
+  it('creates an empty group when people is an empty array', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Nhóm chỉ có một mình',
+        myName: 'Minh',
+        people: [],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.people.map((p) => p.name)).toEqual(['Minh']);
+    expect(v.people[0]).toMatchObject({ isMember: true, isOrganiser: true });
+    expect(v.links?.group).toBeTruthy();
+  });
+
+  it('creates a trip without myName, defaulting to user.name', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Nha Trang',
+        people: ['An'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.people[0]?.name).toBe('Minh');
+  });
+
   it('creates a sport group with preset and player genders', async () => {
     const headers = { ...(await minh()), 'Content-Type': 'application/json' };
     const res = await call('/api/trips', {

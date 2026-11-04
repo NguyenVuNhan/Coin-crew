@@ -167,7 +167,7 @@ export type CreateTripPerson = { name: string; userId?: string; gender?: Gender 
 /** Plain strings are still accepted so an older open client keeps working. */
 export interface CreateTripInput {
   name: string;
-  myName: string;
+  myName?: string;
   myGender?: Gender | null;
   preset?: GroupPreset;
   people: (string | CreateTripPerson)[];

@@ -56,7 +56,10 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    if (typeof body.name !== 'string' || typeof body.myName !== 'string') {
+    if (
+      typeof body.name !== 'string' ||
+      (body.myName !== undefined && body.myName !== null && typeof body.myName !== 'string')
+    ) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
@@ -80,12 +83,16 @@ export function tripRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    const myName = body.myName.trim();
+    const myName = (
+      body.myName !== undefined && body.myName !== null
+        ? body.myName.trim()
+        : user.name
+    ) || user.name;
     if (myName.length < 1 || myName.length > 40) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    if (!Array.isArray(body.people) || body.people.length < 1) {
+    if (!Array.isArray(body.people)) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
