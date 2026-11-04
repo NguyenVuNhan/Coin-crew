@@ -167,7 +167,7 @@ export const vi: Record<MessageKey, string> = {
   'create.presetSport': 'Nhóm thể thao', // REVIEW
   'create.sportNamePlaceholder': 'Cầu lông tối thứ 5', // REVIEW
   'create.myName': 'Tên của bạn', // REVIEW
-  'create.others': 'Ai sẽ tham gia cùng?', // REVIEW
+  'create.others': 'Ai sẽ tham gia cùng? (tùy chọn)', // REVIEW
   'create.otherPlaceholder': 'Tên', // REVIEW
   'create.addPerson': 'Thêm người', // REVIEW
   'create.removePerson': 'Xóa {name}', // REVIEW

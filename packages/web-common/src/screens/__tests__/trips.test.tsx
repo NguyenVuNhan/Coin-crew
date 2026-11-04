@@ -107,15 +107,21 @@ describe('CreateTrip', () => {
     expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute('href', '/groups');
   });
 
-  it('needs a trip name and at least one other person', async () => {
-    mockApi({ 'GET /api/me': me() });
+  it('needs a trip name and allows creating with empty members', async () => {
+    const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
     const submit = await screen.findByRole('button', { name: 'Create group' });
     expect(submit).toBeDisabled();
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    expect(submit).toBeDisabled();
-    await userEvent.type(screen.getAllByPlaceholderText('Name')[0]!, 'An');
     expect(submit).toBeEnabled();
+    await userEvent.click(submit);
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+    expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips')?.body).toEqual({
+      name: 'Đà Lạt',
+      myName: 'Minh',
+      people: [],
+      defaultLang: 'en',
+    });
   });
 
   it('prefills my name, posts the trip and opens it', async () => {
