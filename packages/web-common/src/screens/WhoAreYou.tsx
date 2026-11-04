@@ -22,7 +22,9 @@ import { Icon } from '../components/icons';
 import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
+import { ClaimSheet } from '../components/ClaimSheet';
 import { ZaloSignIn } from '../components/ZaloSignIn';
+import { browserUrl } from '../lib/openInBrowser';
 import { usePlatform } from '../platform';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,48 @@ export function safeTripPath(next: string | null, tripId: string, base = `/t/${t
     if (code < 0x20 || code === 0x7f) return fallback;
   }
   return next;
+}
+
+function ClaimWaitingWhoStrip({ name }: { name: string }) {
+  const t = useT();
+  const [showSteps, setShowSteps] = useState(false);
+  const currentHref = typeof window !== 'undefined' && window.location ? window.location.href : '';
+  const openBrowserHref = browserUrl(currentHref);
+
+  return (
+    <div className="rounded-xl bg-warning-soft px-4 py-3 flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-sm text-foreground">
+        <Icon name="clock" size={16} className="shrink-0" />
+        <span>{t('claim.waitingWho', { name })}</span>
+      </div>
+      {openBrowserHref ? (
+        <Button
+          variant="ghost"
+          block
+          href={openBrowserHref}
+          className="min-h-11 justify-center"
+        >
+          {t('claim.openBrowser')}
+        </Button>
+      ) : (
+        <>
+          <Button
+            variant="ghost"
+            block
+            onClick={() => setShowSteps((s) => !s)}
+            className="min-h-11 justify-center"
+          >
+            {t('claim.openBrowser')}
+          </Button>
+          {showSteps && (
+            <p className="m-0 text-sm text-muted-foreground text-center">
+              {t('claim.browserSteps')}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 export function WhoAreYou() {
@@ -67,6 +111,8 @@ export function WhoAreYou() {
   const [nameMatchId, setNameMatchId] = useState<string | null>(null);
   const userTouched = useRef(false);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [claimPerson, setClaimPerson] = useState<{ id: string; name: string } | null>(null);
+  const [claimOpen, setClaimOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -298,6 +344,13 @@ export function WhoAreYou() {
     void startJoin();
   }
 
+  // A Zalo account already waiting to join someone here came from a payment page: go back to it (locked to that
+  // person) instead of asking "Who are you?" again. Zalo's login can hand back to this picker, not the payment.
+  const waitingClaim = me?.mergeRequests?.claim;
+  if (waitingClaim && waitingClaim.tripId === tripId && searchParams.get('next') !== null && /\/expenses\/[^/]+\/pay$/.test(target.split('?')[0] ?? '')) {
+    return <Navigate to={target} replace />;
+  }
+
   if (isLoading) {
     return (
       <Screen title={t('who.title')} right={<LanguageButton />}>
@@ -437,6 +490,10 @@ export function WhoAreYou() {
         <p className="fsl-who__subtitle m-0 text-sm text-muted-foreground">{t('who.subtitle')}</p>
 
         <div className="fsl-who__pick-step flex flex-col gap-4">
+          {me?.mergeRequests?.claim && (
+            <ClaimWaitingWhoStrip name={me.mergeRequests.claim.name} />
+          )}
+
           {showSearch && (
             <>
               <div className="fsl-who__search relative flex items-center">
@@ -534,14 +591,24 @@ export function WhoAreYou() {
                 const hasMultipleSlots = (person.slots ?? 0) >= 2;
 
                 if (person.isMember && (!isExpenseMode || !hasMultipleSlots)) {
+                  const inZaloBrowser = !isZmp && isZaloWebView();
                   return (
                     <a
                       key={person.id}
-                      href={signInHref(isZaloWebView() && me?.signIn.zalo ? 'zalo' : 'google', target)}
+                      href={
+                        inZaloBrowser
+                          ? signInHref('zalo', target, undefined, { tripId, participantId: person.id })
+                          : signInHref(isZaloWebView() && me?.signIn.zalo ? 'zalo' : 'google', target)
+                      }
                       className="fsl-who__row fsl-who__row--member flex items-center gap-3 px-4 py-3 min-h-11 w-full text-left text-foreground bg-card hover:bg-accent no-underline cursor-pointer transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset border-0"
                       onClick={(e) => {
                         e.preventDefault();
-                        setSignInOpen(true);
+                        if (inZaloBrowser) {
+                          setClaimPerson({ id: person.id, name: person.name });
+                          setClaimOpen(true);
+                        } else {
+                          setSignInOpen(true);
+                        }
                       }}
                     >
                       <Avatar name={person.name} />
@@ -634,6 +701,14 @@ export function WhoAreYou() {
         </div>
       </div>
       <SignInSheet open={signInOpen} onClose={() => setSignInOpen(false)} returnTo={target} />
+      <ClaimSheet
+        open={claimOpen}
+        name={claimPerson?.name ?? ''}
+        tripId={tripId}
+        participantId={claimPerson?.id ?? ''}
+        returnTo={target}
+        onClose={() => setClaimOpen(false)}
+      />
     </Screen>
   );
 }

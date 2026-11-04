@@ -39,10 +39,14 @@ export const accountMergeRequests = sqliteTable(
     otherName: text('other_name'),
     identityLabel: text('identity_label'),
     dismissedAt: text('dismissed_at'),
+    initiatedBy: text('initiated_by', { enum: ['survivor', 'merged'] }).notNull().default('survivor'),
+    claimTripId: text('claim_trip_id'),
+    claimParticipantId: text('claim_participant_id'),
   },
   (t) => [
     index('account_merge_requests_merged_idx').on(t.mergedUserId, t.status),
     index('account_merge_requests_survivor_idx').on(t.survivorUserId, t.status),
+    index('account_merge_requests_claim_idx').on(t.claimTripId, t.claimParticipantId, t.status),
   ],
 );
 
@@ -247,6 +251,7 @@ export const transactions = sqliteTable(
     createdByDevice: text('created_by_device'),
     confirmedByParticipantId: text('confirmed_by_participant_id'),
     metaJson: text('meta_json'),
+    claimRequestId: text('claim_request_id'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

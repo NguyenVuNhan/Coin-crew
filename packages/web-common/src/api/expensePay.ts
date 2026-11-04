@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ExpensePayView, PaidBy } from '@fsl/core';
+import type { ExpensePayNoRow, ExpensePayView, PaidBy } from '@fsl/core';
 import { apiFetch, apiSend } from './client';
 
-export type ExpensePayResponse = ExpensePayView | { row: null };
+export type ExpensePayResponse = ExpensePayView | ExpensePayNoRow;
 
 export interface ReportExpensePaymentBody {
   amount: number;

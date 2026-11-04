@@ -80,8 +80,18 @@ export function statusForNewPayment(a: { actorId: string; fromId: string; toId: 
   return a.receiverIsMember && a.actorId !== a.toId && !a.payerIsMember ? 'says_paid' : 'confirmed';
 }
 
-export function canConfirmPayment(actor: Actor, p: { toId: string; status: PaymentStatus }, receiverIsMember: boolean): boolean {
-  return actor.kind === 'member' && receiverIsMember && actor.participantId === p.toId && p.status === 'says_paid';
+/**
+ * The receiving member confirms a waiting payment. A payment marked by a Zalo account waiting to join (`claimPending`)
+ * to a guest has no member to confirm it, so an admin or the organiser may confirm it instead.
+ */
+export function canConfirmPayment(
+  actor: Actor,
+  p: { toId: string; status: PaymentStatus; claimPending?: boolean },
+  receiverIsMember: boolean,
+): boolean {
+  if (actor.kind !== 'member' || p.status !== 'says_paid') return false;
+  if (receiverIsMember) return actor.participantId === p.toId;
+  return p.claimPending === true && (actor.isOrganiser || actor.isAdmin === true);
 }
 
 export type NotArrivedOutcome = 'reject' | 'flag' | 'forbidden';

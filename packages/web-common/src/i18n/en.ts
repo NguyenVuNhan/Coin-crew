@@ -918,6 +918,29 @@ export const en = {
   'epa.notReceived': "Didn't arrive",
   'epa.friendOf': "{name}'s friend",
   'epa.nameOrFriend': "{name} (or {name}'s friend)",
+
+  'claim.title': 'Continue as {name}',
+  'claim.body': "Google doesn't work inside Zalo. Sign in with Zalo to continue. If {name} uses Google, their Google account will be asked to approve.",
+  'claim.zalo': 'Sign in with Zalo',
+  'claim.openBrowser': 'Open in browser',
+  'claim.browserSteps': 'Tap ⋯ → Open in browser',
+  'claim.zaloOff': "Zalo sign-in isn't available right now. Open in browser to use Google.",
+  'claim.waiting': 'Waiting for {name} to approve in a browser',
+  'claim.nothingToPay': '{name} has nothing to pay for this expense.',
+  'claim.taken': '{name} already signs in with a different Zalo account',
+  'claim.waitingWho': "You asked to join {name}'s account. Waiting for approval in a browser.",
+  'claim.paymentFlag': 'Marked by a Zalo account waiting to join {name}',
+
+  'join.banner': 'A Zalo account ({name}) wants to join your account',
+  'join.title': 'Join request',
+  'join.body': 'This Zalo login will become a way to sign in to your account.',
+  'join.groupsMove': 'These groups move to your account:',
+  'join.collapse': 'In {group}, {zaloPersonName} and {yourPersonName} become one person',
+  'join.autoConfirm': 'These payments it marked will count as paid:',
+  'join.autoConfirmRow': '{amount} to {to} · {group}',
+  'join.accept': 'Accept',
+  'join.decline': 'Decline',
+  'join.accepted': 'Zalo account joined',
 } as const;
 
 export type MessageKey = keyof typeof en;

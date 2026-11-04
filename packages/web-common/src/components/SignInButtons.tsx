@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 export interface SignInButtonsProps {
   returnTo: string;
   layout: 'stack' | 'inline';
-  intent?: 'signin' | 'link';
+  intent?: 'signin' | 'link' | 'claim';
   labels?: {
     google: MessageKey;
     zalo: MessageKey;
@@ -21,10 +21,20 @@ export interface SignInButtonsProps {
 export function signInHref(
   provider: 'google' | 'zalo',
   returnTo: string,
-  intent: 'signin' | 'link' = 'signin',
+  intent: 'signin' | 'link' | 'claim' = 'signin',
+  claim?: { tripId: string; participantId: string },
 ): string {
   const base = `/api/auth/${provider}/start?returnTo=${encodeURIComponent(returnTo)}`;
-  return intent === 'link' ? `${base}&intent=link` : base;
+  if (claim) {
+    return `${base}&intent=claim&trip=${encodeURIComponent(claim.tripId)}&pid=${encodeURIComponent(claim.participantId)}`;
+  }
+  if (intent === 'link') {
+    return `${base}&intent=link`;
+  }
+  if (intent === 'claim') {
+    return `${base}&intent=claim`;
+  }
+  return base;
 }
 
 export function SignInButtons({

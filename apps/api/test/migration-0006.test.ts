@@ -83,6 +83,10 @@ describe('migration 0006 (Zalo sign-in)', () => {
       other_name: null,
       identity_label: null,
       dismissed_at: null,
+      // Added by migration 0017.
+      initiated_by: 'survivor',
+      claim_trip_id: null,
+      claim_participant_id: null,
     });
   });
 

@@ -1,8 +1,15 @@
 import type { AuthProvider } from '@fsl/core';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { accountMergeRequests, users } from '../db/schema';
+import { accountMergeRequests, participants, users } from '../db/schema';
 import { newId, nowIso } from '../lib/ids';
+
+export type ClaimOutcome =
+  | { result: 'self' }
+  | { result: 'incoming'; requestId: string }
+  | { result: 'taken' }
+  | { result: 'requested'; requestId: string }
+  | { result: 'invalid' };
 
 export async function upsertIdentity(
   db: Db,
@@ -108,4 +115,89 @@ export async function linkIdentity(
 
   await db.update(users).set(updates).where(eq(users.id, userId));
   return { result: 'linked' };
+}
+
+export async function requestClaim(
+  db: Db,
+  zaloUserId: string,
+  claim: { tripId: string; participantId: string },
+): Promise<ClaimOutcome> {
+  const participant = await db
+    .select()
+    .from(participants)
+    .where(and(eq(participants.id, claim.participantId), eq(participants.tripId, claim.tripId)))
+    .get();
+
+  if (!participant || participant.status !== 'active' || !participant.userId) {
+    return { result: 'invalid' };
+  }
+
+  if (participant.userId === zaloUserId) {
+    return { result: 'self' };
+  }
+
+  const now = nowIso();
+  const incoming = await db
+    .select({ id: accountMergeRequests.id })
+    .from(accountMergeRequests)
+    .where(
+      and(
+        eq(accountMergeRequests.survivorUserId, participant.userId),
+        eq(accountMergeRequests.mergedUserId, zaloUserId),
+        eq(accountMergeRequests.initiatedBy, 'survivor'),
+        eq(accountMergeRequests.status, 'pending'),
+        gt(accountMergeRequests.expiresAt, now),
+      ),
+    )
+    .get();
+
+  if (incoming) {
+    return { result: 'incoming', requestId: incoming.id };
+  }
+
+  const survivor = await db.select().from(users).where(eq(users.id, participant.userId)).get();
+  if (!survivor) {
+    return { result: 'invalid' };
+  }
+
+  if (survivor.zaloSub) {
+    return { result: 'taken' };
+  }
+
+  const zaloUser = await db.select().from(users).where(eq(users.id, zaloUserId)).get();
+  if (!zaloUser || !zaloUser.zaloSub) {
+    return { result: 'invalid' };
+  }
+
+  const requestId = newId();
+  const expiresAt = new Date(Date.parse(now) + 7 * 86400000).toISOString();
+  await db.batch([
+    db
+      .update(accountMergeRequests)
+      .set({ status: 'cancelled', decidedAt: now })
+      .where(
+        and(
+          eq(accountMergeRequests.mergedUserId, zaloUserId),
+          eq(accountMergeRequests.initiatedBy, 'merged'),
+          eq(accountMergeRequests.status, 'pending'),
+        ),
+      ),
+    db.insert(accountMergeRequests).values({
+      id: requestId,
+      survivorUserId: survivor.id,
+      mergedUserId: zaloUserId,
+      provider: 'zalo',
+      providerSub: zaloUser.zaloSub,
+      status: 'pending',
+      createdAt: now,
+      expiresAt,
+      otherName: survivor.name,
+      identityLabel: zaloUser.zaloName ?? zaloUser.name,
+      initiatedBy: 'merged',
+      claimTripId: claim.tripId,
+      claimParticipantId: claim.participantId,
+    }),
+  ]);
+
+  return { result: 'requested', requestId };
 }

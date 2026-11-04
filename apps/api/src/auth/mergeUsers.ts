@@ -260,7 +260,39 @@ export async function mergeUsers(
         ),
       ),
     db.update(bankDetails).set({ userId: aId }).where(eq(bankDetails.userId, bId)),
-    // 5. This request is accepted; any other pending request involving B is moot.
+    // 5. This request is accepted; any other pending request involving B (or another claim on A) is moot.
+    // Claim payments to a guest now follow the normal rule (a member paying a guest counts straight away).
+    db
+      .update(transactions)
+      .set({
+        status: 'confirmed',
+        amountConfirmed: sql`${transactions.amount}`,
+        confirmedByParticipantId: sql`${transactions.payerId}`,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(transactions.claimRequestId, request.id),
+          eq(transactions.status, 'says_paid'),
+          eq(transactions.isLatest, 1),
+          notExists(
+            db
+              .select({ id: participants.id })
+              .from(participants)
+              .where(
+                and(
+                  eq(participants.id, transactions.toId),
+                  sql`${participants.userId} IS NOT NULL`,
+                  eq(participants.status, 'active'),
+                ),
+              ),
+          ),
+        ),
+      ),
+    db
+      .update(transactions)
+      .set({ claimRequestId: null })
+      .where(eq(transactions.claimRequestId, request.id)),
     db
       .update(accountMergeRequests)
       .set({ status: 'accepted', decidedAt: now })
@@ -271,7 +303,11 @@ export async function mergeUsers(
       .where(
         and(
           eq(accountMergeRequests.status, 'pending'),
-          or(eq(accountMergeRequests.survivorUserId, bId), eq(accountMergeRequests.mergedUserId, bId)),
+          or(
+            eq(accountMergeRequests.survivorUserId, bId),
+            eq(accountMergeRequests.mergedUserId, bId),
+            and(eq(accountMergeRequests.survivorUserId, aId), eq(accountMergeRequests.initiatedBy, 'merged')),
+          ),
           ne(accountMergeRequests.id, request.id),
         ),
       ),

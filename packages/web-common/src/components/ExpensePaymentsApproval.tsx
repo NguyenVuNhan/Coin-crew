@@ -398,6 +398,12 @@ export function ExpensePaymentsApproval({
                 <span className="text-sm font-semibold text-foreground truncate">
                   {row.nameLabel}
                 </span>
+                {row.state === 'waiting' && row.waitingPayment?.claimPending && (
+                  <div className="flex items-center gap-1 text-sm text-warning-foreground">
+                    <Icon name="info" size={14} className="shrink-0" />
+                    <span>{t('claim.paymentFlag', { name: row.rawName })}</span>
+                  </div>
+                )}
               </div>
               <span className="tabular-nums text-sm font-semibold text-foreground shrink-0">
                 {formatVnd(row.amount)}
@@ -481,6 +487,12 @@ export function ExpensePaymentsApproval({
       >
         {selectedRow && selectedPayment && (
           <div className="flex flex-col gap-3 p-4">
+            {selectedPayment.status === 'says_paid' && selectedPayment.claimPending && (
+              <div className="flex items-center gap-1.5 text-sm text-warning-foreground">
+                <Icon name="info" size={16} className="shrink-0" />
+                <span>{t('claim.paymentFlag', { name: selectedRow.rawName })}</span>
+              </div>
+            )}
             {/* ✓ Đã nhận {amount} */}
             <Button
               variant="primary"

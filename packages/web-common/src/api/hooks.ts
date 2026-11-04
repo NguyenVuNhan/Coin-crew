@@ -138,6 +138,8 @@ export function useMe(opts?: { enabled?: boolean }) {
         mergeRequests: {
           incoming: p.mergeRequests?.incoming ?? [],
           outgoing: p.mergeRequests?.outgoing ?? [],
+          joining: p.mergeRequests?.joining ?? [],
+          claim: p.mergeRequests?.claim ?? null,
         },
       };
     },

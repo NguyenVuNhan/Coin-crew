@@ -918,5 +918,28 @@ export const vi: Record<MessageKey, string> = {
   'epa.notReceived': 'Chưa nhận', // REVIEW
   'epa.friendOf': 'Bạn của {name}', // REVIEW
   'epa.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
+
+  'claim.title': 'Tiếp tục với tên {name}', // REVIEW
+  'claim.body': 'Google không hoạt động trong Zalo. Đăng nhập bằng Zalo để tiếp tục. Nếu {name} dùng Google, tài khoản Google của họ sẽ được yêu cầu phê duyệt.', // REVIEW
+  'claim.zalo': 'Đăng nhập bằng Zalo', // REVIEW
+  'claim.openBrowser': 'Mở trong trình duyệt', // REVIEW
+  'claim.browserSteps': 'Nhấn ⋯ → Mở trong trình duyệt', // REVIEW
+  'claim.zaloOff': 'Đăng nhập Zalo hiện không khả dụng. Mở trong trình duyệt để dùng Google.', // REVIEW
+  'claim.waiting': 'Đang chờ {name} phê duyệt trong trình duyệt', // REVIEW
+  'claim.nothingToPay': '{name} không cần trả gì cho khoản chi này.', // REVIEW
+  'claim.taken': '{name} đã đăng nhập bằng một tài khoản Zalo khác', // REVIEW
+  'claim.waitingWho': 'Bạn đã yêu cầu tham gia tài khoản của {name}. Đang chờ phê duyệt trong trình duyệt.', // REVIEW
+  'claim.paymentFlag': 'Được đánh dấu bởi tài khoản Zalo đang chờ tham gia {name}', // REVIEW
+
+  'join.banner': 'Tài khoản Zalo ({name}) muốn tham gia tài khoản của bạn', // REVIEW
+  'join.title': 'Yêu cầu tham gia', // REVIEW
+  'join.body': 'Tài khoản Zalo này sẽ trở thành một phương thức đăng nhập vào tài khoản của bạn.', // REVIEW
+  'join.groupsMove': 'Các nhóm này sẽ chuyển sang tài khoản của bạn:', // REVIEW
+  'join.collapse': 'Trong {group}, {zaloPersonName} và {yourPersonName} sẽ trở thành một người', // REVIEW
+  'join.autoConfirm': 'Các khoản tài khoản này đã đánh dấu sẽ được tính là đã trả:', // REVIEW
+  'join.autoConfirmRow': '{amount} cho {to} · {group}', // REVIEW
+  'join.accept': 'Chấp nhận', // REVIEW
+  'join.decline': 'Từ chối', // REVIEW
+  'join.accepted': 'Đã tham gia tài khoản Zalo', // REVIEW
 };
 

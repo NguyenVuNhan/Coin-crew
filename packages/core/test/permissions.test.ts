@@ -156,3 +156,12 @@ describe('canRevisePayment', () => {
     expect(canRevisePayment({ ...nhan, kind: 'guest' }, { toId: 'nhan', status: 'confirmed', confirmedById: 'nhan' }, false)).toBe(false);
   });
 });
+
+describe('canConfirmPayment — claim payment to a guest', () => {
+  const admin = { kind: 'member' as const, participantId: 'M', participantPending: false, isOrganiser: false, isAdmin: true };
+  const plain = { ...admin, isAdmin: false };
+  it('an admin confirms it', () => expect(canConfirmPayment(admin, { toId: 'G', status: 'says_paid', claimPending: true }, false)).toBe(true));
+  it('a non-admin member cannot', () => expect(canConfirmPayment(plain, { toId: 'G', status: 'says_paid', claimPending: true }, false)).toBe(false));
+  it('an admin cannot confirm an ordinary payment to a guest', () => expect(canConfirmPayment(admin, { toId: 'G', status: 'says_paid' }, false)).toBe(false));
+  it('an admin cannot confirm a claim payment to another member', () => expect(canConfirmPayment(admin, { toId: 'X', status: 'says_paid', claimPending: true }, true)).toBe(false));
+});

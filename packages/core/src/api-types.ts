@@ -129,12 +129,37 @@ export interface OutgoingMergeRequest {
   identityLabel?: string;
 }
 
+export interface JoiningMergeRequest {
+  id: string;
+  expiresAt: string;
+  zalo: { name: string; avatarUrl: string | null };
+  /** Groups the Zalo account is an active member of; empty for a brand-new account. */
+  groups: { tripId: string; name: string }[];
+  /** Groups both accounts are in: their two people become one. */
+  collapsing: { tripId: string; name: string; zaloPersonName: string; yourPersonName: string }[];
+  /** Payments this Zalo account marked to a guest while waiting: accepting confirms them. */
+  autoConfirm?: { paymentId: string; tripName: string; toName: string; amount: number }[];
+}
+
+export interface ClaimStatus {
+  id: string;
+  tripId: string;
+  participantId: string;
+  name: string;
+  expiresAt: string;
+}
+
 export interface MeResponse {
   user: MeUserView | null;
   /** False when ZALO_APP_ID or ZALO_APP_SECRET is missing. */
   signIn: { zalo: boolean };
   /** Both empty when signed out. */
-  mergeRequests: { incoming: IncomingMergeRequest[]; outgoing: OutgoingMergeRequest[] };
+  mergeRequests: {
+    incoming: IncomingMergeRequest[];
+    outgoing: OutgoingMergeRequest[];
+    joining?: JoiningMergeRequest[];
+    claim?: ClaimStatus | null;
+  };
 }
 
 export interface UpdateProfileInput {
@@ -267,12 +292,19 @@ export interface IncomeView {
 export type PaidBy = 'self' | 'friend';
 export interface PaymentMeta { expenseId: string; paidBy: PaidBy }
 export interface SlotTile { gender: 'F' | 'M'; amount: number }
+/** No row to pay. `claim` is set when a Zalo account waiting to join someone opened it: they owe nothing here. */
+export interface ExpensePayNoRow {
+  row: null;
+  claim?: { name: string; expiresAt: string };
+}
+
 export interface ExpensePayView {
   expense: { id: string; description: string; spentOn: string; amount: number };
   payer: { id: string; name: string };
   row: { participantId: string; name: string; isMember: boolean; slots: number; share: number; remaining: number; tiles: SlotTile[] };
-  viewer: PaidBy;
-  paid: { paymentId: string; amount: number; status: PaymentStatus; paidBy: PaidBy; notArrived: boolean }[];
+  viewer: PaidBy | 'claim';
+  claim?: { name: string; expiresAt: string };
+  paid: { paymentId: string; amount: number; status: PaymentStatus; paidBy: PaidBy; notArrived: boolean; claimPending?: true }[];
   pay: PayInfo | null;
 }
 
@@ -284,6 +316,7 @@ export interface PaymentView {
   expenseId?: string;
   paidBy?: PaidBy;
   confirmedById?: string | null;
+  claimPending?: true;
 }
 export type Approval =
   | { kind: 'expense'; expenseId: string }

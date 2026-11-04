@@ -2,16 +2,16 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { decodeIdToken, generateCodeVerifier, generateState } from 'arctic';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { UpdateProfileInput } from '@fsl/core';
 import { normalizeName } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb } from '../db/client';
-import { participants, sessions, trips, users } from '../db/schema';
+import { deviceParticipants, participants, sessions, trips, users } from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { nowIso, sha256Hex } from '../lib/ids';
 import { GOOGLE_SCOPES, googleClient } from './google';
-import { linkIdentity, upsertIdentity } from './identity';
+import { linkIdentity, requestClaim, upsertIdentity } from './identity';
 import { buildMeResponse, toMeUserView } from './me';
 import { createSession, getSessionUser, readSessionToken, requireUser, setSessionCookie } from './session';
 import { linkZaloSlots } from './zaloSlots';
@@ -53,6 +53,9 @@ function clearOauthCookies(c: Context, prefix: 'oauth' | 'zalo_oauth'): void {
   deleteCookie(c, `${prefix}_verifier`, { path: '/' });
   deleteCookie(c, `${prefix}_return`, { path: '/' });
   deleteCookie(c, `${prefix}_intent`, { path: '/' });
+  if (prefix === 'zalo_oauth') {
+    deleteCookie(c, 'zalo_oauth_claim', { path: '/' });
+  }
 }
 
 export function authRoutes(): Hono<AppBindings> {
@@ -158,7 +161,11 @@ export function authRoutes(): Hono<AppBindings> {
     const rawReturnTo = c.req.query('returnTo');
     const returnTo = safeReturnTo(rawReturnTo);
     const user = await getSessionUser(c);
-    const intent = c.req.query('intent') === 'link' && user ? 'link' : 'signin';
+    const rawIntent = c.req.query('intent');
+    const tripId = c.req.query('trip');
+    const participantId = c.req.query('pid');
+    const isClaim = rawIntent === 'claim' && Boolean(tripId) && Boolean(participantId);
+    const intent = rawIntent === 'link' && user ? 'link' : isClaim ? 'claim' : 'signin';
 
     const state = generateState();
     const { verifier, challenge } = await zaloPkce();
@@ -174,6 +181,9 @@ export function authRoutes(): Hono<AppBindings> {
     setCookie(c, 'zalo_oauth_verifier', verifier, cookieOpts);
     setCookie(c, 'zalo_oauth_return', returnTo, cookieOpts);
     setCookie(c, 'zalo_oauth_intent', intent, cookieOpts);
+    if (isClaim && tripId && participantId) {
+      setCookie(c, 'zalo_oauth_claim', JSON.stringify({ tripId, participantId }), cookieOpts);
+    }
 
     return c.redirect(zaloAuthorizeUrl(c.env, state, challenge).toString(), 302);
   });
@@ -248,9 +258,45 @@ export function authRoutes(): Hono<AppBindings> {
     const token = await createSession(db, userId);
     setSessionCookie(c, token);
 
+    const claimCookie = getCookie(c, 'zalo_oauth_claim');
     clearOauthCookies(c, 'zalo_oauth');
+    const target = safeReturnTo(oauthReturn);
 
-    return c.redirect(safeReturnTo(oauthReturn), 302);
+    if (intent === 'claim') {
+      let claim: { tripId: string; participantId: string } | null = null;
+      if (claimCookie) {
+        try {
+          const parsed = JSON.parse(claimCookie) as { tripId?: unknown; participantId?: unknown };
+          if (
+            parsed &&
+            typeof parsed === 'object' &&
+            typeof parsed.tripId === 'string' &&
+            typeof parsed.participantId === 'string'
+          ) {
+            claim = { tripId: parsed.tripId, participantId: parsed.participantId };
+          }
+        } catch {
+          claim = null;
+        }
+      }
+      const outcome = claim
+        ? await requestClaim(db, userId, claim)
+        : ({ result: 'invalid' } as const);
+      if (claim && outcome.result !== 'invalid') {
+        // They said who they are: the guest pick this device remembered (someone else) no longer applies.
+        await db
+          .delete(deviceParticipants)
+          .where(
+            and(
+              eq(deviceParticipants.deviceHash, c.get('deviceHash')),
+              eq(deviceParticipants.tripId, claim.tripId),
+            ),
+          );
+      }
+      return c.redirect(withQuery(target, 'claim', outcome.result), 302);
+    }
+
+    return c.redirect(target, 302);
   });
 
   app.post('/auth/logout', async (c) => {

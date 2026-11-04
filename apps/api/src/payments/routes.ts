@@ -73,6 +73,7 @@ export interface InsertPaymentArgs {
   actorDevice: string;
   metaJson?: string | null;
   expenseId?: string;
+  claimRequestId?: string | null;
 }
 
 export async function insertPayment(
@@ -91,6 +92,7 @@ export async function insertPayment(
     actorDevice,
     metaJson = null,
     expenseId,
+    claimRequestId = null,
   } = args;
   const paymentId = newId();
   const now = nowIso();
@@ -118,6 +120,7 @@ export async function insertPayment(
     createdByDevice: actorDevice,
     confirmedByParticipantId: status === 'confirmed' ? actorParticipantId : null,
     metaJson,
+    claimRequestId,
     createdAt: now,
     updatedAt: now,
   });
@@ -279,7 +282,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     const isMember = await receiverIsMember(db, tripId, payment.toId);
-    if (!canConfirmPayment(actor, { toId: payment.toId, status: 'says_paid' }, isMember)) {
+    if (!canConfirmPayment(actor, { toId: payment.toId, status: 'says_paid', claimPending: payment.claimRequestId !== null }, isMember)) {
       throw new ApiError('FORBIDDEN', 403);
     }
 

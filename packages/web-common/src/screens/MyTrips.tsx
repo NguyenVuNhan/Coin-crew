@@ -36,7 +36,9 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
   const [searchParams] = useSearchParams();
   const mergeReview = searchParams.get('mergeReview');
   const [noRequest, setNoRequest] = useState(false);
+  const [acceptedJoin, setAcceptedJoin] = useState(false);
   const incoming = meQuery.data?.mergeRequests.incoming ?? [];
+  const joining = meQuery.data?.mergeRequests.joining ?? [];
   const [reviewedId, setReviewedId] = useState<string | null>(null);
   const reviewMatch = mergeReview ? incoming.find((r) => r.id === mergeReview) : undefined;
   const incomingMerge = reviewMatch ?? incoming.find((r) => r.id === reviewedId) ?? incoming[0];
@@ -59,6 +61,12 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
   }, [noRequest]);
 
   useEffect(() => {
+    if (!acceptedJoin) return;
+    const id = setTimeout(() => setAcceptedJoin(false), 4000);
+    return () => clearTimeout(id);
+  }, [acceptedJoin]);
+
+  useEffect(() => {
     if (meQuery.isSuccess && user === null) {
       navigate('/', { replace: true });
     }
@@ -76,6 +84,13 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
             autoOpen={!!reviewMatch}
           />
         )}
+        {joining.map((req) => (
+          <MergeRequestBanner
+            key={req.id}
+            request={req}
+            onAccepted={() => setAcceptedJoin(true)}
+          />
+        ))}
         <ProposalBanner />
         {!isEmpty && (
           <Button variant="primary" block href="/trips/new">
@@ -165,6 +180,7 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
         )}
       </div>
       {noRequest && <Snackbar message={t('merge.noRequestHere')} />}
+      {acceptedJoin && <Snackbar message={t('join.accepted')} />}
     </>
   );
 
