@@ -491,6 +491,48 @@ describe('account merge', () => {
     expect(actCount.n).toBe(1);
   });
 
+  it("B's personal ledger folds into A's, with B's nicknames and person links", async () => {
+    await seedMergeCase();
+    const ledger = (id: string, owner: string) =>
+      run(
+        "INSERT INTO trips (id, name, preset, organiser_user_id, group_token, view_token, version, created_at) VALUES (?, ?, 'direct', ?, ?, ?, 0, ?)",
+        id, id, owner, `gt-${id}`, `vt-${id}`, CREATED,
+      );
+    const person = (id: string, tripId: string, name: string, userId: string | null, isAdmin = 0) =>
+      run(
+        "INSERT INTO participants (id, trip_id, name, normalized_name, user_id, is_admin, status, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?)",
+        id, tripId, name, name.toLowerCase(), userId, isAdmin, CREATED,
+      );
+    await ledger('l-a', 'u-a');
+    await ledger('l-b', 'u-b');
+    await person('la-me', 'l-a', 'Anh', 'u-a', 1);
+    await person('lb-me', 'l-b', 'Chi', 'u-b', 1);
+    await person('lb-dao', 'l-b', 'Dao', null);
+    await run(
+      "INSERT INTO transactions (id, root_id, trip_id, type, amount, spent_on, payer_id, status, created_by_participant_id, created_at, updated_at) VALUES ('tx-l', 'tx-l', 'l-b', 'expense', 100, '2026-10-12', 'lb-me', 'approved', 'lb-me', ?, ?)",
+      CREATED, CREATED,
+    );
+    await run("INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('tx-l', 'lb-dao', 1, 100)");
+    await run("INSERT INTO person_links (owner_user_id, participant_id, person_pid, kind, created_at) VALUES ('u-b', 'p-dung', 'lb-dao', 'merge', ?)", CREATED);
+    await run("INSERT INTO nicknames (owner_user_id, person_key, nickname, updated_at) VALUES ('u-b', 'p:lb-dao', 'Đào', ?)", CREATED);
+    await run("INSERT INTO nicknames (owner_user_id, person_key, nickname, updated_at) VALUES ('u-c', 'u:u-b', 'Chi bé', ?)", CREATED);
+
+    const res = await accept('mr-1', 'sid-b1');
+    expect(res.status).toBe(200);
+
+    expect(await row("SELECT id FROM trips WHERE id = 'l-b'")).toBeNull();
+    expect(await row<{ trip_id: string }>("SELECT trip_id FROM participants WHERE id = 'lb-dao'")).toEqual({ trip_id: 'l-a' });
+    expect(await row<{ trip_id: string; payer_id: string }>("SELECT trip_id, payer_id FROM transactions WHERE id = 'tx-l'")).toEqual({
+      trip_id: 'l-a',
+      payer_id: 'la-me',
+    });
+    const me = await row<{ n: number }>("SELECT COUNT(*) AS n FROM participants WHERE trip_id = 'l-a' AND user_id = 'u-a' AND status = 'active'");
+    expect(me!.n).toBe(1);
+    expect(await row("SELECT owner_user_id FROM person_links WHERE participant_id = 'p-dung'")).toEqual({ owner_user_id: 'u-a' });
+    expect(await row("SELECT owner_user_id FROM nicknames WHERE person_key = 'p:lb-dao'")).toEqual({ owner_user_id: 'u-a' });
+    expect(await row("SELECT person_key FROM nicknames WHERE owner_user_id = 'u-c'")).toEqual({ person_key: 'u:u-a' });
+  });
+
   it('profile carries over from a customised B to an uncustomised A', async () => {
     await seedMergeCase({ aCustom: 0 });
     const res = await accept('mr-1', 'sid-b1');

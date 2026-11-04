@@ -1,6 +1,6 @@
 import type { AuthProvider } from '@fsl/core';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { and, asc, eq, exists, inArray, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, exists, inArray, ne, notExists, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import type { ResolvedActor } from '../access/actor';
 import type { Db } from '../db/client';
@@ -8,12 +8,22 @@ import {
   accountMergeRequests,
   activity,
   bankDetails,
+  deviceExpenseGrants,
+  deviceParticipants,
   membershipRequests,
+  mergeProposals,
+  nicknames,
+  participantMerges,
   participants,
+  paymentRefs,
+  personLinks,
+  playerRatings,
   sessions,
   transactions,
+  tripViews,
   trips,
   users,
+  zaloChatLinks,
 } from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { nowIso } from '../lib/ids';
@@ -44,6 +54,46 @@ function mergedUserFields(a: UserRow, b: UserRow, provider: AuthProvider, provid
     customProfile: takeProfile ? 1 : a.customProfile,
     consentAt: a.consentAt ?? b.consentAt,
   };
+}
+
+/**
+ * Statements that move every row of ledger `fromTrip` into ledger `intoTrip` and delete `fromTrip`.
+ * A device bound to both keeps its binding to `intoTrip`. The names are merged afterwards (phase 2).
+ */
+function foldLedger(db: Db, fromTrip: string, intoTrip: string): BatchItem<'sqlite'>[] {
+  const intoDevice = alias(deviceParticipants, 'into_device');
+  const tables = [
+    participants,
+    membershipRequests,
+    mergeProposals,
+    zaloChatLinks,
+    deviceExpenseGrants,
+    transactions,
+    paymentRefs,
+    activity,
+    playerRatings,
+    participantMerges,
+  ] as const;
+  return [
+    ...tables.map((t) => db.update(t).set({ tripId: intoTrip }).where(eq(t.tripId, fromTrip))),
+    db
+      .update(deviceParticipants)
+      .set({ tripId: intoTrip })
+      .where(
+        and(
+          eq(deviceParticipants.tripId, fromTrip),
+          notExists(
+            db
+              .select({ x: intoDevice.tripId })
+              .from(intoDevice)
+              .where(and(eq(intoDevice.tripId, intoTrip), eq(intoDevice.deviceHash, deviceParticipants.deviceHash))),
+          ),
+        ),
+      ),
+    db.delete(deviceParticipants).where(eq(deviceParticipants.tripId, fromTrip)),
+    db.delete(tripViews).where(eq(tripViews.tripId, fromTrip)),
+    db.delete(trips).where(eq(trips.id, fromTrip)),
+  ];
 }
 
 /**
@@ -87,13 +137,50 @@ export async function mergeUsers(
     .from(bName)
     .innerJoin(aName, and(eq(aName.tripId, bName.tripId), eq(aName.userId, aId), eq(aName.status, 'active')))
     .innerJoin(trips, eq(trips.id, bName.tripId))
-    .where(and(eq(bName.userId, bId), eq(bName.status, 'active')))
+    .where(and(eq(bName.userId, bId), eq(bName.status, 'active'), ne(trips.preset, 'direct')))
     .orderBy(asc(bName.tripId), asc(aName.sortOrder));
   // If A has more than one active name in a group, merge B's into the first one.
   const shared = sharedRows.filter((row, i) => sharedRows.findIndex((r) => r.fromId === row.fromId) === i);
 
+  // Personal ledgers (one per user, trips_organiser_direct_idx): when both have one, B's folds into A's
+  // in phase 1 and every name of A or B in it is merged into A's own name in phase 2.
+  const ledgers = await db
+    .select()
+    .from(trips)
+    .where(and(eq(trips.preset, 'direct'), inArray(trips.organiserUserId, [aId, bId])));
+  const ledgerA = ledgers.find((t) => t.organiserUserId === aId);
+  const ledgerB = ledgers.find((t) => t.organiserUserId === bId);
+  const ledger = ledgerA ?? ledgerB;
+  if (ledger) {
+    const selves = await db
+      .select({ id: participants.id, userId: participants.userId, isAdmin: participants.isAdmin })
+      .from(participants)
+      .where(
+        and(
+          inArray(participants.tripId, ledgers.map((t) => t.id)),
+          inArray(participants.userId, [aId, bId]),
+          eq(participants.status, 'active'),
+        ),
+      )
+      .orderBy(asc(participants.sortOrder));
+    // The ledger's owner name (A's, or B's when only B has a ledger): it becomes A's in phase 1.
+    const ownerPids = await db
+      .select({ id: participants.id })
+      .from(participants)
+      .where(and(eq(participants.tripId, ledger.id), eq(participants.userId, ledger.organiserUserId)));
+    const into = selves.find((p) => ownerPids.some((o) => o.id === p.id));
+    if (into) {
+      for (const from of selves) {
+        if (from.id === into.id) continue;
+        shared.push({ trip: ledger, fromId: from.id, fromAdmin: from.isAdmin, intoId: into.id, intoAdmin: into.isAdmin });
+      }
+    }
+  }
+
   const now = nowIso();
   const aApprovedBank = alias(bankDetails, 'a_approved_bank');
+  const aLink = alias(personLinks, 'a_link');
+  const aNick = alias(nicknames, 'a_nick');
 
   const phase1: BatchItem<'sqlite'>[] = [
     // 1. B first, so its identities free the unique indexes A takes next.
@@ -101,6 +188,7 @@ export async function mergeUsers(
     // 2. A: identities, profile and consent.
     db.update(users).set(mergedUserFields(a, b, request.provider, request.providerSub)).where(eq(users.id, aId)),
     // 3. Every reference to B now points at A.
+    ...(ledgerA && ledgerB ? foldLedger(db, ledgerB.id, ledgerA.id) : []),
     db.update(participants).set({ userId: aId }).where(eq(participants.userId, bId)),
     db.update(trips).set({ organiserUserId: aId }).where(eq(trips.organiserUserId, bId)),
     db.update(membershipRequests).set({ userId: aId }).where(eq(membershipRequests.userId, bId)),
@@ -108,6 +196,52 @@ export async function mergeUsers(
     db.update(bankDetails).set({ approvedByUserId: aId }).where(eq(bankDetails.approvedByUserId, bId)),
     db.update(activity).set({ actorUserId: aId }).where(eq(activity.actorUserId, bId)),
     db.update(sessions).set({ userId: aId }).where(eq(sessions.userId, bId)),
+    // B's People-view data: A's own link or nickname wins; then others' nicknames for B name A.
+    db
+      .update(personLinks)
+      .set({ ownerUserId: aId })
+      .where(
+        and(
+          eq(personLinks.ownerUserId, bId),
+          notExists(
+            db
+              .select({ x: aLink.participantId })
+              .from(aLink)
+              .where(and(eq(aLink.ownerUserId, aId), eq(aLink.participantId, personLinks.participantId))),
+          ),
+        ),
+      ),
+    db.delete(personLinks).where(eq(personLinks.ownerUserId, bId)),
+    db
+      .update(nicknames)
+      .set({ ownerUserId: aId })
+      .where(
+        and(
+          eq(nicknames.ownerUserId, bId),
+          notExists(
+            db
+              .select({ x: aNick.personKey })
+              .from(aNick)
+              .where(and(eq(aNick.ownerUserId, aId), eq(aNick.personKey, nicknames.personKey))),
+          ),
+        ),
+      ),
+    db.delete(nicknames).where(eq(nicknames.ownerUserId, bId)),
+    db
+      .update(nicknames)
+      .set({ personKey: `u:${aId}` })
+      .where(
+        and(
+          eq(nicknames.personKey, `u:${bId}`),
+          notExists(
+            db
+              .select({ x: aNick.personKey })
+              .from(aNick)
+              .where(and(eq(aNick.ownerUserId, nicknames.ownerUserId), eq(aNick.personKey, `u:${aId}`))),
+          ),
+        ),
+      ),
+    db.delete(nicknames).where(eq(nicknames.personKey, `u:${bId}`)),
     // 4. Bank details: when A already has an approved one, B's live ones are replaced; then all of B's move to A.
     //    The check runs inside the batch, so it sees A's rows as of this transaction.
     db
