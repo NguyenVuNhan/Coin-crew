@@ -73,6 +73,7 @@ export interface InsertPaymentArgs {
   actorDevice: string;
   metaJson?: string | null;
   expenseId?: string;
+  claimRequestId?: string | null;
 }
 
 export async function insertPayment(
@@ -91,6 +92,7 @@ export async function insertPayment(
     actorDevice,
     metaJson = null,
     expenseId,
+    claimRequestId = null,
   } = args;
   const paymentId = newId();
   const now = nowIso();
@@ -118,6 +120,7 @@ export async function insertPayment(
     createdByDevice: actorDevice,
     confirmedByParticipantId: status === 'confirmed' ? actorParticipantId : null,
     metaJson,
+    claimRequestId,
     createdAt: now,
     updatedAt: now,
   });

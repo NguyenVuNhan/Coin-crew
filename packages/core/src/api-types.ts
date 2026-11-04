@@ -293,8 +293,9 @@ export interface ExpensePayView {
   expense: { id: string; description: string; spentOn: string; amount: number };
   payer: { id: string; name: string };
   row: { participantId: string; name: string; isMember: boolean; slots: number; share: number; remaining: number; tiles: SlotTile[] };
-  viewer: PaidBy;
-  paid: { paymentId: string; amount: number; status: PaymentStatus; paidBy: PaidBy; notArrived: boolean }[];
+  viewer: PaidBy | 'claim';
+  claim?: { name: string; expiresAt: string };
+  paid: { paymentId: string; amount: number; status: PaymentStatus; paidBy: PaidBy; notArrived: boolean; claimPending?: true }[];
   pay: PayInfo | null;
 }
 
@@ -306,6 +307,7 @@ export interface PaymentView {
   expenseId?: string;
   paidBy?: PaidBy;
   confirmedById?: string | null;
+  claimPending?: true;
 }
 export type Approval =
   | { kind: 'expense'; expenseId: string }

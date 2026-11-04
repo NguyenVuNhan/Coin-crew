@@ -90,7 +90,7 @@ export function ExpensePay() {
     try {
       await reportMutation.mutateAsync({
         amount: v.row.remaining,
-        paidBy: v.viewer,
+        paidBy: v.viewer === 'claim' ? 'self' : v.viewer,
       });
     } catch (err) {
       setSubmitError(err);
@@ -219,7 +219,7 @@ export function ExpensePay() {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         row={v.row}
-        viewer={v.viewer}
+        viewer={v.viewer === 'claim' ? 'self' : v.viewer}
         onReport={handleSheetReport}
       />
     </Screen>

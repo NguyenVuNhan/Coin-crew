@@ -321,6 +321,7 @@ export async function buildSnapshot(
       ...(isOffsetPart(p.metaJson) ? { throughPeople: true } : {}),
       ...(typeof meta?.expenseId === 'string' ? { expenseId: meta.expenseId } : {}),
       ...(meta?.paidBy === 'self' || meta?.paidBy === 'friend' ? { paidBy: meta.paidBy } : {}),
+      ...(p.claimRequestId !== null ? { claimPending: true as const } : {}),
     };
   });
 

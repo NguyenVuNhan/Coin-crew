@@ -14,12 +14,13 @@ import {
 } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
-import { participants } from '../db/schema';
+import { accountMergeRequests, participants } from '../db/schema';
 import { assertWritable, resolveActor, type ResolvedActor } from '../access/actor';
 import { buildPayInfo } from '../bank/routes';
 import { ApiError } from '../lib/errors';
 import { insertPayment } from '../payments/routes';
 import { getSnapshot, toLedger } from '../trips/snapshot';
+import { getClaimGrant } from './claimGrant';
 import { getFriendGrant } from './friendGrant';
 
 export async function buildExpensePayView(
@@ -41,7 +42,8 @@ export async function buildExpensePayView(
 
   const rootId = expense.rootId ?? expense.id;
   let rowId: string | null = null;
-  let viewer: PaidBy = 'self';
+  let viewer: PaidBy | 'claim' = 'self';
+  let claimRequestId: string | null = null;
 
   if (
     actor.participantId &&
@@ -50,7 +52,8 @@ export async function buildExpensePayView(
   ) {
     rowId = actor.participantId;
     viewer = 'self';
-  } else {
+  }
+  if (!rowId) {
     const grantedId = await getFriendGrant(db, actor.deviceHash, tripId, rootId);
     if (
       grantedId &&
@@ -59,6 +62,18 @@ export async function buildExpensePayView(
     ) {
       rowId = grantedId;
       viewer = 'friend';
+    }
+  }
+  if (!rowId) {
+    const claimGrant = await getClaimGrant(db, actor.userId, tripId);
+    if (
+      claimGrant &&
+      claimGrant.participantId !== expense.payerId &&
+      expenseShareOf(expense, claimGrant.participantId) > 0
+    ) {
+      rowId = claimGrant.participantId;
+      viewer = 'claim';
+      claimRequestId = claimGrant.requestId;
     }
   }
 
@@ -70,6 +85,18 @@ export async function buildExpensePayView(
   const payer = snapshot.people.find((p) => p.id === expense.payerId);
   if (!person || !payer) {
     return { row: null };
+  }
+
+  let claim: { name: string; expiresAt: string } | undefined;
+  if (viewer === 'claim' && claimRequestId) {
+    const reqRow = await db
+      .select({ expiresAt: accountMergeRequests.expiresAt })
+      .from(accountMergeRequests)
+      .where(eq(accountMergeRequests.id, claimRequestId))
+      .get();
+    if (reqRow) {
+      claim = { name: person.name, expiresAt: reqRow.expiresAt };
+    }
   }
 
   const rowParticipant = await db
@@ -109,6 +136,7 @@ export async function buildExpensePayView(
       status: p.status,
       paidBy: p.paidBy ?? 'self',
       notArrived: p.notArrived,
+      ...(p.claimPending ? { claimPending: true as const } : {}),
     }));
 
   return {
@@ -132,6 +160,7 @@ export async function buildExpensePayView(
       tiles,
     },
     viewer,
+    ...(claim ? { claim } : {}),
     paid,
     pay,
   };
@@ -196,7 +225,12 @@ export function expensePayRoutes(): Hono<AppBindings> {
     ) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
-    const paidBy: PaidBy = view.viewer === 'friend' ? 'friend' : (body.paidBy as PaidBy);
+    const paidBy: PaidBy =
+      view.viewer === 'friend'
+        ? 'friend'
+        : view.viewer === 'claim'
+          ? 'self'
+          : (body.paidBy as PaidBy);
 
     if (view.row.remaining === 0) {
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
@@ -231,7 +265,15 @@ export function expensePayRoutes(): Hono<AppBindings> {
     const payerIsMember = fromP.userId !== null && fromP.status === 'active';
 
     let status: 'says_paid' | 'confirmed';
-    if (view.viewer === 'self') {
+    let claimRequestId: string | null = null;
+    if (view.viewer === 'claim') {
+      const claimGrant = await getClaimGrant(db, actor.userId, tripId);
+      if (!claimGrant || claimGrant.participantId !== rowId) {
+        throw new ApiError('FORBIDDEN', 403);
+      }
+      claimRequestId = claimGrant.requestId;
+      status = 'says_paid';
+    } else if (view.viewer === 'self') {
       const s = statusForNewPayment({
         actorId: rowId,
         fromId: rowId,
@@ -259,6 +301,7 @@ export function expensePayRoutes(): Hono<AppBindings> {
       actorDevice: actor.deviceHash,
       metaJson: JSON.stringify({ expenseId: rootId, paidBy }),
       expenseId: rootId,
+      ...(claimRequestId ? { claimRequestId } : {}),
     });
 
     return c.json({ paymentId, status }, 201);
