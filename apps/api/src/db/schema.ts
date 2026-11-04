@@ -60,6 +60,7 @@ export const trips = sqliteTable(
     preset: text('preset', { enum: ['trip', 'sport', 'direct'] }).notNull().default('trip'),
     currency: text('currency').notNull().default('VND'),
     fewestTransfers: integer('fewest_transfers').notNull().default(0),
+    roundTransfers: integer('round_transfers').notNull().default(0),
     ratingsEnabled: integer('ratings_enabled').notNull().default(0),
     defaultLang: text('default_lang').notNull().default('vi'),
     organiserUserId: text('organiser_user_id').notNull(),

@@ -688,10 +688,14 @@ export async function buildPayInfo(
               !isFundPaid(e),
           )
         : undefined;
+      let billAmount = billExpense ? (equalBillShare(billExpense) ?? 0) : 0;
+      if (trip.roundTransfers === 1 && billAmount > 0) {
+        billAmount = billAmount <= 500 ? 0 : Math.round(billAmount / 1000) * 1000;
+      }
       payload = buildVietQrPayload({
         bin: approvedRow.bin,
         accountNumber: approvedRow.accountNumber,
-        amount: billExpense ? (equalBillShare(billExpense) ?? 0) : 0,
+        amount: billAmount,
         note: billNote,
       });
     }
