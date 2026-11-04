@@ -534,6 +534,8 @@ export const vi: Record<MessageKey, string> = {
   'people.leftOwes': 'Còn nợ {amount}', // REVIEW
   'people.leftOwed': 'Cần nhận {amount}', // REVIEW
   'people.leftSettled': 'Đã thanh toán xong', // REVIEW
+  'people.similar': '"{typed}" có vẻ giống "{name}", người đã có trong nhóm này.', // REVIEW
+  'people.addAnyway': 'Vẫn thêm', // REVIEW
   'people.restore': 'Thêm lại', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW
