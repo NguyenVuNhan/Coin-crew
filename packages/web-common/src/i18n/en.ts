@@ -914,6 +914,13 @@ export const en = {
   'epa.notReceived': "Didn't arrive",
   'epa.friendOf': "{name}'s friend",
   'epa.nameOrFriend': "{name} (or {name}'s friend)",
+
+  'claim.title': 'Continue as {name}',
+  'claim.body': "Google doesn't work inside Zalo. Sign in with Zalo to continue. If {name} uses Google, their Google account will be asked to approve.",
+  'claim.zalo': 'Sign in with Zalo',
+  'claim.openBrowser': 'Open in browser',
+  'claim.browserSteps': 'Tap ⋯ → Open in browser',
+  'claim.zaloOff': "Zalo sign-in isn't available right now. Open in browser to use Google.",
 } as const;
 
 export type MessageKey = keyof typeof en;

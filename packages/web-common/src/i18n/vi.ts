@@ -914,5 +914,12 @@ export const vi: Record<MessageKey, string> = {
   'epa.notReceived': 'Chưa nhận', // REVIEW
   'epa.friendOf': 'Bạn của {name}', // REVIEW
   'epa.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
+
+  'claim.title': 'Tiếp tục với tên {name}', // REVIEW
+  'claim.body': 'Google không hoạt động trong Zalo. Đăng nhập bằng Zalo để tiếp tục. Nếu {name} dùng Google, tài khoản Google của họ sẽ được yêu cầu phê duyệt.', // REVIEW
+  'claim.zalo': 'Đăng nhập bằng Zalo', // REVIEW
+  'claim.openBrowser': 'Mở trong trình duyệt', // REVIEW
+  'claim.browserSteps': 'Nhấn ⋯ → Mở trong trình duyệt', // REVIEW
+  'claim.zaloOff': 'Đăng nhập Zalo hiện không khả dụng. Mở trong trình duyệt để dùng Google.', // REVIEW
 };
 
