@@ -344,6 +344,13 @@ export function WhoAreYou() {
     void startJoin();
   }
 
+  // A Zalo account already waiting to join someone here came from a payment page: go back to it (locked to that
+  // person) instead of asking "Who are you?" again. Zalo's login can hand back to this picker, not the payment.
+  const waitingClaim = me?.mergeRequests?.claim;
+  if (waitingClaim && waitingClaim.tripId === tripId && searchParams.get('next') !== null && /\/expenses\/[^/]+\/pay$/.test(target.split('?')[0] ?? '')) {
+    return <Navigate to={target} replace />;
+  }
+
   if (isLoading) {
     return (
       <Screen title={t('who.title')} right={<LanguageButton />}>

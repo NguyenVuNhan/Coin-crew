@@ -276,6 +276,29 @@ describe('ExpensePay claim and locked screen', () => {
 });
 
 describe('WhoAreYou with waiting claim banner', () => {
+  it('with a waiting claim in this group and a payment page to return to, goes straight back to it', async () => {
+    mockApi({
+      'GET /api/trips/t-1/people/picker': picker(),
+      'GET /api/me': mockMe({
+        mergeRequests: {
+          incoming: [],
+          outgoing: [],
+          joining: [],
+          claim: { id: 'claim-1', tripId: 't-1', participantId: PIDS.C, name: 'Chi', expiresAt: '2099-01-01T00:00:00.000Z' },
+        },
+      }),
+    });
+
+    renderWithLoc(
+      `/t/t-1/who?expense=e-1&next=${encodeURIComponent('/t/t-1/expenses/e-1/pay')}`,
+      <WhoAreYou />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loc-path')).toHaveTextContent('/t/t-1/expenses/e-1/pay');
+    });
+  });
+
   it('shows claim.waitingWho status strip above list when me.mergeRequests.claim is set', async () => {
     mockApi({
       'GET /api/trips/t-1/people/picker': picker(),
