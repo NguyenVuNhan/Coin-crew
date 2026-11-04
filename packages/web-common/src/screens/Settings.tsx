@@ -14,6 +14,7 @@ import { SkeletonList } from '../components/Skeleton';
 import { InlineError } from '../components/InlineError';
 import { Icon } from '../components/icons';
 import { FewestSwitch } from '../components/FewestSwitch';
+import { RoundTransfersSwitch } from '../components/RoundTransfersSwitch';
 import { RatingsSwitch } from '../components/RatingsSwitch';
 import { cn } from '@/lib/utils';
 
@@ -121,6 +122,10 @@ export function Settings() {
 
         {view.me.kind === 'member' && !view.trip.archived && (
           <FewestSwitch view={view} />
+        )}
+
+        {view.me.kind === 'member' && !view.trip.archived && (
+          <RoundTransfersSwitch view={view} />
         )}
 
         {view.trip.preset === 'sport' && !view.trip.archived && can(actorOf(view), 'manage_ratings') && (
