@@ -128,12 +128,35 @@ export interface OutgoingMergeRequest {
   identityLabel?: string;
 }
 
+export interface JoiningMergeRequest {
+  id: string;
+  expiresAt: string;
+  zalo: { name: string; avatarUrl: string | null };
+  /** Groups the Zalo account is an active member of; empty for a brand-new account. */
+  groups: { tripId: string; name: string }[];
+  /** Groups both accounts are in: their two people become one. */
+  collapsing: { tripId: string; name: string; zaloPersonName: string; yourPersonName: string }[];
+}
+
+export interface ClaimStatus {
+  id: string;
+  tripId: string;
+  participantId: string;
+  name: string;
+  expiresAt: string;
+}
+
 export interface MeResponse {
   user: MeUserView | null;
   /** False when ZALO_APP_ID or ZALO_APP_SECRET is missing. */
   signIn: { zalo: boolean };
   /** Both empty when signed out. */
-  mergeRequests: { incoming: IncomingMergeRequest[]; outgoing: OutgoingMergeRequest[] };
+  mergeRequests: {
+    incoming: IncomingMergeRequest[];
+    outgoing: OutgoingMergeRequest[];
+    joining?: JoiningMergeRequest[];
+    claim?: ClaimStatus | null;
+  };
 }
 
 export interface UpdateProfileInput {
