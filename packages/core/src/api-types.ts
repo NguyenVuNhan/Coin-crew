@@ -136,6 +136,8 @@ export interface JoiningMergeRequest {
   groups: { tripId: string; name: string }[];
   /** Groups both accounts are in: their two people become one. */
   collapsing: { tripId: string; name: string; zaloPersonName: string; yourPersonName: string }[];
+  /** Payments this Zalo account marked to a guest while waiting: accepting confirms them. */
+  autoConfirm?: { paymentId: string; tripName: string; toName: string; amount: number }[];
 }
 
 export interface ClaimStatus {

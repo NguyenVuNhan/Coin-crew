@@ -64,6 +64,7 @@ describe('GET /api/me claims & joining (initiatedBy=merged)', () => {
       },
       groups: [],
       collapsing: [],
+      autoConfirm: [],
     });
 
     // Initiated by merged: must not appear in incoming or outgoing

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { JoiningMergeRequest } from '@fsl/core';
+import { formatVnd, type JoiningMergeRequest } from '@fsl/core';
 import { useT } from '../i18n';
 import { apiSend } from '../api/client';
 import { Sheet } from './Sheet';
@@ -86,6 +86,8 @@ export function JoinRequestSheet({
 
   const hasGroups = Boolean(request.groups && request.groups.length > 0);
   const hasCollapsing = Boolean(request.collapsing && request.collapsing.length > 0);
+  const autoConfirm = request.autoConfirm ?? [];
+  const hasAutoConfirm = autoConfirm.length > 0;
 
   return (
     <>
@@ -111,7 +113,7 @@ export function JoinRequestSheet({
             {t('join.body')}
           </p>
 
-          {(hasGroups || hasCollapsing) && (
+          {(hasGroups || hasCollapsing || hasAutoConfirm) && (
             <div className="rounded-xl bg-warning-soft px-4 py-3 text-warning-foreground flex flex-col gap-2">
               {hasGroups && (
                 <>
@@ -136,6 +138,18 @@ export function JoinRequestSheet({
                       })}
                     </p>
                   ))}
+                </div>
+              )}
+              {hasAutoConfirm && (
+                <div data-testid="join-auto-confirm" className="fsl-join-sheet__auto-confirm flex flex-col gap-1">
+                  <p className="m-0 text-sm font-semibold">{t('join.autoConfirm')}</p>
+                  <ul className="m-0 p-0 list-none text-sm flex flex-col gap-1 tabular-nums">
+                    {autoConfirm.map((a) => (
+                      <li key={a.paymentId}>
+                        {t('join.autoConfirmRow', { amount: formatVnd(a.amount), to: a.toName, group: a.tripName })}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>

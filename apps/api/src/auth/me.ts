@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, notExists, sql } from 'drizzle-orm';
 import type {
   AuthProvider,
   ClaimStatus,
@@ -9,7 +9,8 @@ import type {
   OutgoingMergeRequest,
 } from '@fsl/core';
 import type { Db } from '../db/client';
-import { accountMergeRequests, participants, trips, users } from '../db/schema';
+import { alias } from 'drizzle-orm/sqlite-core';
+import { accountMergeRequests, participants, transactions, trips, users } from '../db/schema';
 import type { Env } from '../env';
 import { nowIso } from '../lib/ids';
 import type { UserRow } from './session';
@@ -191,7 +192,11 @@ export async function buildMeResponse(
       ? Array.from(new Set([user.id, ...joiningRows.map((r) => r.mergedUserId)]))
       : [];
 
-  const [groupCounts, joiningParticipantRows] = await Promise.all([
+  const toPerson = alias(participants, 'to_person');
+  const toMember = alias(participants, 'to_member');
+  const joiningIds = joiningRows.map((r) => r.id);
+
+  const [groupCounts, joiningParticipantRows, autoConfirmRows] = await Promise.all([
     incomingUserIds.length > 0
       ? db
           .select({
@@ -226,6 +231,41 @@ export async function buildMeResponse(
             ),
           )
           .orderBy(asc(trips.name), asc(trips.id), asc(participants.sortOrder))
+      : Promise.resolve([]),
+
+    // The same rows `mergeUsers` confirms on accept: claim payments still waiting, to someone who isn't a member.
+    joiningIds.length > 0
+      ? db
+          .select({
+            requestId: transactions.claimRequestId,
+            paymentId: transactions.id,
+            amount: transactions.amount,
+            tripName: trips.name,
+            toName: toPerson.name,
+          })
+          .from(transactions)
+          .innerJoin(trips, eq(trips.id, transactions.tripId))
+          .innerJoin(toPerson, eq(toPerson.id, transactions.toId))
+          .where(
+            and(
+              inArray(transactions.claimRequestId, joiningIds),
+              eq(transactions.status, 'says_paid'),
+              eq(transactions.isLatest, 1),
+              notExists(
+                db
+                  .select({ id: toMember.id })
+                  .from(toMember)
+                  .where(
+                    and(
+                      eq(toMember.id, transactions.toId),
+                      sql`${toMember.userId} IS NOT NULL`,
+                      eq(toMember.status, 'active'),
+                    ),
+                  ),
+              ),
+            ),
+          )
+          .orderBy(asc(transactions.createdAt))
       : Promise.resolve([]),
   ]);
 
@@ -313,6 +353,9 @@ export async function buildMeResponse(
       },
       groups,
       collapsing,
+      autoConfirm: autoConfirmRows
+        .filter((a) => a.requestId === r.id)
+        .map((a) => ({ paymentId: a.paymentId, tripName: a.tripName, toName: a.toName, amount: a.amount })),
     };
   });
 

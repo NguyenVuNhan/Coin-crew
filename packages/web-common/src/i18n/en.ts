@@ -931,6 +931,8 @@ export const en = {
   'join.body': 'This Zalo login will become a way to sign in to your account.',
   'join.groupsMove': 'These groups move to your account:',
   'join.collapse': 'In {group}, {zaloPersonName} and {yourPersonName} become one person',
+  'join.autoConfirm': 'These payments it marked will count as paid:',
+  'join.autoConfirmRow': '{amount} to {to} · {group}',
   'join.accept': 'Accept',
   'join.decline': 'Decline',
   'join.accepted': 'Zalo account joined',

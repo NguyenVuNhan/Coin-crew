@@ -61,3 +61,14 @@ describe('claim payment to a guest', () => {
     expect((await txRow('tx-g3'))?.status).toBe('says_paid');
   });
 });
+
+describe('GET /api/me lists the payments accepting will confirm', () => {
+  it('shows the claim payment to a guest on the joining request', async () => {
+    const requestId = await claimPaymentToGuest('tx-g4', true);
+    const minhSid = await memberSid(U.minh, 'Minh');
+    const res = await call('/api/me', { headers: { Cookie: `sid=${minhSid}` } });
+    const body = (await res.json()) as { mergeRequests: { joining?: { id: string; autoConfirm?: unknown }[] } };
+    const joining = body.mergeRequests.joining?.find((j) => j.id === requestId);
+    expect(joining?.autoConfirm).toEqual([{ paymentId: 'tx-g4', tripName: expect.any(String), toName: 'An', amount: 100000 }]);
+  });
+});

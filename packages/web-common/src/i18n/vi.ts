@@ -931,6 +931,8 @@ export const vi: Record<MessageKey, string> = {
   'join.body': 'Tài khoản Zalo này sẽ trở thành một phương thức đăng nhập vào tài khoản của bạn.', // REVIEW
   'join.groupsMove': 'Các nhóm này sẽ chuyển sang tài khoản của bạn:', // REVIEW
   'join.collapse': 'Trong {group}, {zaloPersonName} và {yourPersonName} sẽ trở thành một người', // REVIEW
+  'join.autoConfirm': 'Các khoản tài khoản này đã đánh dấu sẽ được tính là đã trả:', // REVIEW
+  'join.autoConfirmRow': '{amount} cho {to} · {group}', // REVIEW
   'join.accept': 'Chấp nhận', // REVIEW
   'join.decline': 'Từ chối', // REVIEW
   'join.accepted': 'Đã tham gia tài khoản Zalo', // REVIEW

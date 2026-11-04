@@ -143,6 +143,25 @@ describe('JoinRequestSheet and joining workflow', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists the payments that accepting will count as paid', async () => {
+    const withPayments: JoiningMergeRequest = {
+      ...joiningEmpty,
+      autoConfirm: [{ paymentId: 'pay-1', tripName: 'Badminton', toName: 'An', amount: 50000 }],
+    };
+    mockApi({ 'GET /api/me': me([withPayments]) });
+    renderAt(<JoinRequestSheet request={withPayments} open={true} onClose={() => {}} />);
+    const list = await screen.findByTestId('join-auto-confirm');
+    expect(within(list).getByText('These payments it marked will count as paid:')).toBeInTheDocument();
+    expect(within(list).getByText(/to An · Badminton/)).toBeInTheDocument();
+  });
+
+  it('shows no payment warning when nothing will be confirmed', async () => {
+    mockApi({ 'GET /api/me': me([joiningEmpty]) });
+    renderAt(<JoinRequestSheet request={joiningEmpty} open={true} onClose={() => {}} />);
+    await screen.findByTestId('join-request-sheet');
+    expect(screen.queryByTestId('join-auto-confirm')).toBeNull();
+  });
+
   it('declining calls /decline and closes the sheet', async () => {
     const user = userEvent.setup();
     let declined = false;
