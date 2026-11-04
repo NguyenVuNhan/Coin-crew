@@ -10,10 +10,8 @@ import { ConsentSheet } from '../components/ConsentSheet';
 import { Button } from '../components/Button';
 import { InlineError } from '../components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
-import { Skeleton } from '../components/Skeleton';
 import { PeopleInput } from '../components/PeopleInput';
 import { Icon } from '../components/icons';
-import { GenderToggle } from '../components/GenderToggle';
 import { newPersonEntry, type PersonEntry } from '../lib/recentPeople';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,9 +34,6 @@ export function CreateTrip() {
 
   const [preset, setPreset] = useState<GroupPreset>('trip');
   const [tripName, setTripName] = useState('');
-  const [userEnteredMyName, setUserEnteredMyName] = useState<string | null>(null);
-  const myName = userEnteredMyName !== null ? userEnteredMyName : (user?.name ?? '');
-  const [myGender, setMyGender] = useState<Gender | null>(null);
   const [people, setPeople] = useState<PersonEntry[]>(() => [newPersonEntry()]);
   const [bank, setBank] = useState<BankFieldsValue>({
     bin: '',
@@ -47,9 +42,7 @@ export function CreateTrip() {
   });
   const [submitError, setSubmitError] = useState<unknown>(null);
 
-  const isFormValid =
-    tripName.trim().length > 0 &&
-    myName.trim().length > 0;
+  const isFormValid = tripName.trim().length > 0;
 
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
@@ -69,7 +62,6 @@ export function CreateTrip() {
     setSubmitError(null);
     const input: CreateTripInput = {
       name: tripName.trim(),
-      myName: myName.trim(),
       defaultLang: lang,
       people: people.flatMap((p) => {
         const name = p.name.trim();
@@ -84,10 +76,14 @@ export function CreateTrip() {
       }),
     };
 
+    if (user?.name) {
+      input.myName = user.name;
+    }
+
     if (preset === 'sport') {
       input.preset = 'sport';
-      if (myGender) {
-        input.myGender = myGender;
+      if (user?.gender) {
+        input.myGender = user.gender;
       }
     }
 
@@ -185,33 +181,6 @@ export function CreateTrip() {
             onChange={(e) => setTripName(e.target.value)}
             className="fsl-input"
           />
-        </div>
-
-        <div className={cn('fsl-form-group flex flex-col gap-1.5')}>
-          <Label htmlFor="fsl-my-name" className={cn('fsl-form-label text-foreground')}>
-            {t('create.myName')}
-          </Label>
-          {meQuery.isLoading ? (
-            <Skeleton height={44} radius="xl" />
-          ) : (
-            <div className={cn('fsl-create-trip__my-name-row flex items-center gap-2')}>
-              <Input
-                id="fsl-my-name"
-                type="text"
-                maxLength={40}
-                value={myName}
-                onChange={(e) => setUserEnteredMyName(e.target.value)}
-                className="fsl-input flex-1"
-              />
-              {preset === 'sport' && (
-                <GenderToggle
-                  name={myName.trim() || t('create.myName')}
-                  value={myGender}
-                  onChange={setMyGender}
-                />
-              )}
-            </div>
-          )}
         </div>
 
         <PeopleInput value={people} onChange={setPeople} showGender={preset === 'sport'} />

@@ -124,10 +124,11 @@ describe('CreateTrip', () => {
     });
   });
 
-  it('prefills my name, posts the trip and opens it', async () => {
+  it('posts the trip and opens it without asking for your name', async () => {
     const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
-    expect(await screen.findByLabelText('Your name')).toHaveValue('Minh');
+    expect(await screen.findByLabelText('Group name')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt · Oct 2026');
     await userEvent.type(screen.getAllByPlaceholderText('Name')[0]!, 'An');
     await userEvent.click(screen.getByRole('button', { name: 'Add person' }));
@@ -147,7 +148,7 @@ describe('CreateTrip people', () => {
   it('Enter adds a line and never submits', async () => {
     const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'An{Enter}');
     expect(nameLines()).toHaveLength(2);
@@ -163,7 +164,7 @@ describe('CreateTrip people', () => {
   it('handles Enter itself, so the browser never submits from a name line', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     // A jsdom form without an inline submit button does not submit on Enter, so check that the key's default is cancelled.
     expect(fireEvent.keyDown(nameLines()[0]!, { key: 'Enter' })).toBe(false);
     await userEvent.type(nameLines()[0]!, 'An');
@@ -174,7 +175,7 @@ describe('CreateTrip people', () => {
   it('Enter on a line above an empty one moves to it instead of adding another', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(nameLines()[0]!, 'An{Enter}');
     await userEvent.click(nameLines()[0]!);
     await userEvent.keyboard('{Enter}');
@@ -185,7 +186,7 @@ describe('CreateTrip people', () => {
   it('Backspace on an empty line removes it', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.click(nameLines()[0]!);
     await userEvent.keyboard('{Backspace}');
     expect(nameLines()).toHaveLength(1);
@@ -202,7 +203,7 @@ describe('CreateTrip people', () => {
   it('pasting a list fills one line per name', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.click(nameLines()[0]!);
     await userEvent.paste('An, Bình\nChi');
     expect(nameLines().map((l) => l.value)).toEqual(['An', 'Bình', 'Chi']);
@@ -214,7 +215,7 @@ describe('CreateTrip people', () => {
   it('pasting one name works as it always did', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.click(nameLines()[0]!);
     await userEvent.paste('Thảo Vy');
     expect(nameLines().map((l) => l.value)).toEqual(['Thảo Vy']);
@@ -227,7 +228,7 @@ describe('CreateTrip people', () => {
       'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
     });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'An{Enter}');
     await userEvent.type(nameLines()[1]!, 'ch');
@@ -253,7 +254,7 @@ describe('CreateTrip people', () => {
   it('chooses a suggestion with the arrow keys and closes the list with Escape', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi, chau] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     const field = nameLines()[0]!;
     expect(field).toHaveAttribute('role', 'combobox');
     expect(field).toHaveAttribute('aria-expanded', 'false');
@@ -296,7 +297,7 @@ describe('CreateTrip people', () => {
       'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
     });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     // Line 1: An's account is suggested, but Enter keeps the typed name.
     await userEvent.type(nameLines()[0]!, 'An');
@@ -325,7 +326,7 @@ describe('CreateTrip people', () => {
     const an = { userId: 'u-an', name: 'An', trips: ['Phú Quốc'] };
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [an, chi] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(nameLines()[0]!, 'An{Enter}');
     // Line 2: Chi highlighted with the arrows, then the person goes back to line 1 without choosing.
     await userEvent.keyboard('ch');
@@ -341,7 +342,7 @@ describe('CreateTrip people', () => {
   it('the Enter that ends an IME composition neither adds a line nor picks a suggestion', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     const field = nameLines()[0]!;
     await userEvent.type(field, 'ch');
     await screen.findByRole('listbox');
@@ -362,7 +363,7 @@ describe('CreateTrip people', () => {
   it('Enter without a chosen suggestion adds the typed name as it is', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(nameLines()[0]!, 'ch');
     await screen.findByRole('listbox');
     await userEvent.keyboard('{Enter}');
@@ -374,7 +375,7 @@ describe('CreateTrip people', () => {
   it('an account cannot be picked twice', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(nameLines()[0]!, 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
     expect(screen.getByLabelText('Chi Trần · has an account')).toBeInTheDocument();
@@ -397,7 +398,7 @@ describe('CreateTrip people', () => {
       'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
     });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
@@ -423,7 +424,7 @@ describe('CreateTrip people', () => {
     const hint = 'Chi Trần is already on the list with their account.';
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(nameLines()[0]!, 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
     await userEvent.type(nameLines()[0]!, 'CHÍ TRẦN');
@@ -437,7 +438,7 @@ describe('CreateTrip people', () => {
   it('removing the account row leaves a line to type in', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(nameLines()[0]!, 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
     expect(nameLines()).toHaveLength(1);
@@ -453,7 +454,7 @@ describe('CreateTrip people', () => {
       'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
     });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await waitFor(() => expect(calls.some((c) => c.path === '/api/me/people')).toBe(true));
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'ch');
@@ -471,7 +472,7 @@ describe('CreateTrip people', () => {
       'POST /api/trips': () => Response.json({ error: { code: 'INTERNAL', message: 'Something went wrong' } }, { status: 500 }),
     });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Your name');
+    await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
     await userEvent.type(nameLines()[0]!, 'An');
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
