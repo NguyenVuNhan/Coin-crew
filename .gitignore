@@ -15,6 +15,5 @@ apps/api/wrangler.deploy.jsonc
 # Playwright
 /playwright-report/
 /test-results/
-migration-baseline/.out/
 *.tsbuildinfo
 .nx/

@@ -174,8 +174,8 @@ In **Workers & Pages → Create application**, choose **Continue with GitHub** (
 | Field | Value |
 |---|---|
 | Project name | `coin-crew`. It must match `name` in `apps/api/wrangler.jsonc`; if you choose another name, change it there too, and your address in 4.2 changes with it. |
-| Build command | `npm run build -w @cc/web` |
-| Deploy command | `npm run deploy -w @cc/api` (replace the default `npx wrangler deploy`) |
+| Build command | `npm run build -w apps/web` |
+| Deploy command | `npm run deploy -w apps/api` (replace the default `npx wrangler deploy`) |
 | Preview command | Leave it; it's unused with preview builds off. |
 | Enable Preview builds | **Off.** A preview would use the live database, and Google sign-in always returns to the main address. |
 | Protect with Cloudflare Access | **Off.** Friends open group links without signing in. |
@@ -183,7 +183,7 @@ In **Workers & Pages → Create application**, choose **Continue with GitHub** (
 | Advanced settings → API token | Leave **Create new token**. The token it creates includes D1 Storage (edit). |
 | Advanced settings → Variable name / value | `D1_DATABASE_ID` = your database ID. It isn't a secret, so you don't need to encrypt it. |
 
-Click **Deploy**. The build page shows the log: it installs with `npm clean-install` at the repo root on Node 24, builds the web app, then `npm run deploy -w @cc/api` writes `wrangler.deploy.jsonc` with the real ID from `D1_DATABASE_ID`, applies any pending D1 migrations (`wrangler d1 migrations apply fsl --remote`), and runs `wrangler deploy` with it. The log ends with the Worker's address, the hourly cron (`0 * * * *`) and "Success! Build completed."
+Click **Deploy**. The build page shows the log: it installs with `npm clean-install` at the repo root on Node 24, builds the web app, then `npm run deploy -w apps/api` writes `wrangler.deploy.jsonc` with the real ID from `D1_DATABASE_ID`, applies any pending D1 migrations (`wrangler d1 migrations apply fsl --remote`), and runs `wrangler deploy` with it. The log ends with the Worker's address, the hourly cron (`0 * * * *`) and "Success! Build completed."
 
 ### 4.5 Add the runtime variables and secrets
 
@@ -250,10 +250,10 @@ Write the whole digest twice: first in Vietnamese, then in English. Start with a
 
 ## 5. Day to day
 
-- **Pull requests** run GitHub Actions (`.github/workflows/ci.yml`): typecheck and unit tests in one job, the end-to-end golden path in another. Failed e2e runs keep their Playwright traces as an artifact.
+- **Pull requests** run GitHub Actions (`.github/workflows/ci.yml`): lint, typecheck, unit tests and builds for the projects the change affects (`nx affected`) in one job, the end-to-end golden path in another. Failed e2e runs keep their Playwright traces as an artifact.
 - **Merging to `main`** automatically applies any pending D1 migrations and deploys the Worker through Workers Builds.
 - **Changing the database schema:**
-  1. Edit `apps/api/src/db/schema.ts`.
+  1. Edit `libs/api/db/src/schema.ts`.
   2. Generate a migration and commit it:
      ```bash
      npx -w @cc/api drizzle-kit generate

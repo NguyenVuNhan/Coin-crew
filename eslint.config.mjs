@@ -13,7 +13,6 @@ export default [
       '**/dist/**',
       'apps/api/public/**',
       '**/.wrangler/**',
-      'migration-baseline/**',
       'playwright-report/**',
       'test-results/**',
     ],
