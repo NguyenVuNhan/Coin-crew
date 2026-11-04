@@ -4,7 +4,7 @@ import { accountMergeRequests, transactions } from '../src/db/schema';
 
 const run = (query: string, ...binds: unknown[]) => env.DB.prepare(query).bind(...binds).run();
 
-describe('migration 0016 (merge claims)', () => {
+describe('migration 0017 (merge claims)', () => {
   it('adds merge claim columns and index to account_merge_requests', async () => {
     const { results } = await env.DB.prepare('PRAGMA table_info(account_merge_requests)').all<{
       name: string;
