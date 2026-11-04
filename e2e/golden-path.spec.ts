@@ -38,7 +38,6 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.getByRole('button', { name: 'Continue' }).click();
   await minh.getByRole('link', { name: 'New group' }).click();
   await minh.getByLabel('Group name').fill('Đà Lạt');
-  await expect(minh.getByLabel('Your name')).toHaveValue('Minh');
   const others = minh.getByPlaceholder('Name');
   await others.nth(0).fill('An');
   await minh.getByRole('button', { name: 'Add person' }).click();

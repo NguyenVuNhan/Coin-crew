@@ -126,7 +126,10 @@ export async function buildExpensePayView(
 
   const share = expenseShareOf(expense, rowId);
   const paidSum = linkedPaid(snapshot.payments, rootId, rowId);
-  const remaining = expenseRemaining(share, paidSum, pairOwed);
+  let remaining = expenseRemaining(share, paidSum, pairOwed);
+  if (actor.trip.roundTransfers === 1 && remaining > 0) {
+    remaining = remaining <= 500 ? 0 : Math.round(remaining / 1000) * 1000;
+  }
   const slots = rowSlots(expense, rowId);
   const tiles = slotTiles(expense, rowId, person.gender, remaining);
 

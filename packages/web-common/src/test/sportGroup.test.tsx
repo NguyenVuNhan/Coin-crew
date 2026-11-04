@@ -34,7 +34,7 @@ describe('Sport group creation & People gender toggle', () => {
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         if (url.endsWith('/api/me')) {
-          return Response.json({ user: { id: 'u1', email: 'm@e.com', name: 'Minh', consentAt: '2026-10-12T00:00:00Z' } });
+          return Response.json({ user: { id: 'u1', email: 'm@e.com', name: 'Minh', gender: 'M', consentAt: '2026-10-12T00:00:00Z' } });
         }
         if (url.endsWith('/api/me/people')) {
           return Response.json([]);
@@ -48,14 +48,11 @@ describe('Sport group creation & People gender toggle', () => {
     );
 
     renderWithRouter('/trips/new');
-    await waitFor(() => expect(screen.getByDisplayValue('Minh')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Create group' })).toBeInTheDocument());
 
     // Switch to Sport group preset
     await userEvent.click(screen.getByRole('radio', { name: 'Sport group' }));
     await userEvent.type(screen.getByLabelText('Group name'), 'Cầu lông tối thứ 5');
-
-    // Toggle organiser gender: unset -> M
-    await userEvent.click(screen.getByRole('button', { name: /Gender for Minh/i }));
 
     // Fill first person and toggle their gender twice: unset -> M -> F
     const firstInput = screen.getByPlaceholderText('Name');

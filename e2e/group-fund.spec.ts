@@ -28,7 +28,6 @@ test('an admin fills and spends the group fund', async ({ browser }) => {
   await page.getByRole('link', { name: 'New group' }).click();
   await page.getByRole('radio', { name: 'Sport group' }).click();
   await page.getByLabel('Group name').fill('Cầu lông Thứ 5');
-  await expect(page.getByLabel('Your name')).toHaveValue('Xanh');
   await page.getByPlaceholder('Name').nth(0).fill('Lan');
   await page.getByRole('button', { name: 'Create group' }).click();
   await expect(page).toHaveURL(/\/t\/[^/]+$/);

@@ -68,6 +68,7 @@ export type ActivityAction =
   | 'trip_archived'
   | 'trip_unarchived'
   | 'fewest_changed'
+  | 'round_transfers_changed'
   | 'membership_requested'
   | 'membership_approved'
   | 'membership_rejected'
@@ -192,7 +193,7 @@ export type CreateTripPerson = { name: string; userId?: string; gender?: Gender 
 /** Plain strings are still accepted so an older open client keeps working. */
 export interface CreateTripInput {
   name: string;
-  myName: string;
+  myName?: string;
   myGender?: Gender | null;
   preset?: GroupPreset;
   people: (string | CreateTripPerson)[];
@@ -337,7 +338,7 @@ export interface RatingsView {
   myAllocations: Record<string, number>;
 }
 export interface TripView {
-  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean };
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean };
   me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
   people: PersonView[];
   balances: Balances;

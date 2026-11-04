@@ -48,6 +48,7 @@ export async function ensurePersonalLedger(db: Db, user: { id: string; name: str
       preset: 'direct',
       currency: 'VND',
       fewestTransfers: 0,
+      roundTransfers: 0,
       defaultLang: 'vi',
       organiserUserId: user.id,
       // Never shown: a ledger is reached only through the owner's session.

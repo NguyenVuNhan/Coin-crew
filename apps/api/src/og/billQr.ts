@@ -32,10 +32,14 @@ export async function billQrPayload(db: Db, snapshot: TripSnapshot, expense: Exp
     .get();
   if (!bank) return null;
 
+  let amount = equalBillShare(expense) ?? 0;
+  if (snapshot.trip.roundTransfers && amount > 0) {
+    amount = amount <= 500 ? 0 : Math.round(amount / 1000) * 1000;
+  }
   return buildVietQrPayload({
     bin: bank.bin,
     accountNumber: bank.accountNumber,
-    amount: equalBillShare(expense) ?? 0,
+    amount,
     note: buildTransferNote({ group: snapshot.trip.name, purpose: expense.description }),
   });
 }

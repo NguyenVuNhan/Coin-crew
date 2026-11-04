@@ -27,6 +27,41 @@ describe('POST /api/trips', () => {
     expect(acts[0]?.action).toBe('trip_created');
   });
 
+  it('creates an empty group when people is an empty array', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Nhóm chỉ có một mình',
+        myName: 'Minh',
+        people: [],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.people.map((p) => p.name)).toEqual(['Minh']);
+    expect(v.people[0]).toMatchObject({ isMember: true, isOrganiser: true });
+    expect(v.links?.group).toBeTruthy();
+  });
+
+  it('creates a trip without myName, defaulting to user.name', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Nha Trang',
+        people: ['An'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.people[0]?.name).toBe('Minh');
+  });
+
   it('creates a sport group with preset and player genders', async () => {
     const headers = { ...(await minh()), 'Content-Type': 'application/json' };
     const res = await call('/api/trips', {
@@ -74,6 +109,23 @@ describe('POST /api/trips', () => {
     const v = await view(headers, tripId);
     expect(v.trip.fewestTransfers).toBe(false);
     expect(v.trip.defaultLang).toBe('vi');
+  });
+
+  it('creates new groups with roundTransfers: false by default', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Hà Giang',
+        myName: 'Minh',
+        people: ['An'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.trip.roundTransfers).toBe(false);
   });
 
   it('respects defaultLang: en when specified on creation', async () => {
@@ -211,6 +263,21 @@ describe('trip view', () => {
       { fromId: PID.A, toId: PID.M, amount: 665000 }, { fromId: PID.B, toId: PID.M, amount: 650000 }, { fromId: PID.C, toId: PID.M, amount: 880000 },
       { fromId: PID.B, toId: PID.A, amount: 65000 }, { fromId: PID.C, toId: PID.A, amount: 215000 }, { fromId: PID.C, toId: PID.B, amount: 150000 },
     ]));
+  });
+
+  it('updates roundTransfers via PATCH /api/trips/:id', async () => {
+    const headers = await minh();
+    const patch = await call(`/api/trips/${T.tripId}`, {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roundTransfers: true }),
+    });
+    expect(patch.status).toBe(204);
+    const v = await view(headers);
+    expect(v.trip.roundTransfers).toBe(true);
+
+    const acts = await json<ActivityItem[]>(call(`/api/trips/${T.tripId}/activity`, { headers }));
+    expect(acts[0]).toMatchObject({ action: 'round_transfers_changed', actorName: 'Minh' });
   });
 
   it('version endpoint matches the view', async () => {

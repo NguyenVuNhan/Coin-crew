@@ -232,6 +232,33 @@ describe('expense pay view', () => {
     expect(other).toEqual({ row: null });
   });
 
+  it('roundTransfers on: expense pay view rounds remaining and accepts rounded pay-report', async () => {
+    await env.DB.prepare(
+      "INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-round-3way', 'e-round-3way', NULL, 1, ?, 'expense', 'Ăn sáng', 50000, 'VND', '2026-10-12', ?, 'equal', 'approved', ?, '2026-10-12T00:00:00.000Z', '2026-10-12T00:00:00.000Z')",
+    )
+      .bind(T.tripId, PID.M, PID.M)
+      .run();
+    await env.DB.prepare(
+      "INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-round-3way', ?, 1, 16666), ('e-round-3way', ?, 1, 16667), ('e-round-3way', ?, 1, 16667)",
+    )
+      .bind(PID.M, PID.A, PID.B)
+      .run();
+    await env.DB.prepare('UPDATE trips SET round_transfers = 1, version = version + 1 WHERE id = ?')
+      .bind(T.tripId)
+      .run();
+
+    const b = await guestHeaders(PID.B);
+    const view = await json<ExpensePayView>(call(`${base}/expenses/e-round-3way/pay`, { headers: b }));
+    expect(view.row.remaining).toBe(17000);
+    expect(view.pay?.amount).toBe(17000);
+
+    const res = await post('/expenses/e-round-3way/pay-report', b, {
+      amount: 17000,
+      paidBy: 'self',
+    });
+    expect(res.status).toBe(201);
+  });
+
   it('payer viewing returns row null', async () => {
     const minhHeaders = { Cookie: `sid=${await memberSid(U.minh, 'Minh')}` };
     const res = await call(`${base}/expenses/e-sport/pay`, { headers: minhHeaders });

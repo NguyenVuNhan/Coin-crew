@@ -332,6 +332,7 @@ export async function buildSnapshot(
       preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
+      roundTransfers: trip.roundTransfers === 1,
       defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
       version: trip.version,
@@ -348,7 +349,7 @@ export async function buildSnapshot(
 
   const ledger = toLedger(partialSnapshot);
   const balances = computeBalances(ledger.order, ledger.expenses, ledger.payments);
-  const suggestions =
+  const rawSuggestions =
     trip.fewestTransfers === 1
       ? suggestTransfers(
           computeBalances(ledger.order, ledger.expenses, ledger.payments, { includeSaysPaid: true }),
@@ -356,6 +357,16 @@ export async function buildSnapshot(
           previous,
         )
       : pairwiseTransfers(ledger.order, ledger.expenses, ledger.payments);
+
+  const suggestions =
+    trip.roundTransfers === 1
+      ? rawSuggestions
+          .map((s) => ({
+            ...s,
+            amount: s.amount <= 500 ? 0 : Math.round(s.amount / 1000) * 1000,
+          }))
+          .filter((s) => s.amount > 0)
+      : rawSuggestions;
 
   const total = expenseViews
     .filter((e) => e.status === 'approved')
@@ -403,6 +414,7 @@ export async function buildSnapshot(
       preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
       currency: 'VND',
       fewestTransfers: trip.fewestTransfers === 1,
+      roundTransfers: trip.roundTransfers === 1,
       ratingsEnabled: trip.ratingsEnabled === 1,
       defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
