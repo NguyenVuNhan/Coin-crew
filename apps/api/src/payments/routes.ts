@@ -282,7 +282,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     const isMember = await receiverIsMember(db, tripId, payment.toId);
-    if (!canConfirmPayment(actor, { toId: payment.toId, status: 'says_paid' }, isMember)) {
+    if (!canConfirmPayment(actor, { toId: payment.toId, status: 'says_paid', claimPending: payment.claimRequestId !== null }, isMember)) {
       throw new ApiError('FORBIDDEN', 403);
     }
 
