@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { MyBankResponse, PayInfo } from '@fsl/core';
-import { buildVietQrPayload, can, equalBillShare, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@fsl/core';
+import { buildTransferNote, buildVietQrPayload, can, SETTLE_PURPOSE, equalBillShare, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@fsl/core';
 import type { AppBindings } from '../env';
 import type { Db } from '../db/client';
 import { getDb } from '../db/client';
@@ -14,7 +14,6 @@ import { ensure } from '../access/guard';
 import { commitTripWrite } from '../lib/commit';
 import { ApiError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
-import { getOrCreateRefCode } from '../payments/refs';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -577,6 +576,10 @@ export async function buildPayInfo(
     snapshot: TripSnapshot;
     forPayer?: boolean;
     bill?: { expenseId?: string };
+    /** Why the money moves; defaults to SETTLE (the bill QR uses the expense name). */
+    purpose?: string;
+    /** The person paying, when someone else pays on their behalf (they become the note's "for"). */
+    senderId?: string | null;
   },
 ): Promise<PayInfo> {
   const { payerId, toId, amount, snapshot, forPayer, bill } = opts;
@@ -652,8 +655,19 @@ export async function buildPayInfo(
       }
     : null;
 
+  const nameOf = (id: string | null | undefined) => (id ? snapshot.people.find((p) => p.id === id)?.name ?? null : null);
+  const billExpenseName = bill?.expenseId
+    ? snapshot.expenses.find((e) => e.id === bill.expenseId || e.rootId === bill.expenseId)?.description
+    : undefined;
+  const senderId = opts.senderId && opts.senderId !== payerId ? opts.senderId : payerId;
+  // The transfer note: who sends, who it is for, the group and why (shown as "refCode" in the API).
   const refCode = payerId && payerId !== toId
-    ? await getOrCreateRefCode(db, trip, payerId, toId)
+    ? buildTransferNote({
+        sender: nameOf(senderId),
+        forName: senderId !== payerId ? nameOf(payerId) : null,
+        group: trip.name,
+        purpose: opts.purpose ?? billExpenseName ?? (bill ? null : SETTLE_PURPOSE),
+      })
     : '';
 
   const self = payerId === toId;
@@ -662,7 +676,7 @@ export async function buildPayInfo(
   let payload: string | null = null;
   if (bill) {
     if (bankState === 'ok' && approvedRow) {
-      const billNote = refCode || toTransferNote(trip.name, 25);
+      const billNote = refCode || buildTransferNote({ group: trip.name, purpose: billExpenseName });
       // The bill of one expense this person paid asks for the share when everyone owes the same.
       const expenseId = bill.expenseId;
       const billExpense = expenseId

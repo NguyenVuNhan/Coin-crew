@@ -2,14 +2,13 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { buildVietQrPayload, findBank, maskAccountNumber, type PayInfo, type PersonItem, type PersonKey, type RequestView } from '@fsl/core';
+import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, type PayInfo, type PersonItem, type PersonKey, type RequestView } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { bankDetails, deviceParticipants, participants, personLinks, trips, users } from '../db/schema';
 import { getSessionUser } from '../auth/session';
 import { ApiError } from '../lib/errors';
 import { nowIso } from '../lib/ids';
-import { getOrCreateRefCode } from '../payments/refs';
 import { loadPersonItems, type PersonItems } from '../me/balances';
 import { createSettlement, parseIdempotencyKey, settlementForKey } from '../me/settle';
 
@@ -127,7 +126,8 @@ async function payInfo(db: Db, target: RequestTarget, total: number): Promise<Pa
     .get();
   if (!approved) return null;
   const amount = Math.max(total, 0);
-  const refCode = await getOrCreateRefCode(db, { id: target.tripId, name: target.tripName }, target.personPid, target.ownerPid);
+  const person = await db.select({ name: participants.name }).from(participants).where(eq(participants.id, target.personPid)).get();
+  const refCode = buildTransferNote({ sender: person?.name, group: target.tripName, purpose: SETTLE_PURPOSE });
   return {
     to: { id: target.ownerPid, name: target.ownerName },
     amount,

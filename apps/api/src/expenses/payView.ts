@@ -97,6 +97,8 @@ export async function buildExpensePayView(
           toId: expense.payerId,
           amount: remaining,
           snapshot,
+          purpose: expense.description,
+          senderId: actor.participantId,
         })
       : null;
 

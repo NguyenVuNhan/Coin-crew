@@ -33,3 +33,27 @@ export function buildVietQrPayload({ bin, accountNumber, amount, note }: VietQrI
 export function toTransferNote(text: string, maxLen = 25): string {
   return normalizeName(text).toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLen).trim();
 }
+
+export interface TransferNoteParts {
+  /** Who sends the money. */
+  sender?: string | null;
+  /** Who the money is for, when someone pays on another person's behalf. */
+  forName?: string | null;
+  group: string;
+  /** Why: an expense name, or SETTLE for a netted total. */
+  purpose?: string | null;
+}
+
+export const TRANSFER_NOTE_MAX = 50;
+export const SETTLE_PURPOSE = 'SETTLE';
+
+/**
+ * The bank transfer note: SENDER [FOR] GROUP PURPOSE, most important first, so a bank that cuts the note
+ * short only ever loses the end. Same-person "for" is left out.
+ */
+export function buildTransferNote({ sender, forName, group, purpose }: TransferNoteParts, maxLen = TRANSFER_NOTE_MAX): string {
+  const s = sender ? toTransferNote(sender, maxLen) : '';
+  const f = forName ? toTransferNote(forName, maxLen) : '';
+  const parts = [s, f && f !== s ? f : '', toTransferNote(group, maxLen), purpose ? toTransferNote(purpose, maxLen) : ''];
+  return toTransferNote(parts.filter(Boolean).join(' '), maxLen);
+}
