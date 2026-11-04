@@ -104,7 +104,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await expect(chi.getByText('You owe Minh')).toBeVisible();
   await chi.getByRole('link', { name: 'Pay with VietQR' }).click();
   await expect(chi.getByRole('img', { name: /VietQR code to pay Minh 155\.000₫/ })).toBeVisible();
-  await expect(chi.getByText(/^DALAT [2-9A-HJ-NP-Z]{4}$/)).toBeVisible();
+  await expect(chi.getByText('CHI DA LAT SETTLE')).toBeVisible();
   await expect(chi.getByText('Keep this note unchanged so the payment can be matched.')).toBeVisible();
   await noSidewaysScroll(chi);
   await chi.getByRole('button', { name: "I've paid" }).click();

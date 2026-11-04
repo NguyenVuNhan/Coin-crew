@@ -40,7 +40,7 @@ describe('guest bank details', () => {
     const info = await json<PayInfo>(pay(await guestHeaders(PID.A), PID.C));
     expect(info.bankState).toBe('ok');
     expect(info.bank).toEqual({ bin: '970422', bankName: findBank('970422')!.shortName, accountNumber: '0123456789', accountNumberMasked: '0123 •••• 6789', holderName: 'TRAN THI CHI' });
-    expect(info.refCode).toMatch(/^DALAT [2-9A-HJ-NP-Z]{4}$/);
+    expect(info.refCode).toBe('AN DA LAT OCT 2026 SETTLE');
     expect(info.payload).toBe(buildVietQrPayload({ bin: '970422', accountNumber: '0123456789', amount: 1755000, note: info.refCode }));
   });
 
@@ -227,7 +227,7 @@ describe('pay info for the receiver', () => {
     const forMinh = await json<PayInfo>(payFrom(await minh(), PID.M, PID.C));
     const forChi = await json<PayInfo>(pay(await guestHeaders(PID.C), PID.M));
     expect(forMinh).toMatchObject({ to: { id: PID.M, name: 'Minh' }, amount: 1245000, bankState: 'ok', bank: { accountNumberMasked: '1903 •••• 5678' } });
-    expect(forMinh.refCode).toMatch(/^DALAT [2-9A-HJ-NP-Z]{4}$/);
+    expect(forMinh.refCode).toBe('CHI DA LAT OCT 2026 SETTLE');
     expect(forMinh.refCode).toBe(forChi.refCode);
     expect(forMinh.payload).toBe(buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 1245000, note: forMinh.refCode }));
   });
@@ -242,7 +242,7 @@ describe('pay info for the receiver', () => {
     // Chi is owed money in this trip, so she owes Minh nothing.
     const info = await json<PayInfo>(payFrom(await minh(), PID.M, PID.C));
     expect(info).toMatchObject({ to: { id: PID.M }, amount: 0, bankState: 'ok', payload: null, inFlight: [] });
-    expect(info.refCode).toMatch(/^DALAT [2-9A-HJ-NP-Z]{4}$/);
+    expect(info.refCode).toBe('CHI DA LAT OCT 2026 SETTLE');
   });
 
   it('a payer who is not in the trip is not found', async () => {

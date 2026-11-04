@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { buildVietQrPayload, findBank, maskAccountNumber, MAX_AMOUNT, normalizeName, spreadSettlement, type PayInfo, type PersonKey } from '@fsl/core';
+import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, MAX_AMOUNT, normalizeName, spreadSettlement, type PayInfo, type PersonKey } from '@fsl/core';
 import type { AppBindings } from '../env';
 import { getDb, type Db } from '../db/client';
 import { activity, bankDetails, participants, personLinks, settlementKeys, transactions, transactionShares, trips, users } from '../db/schema';
@@ -11,7 +11,6 @@ import { ApiError, isDbError } from '../lib/errors';
 import { newId, nowIso } from '../lib/ids';
 import { loadPersonItems, type PersonItems } from './balances';
 import { ensurePersonalLedger, findLedger } from './ledger';
-import { getOrCreateRefCode } from '../payments/refs';
 
 /**
  * D1 statements a settlement may prepare in one Worker invocation (the hard limit is 50; every
@@ -392,7 +391,8 @@ export async function personPayInfo(db: Db, userId: string, key: PersonKey): Pro
           eq(bankDetails.status, 'approved'),
         ))
         .get();
-  const refCode = await getOrCreateRefCode(db, { id: most.tripId, name: most.tripName }, most.ownerPid, most.personPid);
+  const owner = await db.select({ name: participants.name }).from(participants).where(eq(participants.id, most.ownerPid)).get();
+  const refCode = buildTransferNote({ sender: owner?.name, forName: null, group: most.tripName, purpose: SETTLE_PURPOSE });
   if (!approved) return { ...nothing, amount, refCode };
   return {
     to: { id: most.personPid, name: person.name },

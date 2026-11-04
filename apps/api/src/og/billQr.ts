@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type { ExpenseView } from '@fsl/core';
-import { buildVietQrPayload, equalBillShare, isFundPaid, toTransferNote } from '@fsl/core';
+import { buildVietQrPayload, equalBillShare, isFundPaid, buildTransferNote } from '@fsl/core';
 import type { Db } from '../db/client';
 import { bankDetails, participants } from '../db/schema';
 import type { TripSnapshot } from '../trips/snapshot';
@@ -36,6 +36,6 @@ export async function billQrPayload(db: Db, snapshot: TripSnapshot, expense: Exp
     bin: bank.bin,
     accountNumber: bank.accountNumber,
     amount: equalBillShare(expense) ?? 0,
-    note: toTransferNote(snapshot.trip.name, 25),
+    note: buildTransferNote({ group: snapshot.trip.name, purpose: expense.description }),
   });
 }
