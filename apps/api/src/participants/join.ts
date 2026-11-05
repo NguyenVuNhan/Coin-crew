@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, max, or } from 'drizzle-orm';
 import type { JoinResponse } from '@cc/core';
-import { findSimilarNames, normalizeName } from '@cc/core';
+import { normalizeName } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
@@ -123,20 +123,8 @@ export function joinRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Gender required');
     }
 
-    const existing = await db
-      .select({ id: participants.id, name: participants.name })
-      .from(participants)
-      .where(
-        and(
-          eq(participants.tripId, tripId),
-          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
-        ),
-      );
-
-    const matches = findSimilarNames(name, existing);
-    if (matches.length > 0 && body.confirmNew !== true) {
-      throw new ApiError('VALIDATION', 422, 'A similar name is already in this trip.');
-    }
+    // A look-alike name never blocks joining: the person already chose "No, add me" (WhoAreYou asks first), and
+    // confirmNew stays accepted for older clients.
 
     const maxOrderRow = await db
       .select({ maxOrder: max(participants.sortOrder) })

@@ -42,14 +42,14 @@ describe('new names', () => {
     expect(await json(res)).toEqual({ matches: [{ id: PID.B, name: 'Bình', reason: 'same' }] });
   });
 
-  it('guests cannot add a person; admins can and similar name needs confirmNew', async () => {
+  it('guests cannot add a person; admins add a look-alike name straight away', async () => {
     const g = await guestHeaders();
     expect((await post('/people', g, { name: 'Binh', confirmNew: true })).status).toBe(403);
     const m = await minh();
-    const refused = await post('/people', m, { name: 'Binh', confirmNew: false });
-    expect(refused.status).toBe(422);
-    const created = await post('/people', m, { name: 'Binh', confirmNew: true });
+    const created = await post('/people', m, { name: 'Binh' });
     expect(created.status).toBe(201);
+    // confirmNew is still accepted, and changes nothing.
+    expect((await post('/people', m, { name: 'Bính', confirmNew: false })).status).toBe(201);
   });
 
   it('a member adds an active name', async () => {
@@ -160,7 +160,7 @@ describe('becoming a member', () => {
     expect(res.status).toBe(204);
     expect((await view(headers)).people.find((p) => p.id === PID.C)?.gender).toBe('F');
 
-    // A guest can update their own gender, but not someone else's
+    // A guest changes no gender, not even their own (spec 2026-11-05 §5.3)
     const chi = await guestHeaders(PID.C);
     expect(
       (await call(`${base}/people/${PID.C}`, {
@@ -168,7 +168,7 @@ describe('becoming a member', () => {
         headers: { ...chi, 'Content-Type': 'application/json' },
         body: JSON.stringify({ gender: null }),
       })).status,
-    ).toBe(204);
+    ).toBe(403);
     expect(
       (await call(`${base}/people/${PID.A}`, {
         method: 'PATCH',

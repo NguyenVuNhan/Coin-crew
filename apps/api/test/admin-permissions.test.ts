@@ -227,9 +227,9 @@ describe('admin permissions and guest roster lock', () => {
     const guestRename = await patch(`/people/${PID.C}`, guestChi, { name: 'Chi Chi' });
     expect(guestRename.status).toBe(403);
 
-    // Guest can update own gender -> 204
+    // Guest cannot change even their own gender -> 403
     const guestGender = await patch(`/people/${PID.C}`, guestChi, { gender: 'F' });
-    expect(guestGender.status).toBe(204);
+    expect(guestGender.status).toBe(403);
 
     // Guest cannot update someone else's gender -> 403
     const guestOtherGender = await patch(`/people/${PID.B}`, guestChi, { gender: 'M' });
