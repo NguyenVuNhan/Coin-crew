@@ -111,7 +111,7 @@ describe('POST /api/trips', () => {
     expect(v.trip.defaultLang).toBe('vi');
   });
 
-  it('creates new groups with roundTransfers: false by default', async () => {
+  it('creates new groups with roundTransfers: true by default', async () => {
     const headers = { ...(await minh()), 'Content-Type': 'application/json' };
     const res = await call('/api/trips', {
       method: 'POST',
@@ -125,7 +125,25 @@ describe('POST /api/trips', () => {
     expect(res.status).toBe(201);
     const { tripId } = await json<{ tripId: string }>(res);
     const v = await view(headers, tripId);
-    expect(v.trip.roundTransfers).toBe(false);
+    expect(v.trip.roundTransfers).toBe(true);
+  });
+
+  it('sport groups also start rounded', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Cầu lông CN',
+        myName: 'Minh',
+        preset: 'sport',
+        people: ['An'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const v = await view(headers, tripId);
+    expect(v.trip.roundTransfers).toBe(true);
   });
 
   it('respects defaultLang: en when specified on creation', async () => {
