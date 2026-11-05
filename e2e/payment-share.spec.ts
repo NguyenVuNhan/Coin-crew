@@ -326,7 +326,7 @@ test('sharing a bill with no bank details asks first', async ({ browser }) => {
   await bankFirstDialog.getByRole('button', { name: 'Share anyway' }).click();
   await expect(minh.getByText('Message and link copied. Paste it in the group chat.')).toBeVisible();
 
-  await minh.goto(`/t/${tripId}`);
+  await minh.goto(`/t/${tripId}/people`);
   await minh.getByRole('button', { name: 'Invite' }).click();
   const inviteDialog = minh.getByRole('dialog', { name: 'Invite' });
   await expect(inviteDialog).toBeVisible();
