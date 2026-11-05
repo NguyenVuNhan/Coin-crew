@@ -189,7 +189,8 @@ export function tripRoutes(): Hono<AppBindings> {
       preset,
       currency: 'VND',
       fewestTransfers: 0,
-      roundTransfers: 0,
+      // New groups round transfers to 1.000₫; existing groups keep their setting (rewrite spec §4.7).
+      roundTransfers: 1,
       defaultLang,
       organiserUserId: user.id,
       groupToken: newToken(),

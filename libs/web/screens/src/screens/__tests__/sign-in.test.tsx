@@ -91,8 +91,8 @@ describe('Zalo inline button', () => {
     });
     renderAt(<WhoAreYou />, { route: '/t/t-1/who', path: '/t/:tripId/who' });
     await screen.findByRole('radiogroup');
-    const note = screen.getByRole('note', { name: 'Joining as a guest' });
-    expect(within(note).getByRole('link')).toHaveClass('fsl-button--secondary');
+    const guest = document.querySelector('.fsl-who__guest') as HTMLElement;
+    expect(within(guest).getByRole('link')).toHaveClass('fsl-button--secondary');
   });
 });
 
@@ -106,7 +106,7 @@ describe('WhoAreYou sign-in & guest note', () => {
     });
     renderAt(<WhoAreYou />, whoRoute);
     await screen.findByRole('radiogroup');
-    expect(screen.getByRole('note', { name: 'Joining as a guest' })).toBeInTheDocument();
+    expect(screen.getByText("Joining as a guest: what you add waits for a member's approval.")).toBeInTheDocument();
   });
 
   it('Who are you hides the guest note when signed in', async () => {
@@ -120,7 +120,7 @@ describe('WhoAreYou sign-in & guest note', () => {
     renderAt(<WhoAreYou />, whoRoute);
     await screen.findByRole('radiogroup');
     await waitFor(() => {
-      expect(screen.queryByRole('note', { name: 'Joining as a guest' })).toBeNull();
+      expect(screen.queryByText(/Joining as a guest/)).toBeNull();
     });
   });
 

@@ -648,6 +648,23 @@ export const en = {
   'expensePay.nameOrFriend': "{name} (or {name}'s friend)",
   'expensePay.paidLine': '{who} paid {amount}',
   'expensePay.notReceived': "{payer} didn't receive {amount}",
+  'expensePay.viewBill': 'View the bill',
+  'expensePay.billTitle': 'The bill',
+  'expensePay.nothingHere': 'Nothing for {name} in this bill',
+
+  // The pay link from a "pay me" reminder (rewrite spec §4.1).
+  'owe.title': '{name}, you owe',
+  'owe.pay': 'Pay {name}',
+  'owe.allSet': "You're all set",
+  'owe.allSetBody': "You don't owe anyone in {trip}.",
+  'owe.waiting': 'Waiting for {name} to confirm',
+  'owe.seeGroup': 'See the group',
+
+  // Before sharing a "pay me" link without bank details (rewrite spec §4.6).
+  'bankFirst.title': 'Add your bank details first?',
+  'bankFirst.body': 'Friends who open this link get a QR to pay you only once your bank details are added.',
+  'bankFirst.add': 'Add bank details',
+  'bankFirst.anyway': 'Share anyway',
 
   'whoPaid.title': 'Who are you paying for?',
   'whoPaid.wholeRow': "All of {name}'s share · {amount}",
@@ -681,9 +698,7 @@ export const en = {
   'details.gone': "This isn't in the trip any more.",
   'details.backToTrip': 'Back to trip',
   'status.approved': 'Approved',
-  'who.guestTitle': 'Joining as a guest',
-  'who.guestExpenses': 'Expenses you add wait for a member to approve.',
-  'who.guestBank': 'Your bank details wait for a member too. After that, only a member can change them.',
+  'who.guestLine': "Joining as a guest: what you add waits for a member's approval.",
   'signIn.zalo': 'Sign in with Zalo',
   'signIn.googleInZalo': 'Used Google before? Tap ⋯ → Open in browser to sign in with Google, then link Zalo in the account menu.',
   'signIn.zaloContinue': 'Continue with your Zalo account',

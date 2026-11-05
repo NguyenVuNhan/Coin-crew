@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, type PayInfo, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
@@ -45,6 +45,7 @@ export function PayScreen() {
   const { tripId, href } = useTrip();
   const back = useBackLink(href());
   const { toId = '' } = useParams<{ toId: string }>();
+  const [searchParams] = useSearchParams();
   const t = useT();
   const queryClient = useQueryClient();
   const platform = usePlatform();
@@ -409,6 +410,12 @@ export function PayScreen() {
       <div className={pageClass}>
         {archived && <p className="fsl-pay__notice m-0 px-4 py-3 bg-muted rounded-xl text-muted-foreground">{t('settings.archived')}</p>}
         {content}
+        {searchParams.get('via') === 'owe' && (
+          // On phones the two-line "I've paid" bar is taller than the space Screen keeps for it: clear it.
+          <Button variant="ghost" href={href()} className="fsl-pay__see-group max-lg:mb-10">
+            {t('owe.seeGroup')}
+          </Button>
+        )}
       </div>
     </Screen>,
   );

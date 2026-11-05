@@ -30,7 +30,7 @@ describe('WhoAreYou: joining without approval', () => {
     await screen.findByRole('radiogroup');
     expect(screen.queryByText(/Join as/)).toBeNull();
     expect(screen.queryByText(/Rejoin as/)).toBeNull();
-    expect(screen.getByText('Joining as a guest')).toBeInTheDocument();
+    expect(screen.getByText("Joining as a guest: what you add waits for a member's approval.")).toBeInTheDocument();
   });
 
   it('a signed-in user not on the list joins with their account name', async () => {

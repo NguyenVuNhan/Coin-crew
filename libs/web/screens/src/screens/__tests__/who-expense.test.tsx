@@ -51,7 +51,8 @@ describe('WhoAreYou in expense mode', () => {
     expect(screen.queryByText("Minh or Minh's friend")).toBeNull();
     expect(screen.queryByText('1 slots')).toBeNull();
 
-    // In expense mode, join and rejoin options are hidden
+    // This account left the group: it rejoins from the group link, so a bill link offers neither join nor rejoin.
+    // (A newcomer who never was in the group can join from a bill link: who-bill-link.test.tsx.)
     expect(screen.queryByText(/Join as/)).toBeNull();
     expect(screen.queryByText(/Rejoin as/)).toBeNull();
   });

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { findSimilarNames, formatVnd, type Gender, type PersonView } from '@cc/core';
+import { findSimilarNames, formatVnd, type Gender, type PersonView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { useTripView } from '@cc/web-data-access/hooks';
@@ -26,7 +26,33 @@ import {
 import { cn } from '@cc/web-ui/lib/utils';
 import { usePlatform } from '@cc/web-platform';
 import { inviteCard } from '../lib/shareCards';
+import { useBankFirst } from '../components/BankFirstSheet';
 import { Icon } from '@cc/web-ui/components/icons';
+
+function ZaloInviteButton({ view }: { view: TripView }) {
+  const platform = usePlatform();
+  const t = useT();
+  const { guard, sheet } = useBankFirst(view);
+
+  return (
+    <>
+      <Button
+        variant="secondary"
+        block
+        className={cn('fsl-people__invite-zalo mt-2')}
+        onClick={() =>
+          guard(() => {
+            void platform.share(inviteCard(view, platform.apiBase));
+          })
+        }
+      >
+        <Icon name="share" size={18} />
+        {t('people.inviteZalo')}
+      </Button>
+      {sheet}
+    </>
+  );
+}
 
 export function People() {
   const { tripId, href } = useTrip();
@@ -367,15 +393,7 @@ export function People() {
         )}
         {platform.kind === 'zmp' && !view.trip.archived && view.links !== null && (
           // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
-          <Button
-            variant="secondary"
-            block
-            className={cn('fsl-people__invite-zalo mt-2')}
-            onClick={() => void platform.share(inviteCard(view, platform.apiBase))}
-          >
-            <Icon name="share" size={18} />
-            {t('people.inviteZalo')}
-          </Button>
+          <ZaloInviteButton view={view} />
         )}
         {actingId === 'new-person' && Boolean(error) && (
           <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">

@@ -648,6 +648,21 @@ export const vi: Record<MessageKey, string> = {
   'expensePay.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
   'expensePay.paidLine': '{who} đã trả {amount}', // REVIEW
   'expensePay.notReceived': '{payer} chưa nhận được {amount}', // REVIEW
+  'expensePay.viewBill': 'Xem bill', // REVIEW
+  'expensePay.billTitle': 'Bill', // REVIEW
+  'expensePay.nothingHere': 'Bill này không có phần của {name}', // REVIEW
+
+  'owe.title': '{name} ơi, bạn cần trả', // REVIEW
+  'owe.pay': 'Trả cho {name}', // REVIEW
+  'owe.allSet': 'Bạn đã xong hết', // REVIEW
+  'owe.allSetBody': 'Bạn không nợ ai trong {trip}.', // REVIEW
+  'owe.waiting': 'Đang chờ {name} xác nhận', // REVIEW
+  'owe.seeGroup': 'Xem nhóm', // REVIEW
+
+  'bankFirst.title': 'Thêm thông tin ngân hàng trước?', // REVIEW
+  'bankFirst.body': 'Bạn bè mở link này chỉ thấy mã QR để trả bạn sau khi bạn thêm thông tin ngân hàng.', // REVIEW
+  'bankFirst.add': 'Thêm thông tin ngân hàng', // REVIEW
+  'bankFirst.anyway': 'Vẫn chia sẻ', // REVIEW
 
   'whoPaid.title': 'Bạn trả cho ai?', // REVIEW
   'whoPaid.wholeRow': 'Cả phần của {name} · {amount}', // REVIEW
@@ -681,9 +696,7 @@ export const vi: Record<MessageKey, string> = {
   'details.gone': 'Mục này không còn trong chuyến đi.', // REVIEW
   'details.backToTrip': 'Về chuyến đi', // REVIEW
   'status.approved': 'Đã duyệt', // REVIEW
-  'who.guestTitle': 'Bạn tham gia với tư cách khách', // REVIEW
-  'who.guestExpenses': 'Khoản chi bạn thêm cần một thành viên duyệt.', // REVIEW
-  'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
+  'who.guestLine': 'Bạn vào với tư cách khách: những gì bạn thêm cần thành viên duyệt.', // REVIEW
   'signIn.zalo': 'Đăng nhập bằng Zalo', // REVIEW
   'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.', // REVIEW
   'signIn.zaloContinue': 'Tiếp tục với tài khoản Zalo', // REVIEW
