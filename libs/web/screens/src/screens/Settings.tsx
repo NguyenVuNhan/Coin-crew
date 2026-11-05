@@ -148,7 +148,7 @@ export function Settings() {
           </>
         ) : view.me.isOrganiser ? (
           <section className={cn('fsl-settings__danger flex flex-col gap-2 mt-4')} aria-labelledby={headingId}>
-            <h2 className={cn('fsl-settings__heading m-0 text-xs font-bold uppercase tracking-wider text-muted-foreground')} id={headingId}>
+            <h2 className={cn('fsl-settings__heading m-0 text-sm font-semibold text-muted-foreground')} id={headingId}>
               {t('settings.dangerZone')}
             </h2>
             <Button
@@ -164,7 +164,7 @@ export function Settings() {
           </section>
         ) : canLeave ? (
           <section className={cn('fsl-settings__danger flex flex-col gap-2 mt-4')} aria-labelledby={headingId}>
-            <h2 className={cn('fsl-settings__heading m-0 text-xs font-bold uppercase tracking-wider text-muted-foreground')} id={headingId}>
+            <h2 className={cn('fsl-settings__heading m-0 text-sm font-semibold text-muted-foreground')} id={headingId}>
               {t('settings.dangerZone')}
             </h2>
             <Button

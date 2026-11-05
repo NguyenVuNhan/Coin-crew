@@ -8,6 +8,7 @@ import { guestChiView, tripView, PIDS } from '../../test/fixtures';
 import { App } from '../../App';
 import { TripRoute } from '../TripRoute';
 import { Activity } from '../Activity';
+import { People } from '../People';
 import { remindText } from '../../lib/remind';
 
 afterEach(() => {
@@ -15,6 +16,7 @@ afterEach(() => {
 });
 
 const route = { route: '/t/t-1', path: '/t/:tripId' };
+const peopleRoute = { route: '/t/t-1/people', path: '/t/:tripId/people' };
 
 /** Minh's view with one approval of every kind. */
 function busyView(): TripView {
@@ -117,11 +119,23 @@ describe('member trip page', () => {
     expect(invite.compareDocumentPosition(expenses) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('the Invite button shares the group link', async () => {
+  it('the group header has no Invite or Account button; Invite lives in People', async () => {
+    // Signed in, so the account menu would render if the header still had it.
+    mockApi({ ...TRIP_API, 'GET /api/me': { user: { id: 'u-1', name: 'Minh', email: 'minh@example.com' } }, 'GET /api/trips/t-1': tripView() });
+    renderAt(<TripRoute />, route);
+    await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
+    await screen.findByTestId('app-nav-bar');
+    const banner = screen.getAllByRole('banner')[0]!;
+    expect(within(banner).getByRole('link', { name: 'Trip settings' })).toBeInTheDocument();
+    expect(within(banner).queryByRole('button', { name: 'Invite' })).toBeNull();
+    expect(within(banner).queryByRole('button', { name: 'Account' })).toBeNull();
+  });
+
+  it("People's Invite button shares the group link", async () => {
     const share = vi.fn(async () => {});
     vi.stubGlobal('navigator', { ...navigator, share });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
-    renderAt(<TripRoute />, route);
+    renderAt(<People />, peopleRoute);
     await userEvent.click(await screen.findByRole('button', { name: 'Invite' }));
     const sheet = await screen.findByRole('dialog', { name: 'Invite' });
     const group = within(sheet).getByRole('group', { name: 'Group link' });
@@ -146,7 +160,7 @@ describe('member trip page', () => {
     const confirm = vi.fn(() => true);
     vi.stubGlobal('confirm', confirm);
     const { calls } = mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView(), 'POST /api/trips/t-1/links/regenerate': null });
-    renderAt(<TripRoute />, route);
+    renderAt(<People />, peopleRoute);
     await userEvent.click(await screen.findByRole('button', { name: 'Invite' }));
     const viewLink = within(await screen.findByRole('dialog', { name: 'Invite' })).getByRole('group', { name: 'View-only link' });
     await userEvent.click(within(viewLink).getByRole('button', { name: 'Make a new link' }));

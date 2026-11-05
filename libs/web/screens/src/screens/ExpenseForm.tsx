@@ -1072,7 +1072,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                   {ruleKind === 'discount' && (
                     <div className={cn('fsl-sport-rule-input-row flex items-center gap-2 mt-1')}>
-                      <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-warning-foreground shrink-0')} />
+                      <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-muted-foreground shrink-0')} />
                       <Label htmlFor="sport-female-discount" className={cn('fsl-sport-rule-label text-foreground')}>
                         {t('sport.femaleDiscountLabel')}
                       </Label>
@@ -1090,7 +1090,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                   {ruleKind === 'ratio' && (
                     <div className={cn('fsl-sport-rule-input-row flex items-center gap-2 mt-1')}>
-                      <Icon name="mars" size={16} className={cn('fsl-sport-rule-icon--male text-primary shrink-0')} />
+                      <Icon name="mars" size={16} className={cn('fsl-sport-rule-icon--male text-muted-foreground shrink-0')} />
                       <Input
                         type="text"
                         inputMode="decimal"
@@ -1100,7 +1100,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                         onChange={(e) => setMaleWeightText(e.target.value)}
                       />
                       <span aria-hidden="true">:</span>
-                      <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-warning-foreground shrink-0')} />
+                      <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-muted-foreground shrink-0')} />
                       <Input
                         type="text"
                         inputMode="decimal"
@@ -1247,7 +1247,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                               <div className={cn('fsl-sport-drawer__title text-sm font-semibold text-foreground mb-1')}>{t('sport.bringsGuest')}</div>
                               <div className={cn('fsl-sport-drawer__stepper-row flex items-center justify-between gap-2')}>
                                 <div className={cn('fsl-sport-drawer__stepper-label flex items-center gap-2 text-sm text-foreground')}>
-                                  <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-warning-foreground shrink-0')} />
+                                  <Icon name="venus" size={16} className={cn('fsl-sport-rule-icon--female text-muted-foreground shrink-0')} />
                                   <span>{t('sport.femaleGuest')}</span>
                                 </div>
                                 <div className={cn('fsl-sport-drawer__stepper inline-flex items-center gap-2')}>
@@ -1297,7 +1297,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                               <div className={cn('fsl-sport-drawer__stepper-row flex items-center justify-between gap-2')}>
                                 <div className={cn('fsl-sport-drawer__stepper-label flex items-center gap-2 text-sm text-foreground')}>
-                                  <Icon name="mars" size={16} className={cn('fsl-sport-rule-icon--male text-primary shrink-0')} />
+                                  <Icon name="mars" size={16} className={cn('fsl-sport-rule-icon--male text-muted-foreground shrink-0')} />
                                   <span>{t('sport.maleGuest')}</span>
                                 </div>
                                 <div className={cn('fsl-sport-drawer__stepper inline-flex items-center gap-2')}>

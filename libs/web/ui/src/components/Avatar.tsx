@@ -1,3 +1,4 @@
+import { normalizeName } from '@cc/core';
 import { cn } from '../lib/utils';
 
 export interface AvatarProps {
@@ -8,12 +9,13 @@ export interface AvatarProps {
 }
 
 export function avatarTone(name: string): 1 | 2 | 3 | 4 | 5 | 6 {
-  const trimmed = name.trim();
-  let sum = 0;
-  for (let i = 0; i < trimmed.length; i++) {
-    sum += trimmed.charCodeAt(i);
+  const normalized = normalizeName(name);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < normalized.length; i++) {
+    h ^= normalized.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
   }
-  return ((sum % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6;
+  return (((h >>> 0) % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 const TONES: Record<1 | 2 | 3 | 4 | 5 | 6, string> = {

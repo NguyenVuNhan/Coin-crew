@@ -26,6 +26,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { usePlatform } from '@cc/web-platform';
 import { inviteCard } from '../lib/shareCards';
 import { useBankFirst } from '../components/BankFirstSheet';
+import { InviteSheet } from '../components/InviteSheet';
 import { Icon } from '@cc/web-ui/components/icons';
 
 function ZaloInviteButton({ view }: { view: TripView }) {
@@ -38,7 +39,7 @@ function ZaloInviteButton({ view }: { view: TripView }) {
       <Button
         variant="secondary"
         block
-        className={cn('fsl-people__invite-zalo mt-2')}
+        className={cn('fsl-people__invite-zalo')}
         onClick={() =>
           guard(() => {
             void platform.share(inviteCard(view, platform.apiBase));
@@ -68,6 +69,7 @@ export function People() {
   const [mergeSource, setMergeSource] = useState<PersonView | null>(null);
   const [menuFor, setMenuFor] = useState<PersonView | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
   /** Names whose add failed and haven't been added yet; the alert stays while non-empty. */
   const [failedNames, setFailedNames] = useState<string[]>([]);
   /** Why the last add failed, shown after the failed names list. */
@@ -88,7 +90,7 @@ export function People() {
 
   if (isLoading) {
     return (
-      <Screen title={t('people.title')} back={href('/settings')}>
+      <Screen title={t('people.title')} back={href()}>
         <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
           <SkeletonList rows={4} />
         </div>
@@ -98,7 +100,7 @@ export function People() {
 
   if (loadError) {
     return (
-      <Screen title={t('people.title')} back={href('/settings')}>
+      <Screen title={t('people.title')} back={href()}>
         <InlineError error={loadError} onRetry={refetch} />
       </Screen>
     );
@@ -299,6 +301,7 @@ export function People() {
 
   const canAdd =
     !view.trip.archived && view.me.kind === 'member' && (view.me.isAdmin === true || view.me.isOrganiser);
+  const canInvite = !view.trip.archived && view.links !== null;
 
   const mainPeople = view.people.filter((p) => p.status !== 'left');
   const leftPeople = view.people.filter((p) => p.status === 'left');
@@ -306,7 +309,7 @@ export function People() {
   return (
     <Screen
       title={t('people.title')}
-      back={href('/settings')}
+      back={href()}
       barAboveKeyboard={canAdd}
       bottomBar={
         canAdd ? (
@@ -337,6 +340,32 @@ export function People() {
       }
     >
       <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
+        {canInvite &&
+          (platform.kind === 'zmp' ? (
+            // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
+            <div className="flex flex-col gap-2">
+              <ZaloInviteButton view={view} />
+              <Button
+                variant="secondary"
+                block
+                className={cn('fsl-people__invite')}
+                onClick={() => setInviteOpen(true)}
+              >
+                <Icon name="link" size={18} />
+                {t('people.inviteLinks')}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              block
+              className={cn('fsl-people__invite')}
+              onClick={() => setInviteOpen(true)}
+            >
+              <Icon name="userPlus" size={18} />
+              {t('invite.button')}
+            </Button>
+          ))}
         <SwipeGroupProvider>
           <ul className={cn('fsl-people__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border [&_.fsl-action-row]:border-b-0 [&_.fsl-action-row__main]:pl-3 [&_.fsl-action-row__main]:gap-2 [&_.fsl-pill]:shrink-0')}>
             {mainPeople.map((person, index) => {
@@ -466,10 +495,7 @@ export function People() {
           </section>
         )}
 
-        {platform.kind === 'zmp' && !view.trip.archived && view.links !== null && (
-          // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
-          <ZaloInviteButton view={view} />
-        )}
+        {canInvite && <InviteSheet view={view} open={inviteOpen} onClose={() => setInviteOpen(false)} />}
 
         <ActionSheet
           open={menuFor !== null}

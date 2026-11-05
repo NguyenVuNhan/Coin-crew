@@ -114,7 +114,7 @@ export function JoinRequestSheet({
           </p>
 
           {(hasGroups || hasCollapsing || hasAutoConfirm) && (
-            <div className="rounded-xl bg-warning-soft px-4 py-3 text-warning-foreground flex flex-col gap-2">
+            <div className="rounded-xl bg-secondary px-4 py-3 text-secondary-foreground flex flex-col gap-2">
               {hasGroups && (
                 <>
                   <p className="m-0 text-sm font-semibold">

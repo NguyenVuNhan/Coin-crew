@@ -15,8 +15,10 @@ afterEach(() => {
 const user = { id: 'u-1', name: 'Minh', email: 'minh@example.com' };
 
 describe('Zalo Mini App header and capsule spacing', () => {
-  it('web: member header unchanged', async () => {
-    mockApi({
+  // Since rewrite Part 3 the group header holds only the gear on both platforms: Invite is in People,
+  // the account menu on the groups list.
+  it('web: member header keeps only the gear', async () => {
+    const { calls } = mockApi({
       'GET /api/me': { user },
       'GET /api/trips/t-1': tripView(),
     });
@@ -29,16 +31,15 @@ describe('Zalo Mini App header and capsule spacing', () => {
     const root = container.querySelector('.fsl-screen')!;
     expect(root).not.toHaveClass('fsl-screen--zmp');
 
-    const inviteBtn = container.querySelector('.fsl-member__invite') as HTMLButtonElement;
-    expect(inviteBtn).toBeInTheDocument();
-    expect(inviteBtn).toHaveTextContent(en['invite.button']);
-    expect(within(inviteBtn).getByText(en['invite.button'])).toBeVisible();
-
-    const header = container.querySelector('.fsl-screen__header')!;
+    const header = container.querySelector('.fsl-screen__header') as HTMLElement;
     expect(header).toBeInTheDocument();
-    await waitFor(() => {
-      expect(header.querySelector('.fsl-account-menu')).not.toBeNull();
-    });
+    expect(within(header).getByRole('link', { name: en['member.settings'] })).toHaveClass('fsl-member__settings');
+    expect(container.querySelector('.fsl-member__invite')).toBeNull();
+    expect(within(header).queryByRole('button', { name: en['invite.button'] })).toBeNull();
+    // Wait until signed in (the nav bar shows), so a header account menu would have rendered by now.
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/me')).toBe(true));
+    await screen.findByTestId('app-nav-bar');
+    expect(header.querySelector('.fsl-account-menu')).toBeNull();
   });
 
   it('zmp: header leaves room for the capsule', async () => {
@@ -56,11 +57,7 @@ describe('Zalo Mini App header and capsule spacing', () => {
     const root = container.querySelector('.fsl-screen')!;
     expect(root).toHaveClass('fsl-screen--zmp');
 
-    const inviteBtn = container.querySelector('.fsl-member__invite') as HTMLButtonElement;
-    expect(inviteBtn).toBeInTheDocument();
-    expect(inviteBtn).toHaveAccessibleName(en['invite.button']);
-    expect(inviteBtn.textContent?.trim()).toBe('');
-    expect(within(inviteBtn).queryByText(en['invite.button'])).toBeNull();
+    expect(container.querySelector('.fsl-member__invite')).toBeNull();
 
     const settingsLink = container.querySelector('.fsl-member__settings');
     expect(settingsLink).toBeInTheDocument();

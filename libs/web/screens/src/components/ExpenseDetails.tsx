@@ -369,10 +369,10 @@ export function ExpenseDetails({
           {actions.map((a) => (
             <Button
               key={a.id}
-              variant={a.tone === 'success' ? 'primary' : 'secondary'}
+              variant={a.tone === 'success' ? 'primary' : a.tone === 'danger' ? 'ghost' : 'secondary'}
               className={cn(
                 'fsl-details__action flex-1 min-w-[140px] rounded-full',
-                a.tone === 'danger' && 'fsl-details__action--danger text-danger border-border hover:bg-danger-soft hover:text-danger',
+                a.tone === 'danger' && 'fsl-details__action--danger text-danger border border-danger/40 hover:bg-danger-soft hover:text-danger',
               )}
               loading={busy}
               onClick={a.onSelect}

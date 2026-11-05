@@ -320,12 +320,13 @@ describe('screens with one hard-coded back', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/groups'));
   });
 
-  it('row 9: group → privacy → Back returns to the group', async () => {
+  // The group page has no account menu (rewrite Part 3); Privacy opens from the groups list.
+  it('row 9: groups → privacy → Back returns to the groups list', async () => {
     mockMedia({ wide: false });
     api();
-    renderApp('/t/t-1');
+    renderApp('/groups');
 
-    await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your groups' })).toBeInTheDocument();
 
     const accountBtn = await within(screen.getAllByRole('banner')[0]!).findByRole('button', { name: 'Account' });
     await userEvent.click(accountBtn);
@@ -337,7 +338,7 @@ describe('screens with one hard-coded back', () => {
 
     await userEvent.click(screen.getByRole('link', { name: 'Back' }));
 
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/groups'));
   });
 
   it('row 9: guest under /j/<token> → privacy → Back returns to the group', async () => {

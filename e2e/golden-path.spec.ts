@@ -64,7 +64,10 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await expect(minh.getByText('Homestay Bloom')).toBeVisible();
   await noSidewaysScroll(minh);
 
-  // The group link lives in the Invite sheet once the trip has an expense.
+  // Once the trip has an expense, the group link lives in People's Invite sheet,
+  // one tap from the group page.
+  await minh.getByRole('link', { name: /^\d+ people in this group$/ }).click();
+  await expect(minh).toHaveURL(/\/people$/);
   await minh.getByRole('button', { name: 'Invite' }).click();
   const invite = minh.getByRole('dialog', { name: 'Invite' });
   const groupLink = await invite.getByLabel('Group link').inputValue();
@@ -72,6 +75,8 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await noSidewaysScroll(minh);
   await minh.keyboard.press('Escape');
   await expect(invite).toHaveCount(0);
+  await minh.getByRole('link', { name: 'Back' }).click();
+  await expect(minh).toHaveURL(tripUrl);
 
   // Chi opens the group link, picks their name and adds an expense that waits for approval.
   await chi.goto(groupLink);

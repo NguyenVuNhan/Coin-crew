@@ -268,7 +268,7 @@ export function PayScreen() {
           {card.kind === 'sent' && payInfo.refCode ? (
             <div className="fsl-pay__card-note flex items-center gap-2 flex-wrap">
               <span className="fsl-pay__row-label text-muted-foreground">{t('pay.note')}</span>{' '}
-              <span className="fsl-pay__memo font-mono font-bold text-sm bg-warning-soft text-warning-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">
+              <span className="fsl-pay__memo font-mono font-bold text-sm bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">
                 {payInfo.refCode}
               </span>
             </div>
@@ -367,7 +367,7 @@ export function PayScreen() {
             <div className="fsl-pay__row flex justify-between items-center gap-3 min-h-11 text-sm border-t border-border">
               <span className="fsl-pay__row-label text-muted-foreground">{t('pay.note')}</span>
               <span className="fsl-pay__row-value text-foreground font-medium text-right flex items-center gap-1 min-w-0">
-                <span className="fsl-pay__memo font-mono font-bold text-sm bg-warning-soft text-warning-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">{payInfo.refCode}</span>
+                <span className="fsl-pay__memo font-mono font-bold text-sm bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">{payInfo.refCode}</span>
                 <button
                   type="button"
                   className="fsl-pay__icon-btn inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-9 lg:min-h-9 p-0 bg-transparent border-0 text-muted-foreground cursor-pointer rounded-md transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
