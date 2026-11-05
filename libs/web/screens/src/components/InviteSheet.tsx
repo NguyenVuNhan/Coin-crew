@@ -6,6 +6,8 @@ import { useT, useLang } from '@cc/web-i18n';
 import { apiSend } from '@cc/web-data-access/client';
 import { usePlatform } from '@cc/web-platform';
 import { appOrigin } from '@cc/web-platform/session';
+import { useTrip } from '../lib/tripBase';
+import { bankDetailsHref, needsBankFirst } from '../lib/bankFirst';
 import { inviteCard } from '../lib/shareCards';
 import { Button } from '@cc/web-ui/components/Button';
 import { Sheet } from '@cc/web-ui/components/Sheet';
@@ -80,6 +82,8 @@ function LinkBlock({
   const [error, setError] = useState<unknown>(null);
   const url = `${appOrigin()}/j/${token}?lang=${lang}`;
   const { copied, copy, share } = useLinkActions(view, url);
+  const { href } = useTrip(view.trip.id);
+  const showBankFirst = which === 'group' && needsBankFirst(view);
 
   async function regenerate() {
     if (!window.confirm(t('share.regenerateConfirm'))) return;
@@ -109,8 +113,17 @@ function LinkBlock({
           value={url}
           onFocus={(e) => e.target.select()}
         />
+        {showBankFirst && (
+          <div className="fsl-invite__bank-first flex flex-col gap-2">
+            <p className="m-0 text-sm font-semibold text-foreground">{t('bankFirst.title')}</p>
+            <p className="m-0 text-sm text-muted-foreground">{t('bankFirst.body')}</p>
+            <Button variant="primary" block href={bankDetailsHref(view, href)}>
+              {t('bankFirst.add')}
+            </Button>
+          </div>
+        )}
         <div className={cn('fsl-invite__buttons flex flex-col sm:flex-row gap-2')}>
-          <Button variant={primary ? 'primary' : 'secondary'} block className="sm:flex-1" onClick={share}>
+          <Button variant={primary && !showBankFirst ? 'primary' : 'secondary'} block className="sm:flex-1" onClick={share}>
             <Icon name="share" size={18} />
             {t('invite.share')}
           </Button>

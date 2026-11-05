@@ -22,6 +22,7 @@ import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useIsMousePointer } from '@cc/web-util/media';
 import { copyText } from '@cc/web-util/clipboard';
 import { useImageSheet } from './SaveImageSheet';
+import { useBankFirst } from './BankFirstSheet';
 import { SportBillTable } from './SportBillTable';
 import { sportShareText, expenseLink } from '../lib/remind';
 import { sportBillCard } from '../lib/shareCards';
@@ -55,6 +56,7 @@ export function ExpenseDetails({
   const platform = usePlatform();
   const { base } = useTrip(view.trip.id);
   const { busy, error, run } = useTripAction(view.trip.id);
+  const { guard, sheet } = useBankFirst(view);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [sharing, setSharing] = useState(false);
@@ -224,6 +226,7 @@ export function ExpenseDetails({
   return (
     <article className="fsl-details flex flex-col gap-4 min-w-0">
       {imageSheet}
+      {sheet}
       <div className="fsl-details__head flex flex-row items-start justify-between gap-3">
         <h2 className="fsl-details__title text-lg font-semibold text-foreground m-0 break-words focus:outline-none" tabIndex={-1}>
           {e.description}
@@ -283,7 +286,7 @@ export function ExpenseDetails({
             <Button
               variant="primary"
               loading={sharing}
-              onClick={handleShareSportBill}
+              onClick={() => (e.payerId === view.me.participantId ? guard(handleShareSportBill) : void handleShareSportBill())}
               className="rounded-full"
             >
               <Icon name="share" size={18} />
