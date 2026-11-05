@@ -249,7 +249,7 @@ One teal accent on warm stone neutrals, with three soft money-state hues. Each c
 ### Named Rules
 **The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. More colour themes are coming (a pink one has been asked for), and a new theme must be a token swap, not a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
 
-**The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist.
+**The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look.
 
 **The Rice Paper Rule.** `subtle-foreground` sits on white only. On the Rice Paper page, quiet text uses `muted-foreground`.
 
@@ -379,7 +379,7 @@ What a friend sees after tapping a "pay me" link: what to pay comes first, every
 
 ### Leaderboard
 - **In the page:** the sport group's ratings widget is a white card holding the podium, or a one-line bar ("#1 Minh 18★ · #2 …") once the person taps collapse. Scrolling never changes its height, so the page never jumps under the finger.
-- **Floating bar:** once the widget has scrolled above the screen, a copy of the one-line bar fades in under the header (white, hairline border, `shadow-lg`, up to 448px). Its expand button scrolls back to the widget and opens the podium. Old WebViews without IntersectionObserver get no floating bar.
+- **Floating bar:** once the widget has scrolled above the screen, a copy of the one-line bar fades in under the header (white, hairline border, `shadow-lg`, up to 480px; below the taller Mini App header too). Phones and tablets only: from 1024px there is room enough without it. Its expand button scrolls back to the widget and opens the podium. Old WebViews without IntersectionObserver get no floating bar.
 - **Colour:** the trophy, the crown and the #1 avatar ring are Jade on Jade Mist. Turmeric stays for waiting.
 
 ### Avatars
@@ -401,7 +401,7 @@ On phones a sheet is a bottom drawer: white, 32px top corners, at most 85% of th
   - beside it sits the dark 56px round "+" button for adding
 - **Desktop (from 1024px):** a 240px white side nav with the app name and text links.
 - **Header:** sticky on Rice Paper, with the back arrow in a 44px round button.
-- **Group page header:** the back arrow, the group name on up to two lines (it wraps, never scrolls sideways), and the 44px gear. Nothing else: Invite lives at the top of People, and the account menu stays on the groups list and Home.
+- **Group page header:** the back arrow, the group name on up to two lines (it wraps, never scrolls sideways), and the 44px gear. Nothing else: Invite lives at the top of People (in the Mini App, Zalo's share plus a "Group links" button for the Invite sheet), and the account menu stays on the groups list and Home.
 - **People entry:** the first thing under the header on a member's group page. A white `rounded-xl` row: an overlapping stack of up to four small avatars, "4 people" and a chevron. It opens People.
 
 ### Snackbar
