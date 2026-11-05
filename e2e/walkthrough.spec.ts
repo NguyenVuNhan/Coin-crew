@@ -629,7 +629,7 @@ for (const lang of langs) {
           await hoaPage.getByRole('button', { name: lang === 'vi' ? /Tham gia với tên Hoa$/ : /Join as Hoa$/ }).first().click();
           await hoaPage
             .getByRole('radiogroup', { name: lang === 'vi' ? 'Bạn chơi là' : 'You play as' })
-            .getByRole('radio', { name: lang === 'vi' ? 'Nam' : 'Male' })
+            .getByRole('radio', { name: lang === 'vi' ? 'Nam' : 'Male', exact: true })
             .click();
           await shot('23-hoa-join-gender', hoaPage);
           await hoaPage
