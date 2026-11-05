@@ -128,4 +128,15 @@ describe('LeaderboardWidget', () => {
     act(() => report!([{ isIntersecting: false, boundingClientRect: { top: 900 } as DOMRect }]));
     expect(document.querySelector('.fsl-leaderboard__float')).toBeNull();
   });
+
+  it('the floating bar never shows without IntersectionObserver', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    act(() => {
+      Object.defineProperty(window, 'scrollY', { value: 260, writable: true, configurable: true });
+      fireEvent.scroll(window);
+    });
+    expect(document.querySelector('.fsl-leaderboard__float')).toBeNull();
+    expect(inFlow()).toHaveAttribute('data-stage', 'full');
+  });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { rankPlayers, type RankedPlayer, type TripView } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -8,11 +8,7 @@ import { useRatingsLink } from '../lib/detailsNav';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Icon } from '@cc/web-ui/components/icons';
 
-const COLLAPSE_SCROLL_Y = 40;
-const HIDE_SCROLL_Y = 200;
-const RESTORE_SCROLL_Y = 20;
-
-export type WidgetStage = 'full' | 'collapsed' | 'hidden';
+export type WidgetStage = 'full' | 'collapsed';
 
 /** The players who stand on the podium: the top 3 among those with at least one star. */
 export function podiumPlayers(ranked: RankedPlayer[]): RankedPlayer[] {
@@ -48,7 +44,7 @@ export function PodiumTop3({
         )}
       >
         {isFirst ? (
-          <div className="fsl-podium__crown mb-1 flex items-center justify-center text-warning" aria-hidden="true">
+          <div className="fsl-podium__crown mb-1 flex items-center justify-center text-primary" aria-hidden="true">
             <Icon name="crown" size={22} />
           </div>
         ) : (
@@ -66,7 +62,7 @@ export function PodiumTop3({
                 `fsl-podium__avatar--rank-${rank}`,
                 'transition-transform duration-200 motion-reduce:transition-none',
                 isFirst
-                  ? 'size-[68px] border-[3px] border-warning-border bg-warning-soft text-lg text-warning-foreground shadow-xs'
+                  ? 'size-[68px] border-[3px] border-primary bg-secondary text-lg text-secondary-foreground shadow-xs'
                   : 'size-12 border-2 border-border text-base shadow-xs',
               )}
             />
@@ -84,7 +80,7 @@ export function PodiumTop3({
               <span
                 className={cn(
                   'fsl-podium__score font-bold tabular-nums',
-                  isFirst ? 'text-base text-warning-foreground' : 'text-sm text-warning',
+                  isFirst ? 'text-base text-foreground' : 'text-sm text-muted-foreground',
                 )}
               >
                 {`${player.stars} ★`}
@@ -99,7 +95,7 @@ export function PodiumTop3({
                 `fsl-podium__avatar--rank-${rank}`,
                 'inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground',
                 isFirst
-                  ? 'size-[68px] border-[3px] border-warning-border/50 text-lg'
+                  ? 'size-[68px] border-[3px] border-primary/40 text-lg'
                   : 'size-12 border-2 border-border text-base',
               )}
               data-testid={`podium-anonymous-${rank}`}
@@ -128,9 +124,59 @@ export function PodiumTop3({
   );
 }
 
+/** The one-line summary (#1 · #2 · #3) with an expand button: the collapsed widget and the floating bar. */
+function LeaderboardBar({
+  top3,
+  ratingsLink,
+  onExpand,
+  className,
+}: {
+  top3: RankedPlayer[];
+  ratingsLink: ReturnType<typeof useRatingsLink>;
+  onExpand: () => void;
+  className?: string;
+}) {
+  const t = useT();
+  return (
+    <div className={cn('fsl-leaderboard__bar min-h-11 items-center justify-between gap-2', className)}>
+      <Link
+        className="fsl-leaderboard__bar-link inline-flex min-h-11 flex-1 min-w-0 items-center gap-2 rounded-lg text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        {...ratingsLink}
+      >
+        <Icon name="trophy" size={16} className="fsl-leaderboard__trophy shrink-0 text-primary" />
+        <span className="fsl-leaderboard__bar-summary flex-1 min-w-0 truncate text-xs tabular-nums">
+          {top3.map((p, idx) => (
+            <span
+              key={p.id}
+              className={cn(
+                idx === 0
+                  ? 'fsl-leaderboard__bar-first font-bold text-foreground'
+                  : 'fsl-leaderboard__bar-item font-medium text-muted-foreground',
+              )}
+            >
+              {idx > 0 ? ' · ' : ''}
+              {`#${p.rank} ${p.name} ${p.stars}★`}
+            </span>
+          ))}
+        </span>
+      </Link>
+      <button
+        type="button"
+        className="fsl-leaderboard__toggle inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        aria-label={t('ratings.expand')}
+        title={t('ratings.expand')}
+        onClick={onExpand}
+      >
+        <Icon name="chevronDown" size={18} />
+      </button>
+    </div>
+  );
+}
+
 /**
  * Sport group Leaderboard Widget at the top of MemberTrip, GuestTrip, and ViewOnlyTrip.
- * Smoothly transitions across 3 stages on scroll: Full Podium -> Collapsed Bar -> Hidden.
+ * Full podium, or a collapsed bar when the person taps collapse. Scrolling never changes its
+ * height: once it has scrolled above the screen, a floating copy of the bar shows instead.
  */
 export function LeaderboardWidget({
   view,
@@ -141,33 +187,32 @@ export function LeaderboardWidget({
 }) {
   const t = useT();
   const ratingsLink = useRatingsLink(view.trip.id, switching);
-  const [scrollStage, setScrollStage] = useState<WidgetStage>('full');
-  const [manualCollapsed, setManualCollapsed] = useState(false);
+  const [stage, setStage] = useState<WidgetStage>('full');
+  const [aboveScreen, setAboveScreen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const ratings = view.trip.preset === 'sport' && view.ratings?.enabled ? view.ratings : null;
+  const ranked = ratings ? rankPlayers(view.people, ratings.totalStars) : [];
+  const totalGroupStars = ranked.reduce((sum, p) => sum + p.stars, 0);
+  const rated = ratings !== null && totalGroupStars !== 0;
 
   useEffect(() => {
-    const onScroll = () => {
-      const y = typeof window !== 'undefined' ? window.scrollY : 0;
-      if (y > HIDE_SCROLL_Y) {
-        setScrollStage('hidden');
-      } else if (y > COLLAPSE_SCROLL_Y) {
-        setScrollStage('collapsed');
-      } else if (y <= RESTORE_SCROLL_Y) {
-        setScrollStage('full');
-        setManualCollapsed(false);
-      }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    const section = sectionRef.current;
+    // Old WebViews have no IntersectionObserver: no floating bar there.
+    if (!section || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      if (entry) setAboveScreen(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [rated]);
 
-  if (view.trip.preset !== 'sport' || !view.ratings?.enabled) {
+  if (!ratings) {
     return null;
   }
 
-  const ranked = rankPlayers(view.people, view.ratings.totalStars);
-  const totalGroupStars = ranked.reduce((sum, p) => sum + p.stars, 0);
-
-  if (totalGroupStars === 0) {
+  if (!rated) {
     return (
       <section
         className="fsl-leaderboard fsl-leaderboard--cold flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-xs"
@@ -175,8 +220,8 @@ export function LeaderboardWidget({
       >
         <div className="fsl-leaderboard__head flex items-center justify-between gap-2">
           <div className="fsl-leaderboard__title-group inline-flex min-w-0 items-center gap-2">
-            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy shrink-0 text-warning" />
-            <span className="fsl-leaderboard__title truncate text-sm font-semibold tracking-wider text-foreground uppercase">
+            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy shrink-0 text-primary" />
+            <span className="fsl-leaderboard__title truncate text-sm font-semibold text-foreground">
               {t('ratings.title')}
             </span>
           </div>
@@ -200,114 +245,94 @@ export function LeaderboardWidget({
     );
   }
 
-  const stage: WidgetStage =
-    scrollStage === 'hidden'
-      ? 'hidden'
-      : scrollStage === 'collapsed' || manualCollapsed
-        ? 'collapsed'
-        : 'full';
-
   const top3 = podiumPlayers(ranked);
 
+  const expandFromFloat = () => {
+    sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    setStage('full');
+    setAboveScreen(false);
+  };
+
   return (
-    <section
-      className={cn(
-        'fsl-leaderboard',
-        `fsl-leaderboard--${stage}`,
-        'overflow-hidden rounded-xl border transition-all duration-200 motion-reduce:transition-none',
-        stage === 'full' && 'fsl-leaderboard--full max-h-[340px] border-border bg-card px-4 pt-3 pb-4 shadow-xs',
-        stage === 'collapsed' && 'fsl-leaderboard--collapsed max-h-[60px] border-warning-border bg-warning-soft px-3 py-1 shadow-xs',
-        stage === 'hidden' && 'fsl-leaderboard--hidden pointer-events-none max-h-0 -translate-y-2 border-transparent px-4 py-0 opacity-0',
-      )}
-      data-stage={stage}
-      aria-label={t('ratings.leaderboard')}
-      aria-hidden={stage === 'hidden' ? 'true' : undefined}
-    >
-      {/* Stage 1: Full Radial Podium */}
-      <div
+    <>
+      <section
+        ref={sectionRef}
         className={cn(
-          'fsl-leaderboard__full flex flex-col gap-2 transition-all duration-200 motion-reduce:transition-none',
-          stage !== 'full' && 'pointer-events-none max-h-0 scale-95 overflow-hidden opacity-0',
+          'fsl-leaderboard',
+          `fsl-leaderboard--${stage}`,
+          // scroll-mt-16 keeps the scrolled-to widget below the sticky 56px screen header.
+          'scroll-mt-16 overflow-hidden rounded-xl border transition-all duration-200 motion-reduce:transition-none',
+          stage === 'full' && 'fsl-leaderboard--full max-h-[340px] border-border bg-card px-4 pt-3 pb-4 shadow-xs',
+          stage === 'collapsed' && 'fsl-leaderboard--collapsed max-h-[60px] border-border bg-card px-3 py-1 shadow-xs',
         )}
+        data-stage={stage}
+        aria-label={t('ratings.leaderboard')}
       >
-        <div className="fsl-leaderboard__head flex items-center justify-between gap-2">
-          <div className="fsl-leaderboard__title-group inline-flex min-w-0 items-center gap-2">
-            <Icon name="trophy" size={18} className="fsl-leaderboard__trophy shrink-0 text-warning" />
-            <span className="fsl-leaderboard__title truncate text-sm font-semibold tracking-wider text-foreground uppercase">
-              {t('ratings.leaderboard')}
-            </span>
+        {/* Full Radial Podium */}
+        <div
+          className={cn(
+            'fsl-leaderboard__full flex flex-col gap-2 transition-all duration-200 motion-reduce:transition-none',
+            stage !== 'full' && 'pointer-events-none max-h-0 scale-95 overflow-hidden opacity-0',
+          )}
+        >
+          <div className="fsl-leaderboard__head flex items-center justify-between gap-2">
+            <div className="fsl-leaderboard__title-group inline-flex min-w-0 items-center gap-2">
+              <Icon name="trophy" size={18} className="fsl-leaderboard__trophy shrink-0 text-primary" />
+              <span className="fsl-leaderboard__title truncate text-sm font-semibold text-foreground">
+                {t('ratings.leaderboard')}
+              </span>
+            </div>
+            <div className="fsl-leaderboard__actions inline-flex shrink-0 items-center gap-1">
+              <Link
+                className="fsl-leaderboard__rate-link inline-flex min-h-11 items-center gap-1 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                {...ratingsLink}
+              >
+                <span>{t('ratings.rateAction')}</span>
+                <Icon name="chevronRight" size={16} />
+              </Link>
+              <button
+                type="button"
+                className="fsl-leaderboard__toggle inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                aria-label={t('ratings.collapse')}
+                title={t('ratings.collapse')}
+                onClick={() => setStage('collapsed')}
+              >
+                <Icon name="chevronUp" size={18} />
+              </button>
+            </div>
           </div>
-          <div className="fsl-leaderboard__actions inline-flex shrink-0 items-center gap-1">
-            <Link
-              className="fsl-leaderboard__rate-link inline-flex min-h-11 items-center gap-1 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              {...ratingsLink}
-            >
-              <span>{t('ratings.rateAction')}</span>
-              <Icon name="chevronRight" size={16} />
-            </Link>
-            <button
-              type="button"
-              className="fsl-leaderboard__toggle inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              aria-label={t('ratings.collapse')}
-              title={t('ratings.collapse')}
-              onClick={() => setManualCollapsed(true)}
-            >
-              <Icon name="chevronUp" size={18} />
-            </button>
-          </div>
+
+          <p className="fsl-leaderboard__quote m-0 text-center text-xs text-muted-foreground">{`“${t('ratings.quote')}”`}</p>
+
+          <Link
+            className="fsl-leaderboard__podium-link block rounded-xl text-inherit focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            {...ratingsLink}
+          >
+            <PodiumTop3 players={top3} />
+          </Link>
         </div>
 
-        <p className="fsl-leaderboard__quote m-0 text-center text-xs text-muted-foreground">{`“${t('ratings.quote')}”`}</p>
+        {/* Collapsed Summary Bar */}
+        <LeaderboardBar
+          top3={top3}
+          ratingsLink={ratingsLink}
+          onExpand={() => setStage('full')}
+          className={stage === 'collapsed' ? 'flex' : 'hidden'}
+        />
+      </section>
 
-        <Link
-          className="fsl-leaderboard__podium-link block rounded-xl text-inherit focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          {...ratingsLink}
+      {/* Floating bar: only while the widget is above the screen */}
+      {aboveScreen && (
+        <div
+          className="fsl-leaderboard__float fixed inset-x-0 top-14 z-10 mx-auto max-w-[448px] px-4 animate-in fade-in motion-reduce:animate-none"
+          role="region"
+          aria-label={t('ratings.leaderboard')}
         >
-          <PodiumTop3 players={top3} />
-        </Link>
-      </div>
-
-      {/* Stage 2: Collapsed Summary Bar */}
-      <div
-        className={cn(
-          'fsl-leaderboard__bar min-h-11 items-center justify-between gap-2',
-          stage === 'collapsed' ? 'flex' : 'hidden',
-        )}
-      >
-        <Link
-          className="fsl-leaderboard__bar-link inline-flex min-h-11 flex-1 min-w-0 items-center gap-2 rounded-lg text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          {...ratingsLink}
-        >
-          <Icon name="trophy" size={16} className="fsl-leaderboard__trophy shrink-0 text-warning" />
-          <span className="fsl-leaderboard__bar-summary flex-1 min-w-0 truncate text-xs tabular-nums">
-            {top3.map((p, idx) => (
-              <span
-                key={p.id}
-                className={cn(
-                  idx === 0
-                    ? 'fsl-leaderboard__bar-first font-bold text-warning-foreground'
-                    : 'fsl-leaderboard__bar-item font-medium text-muted-foreground',
-                )}
-              >
-                {idx > 0 ? ' · ' : ''}
-                {`#${p.rank} ${p.name} ${p.stars}★`}
-              </span>
-            ))}
-          </span>
-        </Link>
-        <button
-          type="button"
-          className="fsl-leaderboard__toggle inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          aria-label={t('ratings.expand')}
-          title={t('ratings.expand')}
-          onClick={() => {
-            setManualCollapsed(false);
-            setScrollStage('full');
-          }}
-        >
-          <Icon name="chevronDown" size={18} />
-        </button>
-      </div>
-    </section>
+          <div className="rounded-xl border border-border bg-card px-3 py-1 shadow-lg">
+            <LeaderboardBar top3={top3} ratingsLink={ratingsLink} onExpand={expandFromFloat} className="flex" />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
