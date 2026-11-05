@@ -402,7 +402,7 @@ export const vi: Record<MessageKey, string> = {
 
   'member.settings': 'Cài đặt chuyến đi', // REVIEW
   'member.peopleCount': '{count} người', // REVIEW
-  'member.peopleEntry': 'Thành viên trong nhóm: {count}', // REVIEW
+  'member.peopleEntry': '{count} người trong nhóm', // REVIEW
 
   'balance.owed': 'Bạn được nhận', // REVIEW
   'balance.owe': 'Bạn cần trả', // REVIEW
@@ -542,6 +542,7 @@ export const vi: Record<MessageKey, string> = {
   'people.addFailed': 'Không thêm được {names}.', // REVIEW
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.inviteZalo': 'Mời bạn bè Zalo', // REVIEW
+  'people.inviteLinks': 'Liên kết nhóm', // REVIEW
   'people.remove': 'Xóa', // REVIEW
   'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
   'people.removeConfirm': 'Xóa {name} khỏi nhóm? Các khoản chi và thanh toán trước đây vẫn được giữ.', // REVIEW
@@ -911,6 +912,7 @@ export const vi: Record<MessageKey, string> = {
   'ratings.switchExplain': 'Cho phép thành viên ẩn danh tặng sao đánh giá kỹ năng và hiện bảng xếp hạng CLB.', // REVIEW
   'ratings.collapse': 'Thu gọn bảng xếp hạng', // REVIEW
   'ratings.expand': 'Mở rộng bảng xếp hạng', // REVIEW
+  'ratings.leaderboardBar': 'Tóm tắt bảng xếp hạng', // REVIEW
 
   'nav.home': 'Khoản chi nhanh', // REVIEW
   'nav.groups': 'Nhóm', // REVIEW

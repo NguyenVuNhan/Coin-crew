@@ -402,7 +402,7 @@ export const en = {
 
   'member.settings': 'Trip settings',
   'member.peopleCount': '{count} people',
-  'member.peopleEntry': 'People in this group: {count}',
+  'member.peopleEntry': '{count} people in this group',
 
   'balance.owed': "You're owed",
   'balance.owe': 'You owe',
@@ -542,6 +542,7 @@ export const en = {
   'people.addFailed': 'Couldn\'t add {names}.',
   'people.mergeExplain': 'Merge moves every expense and payment from one name to another, for duplicates that slipped through.',
   'people.inviteZalo': 'Invite Zalo friends',
+  'people.inviteLinks': 'Group links',
   'people.remove': 'Remove',
   'people.useMerge': 'Use merge instead',
   'people.removeConfirm': 'Remove {name} from the group? Their past expenses and payments stay.',
@@ -913,6 +914,7 @@ export const en = {
   'ratings.switchExplain': 'Let signed-in members anonymously give stars to rate players and show the club leaderboard.',
   'ratings.collapse': 'Collapse leaderboard',
   'ratings.expand': 'Expand leaderboard',
+  'ratings.leaderboardBar': 'Leaderboard summary',
 
   'nav.home': 'Quick expenses',
   'nav.groups': 'Groups',

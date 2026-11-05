@@ -271,8 +271,8 @@ export function renderSportBillPng(input: SportBillCardInput): Promise<Blob | nu
     drawRowBorder(currentY);
   }
 
-  // 3. Yellow TỔNG SUẤT row
-  ctx.fillStyle = '#fef9c3';
+  // 3. Neutral TỔNG SUẤT row
+  ctx.fillStyle = '#f3f4f6';
   ctx.fillRect(padX, currentY, tableWidth, rowHeight);
   drawCell('TỔNG SUẤT', colX[0], currentY, colWidths[0], rowHeight, 'left', true);
   drawCell(String(input.totalFemaleSlots), colX[1], currentY, colWidths[1], rowHeight, 'center', true);
@@ -295,8 +295,8 @@ export function renderSportBillPng(input: SportBillCardInput): Promise<Blob | nu
   currentY += rowHeight;
   drawRowBorder(currentY);
 
-  // 5. Yellow MỖI SUẤT row
-  ctx.fillStyle = '#fef9c3';
+  // 5. Neutral MỖI SUẤT row
+  ctx.fillStyle = '#f3f4f6';
   ctx.fillRect(padX, currentY, tableWidth, rowHeight);
   drawCell('MỖI SUẤT', colX[0], currentY, colWidths[0], rowHeight, 'left', true);
   drawCell(formatVnd(input.femaleSlotRate), colX[1], currentY, colWidths[1], rowHeight, 'center', true);

@@ -39,7 +39,7 @@ function ZaloInviteButton({ view }: { view: TripView }) {
       <Button
         variant="secondary"
         block
-        className={cn('fsl-people__invite-zalo mt-2')}
+        className={cn('fsl-people__invite-zalo')}
         onClick={() =>
           guard(() => {
             void platform.share(inviteCard(view, platform.apiBase));
@@ -343,7 +343,18 @@ export function People() {
         {canInvite &&
           (platform.kind === 'zmp' ? (
             // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
-            <ZaloInviteButton view={view} />
+            <div className="flex flex-col gap-2">
+              <ZaloInviteButton view={view} />
+              <Button
+                variant="secondary"
+                block
+                className={cn('fsl-people__invite')}
+                onClick={() => setInviteOpen(true)}
+              >
+                <Icon name="link" size={18} />
+                {t('people.inviteLinks')}
+              </Button>
+            </div>
           ) : (
             <Button
               variant="secondary"

@@ -139,7 +139,7 @@ export function Screen({
             className={cn(
               'fsl-screen__title',
               titleLines === 2
-                ? 'text-lg font-semibold text-foreground flex-1 min-w-0 line-clamp-2 [overflow-wrap:anywhere] m-0'
+                ? 'text-lg leading-tight font-semibold text-foreground flex-1 min-w-0 line-clamp-2 [overflow-wrap:anywhere] m-0'
                 : 'text-lg font-semibold text-foreground flex-1 min-w-0 truncate m-0',
               titleAlign === 'left' ? 'text-left' : 'text-center',
             )}

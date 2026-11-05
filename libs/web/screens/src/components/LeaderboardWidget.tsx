@@ -200,10 +200,16 @@ export function LeaderboardWidget({
     const section = sectionRef.current;
     // Old WebViews have no IntersectionObserver: no floating bar there.
     if (!section || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[entries.length - 1];
-      if (entry) setAboveScreen(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-    });
+    const headerHeight = document.querySelector<HTMLElement>('.fsl-screen__header')?.offsetHeight ?? 0;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[entries.length - 1];
+        if (entry) {
+          setAboveScreen(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0));
+        }
+      },
+      { rootMargin: `-${headerHeight}px 0px 0px 0px` },
+    );
     observer.observe(section);
     return () => observer.disconnect();
   }, [rated]);
@@ -248,9 +254,12 @@ export function LeaderboardWidget({
   const top3 = podiumPlayers(ranked);
 
   const expandFromFloat = () => {
-    sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const behavior =
+      typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth';
+    sectionRef.current?.scrollIntoView({ block: 'start', behavior });
     setStage('full');
-    setAboveScreen(false);
   };
 
   return (
@@ -260,8 +269,8 @@ export function LeaderboardWidget({
         className={cn(
           'fsl-leaderboard',
           `fsl-leaderboard--${stage}`,
-          // scroll-mt-16 keeps the scrolled-to widget below the sticky 56px screen header.
-          'scroll-mt-16 overflow-hidden rounded-xl border transition-all duration-200 motion-reduce:transition-none',
+          // Keeps the scrolled-to widget below the sticky 56px screen header (taller by Zalo's safe-area inset in the Mini App).
+          'scroll-mt-[calc(4rem+var(--zmp-safe-top))] overflow-hidden rounded-xl border transition-all duration-200 motion-reduce:transition-none',
           stage === 'full' && 'fsl-leaderboard--full max-h-[340px] border-border bg-card px-4 pt-3 pb-4 shadow-xs',
           stage === 'collapsed' && 'fsl-leaderboard--collapsed max-h-[60px] border-border bg-card px-3 py-1 shadow-xs',
         )}
@@ -324,9 +333,9 @@ export function LeaderboardWidget({
       {/* Floating bar: only while the widget is above the screen */}
       {aboveScreen && (
         <div
-          className="fsl-leaderboard__float fixed inset-x-0 top-14 z-10 mx-auto max-w-[448px] px-4 animate-in fade-in motion-reduce:animate-none"
+          className="fsl-leaderboard__float fixed inset-x-0 top-[calc(3.5rem+var(--zmp-safe-top))] z-10 mx-auto max-w-[480px] px-4 lg:hidden animate-in fade-in motion-reduce:animate-none"
           role="region"
-          aria-label={t('ratings.leaderboard')}
+          aria-label={t('ratings.leaderboardBar')}
         >
           <div className="rounded-xl border border-border bg-card px-3 py-1 shadow-lg">
             <LeaderboardBar top3={top3} ratingsLink={ratingsLink} onExpand={expandFromFloat} className="flex" />
