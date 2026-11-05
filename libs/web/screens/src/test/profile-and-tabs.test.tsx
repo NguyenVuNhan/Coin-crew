@@ -332,7 +332,7 @@ describe('Task 4: LanguageButton & Language inheritance', () => {
     const tripNameInput = await screen.findByLabelText(/Tên nhóm|Group name/);
     await userEvent.type(tripNameInput, 'Badminton Club');
 
-    const personInput = screen.getByLabelText(/Name 1|Tên 1/);
+    const personInput = screen.getByLabelText(/Name to add|Tên người cần thêm/);
     await userEvent.type(personInput, 'Chi');
 
     const submitBtn = screen.getByRole('button', { name: /Tạo nhóm|Create group/ });
