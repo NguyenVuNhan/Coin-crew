@@ -6,11 +6,12 @@ import { apiFetch } from './client';
  * The people with an account who shared a trip with me, for suggestions. One request when the screen opens,
  * cached for 5 minutes. Without it there are no suggestions: a failure is neither retried nor shown.
  */
-export function useRecentPeople() {
+export function useRecentPeople(opts: { enabled?: boolean } = {}) {
   return useQuery<RecentPerson[]>({
     queryKey: ['me', 'people'],
     queryFn: () => apiFetch<RecentPerson[]>('/api/me/people'),
     staleTime: 5 * 60_000,
     retry: false,
+    enabled: opts.enabled ?? true,
   });
 }

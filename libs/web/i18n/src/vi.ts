@@ -173,6 +173,13 @@ export const vi: Record<MessageKey, string> = {
   'create.others': 'Ai sẽ tham gia cùng? (tùy chọn)', // REVIEW
   'create.otherPlaceholder': 'Tên', // REVIEW
   'create.addPerson': 'Thêm người', // REVIEW
+  'addBar.nameLabel': 'Tên người cần thêm', // REVIEW
+  'addBar.add': '+ Thêm', // REVIEW
+  'addBar.addM': '+ Nam', // REVIEW
+  'addBar.addF': '+ Nữ', // REVIEW
+  'addBar.added': 'Đã thêm {name}', // REVIEW
+  'addBar.addedWithGender': 'Đã thêm {name} · {gender}', // REVIEW
+  'addBar.addedMany': 'Đã thêm {count} người', // REVIEW
   'create.removePerson': 'Xóa {name}', // REVIEW
   'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
   'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
