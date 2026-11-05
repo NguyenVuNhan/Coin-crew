@@ -27,7 +27,7 @@ function renderWithRouter(initialEntry: string) {
 }
 
 describe('Sport group creation & People gender toggle', () => {
-  it('submits preset="sport", myGender, and per-person gender from CreateTrip', async () => {
+  it('submits preset="sport", myGender, and per-person gender from CreateTrip with the add bar', async () => {
     const calls: { url: string; method: string; body: unknown }[] = [];
     vi.stubGlobal(
       'fetch',
@@ -54,12 +54,15 @@ describe('Sport group creation & People gender toggle', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Sport group' }));
     await userEvent.type(screen.getByLabelText('Group name'), 'Cầu lông tối thứ 5');
 
-    // Fill first person and toggle their gender twice: unset -> M -> F
-    const firstInput = screen.getByPlaceholderText('Name');
-    await userEvent.type(firstInput, 'Chi');
-    const chiGenderBtn = screen.getByRole('button', { name: /Gender for Chi/i });
-    await userEvent.click(chiGenderBtn);
-    await userEvent.click(chiGenderBtn);
+    // + Female and + Male add with that gender; the row pill flips one; your own pill sets myGender.
+    const field = screen.getByLabelText('Name to add');
+    await userEvent.type(field, 'Lan');
+    await userEvent.click(screen.getByRole('button', { name: '+ Female' }));
+    await userEvent.type(field, 'Chi');
+    await userEvent.click(screen.getByRole('button', { name: '+ Male' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Gender for Chi: Male' }));
+    expect(screen.getByRole('button', { name: 'Gender for Chi: Female' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Gender for Minh: Male' }));
 
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
 
@@ -68,8 +71,11 @@ describe('Sport group creation & People gender toggle', () => {
       name: 'Cầu lông tối thứ 5',
       preset: 'sport',
       myName: 'Minh',
-      myGender: 'M',
-      people: [{ name: 'Chi', gender: 'F' }],
+      myGender: 'F',
+      people: [
+        { name: 'Lan', gender: 'F' },
+        { name: 'Chi', gender: 'F' },
+      ],
       defaultLang: 'en',
     });
   });
