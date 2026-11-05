@@ -23,7 +23,7 @@ export interface ActionDeps {
   /** Where the trip's pages live (`useTrip().base`); `/t/<tripId>` when left out. */
   base?: string;
   /** POST `/api/trips/:tripId` + `path`, then refresh the trip. `body` defaults to `{}`. */
-  run(path: string, body?: unknown): Promise<void>;
+  run(path: string, body?: unknown): Promise<unknown>;
   /**
    * Passed only by the expense details. It opens the "why are you rejecting it?" field
    * (the API needs a reason), and it is what makes Approve and Reject appear: rows never show them.

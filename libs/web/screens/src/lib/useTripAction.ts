@@ -13,18 +13,20 @@ export function useTripAction(tripId: string) {
   const [error, setError] = useState<unknown>(null);
 
   const run = useCallback(
-    async (path: string, body: unknown = {}, method: 'POST' | 'PATCH' | 'DELETE' = 'POST') => {
+    async (path: string, body: unknown = {}, method: 'POST' | 'PATCH' | 'DELETE' = 'POST'): Promise<boolean> => {
       setBusy(true);
       setError(null);
       try {
         await apiSend(`/api/trips/${tripId}${path}`, method, method === 'DELETE' ? undefined : body, tripId);
         await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+        return true;
       } catch (err) {
         // The fund moved since the trip was loaded: refresh it, so what the screen says about the fund is current.
         if (err instanceof ApiClientError && err.code === 'FUND_SHORT') {
           await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
         }
         setError(err);
+        return false;
       } finally {
         setBusy(false);
       }

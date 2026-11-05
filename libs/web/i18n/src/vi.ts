@@ -540,6 +540,10 @@ export const vi: Record<MessageKey, string> = {
   'people.merge': 'Hợp nhất', // REVIEW
   'people.mergeInto': 'Hợp nhất {name} vào…', // REVIEW
   'people.mergeConfirm': 'Chuyển toàn bộ khoản chi và thanh toán từ {from} sang {into}?', // REVIEW
+  'people.likeHint': 'Giống {name}?', // REVIEW
+  'people.likeMerge': 'Gộp', // REVIEW
+  'people.likeDismiss': 'Không phải cùng một người', // REVIEW
+  'people.addFailed': 'Không thêm được {names}.', // REVIEW
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.inviteZalo': 'Mời bạn bè Zalo', // REVIEW
   'people.remove': 'Xóa', // REVIEW
