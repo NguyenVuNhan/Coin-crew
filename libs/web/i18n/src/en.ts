@@ -236,6 +236,8 @@ export const en = {
   'who.joinAs': 'Not on the list? Join as {name}',
   'who.joinButton': 'Join as {name}',
   'who.rejoinAs': 'Rejoin as {name}',
+  'who.playAs': 'You play as',
+  'who.playAsHint': 'Used to split court costs. You can change it later.',
   'who.rejoinHint': 'You left this group · your past expenses are still here',
   'who.nameOrFriend': "{name} or {name}'s friend",
   'who.slots': '{n} slots',
