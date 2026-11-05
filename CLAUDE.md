@@ -13,6 +13,8 @@ Nx on npm workspaces; every project is a workspace package (`@cc/*`) exporting r
 
 The web app uses **shadcn/ui + Tailwind v4** with the "Friendly" look. Spec: `docs/superpowers/specs/2026-10-28-shadcn-friendly-redesign-design.md` ("The look" table).
 
+**Before any UI work, read `DESIGN.md`** (the design system: tokens, components, named rules, do's and don'ts; sidecar `.impeccable/design.json`) and `PRODUCT.md` (who CoinCrew is for and what every screen must protect).
+
 - **Use real components, don't invent them.** shadcn components live in `libs/web/ui/src/components/ui/` (import them as `@cc/web-ui/components/ui/<name>`). Before adding or describing one, look it up with the **shadcn MCP** (`.mcp.json`); add new ones with `npx shadcn@latest add <name>` run in `libs/web/ui`, never by hand. Afterwards change the new file's `@cc/web-ui/...` imports to relative ones (lint flags a library importing itself by name).
 - **App wrappers come first** when they exist (`@cc/web-ui/components/<Name>`): `Button` (variants primary / secondary / danger / ghost, `href` routes in-app), `Sheet` and `Modal` (bottom drawer on phones, dialog from 640px), `Pill`, `Avatar`, `Skeleton`, `InlineError`, `Snackbar`, `Icon` (lucide), `Amount`. Never use shadcn `Drawer`/`Dialog` directly for a sheet.
 - **Theme lives only in `libs/web/ui/src/styles/globals.css`** (the shells import `@cc/web-ui/styles.css`). Use its Tailwind colours (`bg-background`, `bg-card`, `bg-primary`, `bg-secondary`, `text-muted-foreground`, `text-success`, `text-danger`, `bg-warning-soft`, `bg-avatar-1..6`…). No raw hex, no `.css` files per component; `libs/web/screens/src/test/style-guard.test.ts` enforces both across every web library.
