@@ -58,7 +58,7 @@ Three things every screen protects (owner-confirmed); Splitwise or Tricount cann
   - "fewest transfers"
   - optional rounding of settlements to the nearest 1,000₫
 - **Approvals and money safety:**
-  - Guest expenses, new guest names and guest bank details wait for a member's approval.
+  - Guest expenses and guest bank details wait for a member's approval. Guests don't add names: they pick one, or sign in to join.
   - A payment to a member counts only when that member confirms it.
   - Members can disable any expense or payment; it stays visible, crossed out.
   - An activity history records who did what, from which device.

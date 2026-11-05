@@ -191,6 +191,15 @@ components:
     textColor: "{colors.background}"
     rounded: "{rounded.2xl}"
     height: "48px"
+  gender-pill:
+    backgroundColor: "{colors.muted}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.full}"
+    height: "28px"
+    size: "44px"
+  add-bar:
+    backgroundColor: "{colors.card}"
+    height: "72px"
 ---
 
 # Design System: CoinCrew (Tiền Đâu)
@@ -322,7 +331,19 @@ Calm, confident pills that are easy to hit.
 
 ### Pills (status chips)
 - **Style:** a fully round pill with a soft fill and a semibold label of the same hue. Five tones: neutral, accent (Jade Mist), success (Leaf), danger (Lychee), warning (Turmeric).
-- **Use:** status and counts ("Waiting", fund totals, list-mode chips). Pills are not buttons.
+- **Use:** status and counts ("Waiting", fund totals, list-mode chips). Pills are not buttons, with one exception: the gender pill (below).
+
+### Gender pill
+- **Style:** a small Muted Fill pill (28px tall, 14px semibold Ink label) with a ♂/♀ icon: "♂ Nam" / "♀ Nữ". Both genders use the same neutral fill: gender never uses a money colour.
+- **Tap area:** 44px, by an invisible hit area around the pill; the pill itself stays small.
+- **Who taps it:** admins flip anyone (Nam ↔ Nữ, with Undo in the snackbar); a member flips only their own row; guests see plain text. Someone without a gender shows "Set gender", which opens the two choices in a sheet.
+- **Where:** every person row in a sport group (People, creating a group). Joining a sport group asks "You play as" with two 44px pill choices instead.
+
+### Add bar
+- **Shape:** one row: the name field (16px text) and, in sport groups, "+ Nam" and "+ Nữ" secondary pill buttons; in trip groups one "+ Add".
+- **People screen:** docked in the bottom bar, riding above the on-screen keyboard. **Creating a group:** inline under the roster, which lists you first.
+- **Flow:** each add clears the field and keeps focus, so the keyboard stays up. Enter adds with the gender last used; pasting several lines adds each line. A snackbar confirms each add ("Added Anh · Nữ") with Undo.
+- **Look-alike names** are added, never refused. A small "Like Tuấn Anh? Merge" line sits under the new row, with dismiss.
 
 ### Grouped lists and rows
 The signature ledger pattern.
@@ -377,7 +398,7 @@ On phones a sheet is a bottom drawer: white, 32px top corners, at most 85% of th
 - **Header:** sticky on Rice Paper, with the back arrow in a 44px round button.
 
 ### Snackbar
-A dark Ink pill-card (24px corners) floating above the nav, with the message in tabular figures and a Jade Mist text action ("Undo"). It slides up with a short fade.
+A dark Ink pill-card (24px corners) floating above the nav, with the message in tabular figures and a Jade Mist text action ("Undo"). It slides up with a short fade. When the on-screen keyboard is up it rides above it, so a confirmation is seen while typing (the People add bar does the same).
 
 ### Motion
 Small and quick: 100–200ms, ease-out, with fades and short slides for sheets and toasts. The star ratings have a playful pop, shake and sparks. Reduced motion is honoured at the call site (`motion-reduce:`), and every new animation must do the same.
