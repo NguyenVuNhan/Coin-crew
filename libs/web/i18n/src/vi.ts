@@ -185,6 +185,11 @@ export const vi: Record<MessageKey, string> = {
   'gender.M': 'Nam', // REVIEW
   'gender.F': 'Nữ', // REVIEW
   'gender.unset': '—', // REVIEW
+  'gender.pillM': 'Nam', // REVIEW
+  'gender.pillF': 'Nữ', // REVIEW
+  'gender.pillLabel': 'Giới tính của {name}: {gender}', // REVIEW
+  'gender.set': 'Chọn giới tính', // REVIEW
+  'gender.changed': '{name} · {gender}', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW
   'bank.popular': 'Phổ biến', // REVIEW

@@ -185,6 +185,11 @@ export const en = {
   'gender.M': 'M',
   'gender.F': 'F',
   'gender.unset': '—',
+  'gender.pillM': 'Male',
+  'gender.pillF': 'Female',
+  'gender.pillLabel': 'Gender for {name}: {gender}',
+  'gender.set': 'Set gender',
+  'gender.changed': '{name} · {gender}',
 
   'bank.bank': 'Bank',
   'bank.popular': 'Popular',
