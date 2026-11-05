@@ -140,16 +140,20 @@ for (const lang of langs) {
           const groupNameInput = minh.getByLabel(lang === 'vi' ? 'Tên nhóm' : 'Group name');
           await groupNameInput.fill('Cầu lông CN');
 
-          const peopleNames = ['Bình', 'Chi', 'Tuấn Anh', 'Dũng', 'Nguyễn Thị Thanh Hương'];
-          const namePlaceholder = lang === 'vi' ? 'Tên' : 'Name';
-          const addPersonBtnName = lang === 'vi' ? 'Thêm người' : 'Add person';
+          const people: [string, 'M' | 'F'][] = [
+            ['Bình', 'M'],
+            ['Chi', 'F'],
+            ['Tuấn Anh', 'M'],
+            ['Dũng', 'M'],
+            ['Nguyễn Thị Thanh Hương', 'F'],
+          ];
+          const nameToAdd = minh.getByLabel(lang === 'vi' ? 'Tên người cần thêm' : 'Name to add');
+          const addButton = (g: 'M' | 'F') =>
+            g === 'M' ? (lang === 'vi' ? '+ Nam' : '+ Male') : lang === 'vi' ? '+ Nữ' : '+ Female';
 
-          for (let i = 0; i < peopleNames.length; i++) {
-            const inputs = minh.getByPlaceholder(namePlaceholder);
-            await inputs.nth(i).fill(peopleNames[i]!);
-            if (i < peopleNames.length - 1) {
-              await minh.getByRole('button', { name: addPersonBtnName }).click();
-            }
+          for (const [name, gender] of people) {
+            await nameToAdd.fill(name);
+            await minh.getByRole('button', { name: addButton(gender), exact: true }).click();
           }
 
           const bankDetailsText =
@@ -623,7 +627,10 @@ for (const lang of langs) {
 
           // Join from the bill link (a new account has no gender, so a sport group asks first).
           await hoaPage.getByRole('button', { name: lang === 'vi' ? /Tham gia với tên Hoa$/ : /Join as Hoa$/ }).first().click();
-          await hoaPage.getByRole('button', { name: lang === 'vi' ? 'Giới tính của Hoa' : 'Gender for Hoa' }).click();
+          await hoaPage
+            .getByRole('radiogroup', { name: lang === 'vi' ? 'Bạn chơi là' : 'You play as' })
+            .getByRole('radio', { name: lang === 'vi' ? 'Nam' : 'Male' })
+            .click();
           await shot('23-hoa-join-gender', hoaPage);
           await hoaPage
             .getByRole('button', { name: lang === 'vi' ? 'Tham gia với tên Hoa' : 'Join as Hoa', exact: true })

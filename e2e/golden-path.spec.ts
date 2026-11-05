@@ -38,12 +38,11 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.getByRole('button', { name: 'Continue' }).click();
   await minh.getByRole('link', { name: 'New group' }).click();
   await minh.getByLabel('Group name').fill('Đà Lạt');
-  const others = minh.getByPlaceholder('Name');
-  await others.nth(0).fill('An');
-  await minh.getByRole('button', { name: 'Add person' }).click();
-  await others.nth(1).fill('Bình');
-  await minh.getByRole('button', { name: 'Add person' }).click();
-  await others.nth(2).fill('Chi');
+  const nameToAdd = minh.getByLabel('Name to add');
+  for (const name of ['An', 'Bình', 'Chi']) {
+    await nameToAdd.fill(name);
+    await nameToAdd.press('Enter');
+  }
   await minh.getByText('Your bank details (optional)').click();
   await minh.getByRole('combobox', { name: 'Bank' }).click();
   await minh.getByPlaceholder('Search banks').fill('Techcombank');
