@@ -40,7 +40,11 @@ function ZaloInviteButton({ view }: { view: TripView }) {
         variant="secondary"
         block
         className={cn('fsl-people__invite-zalo mt-2')}
-        onClick={() => guard(() => platform.share(inviteCard(view, platform.apiBase)))}
+        onClick={() =>
+          guard(() => {
+            void platform.share(inviteCard(view, platform.apiBase));
+          })
+        }
       >
         <Icon name="share" size={18} />
         {t('people.inviteZalo')}

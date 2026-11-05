@@ -116,7 +116,7 @@ describe('OweScreen & SportBillTable language and formatting', () => {
     expect(children).toHaveLength(2);
     expect(children[0]).toHaveTextContent('F 105.000₫');
     expect(children[1]).toHaveTextContent('M 120.000₫');
-    expect(children[0].textContent).toBe('F 105.000₫');
-    expect(children[1].textContent).toBe('M 120.000₫');
+    expect(children[0]!.textContent).toBe('F 105.000₫');
+    expect(children[1]!.textContent).toBe('M 120.000₫');
   });
 });
