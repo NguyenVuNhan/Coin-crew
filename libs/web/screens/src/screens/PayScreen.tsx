@@ -411,7 +411,8 @@ export function PayScreen() {
         {archived && <p className="fsl-pay__notice m-0 px-4 py-3 bg-muted rounded-xl text-muted-foreground">{t('settings.archived')}</p>}
         {content}
         {searchParams.get('via') === 'owe' && (
-          <Button variant="ghost" href={href()} className="fsl-pay__see-group">
+          // On phones the two-line "I've paid" bar is taller than the space Screen keeps for it: clear it.
+          <Button variant="ghost" href={href()} className="fsl-pay__see-group max-lg:mb-10">
             {t('owe.seeGroup')}
           </Button>
         )}

@@ -81,6 +81,9 @@ describe('OweScreen', () => {
 
     expect(await screen.findByText("You're all set")).toBeInTheDocument();
     expect(screen.getByText("You don't owe anyone in Đà Lạt · Oct 2026.")).toBeInTheDocument();
+    // The title names the group, never "…, you owe" above "you don't owe anyone".
+    expect(screen.queryByText(/, you owe$/)).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See the group' })).toHaveAttribute(
       'href',
       '/j/gtok-1',

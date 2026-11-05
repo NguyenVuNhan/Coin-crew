@@ -92,7 +92,10 @@ export function OweScreen() {
   const myName = view.me.participantId ? nameOf(view, view.me.participantId) : '';
 
   return (
-    <Screen title={t('owe.title', { name: myName })} back={href()}>
+    <Screen
+      title={transfers.length > 0 || waiting.length > 0 ? t('owe.title', { name: myName }) : view.trip.name}
+      back={href()}
+    >
       <div className="fsl-owe flex flex-col gap-4">
         {(transfers.length > 0 || waiting.length > 0) && (
           <div className="overflow-hidden rounded-xl bg-card divide-y divide-border">

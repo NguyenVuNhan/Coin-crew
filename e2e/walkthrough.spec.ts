@@ -362,12 +362,34 @@ for (const lang of langs) {
               description: 'Ăn tối',
               amount: 300000,
               spentOn: '2026-11-05',
-              payerId: noBankMinhPid,
+              // An paid: bank details belong to an account, so Minh's would show here too; An has none.
+              payerId: noBankAnPid,
               mode: 'equal',
               entries: [noBankMinhPid, noBankChiPid, noBankAnPid].map((id) => ({ participantId: id, value: 1 })),
             },
           });
           expect(dinnerRes.ok()).toBe(true);
+        });
+
+        // Step 5b: the "pay me" link (/owe) on new phones: Chi owes two people, Dũng owes nothing,
+        // and in the group without bank details Chi owes one person (straight to that pay screen).
+        await step('05b-pay-links', async () => {
+          const openOwe = async (token: string, who: string, shotName: string) => {
+            const ctx = await createContext();
+            const page = await ctx.newPage();
+            activePage = page;
+            await page.goto(`/j/${token}/owe`);
+            await page.getByRole('radio', { name: new RegExp(who) }).click();
+            await page
+              .getByRole('button', { name: lang === 'vi' ? `Tiếp tục với tên ${who}` : `Continue as ${who}` })
+              .click();
+            await page.waitForURL((u) => !u.pathname.endsWith('/who'));
+            await shot(shotName, page);
+            await ctx.close();
+          };
+          await openOwe(daLatGroupToken, 'Chi', 'pay-link-chi-owes-two');
+          await openOwe(daLatGroupToken, 'Dũng', 'pay-link-dung-all-set');
+          await openOwe(noBankGroupToken, 'Chi', 'pay-link-nobank-owes-one');
         });
 
         // Step 6: Guest phone on Đà Lạt link -> screenshot "Who are you?" -> pick Chi -> Continue -> screenshot landing -> follow pay link for Minh if visible -> screenshot
@@ -537,6 +559,11 @@ for (const lang of langs) {
           await continueBinhBtn.click();
           await shot('17-bill-guest-binh-screen', billGuestPage);
 
+          // The bill opens in a sheet over the QR.
+          await billGuestPage.getByRole('button', { name: lang === 'vi' ? 'Xem bill' : 'View the bill' }).click();
+          await shot('17b-bill-sheet', billGuestPage);
+          await billGuestPage.keyboard.press('Escape');
+
           await billGuestPage.goto(`/j/${sportGroupToken}/e/${expenseId}`);
           await shot('18-bill-guest-binh-reloaded', billGuestPage);
 
@@ -593,6 +620,16 @@ for (const lang of langs) {
 
           await hoaPage.goto(`/j/${sportGroupToken}/e/${expenseId}`);
           await shot('22-hoa-opens-bill-link', hoaPage);
+
+          // Join from the bill link (a new account has no gender, so a sport group asks first).
+          await hoaPage.getByRole('button', { name: lang === 'vi' ? /Tham gia với tên Hoa$/ : /Join as Hoa$/ }).first().click();
+          await hoaPage.getByRole('button', { name: lang === 'vi' ? 'Giới tính của Hoa' : 'Gender for Hoa' }).click();
+          await shot('23-hoa-join-gender', hoaPage);
+          await hoaPage
+            .getByRole('button', { name: lang === 'vi' ? 'Tham gia với tên Hoa' : 'Join as Hoa', exact: true })
+            .click();
+          await hoaPage.waitForURL(/\/pay$/);
+          await shot('24-hoa-after-join', hoaPage);
 
           await hoaContext.close();
         });

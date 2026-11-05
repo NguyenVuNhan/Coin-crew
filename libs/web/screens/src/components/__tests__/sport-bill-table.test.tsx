@@ -187,6 +187,14 @@ describe('SportBillTable and sportBillCalc', () => {
     expect(td.textContent).toContain('113.333₫');
   });
 
+  it('the per-slot row leaves out a gender nobody played as', () => {
+    setLang('en');
+    const calc = { ...sportBillCalc(baseSportTripView, sportExpense380k)!, totalFemaleSlots: 0, femaleSlotRate: 0 };
+    const { container } = render(<SportBillTable calc={calc} total={sportExpense380k.amount} meId="p-minh" />);
+    const td = container.querySelector('.fsl-sport-table__row--per-slot td')!;
+    expect(td.textContent).toBe('M 113.333₫');
+  });
+
   it('has no sideways scroll container and wraps names', () => {
     setLang('en');
     const calc = sportBillCalc(baseSportTripView, sportExpense380k)!;
