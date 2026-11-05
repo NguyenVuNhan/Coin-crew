@@ -33,7 +33,6 @@ export const vi: Record<MessageKey, string> = {
 
   'who.lastUsedHere': 'Lần trước bạn đã chọn người này trên điện thoại này', // REVIEW
   'who.activeElsewhere': 'Đang hoạt động trên máy khác · {ago}', // REVIEW
-  'who.someoneNew': 'Không có trong danh sách? Thêm tên của bạn', // REVIEW
   'who.areYou': 'Bạn là {name} phải không?', // REVIEW
   'who.yesIm': 'Đúng, tôi là {name}', // REVIEW
   'who.noAddMe': 'Không, thêm tôi vào', // REVIEW
@@ -172,7 +171,6 @@ export const vi: Record<MessageKey, string> = {
   'create.myName': 'Tên của bạn', // REVIEW
   'create.others': 'Ai sẽ tham gia cùng? (tùy chọn)', // REVIEW
   'create.otherPlaceholder': 'Tên', // REVIEW
-  'create.addPerson': 'Thêm người', // REVIEW
   'addBar.nameLabel': 'Tên người cần thêm', // REVIEW
   'addBar.add': '+ Thêm', // REVIEW
   'addBar.addM': '+ Nam', // REVIEW
@@ -189,9 +187,6 @@ export const vi: Record<MessageKey, string> = {
   'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.', // REVIEW
 
   'gender.label': 'Giới tính của {name}', // REVIEW
-  'gender.M': 'Nam', // REVIEW
-  'gender.F': 'Nữ', // REVIEW
-  'gender.unset': '—', // REVIEW
   'gender.pillM': 'Nam', // REVIEW
   'gender.pillF': 'Nữ', // REVIEW
   'gender.pillLabel': 'Giới tính của {name}: {gender}', // REVIEW
@@ -227,12 +222,9 @@ export const vi: Record<MessageKey, string> = {
   'who.count': '{shown} trên {total} người', // REVIEW
   'who.addNamed': 'Không có trong danh sách? Thêm "{name}"', // REVIEW
   'who.pending': 'Đang chờ duyệt', // REVIEW
-  'who.newTitle': 'Tên của bạn là gì?', // REVIEW
-  'who.newHint': 'Dùng tên mà bạn bè hay gọi bạn.', // REVIEW
   'who.nameLabel': 'Tên của bạn', // REVIEW
   'who.inTrip': 'Đã có trong chuyến đi này', // REVIEW
   'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong chuyến đi này.', // REVIEW
-  'who.newPendingNote': 'Một thành viên sẽ kiểm tra tên mới trước khi xuất hiện trong chuyến đi.', // REVIEW
   'who.joinAs': 'Không có trong danh sách? Tham gia với tên {name}', // REVIEW
   'who.joinButton': 'Tham gia với tên {name}', // REVIEW
   'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
@@ -555,8 +547,6 @@ export const vi: Record<MessageKey, string> = {
   'people.leftOwes': 'Còn nợ {amount}', // REVIEW
   'people.leftOwed': 'Cần nhận {amount}', // REVIEW
   'people.leftSettled': 'Đã thanh toán xong', // REVIEW
-  'people.similar': '"{typed}" có vẻ giống "{name}", người đã có trong nhóm này.', // REVIEW
-  'people.addAnyway': 'Vẫn thêm', // REVIEW
   'people.restore': 'Thêm lại', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW

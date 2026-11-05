@@ -33,7 +33,6 @@ export const en = {
 
   'who.lastUsedHere': 'You picked this on this phone last time', // SPEC
   'who.activeElsewhere': 'Active on another phone · {ago}', // SPEC
-  'who.someoneNew': 'Not on the list? Add your name', // SPEC 2026-10-14
   'who.areYou': 'Are you {name}?', // SPEC
   'who.yesIm': "Yes, I'm {name}", // SPEC
   'who.noAddMe': 'No, add me', // SPEC
@@ -172,7 +171,6 @@ export const en = {
   'create.myName': 'Your name',
   'create.others': 'Who else is coming? (optional)',
   'create.otherPlaceholder': 'Name',
-  'create.addPerson': 'Add person',
   'addBar.nameLabel': 'Name to add',
   'addBar.add': '+ Add',
   'addBar.addM': '+ Male',
@@ -189,9 +187,6 @@ export const en = {
   'create.alreadyListed': '{name} is already on the list with their account.',
 
   'gender.label': 'Gender for {name}',
-  'gender.M': 'M',
-  'gender.F': 'F',
-  'gender.unset': '—',
   'gender.pillM': 'Male',
   'gender.pillF': 'Female',
   'gender.pillLabel': 'Gender for {name}: {gender}',
@@ -227,12 +222,9 @@ export const en = {
   'who.count': '{shown} of {total} people',
   'who.addNamed': 'Not on the list? Add "{name}"',
   'who.pending': 'Waiting for approval',
-  'who.newTitle': "What's your name?",
-  'who.newHint': 'Use the name your friends know you by.',
   'who.nameLabel': 'Your name',
   'who.inTrip': 'Already in this trip',
   'who.similar': '"{typed}" looks like "{name}", who\'s already in this trip.',
-  'who.newPendingNote': 'A member checks new names before they show up in the trip.',
   'who.joinAs': 'Not on the list? Join as {name}',
   'who.joinButton': 'Join as {name}',
   'who.rejoinAs': 'Rejoin as {name}',
@@ -555,8 +547,6 @@ export const en = {
   'people.leftOwes': 'Owes {amount}',
   'people.leftOwed': 'Is owed {amount}',
   'people.leftSettled': 'Settled up',
-  'people.similar': '"{typed}" looks like "{name}", who\'s already in this group.',
-  'people.addAnyway': 'Add anyway',
   'people.restore': 'Bring back',
 
   'activity.title': 'Activity',
