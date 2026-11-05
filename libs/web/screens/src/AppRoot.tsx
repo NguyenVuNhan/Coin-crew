@@ -9,6 +9,7 @@ import { ApiClientError, apiFetch } from '@cc/web-data-access/client';
 import { browserPlatform, PlatformProvider, type PlatformBridge } from '@cc/web-platform';
 import { sessionStore } from '@cc/web-platform/session';
 import { zaloHandshake } from '@cc/web-data-access/zaloSession';
+import { SIGNED_OUT_KEY } from '@cc/web-data-access/signOut';
 
 /** One-time start-up shared by every shell (web, Zalo): language and focus refetch. */
 export async function bootApp(platform: PlatformBridge = browserPlatform): Promise<void> {
@@ -37,6 +38,8 @@ async function zaloBoot(platform: PlatformBridge): Promise<void> {
         if (!(err instanceof ApiClientError && err.status === 401)) return;
       }
     }
+    // After "Sign out" the Mini App stays signed out until the person signs in with Zalo again.
+    if ((await platform.storage.get(SIGNED_OUT_KEY)) === '1') return;
     await zaloHandshake(platform);
   } catch {
     // Boot goes on as a guest.

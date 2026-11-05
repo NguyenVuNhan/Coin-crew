@@ -7,6 +7,8 @@ import { useT } from '@cc/web-i18n';
 import { useIsWide } from '@cc/web-util/media';
 import { apiSend } from '@cc/web-data-access/client';
 import { useMe } from '@cc/web-data-access/hooks';
+import { signOut as signOutHere } from '@cc/web-data-access/signOut';
+import { usePlatform } from '@cc/web-platform';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
@@ -41,6 +43,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const wide = isWide && variant !== 'sheet';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const platform = usePlatform();
 
   const meQuery = useMe({ enabled: propUser === undefined });
 
@@ -117,8 +120,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     setSigningOut(true);
     setError(null);
     try {
-      await apiSend<void>('/api/auth/logout', 'POST');
-      queryClient.clear();
+      await signOutHere(platform, queryClient);
       navigate('/', { replace: true });
     } catch (err) {
       setError(err);

@@ -14,4 +14,18 @@ export const linkTokens = {
       return null;
     }
   },
+
+  /** Forget every saved group link (signing out). */
+  clearAll(): void {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('lt:')) keys.push(key);
+      }
+      keys.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      // storage access may fail in private mode
+    }
+  },
 };

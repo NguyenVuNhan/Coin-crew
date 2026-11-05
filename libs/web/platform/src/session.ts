@@ -59,6 +59,22 @@ export const sessionStore = {
     }
   },
 
+  /** Forget this phone's device id (signing out): the next request gets a fresh one. */
+  async clearDeviceId(): Promise<void> {
+    currentDeviceId = null;
+    if (platform) {
+      await platform.storage.remove('deviceId');
+    } else {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('deviceId');
+        }
+      } catch {
+        // ignore
+      }
+    }
+  },
+
   apiBase(): string {
     if (!platform) {
       return '';
