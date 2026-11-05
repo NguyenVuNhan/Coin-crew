@@ -341,6 +341,21 @@ The signature ledger pattern.
   - When you owe, a full-width Jade "Pay with VietQR" button follows.
   - When everything is settled, an 18px semibold line with a Jade check replaces the amount.
 
+### Pay link pages
+What a friend sees after tapping a "pay me" link: what to pay comes first, everything else comes after.
+- **"You owe" list** (`/owe`, the reminder's link): a grouped list with one row per person to pay.
+  - Each row has an avatar, the name with the amount in Lychee under it, and a "Pay {name}" button on the right. The first button is primary, the rest secondary, and long labels truncate.
+  - A payment waiting for confirmation is a row with a Turmeric clock tile and "Waiting for {name} to confirm".
+  - Nothing owed shows the "You're all set" empty state.
+  - Owing exactly one person skips the list and opens that pay screen.
+  - A ghost "See the group" button always ends the page.
+- **Bill sheet:** on a bill's pay screen, a full-width secondary "View the bill" button under "I've paid" opens the bill in a `Sheet`, so the QR stays underneath.
+- **Session table:** fixed columns sized to fit 320px. Names wrap, amounts never clip, the cost breakdown sits under "Costs", and both per-slot rates share one cell. No sideways scrolling.
+- **No share in this bill:** one line, "Nothing for {name} in this bill", then "Not {name}? Switch" (guests only) and "See the group". The bill is never shown in its place.
+- **Bank details first:** sharing a "pay me" link without your own bank details suggests adding them and never blocks.
+  - In the Invite sheet it is a plain block above Share/Copy, and Share drops to secondary.
+  - Before "Share bill & QR" it is a sheet with "Add bank details" (primary) and "Share anyway".
+
 ### Avatars
 Round initial avatars, 28 / 36 / 96px, in a soft pastel fill with dark text of the same hue (picked from the name). A profile photo replaces them when there is one. Groups show overlapping stacks.
 
