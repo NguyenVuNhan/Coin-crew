@@ -678,6 +678,22 @@
       "description": "Adds people one after another: a name field plus '+ Nam' / '+ Nữ' (sport) or '+ Add' (trip). Docked above the keyboard on People, inline when creating a group; Enter adds, paste adds each line, Undo in the snackbar.",
       "html": "<div class=\"ds-add-bar\"><input class=\"ds-add-bar__field\" placeholder=\"Tên\"><button class=\"ds-add-bar__add\">+ Nam</button><button class=\"ds-add-bar__add\">+ Nữ</button></div>",
       "css": ".ds-add-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--card);border-top:1px solid var(--border)}.ds-add-bar__field{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid var(--input);border-radius:20px;font-size:16px;background:var(--card)}.ds-add-bar__add{height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--secondary);color:var(--secondary-foreground);font-size:14px;font-weight:600;white-space:nowrap}"
+    },
+    {
+      "name": "People Entry",
+      "kind": "list-row",
+      "refersTo": "people-entry",
+      "description": "First row under the group page header: an overlapping stack of up to four small avatars, 'N people' and a chevron; opens People. Hidden for view-only links.",
+      "html": "<a class=\"ds-people-entry\" href=\"#\" aria-label=\"People in this group: 4\"><span class=\"ds-people-entry__stack\" aria-hidden=\"true\"><span class=\"ds-people-entry__av\">M</span><span class=\"ds-people-entry__av\">B</span><span class=\"ds-people-entry__av\">C</span><span class=\"ds-people-entry__av\">A</span></span><span class=\"ds-people-entry__count\">4 people</span><span aria-hidden=\"true\">›</span></a>",
+      "css": ".ds-people-entry{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--foreground);text-decoration:none}.ds-people-entry__stack{display:flex}.ds-people-entry__av{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:var(--secondary);color:var(--secondary-foreground);font-size:12px;font-weight:600}.ds-people-entry__av+.ds-people-entry__av{margin-left:-8px;box-shadow:0 0 0 2px var(--card)}.ds-people-entry__count{flex:1;font-size:16px;font-weight:600}"
+    },
+    {
+      "name": "Floating Leaderboard Bar",
+      "kind": "custom",
+      "refersTo": "leaderboard-float",
+      "description": "Shown only while the sport group's ratings widget is above the screen: the one-line top-3 summary under the header, with an expand button that scrolls back to the podium. The in-page widget never changes height on scroll.",
+      "html": "<div class=\"ds-lb-float\" role=\"region\" aria-label=\"Leaderboard\"><span class=\"ds-lb-float__sum\"><b>#1 Minh 18★</b> · #2 An 14★ · #3 Bình 11★</span><button class=\"ds-lb-float__expand\" aria-label=\"Expand leaderboard\">⌄</button></div>",
+      "css": ".ds-lb-float{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:flex;align-items:center;gap:8px;max-width:448px;padding:4px 4px 4px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--muted-foreground);font-size:12px;font-variant-numeric:tabular-nums;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-lb-float__sum{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-lb-float__sum b{color:var(--foreground)}.ds-lb-float__expand{width:44px;height:44px;border:0;border-radius:9999px;background:transparent;color:var(--muted-foreground);cursor:pointer}"
     }
   ],
   "narrative": {
@@ -700,7 +716,7 @@
       },
       {
         "name": "The Money Means Something Rule",
-        "body": "Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them.",
+        "body": "Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist.",
         "section": "colors"
       },
       {

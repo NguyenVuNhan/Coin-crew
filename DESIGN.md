@@ -249,7 +249,7 @@ One teal accent on warm stone neutrals, with three soft money-state hues. Each c
 ### Named Rules
 **The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. More colour themes are coming (a pink one has been asked for), and a new theme must be a token swap, not a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
 
-**The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them.
+**The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist.
 
 **The Rice Paper Rule.** `subtle-foreground` sits on white only. On the Rice Paper page, quiet text uses `muted-foreground`.
 
@@ -293,7 +293,7 @@ The layout is phone first, one column. Screen content sits in a centred column a
 The system is flat by default. Depth comes from tone: white surfaces on Rice Paper, hairline dividers, and soft tinted fills. Grouped lists carry no shadow and no border. Summary cards (the balance, the home total) add a hairline border, never a shadow. Shadows mark things that float above the page.
 
 ### Shadow Vocabulary
-- **Floating** (`shadow-lg`): the phone nav pill, the "+" button, the snackbar.
+- **Floating** (`shadow-lg`): the phone nav pill, the "+" button, the snackbar, the floating leaderboard bar.
 - **Control** (`shadow-xs`): shadcn form controls such as selects and input groups. It is barely visible.
 
 ### Named Rules
@@ -377,8 +377,13 @@ What a friend sees after tapping a "pay me" link: what to pay comes first, every
   - In the Invite sheet it is a plain block above Share/Copy, and Share drops to secondary.
   - Before "Share bill & QR" it is a sheet with "Add bank details" (primary) and "Share anyway".
 
+### Leaderboard
+- **In the page:** the sport group's ratings widget is a white card holding the podium, or a one-line bar ("#1 Minh 18★ · #2 …") once the person taps collapse. Scrolling never changes its height, so the page never jumps under the finger.
+- **Floating bar:** once the widget has scrolled above the screen, a copy of the one-line bar fades in under the header (white, hairline border, `shadow-lg`, up to 448px). Its expand button scrolls back to the widget and opens the podium. Old WebViews without IntersectionObserver get no floating bar.
+- **Colour:** the trophy, the crown and the #1 avatar ring are Jade on Jade Mist. Turmeric stays for waiting.
+
 ### Avatars
-Round initial avatars, 28 / 36 / 96px, in a soft pastel fill with dark text of the same hue (picked from the name). A profile photo replaces them when there is one. Groups show overlapping stacks.
+Round initial avatars, 28 / 36 / 96px, in a soft pastel fill with dark text of the same hue. The tone comes from a hash (FNV-1a) of the normalised name, so accents, capitals and spacing don't change it and a group spreads over all six tones. A profile photo replaces them when there is one. Groups show overlapping stacks.
 
 ### Inputs / Fields
 - **Style:** a white fill, a Field Edge outline, 20px corners, 44px tall, 16px text, 12px side padding.
@@ -396,6 +401,8 @@ On phones a sheet is a bottom drawer: white, 32px top corners, at most 85% of th
   - beside it sits the dark 56px round "+" button for adding
 - **Desktop (from 1024px):** a 240px white side nav with the app name and text links.
 - **Header:** sticky on Rice Paper, with the back arrow in a 44px round button.
+- **Group page header:** the back arrow, the group name on up to two lines (it wraps, never scrolls sideways), and the 44px gear. Nothing else: Invite lives at the top of People, and the account menu stays on the groups list and Home.
+- **People entry:** the first thing under the header on a member's group page. A white `rounded-xl` row: an overlapping stack of up to four small avatars, "4 people" and a chevron. It opens People.
 
 ### Snackbar
 A dark Ink pill-card (24px corners) floating above the nav, with the message in tabular figures and a Jade Mist text action ("Undo"). It slides up with a short fade. When the on-screen keyboard is up it rides above it, so a confirmation is seen while typing (the People add bar does the same).
