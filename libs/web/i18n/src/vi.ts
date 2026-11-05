@@ -6,6 +6,7 @@ export const vi: Record<MessageKey, string> = {
   'common.continue': 'Tiếp tục', // REVIEW
   'common.back': 'Quay lại', // REVIEW
   'common.close': 'Đóng', // REVIEW
+  'common.dismiss': 'Bỏ qua', // REVIEW
   'common.undo': 'Hoàn tác', // REVIEW
 
   'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
@@ -190,7 +191,8 @@ export const vi: Record<MessageKey, string> = {
   'gender.pillM': 'Nam', // REVIEW
   'gender.pillF': 'Nữ', // REVIEW
   'gender.pillLabel': 'Giới tính của {name}: {gender}', // REVIEW
-  'gender.set': 'Chọn giới tính', // REVIEW
+  'gender.set': 'Giới tính?', // REVIEW
+  'gender.setFor': 'Chọn giới tính cho {name}', // REVIEW
   'gender.changed': '{name} · {gender}', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW

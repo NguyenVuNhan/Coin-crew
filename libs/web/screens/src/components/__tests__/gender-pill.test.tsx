@@ -17,7 +17,7 @@ describe('GenderPill', () => {
   it('Set gender opens the two choices', async () => {
     const onChange = vi.fn();
     renderAt(<GenderPill name="Chi" value={null} editable onChange={onChange} />);
-    const setButton = screen.getByRole('button', { name: 'Set gender' });
+    const setButton = screen.getByRole('button', { name: 'Set gender for Chi' });
     await userEvent.click(setButton);
     const femaleOption = screen.getByRole('button', { name: 'Female' });
     await userEvent.click(femaleOption);
@@ -48,7 +48,7 @@ describe('GenderPill', () => {
     expect(pillF.className).not.toMatch(/success|danger|warning/);
 
     rerender(<GenderPill name="Chi" value={null} editable />);
-    const pillUnset = screen.getByRole('button', { name: 'Set gender' });
+    const pillUnset = screen.getByRole('button', { name: 'Set gender for Chi' });
     expect(pillUnset.className).toContain('bg-muted');
     expect(pillUnset.className).not.toMatch(/success|danger|warning/);
 

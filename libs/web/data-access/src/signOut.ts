@@ -13,12 +13,15 @@ export const SIGNED_OUT_KEY = 'signedOut';
  */
 export async function signOut(platform: PlatformBridge, queryClient: QueryClient): Promise<void> {
   await apiSend<void>('/api/auth/logout', 'POST');
-  await sessionStore.setToken(null);
-  await sessionStore.clearDeviceId();
-  linkTokens.clearAll();
-  await platform.storage.remove('zaloName');
-  if (platform.kind === 'zmp') {
-    await platform.storage.set(SIGNED_OUT_KEY, '1');
+  try {
+    if (platform.kind === 'zmp') {
+      await platform.storage.set(SIGNED_OUT_KEY, '1');
+    }
+    await sessionStore.setToken(null);
+    await sessionStore.clearDeviceId();
+    linkTokens.clearAll();
+    await platform.storage.remove('zaloName');
+  } finally {
+    queryClient.clear();
   }
-  queryClient.clear();
 }

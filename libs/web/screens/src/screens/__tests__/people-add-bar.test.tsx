@@ -127,6 +127,25 @@ describe('People: the docked add bar', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't add An.");
   });
 
+  it('two failed adds in a row both stay in the alert', async () => {
+    mockApi({
+      ...group(tripView()),
+      'POST /api/trips/t-1/people': async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return Response.json({ error: { code: 'UNAVAILABLE', message: 'Service unavailable' } }, { status: 503 });
+      },
+    });
+    renderPeople();
+    const field = await screen.findByLabelText('Name to add');
+    await userEvent.type(field, 'An{Enter}');
+    await userEvent.type(field, 'Bình{Enter}');
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('An');
+      expect(alert).toHaveTextContent('Bình');
+    });
+  });
+
   it('Undo removes only the latest add, and all of a pasted list', async () => {
     const { calls } = mockApi(group(tripView()));
     renderPeople();
@@ -182,7 +201,7 @@ describe('People: the docked add bar', () => {
     await userEvent.type(field, 'Lan{Enter}');
     await waitFor(() => expect(scrolled).toContain('p-new-1'));
     expect(row('p-new-1')).toBeInTheDocument();
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
   });
 
   it('a failed gender change shows why and offers no Undo', async () => {

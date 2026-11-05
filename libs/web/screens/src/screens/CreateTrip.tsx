@@ -11,6 +11,7 @@ import { Button } from '@cc/web-ui/components/Button';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { PeopleInput } from '../components/PeopleInput';
+import { hideUndo } from '../components/UndoSnackbarHost';
 import { Icon } from '@cc/web-ui/components/icons';
 import type { PersonEntry } from '@cc/web-util/recentPeople';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -63,6 +64,7 @@ export function CreateTrip() {
     e.preventDefault();
     if (!isFormValid || createMutation.isPending) return;
 
+    hideUndo();
     setSubmitError(null);
     const typedName = draft.trim();
     const roster: PersonEntry[] =

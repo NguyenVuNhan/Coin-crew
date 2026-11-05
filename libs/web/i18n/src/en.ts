@@ -6,6 +6,7 @@ export const en = {
   'common.continue': 'Continue',
   'common.back': 'Back',
   'common.close': 'Close',
+  'common.dismiss': 'Dismiss',
   'common.undo': 'Undo',
 
   'error.generic': 'Something went wrong. Try again.',
@@ -191,6 +192,7 @@ export const en = {
   'gender.pillF': 'Female',
   'gender.pillLabel': 'Gender for {name}: {gender}',
   'gender.set': 'Set gender',
+  'gender.setFor': 'Set gender for {name}',
   'gender.changed': '{name} · {gender}',
 
   'bank.bank': 'Bank',

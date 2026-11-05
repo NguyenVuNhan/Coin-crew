@@ -87,6 +87,7 @@ export function GenderPill({
       <button
         type="button"
         disabled={disabled}
+        aria-label={t('gender.setFor', { name })}
         className={cn(
           'fsl-gender-pill fsl-gender-pill--unset',
           'h-7 px-2.5 rounded-full bg-muted text-foreground text-sm font-semibold inline-flex items-center gap-1 relative after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[\'\'] focus-visible:outline-none focus-visible:ring-2 ring-ring cursor-pointer select-none border-0 disabled:opacity-50 disabled:pointer-events-none',

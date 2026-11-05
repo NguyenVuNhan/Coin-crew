@@ -68,7 +68,9 @@ export function People() {
   const [mergeSource, setMergeSource] = useState<PersonView | null>(null);
   const [menuFor, setMenuFor] = useState<PersonView | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
-  /** Why the last add failed, shown above the add bar until the next add goes through. */
+  /** Names whose add failed and haven't been added yet; the alert stays while non-empty. */
+  const [failedNames, setFailedNames] = useState<string[]>([]);
+  /** Why the last add failed, shown after the failed names list. */
   const [addError, setAddError] = useState<string | null>(null);
   /** A just-added person whose name looks like someone already here: new id → the look-alike. Lives while the screen is open. */
   const [hints, setHints] = useState<Record<string, { id: string; name: string }>>({});
@@ -81,7 +83,7 @@ export function People() {
     const id = scrollTarget.current;
     if (!id || !view?.people.some((p) => p.id === id)) return;
     scrollTarget.current = null;
-    document.querySelector(`[data-person-id="${id}"]`)?.scrollIntoView({ block: 'nearest' });
+    document.querySelector(`[data-person-id="${id}"]`)?.scrollIntoView({ block: 'center' });
   }, [view]);
 
   if (isLoading) {
@@ -211,12 +213,13 @@ export function People() {
         id = await addTripPerson(tid, input);
       } catch (err) {
         notAdded = people.slice(index);
-        const names = notAdded.map((p) => p.name).join(', ');
+        const failed = notAdded.map((p) => p.name);
         const why = (err as Error).message || t('error.generic');
-        setAddError(`${t('people.addFailed', { names })} ${why}`);
+        setFailedNames((prev) => [...prev, ...failed]);
+        setAddError(why);
         break;
       }
-      setAddError(null);
+      setFailedNames((prev) => prev.filter((name) => name !== person.name));
       const [match] = findSimilarNames(person.name, others);
       if (match) newHints[id] = { id: match.id, name: match.name };
       others.push({ id, name: person.name });
@@ -308,10 +311,25 @@ export function People() {
       bottomBar={
         canAdd ? (
           <>
-            {addError && (
-              <p role="alert" className="fsl-people__add-error m-0 text-sm text-danger">
-                {addError}
-              </p>
+            {failedNames.length > 0 && (
+              <div role="alert" className={cn('fsl-people__add-error flex items-center gap-2 text-sm text-danger')}>
+                <span className="min-w-0 flex-1">
+                  {t('people.addFailed', { names: failedNames.join(', ') })} {addError}
+                </span>
+                <button
+                  type="button"
+                  aria-label={t('common.dismiss')}
+                  className={cn(
+                    'fsl-people__add-error-dismiss inline-flex shrink-0 items-center justify-center size-11 rounded-full bg-transparent border-0 cursor-pointer text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 ring-ring',
+                  )}
+                  onClick={() => {
+                    setFailedNames([]);
+                    setAddError(null);
+                  }}
+                >
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
             )}
             <AddPeopleBar sport={isSport} onAdd={addPeople} />
           </>
@@ -361,7 +379,7 @@ export function People() {
                     leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                     trailing={trailing}
                   >
-                    <span className={cn('fsl-people__text flex-1 min-w-0 flex flex-col')}>
+                    <span className={cn('fsl-people__text flex-1 min-w-16 flex flex-col')}>
                       <span className={cn('fsl-people__name flex-1 min-w-0 truncate text-base font-semibold text-foreground')}>{person.name}</span>
                       {subLine(person) !== null && <span className={cn('fsl-people__bank text-sm leading-snug text-muted-foreground tabular-nums [overflow-wrap:anywhere]')}>{subLine(person)}</span>}
                     </span>
@@ -429,7 +447,7 @@ export function People() {
                         hintable={false}
                         leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                       >
-                        <span className={cn('fsl-people__text flex-1 min-w-0 flex flex-col')}>
+                        <span className={cn('fsl-people__text flex-1 min-w-16 flex flex-col')}>
                           <span className={cn('fsl-people__name flex-1 min-w-0 truncate text-base font-semibold text-foreground')}>{person.name}</span>
                           <span className={cn('fsl-people__bank text-sm leading-snug text-muted-foreground tabular-nums [overflow-wrap:anywhere]')}>{balanceLine}</span>
                         </span>

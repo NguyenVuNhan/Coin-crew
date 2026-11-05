@@ -84,7 +84,7 @@ async function getActor(c: Context<AppBindings>, tripId: string): Promise<Resolv
 
 /**
  * Add a plain name to a trip as `actor` (POST /trips/:id/people, and the personal ledger).
- * Validates the body, checks for similar names and the guest pending limit, and commits.
+ * Validates the body and the guest pending limit, and commits (look-alikes are added, never refused).
  */
 export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unknown): Promise<string> {
   const tripId = actor.trip.id;
@@ -115,7 +115,7 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
     throw new ApiError('VALIDATION', 422, 'Invalid request');
   }
 
-  // Before the similar-name check. Any status counts: the unique index covers left people too.
+  // Any status counts: the unique index covers left people too. (Look-alikes are added, never refused.)
   if (zaloSub && (await zaloSubTaken(db, tripId, zaloSub))) {
     throw new ApiError('CONFLICT', 409, 'This Zalo friend is already in this group.');
   }
