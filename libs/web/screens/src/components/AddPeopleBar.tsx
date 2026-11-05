@@ -1,4 +1,4 @@
-import { useState, useRef, useId, useMemo } from 'react';
+import { useState, useRef, useId, useMemo, useEffect } from 'react';
 import type { JSX, KeyboardEvent, ClipboardEvent } from 'react';
 import { UserCheck } from 'lucide-react';
 import type { RecentPerson, Gender } from '@cc/core';
@@ -23,9 +23,11 @@ export interface AddPeopleBarProps {
   onAdd(people: NewPerson[]): Promise<NewPerson[]>;
   /** Creating a group: suggest friends from your other groups; these userIds are already listed. */
   suggest?: { exclude: Set<string> };
+  /** Called with the field's current text whenever it changes (including '' after an add). */
+  onDraftChange?: (draft: string) => void;
 }
 
-export function AddPeopleBar({ sport, onAdd, suggest }: AddPeopleBarProps): JSX.Element {
+export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeopleBarProps): JSX.Element {
   const t = useT();
   const baseId = useId();
   const listboxId = `${baseId}-listbox`;
@@ -37,6 +39,10 @@ export function AddPeopleBar({ sport, onAdd, suggest }: AddPeopleBarProps): JSX.
   const [highlight, setHighlight] = useState<number>(-1);
   const [closedFor, setClosedFor] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    onDraftChange?.(name);
+  }, [name, onDraftChange]);
 
   const { data } = useRecentPeople({ enabled: suggest !== undefined });
   const exclude = suggest?.exclude;
