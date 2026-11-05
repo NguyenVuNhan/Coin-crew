@@ -4,7 +4,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { useT, getLang } from '@cc/web-i18n';
 import { nameOf } from '@cc/web-util/tripText';
 import { canManageBankOf } from '../lib/rowActions';
-import { groupLink, remind, remindText } from '../lib/remind';
+import { groupLink, payLink, remind, remindText } from '../lib/remind';
 import { usePayInfo } from '@cc/web-data-access/payInfo';
 import { useTrip } from '../lib/tripBase';
 import { useIsCoarsePointer } from '@cc/web-util/media';
@@ -81,7 +81,7 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
           creditor: nameOf(view, me),
           amount: formatVnd(info.amount),
           trip: view.trip.name,
-          link: groupLink(view),
+          link: payLink(view),
         })}
       />
     );

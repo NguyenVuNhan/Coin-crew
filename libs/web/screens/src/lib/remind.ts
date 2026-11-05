@@ -91,6 +91,11 @@ export function groupLink(view: TripView): string {
   return `${appOrigin()}/j/${token}`;
 }
 
+/** The link a "pay me" reminder carries: it opens on what the visitor owes (rewrite spec §4.1). */
+export function payLink(view: TripView): string {
+  return `${groupLink(view)}/owe`;
+}
+
 export function expenseLink(view: TripView, id: string): string {
   const token = view.links?.group ?? linkTokens.get(view.trip.id);
   if (!token) return groupLink(view);

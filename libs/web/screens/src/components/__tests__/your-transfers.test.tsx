@@ -139,7 +139,7 @@ describe('Your transfers: the QR in place', () => {
     expect(shareQr).toHaveBeenCalledTimes(1);
     const [svg, text, refCode] = vi.mocked(shareQr).mock.calls[0]!;
     expect(svg).toMatch(/^<svg/);
-    expect(text).toBe(`Hi Chi! You still owe Minh 1.245.000₫ for "Đà Lạt · Oct 2026". See details and pay with VietQR: ${location.origin}/j/gtok-1`);
+    expect(text).toBe(`Hi Chi! You still owe Minh 1.245.000₫ for "Đà Lạt · Oct 2026". See details and pay with VietQR: ${location.origin}/j/gtok-1/owe`);
     expect(refCode).toBe('DALAT C7K2');
   });
 
@@ -205,6 +205,8 @@ describe('Your transfers: the QR in place', () => {
     expect(screen.queryByRole('img', { name: /VietQR code/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Remind Minh' }));
     expect(share).toHaveBeenCalledWith({ text: expect.stringContaining('Please add your bank details in "Đà Lạt · Oct 2026"') });
+    // Asking for bank details keeps the ordinary group link, not the pay link (rewrite spec §4.1).
+    expect(share).toHaveBeenCalledWith({ text: expect.not.stringContaining('/owe') });
   });
 
   it('a member who owes a guest without bank details can add them for the guest', async () => {
