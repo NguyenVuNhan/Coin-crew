@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { formatVnd, payerLabel, type ExpensePayView, type PaidBy } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
@@ -8,14 +8,18 @@ import { useExpensePay, useReportExpensePayment } from '@cc/web-data-access/expe
 import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { Amount } from '@cc/web-ui/components/Amount';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { PayQr } from '../components/PayQr';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { WhoPaidSheet } from '../components/WhoPaidSheet';
 import { MergeConfirmSheet } from '../components/MergeConfirmSheet';
+import { SportBillTable } from '../components/SportBillTable';
+import { sportBillCalc } from '../lib/sportBill';
 import { browserUrl } from '@cc/web-util/openInBrowser';
 import { formatDay } from '@cc/web-util/time';
+import { nameOf } from '@cc/web-util/tripText';
 
 function ClaimWaitingStrip({ name }: { name: string }) {
   const t = useT();
@@ -103,6 +107,7 @@ export function ExpensePay() {
   const reportMutation = useReportExpensePayment(tripId, expenseId);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
 
   if (viewError || payError) {
     return (
@@ -130,6 +135,7 @@ export function ExpensePay() {
   }
 
   const row = 'row' in payData ? payData.row : null;
+  const billExpense = view.expenses.find((x) => x.id === expenseId || x.rootId === expenseId);
 
   if (!row) {
     const waiting = payData.row === null ? payData.claim : undefined;
@@ -158,7 +164,36 @@ export function ExpensePay() {
         />
       );
     }
-    return <Navigate to={href(`/expenses/${encodeURIComponent(expenseId)}`)} replace />;
+    if (billExpense && billExpense.payerId === view.me.participantId) {
+      return <Navigate to={href(`/expenses/${encodeURIComponent(expenseId)}`)} replace />;
+    }
+    const name = nameOf(view, view.me.participantId);
+    return (
+      <Screen title="" back={href('/')}>
+        <div className="fsl-expense-pay fsl-expense-pay__nothing-here flex flex-col items-center gap-4 max-w-[480px] mx-auto w-full py-8 text-center">
+          <p className="m-0 text-base font-medium text-foreground">
+            {t('expensePay.nothingHere', { name })}
+          </p>
+          {view.me.kind === 'guest' && (
+            <Link
+              to={
+                href('/who') +
+                '?expense=' +
+                encodeURIComponent(expenseId) +
+                '&next=' +
+                encodeURIComponent(location.pathname + location.search)
+              }
+              className="fsl-expense-pay__switch text-primary font-semibold"
+            >
+              {t('guest.switch', { name })}
+            </Link>
+          )}
+          <Button variant="ghost" href={href()} className="fsl-expense-pay__see-group">
+            {t('owe.seeGroup')}
+          </Button>
+        </div>
+      </Screen>
+    );
   }
 
   const v = payData as ExpensePayView;
@@ -167,6 +202,8 @@ export function ExpensePay() {
   const incomingRequest =
     me?.mergeRequests.incoming.find((r) => r.survivor.name === claimName) ??
     me?.mergeRequests.incoming?.[0];
+
+  const calc = billExpense ? sportBillCalc(view, billExpense) : null;
 
   const onPaid = async () => {
     if (!isLocked && v.row.slots >= 2) {
@@ -257,6 +294,17 @@ export function ExpensePay() {
           </div>
         )}
 
+        {billExpense && (
+          <Button
+            variant="secondary"
+            block
+            className="fsl-expense-pay__view-bill"
+            onClick={() => setBillOpen(true)}
+          >
+            {t('expensePay.viewBill')}
+          </Button>
+        )}
+
         {v.paid.length > 0 && (
           <div className="fsl-expense-pay__paid-list flex flex-col gap-2 pt-2 border-t border-border">
             {v.paid.map((p) => {
@@ -332,6 +380,35 @@ export function ExpensePay() {
           open={mergeConfirmOpen}
           onClose={() => setMergeConfirmOpen(false)}
         />
+      )}
+      {billExpense && (
+        <Sheet
+          open={billOpen}
+          onClose={() => setBillOpen(false)}
+          title={t('expensePay.billTitle')}
+        >
+          {calc ? (
+            <SportBillTable calc={calc} total={billExpense.amount} meId={view.me.participantId} />
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3 text-base">
+                <span className="font-semibold text-foreground">{billExpense.description}</span>
+                <Amount value={billExpense.amount} />
+              </div>
+              <div className="rounded-xl bg-card divide-y divide-border border border-border overflow-hidden">
+                {billExpense.shares.map((s) => (
+                  <div
+                    key={s.participantId}
+                    className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-sm"
+                  >
+                    <span className="text-foreground">{nameOf(view, s.participantId)}</span>
+                    <Amount value={s.amount} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Sheet>
       )}
     </Screen>
   );

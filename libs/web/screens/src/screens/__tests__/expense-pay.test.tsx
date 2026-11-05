@@ -213,13 +213,13 @@ describe('ExpensePay', () => {
     });
   });
 
-  it('row null redirects to the expense page', async () => {
+  it('row null for someone other than the payer says there is nothing for them, not the bill', async () => {
+    // Chi isn't the payer of e-1: she gets an honest "nothing for you" (rewrite spec §4.2), never the bill silently.
     api({ row: null });
     renderAt(<ExpensePay />, payRoute);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-1');
-    });
+    expect(await screen.findByText('Nothing for Chi in this bill')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-1/pay');
   });
 
   it('unpicked guest redirects to who with expense param', async () => {
