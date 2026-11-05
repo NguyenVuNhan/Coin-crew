@@ -59,6 +59,21 @@ function useLinkActions(view: TripView, url: string) {
   return { copied, copy, share };
 }
 
+function BankFirstInline({ view }: { view: TripView }) {
+  const t = useT();
+  const { href } = useTrip(view.trip.id);
+
+  return (
+    <div className="fsl-invite__bank-first flex flex-col gap-2">
+      <p className="m-0 text-sm font-semibold text-foreground">{t('bankFirst.title')}</p>
+      <p className="m-0 text-sm text-muted-foreground">{t('bankFirst.body')}</p>
+      <Button variant="primary" block href={bankDetailsHref(view, href)}>
+        {t('bankFirst.add')}
+      </Button>
+    </div>
+  );
+}
+
 function LinkBlock({
   view,
   which,
@@ -82,7 +97,6 @@ function LinkBlock({
   const [error, setError] = useState<unknown>(null);
   const url = `${appOrigin()}/j/${token}?lang=${lang}`;
   const { copied, copy, share } = useLinkActions(view, url);
-  const { href } = useTrip(view.trip.id);
   const showBankFirst = which === 'group' && needsBankFirst(view);
 
   async function regenerate() {
@@ -113,15 +127,7 @@ function LinkBlock({
           value={url}
           onFocus={(e) => e.target.select()}
         />
-        {showBankFirst && (
-          <div className="fsl-invite__bank-first flex flex-col gap-2">
-            <p className="m-0 text-sm font-semibold text-foreground">{t('bankFirst.title')}</p>
-            <p className="m-0 text-sm text-muted-foreground">{t('bankFirst.body')}</p>
-            <Button variant="primary" block href={bankDetailsHref(view, href)}>
-              {t('bankFirst.add')}
-            </Button>
-          </div>
-        )}
+        {showBankFirst && <BankFirstInline view={view} />}
         <div className={cn('fsl-invite__buttons flex flex-col sm:flex-row gap-2')}>
           <Button variant={primary && !showBankFirst ? 'primary' : 'secondary'} block className="sm:flex-1" onClick={share}>
             <Icon name="share" size={18} />
@@ -186,6 +192,7 @@ export function InviteCard({ view }: { view: TripView }) {
   const titleId = useId();
   const url = view.links ? `${appOrigin()}/j/${view.links.group}?lang=${lang}` : '';
   const { copied, copy, share } = useLinkActions(view, url);
+  const showBankFirst = needsBankFirst(view);
 
   if (!view.links) return null;
 
@@ -200,8 +207,9 @@ export function InviteCard({ view }: { view: TripView }) {
         value={url}
         onFocus={(e) => e.target.select()}
       />
+      {showBankFirst && <BankFirstInline view={view} />}
       <div className={cn('fsl-invite__buttons flex flex-col sm:flex-row gap-2')}>
-        <Button variant="primary" block className="sm:flex-1" onClick={share}>
+        <Button variant={showBankFirst ? 'secondary' : 'primary'} block className="sm:flex-1" onClick={share}>
           <Icon name="share" size={18} />
           {t('invite.share')}
         </Button>

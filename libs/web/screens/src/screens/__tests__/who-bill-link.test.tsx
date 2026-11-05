@@ -75,12 +75,9 @@ describe('WhoAreYou bill link and guest behavior', () => {
     const joinBtn = await screen.findByRole('button', { name: 'Not on the list? Join as Hoa' });
     expect(joinBtn).toBeInTheDocument();
 
+    // No gender step is needed, so the row joins straight away: no separate confirm button.
     await userEvent.click(joinBtn);
-
-    const confirmBtn = screen.queryByRole('button', { name: 'Join as Hoa' });
-    if (confirmBtn) {
-      await userEvent.click(confirmBtn);
-    }
+    expect(screen.queryByRole('button', { name: 'Join as Hoa' })).toBeNull();
 
     await waitFor(() => {
       expect(calls.some((c) => c.path === '/api/trips/t-1/join')).toBe(true);

@@ -1,10 +1,12 @@
-import { Navigate, useLocation } from 'react-router';
-import { useT } from '@cc/web-i18n';
+import { useEffect } from 'react';
+import { Navigate, useLocation, useSearchParams } from 'react-router';
+import { applyInheritedLang, useT } from '@cc/web-i18n';
 import { useTripView } from '@cc/web-data-access/hooks';
 import { nameOf } from '@cc/web-util/tripText';
 import { useTrip } from '../lib/tripBase';
 import { owedTransfers, waitingPayments } from '../lib/owe';
 import { Screen } from '../components/Screen';
+import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
 import { Button } from '@cc/web-ui/components/Button';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Avatar } from '@cc/web-ui/components/Avatar';
@@ -16,6 +18,7 @@ import { Icon } from '@cc/web-ui/components/icons';
 export function OweScreen() {
   const { tripId, base, viaLink, href } = useTrip();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const t = useT();
 
   const {
@@ -25,9 +28,13 @@ export function OweScreen() {
     refetch,
   } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
 
+  useEffect(() => {
+    applyInheritedLang(searchParams.get('lang'), view?.trip.defaultLang);
+  }, [searchParams, view?.trip.defaultLang]);
+
   if (error) {
     return (
-      <Screen title="" back={tripId ? href() : undefined}>
+      <Screen title="" back={tripId ? href() : undefined} right={<LanguageButton />}>
         <InlineError error={error} onRetry={refetch} />
       </Screen>
     );
@@ -35,7 +42,7 @@ export function OweScreen() {
 
   if (isLoading || !view) {
     return (
-      <Screen title="" back={tripId ? href() : undefined}>
+      <Screen title="" back={tripId ? href() : undefined} right={<LanguageButton />}>
         <div className="fsl-owe__loading flex flex-col gap-4 py-2">
           <Skeleton height={80} radius="lg" />
           <Skeleton
@@ -93,8 +100,9 @@ export function OweScreen() {
 
   return (
     <Screen
-      title={transfers.length > 0 || waiting.length > 0 ? t('owe.title', { name: myName }) : view.trip.name}
+      title={transfers.length > 0 ? t('owe.title', { name: myName }) : view.trip.name}
       back={href()}
+      right={<LanguageButton />}
     >
       <div className="fsl-owe flex flex-col gap-4">
         {(transfers.length > 0 || waiting.length > 0) && (
@@ -135,7 +143,7 @@ export function OweScreen() {
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <span
-                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning"
+                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning-foreground"
                       aria-hidden="true"
                     >
                       <Icon name="clock" size={20} />
@@ -144,7 +152,7 @@ export function OweScreen() {
                       <span className="truncate text-base font-semibold text-foreground">
                         {toName}
                       </span>
-                      <span className="truncate text-sm font-medium text-warning">
+                      <span className="truncate text-sm font-medium text-warning-foreground">
                         {t('owe.waiting', { name: toName })}
                       </span>
                     </div>

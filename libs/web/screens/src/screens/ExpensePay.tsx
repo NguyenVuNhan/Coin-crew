@@ -183,7 +183,7 @@ export function ExpensePay() {
                 '&next=' +
                 encodeURIComponent(location.pathname + location.search)
               }
-              className="fsl-expense-pay__switch text-primary font-semibold"
+              className="fsl-expense-pay__switch inline-flex min-h-11 items-center text-primary font-semibold"
             >
               {t('guest.switch', { name })}
             </Link>

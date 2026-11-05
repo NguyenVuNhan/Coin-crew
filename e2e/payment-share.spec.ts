@@ -234,6 +234,7 @@ test("bill link: a guest's first screen is their share and the QR; View the bill
   const billDialog = guest.getByRole('dialog', { name: 'The bill' });
   await expect(billDialog).toBeVisible();
   await expect(billDialog.getByText('COSTS')).toBeVisible();
+  await expect(billDialog.getByText('Court: 400.000₫')).toBeVisible();
 
   await minhContext.close();
   await guestContext.close();

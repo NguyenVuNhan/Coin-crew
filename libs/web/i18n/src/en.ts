@@ -662,7 +662,7 @@ export const en = {
 
   // Before sharing a "pay me" link without bank details (rewrite spec §4.6).
   'bankFirst.title': 'Add your bank details first?',
-  'bankFirst.body': 'Friends who open this link will see a QR to pay you only after you add them.',
+  'bankFirst.body': 'Friends who open this link get a QR to pay you only once your bank details are added.',
   'bankFirst.add': 'Add bank details',
   'bankFirst.anyway': 'Share anyway',
 
