@@ -11,8 +11,9 @@ import { Button } from '@cc/web-ui/components/Button';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { PeopleInput } from '../components/PeopleInput';
+import { hideUndo } from '../components/UndoSnackbarHost';
 import { Icon } from '@cc/web-ui/components/icons';
-import { newPersonEntry, type PersonEntry } from '@cc/web-util/recentPeople';
+import type { PersonEntry } from '@cc/web-util/recentPeople';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -34,7 +35,11 @@ export function CreateTrip() {
 
   const [preset, setPreset] = useState<GroupPreset>('trip');
   const [tripName, setTripName] = useState('');
-  const [people, setPeople] = useState<PersonEntry[]>(() => [newPersonEntry()]);
+  const [people, setPeople] = useState<PersonEntry[]>([]);
+  // A name typed in the add field but not added yet still joins the group.
+  const [draft, setDraft] = useState('');
+  const [myGender, setMyGender] = useState<Gender | null>(null);
+  const effectiveMyGender = myGender ?? user?.gender ?? null;
   const [bank, setBank] = useState<BankFieldsValue>({
     bin: '',
     accountNumber: '',
@@ -59,11 +64,15 @@ export function CreateTrip() {
     e.preventDefault();
     if (!isFormValid || createMutation.isPending) return;
 
+    hideUndo();
     setSubmitError(null);
+    const typedName = draft.trim();
+    const roster: PersonEntry[] =
+      typedName !== '' && typedName.length <= 40 ? [...people, { key: 'draft', name: typedName }] : people;
     const input: CreateTripInput = {
       name: tripName.trim(),
       defaultLang: lang,
-      people: people.flatMap((p) => {
+      people: roster.flatMap((p) => {
         const name = p.name.trim();
         if (name === '') return [];
         if (preset === 'sport') {
@@ -82,8 +91,8 @@ export function CreateTrip() {
 
     if (preset === 'sport') {
       input.preset = 'sport';
-      if (user?.gender) {
-        input.myGender = user.gender;
+      if (effectiveMyGender) {
+        input.myGender = effectiveMyGender;
       }
     }
 
@@ -183,7 +192,13 @@ export function CreateTrip() {
           />
         </div>
 
-        <PeopleInput value={people} onChange={setPeople} showGender={preset === 'sport'} />
+        <PeopleInput
+          value={people}
+          onChange={setPeople}
+          showGender={preset === 'sport'}
+          me={user ? { name: user.name, gender: effectiveMyGender, onGenderChange: setMyGender } : undefined}
+          onDraftChange={setDraft}
+        />
 
         <details className={cn('fsl-create-trip__details group rounded-xl border border-border bg-card overflow-hidden')}>
           <summary

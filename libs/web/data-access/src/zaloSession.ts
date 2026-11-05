@@ -3,6 +3,7 @@ import type { ZaloMiniRequest, ZaloMiniResponse } from '@cc/core';
 import { apiSend } from './client';
 import type { PlatformBridge } from '@cc/web-platform';
 import { sessionStore } from '@cc/web-platform/session';
+import { SIGNED_OUT_KEY } from './signOut';
 
 const ENDPOINT = '/api/auth/zalo-mini';
 
@@ -51,6 +52,7 @@ export async function zaloSignIn(
     if (res?.status !== 'signed_in') return 'failed';
     await sessionStore.setToken(res.sessionToken);
     try {
+      await p.storage.remove(SIGNED_OUT_KEY);
       await p.storage.set('zaloName', info.name);
     } catch {
       // Only a hint for WhoAreYou; signing in already worked.

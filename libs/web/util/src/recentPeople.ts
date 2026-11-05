@@ -15,12 +15,6 @@ export function newPersonEntry(name = '', userId?: string, gender: Gender | null
   return entry;
 }
 
-export function nextGender(current: Gender | null | undefined): Gender | null {
-  if (current === 'M') return 'F';
-  if (current === 'F') return null;
-  return 'M';
-}
-
 /**
  * Up to `max` people whose name has a word that starts with what was typed, ignoring accents and capitals.
  * A query of several words ("chi tr") matches from the start of any word of the name. Accounts in `exclude` are skipped.

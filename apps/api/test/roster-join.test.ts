@@ -31,10 +31,9 @@ describe('joining', () => {
     expect(v.people.find((p) => p.id === participantId)).toMatchObject({ name: 'Dũng', status: 'active', isMember: true });
   });
 
-  it('a look-alike name needs confirmNew', async () => {
+  it('a look-alike name joins straight away', async () => {
     const h = await signedInGuest('u-binh2', 'Binh');
-    expect((await post('/join', h, {})).status).toBe(422);
-    expect((await post('/join', h, { confirmNew: true })).status).toBe(201);
+    expect((await post('/join', h, {})).status).toBe(201);
   });
 
   it('a sport group needs a gender unless the account has one', async () => {

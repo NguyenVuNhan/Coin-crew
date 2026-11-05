@@ -6,6 +6,7 @@ export const vi: Record<MessageKey, string> = {
   'common.continue': 'Tiếp tục', // REVIEW
   'common.back': 'Quay lại', // REVIEW
   'common.close': 'Đóng', // REVIEW
+  'common.dismiss': 'Bỏ qua', // REVIEW
   'common.undo': 'Hoàn tác', // REVIEW
 
   'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
@@ -33,7 +34,6 @@ export const vi: Record<MessageKey, string> = {
 
   'who.lastUsedHere': 'Lần trước bạn đã chọn người này trên điện thoại này', // REVIEW
   'who.activeElsewhere': 'Đang hoạt động trên máy khác · {ago}', // REVIEW
-  'who.someoneNew': 'Không có trong danh sách? Thêm tên của bạn', // REVIEW
   'who.areYou': 'Bạn là {name} phải không?', // REVIEW
   'who.yesIm': 'Đúng, tôi là {name}', // REVIEW
   'who.noAddMe': 'Không, thêm tôi vào', // REVIEW
@@ -172,7 +172,13 @@ export const vi: Record<MessageKey, string> = {
   'create.myName': 'Tên của bạn', // REVIEW
   'create.others': 'Ai sẽ tham gia cùng? (tùy chọn)', // REVIEW
   'create.otherPlaceholder': 'Tên', // REVIEW
-  'create.addPerson': 'Thêm người', // REVIEW
+  'addBar.nameLabel': 'Tên người cần thêm', // REVIEW
+  'addBar.add': '+ Thêm', // REVIEW
+  'addBar.addM': '+ Nam', // REVIEW
+  'addBar.addF': '+ Nữ', // REVIEW
+  'addBar.added': 'Đã thêm {name}', // REVIEW
+  'addBar.addedWithGender': 'Đã thêm {name} · {gender}', // REVIEW
+  'addBar.addedMany': 'Đã thêm {count} người', // REVIEW
   'create.removePerson': 'Xóa {name}', // REVIEW
   'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
   'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
@@ -182,9 +188,12 @@ export const vi: Record<MessageKey, string> = {
   'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.', // REVIEW
 
   'gender.label': 'Giới tính của {name}', // REVIEW
-  'gender.M': 'Nam', // REVIEW
-  'gender.F': 'Nữ', // REVIEW
-  'gender.unset': '—', // REVIEW
+  'gender.pillM': 'Nam', // REVIEW
+  'gender.pillF': 'Nữ', // REVIEW
+  'gender.pillLabel': 'Giới tính của {name}: {gender}', // REVIEW
+  'gender.set': 'Giới tính?', // REVIEW
+  'gender.setFor': 'Chọn giới tính cho {name}', // REVIEW
+  'gender.changed': '{name} · {gender}', // REVIEW
 
   'bank.bank': 'Ngân hàng', // REVIEW
   'bank.popular': 'Phổ biến', // REVIEW
@@ -215,15 +224,14 @@ export const vi: Record<MessageKey, string> = {
   'who.count': '{shown} trên {total} người', // REVIEW
   'who.addNamed': 'Không có trong danh sách? Thêm "{name}"', // REVIEW
   'who.pending': 'Đang chờ duyệt', // REVIEW
-  'who.newTitle': 'Tên của bạn là gì?', // REVIEW
-  'who.newHint': 'Dùng tên mà bạn bè hay gọi bạn.', // REVIEW
   'who.nameLabel': 'Tên của bạn', // REVIEW
   'who.inTrip': 'Đã có trong chuyến đi này', // REVIEW
   'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong chuyến đi này.', // REVIEW
-  'who.newPendingNote': 'Một thành viên sẽ kiểm tra tên mới trước khi xuất hiện trong chuyến đi.', // REVIEW
   'who.joinAs': 'Không có trong danh sách? Tham gia với tên {name}', // REVIEW
   'who.joinButton': 'Tham gia với tên {name}', // REVIEW
   'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
+  'who.playAs': 'Bạn chơi là', // REVIEW
+  'who.playAsHint': 'Dùng để chia tiền sân. Bạn có thể đổi sau.', // REVIEW
   'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn', // REVIEW
   'who.nameOrFriend': '{name} hoặc bạn của {name}', // REVIEW
   'who.slots': '{n} suất', // REVIEW
@@ -526,6 +534,10 @@ export const vi: Record<MessageKey, string> = {
   'people.merge': 'Hợp nhất', // REVIEW
   'people.mergeInto': 'Hợp nhất {name} vào…', // REVIEW
   'people.mergeConfirm': 'Chuyển toàn bộ khoản chi và thanh toán từ {from} sang {into}?', // REVIEW
+  'people.likeHint': 'Giống {name}?', // REVIEW
+  'people.likeMerge': 'Gộp', // REVIEW
+  'people.likeDismiss': 'Không phải cùng một người', // REVIEW
+  'people.addFailed': 'Không thêm được {names}.', // REVIEW
   'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
   'people.inviteZalo': 'Mời bạn bè Zalo', // REVIEW
   'people.remove': 'Xóa', // REVIEW
@@ -537,8 +549,6 @@ export const vi: Record<MessageKey, string> = {
   'people.leftOwes': 'Còn nợ {amount}', // REVIEW
   'people.leftOwed': 'Cần nhận {amount}', // REVIEW
   'people.leftSettled': 'Đã thanh toán xong', // REVIEW
-  'people.similar': '"{typed}" có vẻ giống "{name}", người đã có trong nhóm này.', // REVIEW
-  'people.addAnyway': 'Vẫn thêm', // REVIEW
   'people.restore': 'Thêm lại', // REVIEW
 
   'activity.title': 'Hoạt động', // REVIEW

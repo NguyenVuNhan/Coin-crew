@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { MyTrips } from '../MyTrips';
 import { CreateTrip } from '../CreateTrip';
 import { Landing } from '../Landing';
+import { UndoSnackbarHost } from '../../components/UndoSnackbarHost';
 
 const me = (consentAt: string | null = '2026-10-12T00:00:00.000Z') => ({ user: { id: 'u-minh', email: 'minh@example.com', name: 'Minh', consentAt } });
 
@@ -130,9 +131,8 @@ describe('CreateTrip', () => {
     expect(await screen.findByLabelText('Group name')).toBeInTheDocument();
     expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt · Oct 2026');
-    await userEvent.type(screen.getAllByPlaceholderText('Name')[0]!, 'An');
-    await userEvent.click(screen.getByRole('button', { name: 'Add person' }));
-    await userEvent.type(screen.getAllByPlaceholderText('Name')[1]!, 'Bình');
+    await userEvent.type(screen.getByLabelText('Name to add'), 'An{Enter}');
+    await userEvent.type(screen.getByLabelText('Name to add'), 'Bình{Enter}');
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
     expect(calls.find((c) => c.method === 'POST' && c.path === '/api/trips')?.body).toEqual({ name: 'Đà Lạt · Oct 2026', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình' }], defaultLang: 'en' });
@@ -141,84 +141,77 @@ describe('CreateTrip', () => {
 
 describe('CreateTrip people', () => {
   const chi = { userId: 'u-chi', name: 'Chi Trần', trips: ['Phú Quốc', 'Hội An'] };
-  const chau = { userId: 'u-chau', name: 'Châu', trips: ['Hội An'] };
-  const nameLines = () => screen.getAllByPlaceholderText('Name') as HTMLInputElement[];
+  const nameField = () => screen.getByLabelText('Name to add') as HTMLInputElement;
+  const roster = () => screen.getByRole('list', { name: 'Who else is coming? (optional)' });
+  const rowNames = () =>
+    within(roster())
+      .getAllByRole('listitem')
+      .map((li) => li.querySelector('.fsl-people-input__name')?.textContent);
   const posted = (calls: { method: string; path: string; body: unknown }[]) => calls.filter((c) => c.method === 'POST' && c.path === '/api/trips');
 
-  it('Enter adds a line and never submits', async () => {
+  it('Enter adds a row, keeps the field ready and never submits', async () => {
     const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    await userEvent.type(nameLines()[0]!, 'An{Enter}');
-    expect(nameLines()).toHaveLength(2);
-    expect(nameLines()[1]!).toHaveFocus();
+    await userEvent.type(nameField(), 'An{Enter}');
+    expect(rowNames()).toEqual(['Minh', 'An']);
+    expect(nameField()).toHaveValue('');
+    expect(nameField()).toHaveFocus();
     await userEvent.keyboard('{Enter}');
-    expect(nameLines()).toHaveLength(2);
+    expect(rowNames()).toEqual(['Minh', 'An']);
     await userEvent.keyboard('Bình{Enter}');
-    expect(nameLines().map((l) => l.value)).toEqual(['An', 'Bình', '']);
+    expect(rowNames()).toEqual(['Minh', 'An', 'Bình']);
     expect(screen.getByLabelText('Group name')).toHaveValue('Đà Lạt');
     expect(posted(calls)).toHaveLength(0);
   });
 
-  it('handles Enter itself, so the browser never submits from a name line', async () => {
+  it('your own row is first and has no remove button', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    // A jsdom form without an inline submit button does not submit on Enter, so check that the key's default is cancelled.
-    expect(fireEvent.keyDown(nameLines()[0]!, { key: 'Enter' })).toBe(false);
-    await userEvent.type(nameLines()[0]!, 'An');
-    expect(fireEvent.keyDown(nameLines()[0]!, { key: 'Enter' })).toBe(false);
-    expect(nameLines()).toHaveLength(2);
+    await waitFor(() => expect(rowNames()).toEqual(['Minh']));
+    const own = within(roster()).getAllByRole('listitem')[0]!;
+    expect(within(own).getByText('You')).toBeInTheDocument();
+    expect(within(own).queryByRole('button', { name: /^Remove/ })).not.toBeInTheDocument();
   });
 
-  it('Enter on a line above an empty one moves to it instead of adding another', async () => {
+  it('pasting a list adds one row per name', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
-    await userEvent.type(nameLines()[0]!, 'An{Enter}');
-    await userEvent.click(nameLines()[0]!);
-    await userEvent.keyboard('{Enter}');
-    expect(nameLines()).toHaveLength(2);
-    expect(nameLines()[1]!).toHaveFocus();
-  });
-
-  it('Backspace on an empty line removes it', async () => {
-    mockApi({ 'GET /api/me': me() });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    await userEvent.click(nameLines()[0]!);
-    await userEvent.keyboard('{Backspace}');
-    expect(nameLines()).toHaveLength(1);
-    await userEvent.type(nameLines()[0]!, 'An{Enter}');
-    expect(nameLines()).toHaveLength(2);
-    await userEvent.keyboard('{Backspace}');
-    expect(nameLines().map((l) => l.value)).toEqual(['An']);
-    expect(nameLines()[0]!).toHaveFocus();
-    expect(nameLines()[0]!.selectionStart).toBe(2);
-    await userEvent.keyboard('{Backspace}');
-    expect(nameLines()[0]!).toHaveValue('A');
-  });
-
-  it('pasting a list fills one line per name', async () => {
-    mockApi({ 'GET /api/me': me() });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    await userEvent.click(nameLines()[0]!);
+    await userEvent.click(nameField());
     await userEvent.paste('An, Bình\nChi');
-    expect(nameLines().map((l) => l.value)).toEqual(['An', 'Bình', 'Chi']);
-    expect(nameLines()[2]!).toHaveFocus();
+    expect(rowNames()).toEqual(['Minh', 'An', 'Bình', 'Chi']);
     await userEvent.paste(' Dũng ,, \r\n Em,');
-    expect(nameLines().map((l) => l.value)).toEqual(['An', 'Bình', 'Chi', 'Dũng', 'Em']);
+    expect(rowNames()).toEqual(['Minh', 'An', 'Bình', 'Chi', 'Dũng', 'Em']);
+    expect(nameField()).toHaveValue('');
   });
 
-  it('pasting one name works as it always did', async () => {
+  it('a row can be removed', async () => {
     mockApi({ 'GET /api/me': me() });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
-    await userEvent.click(nameLines()[0]!);
-    await userEvent.paste('Thảo Vy');
-    expect(nameLines().map((l) => l.value)).toEqual(['Thảo Vy']);
+    await userEvent.type(nameField(), 'An{Enter}');
+    await userEvent.type(nameField(), 'Bình{Enter}');
+    await userEvent.click(screen.getByRole('button', { name: 'Remove An' }));
+    expect(rowNames()).toEqual(['Minh', 'Bình']);
+  });
+
+  it('Undo removes the rows just added', async () => {
+    mockApi({ 'GET /api/me': me() });
+    renderAt(
+      <>
+        <CreateTrip />
+        <UndoSnackbarHost />
+      </>,
+    );
+    await screen.findByLabelText('Group name');
+    await userEvent.type(nameField(), 'An{Enter}');
+    await userEvent.click(nameField());
+    await userEvent.paste('Bình\nChi');
+    expect(await screen.findByText('Added 2 people')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(rowNames()).toEqual(['Minh', 'An']);
   });
 
   it('suggests people with an account and adds their account', async () => {
@@ -230,20 +223,17 @@ describe('CreateTrip people', () => {
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    await userEvent.type(nameLines()[0]!, 'An{Enter}');
-    await userEvent.type(nameLines()[1]!, 'ch');
+    await userEvent.type(nameField(), 'An{Enter}');
+    await userEvent.type(nameField(), 'ch');
     const list = await screen.findByRole('listbox', { name: 'From your recent trips' });
     const option = within(list).getByRole('option', { name: /Chi Trần/ });
     expect(option).toHaveTextContent('Phú Quốc · Hội An');
     await userEvent.click(option);
 
-    const row = screen.getByLabelText('Chi Trần · has an account');
-    expect(within(row).getByText('Chi Trần')).toBeInTheDocument();
-    expect(within(row).queryByRole('textbox')).not.toBeInTheDocument();
-    expect(within(row).getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByLabelText('Chi Trần · has an account')).toBeInTheDocument();
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    expect(nameLines().map((l) => l.value)).toEqual(['An', '']);
-    expect(nameLines()[1]!).toHaveFocus();
+    expect(rowNames()).toEqual(['Minh', 'An', 'Chi Trần']);
+    expect(nameField()).toHaveValue('');
 
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
@@ -251,146 +241,25 @@ describe('CreateTrip people', () => {
     expect(calls.filter((c) => c.path === '/api/me/people')).toHaveLength(1);
   });
 
-  it('chooses a suggestion with the arrow keys and closes the list with Escape', async () => {
-    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi, chau] });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    const field = nameLines()[0]!;
-    expect(field).toHaveAttribute('role', 'combobox');
-    expect(field).toHaveAttribute('aria-expanded', 'false');
-
-    await userEvent.type(field, 'ch');
-    const list = await screen.findByRole('listbox', { name: 'From your recent trips' });
-    const options = within(list).getAllByRole('option');
-    expect(options).toHaveLength(2);
-    expect(field).toHaveAttribute('aria-expanded', 'true');
-    expect(field).toHaveAttribute('aria-controls', list.id);
-    expect(options.every((o) => o.getAttribute('aria-selected') === 'false')).toBe(true);
-
-    await userEvent.keyboard('{ArrowDown}');
-    expect(options[0]!).toHaveAttribute('aria-selected', 'true');
-    expect(field).toHaveAttribute('aria-activedescendant', options[0]!.id);
-    await userEvent.keyboard('{ArrowDown}');
-    expect(options[1]!).toHaveAttribute('aria-selected', 'true');
-    expect(field).toHaveAttribute('aria-activedescendant', options[1]!.id);
-    await userEvent.keyboard('{ArrowUp}');
-    expect(options[0]!).toHaveAttribute('aria-selected', 'true');
-
-    await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    expect(field).toHaveAttribute('aria-expanded', 'false');
-    expect(field).toHaveValue('ch');
-    await userEvent.keyboard('a');
-    expect(await screen.findByRole('listbox')).toBeInTheDocument();
-
-    await userEvent.keyboard('{ArrowDown}{Enter}');
-    expect(screen.getByLabelText('Châu · has an account')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
-  });
-
-  it('a suggestion chosen on one line is never picked by Enter on another', async () => {
-    const an = { userId: 'u-an', name: 'An', trips: ['Phú Quốc'] };
-    const binh = { userId: 'u-binh', name: 'Bình', trips: ['Sa Pa'] };
-    const { calls } = mockApi({
-      'GET /api/me': me(),
-      'GET /api/me/people': [an, binh],
-      'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
-    });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    // Line 1: An's account is suggested, but Enter keeps the typed name.
-    await userEvent.type(nameLines()[0]!, 'An');
-    await screen.findByRole('option', { name: /^An/ });
-    await userEvent.keyboard('{Enter}');
-    expect(nameLines()[1]!).toHaveFocus();
-    // Line 2: Bình chosen with the arrows.
-    await userEvent.keyboard('bi');
-    await screen.findByRole('option', { name: /^Bình/ });
-    await userEvent.keyboard('{ArrowDown}{Enter}');
-    expect(screen.getByLabelText('Bình · has an account')).toBeInTheDocument();
-
-    // Back on line 1 the list opens again with nothing chosen, so Enter keeps "An" a typed name.
-    await userEvent.click(nameLines()[0]!);
-    expect(await screen.findByRole('option', { name: /^An/ })).toHaveAttribute('aria-selected', 'false');
-    expect(nameLines()[0]!).not.toHaveAttribute('aria-activedescendant');
-    await userEvent.keyboard('{Enter}');
-    expect(screen.queryByLabelText('An · has an account')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
-    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình', userId: 'u-binh' }], defaultLang: 'en' });
-  });
-
-  it('a suggestion highlighted but not chosen stays with its line', async () => {
-    const an = { userId: 'u-an', name: 'An', trips: ['Phú Quốc'] };
-    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [an, chi] });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    await userEvent.type(nameLines()[0]!, 'An{Enter}');
-    // Line 2: Chi highlighted with the arrows, then the person goes back to line 1 without choosing.
-    await userEvent.keyboard('ch');
-    await screen.findByRole('option', { name: /^Chi Trần/ });
-    await userEvent.keyboard('{ArrowDown}');
-    await userEvent.click(nameLines()[0]!);
-    expect(await screen.findByRole('option', { name: /^An/ })).toHaveAttribute('aria-selected', 'false');
-    await userEvent.keyboard('{Enter}');
-    expect(screen.queryByLabelText(/has an account/)).not.toBeInTheDocument();
-    expect(nameLines().map((l) => l.value)).toEqual(['An', '', 'ch']);
-  });
-
-  it('the Enter that ends an IME composition neither adds a line nor picks a suggestion', async () => {
-    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    const field = nameLines()[0]!;
-    await userEvent.type(field, 'ch');
-    await screen.findByRole('listbox');
-    await userEvent.keyboard('{ArrowDown}');
-    // Safari (Vietnamese Telex on macOS and iOS): not flagged as composing, but keyCode 229.
-    expect(fireEvent.keyDown(field, { key: 'Enter', keyCode: 229 })).toBe(true);
-    expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
-    expect(nameLines()).toHaveLength(1);
-    // Other browsers flag it as composing.
-    fireEvent.keyDown(field, { key: 'Enter', keyCode: 13, isComposing: true });
-    expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
-    expect(nameLines()).toHaveLength(1);
-    // The next real Enter picks the chosen suggestion.
-    fireEvent.keyDown(field, { key: 'Enter', keyCode: 13 });
-    expect(screen.getByLabelText('Chi Trần · has an account')).toBeInTheDocument();
-  });
-
-  it('Enter without a chosen suggestion adds the typed name as it is', async () => {
-    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
-    renderAt(<CreateTrip />);
-    await screen.findByLabelText('Group name');
-    await userEvent.type(nameLines()[0]!, 'ch');
-    await screen.findByRole('listbox');
-    await userEvent.keyboard('{Enter}');
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/has an account/)).not.toBeInTheDocument();
-    expect(nameLines().map((l) => l.value)).toEqual(['ch', '']);
-  });
-
   it('an account cannot be picked twice', async () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
-    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.type(nameField(), 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
     expect(screen.getByLabelText('Chi Trần · has an account')).toBeInTheDocument();
 
-    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.type(nameField(), 'ch');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove Chi Trần' }));
     expect(screen.queryByLabelText('Chi Trần · has an account')).not.toBeInTheDocument();
-    await userEvent.clear(nameLines()[0]!);
-    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.clear(nameField());
+    await userEvent.type(nameField(), 'ch');
     expect(await screen.findByRole('option', { name: /Chi Trần/ })).toBeInTheDocument();
   });
 
-  it('warns when a typed name matches a picked account, and the trip can still be created', async () => {
+  it('warns when a typed name matches a picked account, and the group can still be created', async () => {
     const hint = 'Chi Trần is already on the list with their account.';
     const { calls } = mockApi({
       'GET /api/me': me(),
@@ -400,19 +269,11 @@ describe('CreateTrip people', () => {
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.type(nameField(), 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
-
-    await userEvent.type(nameLines()[0]!, 'chi tra');
     expect(screen.queryByText(hint)).not.toBeInTheDocument();
-    await userEvent.type(nameLines()[0]!, 'n');
-    expect(screen.getByText(hint)).toBeInTheDocument();
-    expect(nameLines()[0]!).toHaveAccessibleDescription(hint);
 
-    await userEvent.type(nameLines()[0]!, 'h');
-    expect(screen.queryByText(hint)).not.toBeInTheDocument();
-    expect(nameLines()[0]!).not.toHaveAccessibleDescription();
-    await userEvent.keyboard('{Backspace}');
+    await userEvent.type(nameField(), 'chi tran{Enter}');
     expect(screen.getByText(hint)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
@@ -425,26 +286,25 @@ describe('CreateTrip people', () => {
     mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
-    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.type(nameField(), 'ch');
     await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
-    await userEvent.type(nameLines()[0]!, 'CHÍ TRẦN');
+    await userEvent.type(nameField(), 'CHÍ TRẦN{Enter}');
     expect(screen.getByText(hint)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Remove Chi Trần' }));
     expect(screen.queryByText(hint)).not.toBeInTheDocument();
-    expect(nameLines()[0]!).toHaveValue('CHÍ TRẦN');
-    expect(nameLines()[0]!).not.toHaveAccessibleDescription();
+    expect(rowNames()).toEqual(['Minh', 'CHÍ TRẦN']);
   });
 
-  it('removing the account row leaves a line to type in', async () => {
-    mockApi({ 'GET /api/me': me(), 'GET /api/me/people': [chi] });
+  it('a name typed but not added yet is still in the group', async () => {
+    const { calls } = mockApi({ 'GET /api/me': me(), 'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }) });
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
-    await userEvent.type(nameLines()[0]!, 'ch');
-    await userEvent.click(await screen.findByRole('option', { name: /Chi Trần/ }));
-    expect(nameLines()).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', { name: 'Remove Chi Trần' }));
-    expect(nameLines().map((l) => l.value)).toEqual(['']);
-    expect(screen.queryByRole('button', { name: /^Remove/ })).not.toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
+    await userEvent.type(nameField(), 'An{Enter}');
+    await userEvent.type(nameField(), '  Bình ');
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+    expect(posted(calls)[0]?.body).toEqual({ name: 'Đà Lạt', myName: 'Minh', people: [{ name: 'An' }, { name: 'Bình' }], defaultLang: 'en' });
   });
 
   it('works without suggestions when the list fails to load', async () => {
@@ -457,7 +317,7 @@ describe('CreateTrip people', () => {
     await screen.findByLabelText('Group name');
     await waitFor(() => expect(calls.some((c) => c.path === '/api/me/people')).toBe(true));
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    await userEvent.type(nameLines()[0]!, 'ch');
+    await userEvent.type(nameField(), 'ch');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
@@ -474,7 +334,7 @@ describe('CreateTrip people', () => {
     renderAt(<CreateTrip />);
     await screen.findByLabelText('Group name');
     await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
-    await userEvent.type(nameLines()[0]!, 'An');
+    await userEvent.type(nameField(), 'An{Enter}');
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create group' })).toBeEnabled();

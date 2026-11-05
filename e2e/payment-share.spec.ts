@@ -280,8 +280,9 @@ test('bill link: a signed-in newcomer joins and lands on that bill', async ({ br
 
   await hoa.getByRole('button', { name: 'Not on the list? Join as Hoa' }).click();
 
-  await expect(hoa.getByRole('button', { name: 'Gender for Hoa' })).toBeVisible();
-  await hoa.getByRole('button', { name: 'Gender for Hoa' }).click();
+  const playAs = hoa.getByRole('radiogroup', { name: 'You play as' });
+  await expect(playAs).toBeVisible();
+  await playAs.getByRole('radio', { name: 'Male', exact: true }).click();
   await hoa.getByRole('button', { name: 'Join as Hoa', exact: true }).click();
 
   await expect(hoa).toHaveURL(new RegExp(`/expenses/${expenseId}/pay$`));

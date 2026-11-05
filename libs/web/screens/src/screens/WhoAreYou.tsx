@@ -19,7 +19,6 @@ import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { NoAccess } from '../components/NoAccess';
 import { Icon } from '@cc/web-ui/components/icons';
-import { GenderToggle } from '../components/GenderToggle';
 import { SignInButtons, signInHref } from '../components/SignInButtons';
 import { SignInSheet } from '../components/SignInSheet';
 import { ClaimSheet } from '../components/ClaimSheet';
@@ -661,13 +660,52 @@ export function WhoAreYou() {
                 {t('who.joinAs', { name: account.name })}
               </button>
               {joinStep === 'gender' && (
-                <div className="fsl-who__join-gender flex items-center gap-2 px-4 pt-2">
-                  <GenderToggle
-                    name={account.name}
-                    value={joinGender}
-                    onChange={setJoinGender}
-                    disabled={isSubmitting}
-                  />
+                <div
+                  role="radiogroup"
+                  aria-labelledby="who-play-as-label"
+                  aria-describedby="who-play-as-hint"
+                  className="fsl-who__join-gender flex flex-col gap-2 px-4 pt-2"
+                >
+                  <span id="who-play-as-label" className="text-sm font-semibold text-foreground">
+                    {t('who.playAs')}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={joinGender === 'M'}
+                      disabled={isSubmitting}
+                      className={cn(
+                        'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
+                        joinGender === 'M'
+                          ? 'border-transparent bg-secondary text-secondary-foreground'
+                          : 'border-border bg-card text-foreground hover:bg-muted',
+                      )}
+                      onClick={() => setJoinGender('M')}
+                    >
+                      <Icon name="mars" size={18} />
+                      <span>{t('gender.pillM')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={joinGender === 'F'}
+                      disabled={isSubmitting}
+                      className={cn(
+                        'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
+                        joinGender === 'F'
+                          ? 'border-transparent bg-secondary text-secondary-foreground'
+                          : 'border-border bg-card text-foreground hover:bg-muted',
+                      )}
+                      onClick={() => setJoinGender('F')}
+                    >
+                      <Icon name="venus" size={18} />
+                      <span>{t('gender.pillF')}</span>
+                    </button>
+                  </div>
+                  <p id="who-play-as-hint" className="m-0 text-sm text-muted-foreground">
+                    {t('who.playAsHint')}
+                  </p>
                 </div>
               )}
             </>

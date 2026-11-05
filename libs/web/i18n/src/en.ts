@@ -6,6 +6,7 @@ export const en = {
   'common.continue': 'Continue',
   'common.back': 'Back',
   'common.close': 'Close',
+  'common.dismiss': 'Dismiss',
   'common.undo': 'Undo',
 
   'error.generic': 'Something went wrong. Try again.',
@@ -33,7 +34,6 @@ export const en = {
 
   'who.lastUsedHere': 'You picked this on this phone last time', // SPEC
   'who.activeElsewhere': 'Active on another phone · {ago}', // SPEC
-  'who.someoneNew': 'Not on the list? Add your name', // SPEC 2026-10-14
   'who.areYou': 'Are you {name}?', // SPEC
   'who.yesIm': "Yes, I'm {name}", // SPEC
   'who.noAddMe': 'No, add me', // SPEC
@@ -172,7 +172,13 @@ export const en = {
   'create.myName': 'Your name',
   'create.others': 'Who else is coming? (optional)',
   'create.otherPlaceholder': 'Name',
-  'create.addPerson': 'Add person',
+  'addBar.nameLabel': 'Name to add',
+  'addBar.add': '+ Add',
+  'addBar.addM': '+ Male',
+  'addBar.addF': '+ Female',
+  'addBar.added': 'Added {name}',
+  'addBar.addedWithGender': 'Added {name} · {gender}',
+  'addBar.addedMany': 'Added {count} people',
   'create.removePerson': 'Remove {name}',
   'create.bankTitle': 'Your bank details (optional)',
   'create.bankHint': 'So friends can pay you back with VietQR. You can add them later.',
@@ -182,9 +188,12 @@ export const en = {
   'create.alreadyListed': '{name} is already on the list with their account.',
 
   'gender.label': 'Gender for {name}',
-  'gender.M': 'M',
-  'gender.F': 'F',
-  'gender.unset': '—',
+  'gender.pillM': 'Male',
+  'gender.pillF': 'Female',
+  'gender.pillLabel': 'Gender for {name}: {gender}',
+  'gender.set': 'Set gender',
+  'gender.setFor': 'Set gender for {name}',
+  'gender.changed': '{name} · {gender}',
 
   'bank.bank': 'Bank',
   'bank.popular': 'Popular',
@@ -215,15 +224,14 @@ export const en = {
   'who.count': '{shown} of {total} people',
   'who.addNamed': 'Not on the list? Add "{name}"',
   'who.pending': 'Waiting for approval',
-  'who.newTitle': "What's your name?",
-  'who.newHint': 'Use the name your friends know you by.',
   'who.nameLabel': 'Your name',
   'who.inTrip': 'Already in this trip',
   'who.similar': '"{typed}" looks like "{name}", who\'s already in this trip.',
-  'who.newPendingNote': 'A member checks new names before they show up in the trip.',
   'who.joinAs': 'Not on the list? Join as {name}',
   'who.joinButton': 'Join as {name}',
   'who.rejoinAs': 'Rejoin as {name}',
+  'who.playAs': 'You play as',
+  'who.playAsHint': 'Used to split court costs. You can change it later.',
   'who.rejoinHint': 'You left this group · your past expenses are still here',
   'who.nameOrFriend': "{name} or {name}'s friend",
   'who.slots': '{n} slots',
@@ -526,6 +534,10 @@ export const en = {
   'people.merge': 'Merge',
   'people.mergeInto': 'Merge {name} into…',
   'people.mergeConfirm': 'Move every expense and payment from {from} to {into}?',
+  'people.likeHint': 'Like {name}?',
+  'people.likeMerge': 'Merge',
+  'people.likeDismiss': 'Not the same person',
+  'people.addFailed': 'Couldn\'t add {names}.',
   'people.mergeExplain': 'Merge moves every expense and payment from one name to another, for duplicates that slipped through.',
   'people.inviteZalo': 'Invite Zalo friends',
   'people.remove': 'Remove',
@@ -537,8 +549,6 @@ export const en = {
   'people.leftOwes': 'Owes {amount}',
   'people.leftOwed': 'Is owed {amount}',
   'people.leftSettled': 'Settled up',
-  'people.similar': '"{typed}" looks like "{name}", who\'s already in this group.',
-  'people.addAnyway': 'Add anyway',
   'people.restore': 'Bring back',
 
   'activity.title': 'Activity',

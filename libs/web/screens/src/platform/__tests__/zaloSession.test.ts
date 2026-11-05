@@ -122,6 +122,14 @@ describe('bootApp in Zalo', () => {
     expect(await zaloHandshake(browserPlatform)).toBe('skipped');
     expect(fetchMock).not.toHaveBeenCalled();
   });
+  it('boots signed out after an explicit sign-out', async () => {
+    const p = fakePlatform();
+    p.store.set('signedOut', '1');
+    const { fetchMock } = mockApi({ 'POST /api/auth/zalo-mini': { status: 'signed_in', sessionToken: 'sess-x' } });
+    await bootApp(p);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sessionStore.token()).toBeNull();
+  });
 });
 
 describe('zaloSignIn', () => {
@@ -168,5 +176,13 @@ describe('zaloSignIn', () => {
     expect(await zaloSignIn(p, new QueryClient())).toBe('failed');
     expect(sessionStore.token()).toBeNull();
     expect(p.store.has('zaloName')).toBe(false);
+  });
+  it('signing in with Zalo again clears the signed-out mark', async () => {
+    const p = fakePlatform();
+    p.store.set('signedOut', '1');
+    await sessionStore.init(p);
+    mockApi({ 'POST /api/auth/zalo-mini': { status: 'signed_in', sessionToken: 'sess-4' } });
+    expect(await zaloSignIn(p, new QueryClient())).toBe('signed_in');
+    expect(p.store.has('signedOut')).toBe(false);
   });
 });

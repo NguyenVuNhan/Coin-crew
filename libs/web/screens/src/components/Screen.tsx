@@ -17,6 +17,7 @@ export interface ScreenProps {
   backInApp?: boolean;
   right?: ReactNode;
   bottomBar?: ReactNode;
+  barAboveKeyboard?: boolean;
   wide?: boolean;
   nav?: { section: NavSection; addHref: string };
   children?: ReactNode;
@@ -72,6 +73,7 @@ export function Screen({
   backInApp,
   right,
   bottomBar,
+  barAboveKeyboard,
   wide,
   nav,
   children,
@@ -167,7 +169,11 @@ export function Screen({
         {children}
       </main>
 
-      {bottomBar ? <BottomBar wide={wide}>{bottomBar}</BottomBar> : null}
+      {bottomBar ? (
+        <BottomBar wide={wide} keyboardAware={barAboveKeyboard}>
+          {bottomBar}
+        </BottomBar>
+      ) : null}
     </>
   );
 

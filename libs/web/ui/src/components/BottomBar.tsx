@@ -1,13 +1,21 @@
 import type { ReactNode } from 'react';
+import { useKeyboardInset } from '@cc/web-util/useKeyboardInset';
 import { cn } from '../lib/utils';
 
 export interface BottomBarProps {
   children: ReactNode;
   className?: string;
   wide?: boolean;
+  keyboardAware?: boolean;
 }
 
-export function BottomBar({ children, className, wide }: BottomBarProps) {
+export function BottomBar({ children, className, wide, keyboardAware }: BottomBarProps) {
+  const isDesktop =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 1024px)').matches
+      : false;
+  const inset = useKeyboardInset(Boolean(keyboardAware && !isDesktop));
+
   return (
     <div
       className={cn(
@@ -17,6 +25,7 @@ export function BottomBar({ children, className, wide }: BottomBarProps) {
         '[&_[aria-current]]:text-primary [&_[data-active=true]]:text-primary',
         className,
       )}
+      style={{ transform: inset ? `translateY(-${inset}px)` : undefined }}
     >
       <div
         className={cn(

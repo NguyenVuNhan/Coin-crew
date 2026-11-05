@@ -7,7 +7,7 @@ import type { UpdateProfileInput } from '@cc/core';
 import { normalizeName } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
-import { deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
+import { deviceExpenseGrants, deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso, sha256Hex } from '@cc/api-util/ids';
 import { GOOGLE_SCOPES, googleClient } from '@cc/api-auth/google';
@@ -300,12 +300,19 @@ export function authRoutes(): Hono<AppBindings> {
   });
 
   app.post('/auth/logout', async (c) => {
+    const db = getDb(c.env);
     const sid = readSessionToken(c);
     if (sid) {
       const idHash = await sha256Hex(sid);
-      const db = getDb(c.env);
       await db.delete(sessions).where(eq(sessions.idHash, idHash));
     }
+    // Signing out means "forget me on this phone": a shared phone must not keep opening the person's groups as them.
+    // The name this device picked in each group (as a guest, or by joining) and its bill passes go with the session.
+    const deviceHash = c.get('deviceHash');
+    await db.batch([
+      db.delete(deviceParticipants).where(eq(deviceParticipants.deviceHash, deviceHash)),
+      db.delete(deviceExpenseGrants).where(eq(deviceExpenseGrants.deviceHash, deviceHash)),
+    ]);
     deleteCookie(c, 'sid', { path: '/' });
     return c.body(null, 204);
   });

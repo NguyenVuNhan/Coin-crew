@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PickerView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
@@ -75,7 +75,7 @@ describe('WhoAreYou: joining without approval', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
   });
 
-  it('asks for a gender first when the group needs one', async () => {
+  it('asks "You play as" first when the group needs a gender', async () => {
     const { calls } = mockApi({
       'GET /api/trips/t-1/people/picker': signedIn({ account: { name: 'Dũng', needsGender: true } }),
       'POST /api/trips/t-1/people/check-name': { matches: [] },
@@ -85,7 +85,10 @@ describe('WhoAreYou: joining without approval', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Not on the list? Join as Dũng' }));
     expect(calls.some((c) => c.path === '/api/trips/t-1/join')).toBe(false);
     expect(screen.getByRole('button', { name: 'Join as Dũng' })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Gender for Dũng' }));
+    const playAs = screen.getByRole('radiogroup', { name: 'You play as' });
+    expect(screen.getByText('Used to split court costs. You can change it later.')).toBeInTheDocument();
+    await userEvent.click(within(playAs).getByRole('radio', { name: 'Male' }));
+    expect(within(playAs).getByRole('radio', { name: 'Male' })).toHaveAttribute('aria-checked', 'true');
     await userEvent.click(screen.getByRole('button', { name: 'Join as Dũng' }));
     await waitFor(() => expect(calls.find((c) => c.path === '/api/trips/t-1/join')?.body).toEqual({ gender: 'M' }));
   });

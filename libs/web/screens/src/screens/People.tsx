@@ -1,10 +1,12 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { findSimilarNames, formatVnd, type Gender, type PersonView, type TripView } from '@cc/core';
+import { useQueryClient } from '@tanstack/react-query';
+import { findSimilarNames, formatVnd, type Gender, type NameCandidate, type PersonView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { useTripView } from '@cc/web-data-access/hooks';
 import { ApiClientError } from '@cc/web-data-access/client';
+import { addTripPerson, removeTripPerson } from '@cc/web-data-access/tripPeople';
 import { useTripAction } from '../lib/useTripAction';
 import { personActions } from '../lib/rowActions';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
@@ -17,12 +19,9 @@ import { ActionRow } from '@cc/web-ui/components/ActionRow';
 import { ActionSheet } from '@cc/web-ui/components/ActionSheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
-import { GenderToggle } from '../components/GenderToggle';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@cc/web-ui/components/ui/input-group';
+import { AddPeopleBar, type NewPerson } from '../components/AddPeopleBar';
+import { GenderPill } from '../components/GenderPill';
+import { showUndo } from '../components/UndoSnackbarHost';
 import { cn } from '@cc/web-ui/lib/utils';
 import { usePlatform } from '@cc/web-platform';
 import { inviteCard } from '../lib/shareCards';
@@ -64,22 +63,28 @@ export function People() {
   // Polls like the trip page: someone may be removed, leave or join from another phone while this list is open.
   const { view, error: loadError, isLoading, refetch } = useTripView(tripId ?? '', 20000, { stopAfterMs: 15 * 60_000 });
   const { busy, error, run } = useTripAction(tripId ?? '');
+  const queryClient = useQueryClient();
 
   const [mergeSource, setMergeSource] = useState<PersonView | null>(null);
   const [menuFor, setMenuFor] = useState<PersonView | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
-  const [newName, setNewName] = useState('');
-  const [newGender, setNewGender] = useState<Gender | null>('M');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const lastAddedName = useRef('');
-  /** A typed name that looks like someone already here: wait for "Add anyway" before sending it. */
-  const [similar, setSimilar] = useState<{ name: string; gender: Gender | null; match: string } | null>(null);
+  /** Names whose add failed and haven't been added yet; the alert stays while non-empty. */
+  const [failedNames, setFailedNames] = useState<string[]>([]);
+  /** Why the last add failed, shown after the failed names list. */
+  const [addError, setAddError] = useState<string | null>(null);
+  /** A just-added person whose name looks like someone already here: new id → the look-alike. Lives while the screen is open. */
+  const [hints, setHints] = useState<Record<string, { id: string; name: string }>>({});
+  /** Adds (and their Undo) reach the server one at a time, in the order they were made. */
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  /** The last added row, scrolled into view once it shows in the list. */
+  const scrollTarget = useRef<string | null>(null);
 
   useEffect(() => {
-    if (actingId === 'new-person' && error && !newName) {
-      setNewName(lastAddedName.current);
-    }
-  }, [error, actingId]);
+    const id = scrollTarget.current;
+    if (!id || !view?.people.some((p) => p.id === id)) return;
+    scrollTarget.current = null;
+    document.querySelector(`[data-person-id="${id}"]`)?.scrollIntoView({ block: 'center' });
+  }, [view]);
 
   if (isLoading) {
     return (
@@ -185,39 +190,152 @@ export function People() {
     await run('/people/merge', { fromId: sourceId, intoId: target.id });
   };
 
-  const submitPerson = async (name: string, gender: Gender | null, confirmNew: boolean) => {
-    lastAddedName.current = name;
-    setSimilar(null);
-    setNewName('');
-    setNewGender('M');
-    inputRef.current?.focus();
-    setActingId('new-person');
-    const payload: { name: string; gender?: Gender | null; confirmNew?: true } = { name };
-    if (view.trip.preset === 'sport' && gender) {
-      payload.gender = gender;
+  const isSport = view.trip.preset === 'sport';
+  const tid = tripId ?? '';
+
+  const dropHints = (ids: string[]) =>
+    setHints((prev) => {
+      const next = { ...prev };
+      for (const id of ids) delete next[id];
+      return next;
+    });
+
+  /** Posts the people one by one; stops at the first failure and resolves with the people not added. */
+  const sendPeople = async (people: NewPerson[], others: NameCandidate[]): Promise<NewPerson[]> => {
+    const added: { id: string; name: string; gender: Gender | null }[] = [];
+    const newHints: Record<string, { id: string; name: string }> = {};
+    let notAdded: NewPerson[] = [];
+    for (const [index, person] of people.entries()) {
+      const input: { name: string; gender?: Gender } = { name: person.name };
+      if (isSport && person.gender) input.gender = person.gender;
+      let id: string;
+      try {
+        id = await addTripPerson(tid, input);
+      } catch (err) {
+        notAdded = people.slice(index);
+        const failed = notAdded.map((p) => p.name);
+        const why = (err as Error).message || t('error.generic');
+        setFailedNames((prev) => [...prev, ...failed]);
+        setAddError(why);
+        break;
+      }
+      setFailedNames((prev) => prev.filter((name) => name !== person.name));
+      const [match] = findSimilarNames(person.name, others);
+      if (match) newHints[id] = { id: match.id, name: match.name };
+      others.push({ id, name: person.name });
+      added.push({ id, name: person.name, gender: input.gender ?? null });
     }
-    // The server refuses a look-alike name unless told it's someone new.
-    if (confirmNew) payload.confirmNew = true;
-    await run('/people', payload, 'POST');
+    const last = added[added.length - 1];
+    if (!last) return notAdded;
+
+    setHints((prev) => ({ ...prev, ...newHints }));
+    scrollTarget.current = last.id;
+    await queryClient.invalidateQueries({ queryKey: ['trip', tid] });
+
+    const ids = added.map((p) => p.id);
+    const message =
+      added.length > 1
+        ? t('addBar.addedMany', { count: added.length })
+        : last.gender
+          ? t('addBar.addedWithGender', {
+              name: last.name,
+              gender: t(last.gender === 'M' ? 'gender.pillM' : 'gender.pillF'),
+            })
+          : t('addBar.added', { name: last.name });
+    showUndo({
+      message,
+      actionLabel: t('common.undo'),
+      onAction: () => {
+        const undo = queue.current.then(async () => {
+          try {
+            for (const id of ids) await removeTripPerson(tid, id);
+          } catch (err) {
+            setAddError((err as Error).message || t('error.generic'));
+          }
+          await queryClient.invalidateQueries({ queryKey: ['trip', tid] });
+          dropHints(ids);
+        });
+        queue.current = undo.catch(() => undefined);
+      },
+    });
+    return notAdded;
   };
 
-  const handleAddPerson = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    const [match] = findSimilarNames(trimmed, view.people.filter((p) => p.status !== 'left'));
-    if (match) {
-      setSimilar({ name: trimmed, gender: newGender, match: match.name });
-      return;
-    }
-    await submitPerson(trimmed, newGender, false);
+  /** The add bar's adds, chained so back-to-back adds reach the server one at a time, in order. */
+  const addPeople = (people: NewPerson[]): Promise<NewPerson[]> => {
+    // Look-alikes are checked against the group as it is now, plus those added earlier in the same batch.
+    const others: NameCandidate[] = view.people
+      .filter((p) => p.status !== 'left')
+      .map((p) => ({ id: p.id, name: p.name }));
+    const job = queue.current.then(() => sendPeople(people, others));
+    queue.current = job.catch(() => undefined);
+    return job;
   };
+
+  const mergeIntoLookAlike = async (person: PersonView, match: { id: string; name: string }) => {
+    if (busy) return;
+    if (!window.confirm(t('people.mergeConfirm', { from: person.name, into: match.name }))) return;
+    setActingId(person.id);
+    await run('/people/merge', { fromId: person.id, intoId: match.id });
+    dropHints([person.id]);
+  };
+
+  const changeGender = async (person: PersonView, next: Gender) => {
+    const previous = person.gender ?? null;
+    setActingId(person.id);
+    if (!(await run(`/people/${person.id}`, { gender: next }, 'PATCH'))) return;
+    showUndo({
+      message: t('gender.changed', {
+        name: person.name,
+        gender: t(next === 'M' ? 'gender.pillM' : 'gender.pillF'),
+      }),
+      actionLabel: t('common.undo'),
+      onAction: () => {
+        setActingId(person.id);
+        void run(`/people/${person.id}`, { gender: previous }, 'PATCH');
+      },
+    });
+  };
+
+  const canAdd =
+    !view.trip.archived && view.me.kind === 'member' && (view.me.isAdmin === true || view.me.isOrganiser);
 
   const mainPeople = view.people.filter((p) => p.status !== 'left');
   const leftPeople = view.people.filter((p) => p.status === 'left');
 
   return (
-    <Screen title={t('people.title')} back={href('/settings')}>
+    <Screen
+      title={t('people.title')}
+      back={href('/settings')}
+      barAboveKeyboard={canAdd}
+      bottomBar={
+        canAdd ? (
+          <>
+            {failedNames.length > 0 && (
+              <div role="alert" className={cn('fsl-people__add-error flex items-center gap-2 text-sm text-danger')}>
+                <span className="min-w-0 flex-1">
+                  {t('people.addFailed', { names: failedNames.join(', ') })} {addError}
+                </span>
+                <button
+                  type="button"
+                  aria-label={t('common.dismiss')}
+                  className={cn(
+                    'fsl-people__add-error-dismiss inline-flex shrink-0 items-center justify-center size-11 rounded-full bg-transparent border-0 cursor-pointer text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 ring-ring',
+                  )}
+                  onClick={() => {
+                    setFailedNames([]);
+                    setAddError(null);
+                  }}
+                >
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
+            )}
+            <AddPeopleBar sport={isSport} onAdd={addPeople} />
+          </>
+        ) : undefined
+      }
+    >
       <div className={cn('fsl-people flex flex-col gap-4 py-4')}>
         <SwipeGroupProvider>
           <ul className={cn('fsl-people__list list-none m-0 p-0 bg-card border border-border rounded-xl overflow-hidden divide-y divide-border [&_.fsl-action-row]:border-b-0 [&_.fsl-action-row__main]:pl-3 [&_.fsl-action-row__main]:gap-2 [&_.fsl-pill]:shrink-0')}>
@@ -236,37 +354,23 @@ export function People() {
                     : t('people.guest');
               const roleTone = isOrganiser || isAdmin ? 'accent' : 'neutral';
               const hasRowError = actingId === person.id && Boolean(error);
-              const isSport = view.trip.preset === 'sport';
-              const canEditGender =
-                isSport &&
+              const genderEditable =
                 !view.trip.archived &&
-                (view.me.kind === 'member' ||
-                  (view.me.kind === 'guest' &&
-                    !view.me.participantPending &&
-                    person.id === view.me.participantId));
-
-              let trailing: React.ReactNode = undefined;
-              if (canEditGender) {
-                trailing = (
-                  <GenderToggle
-                    name={person.name}
-                    value={person.gender}
-                    onChange={(next) =>
-                      void run(`/people/${person.id}`, { gender: next }, 'PATCH')
-                    }
-                    disabled={busy}
-                  />
-                );
-              } else if (person.gender) {
-                trailing = (
-                  <Pill tone={person.gender === 'M' ? 'accent' : 'warning'} className="shrink-0">
-                    {t(`gender.${person.gender}`)}
-                  </Pill>
-                );
-              }
+                view.me.kind === 'member' &&
+                (view.me.isAdmin === true || view.me.isOrganiser || person.id === view.me.participantId);
+              const trailing: ReactNode = isSport ? (
+                <GenderPill
+                  name={person.name}
+                  value={person.gender ?? null}
+                  editable={genderEditable}
+                  onChange={(next) => void changeGender(person, next)}
+                  disabled={busy}
+                />
+              ) : undefined;
+              const hint = hints[person.id];
 
               return (
-                <li key={person.id} className="fsl-people__item">
+                <li key={person.id} className="fsl-people__item" data-person-id={person.id}>
                   <ActionRow
                     label={`${person.name}, ${roleText}${isMe(person) ? `, ${t('trip.you')}` : ''}`}
                     actions={actions}
@@ -275,7 +379,7 @@ export function People() {
                     leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                     trailing={trailing}
                   >
-                    <span className={cn('fsl-people__text flex-1 min-w-0 flex flex-col')}>
+                    <span className={cn('fsl-people__text flex-1 min-w-16 flex flex-col')}>
                       <span className={cn('fsl-people__name flex-1 min-w-0 truncate text-base font-semibold text-foreground')}>{person.name}</span>
                       {subLine(person) !== null && <span className={cn('fsl-people__bank text-sm leading-snug text-muted-foreground tabular-nums [overflow-wrap:anywhere]')}>{subLine(person)}</span>}
                     </span>
@@ -288,6 +392,27 @@ export function People() {
                     <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">
                       {actionErrorText(error)}
                     </p>
+                  )}
+                  {hint && (
+                    <div className={cn('fsl-people__like flex items-center gap-2 px-4 pb-3 text-sm text-muted-foreground')}>
+                      <span className="min-w-0 flex-1">{t('people.likeHint', { name: hint.name })}</span>
+                      <Button
+                        variant="ghost"
+                        className="shrink-0"
+                        disabled={busy}
+                        onClick={() => void mergeIntoLookAlike(person, hint)}
+                      >
+                        {t('people.likeMerge')}
+                      </Button>
+                      <button
+                        type="button"
+                        aria-label={t('people.likeDismiss')}
+                        className={cn('fsl-people__like-dismiss inline-flex shrink-0 items-center justify-center size-11 rounded-full bg-transparent border-0 cursor-pointer text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 ring-ring')}
+                        onClick={() => dropHints([person.id])}
+                      >
+                        <Icon name="x" size={18} />
+                      </button>
+                    </div>
                   )}
                 </li>
               );
@@ -314,7 +439,7 @@ export function People() {
                         : t('people.leftSettled');
 
                   return (
-                    <li key={person.id} className="fsl-people__item">
+                    <li key={person.id} className="fsl-people__item" data-person-id={person.id}>
                       <ActionRow
                         label={`${person.name}, ${t('people.leftBadge')}`}
                         actions={actions}
@@ -322,7 +447,7 @@ export function People() {
                         hintable={false}
                         leading={<Avatar name={person.name} avatarUrl={person.avatarUrl} />}
                       >
-                        <span className={cn('fsl-people__text flex-1 min-w-0 flex flex-col')}>
+                        <span className={cn('fsl-people__text flex-1 min-w-16 flex flex-col')}>
                           <span className={cn('fsl-people__name flex-1 min-w-0 truncate text-base font-semibold text-foreground')}>{person.name}</span>
                           <span className={cn('fsl-people__bank text-sm leading-snug text-muted-foreground tabular-nums [overflow-wrap:anywhere]')}>{balanceLine}</span>
                         </span>
@@ -341,64 +466,9 @@ export function People() {
           </section>
         )}
 
-        {!view.trip.archived &&
-          view.me.kind === 'member' &&
-          (view.me.isAdmin || view.me.isOrganiser) && (
-          <form onSubmit={handleAddPerson} className={cn('fsl-people__add-form flex items-center gap-2 mt-2')}>
-            <InputGroup className="fsl-people__add-group flex-1">
-              <InputGroupInput
-                ref={inputRef}
-                type="text"
-                className="fsl-input"
-                placeholder={t('create.otherPlaceholder')}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                maxLength={40}
-                aria-label={t('create.otherPlaceholder')}
-              />
-              {view.trip.preset === 'sport' && (
-                <InputGroupAddon align="inline-end">
-                  <GenderToggle
-                    variant="inline"
-                    name={newName.trim() || t('create.otherPlaceholder')}
-                    value={newGender}
-                    onChange={setNewGender}
-                  />
-                </InputGroupAddon>
-              )}
-            </InputGroup>
-            <Button type="submit" variant="secondary" disabled={!newName.trim()}>
-              {t('create.addPerson')}
-            </Button>
-          </form>
-        )}
-        {similar && (
-          <div className={cn('fsl-people__similar flex flex-col gap-2')} role="alert">
-            <p className={cn('m-0 text-sm leading-snug text-foreground')}>
-              {t('people.similar', { typed: similar.name, name: similar.match })}
-            </p>
-            <div className={cn('flex gap-2')}>
-              <Button
-                variant="primary"
-                disabled={busy}
-                onClick={() => void submitPerson(similar.name, similar.gender, true)}
-              >
-                {t('people.addAnyway')}
-              </Button>
-              <Button variant="ghost" onClick={() => setSimilar(null)}>
-                {t('common.cancel')}
-              </Button>
-            </div>
-          </div>
-        )}
         {platform.kind === 'zmp' && !view.trip.archived && view.links !== null && (
           // Inside Zalo, adding friends means forwarding the invite: Zalo's share sheet picks the person or group chat.
           <ZaloInviteButton view={view} />
-        )}
-        {actingId === 'new-person' && Boolean(error) && (
-          <p className={cn('fsl-people__row-error m-0 px-4 pb-3 pt-0 text-xs font-medium text-danger')} role="alert">
-            {actionErrorText(error)}
-          </p>
         )}
 
         <ActionSheet
