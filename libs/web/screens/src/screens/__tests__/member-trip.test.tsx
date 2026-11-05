@@ -122,8 +122,9 @@ describe('member trip page', () => {
   it('the group header has no Invite or Account button; Invite lives in People', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
     renderAt(<TripRoute />, route);
-    const banner = (await screen.findAllByRole('banner'))[0]!;
-    expect(await within(banner).findByRole('link', { name: 'Trip settings' })).toBeInTheDocument();
+    await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
+    const banner = screen.getAllByRole('banner')[0]!;
+    expect(within(banner).getByRole('link', { name: 'Trip settings' })).toBeInTheDocument();
     expect(within(banner).queryByRole('button', { name: 'Invite' })).toBeNull();
     expect(within(banner).queryByRole('button', { name: 'Account' })).toBeNull();
   });

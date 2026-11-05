@@ -401,6 +401,8 @@ export const vi: Record<MessageKey, string> = {
   'sport.tablePerSlot': 'MỖI SUẤT', // REVIEW
 
   'member.settings': 'Cài đặt chuyến đi', // REVIEW
+  'member.peopleCount': '{count} người', // REVIEW
+  'member.peopleEntry': 'Thành viên trong nhóm: {count}', // REVIEW
 
   'balance.owed': 'Bạn được nhận', // REVIEW
   'balance.owe': 'Bạn cần trả', // REVIEW

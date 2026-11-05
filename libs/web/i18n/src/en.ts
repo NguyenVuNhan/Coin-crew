@@ -401,6 +401,8 @@ export const en = {
   'sport.tablePerSlot': 'PER SLOT',
 
   'member.settings': 'Trip settings',
+  'member.peopleCount': '{count} people',
+  'member.peopleEntry': 'People in this group: {count}',
 
   'balance.owed': "You're owed",
   'balance.owe': 'You owe',

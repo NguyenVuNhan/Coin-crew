@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
@@ -14,7 +13,8 @@ import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
 import { FundPill } from '../components/FundPill';
 import { LeaderboardWidget } from '../components/LeaderboardWidget';
-import { InviteCard, InviteSheet } from '../components/InviteSheet';
+import { InviteCard } from '../components/InviteSheet';
+import { PeopleEntry } from '../components/PeopleEntry';
 import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
 import { PaymentsList } from '../components/PaymentsList';
 import { ExpenseList } from '../components/ExpenseList';
@@ -25,15 +25,12 @@ import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBann
 import { TripTabs } from '../components/TripTabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { buttonVariants } from '@cc/web-ui/components/ui/button';
-import { AccountMenu } from '../components/AccountMenu';
-import { usePlatform } from '@cc/web-platform';
 
 /** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
 export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
   const wide = useIsWide();
   const { tripId, href } = useTrip(view.trip.id);
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [activeTab, setActiveTab] = useEntryState<'expenses' | 'payments'>('tab', 'expenses');
 
   const meQuery = useMe();
@@ -102,57 +99,22 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
     />
   );
 
-  const platform = usePlatform();
-  const header = platform.kind === 'zmp' ? (
-    <>
-      {canInvite && (
-        <button
-          type="button"
-          className="fsl-member__invite inline-flex min-h-11 items-center gap-1 rounded-full border-0 bg-transparent size-11 justify-center px-0 text-sm font-medium text-foreground cursor-pointer transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-          onClick={() => setInviteOpen(true)}
-          aria-label={t('invite.button')}
-          title={t('invite.button')}
-        >
-          <Icon name="userPlus" size={20} />
-        </button>
-      )}
-      <Link
-        className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-        to={href('/settings')}
-        aria-label={t('member.settings')}
-        title={t('member.settings')}
-      >
-        <Icon name="settings" size={20} />
-      </Link>
-    </>
-  ) : (
-    <>
-      {canInvite && (
-        <button
-          type="button"
-          className="fsl-member__invite inline-flex min-h-11 items-center gap-1 rounded-full border-0 bg-transparent px-3 text-sm font-medium text-foreground cursor-pointer transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-          onClick={() => setInviteOpen(true)}
-        >
-          <Icon name="userPlus" size={20} />
-          <span>{t('invite.button')}</span>
-        </button>
-      )}
-      <Link
-        className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-        to={href('/settings')}
-        aria-label={t('member.settings')}
-        title={t('member.settings')}
-      >
-        <Icon name="settings" size={20} />
-      </Link>
-      <AccountMenu />
-    </>
+  const header = (
+    <Link
+      className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+      to={href('/settings')}
+      aria-label={t('member.settings')}
+      title={t('member.settings')}
+    >
+      <Icon name="settings" size={20} />
+    </Link>
   );
 
   return (
     <Screen
       title={view.trip.name}
       titleAlign="left"
+      titleLines={2}
       back={selection ? href() : '/groups'}
       right={header}
       wide
@@ -166,6 +128,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           <TripLayout
             left={
               <>
+                <PeopleEntry view={view} />
                 {notice}
                 <LeaderboardWidget view={view} switching={selection !== null} />
                 <ApprovalQueue view={view} switching={selection !== null} />
@@ -179,6 +142,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
         </div>
       ) : (
         <div className="fsl-member flex flex-col gap-4 py-4">
+          <PeopleEntry view={view} />
           {notice}
           <UpdatedTransactionsBanner view={view} />
           <LeaderboardWidget view={view} />
@@ -190,7 +154,6 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           {activeTab === 'expenses' ? expenses(true, false) : payments(true)}
         </div>
       )}
-      {canInvite && <InviteSheet view={view} open={inviteOpen} onClose={() => setInviteOpen(false)} />}
       <TransfersSnackbar view={view} state={transfersState} />
     </Screen>
   );

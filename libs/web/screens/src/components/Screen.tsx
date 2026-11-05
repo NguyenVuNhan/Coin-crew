@@ -11,6 +11,7 @@ import { usePlatform } from '@cc/web-platform';
 export interface ScreenProps {
   title: string;
   titleAlign?: 'left' | 'center';
+  titleLines?: 1 | 2;
   back?: string;
   /** Goes back by itself instead of linking to `back` (the trip details use it to return to the list in history). */
   onBack?: () => void;
@@ -68,6 +69,7 @@ function BackInAppButton({ className, label }: BackInAppButtonProps) {
 export function Screen({
   title,
   titleAlign = 'center',
+  titleLines = 1,
   back,
   onBack,
   backInApp,
@@ -136,7 +138,9 @@ export function Screen({
           <h1
             className={cn(
               'fsl-screen__title',
-              'text-lg font-semibold text-foreground flex-1 min-w-0 truncate m-0',
+              titleLines === 2
+                ? 'text-lg font-semibold text-foreground flex-1 min-w-0 line-clamp-2 [overflow-wrap:anywhere] m-0'
+                : 'text-lg font-semibold text-foreground flex-1 min-w-0 truncate m-0',
               titleAlign === 'left' ? 'text-left' : 'text-center',
             )}
           >
