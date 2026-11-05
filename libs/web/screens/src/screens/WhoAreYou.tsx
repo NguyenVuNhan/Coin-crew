@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PickerView, Gender } from '@cc/core';
@@ -104,8 +104,6 @@ export function WhoAreYou() {
 
   const target = safeTripPath(searchParams.get('next'), tripId, base);
   const { goBack } = useBack(target);
-
-  const guestNoteId = useId();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nameMatchId, setNameMatchId] = useState<string | null>(null);
@@ -463,30 +461,6 @@ export function WhoAreYou() {
       >
         {isZmp && !signedIn && <ZaloSignIn />}
 
-        {!signedIn && account === null && (
-          <section
-            className="fsl-who__guest-note flex flex-col gap-2 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-sm leading-snug text-warning-foreground"
-            role="note"
-            aria-labelledby={guestNoteId}
-          >
-            <h2 id={guestNoteId} className="fsl-who__guest-title m-0 flex items-center gap-2 text-base font-semibold leading-normal">
-              <Icon name="info" size={16} className="shrink-0" />
-              {t('who.guestTitle')}
-            </h2>
-            <ul className="fsl-who__guest-list m-0 flex flex-col gap-1 pl-5 list-disc">
-              <li>{t('who.guestExpenses')}</li>
-              <li>{t('who.guestBank')}</li>
-            </ul>
-            {!isZmp && (
-              <SignInButtons
-                returnTo={target}
-                layout="inline"
-                labels={{ google: 'who.guestSignIn', zalo: 'who.guestSignInZalo' }}
-              />
-            )}
-          </section>
-        )}
-
         <p className="fsl-who__subtitle m-0 text-sm text-muted-foreground">{t('who.subtitle')}</p>
 
         <div className="fsl-who__pick-step flex flex-col gap-4">
@@ -676,7 +650,7 @@ export function WhoAreYou() {
             </div>
           )}
 
-          {!isExpenseMode && account && !myLeft && (
+          {account && !myLeft && (
             <>
               <button
                 type="button"
@@ -699,6 +673,21 @@ export function WhoAreYou() {
             </>
           )}
         </div>
+
+        {!signedIn && account === null && (
+          <div className="fsl-who__guest flex flex-col gap-3">
+            {!isExpenseMode && (
+              <p className="fsl-who__guest-note m-0 text-sm text-muted-foreground">{t('who.guestLine')}</p>
+            )}
+            {!isZmp && (
+              <SignInButtons
+                returnTo={target}
+                layout="inline"
+                labels={{ google: 'who.guestSignIn', zalo: 'who.guestSignInZalo' }}
+              />
+            )}
+          </div>
+        )}
       </div>
       <SignInSheet open={signInOpen} onClose={() => setSignInOpen(false)} returnTo={target} />
       <ClaimSheet

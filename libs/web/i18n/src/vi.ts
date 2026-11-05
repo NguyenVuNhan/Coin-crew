@@ -696,9 +696,6 @@ export const vi: Record<MessageKey, string> = {
   'details.gone': 'Mục này không còn trong chuyến đi.', // REVIEW
   'details.backToTrip': 'Về chuyến đi', // REVIEW
   'status.approved': 'Đã duyệt', // REVIEW
-  'who.guestTitle': 'Bạn tham gia với tư cách khách', // REVIEW
-  'who.guestExpenses': 'Khoản chi bạn thêm cần một thành viên duyệt.', // REVIEW
-  'who.guestBank': 'Thông tin ngân hàng của bạn cũng cần thành viên duyệt. Sau đó chỉ thành viên mới đổi được.', // REVIEW
   'who.guestLine': 'Bạn vào với tư cách khách: những gì bạn thêm cần thành viên duyệt.', // REVIEW
   'signIn.zalo': 'Đăng nhập bằng Zalo', // REVIEW
   'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.', // REVIEW
