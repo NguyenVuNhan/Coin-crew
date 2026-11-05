@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { ExpenseView, TripView } from '@cc/core';
-import { formatVnd, computeSportShares, isFundPaid } from '@cc/core';
+import { isFundPaid } from '@cc/core';
 import { useT, useLang } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { nameOf, splitText } from '@cc/web-util/tripText';
@@ -22,8 +22,10 @@ import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useIsMousePointer } from '@cc/web-util/media';
 import { copyText } from '@cc/web-util/clipboard';
 import { useImageSheet } from './SaveImageSheet';
+import { SportBillTable } from './SportBillTable';
 import { sportShareText, expenseLink } from '../lib/remind';
 import { sportBillCard } from '../lib/shareCards';
+import { sportBillCalc } from '../lib/sportBill';
 import { usePlatform } from '@cc/web-platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -83,64 +85,7 @@ export function ExpenseDetails({
     );
   }, [e, place, view.people.length]);
 
-  const sportCalc = useMemo(() => {
-    if (!e?.meta?.sport) return null;
-    const sport = e.meta.sport;
-    const court = sport.court ?? 0;
-    const shuttlecocksTotal =
-      sport.shuttlecocks?.reduce((acc, s) => acc + (s.qty || 0) * (s.unitPrice || 0), 0) ?? 0;
-    const extra = sport.extra ?? 0;
-
-    const participants = shares.map((s) => {
-      const person = view.people.find((p) => p.id === s.participantId);
-      const rosterGender = person?.gender ?? null;
-      const entry = sport.entries?.find((en) => en.participantId === s.participantId);
-      const maleSlots = entry ? entry.maleSlots : rosterGender === 'F' ? 0 : 1;
-      const femaleSlots = entry ? entry.femaleSlots : rosterGender === 'F' ? 1 : 0;
-      const fixedAmount = entry?.fixedAmount ?? null;
-      return {
-        participantId: s.participantId,
-        name: nameOf(view, s.participantId),
-        rosterGender,
-        maleSlots,
-        femaleSlots,
-        fixedAmount,
-        amount: s.amount,
-      };
-    });
-
-    const rule = sport.rule ?? { kind: 'equal' };
-    const calc = computeSportShares(
-      e.amount,
-      rule,
-      participants.map((p) => ({
-        participantId: p.participantId,
-        maleSlots: p.maleSlots,
-        femaleSlots: p.femaleSlots,
-        fixedAmount: p.fixedAmount,
-      })),
-    );
-
-    const totalMaleSlots = calc.ok
-      ? calc.totalMaleSlots
-      : sport.entries?.reduce((acc, x) => acc + (x.fixedAmount ? 0 : x.maleSlots), 0) ?? 0;
-    const totalFemaleSlots = calc.ok
-      ? calc.totalFemaleSlots
-      : sport.entries?.reduce((acc, x) => acc + (x.fixedAmount ? 0 : x.femaleSlots), 0) ?? 0;
-    const maleSlotRate = calc.ok ? calc.maleSlotRate : (sport.maleSlotRate ?? 0);
-    const femaleSlotRate = calc.ok ? calc.femaleSlotRate : (sport.femaleSlotRate ?? 0);
-
-    return {
-      court,
-      shuttlecocksTotal,
-      extra,
-      totalMaleSlots,
-      totalFemaleSlots,
-      maleSlotRate,
-      femaleSlotRate,
-      participants,
-    };
-  }, [e, shares, view]);
+  const sportCalc = useMemo(() => (e ? sportBillCalc(view, e) : null), [e, view]);
 
   const msgText = useMemo(() => {
     if (!sportCalc || !e) return '';
@@ -332,77 +277,7 @@ export function ExpenseDetails({
         <p className="fsl-details__note text-sm text-muted-foreground m-0">{t('fund.expenseNote')}</p>
       ) : sportCalc ? (
         <>
-          <div className="fsl-sport-table-container overflow-x-auto bg-card border border-border rounded-xl">
-            <table className="fsl-sport-table w-full border-collapse text-sm text-left">
-              <thead>
-                <tr className="bg-muted text-muted-foreground text-xs font-semibold">
-                  <th scope="col" className="p-3 border-b border-border">{t('sport.tableColName')}</th>
-                  <th scope="col" className="fsl-sport-table__col--center p-3 border-b border-border text-center">{t('sport.tableColFemale')}</th>
-                  <th scope="col" className="fsl-sport-table__col--center p-3 border-b border-border text-center">{t('sport.tableColMale')}</th>
-                  <th scope="col" className="fsl-sport-table__col--right p-3 border-b border-border text-right">{t('sport.tableColAmount')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sportCalc.participants.map((p) => {
-                  const isMe = p.participantId === view.me.participantId;
-                  const displayName = isMe ? t('details.you', { name: p.name }) : p.name;
-                  const isFixed = p.fixedAmount !== null && p.fixedAmount !== undefined;
-                  return (
-                    <tr key={p.participantId} className="hover:bg-muted/50">
-                      <td className="p-3 border-b border-border">
-                        <span>{displayName}</span>
-                        {isFixed && (
-                          <span className="fsl-sport-table__fixed text-xs text-muted-foreground"> ({t('sport.fixedBadge')})</span>
-                        )}
-                      </td>
-                      <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums">
-                        {p.femaleSlots > 0 ? p.femaleSlots : '—'}
-                      </td>
-                      <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums">
-                        {p.maleSlots > 0 ? p.maleSlots : '—'}
-                      </td>
-                      <td className="fsl-sport-table__col--right fsl-num p-3 border-b border-border text-right tabular-nums">
-                        <Amount value={p.amount} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="fsl-sport-table__row--total-slots bg-warning-soft text-warning-foreground font-semibold">
-                  <th scope="row" className="p-3 border-b border-border font-semibold">{t('sport.tableTotalSlots')}</th>
-                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">{sportCalc.totalFemaleSlots}</td>
-                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">{sportCalc.totalMaleSlots}</td>
-                  <td className="fsl-sport-table__col--right fsl-num p-3 border-b border-border text-right tabular-nums font-semibold">
-                    {sportCalc.totalFemaleSlots + sportCalc.totalMaleSlots} {t('split.mode.shares').toLowerCase()}
-                  </td>
-                </tr>
-                <tr className="fsl-sport-table__row--costs bg-muted/60 text-foreground">
-                  <th scope="row" className="p-3 border-b border-border font-semibold">{t('sport.tableCosts')}</th>
-                  <td colSpan={2} className="fsl-sport-table__col--center fsl-sport-table__cost-summary p-3 border-b border-border text-center text-xs text-muted-foreground">
-                    {[
-                      sportCalc.court > 0 ? `${t('sport.court')}: ${formatVnd(sportCalc.court)}` : null,
-                      sportCalc.shuttlecocksTotal > 0 ? `${t('sport.shuttlecocks')}: ${formatVnd(sportCalc.shuttlecocksTotal)}` : null,
-                      sportCalc.extra > 0 ? `${t('sport.extra')}: ${formatVnd(sportCalc.extra)}` : null,
-                    ].filter(Boolean).join(' · ')}
-                  </td>
-                  <td className="fsl-sport-table__col--right fsl-num p-3 border-b border-border text-right tabular-nums font-semibold">
-                    <Amount value={e.amount} />
-                  </td>
-                </tr>
-                <tr className="fsl-sport-table__row--per-slot bg-warning-soft text-warning-foreground font-semibold">
-                  <th scope="row" className="p-3 border-b border-border font-semibold">{t('sport.tablePerSlot')}</th>
-                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">
-                    <Amount value={sportCalc.femaleSlotRate} />
-                  </td>
-                  <td className="fsl-sport-table__col--center fsl-num p-3 border-b border-border text-center tabular-nums font-semibold">
-                    <Amount value={sportCalc.maleSlotRate} />
-                  </td>
-                  <td className="fsl-sport-table__col--right p-3 border-b border-border text-right font-semibold">—</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <SportBillTable calc={sportCalc} total={e.amount} meId={view.me.participantId} />
 
           <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
             <Button
