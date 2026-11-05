@@ -16,6 +16,7 @@ import { Settings } from './screens/Settings';
 import { People } from './screens/People';
 import { Activity } from './screens/Activity';
 import { PayScreen } from './screens/PayScreen';
+import { OweScreen } from './screens/OweScreen';
 import { ExpensePay } from './screens/ExpensePay';
 import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
@@ -45,6 +46,7 @@ const tripPages = (
     <Route path="fund/:incomeId" element={<TripRoute />} />
     <Route path="approvals" element={<TripRoute />} />
     <Route path="ratings" element={<TripRoute />} />
+    <Route path="owe" element={<OweScreen />} />
     <Route path="pay/:toId" element={<PayScreen />} />
     <Route path="bank" element={<BankDetails />} />
     <Route path="people" element={<People />} />
