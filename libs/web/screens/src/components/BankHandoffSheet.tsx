@@ -314,7 +314,7 @@ export function BankHandoffSheet({
         </div>
 
         {/* Tip under the steps */}
-        <div className="rounded-xl bg-warning-soft p-3 text-sm text-foreground leading-normal">
+        <div className="rounded-xl bg-secondary p-3 text-sm text-secondary-foreground leading-normal">
           {t('pay.handoffTip', { app: app.appName })}
         </div>
       </div>

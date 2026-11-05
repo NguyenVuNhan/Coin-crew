@@ -64,7 +64,7 @@ export function SportBillTable({
           })}
         </tbody>
         <tfoot>
-          <tr className="fsl-sport-table__row--total-slots bg-warning-soft text-warning-foreground font-semibold">
+          <tr className="fsl-sport-table__row--total-slots bg-muted text-foreground font-semibold">
             <th scope="row" className="pl-3 pr-2 py-3 border-b border-border font-semibold">{t('sport.tableTotalSlots')}</th>
             <td className="fsl-sport-table__col--center fsl-num px-2 py-3 border-b border-border text-center tabular-nums font-semibold">{calc.totalFemaleSlots}</td>
             <td className="fsl-sport-table__col--center fsl-num px-2 py-3 border-b border-border text-center tabular-nums font-semibold">{calc.totalMaleSlots}</td>
@@ -83,7 +83,7 @@ export function SportBillTable({
               <Amount value={total} />
             </td>
           </tr>
-          <tr className="fsl-sport-table__row--per-slot bg-warning-soft text-warning-foreground font-semibold">
+          <tr className="fsl-sport-table__row--per-slot bg-muted text-foreground font-semibold">
             <th scope="row" className="pl-3 pr-2 py-3 border-b border-border font-semibold">{t('sport.tablePerSlot')}</th>
             <td colSpan={3} className="fsl-sport-table__col--right pl-2 pr-3 py-3 border-b border-border text-right tabular-nums">
               {calc.totalFemaleSlots > 0 && (

@@ -128,7 +128,7 @@ export function PayQr(props: PayQrProps): JSX.Element | null {
           )}
           <div className="fsl-pay-qr__note flex items-center justify-center gap-2 text-sm">
             <span className="fsl-pay-qr__note-label text-muted-foreground">{t('pay.note')}</span>
-            <span className="fsl-pay-qr__memo rounded bg-warning-soft px-1.5 py-0.5 font-mono font-bold text-warning-foreground">{info.refCode}</span>
+            <span className="fsl-pay-qr__memo rounded bg-secondary px-1.5 py-0.5 font-mono font-bold text-secondary-foreground">{info.refCode}</span>
           </div>
         </>
       )}
