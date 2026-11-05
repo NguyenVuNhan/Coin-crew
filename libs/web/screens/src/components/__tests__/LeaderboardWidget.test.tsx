@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
@@ -7,6 +7,7 @@ import { sportFundView } from '../../test/fundFixtures';
 import { LeaderboardWidget } from '../LeaderboardWidget';
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
 });
 
@@ -59,42 +60,72 @@ describe('LeaderboardWidget', () => {
     expect(slots[2]).toHaveTextContent('11');
   });
 
-  it('transitions smoothly across full -> collapsed -> hidden on scroll, and supports manual collapse/expand', async () => {
-    const view = sportWithRatings({
+  const ratedView = () =>
+    sportWithRatings({
       [PIDS.M]: 18,
       [PIDS.A]: 14,
       [PIDS.B]: 11,
       [PIDS.C]: 0,
     });
-    renderAt(<LeaderboardWidget view={view} />);
-    const region = screen.getByRole('region', { name: 'Leaderboard' });
-    expect(region).toHaveAttribute('data-stage', 'full');
+  const inFlow = () => document.querySelector('section.fsl-leaderboard') as HTMLElement;
 
-    // Manual collapse toggle
+  it('collapses and expands only when tapped', async () => {
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    expect(inFlow()).toHaveAttribute('data-stage', 'full');
     await userEvent.click(screen.getByRole('button', { name: 'Collapse leaderboard' }));
-    expect(region).toHaveAttribute('data-stage', 'collapsed');
+    expect(inFlow()).toHaveAttribute('data-stage', 'collapsed');
     await userEvent.click(screen.getByRole('button', { name: 'Expand leaderboard' }));
-    expect(region).toHaveAttribute('data-stage', 'full');
+    expect(inFlow()).toHaveAttribute('data-stage', 'full');
+  });
 
-    // Scroll to mid-range (100px) -> collapsed
-    act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 100, writable: true, configurable: true });
-      fireEvent.scroll(window);
-    });
-    expect(region).toHaveAttribute('data-stage', 'collapsed');
+  it('scrolling never changes the in-flow widget', () => {
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    for (const y of [100, 260, 0]) {
+      act(() => {
+        Object.defineProperty(window, 'scrollY', { value: y, writable: true, configurable: true });
+        fireEvent.scroll(window);
+      });
+      expect(inFlow()).toHaveAttribute('data-stage', 'full');
+    }
+  });
 
-    // Scroll deep into expenses (260px) -> hidden completely
-    act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 260, writable: true, configurable: true });
-      fireEvent.scroll(window);
-    });
-    expect(region).toHaveAttribute('data-stage', 'hidden');
+  it('the floating bar shows once the widget scrolls above the screen', () => {
+    let report: ((entries: Partial<IntersectionObserverEntry>[]) => void) | null = null;
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: (entries: Partial<IntersectionObserverEntry>[]) => void) {
+          report = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    expect(document.querySelector('.fsl-leaderboard__float')).toBeNull();
+    act(() => report!([{ isIntersecting: false, boundingClientRect: { top: -50 } as DOMRect }]));
+    expect(document.querySelector('.fsl-leaderboard__float')).not.toBeNull();
+    expect(inFlow()).toHaveAttribute('data-stage', 'full');
+    act(() => report!([{ isIntersecting: true, boundingClientRect: { top: 10 } as DOMRect }]));
+    expect(document.querySelector('.fsl-leaderboard__float')).toBeNull();
+  });
 
-    // Scroll back to top (0px) -> full
-    act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
-      fireEvent.scroll(window);
-    });
-    expect(region).toHaveAttribute('data-stage', 'full');
+  it('no floating bar while the widget is below the screen', () => {
+    let report: ((entries: Partial<IntersectionObserverEntry>[]) => void) | null = null;
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: (entries: Partial<IntersectionObserverEntry>[]) => void) {
+          report = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    act(() => report!([{ isIntersecting: false, boundingClientRect: { top: 900 } as DOMRect }]));
+    expect(document.querySelector('.fsl-leaderboard__float')).toBeNull();
   });
 });
