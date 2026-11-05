@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CreateTrip } from '../screens/CreateTrip';
 import { People } from '../screens/People';
+import { UndoSnackbarHost } from '../components/UndoSnackbarHost';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -80,7 +81,7 @@ describe('Sport group creation & People gender toggle', () => {
     });
   });
 
-  it('toggles a player gender in People screen when preset is sport', async () => {
+  it('the gender pill flips a player in the People screen, with Undo', async () => {
     const patches: unknown[] = [];
     vi.stubGlobal(
       'fetch',
@@ -109,8 +110,10 @@ describe('Sport group creation & People gender toggle', () => {
     );
 
     renderWithRouter('/t/t-sport/people');
-    const chiBtn = await screen.findByRole('button', { name: /Gender for Chi/i });
-    await userEvent.click(chiBtn);
-    await waitFor(() => expect(patches).toEqual([{ gender: null }]));
+    render(<UndoSnackbarHost />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Gender for Chi: Female' }));
+    await waitFor(() => expect(patches).toEqual([{ gender: 'M' }]));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(patches).toEqual([{ gender: 'M' }, { gender: 'F' }]));
   });
 });
