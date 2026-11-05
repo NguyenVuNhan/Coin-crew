@@ -1,6 +1,6 @@
 ---
 name: CoinCrew (Tiền Đâu)
-description: Split group costs with friends and settle up with VietQR, phone first, at home in Zalo.
+description: Split group costs with friends and settle up with VietQR; phone first, shared through Zalo, saved to the home screen.
 colors:
   primary: "#0f766e"
   primary-foreground: "#ffffff"
@@ -276,7 +276,8 @@ The layout is phone first, one column. Screen content sits in a centred column a
 - **Phones (below 1024px):** navigation is a floating white pill (home, groups, activity) about 16px above the bottom edge, next to a dark 56px round "+" button. Content keeps room underneath so nothing hides behind it.
 - **From 640px (`sm`):** bottom sheets become centred dialogs.
 - **From 1024px (`lg`):** "layout A". A 240px white side nav with a hairline right edge replaces the floating pill. The bottom action bar becomes part of the page flow.
-- **Safe areas:** iOS safe-area insets are added to fixed bars. Inside the Zalo Mini App the header also clears Zalo's top inset and its capsule button on the right.
+- **Safe areas:** iOS safe-area insets are added to fixed bars (the page uses `viewport-fit=cover`). Inside the Zalo Mini App the header also clears Zalo's top inset and its capsule button on the right.
+- **Home screen:** saved to the home screen, the app runs standalone with no browser bar, a Jade status-bar colour and a Rice Paper launch screen. The app's own header, back button and nav are the only way around there. These two colours are set outside the theme, in `apps/web/index.html` (`theme-color`) and the PWA manifest in `apps/web/vite.config.ts`, so a new colour theme must update them too.
 
 ## Elevation & Depth
 

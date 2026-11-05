@@ -11,7 +11,7 @@ web
 Trips and sport groups weigh equally; neither is the "main" use (owner, 2026-11-05).
 
 - **Organisers and members** sign in (Google or Zalo) and run a group: a **trip** (friends travelling together, one-off) or a **weekly sport group** (badminton, pickleball, tennis, football) with a stable roster. They enter people and expenses (or a session's court and shuttlecock costs), approve what guests add, and share the group's link or bill to the group chat.
-- **Guests** are friends who open one link in the group chat, usually on a phone inside Zalo's in-app browser. They pick their name, see what they owe, and pay in their own bank app. They have no account and install nothing.
+- **Guests** are friends who tap one link in the group chat, usually a Zalo chat, usually on a phone. Where it opens depends on their Zalo setting: Zalo's in-app browser, or their own browser (Chrome on Android and PC, Safari on iPhone). They pick their name, see what they owe, and pay in their own bank app. They have no account and install nothing.
 - **Viewers** open a separate view-only link and can only look.
 
 ## Product Purpose
@@ -35,15 +35,17 @@ Three things every screen protects (owner-confirmed); Splitwise or Tricount cann
 
 - **No account for friends.** One link in the group chat: pick your name, see what you owe, pay. Nothing to sign up for or install.
 - **VietQR settle-up.** A QR with the amount and a readable transfer note (sender, what for, group) that any Vietnamese bank app scans.
-- **Lives in Zalo.** Works in Zalo's in-app browser and as a Zalo Mini App: share cards to the chat, Zalo sign-in, saving the QR to the gallery.
+- **Shared through Zalo.** Links and share cards travel through Zalo chats, members can sign in with Zalo, and there is a Zalo Mini App. The link then works wherever it opens: Zalo's in-app browser, Chrome, Safari, the Mini App, or the app saved to the home screen.
 
 ## Operating Context
 
 - **The group chat is where it starts.** The organiser shares the group link (or, for sport groups, a bill table + VietQR card and a one-line message) into a Zalo group chat. Friends tap it there.
-- **Zalo's in-app browser** blocks Google sign-in; members signed in with Google merge their Zalo account instead, or are told "⋯ → Open in browser".
+- **Where the link opens:** most visits come from Zalo, but not necessarily inside Zalo's browser. Zalo users can set it to open links in their phone's own browser. Chrome is the most common browser on Android and PC; Safari is used a lot on iPhone. No single browser can be assumed.
+- **Inside Zalo's in-app browser**, Google sign-in is blocked; members signed in with Google merge their Zalo account instead, or are told "⋯ → Open in browser".
 - **Zalo Mini App** (`apps/zalo`): silent Zalo sign-in, share cards, gallery save. Zalo refuses `openOutApp` to non-partner apps, so the Mini App cannot open bank apps; it tells the user to open their bank app themselves.
 - **Paying:** no Vietnamese bank app fills in the payment from a link (tested on real phones 2026-11-02). The flow is: save the QR image → open the bank app → Scan QR → upload the image. The person being paid confirms receipt by hand; nothing matches payments automatically yet.
-- **Devices:** phones first at 375px (mobile Safari, Chrome, Zalo's webview), installable as a PWA. Desktop works and is secondary.
+- **Devices:** phones first at 375px. Desktop works (mostly Chrome) and is secondary.
+- **Home screen:** the web app aims to be saved to the home screen (PWA) and opened from there like an app, in standalone mode with no browser bar.
 - **Languages:** Vietnamese first, English second.
 
 ## Capabilities and Constraints
@@ -104,7 +106,7 @@ Three things every screen protects (owner-confirmed); Splitwise or Tricount cann
 1. **From the chat link to "paid" without friction.** A friend never needs an account, an install or a jargon word to see what they owe and pay.
 2. **Money safety before convenience.** What a guest adds never changes anyone's balance until a member approves it; the person being paid confirms it arrived. The one exception: a payment between two guests counts as soon as either marks it, and members can turn that off.
 3. **One person, one name.** Prevent duplicates where people pick their name; make merging easy when they slip through.
-4. **Zalo is home.** Design for Zalo's browser and the Mini App first. Where Zalo blocks something, say so plainly and offer the next step.
+4. **Shared through Zalo, works wherever it opens.** Links arrive mostly through Zalo, then open in Zalo's browser, Chrome, Safari, the Mini App or the home-screen app, and each must work. Where one blocks something (Google sign-in in Zalo's browser, opening bank apps from the Mini App), say so plainly and offer the next step.
 5. **Leave room for the whole-finance future** (personal money, Sheets, Gemini) without building it before its phase.
 
 ## Accessibility & Inclusion
