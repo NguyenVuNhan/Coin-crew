@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import { call, cookiesFrom, cookieHeader, unsignedJwt } from './helpers';
+import type { TripView } from '@cc/core';
+import { sha256Hex } from '@cc/api-util/ids';
+import { call, cookiesFrom, cookieHeader, json, memberSid, newDevice, pickAs, PID, seedTrip, T, unsignedJwt } from './helpers';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
@@ -84,6 +86,33 @@ describe('/api/me, logout, consent', () => {
     expect(out.status).toBe(204);
     const after = await call('/api/me', { headers: { Cookie: `sid=${sid}` } });
     expect(await after.json()).toEqual(expect.objectContaining({ user: null }));
+  });
+
+  it('logout forgets who this phone picked, in every group, and its bill passes', async () => {
+    await seedTrip();
+    const { deviceId, cookie } = await newDevice();
+    await pickAs(deviceId, PID.C);
+    const hash = await sha256Hex(deviceId);
+    await env.DB.prepare("INSERT INTO device_expense_grants (device_hash, trip_id, expense_root_id, participant_id, created_at) VALUES (?, ?, 'e-x', ?, '2026-11-05T00:00:00.000Z')")
+      .bind(hash, T.tripId, PID.C)
+      .run();
+    const sid = await memberSid('u-chi', 'Chi');
+    expect((await call('/api/auth/logout', { method: 'POST', headers: { Cookie: `${cookie}; sid=${sid}` } })).status).toBe(204);
+    const v = await json<TripView>(call(`/api/trips/${T.tripId}`, { headers: { Cookie: cookie, 'X-Link-Token': T.groupToken } }));
+    expect(v.me).toMatchObject({ kind: 'guest', participantId: null });
+    const grants = await env.DB.prepare('SELECT count(*) AS n FROM device_expense_grants WHERE device_hash = ?').bind(hash).first<{ n: number }>();
+    expect(grants!.n).toBe(0);
+  });
+
+  it("logout leaves other phones' picks alone", async () => {
+    await seedTrip();
+    const mine = await newDevice();
+    const other = await newDevice();
+    await pickAs(mine.deviceId, PID.C);
+    await pickAs(other.deviceId, PID.B);
+    await call('/api/auth/logout', { method: 'POST', headers: { Cookie: mine.cookie } });
+    const v = await json<TripView>(call(`/api/trips/${T.tripId}`, { headers: { Cookie: other.cookie, 'X-Link-Token': T.groupToken } }));
+    expect(v.me.participantId).toBe(PID.B);
   });
 
   it('returns null without a session', async () => {
