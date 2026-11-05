@@ -36,7 +36,9 @@ describe('Zalo Mini App header and capsule spacing', () => {
     expect(within(header).getByRole('link', { name: en['member.settings'] })).toHaveClass('fsl-member__settings');
     expect(container.querySelector('.fsl-member__invite')).toBeNull();
     expect(within(header).queryByRole('button', { name: en['invite.button'] })).toBeNull();
+    // Wait until signed in (the nav bar shows), so a header account menu would have rendered by now.
     await waitFor(() => expect(calls.some((c) => c.path === '/api/me')).toBe(true));
+    await screen.findByTestId('app-nav-bar');
     expect(header.querySelector('.fsl-account-menu')).toBeNull();
   });
 

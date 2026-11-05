@@ -120,9 +120,11 @@ describe('member trip page', () => {
   });
 
   it('the group header has no Invite or Account button; Invite lives in People', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    // Signed in, so the account menu would render if the header still had it.
+    mockApi({ ...TRIP_API, 'GET /api/me': { user: { id: 'u-1', name: 'Minh', email: 'minh@example.com' } }, 'GET /api/trips/t-1': tripView() });
     renderAt(<TripRoute />, route);
     await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
+    await screen.findByTestId('app-nav-bar');
     const banner = screen.getAllByRole('banner')[0]!;
     expect(within(banner).getByRole('link', { name: 'Trip settings' })).toBeInTheDocument();
     expect(within(banner).queryByRole('button', { name: 'Invite' })).toBeNull();

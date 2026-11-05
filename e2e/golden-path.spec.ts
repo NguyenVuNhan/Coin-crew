@@ -66,7 +66,7 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
 
   // Once the trip has an expense, the group link lives in People's Invite sheet,
   // one tap from the group page.
-  await minh.getByRole('link', { name: /^People in this group: \d+$/ }).click();
+  await minh.getByRole('link', { name: /^\d+ people in this group$/ }).click();
   await expect(minh).toHaveURL(/\/people$/);
   await minh.getByRole('button', { name: 'Invite' }).click();
   const invite = minh.getByRole('dialog', { name: 'Invite' });

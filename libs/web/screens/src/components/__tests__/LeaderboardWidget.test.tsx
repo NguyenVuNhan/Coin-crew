@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen, act, fireEvent } from '@testing-library/react';
+import { screen, act, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../../test/render';
 import { PIDS, tripView } from '../../test/fixtures';
 import { sportFundView } from '../../test/fundFixtures';
 import { LeaderboardWidget } from '../LeaderboardWidget';
+import { mockMedia } from '../../test/media';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -138,5 +139,59 @@ describe('LeaderboardWidget', () => {
     });
     expect(document.querySelector('.fsl-leaderboard__float')).toBeNull();
     expect(inFlow()).toHaveAttribute('data-stage', 'full');
+  });
+  /** Stubs IntersectionObserver and returns the callback it was given, to report entries by hand. */
+  function stubObserver(): { report: (entries: Partial<IntersectionObserverEntry>[]) => void } {
+    const box: { cb: ((entries: Partial<IntersectionObserverEntry>[]) => void) | null } = { cb: null };
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: (entries: Partial<IntersectionObserverEntry>[]) => void) {
+          box.cb = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    return { report: (entries) => act(() => box.cb!(entries)) };
+  }
+
+  it('the floating bar clears the Mini App header, stays off desktop and has its own name', () => {
+    const io = stubObserver();
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    io.report([{ isIntersecting: false, boundingClientRect: { top: -50 } as DOMRect }]);
+    const float = document.querySelector('.fsl-leaderboard__float') as HTMLElement;
+    // jsdom can't measure layout: pin the classes that add Zalo's safe-area inset and hide it from 1024px.
+    expect(float.className).toContain('top-[calc(3.5rem+var(--zmp-safe-top))]');
+    expect(float).toHaveClass('lg:hidden');
+    expect(screen.getByRole('region', { name: 'Leaderboard summary' })).toBe(float);
+    expect(inFlow().className).toContain('scroll-mt-[calc(4rem+var(--zmp-safe-top))]');
+  });
+
+  it('expanding from the floating bar scrolls back to the podium and opens it', async () => {
+    mockMedia({ reducedMotion: false });
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const io = stubObserver();
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse leaderboard' }));
+    io.report([{ isIntersecting: false, boundingClientRect: { top: -50 } as DOMRect }]);
+    const float = document.querySelector('.fsl-leaderboard__float') as HTMLElement;
+    await userEvent.click(within(float).getByRole('button', { name: 'Expand leaderboard' }));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
+    expect(inFlow()).toHaveAttribute('data-stage', 'full');
+  });
+
+  it('with reduced motion, the jump back is instant', async () => {
+    mockMedia({ reducedMotion: true });
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const io = stubObserver();
+    renderAt(<LeaderboardWidget view={ratedView()} />);
+    io.report([{ isIntersecting: false, boundingClientRect: { top: -50 } as DOMRect }]);
+    const float = document.querySelector('.fsl-leaderboard__float') as HTMLElement;
+    await userEvent.click(within(float).getByRole('button', { name: 'Expand leaderboard' }));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' });
   });
 });

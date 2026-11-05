@@ -18,9 +18,11 @@ const TRIP_API = { 'GET /api/trips/t-1/version': { version: 3 } };
 
 describe('group header and People entry', () => {
   it('the header keeps only the gear', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    // Signed in, so the account menu would render if the header still had it.
+    mockApi({ ...TRIP_API, 'GET /api/me': { user: { id: 'u-1', name: 'Minh', email: 'minh@example.com' } }, 'GET /api/trips/t-1': tripView() });
     renderAt(<TripRoute />, route);
     await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' });
+    await screen.findByTestId('app-nav-bar');
     const banner = screen.getAllByRole('banner')[0]!;
     expect(within(banner).getByRole('link', { name: 'Trip settings' })).toBeInTheDocument();
     expect(within(banner).queryByRole('button', { name: 'Invite' })).toBeNull();
@@ -43,19 +45,19 @@ describe('group header and People entry', () => {
   it('the People entry opens People', async () => {
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
     renderAt(<TripRoute />, route);
-    const entry = await screen.findByRole('link', { name: 'People in this group: 4' });
+    const entry = await screen.findByRole('link', { name: '4 people in this group' });
     expect(entry.getAttribute('href')).toMatch(/\/people$/);
   });
 
   it('viewers get no People entry', async () => {
     const standalone = renderAt(<PeopleEntry view={viewerView()} />, route);
-    expect(screen.queryByRole('link', { name: /People in this group:/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /people in this group/ })).toBeNull();
     standalone.unmount();
 
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': viewerView() });
     renderAt(<TripRoute />, route);
     await screen.findByText('View only');
-    expect(screen.queryByRole('link', { name: /People in this group:/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /people in this group/ })).toBeNull();
   });
 
   it("People's Invite opens the share in Zalo and the sheet on the web", async () => {
@@ -69,5 +71,15 @@ describe('group header and People entry', () => {
     renderAt(<People />, { ...peopleRoute, platform });
     await userEvent.click(await screen.findByRole('button', { name: 'Invite Zalo friends' }));
     expect(platform.calls.share).toHaveLength(1);
+  });
+
+  it('in Zalo, Group links still opens the Invite sheet (view-only link, new links)', async () => {
+    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': tripView() });
+    renderAt(<People />, { ...peopleRoute, platform: fakePlatform() });
+    const links = await screen.findByRole('button', { name: 'Group links' });
+    expect(links).toHaveClass('fsl-people__invite');
+    await userEvent.click(links);
+    const sheet = await screen.findByRole('dialog', { name: 'Invite' });
+    expect(within(sheet).getByRole('group', { name: 'View-only link' })).toBeInTheDocument();
   });
 });
