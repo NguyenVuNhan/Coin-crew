@@ -11,7 +11,7 @@ function extractProperties(blockContent: string): Record<string, string> {
   const propRegex = /(--[\w-]+)\s*:\s*([^;]+);/g;
   let match: RegExpExecArray | null;
   while ((match = propRegex.exec(stripped)) !== null) {
-    decls[match[1]] = match[2].trim();
+    decls[match[1]!] = match[2]!.trim();
   }
   return decls;
 }
@@ -19,22 +19,17 @@ function extractProperties(blockContent: string): Record<string, string> {
 function getThemeBlock(cssContent: string, themeId: ThemeId): string | null {
   const regex = new RegExp(`(?::root\\s*,\\s*)?\\[data-theme=['"]${themeId}['"]\\]\\s*\\{([^}]+)\\}`, 'm');
   const match = cssContent.match(regex);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 function getRootBlock(cssContent: string): string | null {
   const match = cssContent.match(/(?:^|\})\s*:root\s*\{([^}]+)\}/m);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 function parseHex(hex: string): [number, number, number] {
-  const clean = hex.replace('#', '').trim();
-  if (clean.length === 3) {
-    const r = parseInt(clean[0] + clean[0], 16);
-    const g = parseInt(clean[1] + clean[1], 16);
-    const b = parseInt(clean[2] + clean[2], 16);
-    return [r, g, b];
-  }
+  const raw = hex.replace('#', '').trim();
+  const clean = raw.length === 3 ? raw.split('').map((c) => c + c).join('') : raw;
   const r = parseInt(clean.slice(0, 2), 16);
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);
@@ -130,8 +125,8 @@ describe('theme tokens in globals.css', () => {
     const rootBlock = getRootBlock(css);
     expect(rootBlock).not.toBeNull();
     const rootProps = extractProperties(rootBlock!);
-    const foreground = rootProps['--foreground'];
-    const mutedForeground = rootProps['--muted-foreground'];
+    const foreground = rootProps['--foreground']!;
+    const mutedForeground = rootProps['--muted-foreground']!;
     expect(foreground).toBe('#1c1917');
     expect(mutedForeground).toBe('#57534e');
 
@@ -140,11 +135,11 @@ describe('theme tokens in globals.css', () => {
       expect(block).not.toBeNull();
       const tokens = extractProperties(block!);
 
-      const primary = tokens['--primary'];
-      const primaryFg = tokens['--primary-foreground'];
-      const secondary = tokens['--secondary'];
-      const secondaryFg = tokens['--secondary-foreground'];
-      const wash = tokens['--background'];
+      const primary = tokens['--primary']!;
+      const primaryFg = tokens['--primary-foreground']!;
+      const secondary = tokens['--secondary']!;
+      const secondaryFg = tokens['--secondary-foreground']!;
+      const wash = tokens['--background']!;
 
       // primary-foreground / primary
       expect(contrastRatio(primaryFg, primary)).toBeGreaterThanOrEqual(4.5);
@@ -169,7 +164,7 @@ describe('theme tokens in globals.css', () => {
       const block = getThemeBlock(css, id);
       expect(block).not.toBeNull();
       const tokens = extractProperties(block!);
-      const primary = tokens['--primary'];
+      const primary = tokens['--primary']!;
 
       for (const money of MONEY_COLOURS) {
         const dist = hueDistance(primary, money);
