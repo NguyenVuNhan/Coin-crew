@@ -37,12 +37,12 @@ describe('themes', () => {
   });
 
   it('unknown ids fall back to jade', () => {
-    expect(resolveTheme({ personal: 'pink', group: 'neon' })).toBe('jade');
+    expect(resolveTheme({ personal: 'rose', group: 'neon' })).toBe('jade');
     expect(resolveTheme({ personal: 'sky', group: 'neon' })).toBe('sky');
   });
 
-  it('isThemeId accepts the four theme ids and rejects everything else', () => {
-    expect(THEME_IDS).toEqual(['jade', 'orchid', 'sky', 'indigo']);
+  it('isThemeId accepts the five theme ids and rejects everything else', () => {
+    expect(THEME_IDS).toEqual(['jade', 'pink', 'orchid', 'sky', 'indigo']);
     for (const id of THEME_IDS) {
       expect(isThemeId(id)).toBe(true);
     }

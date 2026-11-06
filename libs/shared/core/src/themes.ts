@@ -1,4 +1,4 @@
-export const THEME_IDS = ['jade', 'orchid', 'sky', 'indigo'] as const;
+export const THEME_IDS = ['jade', 'pink', 'orchid', 'sky', 'indigo'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 export const DEFAULT_THEME: ThemeId = 'jade';
 

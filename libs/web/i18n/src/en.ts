@@ -979,6 +979,7 @@ export const en = {
   'theme.useOwn': "Each person's own theme",
   'theme.useOwnShort': "Each person's own",
   'theme.name.jade': 'Jade',
+  'theme.name.pink': 'Pink',
   'theme.name.orchid': 'Orchid',
   'theme.name.sky': 'Sky',
   'theme.name.indigo': 'Indigo',

@@ -51,7 +51,7 @@ describe('PATCH /api/me theme', () => {
     const sid = await memberSid('u-theme-invalid', 'Minh');
     const headers = { Cookie: `sid=${sid}`, 'Content-Type': 'application/json' };
 
-    for (const invalid of ['pink', 'Jade', '', 3]) {
+    for (const invalid of ['rose', 'Jade', '', 3]) {
       const res = await call('/api/me', {
         method: 'PATCH',
         headers,
@@ -133,7 +133,7 @@ describe('PATCH /api/trips/:id theme', () => {
   });
 
   it('an unknown theme is a 422', async () => {
-    for (const invalid of ['pink', 'Jade', '', 3]) {
+    for (const invalid of ['rose', 'Jade', '', 3]) {
       const res = await patchTrip(minh, { theme: invalid });
       expect(res.status).toBe(422);
     }

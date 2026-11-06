@@ -18,7 +18,7 @@ describe('ThemePicker keyboard and busy behaviour', () => {
 
     const group = screen.getByRole('radiogroup', { name: 'Theme' });
     const radios = within(group).getAllByRole('radio');
-    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1, -1]);
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, -1, 0, -1, -1]);
 
     unmount();
 
@@ -35,7 +35,7 @@ describe('ThemePicker keyboard and busy behaviour', () => {
 
     const fallbackGroup = screen.getByRole('radiogroup', { name: 'Theme' });
     const fallbackRadios = within(fallbackGroup).getAllByRole('radio');
-    expect(fallbackRadios.map((r) => r.tabIndex)).toEqual([0, -1, -1, -1]);
+    expect(fallbackRadios.map((r) => r.tabIndex)).toEqual([0, -1, -1, -1, -1]);
   });
 
   it('arrow keys move focus between swatches without choosing', async () => {
@@ -54,6 +54,7 @@ describe('ThemePicker keyboard and busy behaviour', () => {
     );
 
     const jade = screen.getByRole('radio', { name: 'Jade' });
+    const pink = screen.getByRole('radio', { name: 'Pink' });
     const orchid = screen.getByRole('radio', { name: 'Orchid' });
     const sky = screen.getByRole('radio', { name: 'Sky' });
     const indigo = screen.getByRole('radio', { name: 'Indigo' });
@@ -62,11 +63,11 @@ describe('ThemePicker keyboard and busy behaviour', () => {
     expect(jade).toHaveFocus();
 
     await user.keyboard('{ArrowRight}');
-    expect(orchid).toHaveFocus();
+    expect(pink).toHaveFocus();
     expect(onChange).not.toHaveBeenCalled();
 
     await user.keyboard('{ArrowDown}');
-    expect(sky).toHaveFocus();
+    expect(orchid).toHaveFocus();
     expect(onChange).not.toHaveBeenCalled();
 
     await user.keyboard('{End}');
@@ -91,7 +92,7 @@ describe('ThemePicker keyboard and busy behaviour', () => {
 
     await user.keyboard('{ArrowRight}{Enter}');
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith('orchid');
+    expect(onChange).toHaveBeenCalledWith('pink');
   });
 
   it('while saving, taps are ignored and nothing dims', async () => {

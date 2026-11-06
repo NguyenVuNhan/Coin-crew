@@ -977,6 +977,7 @@ export const vi: Record<MessageKey, string> = {
   'theme.useOwn': 'Theo màu riêng của mỗi người', // REVIEW
   'theme.useOwnShort': 'Theo từng người', // REVIEW
   'theme.name.jade': 'Ngọc bích', // REVIEW
+  'theme.name.pink': 'Hồng', // REVIEW
   'theme.name.orchid': 'Lan tím', // REVIEW
   'theme.name.sky': 'Bầu trời', // REVIEW
   'theme.name.indigo': 'Chàm', // REVIEW

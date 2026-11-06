@@ -5,7 +5,7 @@ import { THEME_IDS } from '@cc/core';
 import { ThemePicker } from '../ThemePicker';
 
 describe('ThemePicker', () => {
-  it('four themes, in order', () => {
+  it('five themes, in order', () => {
     render(
       <ThemePicker
         open
@@ -20,7 +20,7 @@ describe('ThemePicker', () => {
     const group = screen.getByRole('radiogroup', { name: 'Theme' });
     const radios = within(group).getAllByRole('radio');
     expect(radios.map((r) => r.getAttribute('data-theme-option'))).toEqual([...THEME_IDS]);
-    expect(radios.map((r) => r.textContent)).toEqual(['Jade', 'Orchid', 'Sky', 'Indigo']);
+    expect(radios.map((r) => r.textContent)).toEqual(['Jade', 'Pink', 'Orchid', 'Sky', 'Indigo']);
   });
 
   it('the none option comes first when given', () => {

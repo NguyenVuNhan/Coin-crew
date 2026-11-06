@@ -158,9 +158,10 @@ describe('theme tokens in globals.css', () => {
     }
   });
 
-  it('no new theme looks like a money colour', () => {
-    const newThemes: ThemeId[] = ['orchid', 'sky', 'indigo'];
-    for (const id of newThemes) {
+  // Accents may sit near a money hue (Pink is close to Lychee), because no accent ever colours money: amounts and the
+  // owed-to-you balance always use Leaf, Lychee or Turmeric. An accent still may not BE a money colour.
+  it('no accent is a money colour', () => {
+    for (const id of THEME_IDS as readonly ThemeId[]) {
       const block = getThemeBlock(css, id);
       expect(block).not.toBeNull();
       const tokens = extractProperties(block!);
@@ -170,8 +171,9 @@ describe('theme tokens in globals.css', () => {
         const dist = hueDistance(primary, money);
         expect(
           dist,
-          `hue distance between ${id} (${primary}) and money colour (${money}) must be >= 30°`,
-        ).toBeGreaterThanOrEqual(30);
+          `hue distance between ${id} (${primary}) and money colour (${money}) must be >= 8°`,
+        ).toBeGreaterThanOrEqual(8);
+        expect(primary.toLowerCase()).not.toBe(money);
       }
     }
   });

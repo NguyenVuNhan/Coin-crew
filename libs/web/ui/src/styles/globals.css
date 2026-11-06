@@ -107,6 +107,15 @@
   --ring: #0f766e;
 }
 
+[data-theme='pink'] {
+  --background: #fcf6f8;
+  --primary: #be185d;             /* pink-700, white text 6.0:1; near Lychee's hue, so it never colours money */
+  --primary-foreground: #ffffff;
+  --secondary: #fce7f3;           /* pink-100 */
+  --secondary-foreground: #831843;/* pink-900 on pink-100 */
+  --ring: #be185d;
+}
+
 [data-theme='orchid'] {
   --background: #fbf6fb;
   --primary: #a21caf;             /* fuchsia-700, white text 6.3:1 */

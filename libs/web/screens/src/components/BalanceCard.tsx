@@ -53,7 +53,7 @@ export function BalanceCard({ view }: { view: TripView }) {
       {now > 0 && (
         <>
           <p className="fsl-balance__label m-0 text-sm font-medium text-muted-foreground">{t('balance.owed')}</p>
-          <Amount value={now} tone="success" size="xl" className="!text-3xl !font-bold tabular-nums !text-primary" />
+          <Amount value={now} tone="success" size="xl" className="!text-3xl !font-bold tabular-nums" />
         </>
       )}
       {now < 0 && (
@@ -78,7 +78,7 @@ export function BalanceCard({ view }: { view: TripView }) {
       )}
       {now === 0 && (
         <p className="fsl-balance__settled m-0 flex items-center gap-2 text-lg font-semibold text-foreground">
-          <Icon name="circleCheck" size={20} className="text-primary shrink-0" />
+          <Icon name="circleCheck" size={20} className="text-success shrink-0" />
           <span>{t('balance.settled')}</span>
         </p>
       )}
