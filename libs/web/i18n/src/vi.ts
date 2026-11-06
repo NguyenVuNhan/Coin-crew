@@ -969,5 +969,15 @@ export const vi: Record<MessageKey, string> = {
   'join.accept': 'Chấp nhận', // REVIEW
   'join.decline': 'Từ chối', // REVIEW
   'join.accepted': 'Đã tham gia tài khoản Zalo', // REVIEW
+
+  'theme.title': 'Màu giao diện', // REVIEW
+  'theme.personalExplain': 'Màu của bạn ở mọi nơi ngoài nhóm. Trong nhóm, màu do quản trị viên chọn sẽ được dùng.', // REVIEW
+  'theme.groupTitle': 'Màu của nhóm', // REVIEW
+  'theme.groupExplain': 'Mọi người trong nhóm, kể cả khách, đều thấy màu này.', // REVIEW
+  'theme.useOwn': 'Theo màu riêng của mỗi người', // REVIEW
+  'theme.name.jade': 'Ngọc bích', // REVIEW
+  'theme.name.orchid': 'Lan tím', // REVIEW
+  'theme.name.sky': 'Bầu trời', // REVIEW
+  'theme.name.indigo': 'Chàm', // REVIEW
 };
 

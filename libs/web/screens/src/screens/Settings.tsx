@@ -1,14 +1,16 @@
 import { useState, useId } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { can } from '@cc/core';
+import { can, isThemeId, type ThemeId } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
 import { useTripView } from '@cc/web-data-access/hooks';
+import { useSetGroupTheme } from '@cc/web-data-access/theme';
 import { apiSend, type ApiClientError } from '@cc/web-data-access/client';
 import { Screen } from '../components/Screen';
+import { ThemePicker } from '../components/ThemePicker';
 import { Button } from '@cc/web-ui/components/Button';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
@@ -31,6 +33,8 @@ export function Settings() {
   const [archiveError, setArchiveError] = useState<ApiClientError | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<ApiClientError | null>(null);
+  const [coloursOpen, setColoursOpen] = useState(false);
+  const setGroupTheme = useSetGroupTheme(tripId ?? '');
 
   if (isLoading) {
     return (
@@ -53,6 +57,9 @@ export function Settings() {
   if (!view) return null;
 
   const archived = view.trip.archived;
+  const canSetTheme = can(actorOf(view), 'set_theme') && !view.trip.archived;
+  const groupTheme: ThemeId | null = isThemeId(view.trip.theme) ? view.trip.theme : null;
+  const groupThemeLabel = groupTheme ? t(`theme.name.${groupTheme}`) : t('theme.useOwn');
 
   // Archiving asks first; unarchiving loses nothing, so it doesn't.
   const handleArchive = async () => {
@@ -118,7 +125,41 @@ export function Settings() {
               <Icon name="chevronRight" size={20} className={cn('fsl-settings__chevron shrink-0 text-subtle-foreground')} />
             </Link>
           </li>
+          {canSetTheme && (
+            <li>
+              <button
+                type="button"
+                className={cn(
+                  'fsl-settings__row fsl-settings__colours w-full flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
+                )}
+                onClick={() => {
+                  setGroupTheme.reset();
+                  setColoursOpen(true);
+                }}
+              >
+                <span className="fsl-settings__label">{t('theme.groupTitle')}</span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-muted-foreground font-normal">{groupThemeLabel}</span>
+                  <Icon name="chevronRight" size={20} className={cn('fsl-settings__chevron shrink-0 text-subtle-foreground')} />
+                </span>
+              </button>
+            </li>
+          )}
         </ul>
+
+        {canSetTheme && (
+          <ThemePicker
+            open={coloursOpen}
+            onClose={() => setColoursOpen(false)}
+            title={t('theme.groupTitle')}
+            explain={t('theme.groupExplain')}
+            value={groupTheme}
+            onChange={(theme) => setGroupTheme.mutate(theme)}
+            noneLabel={t('theme.useOwn')}
+            busy={setGroupTheme.isPending}
+            error={setGroupTheme.error}
+          />
+        )}
 
         {view.me.kind === 'member' && !view.trip.archived && (
           <FewestSwitch view={view} />

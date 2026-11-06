@@ -971,6 +971,16 @@ export const en = {
   'join.accept': 'Accept',
   'join.decline': 'Decline',
   'join.accepted': 'Zalo account joined',
+
+  'theme.title': 'Theme',
+  'theme.personalExplain': 'Your colours everywhere outside a group. Inside a group, the colours its admin picked win.',
+  'theme.groupTitle': 'Group colours',
+  'theme.groupExplain': 'Everyone sees these colours inside this group, guests included.',
+  'theme.useOwn': "Each person's own theme",
+  'theme.name.jade': 'Jade',
+  'theme.name.orchid': 'Orchid',
+  'theme.name.sky': 'Sky',
+  'theme.name.indigo': 'Indigo',
 } as const;
 
 export type MessageKey = keyof typeof en;
