@@ -697,7 +697,8 @@ describe('finished steps', () => {
     const signOutBtn = within(menu).getByRole('button', { name: 'Sign out' });
     await userEvent.click(signOutBtn);
 
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/'));
+    // Exactly "/": a bare toHaveTextContent('/') also matched "/groups" and checked before sign-out had navigated.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/));
     expect(screen.getByTestId('navigation-kind')).toHaveTextContent('REPLACE');
     confirm.mockRestore();
   });

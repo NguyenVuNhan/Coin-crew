@@ -975,6 +975,7 @@ export const vi: Record<MessageKey, string> = {
   'theme.groupTitle': 'Màu của nhóm', // REVIEW
   'theme.groupExplain': 'Mọi người trong nhóm, kể cả khách, đều thấy màu này.', // REVIEW
   'theme.useOwn': 'Theo màu riêng của mỗi người', // REVIEW
+  'theme.useOwnShort': 'Theo từng người', // REVIEW
   'theme.name.jade': 'Ngọc bích', // REVIEW
   'theme.name.orchid': 'Lan tím', // REVIEW
   'theme.name.sky': 'Bầu trời', // REVIEW

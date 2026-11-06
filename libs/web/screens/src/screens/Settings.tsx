@@ -59,7 +59,7 @@ export function Settings() {
   const archived = view.trip.archived;
   const canSetTheme = can(actorOf(view), 'set_theme') && !view.trip.archived;
   const groupTheme: ThemeId | null = isThemeId(view.trip.theme) ? view.trip.theme : null;
-  const groupThemeLabel = groupTheme ? t(`theme.name.${groupTheme}`) : t('theme.useOwn');
+  const groupThemeLabel = groupTheme ? t(`theme.name.${groupTheme}`) : t('theme.useOwnShort');
 
   // Archiving asks first; unarchiving loses nothing, so it doesn't.
   const handleArchive = async () => {
@@ -130,16 +130,16 @@ export function Settings() {
               <button
                 type="button"
                 className={cn(
-                  'fsl-settings__row fsl-settings__colours w-full flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
+                  'fsl-settings__row fsl-settings__colours w-full flex items-center justify-between gap-3 min-h-[52px] px-4 py-2 text-left text-foreground font-medium text-base no-underline bg-card transition-colors duration-150 ease-out hover:bg-muted cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none',
                 )}
                 onClick={() => {
                   setGroupTheme.reset();
                   setColoursOpen(true);
                 }}
               >
-                <span className="fsl-settings__label">{t('theme.groupTitle')}</span>
-                <span className="inline-flex items-center gap-2">
-                  <span className="text-muted-foreground font-normal">{groupThemeLabel}</span>
+                <span className="fsl-settings__label shrink-0">{t('theme.groupTitle')}</span>
+                <span className="min-w-0 inline-flex items-center gap-2">
+                  <span className="min-w-0 truncate text-right text-muted-foreground font-normal">{groupThemeLabel}</span>
                   <Icon name="chevronRight" size={20} className={cn('fsl-settings__chevron shrink-0 text-subtle-foreground')} />
                 </span>
               </button>

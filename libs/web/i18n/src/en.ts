@@ -977,6 +977,7 @@ export const en = {
   'theme.groupTitle': 'Group colours',
   'theme.groupExplain': 'Everyone sees these colours inside this group, guests included.',
   'theme.useOwn': "Each person's own theme",
+  'theme.useOwnShort': "Each person's own",
   'theme.name.jade': 'Jade',
   'theme.name.orchid': 'Orchid',
   'theme.name.sky': 'Sky',

@@ -73,6 +73,20 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const themeRowRef = useRef<HTMLButtonElement | null>(null);
+  const wasThemeOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (wasThemeOpenRef.current && !themeOpen) {
+      themeRowRef.current?.focus();
+      const raf = requestAnimationFrame(() => {
+        themeRowRef.current?.focus();
+      });
+      wasThemeOpenRef.current = false;
+      return () => cancelAnimationFrame(raf);
+    }
+    wasThemeOpenRef.current = themeOpen;
+  }, [themeOpen]);
 
   useEffect(() => {
     if (u) {
@@ -357,6 +371,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
         </Link>
 
         <button
+          ref={themeRowRef}
           type="button"
           className={cn(
             'fsl-account-menu__row fsl-account-menu__link fsl-account-menu__theme flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground bg-transparent hover:bg-accent transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',

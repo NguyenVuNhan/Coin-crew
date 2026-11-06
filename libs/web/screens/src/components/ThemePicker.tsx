@@ -1,3 +1,4 @@
+import { useRef, type KeyboardEvent } from 'react';
 import { THEME_IDS, type ThemeId } from '@cc/core';
 import type { ApiClientError } from '@cc/web-data-access/client';
 import { useT } from '@cc/web-i18n';
@@ -30,6 +31,30 @@ export function ThemePicker({
   error = null,
 }: ThemePickerProps) {
   const t = useT();
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const options: (ThemeId | null)[] =
+    noneLabel !== undefined ? [null, ...THEME_IDS] : [...THEME_IDS];
+  const checkedIndex = options.indexOf(value);
+  const activeTabIndex = checkedIndex >= 0 ? checkedIndex : 0;
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const count = options.length;
+    let nextIndex: number | null = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      nextIndex = (index + 1) % count;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      nextIndex = (index - 1 + count) % count;
+    } else if (e.key === 'Home') {
+      nextIndex = 0;
+    } else if (e.key === 'End') {
+      nextIndex = count - 1;
+    }
+    if (nextIndex !== null) {
+      e.preventDefault();
+      optionRefs.current[nextIndex]?.focus();
+    }
+  };
 
   return (
     <Sheet open={open} onClose={onClose} title={title} className="fsl-theme-picker">
@@ -45,14 +70,22 @@ export function ThemePicker({
         >
           {noneLabel !== undefined && (
             <button
+              ref={(el) => {
+                optionRefs.current[0] = el;
+              }}
               type="button"
               role="radio"
               aria-checked={value === null}
+              aria-disabled={busy ? 'true' : undefined}
+              tabIndex={activeTabIndex === 0 ? 0 : -1}
               data-theme-option="none"
-              disabled={busy}
-              onClick={() => onChange(null)}
+              onClick={() => {
+                if (busy) return;
+                onChange(null);
+              }}
+              onKeyDown={(e) => handleKeyDown(e, 0)}
               className={cn(
-                'fsl-theme-picker__option flex flex-col justify-between gap-2 min-h-11 p-3 rounded-xl border border-border bg-card text-left cursor-pointer transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+                'fsl-theme-picker__option flex flex-col justify-between gap-2 min-h-11 p-3 rounded-xl border border-border bg-card text-left cursor-pointer transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 value === null && 'ring-2 ring-primary fsl-theme-picker__option--selected',
               )}
             >
@@ -81,20 +114,29 @@ export function ThemePicker({
             </button>
           )}
 
-          {THEME_IDS.map((id) => {
+          {THEME_IDS.map((id, i) => {
+            const index = noneLabel !== undefined ? i + 1 : i;
             const isSelected = value === id;
             const name = t(`theme.name.${id}`);
             return (
               <button
                 key={id}
+                ref={(el) => {
+                  optionRefs.current[index] = el;
+                }}
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
+                aria-disabled={busy ? 'true' : undefined}
+                tabIndex={activeTabIndex === index ? 0 : -1}
                 data-theme-option={id}
-                disabled={busy}
-                onClick={() => onChange(id)}
+                onClick={() => {
+                  if (busy) return;
+                  onChange(id);
+                }}
+                onKeyDown={(e) => handleKeyDown(e, index)}
                 className={cn(
-                  'fsl-theme-picker__option flex flex-col justify-between gap-2 min-h-11 p-3 rounded-xl border border-border bg-card text-left cursor-pointer transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+                  'fsl-theme-picker__option flex flex-col justify-between gap-2 min-h-11 p-3 rounded-xl border border-border bg-card text-left cursor-pointer transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   isSelected && 'ring-2 ring-primary fsl-theme-picker__option--selected',
                 )}
               >

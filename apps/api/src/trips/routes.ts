@@ -487,11 +487,14 @@ export function tripRoutes(): Hono<AppBindings> {
     const hasTheme = body?.theme !== undefined;
 
     if (
+      !body ||
+      typeof body !== 'object' ||
       (!hasFewest && !hasRatings && !hasRound && !hasTheme) ||
       (hasFewest && typeof body.fewestTransfers !== 'boolean') ||
       (hasRatings && typeof body.ratingsEnabled !== 'boolean') ||
       (hasRound && typeof body.roundTransfers !== 'boolean') ||
-      (hasTheme && body.theme !== null && !isThemeId(body.theme))
+      (hasTheme && body.theme !== null && !isThemeId(body.theme)) ||
+      (hasTheme && (hasFewest || hasRound || hasRatings || Object.keys(body).length > 1))
     ) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
@@ -506,6 +509,9 @@ export function tripRoutes(): Hono<AppBindings> {
       ensure(actor, 'set_fewest');
     }
     if (hasTheme) {
+      if (actor.trip.preset === 'direct') {
+        throw new ApiError('VALIDATION', 422, 'Group colours are only for groups.');
+      }
       ensure(actor, 'set_theme');
     }
 
@@ -521,14 +527,13 @@ export function tripRoutes(): Hono<AppBindings> {
       .set(patchSet)
       .where(eq(trips.id, tripId));
 
-    const action =
-      hasTheme && !hasFewest && !hasRound && !hasRatings
-        ? 'theme_changed'
-        : hasRound && !hasFewest && !hasRatings
-          ? 'round_transfers_changed'
-          : hasRatings && !hasFewest && !hasRound
-            ? 'ratings_changed'
-            : 'fewest_changed';
+    const action = hasTheme
+      ? 'theme_changed'
+      : hasRound && !hasFewest && !hasRatings
+        ? 'round_transfers_changed'
+        : hasRatings && !hasFewest && !hasRound
+          ? 'ratings_changed'
+          : 'fewest_changed';
     const details: Record<string, unknown> = {};
     if (hasRatings) details.ratingsEnabled = body.ratingsEnabled as boolean;
     if (hasFewest) details.fewestTransfers = body.fewestTransfers as boolean;

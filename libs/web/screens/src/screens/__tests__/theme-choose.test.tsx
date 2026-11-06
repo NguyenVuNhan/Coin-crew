@@ -115,7 +115,8 @@ describe('choosing a theme', () => {
 
     const row = await screen.findByRole('button', { name: /Group colours/i });
     expect(row).toHaveClass('fsl-settings__colours');
-    expect(row).toHaveTextContent("Each person's own theme");
+    // The row shows the short label; the picker's option keeps the full one.
+    expect(row).toHaveTextContent("Each person's own");
 
     await user.click(row);
 
