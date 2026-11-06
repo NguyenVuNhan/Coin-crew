@@ -120,7 +120,7 @@ export function resolveTheme(input: { personal?: string | null; group?: string |
 - Create: `libs/web/ui/src/lib/theme.ts`.
 - Test: `libs/web/ui/src/lib/__tests__/theme.test.ts`.
 - Create the test `libs/web/ui/src/styles/__tests__/theme-tokens.test.ts`. It reads `globals.css` with `fs` and parses the blocks with a regex.
-- Modify `libs/web/ui/src/components/icons.ts`: add `palette: Palette` (lucide).
+- Modify `libs/web/ui/src/components/icons.tsx`: add `palette: Palette` (lucide).
 - Modify `apps/web/index.html`: an inline `<script>` in `<head>`, before the module script:
   `try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`
 
