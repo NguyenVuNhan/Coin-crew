@@ -886,6 +886,7 @@ export const en = {
   'activity.ratingsEnabled': '{actor} turned on player ratings',
   'activity.ratingsDisabled': '{actor} turned off player ratings',
   'activity.action.ratings_changed': 'changed player ratings',
+  'activity.action.theme_changed': 'changed the group colours',
   'error.ratingLimit': "You've reached the star limit. Reclaim a star first and try again.",
   'ratings.title': 'Player ratings',
   'ratings.leaderboard': 'Leaderboard',
@@ -970,6 +971,18 @@ export const en = {
   'join.accept': 'Accept',
   'join.decline': 'Decline',
   'join.accepted': 'Zalo account joined',
+
+  'theme.title': 'Theme',
+  'theme.personalExplain': 'Your colours everywhere outside a group. Inside a group, the colours its admin picked win.',
+  'theme.groupTitle': 'Group colours',
+  'theme.groupExplain': 'Everyone sees these colours inside this group, guests included.',
+  'theme.useOwn': "Each person's own theme",
+  'theme.useOwnShort': "Each person's own",
+  'theme.name.jade': 'Jade',
+  'theme.name.pink': 'Pink',
+  'theme.name.orchid': 'Orchid',
+  'theme.name.sky': 'Sky',
+  'theme.name.indigo': 'Indigo',
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -884,6 +884,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.ratingsEnabled': '{actor} đã bật đánh giá người chơi', // REVIEW
   'activity.ratingsDisabled': '{actor} đã tắt đánh giá người chơi', // REVIEW
   'activity.action.ratings_changed': 'đã thay đổi cài đặt đánh giá người chơi', // REVIEW
+  'activity.action.theme_changed': 'đã đổi màu của nhóm', // REVIEW
   'error.ratingLimit': 'Bạn đã chạm giới hạn sao. Hãy thu hồi sao trước rồi thử lại.', // REVIEW
   'ratings.title': 'Đánh giá người chơi', // REVIEW
   'ratings.leaderboard': 'Bảng xếp hạng', // REVIEW
@@ -968,5 +969,17 @@ export const vi: Record<MessageKey, string> = {
   'join.accept': 'Chấp nhận', // REVIEW
   'join.decline': 'Từ chối', // REVIEW
   'join.accepted': 'Đã tham gia tài khoản Zalo', // REVIEW
+
+  'theme.title': 'Màu giao diện', // REVIEW
+  'theme.personalExplain': 'Màu của bạn ở mọi nơi ngoài nhóm. Trong nhóm, màu do quản trị viên chọn sẽ được dùng.', // REVIEW
+  'theme.groupTitle': 'Màu của nhóm', // REVIEW
+  'theme.groupExplain': 'Mọi người trong nhóm, kể cả khách, đều thấy màu này.', // REVIEW
+  'theme.useOwn': 'Theo màu riêng của mỗi người', // REVIEW
+  'theme.useOwnShort': 'Theo từng người', // REVIEW
+  'theme.name.jade': 'Ngọc bích', // REVIEW
+  'theme.name.pink': 'Hồng', // REVIEW
+  'theme.name.orchid': 'Lan tím', // REVIEW
+  'theme.name.sky': 'Bầu trời', // REVIEW
+  'theme.name.indigo': 'Chàm', // REVIEW
 };
 

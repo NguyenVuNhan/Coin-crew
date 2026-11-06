@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router';
-import type { MeResponse } from '@cc/core';
+import { DEFAULT_THEME, type MeResponse } from '@cc/core';
+import { applyTheme, readCachedTheme } from '@cc/web-ui/lib/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { NavHistoryProvider } from './lib/navHistory';
@@ -11,8 +12,10 @@ import { sessionStore } from '@cc/web-platform/session';
 import { zaloHandshake } from '@cc/web-data-access/zaloSession';
 import { SIGNED_OUT_KEY } from '@cc/web-data-access/signOut';
 
-/** One-time start-up shared by every shell (web, Zalo): language and focus refetch. */
+/** One-time start-up shared by every shell (web, Zalo): the cached theme, language and focus refetch. */
 export async function bootApp(platform: PlatformBridge = browserPlatform): Promise<void> {
+  // First, before any await: a slow Zalo handshake must never delay the person's colours.
+  applyTheme(readCachedTheme() ?? DEFAULT_THEME);
   await sessionStore.init(platform);
   if (platform.kind === 'zmp') {
     await zaloBoot(platform);

@@ -61,16 +61,11 @@
 }
 
 :root {
-  --background: #f6f7f4;          /* warm off-white page */
   --foreground: #1c1917;          /* stone-900, 16:1 on background */
   --card: #ffffff;
   --card-foreground: #1c1917;
   --popover: #ffffff;
   --popover-foreground: #1c1917;
-  --primary: #0f766e;             /* teal-700, white text 5.5:1 */
-  --primary-foreground: #ffffff;
-  --secondary: #ccfbf1;           /* teal-100 */
-  --secondary-foreground: #134e4a;/* teal-900 on teal-100 */
   --muted: #efefeb;
   --muted-foreground: #57534e;    /* stone-600, 7:1 on background */
   --subtle-foreground: #78716c;   /* stone-500, 4.8:1 on white only, never on the page background */
@@ -79,7 +74,6 @@
   --destructive: #be123c;
   --border: #e7e5e4;
   --input: #d6d3d1;
-  --ring: #0f766e;
 
   --success: #047857;             /* emerald-700, owed to you */
   --success-soft: #d1fae5;
@@ -102,6 +96,51 @@
 
   --zmp-safe-top: 0px;
   --zmp-capsule-width: 0px;
+}
+
+:root, [data-theme='jade'] {
+  --background: #f6f7f4;          /* warm off-white page */
+  --primary: #0f766e;             /* teal-700, white text 5.5:1 */
+  --primary-foreground: #ffffff;
+  --secondary: #ccfbf1;           /* teal-100 */
+  --secondary-foreground: #134e4a;/* teal-900 on teal-100 */
+  --ring: #0f766e;
+}
+
+[data-theme='pink'] {
+  --background: #fcf6f8;
+  --primary: #be185d;             /* pink-700, white text 6.0:1; near Lychee's hue, so it never colours money */
+  --primary-foreground: #ffffff;
+  --secondary: #fce7f3;           /* pink-100 */
+  --secondary-foreground: #831843;/* pink-900 on pink-100 */
+  --ring: #be185d;
+}
+
+[data-theme='orchid'] {
+  --background: #fbf6fb;
+  --primary: #a21caf;             /* fuchsia-700, white text 6.3:1 */
+  --primary-foreground: #ffffff;
+  --secondary: #fae8ff;           /* fuchsia-100 */
+  --secondary-foreground: #701a75;/* fuchsia-900 on fuchsia-100 */
+  --ring: #a21caf;
+}
+
+[data-theme='sky'] {
+  --background: #f4f8fb;
+  --primary: #0369a1;             /* sky-700, white text 5.9:1 */
+  --primary-foreground: #ffffff;
+  --secondary: #e0f2fe;           /* sky-100 */
+  --secondary-foreground: #0c4a6e;/* sky-900 on sky-100 */
+  --ring: #0369a1;
+}
+
+[data-theme='indigo'] {
+  --background: #f6f6fb;
+  --primary: #4338ca;             /* indigo-700, white text 7.9:1 */
+  --primary-foreground: #ffffff;
+  --secondary: #e0e7ff;           /* indigo-100 */
+  --secondary-foreground: #312e81;/* indigo-900 on indigo-100 */
+  --ring: #4338ca;
 }
 
 /* Star votes on the ratings screen: a tap pops the star, an over-quota tap shakes it, a burst sends sparks out along

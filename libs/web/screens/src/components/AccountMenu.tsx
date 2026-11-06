@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { MeUserView, Gender } from '@cc/core';
+import { DEFAULT_THEME, isThemeId, type MeUserView, type Gender, type ThemeId } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
+import { readCachedTheme } from '@cc/web-ui/lib/theme';
 import { useT } from '@cc/web-i18n';
 import { useIsWide } from '@cc/web-util/media';
 import { apiSend } from '@cc/web-data-access/client';
 import { useMe } from '@cc/web-data-access/hooks';
+import { useSetMyTheme } from '@cc/web-data-access/theme';
 import { signOut as signOutHere } from '@cc/web-data-access/signOut';
 import { usePlatform } from '@cc/web-platform';
 import { Sheet } from '@cc/web-ui/components/Sheet';
@@ -18,6 +20,7 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { AvatarCropModal } from '@cc/web-ui/components/AvatarCropModal';
 import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
+import { ThemePicker } from './ThemePicker';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
@@ -27,6 +30,7 @@ export type AccountMenuUser = {
   email?: string | null;
   avatarUrl?: string | null;
   gender?: Gender | null;
+  theme?: ThemeId | null;
   id?: string;
   consentAt?: string | null;
 };
@@ -63,10 +67,26 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
 
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const setMyTheme = useSetMyTheme();
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const themeRowRef = useRef<HTMLButtonElement | null>(null);
+  const wasThemeOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (wasThemeOpenRef.current && !themeOpen) {
+      themeRowRef.current?.focus();
+      const raf = requestAnimationFrame(() => {
+        themeRowRef.current?.focus();
+      });
+      wasThemeOpenRef.current = false;
+      return () => cancelAnimationFrame(raf);
+    }
+    wasThemeOpenRef.current = themeOpen;
+  }, [themeOpen]);
 
   useEffect(() => {
     if (u) {
@@ -86,7 +106,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   };
 
   useEffect(() => {
-    if (!wide || !open) return;
+    if (!wide || !open || cropOpen || themeOpen) return;
 
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target;
@@ -110,11 +130,15 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [wide, open]);
+  }, [wide, open, cropOpen, themeOpen]);
 
   if (!u) {
     return null;
   }
+
+  const rawTheme =
+    meQuery.data?.user !== undefined ? meQuery.data.user?.theme : (readCachedTheme() ?? u.theme);
+  const currentTheme: ThemeId = isThemeId(rawTheme) ? rawTheme : DEFAULT_THEME;
 
   const signOut = async () => {
     setSigningOut(true);
@@ -346,6 +370,27 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
         </Link>
 
+        <button
+          ref={themeRowRef}
+          type="button"
+          className={cn(
+            'fsl-account-menu__row fsl-account-menu__link fsl-account-menu__theme flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground bg-transparent hover:bg-accent transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+          onClick={() => {
+            setMyTheme.reset();
+            setThemeOpen(true);
+          }}
+        >
+          <span className="fsl-account-menu__row-left inline-flex items-center gap-2">
+            <Icon name="palette" size={20} />
+            <span>{t('theme.title')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-muted-foreground">{t(`theme.name.${currentTheme}`)}</span>
+            <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
+          </span>
+        </button>
+
         <div className="fsl-account-menu__row flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground">
           <span>{t('account.language')}</span>
           <LanguageButton />
@@ -390,11 +435,24 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     />
   ) : null;
 
+  const themePicker = (
+    <ThemePicker
+      open={themeOpen}
+      onClose={() => setThemeOpen(false)}
+      title={t('theme.title')}
+      explain={t('theme.personalExplain')}
+      value={currentTheme}
+      onChange={(theme) => setMyTheme.mutate(theme)}
+      busy={setMyTheme.isPending}
+      error={setMyTheme.error}
+    />
+  );
+
   if (wide) {
     return (
       <div className="fsl-account-menu relative inline-flex" ref={wrapperRef}>
         {trigger}
-        {open && !cropOpen && (
+        {open && !cropOpen && !themeOpen && (
           <div
             role="dialog"
             aria-label={t('account.label')}
@@ -404,6 +462,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           </div>
         )}
         {cropModal}
+        {themePicker}
       </div>
     );
   }
@@ -411,10 +470,11 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   return (
     <span className="fsl-account-menu inline-flex">
       {trigger}
-      <Sheet open={open && !cropOpen} onClose={close} title={t('account.label')}>
+      <Sheet open={open && !cropOpen && !themeOpen} onClose={close} title={t('account.label')}>
         {body}
       </Sheet>
       {cropModal}
+      {themePicker}
     </span>
   );
 }

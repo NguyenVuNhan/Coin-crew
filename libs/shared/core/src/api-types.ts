@@ -81,6 +81,7 @@ export type ActivityAction =
   | 'income_enabled'
   | 'income_rolled_back'
   | 'ratings_changed'
+  | 'theme_changed'
   | 'merge_proposed'
   | 'merge_proposal_accepted'
   | 'merge_proposal_declined';
@@ -93,6 +94,7 @@ import type { MatchReason, NameCandidate } from './names';
 import type { IncomeStatus } from './fund';
 import type { PersonKey, PersonItem } from './people';
 import type { MergePlan } from './mergePlan';
+import type { ThemeId } from './themes';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -102,6 +104,7 @@ export interface MeUserView {
   name: string;
   gender?: Gender | null;
   avatarUrl?: string | null;
+  theme?: ThemeId | null;
   consentAt: string | null;
   providers: AuthProvider[];
   /** The name on the linked Zalo login, when one is linked. */
@@ -166,6 +169,7 @@ export interface UpdateProfileInput {
   name?: string;
   gender?: Gender | null;
   avatarUrl?: string | null;
+  theme?: ThemeId | null;
 }
 
 export interface ExpenseHistoryItem {
@@ -338,7 +342,7 @@ export interface RatingsView {
   myAllocations: Record<string, number>;
 }
 export interface TripView {
-  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean };
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean; theme?: ThemeId | null };
   me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
   people: PersonView[];
   balances: Balances;

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
 import { Home } from './screens/Home';
@@ -22,6 +22,8 @@ import { BankDetails } from './screens/BankDetails';
 import { GuestBank } from './screens/GuestBank';
 import { AuthNotice } from './components/AuthNotice';
 import { UndoSnackbarHost } from './components/UndoSnackbarHost';
+import { ThemeController } from './components/ThemeController';
+import { GroupThemeScope } from './lib/groupTheme';
 
 function TripsRoute() {
   const { search } = useLocation();
@@ -60,6 +62,7 @@ export function App() {
   return (
     <>
       <AuthNotice />
+      <ThemeController />
       <UndoSnackbarHost />
     <Routes>
       <Route path="/" element={<Landing />} />
@@ -71,7 +74,16 @@ export function App() {
       <Route path="/r/:token" element={<RequestPage />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
-      <Route path="/t/:tripId">{tripPages}</Route>
+      <Route
+        path="/t/:tripId"
+        element={
+          <GroupThemeScope>
+            <Outlet />
+          </GroupThemeScope>
+        }
+      >
+        {tripPages}
+      </Route>
       <Route path="/j/:token" element={<Join />}>
         {tripPages}
         <Route path="e/:expenseId" element={<OldExpenseLink />} />

@@ -4,6 +4,7 @@ import { useT } from '@cc/web-i18n';
 import { apiFetch } from '@cc/web-data-access/client';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { TripBaseProvider } from '../lib/tripBase';
+import { GroupThemeScope } from '../lib/groupTheme';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
@@ -57,7 +58,9 @@ export function Join() {
 
   return (
     <TripBaseProvider tripId={data.tripId} token={token}>
-      <Outlet />
+      <GroupThemeScope>
+        <Outlet />
+      </GroupThemeScope>
     </TripBaseProvider>
   );
 }

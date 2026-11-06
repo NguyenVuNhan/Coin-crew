@@ -10,6 +10,7 @@ import type {
 } from '@cc/core';
 import {
   findBank,
+  isThemeId,
   normalizeName,
   toTransferNote,
 } from '@cc/core';
@@ -478,16 +479,22 @@ export function tripRoutes(): Hono<AppBindings> {
       fewestTransfers?: unknown;
       roundTransfers?: unknown;
       ratingsEnabled?: unknown;
+      theme?: unknown;
     }>(c);
     const hasFewest = body?.fewestTransfers !== undefined;
     const hasRound = body?.roundTransfers !== undefined;
     const hasRatings = body?.ratingsEnabled !== undefined;
+    const hasTheme = body?.theme !== undefined;
 
     if (
-      (!hasFewest && !hasRatings && !hasRound) ||
+      !body ||
+      typeof body !== 'object' ||
+      (!hasFewest && !hasRatings && !hasRound && !hasTheme) ||
       (hasFewest && typeof body.fewestTransfers !== 'boolean') ||
       (hasRatings && typeof body.ratingsEnabled !== 'boolean') ||
-      (hasRound && typeof body.roundTransfers !== 'boolean')
+      (hasRound && typeof body.roundTransfers !== 'boolean') ||
+      (hasTheme && body.theme !== null && !isThemeId(body.theme)) ||
+      (hasTheme && (hasFewest || hasRound || hasRatings || Object.keys(body).length > 1))
     ) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
@@ -501,20 +508,28 @@ export function tripRoutes(): Hono<AppBindings> {
     if (hasFewest || hasRound) {
       ensure(actor, 'set_fewest');
     }
+    if (hasTheme) {
+      if (actor.trip.preset === 'direct') {
+        throw new ApiError('VALIDATION', 422, 'Group colours are only for groups.');
+      }
+      ensure(actor, 'set_theme');
+    }
 
     const db = getDb(c.env);
     const patchSet: Partial<typeof trips.$inferInsert> = {};
     if (hasFewest) patchSet.fewestTransfers = body.fewestTransfers ? 1 : 0;
     if (hasRound) patchSet.roundTransfers = body.roundTransfers ? 1 : 0;
     if (hasRatings) patchSet.ratingsEnabled = body.ratingsEnabled ? 1 : 0;
+    if (hasTheme) patchSet.theme = body.theme as string | null;
 
     const updateQuery = db
       .update(trips)
       .set(patchSet)
       .where(eq(trips.id, tripId));
 
-    const action =
-      hasRound && !hasFewest && !hasRatings
+    const action = hasTheme
+      ? 'theme_changed'
+      : hasRound && !hasFewest && !hasRatings
         ? 'round_transfers_changed'
         : hasRatings && !hasFewest && !hasRound
           ? 'ratings_changed'
@@ -523,6 +538,7 @@ export function tripRoutes(): Hono<AppBindings> {
     if (hasRatings) details.ratingsEnabled = body.ratingsEnabled as boolean;
     if (hasFewest) details.fewestTransfers = body.fewestTransfers as boolean;
     if (hasRound) details.roundTransfers = body.roundTransfers as boolean;
+    if (hasTheme) details.theme = body.theme as string | null;
 
     await commitTripWrite(db, tripId, [updateQuery], {
       action,

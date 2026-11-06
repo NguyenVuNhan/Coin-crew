@@ -26,6 +26,7 @@ import {
   Map as MapIcon,
   Mars,
   Merge,
+  Palette,
   Pencil,
   PieChart,
   PiggyBank,
@@ -53,7 +54,7 @@ export type IconName =
   | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
-  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell';
+  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'palette';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -101,6 +102,7 @@ const SHAPES: Record<IconName, LucideIcon> = {
   piggyBank: PiggyBank,
   star: Star,
   crown: Crown,
+  palette: Palette,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */
