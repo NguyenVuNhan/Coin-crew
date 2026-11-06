@@ -4,7 +4,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { decodeIdToken, generateCodeVerifier, generateState } from 'arctic';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { UpdateProfileInput } from '@cc/core';
-import { normalizeName } from '@cc/core';
+import { isThemeId, normalizeName } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { deviceExpenseGrants, deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
@@ -356,6 +356,10 @@ export function authRoutes(): Hono<AppBindings> {
       }
     }
 
+    if (body.theme !== undefined && body.theme !== null && !isThemeId(body.theme)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
     const db = getDb(c.env);
     const updates: Partial<typeof users.$inferInsert> = {};
     if (trimmedName !== undefined) {
@@ -366,6 +370,9 @@ export function authRoutes(): Hono<AppBindings> {
     }
     if (body.avatarUrl !== undefined) {
       updates.avatarUrl = body.avatarUrl;
+    }
+    if (body.theme !== undefined) {
+      updates.theme = body.theme;
     }
     if (body.name !== undefined || body.avatarUrl !== undefined) {
       updates.customProfile = 1;

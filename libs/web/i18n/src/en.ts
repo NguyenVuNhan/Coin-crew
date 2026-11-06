@@ -886,6 +886,7 @@ export const en = {
   'activity.ratingsEnabled': '{actor} turned on player ratings',
   'activity.ratingsDisabled': '{actor} turned off player ratings',
   'activity.action.ratings_changed': 'changed player ratings',
+  'activity.action.theme_changed': 'changed the group colours',
   'error.ratingLimit': "You've reached the star limit. Reclaim a star first and try again.",
   'ratings.title': 'Player ratings',
   'ratings.leaderboard': 'Leaderboard',

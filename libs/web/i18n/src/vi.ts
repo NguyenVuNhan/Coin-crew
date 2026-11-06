@@ -884,6 +884,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.ratingsEnabled': '{actor} đã bật đánh giá người chơi', // REVIEW
   'activity.ratingsDisabled': '{actor} đã tắt đánh giá người chơi', // REVIEW
   'activity.action.ratings_changed': 'đã thay đổi cài đặt đánh giá người chơi', // REVIEW
+  'activity.action.theme_changed': 'đã đổi màu của nhóm', // REVIEW
   'error.ratingLimit': 'Bạn đã chạm giới hạn sao. Hãy thu hồi sao trước rồi thử lại.', // REVIEW
   'ratings.title': 'Đánh giá người chơi', // REVIEW
   'ratings.leaderboard': 'Bảng xếp hạng', // REVIEW

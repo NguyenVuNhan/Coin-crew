@@ -8,6 +8,7 @@ import type {
   MeUserView,
   OutgoingMergeRequest,
 } from '@cc/core';
+import { isThemeId } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { accountMergeRequests, participants, transactions, trips, users } from '@cc/api-db/schema';
@@ -37,6 +38,7 @@ export function toMeUserView(user: UserRow): MeUserView {
     name: user.name,
     gender: (user.gender as 'M' | 'F' | null) ?? null,
     avatarUrl: user.avatarUrl ?? null,
+    theme: isThemeId(user.theme) ? user.theme : null,
     consentAt: user.consentAt ?? null,
     providers: providersOf(user),
     zaloName: user.zaloName ?? null,
