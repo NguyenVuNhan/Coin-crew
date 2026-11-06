@@ -6,6 +6,9 @@ colors:
   primary-foreground: "#ffffff"
   secondary: "#ccfbf1"
   secondary-foreground: "#134e4a"
+  theme-orchid-primary: "#a21caf"
+  theme-sky-primary: "#0369a1"
+  theme-indigo-primary: "#4338ca"
   background: "#f6f7f4"
   card: "#ffffff"
   foreground: "#1c1917"
@@ -217,7 +220,7 @@ There are four light themes: Jade (the default, everything above), Orchid, Sky a
 **Key Characteristics:**
 - Warm off-white page, white `rounded-xl` grouped lists, no nested cards
 - Pill buttons, 44px tall, semibold labels
-- One accent (Jade); money states in Leaf, Lychee, Turmeric
+- One accent per theme (Jade by default; Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme
 - Money always in `tabular-nums`; the balance is the loudest thing on screen
 - Pastel initial avatars, picked by name
 - Flat surfaces; shadows only on things that float
@@ -267,7 +270,7 @@ Each theme is a `[data-theme='<id>']` block in `globals.css` that sets six token
 - **Avatar pastels** (`avatar-1` … `avatar-6`, each with an `-fg` ink of the same hue): butter, sky, blush, mint, seafoam, lavender. They are picked from the person's name, so the same person always gets the same colour.
 
 ### Named Rules
-**The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. More colour themes are coming (a pink one has been asked for), and a new theme must be a token swap, not a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
+**The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The four themes (Jade, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
 
 **The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look.
 

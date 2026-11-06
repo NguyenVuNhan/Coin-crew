@@ -513,6 +513,51 @@
           "#ddd6fe",
           "#f5f3ff"
         ]
+      },
+      "theme-orchid-primary": {
+        "role": "primary",
+        "displayName": "Orchid (theme accent)",
+        "canonical": "#a21caf",
+        "tonalRamp": [
+          "#4a044e",
+          "#701a75",
+          "#86198f",
+          "#a21caf",
+          "#c026d3",
+          "#f0abfc",
+          "#fae8ff",
+          "#fdf4ff"
+        ]
+      },
+      "theme-sky-primary": {
+        "role": "primary",
+        "displayName": "Sky (theme accent)",
+        "canonical": "#0369a1",
+        "tonalRamp": [
+          "#082f49",
+          "#0c4a6e",
+          "#075985",
+          "#0369a1",
+          "#0284c7",
+          "#7dd3fc",
+          "#e0f2fe",
+          "#f0f9ff"
+        ]
+      },
+      "theme-indigo-primary": {
+        "role": "primary",
+        "displayName": "Indigo (theme accent)",
+        "canonical": "#4338ca",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#a5b4fc",
+          "#e0e7ff",
+          "#eef2ff"
+        ]
       }
     },
     "typographyMeta": {
@@ -700,8 +745,8 @@
       "kind": "custom",
       "refersTo": "theme-picker",
       "description": "A sheet of theme swatches, two per row. Each swatch is a mini screen in its own theme (wash, header strip, accent pill, mist chip) above the theme's name. The chosen one shows a check and a 2px accent ring. A tap saves straight away. The group version starts with \"Each person's own theme\".",
-      "html": "<div class=\"ds-theme-picker\" role=\"radiogroup\" aria-label=\"Theme\"><button class=\"ds-theme-picker__opt ds-theme-picker__opt--on\" role=\"radio\" aria-checked=\"true\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__pill\"></span></span><span class=\"ds-theme-picker__name\">Jade ✓</span></button><button class=\"ds-theme-picker__opt\" role=\"radio\" aria-checked=\"false\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__pill\"></span></span><span class=\"ds-theme-picker__name\">Orchid</span></button></div>",
-      "css": ".ds-theme-picker{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:360px}.ds-theme-picker__opt{display:flex;flex-direction:column;gap:8px;min-height:44px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);text-align:left;cursor:pointer}.ds-theme-picker__opt--on{box-shadow:0 0 0 2px var(--primary)}.ds-theme-picker__mini{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--background)}.ds-theme-picker__bar{height:6px;border-radius:9999px;background:var(--border)}.ds-theme-picker__pill{width:40px;height:16px;border-radius:9999px;background:var(--primary)}.ds-theme-picker__name{font-size:14px;font-weight:600;color:var(--foreground)}"
+      "html": "<div class=\"ds-theme-picker\" role=\"radiogroup\" aria-label=\"Theme\"><button class=\"ds-theme-picker__opt ds-theme-picker__opt--on\" role=\"radio\" aria-checked=\"true\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__row\"><span class=\"ds-theme-picker__pill\"></span><span class=\"ds-theme-picker__chip\"></span></span></span><span class=\"ds-theme-picker__name\">Jade ✓</span></button><button class=\"ds-theme-picker__opt\" role=\"radio\" aria-checked=\"false\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__row\"><span class=\"ds-theme-picker__pill\"></span><span class=\"ds-theme-picker__chip\"></span></span></span><span class=\"ds-theme-picker__name\">Orchid</span></button></div>",
+      "css": ".ds-theme-picker{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:360px}.ds-theme-picker__opt{display:flex;flex-direction:column;gap:8px;min-height:44px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);text-align:left;cursor:pointer}.ds-theme-picker__opt--on{box-shadow:0 0 0 2px var(--primary)}.ds-theme-picker__mini{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--background)}.ds-theme-picker__bar{height:6px;border-radius:9999px;background:var(--border)}.ds-theme-picker__pill{width:40px;height:16px;border-radius:9999px;background:var(--primary)}.ds-theme-picker__name{font-size:14px;font-weight:600;color:var(--foreground)}.ds-theme-picker__row{display:flex;gap:6px}.ds-theme-picker__chip{width:32px;height:16px;border-radius:9999px;background:var(--secondary)}"
     }
   ],
   "narrative": {
@@ -710,7 +755,7 @@
     "keyCharacteristics": [
       "Warm off-white page, white `rounded-xl` grouped lists, no nested cards",
       "Pill buttons, 44px tall, semibold labels",
-      "One accent (Jade); money states in Leaf, Lychee, Turmeric",
+      "One accent per theme (Jade by default; Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme",
       "Money always in `tabular-nums`; the balance is the loudest thing on screen",
       "Pastel initial avatars, picked by name",
       "Flat surfaces; shadows only on things that float",
@@ -719,7 +764,7 @@
     "rules": [
       {
         "name": "The One Source Rule",
-        "body": "Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. More colour themes are coming (a pink one has been asked for), and a new theme must be a token swap, not a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.",
+        "body": "Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The four themes (Jade, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.",
         "section": "colors"
       },
       {
