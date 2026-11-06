@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { notifyManager, useQueryClient } from '@tanstack/react-query';
 import { isThemeId, type ThemeId, type TripView } from '@cc/core';
 import { useTrip } from './tripBase';
@@ -36,7 +36,10 @@ export function useGroupTheme(): ThemeId | null {
  *
  * It reads the cache directly rather than through a query observer: an observer here would hand its options to the
  * trip view's query whenever it re-rendered last, and a refetch would then run without the screens' `queryFn`.
- * Following the cache also follows `removeQueries` and `clear()`.
+ *
+ * While the view is missing from the cache, it keeps the last colours this group reported. "Who are you?" drops the
+ * cached view after a guest picks a name, and the next screen fetches it again; without this the page would flash to
+ * the default colours and back. A different group never inherits them.
  */
 export function GroupThemeScope({ children }: { children: ReactNode }) {
   const { tripId } = useTrip();
@@ -48,12 +51,19 @@ export function GroupThemeScope({ children }: { children: ReactNode }) {
   );
   const view = useSyncExternalStore(subscribeToCache, () => queryClient.getQueryData<TripView>(['trip', tripId]));
   const raw = view?.trip.theme;
-  const theme = isThemeId(raw) ? raw : null;
+  // undefined: no view in the cache right now; null: the group has no colours.
+  const cached: ThemeId | null | undefined = view === undefined ? undefined : isThemeId(raw) ? raw : null;
+  const lastKnown = useRef<{ tripId: string; theme: ThemeId | null } | null>(null);
 
   // Layout effects, so the colours change before the browser paints the group's content (or the page after it).
   useLayoutEffect(() => {
-    setGroupTheme(theme);
-  }, [theme]);
+    if (cached !== undefined) {
+      lastKnown.current = { tripId, theme: cached };
+      setGroupTheme(cached);
+    } else {
+      setGroupTheme(lastKnown.current?.tripId === tripId ? lastKnown.current.theme : null);
+    }
+  }, [tripId, cached]);
 
   useLayoutEffect(() => () => setGroupTheme(null), []);
 

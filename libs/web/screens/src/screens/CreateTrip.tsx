@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import type { CreateTripInput, GroupPreset, Gender } from '@cc/core';
@@ -38,6 +38,12 @@ export function CreateTrip() {
   const [people, setPeople] = useState<PersonEntry[]>([]);
   // A name typed in the add field but not added yet still joins the group.
   const [draft, setDraft] = useState('');
+  // The gender Enter would add the typed name with, so a name typed but not added joins the same way (sport groups).
+  const [draftGender, setDraftGender] = useState<Gender | null>(null);
+  const onDraftChange = useCallback((text: string, gender: Gender | null) => {
+    setDraft(text);
+    setDraftGender(gender);
+  }, []);
   const [myGender, setMyGender] = useState<Gender | null>(null);
   const effectiveMyGender = myGender ?? user?.gender ?? null;
   const [bank, setBank] = useState<BankFieldsValue>({
@@ -68,7 +74,7 @@ export function CreateTrip() {
     setSubmitError(null);
     const typedName = draft.trim();
     const roster: PersonEntry[] =
-      typedName !== '' && typedName.length <= 40 ? [...people, { key: 'draft', name: typedName }] : people;
+      typedName !== '' && typedName.length <= 40 ? [...people, { key: 'draft', name: typedName, gender: draftGender }] : people;
     const input: CreateTripInput = {
       name: tripName.trim(),
       defaultLang: lang,
@@ -197,7 +203,7 @@ export function CreateTrip() {
           onChange={setPeople}
           showGender={preset === 'sport'}
           me={user ? { name: user.name, gender: effectiveMyGender, onGenderChange: setMyGender } : undefined}
-          onDraftChange={setDraft}
+          onDraftChange={onDraftChange}
         />
 
         <details className={cn('fsl-create-trip__details group rounded-xl border border-border bg-card overflow-hidden')}>

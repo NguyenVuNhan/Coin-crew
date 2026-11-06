@@ -39,21 +39,26 @@ export function remindCard(view: TripView, text: string, origin: string): ShareC
   };
 }
 
+/**
+ * The Mini App's "Share bill & QR" card. It opens the same address as the web's bill link (`expenseLink`):
+ * `/j/<token>/e/<rootId>` goes on to the pay screen (your share and the QR), never to the bill page with only a share
+ * button (spec §4.2). Pass the bill's root id, so a card already in the chat still works after the bill is edited.
+ */
 export function sportBillCard(
   view: TripView,
-  expenseId: string,
+  rootExpenseId: string,
   text: string,
   origin: string,
 ): ShareCard {
   const token = encodeURIComponent(groupToken(view));
-  const encExpenseId = encodeURIComponent(expenseId);
+  const encExpenseId = encodeURIComponent(rootExpenseId);
   return {
     title: clip(t('share.sportTitle', { trip: view.trip.name }), 100),
     description: clip(text, 400),
-    path: `j/${token}/expenses/${encExpenseId}`,
+    path: `j/${token}/e/${encExpenseId}`,
     thumbnailUrl: `${origin}/og/sport.png`,
     text,
-    url: `${origin}/j/${token}/expenses/${encExpenseId}`,
+    url: `${origin}/j/${token}/e/${encExpenseId}`,
   };
 }
 
