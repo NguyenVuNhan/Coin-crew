@@ -6,6 +6,7 @@ colors:
   primary-foreground: "#ffffff"
   secondary: "#ccfbf1"
   secondary-foreground: "#134e4a"
+  theme-pink-primary: "#be185d"
   theme-orchid-primary: "#a21caf"
   theme-sky-primary: "#0369a1"
   theme-indigo-primary: "#4338ca"
@@ -215,12 +216,12 @@ CoinCrew is bookkeeping you'd happily show your friends. The sums are exact and 
 
 The system is shadcn/ui on Tailwind v4, themed in one stylesheet (`libs/web/ui/src/styles/globals.css`). It is phone first: a single 480px column with a floating bottom nav. From 1024px a side nav appears and a few screens widen to two columns. Depth comes from white on warm off-white, not from shadows. Two looks are rejected: the stock shadcn demo (black buttons, sharp grey borders) and anything that reads as a corporate bank app or a dense spreadsheet.
 
-There are four light themes: Jade (the default, everything above), Orchid, Sky and Indigo. Signed-in people pick their own, and a group's admin can pick the group's colours, which win inside that group. A theme changes only the accent and a faint wash on the page; colour lives only in theme tokens, so a theme is a token swap.
+There are five light themes: Jade (the default, everything above), Pink, Orchid, Sky and Indigo. Signed-in people pick their own, and a group's admin can pick the group's colours, which win inside that group. A theme changes only the accent and a faint wash on the page; colour lives only in theme tokens, so a theme is a token swap. No theme's accent ever colours money.
 
 **Key Characteristics:**
 - Warm off-white page, white `rounded-xl` grouped lists, no nested cards
 - Pill buttons, 44px tall, semibold labels
-- One accent per theme (Jade by default; Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme
+- One accent per theme (Jade by default; Pink, Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme
 - Money always in `tabular-nums`; the balance is the loudest thing on screen
 - Pastel initial avatars, picked by name
 - Flat surfaces; shadows only on things that float
@@ -231,7 +232,7 @@ There are four light themes: Jade (the default, everything above), Orchid, Sky a
 One teal accent on warm stone neutrals, with three soft money-state hues. Each colour is named by role in code (`bg-primary`, `text-success`); the names below say what it is.
 
 ### Primary
-- **Jade** (`primary`): the one confident colour. Primary buttons, the focus ring, the "owed to you" balance, links, active states. White text on it passes AA.
+- **Jade** (`primary`): the one confident colour. Primary buttons, the focus ring, links, active states. White text on it passes AA. It never colours money: the "owed to you" balance is Leaf.
 - **Jade Mist** (`secondary`) with **Jade Ink** (`secondary-foreground`): soft-teal pills for secondary buttons, the active nav item, accent pills and empty-state icon tiles.
 
 ### Themes
@@ -240,19 +241,20 @@ Each theme is a `[data-theme='<id>']` block in `globals.css` that sets six token
 | Theme | Page wash (`background`) | Accent (`primary`) | Mist (`secondary`) | Ink on mist (`secondary-foreground`) |
 |---|---|---|---|---|
 | **Jade** (default) | Rice Paper `#f6f7f4` | `#0f766e` | `#ccfbf1` | `#134e4a` |
+| **Pink** | `#fcf6f8` | `#be185d` | `#fce7f3` | `#831843` |
 | **Orchid** | `#fbf6fb` | `#a21caf` | `#fae8ff` | `#701a75` |
 | **Sky** | `#f4f8fb` | `#0369a1` | `#e0f2fe` | `#0c4a6e` |
 | **Indigo** | `#f6f6fb` | `#4338ca` | `#e0e7ff` | `#312e81` |
 
 - **Text on accents:** `primary-foreground` is white in every theme. `ring` matches `primary`.
-- **What follows the theme:** buttons, the active nav item, accent pills, links, the focus ring, the "owed to you" balance, and the faint wash on the page and the header. Cards, lists, sheets and fields stay white.
+- **What follows the theme:** buttons, the active nav item, accent pills, links, the focus ring, and the faint wash on the page and the header. Cards, lists, sheets and fields stay white. Amounts, the balance and the settled tick never follow it.
 - **Who picks:**
   - Signed-in people pick theirs in the account menu → Theme.
   - A group's admin picks the group's colours in Group settings → Group colours. The default there is "Each person's own theme".
   - Inside a group, its colours win for everyone, guests included. Elsewhere, people see their own theme, and guests see Jade.
 - **Remembered on the device:** the personal theme is cached on the phone (`localStorage` key `theme`), so the first paint already uses it. Signing out forgets it.
 - **Status bar:** the phone's status bar (`<meta name="theme-color">`) follows the accent of the theme in view.
-- **Adding a theme:** it must pass AA for every text pairing, and its accent must sit at least 30° of hue away from Leaf, Lychee and Turmeric. `libs/web/ui/src/styles/__tests__/theme-tokens.test.ts` checks both.
+- **Adding a theme:** it must pass AA for every text pairing, and its accent must never be a money colour: not Leaf, Lychee or Turmeric themselves, and at least 8° of hue from each. An accent may sit close to a money hue (Pink is near Lychee), because accents never colour money. `libs/web/ui/src/styles/__tests__/theme-tokens.test.ts` checks both.
 
 ### Tertiary (money states)
 - **Leaf** (`success`, soft fill `success-soft`): money owed to you, paid, settled, confirmed.
@@ -270,11 +272,11 @@ Each theme is a `[data-theme='<id>']` block in `globals.css` that sets six token
 - **Avatar pastels** (`avatar-1` … `avatar-6`, each with an `-fg` ink of the same hue): butter, sky, blush, mint, seafoam, lavender. They are picked from the person's name, so the same person always gets the same colour.
 
 ### Named Rules
-**The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The four themes (Jade, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
+**The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The five themes (Jade, Pink, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
 
 **The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look.
 
-**The Fixed Money Rule.** Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets `--success*`, `--danger*`, `--warning*` or `--avatar-*` fails the token test. "You owe", "paid" and "waiting" must read the same in every theme.
+**The Fixed Money Rule.** Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets `--success*`, `--danger*`, `--warning*` or `--avatar-*` fails the token test. "You owe", "paid" and "waiting" must read the same in every theme. The other half: money never wears the theme's accent. Amounts, the "owed to you" balance and the settled tick use Leaf, Lychee or Turmeric, so a Pink button never sits beside a Pink amount that could pass for Lychee.
 
 **The Rice Paper Rule.** `subtle-foreground` sits on white only. On the Rice Paper page, quiet text uses `muted-foreground`.
 
@@ -285,7 +287,7 @@ Each theme is a `[data-theme='<id>']` block in `globals.css` that sets six token
 **Character:** a friendly sans drawn for Vietnamese, so diacritics stack cleanly on names like Dũng and Nguyễn. The hierarchy comes from weight and a short size scale, not from a second typeface.
 
 ### Hierarchy
-- **Display** (700, 30px): the balance hero amount ("owed to you" in Jade, "you owe" in Lychee). It is the only display use.
+- **Display** (700, 30px): the balance hero amount ("owed to you" in Leaf, "you owe" in Lychee). It is the only display use.
 - **Headline** (600, 20px): the landing headline and the few in-content page headings.
 - **Title** (600, 18px): the screen header title (centred, or left-aligned in the Zalo Mini App), sheet and dialog titles, detail titles, the settled-up line.
 - **Body** (400, 16px): main text and every input, select and text area (never smaller, or iOS zooms).
@@ -383,9 +385,9 @@ The signature ledger pattern.
 - **Summary card:** white, 20px corners, 20px padding, a hairline border, no shadow. It holds one headline figure (the group balance, the home total), with the label above it.
 - **Balance hero:** the loudest element on a group screen.
   - The label is 14px medium Stone Muted.
-  - The amount is 30px bold tabular: Jade when you are owed, Lychee when you owe.
-  - When you owe, a full-width Jade "Pay with VietQR" button follows.
-  - When everything is settled, an 18px semibold line with a Jade check replaces the amount.
+  - The amount is 30px bold tabular: Leaf when you are owed, Lychee when you owe, in every theme.
+  - When you owe, a full-width accent "Pay with VietQR" button follows.
+  - When everything is settled, an 18px semibold line with a Leaf check replaces the amount.
 
 ### Pay link pages
 What a friend sees after tapping a "pay me" link: what to pay comes first, everything else comes after.

@@ -514,6 +514,21 @@
           "#f5f3ff"
         ]
       },
+      "theme-pink-primary": {
+        "role": "primary",
+        "displayName": "Pink (theme accent)",
+        "canonical": "#be185d",
+        "tonalRamp": [
+          "#500724",
+          "#831843",
+          "#9d174d",
+          "#be185d",
+          "#db2777",
+          "#f9a8d4",
+          "#fce7f3",
+          "#fdf2f8"
+        ]
+      },
       "theme-orchid-primary": {
         "role": "primary",
         "displayName": "Orchid (theme accent)",
@@ -751,11 +766,11 @@
   ],
   "narrative": {
     "northStar": "The Friendly Ledger",
-    "overview": "CoinCrew is bookkeeping you'd happily show your friends. The sums are exact and easy to read, and nothing about money feels stern. Every screen is a ledger page: white grouped lists on Rice Paper, one name per row, the amount at the right edge. Teal is the one confident colour, and Leaf, Lychee and Turmeric say only whether money is coming in, going out, or waiting. The tone is calm: round pills, soft pastel avatars, and generous 44px touch targets. That calm never slows anyone down. The surfaces are light and quick, because people are on a phone in a group chat and want to be done in a minute.\n\nThe system is shadcn/ui on Tailwind v4, themed in one stylesheet (`libs/web/ui/src/styles/globals.css`). It is phone first: a single 480px column with a floating bottom nav. From 1024px a side nav appears and a few screens widen to two columns. Depth comes from white on warm off-white, not from shadows. Two looks are rejected: the stock shadcn demo (black buttons, sharp grey borders) and anything that reads as a corporate bank app or a dense spreadsheet.\n\nThere are four light themes: Jade (the default), Orchid, Sky and Indigo. Signed-in people pick their own, and a group's admin can pick the group's colours, which win inside that group. A theme changes only the accent and a faint page wash, never the money colours or the avatar pastels.",
+    "overview": "CoinCrew is bookkeeping you'd happily show your friends. The sums are exact and easy to read, and nothing about money feels stern. Every screen is a ledger page: white grouped lists on Rice Paper, one name per row, the amount at the right edge. Teal is the one confident colour, and Leaf, Lychee and Turmeric say only whether money is coming in, going out, or waiting. The tone is calm: round pills, soft pastel avatars, and generous 44px touch targets. That calm never slows anyone down. The surfaces are light and quick, because people are on a phone in a group chat and want to be done in a minute.\n\nThe system is shadcn/ui on Tailwind v4, themed in one stylesheet (`libs/web/ui/src/styles/globals.css`). It is phone first: a single 480px column with a floating bottom nav. From 1024px a side nav appears and a few screens widen to two columns. Depth comes from white on warm off-white, not from shadows. Two looks are rejected: the stock shadcn demo (black buttons, sharp grey borders) and anything that reads as a corporate bank app or a dense spreadsheet.\n\nThere are five light themes: Jade (the default), Pink, Orchid, Sky and Indigo. Signed-in people pick their own, and a group's admin can pick the group's colours, which win inside that group. A theme changes only the accent and a faint page wash, never the money colours or the avatar pastels, and no accent ever colours money.",
     "keyCharacteristics": [
       "Warm off-white page, white `rounded-xl` grouped lists, no nested cards",
       "Pill buttons, 44px tall, semibold labels",
-      "One accent per theme (Jade by default; Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme",
+      "One accent per theme (Jade by default; Pink, Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme",
       "Money always in `tabular-nums`; the balance is the loudest thing on screen",
       "Pastel initial avatars, picked by name",
       "Flat surfaces; shadows only on things that float",
@@ -764,7 +779,7 @@
     "rules": [
       {
         "name": "The One Source Rule",
-        "body": "Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The four themes (Jade, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.",
+        "body": "Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The five themes (Jade, Pink, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.",
         "section": "colors"
       },
       {
@@ -774,7 +789,7 @@
       },
       {
         "name": "The Fixed Money Rule",
-        "body": "Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets --success*, --danger*, --warning* or --avatar-* fails the token test. \"You owe\", \"paid\" and \"waiting\" must read the same in every theme.",
+        "body": "Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets --success*, --danger*, --warning* or --avatar-* fails the token test. \"You owe\", \"paid\" and \"waiting\" must read the same in every theme. The other half: money never wears the theme's accent. Amounts, the \"owed to you\" balance and the settled tick use Leaf, Lychee or Turmeric, so a Pink button never sits beside a Pink amount that could pass for Lychee.",
         "section": "colors"
       },
       {

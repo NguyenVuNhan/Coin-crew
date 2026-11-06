@@ -145,13 +145,15 @@ The header cuts "Cầu lông CN" to "Cầu lông …" because Invite, the gear a
 - Guests have no personal theme; they see the group's colours inside a group and the default elsewhere.
 
 ### 7.2 What a theme changes **[owner]**
-- The accent: buttons, the active nav item, accent pills, links, focus ring, the "owed to you" balance (today Jade's job).
+- The accent: buttons, the active nav item, accent pills, links, focus ring. **[owner, 2026-11-06]** The "owed to you" balance no longer follows it: it is Leaf in every theme, so no theme colour ever stands for money (Jade users see no change, as Leaf and Jade are near twins).
 - A faint wash of the theme colour on the page and the header. Cards, lists, sheets and fields stay white. **[owner]** The default Jade theme is the exception: it keeps today's warm off-white page (Rice Paper), so nothing changes for anyone who never picks a theme.
 - The phone's status-bar colour (`theme-color`) follows the theme in view. **[my call]**
 - **Never:** the money colours (Leaf, Lychee, Turmeric) and the avatar pastels stay fixed in every theme.
 
 ### 7.3 The set **[owner: ready-made; my call: which]**
 A short set of ready-made light themes, not a free colour picker. Start with four: **Jade** (default, today's), **Orchid** (a purple-leaning pink, so it never reads as the "you owe" red), **Sky** (blue), plus one more chosen during the build. Each theme is a full token set in `globals.css` (primary, its foreground, secondary and its ink, ring, page and header wash) and passes WCAG AA for every text pairing. A hue that could be mistaken for Leaf, Lychee or Turmeric is not allowed.
+
+**[owner, 2026-11-06]** After trying the build: "Still missing them which looks pink". Chosen: "Add Pink, keep Orchid". The set is five: **Jade**, **Pink** (Hồng, pink-700 `#be185d`), **Orchid**, **Sky**, **Indigo** (the build's pick). A real pink sits about 10° of hue from Lychee, so the rule above changes: an accent may sit near a money hue, as long as it is not a money colour (at least 8° away, never equal), because accents no longer colour money anywhere (§7.2).
 
 ### 7.4 Where people choose **[my call]**
 - Personal theme: the account menu → "Theme", a sheet of swatches previewing each theme on a mini screen.
@@ -179,7 +181,7 @@ Each part: its own branch from `NguyenVuNhan/Nx-workspace` (which already has PR
 
 - Exact layout within the DESIGN.md system: spacing, copy wording (Vietnamese first, `// REVIEW` on draft translations), icons, the "you owe" list's row design, the bill sheet's layout.
 - How the bill table fits a phone (§4.5).
-- The fourth theme and the exact token values for Orchid and Sky, within §7.3's rules.
+- The fourth theme and the exact token values for Orchid and Sky, within §7.3's rules (built: Indigo; Pink added by the owner, §7.3).
 - How the theme is applied in code (e.g. a `data-theme` attribute and CSS variables), as long as there is one source of colour (DESIGN.md "One Source Rule").
 - Which library each new piece lives in, following CLAUDE.md's "where new code goes" and the import rules.
 - Splitting each part into tasks for delegation.
