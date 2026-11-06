@@ -1,6 +1,7 @@
-import { isThemeId, type ThemeId } from '@cc/core';
+import type { ThemeId } from '@cc/core';
 
-export const THEME_CACHE_KEY = 'theme';
+// The device cache lives in web-util so data-access can use it too; re-exported here for screens.
+export { THEME_CACHE_KEY, readCachedTheme, cacheTheme } from '@cc/web-util/themeCache';
 
 /** Sets data-theme on <html> and points <meta name="theme-color"> at the theme's --primary (creates the meta if missing). */
 export function applyTheme(id: ThemeId): void {
@@ -19,34 +20,6 @@ export function applyTheme(id: ThemeId): void {
         document.head?.appendChild(meta);
       }
       meta.setAttribute('content', primary);
-    }
-  } catch {
-    // Never throws
-  }
-}
-
-/** The personal theme cached on this device, or null (missing, unknown, or storage unavailable). */
-export function readCachedTheme(): ThemeId | null {
-  try {
-    if (typeof localStorage === 'undefined') return null;
-    const value = localStorage.getItem(THEME_CACHE_KEY);
-    if (isThemeId(value)) {
-      return value;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/** Caches the personal theme; null removes it. Never throws. */
-export function cacheTheme(id: ThemeId | null): void {
-  try {
-    if (typeof localStorage === 'undefined') return;
-    if (id === null) {
-      localStorage.removeItem(THEME_CACHE_KEY);
-    } else {
-      localStorage.setItem(THEME_CACHE_KEY, id);
     }
   } catch {
     // Never throws
