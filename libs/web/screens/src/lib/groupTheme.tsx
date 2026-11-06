@@ -1,5 +1,5 @@
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
-import { skipToken, useQuery } from '@tanstack/react-query';
+import { useCallback, useLayoutEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { notifyManager, useQueryClient } from '@tanstack/react-query';
 import { isThemeId, type ThemeId, type TripView } from '@cc/core';
 import { useTrip } from './tripBase';
 
@@ -33,18 +33,29 @@ export function useGroupTheme(): ThemeId | null {
 /**
  * Wraps a group's pages and reports the group's colours to `ThemeController`. It only reads the cached trip view
  * (the screens fetch it), so it never adds a request; it clears the colours when the group's pages unmount.
+ *
+ * It reads the cache directly rather than through a query observer: an observer here would hand its options to the
+ * trip view's query whenever it re-rendered last, and a refetch would then run without the screens' `queryFn`.
+ * Following the cache also follows `removeQueries` and `clear()`.
  */
 export function GroupThemeScope({ children }: { children: ReactNode }) {
   const { tripId } = useTrip();
-  const { data: view } = useQuery<TripView>({ queryKey: ['trip', tripId], queryFn: skipToken });
+  const queryClient = useQueryClient();
+  // Batched like TanStack's own cache hooks, so a query added while another component renders doesn't update this one mid-render.
+  const subscribeToCache = useCallback(
+    (onChange: () => void) => queryClient.getQueryCache().subscribe(notifyManager.batchCalls(onChange)),
+    [queryClient],
+  );
+  const view = useSyncExternalStore(subscribeToCache, () => queryClient.getQueryData<TripView>(['trip', tripId]));
   const raw = view?.trip.theme;
   const theme = isThemeId(raw) ? raw : null;
 
-  useEffect(() => {
+  // Layout effects, so the colours change before the browser paints the group's content (or the page after it).
+  useLayoutEffect(() => {
     setGroupTheme(theme);
   }, [theme]);
 
-  useEffect(() => () => setGroupTheme(null), []);
+  useLayoutEffect(() => () => setGroupTheme(null), []);
 
   return <>{children}</>;
 }
