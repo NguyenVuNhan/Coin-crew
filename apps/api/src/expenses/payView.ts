@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { ExpensePayNoRow, ExpensePayView, PaidBy } from '@fsl/core';
+import type { ExpensePayNoRow, ExpensePayView, PaidBy } from '@cc/core';
 import {
   MAX_AMOUNT,
   expenseRemaining,
@@ -11,13 +11,13 @@ import {
   rowSlots,
   slotTiles,
   statusForNewPayment,
-} from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
-import { accountMergeRequests, participants } from '../db/schema';
-import { assertWritable, resolveActor, type ResolvedActor } from '../access/actor';
+} from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import { accountMergeRequests, participants } from '@cc/api-db/schema';
+import { assertWritable, resolveActor, type ResolvedActor } from '@cc/api-auth/actor';
 import { buildPayInfo } from '../bank/routes';
-import { ApiError } from '../lib/errors';
+import { ApiError } from '@cc/api-util/errors';
 import { insertPayment } from '../payments/routes';
 import { getSnapshot, toLedger } from '../trips/snapshot';
 import { getClaimGrant } from './claimGrant';

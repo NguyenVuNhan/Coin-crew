@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import { buildVietQrPayload, type ExpensePayView, type TripView } from '@fsl/core';
+import { buildVietQrPayload, type ExpensePayView, type TripView } from '@cc/core';
 import { call, json, seedTrip, seedMinhBank, newDevice, guestHeaders, linkMember, memberSid, T, U, PID } from './helpers';
 
 const base = `/api/trips/${T.tripId}`;

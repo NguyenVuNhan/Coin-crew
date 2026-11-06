@@ -1,0 +1,21 @@
+{
+  "name": "@cc/web-i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./en": "./src/en.ts",
+    "./vi": "./src/vi.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "react": "^19.3.0"
+  },
+  "nx": {
+    "tags": ["scope:web", "type:i18n"]
+  }
+}

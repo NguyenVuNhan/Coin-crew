@@ -1,0 +1,160 @@
+import { Link } from 'react-router';
+import type { TripView } from '@cc/core';
+import { useT } from '@cc/web-i18n';
+import { useMe } from '@cc/web-data-access/hooks';
+import { useLedger } from '@cc/web-data-access/people';
+import { useTrip } from '../lib/tripBase';
+import { useIsWide } from '@cc/web-util/media';
+import { fundOf } from '../lib/fund';
+import { useEntryState } from '../lib/navHistory';
+import { Screen } from '../components/Screen';
+import { Icon } from '@cc/web-ui/components/icons';
+import { ApprovalQueue } from '../components/ApprovalQueue';
+import { BalanceCard } from '../components/BalanceCard';
+import { FundPill } from '../components/FundPill';
+import { LeaderboardWidget } from '../components/LeaderboardWidget';
+import { InviteCard } from '../components/InviteSheet';
+import { PeopleEntry } from '../components/PeopleEntry';
+import { TransfersSnackbar, YourTransfers, useTransfersState } from '../components/YourTransfers';
+import { PaymentsList } from '../components/PaymentsList';
+import { ExpenseList } from '../components/ExpenseList';
+import { TripLayout } from '../components/TripLayout';
+import type { Selection } from './TripRoute';
+import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
+import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
+import { TripTabs } from '../components/TripTabs';
+import { cn } from '@cc/web-ui/lib/utils';
+import { buttonVariants } from '@cc/web-ui/components/ui/button';
+
+/** The trip page for signed-in members (spec §5.1): phone order below 1024px, layout A from there. */
+export function MemberTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
+  const t = useT();
+  const wide = useIsWide();
+  const { tripId, href } = useTrip(view.trip.id);
+  const [activeTab, setActiveTab] = useEntryState<'expenses' | 'payments'>('tab', 'expenses');
+
+  const meQuery = useMe();
+  const user = meQuery.data?.user;
+  const signedIn = Boolean(user);
+  // Until sign-in is known neither the nav nor the old add bar shows, so the page does not swap one for the other.
+  const meSettled = !meQuery.isPending;
+
+  const archived = view.trip.archived;
+  // An archived group takes no new expenses: its "+" adds a quick expense, as on view-only pages.
+  const { ledger } = useLedger({ enabled: signedIn && archived });
+  const navAddHref = !archived ? `/t/${tripId}/expenses/new` : ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
+  const hasExpenses = view.expenses.length > 0;
+  // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
+  const hasFeed = hasExpenses || (fundOf(view)?.incomes.length ?? 0) > 0;
+  const canInvite = !archived && view.links !== null;
+  const { detail, open } = useDetailsSelection(tripId, selection);
+  // Held here, above the phone / layout A branch, so crossing 1024px keeps an open QR row and a pending tick (R-Z).
+  const transfersState = useTransfersState(view);
+
+  const addLink = (block: boolean, variant: 'primary' | 'secondary' = 'primary') =>
+    archived ? undefined : (
+      <Link
+        className={cn(
+          'fsl-button',
+          `fsl-button--${variant}`,
+          block && 'fsl-button--block w-full',
+          buttonVariants({ variant: variant === 'primary' ? 'default' : 'secondary' }),
+        )}
+        to={href('/expenses/new')}
+      >
+        {t('trip.addExpense')}
+      </Link>
+    );
+
+  // While the invite card shows (no expenses yet) its Share is the one primary button, so every add steps back.
+  const addVariant = !hasExpenses && canInvite ? 'secondary' : 'primary';
+
+  const notice = archived ? (
+    <p className="fsl-member__notice m-0 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+      {t('settings.archived')}
+    </p>
+  ) : null;
+  // A brand-new trip leads with the invite card; the balance appears with the first expense.
+  const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
+  // Under the balance (or invite) card; with no card on a fund-only trip it still shows, since the income counts as history.
+  const fund = <FundPill view={view} />;
+  const transfers = hasExpenses || view.suggestions.length > 0 ? <YourTransfers view={view} state={transfersState} /> : null;
+  const payments = (hintable: boolean) => (
+    <PaymentsList
+      view={view}
+      selectedId={detail?.kind === 'payment' ? detail.id : undefined}
+      onOpen={(id) => open('payment', id)}
+      hintable={hintable}
+    />
+  );
+  const expenses = (hintable: boolean, inHeading: boolean) => (
+    <ExpenseList
+      view={view}
+      selectedId={detail?.kind === 'expense' ? detail.id : undefined}
+      onOpen={(id) => open('expense', id)}
+      onOpenIncome={(id) => open('income', id)}
+      hintable={hintable}
+      add={addLink(false, addVariant)}
+      addInHeading={signedIn || !meSettled ? false : inHeading}
+    />
+  );
+
+  const header = (
+    <Link
+      className="fsl-member__settings inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+      to={href('/settings')}
+      aria-label={t('member.settings')}
+      title={t('member.settings')}
+    >
+      <Icon name="settings" size={20} />
+    </Link>
+  );
+
+  return (
+    <Screen
+      title={view.trip.name}
+      titleAlign="left"
+      titleLines={2}
+      back={selection ? href() : '/groups'}
+      right={header}
+      wide
+      nav={signedIn ? { section: 'groups', addHref: navAddHref } : undefined}
+      // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
+      bottomBar={signedIn || !meSettled ? undefined : (!wide && hasFeed ? addLink(true, addVariant) : undefined)}
+    >
+      {wide ? (
+        <div className="fsl-member flex flex-col gap-4 py-4">
+          <UpdatedTransactionsBanner view={view} />
+          <TripLayout
+            left={
+              <>
+                <PeopleEntry view={view} />
+                {notice}
+                <LeaderboardWidget view={view} switching={selection !== null} />
+                <ApprovalQueue view={view} switching={selection !== null} />
+                {fund}
+                {expenses(true, true)}
+                {payments(false)}
+              </>
+            }
+            right={selection ? <DetailsPanel view={view} selection={selection} /> : <>{balance}{transfers}</>}
+          />
+        </div>
+      ) : (
+        <div className="fsl-member flex flex-col gap-4 py-4">
+          <PeopleEntry view={view} />
+          {notice}
+          <UpdatedTransactionsBanner view={view} />
+          <LeaderboardWidget view={view} />
+          <ApprovalQueue view={view} />
+          {balance}
+          {fund}
+          {transfers}
+          <TripTabs activeTab={activeTab} onChange={setActiveTab} />
+          {activeTab === 'expenses' ? expenses(true, false) : payments(true)}
+        </div>
+      )}
+      <TransfersSnackbar view={view} state={transfersState} />
+    </Screen>
+  );
+}

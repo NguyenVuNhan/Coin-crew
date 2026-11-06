@@ -1,0 +1,835 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-05T13:00:39Z",
+  "title": "Design System: CoinCrew (Tiền Đâu)",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Jade",
+        "canonical": "#0f766e",
+        "tonalRamp": [
+          "#042f2e",
+          "#134e4a",
+          "#115e59",
+          "#0f766e",
+          "#0d9488",
+          "#5eead4",
+          "#ccfbf1",
+          "#f0fdfa"
+        ]
+      },
+      "primary-foreground": {
+        "role": "primary",
+        "displayName": "Jade Text (white)",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "secondary": {
+        "role": "primary",
+        "displayName": "Jade Mist",
+        "canonical": "#ccfbf1",
+        "tonalRamp": [
+          "#042f2e",
+          "#134e4a",
+          "#115e59",
+          "#0f766e",
+          "#0d9488",
+          "#5eead4",
+          "#ccfbf1",
+          "#f0fdfa"
+        ]
+      },
+      "secondary-foreground": {
+        "role": "primary",
+        "displayName": "Jade Ink",
+        "canonical": "#134e4a",
+        "tonalRamp": [
+          "#042f2e",
+          "#134e4a",
+          "#115e59",
+          "#0f766e",
+          "#0d9488",
+          "#5eead4",
+          "#ccfbf1",
+          "#f0fdfa"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Rice Paper",
+        "canonical": "#f6f7f4",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "White Card",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1c1917",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Fill",
+        "canonical": "#efefeb",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Stone Muted",
+        "canonical": "#57534e",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "subtle-foreground": {
+        "role": "neutral",
+        "displayName": "Stone Subtle (on white only)",
+        "canonical": "#78716c",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "accent": {
+        "role": "neutral",
+        "displayName": "Hover Fill",
+        "canonical": "#f5f5f4",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e7e5e4",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Field Edge",
+        "canonical": "#d6d3d1",
+        "tonalRamp": [
+          "#1c1917",
+          "#292524",
+          "#44403c",
+          "#57534e",
+          "#78716c",
+          "#a8a29e",
+          "#e7e5e4",
+          "#f5f5f4"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Leaf",
+        "canonical": "#047857",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#6ee7b7",
+          "#d1fae5",
+          "#ecfdf5"
+        ]
+      },
+      "success-soft": {
+        "role": "tertiary",
+        "displayName": "Leaf Soft",
+        "canonical": "#d1fae5",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#6ee7b7",
+          "#d1fae5",
+          "#ecfdf5"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Lychee",
+        "canonical": "#be123c",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fda4af",
+          "#ffe4e6",
+          "#fff1f2"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Lychee Soft",
+        "canonical": "#ffe4e6",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fda4af",
+          "#ffe4e6",
+          "#fff1f2"
+        ]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Lychee (buttons)",
+        "canonical": "#be123c",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fda4af",
+          "#ffe4e6",
+          "#fff1f2"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Turmeric",
+        "canonical": "#b45309",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ]
+      },
+      "warning-soft": {
+        "role": "tertiary",
+        "displayName": "Turmeric Soft",
+        "canonical": "#fef3c7",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ]
+      },
+      "warning-border": {
+        "role": "tertiary",
+        "displayName": "Turmeric Edge",
+        "canonical": "#fcd34d",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ]
+      },
+      "warning-foreground": {
+        "role": "tertiary",
+        "displayName": "Turmeric Ink",
+        "canonical": "#78350f",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ]
+      },
+      "avatar-1": {
+        "role": "neutral",
+        "displayName": "Avatar Butter",
+        "canonical": "#fde68a",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ]
+      },
+      "avatar-1-fg": {
+        "role": "neutral",
+        "displayName": "Avatar Butter Ink",
+        "canonical": "#78350f",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ]
+      },
+      "avatar-2": {
+        "role": "neutral",
+        "displayName": "Avatar Sky",
+        "canonical": "#bfdbfe",
+        "tonalRamp": [
+          "#172554",
+          "#1e3a8a",
+          "#1e40af",
+          "#1d4ed8",
+          "#3b82f6",
+          "#93c5fd",
+          "#bfdbfe",
+          "#eff6ff"
+        ]
+      },
+      "avatar-2-fg": {
+        "role": "neutral",
+        "displayName": "Avatar Sky Ink",
+        "canonical": "#1e3a8a",
+        "tonalRamp": [
+          "#172554",
+          "#1e3a8a",
+          "#1e40af",
+          "#1d4ed8",
+          "#3b82f6",
+          "#93c5fd",
+          "#bfdbfe",
+          "#eff6ff"
+        ]
+      },
+      "avatar-3": {
+        "role": "neutral",
+        "displayName": "Avatar Blush",
+        "canonical": "#fecdd3",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fda4af",
+          "#ffe4e6",
+          "#fff1f2"
+        ]
+      },
+      "avatar-3-fg": {
+        "role": "neutral",
+        "displayName": "Avatar Blush Ink",
+        "canonical": "#881337",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fda4af",
+          "#ffe4e6",
+          "#fff1f2"
+        ]
+      },
+      "avatar-4": {
+        "role": "neutral",
+        "displayName": "Avatar Mint",
+        "canonical": "#bbf7d0",
+        "tonalRamp": [
+          "#052e16",
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#22c55e",
+          "#86efac",
+          "#bbf7d0",
+          "#f0fdf4"
+        ]
+      },
+      "avatar-4-fg": {
+        "role": "neutral",
+        "displayName": "Avatar Mint Ink",
+        "canonical": "#14532d",
+        "tonalRamp": [
+          "#052e16",
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#22c55e",
+          "#86efac",
+          "#bbf7d0",
+          "#f0fdf4"
+        ]
+      },
+      "avatar-5": {
+        "role": "neutral",
+        "displayName": "Avatar Seafoam",
+        "canonical": "#99f6e4",
+        "tonalRamp": [
+          "#042f2e",
+          "#134e4a",
+          "#115e59",
+          "#0f766e",
+          "#0d9488",
+          "#5eead4",
+          "#ccfbf1",
+          "#f0fdfa"
+        ]
+      },
+      "avatar-5-fg": {
+        "role": "neutral",
+        "displayName": "Avatar Seafoam Ink",
+        "canonical": "#134e4a",
+        "tonalRamp": [
+          "#042f2e",
+          "#134e4a",
+          "#115e59",
+          "#0f766e",
+          "#0d9488",
+          "#5eead4",
+          "#ccfbf1",
+          "#f0fdfa"
+        ]
+      },
+      "avatar-6": {
+        "role": "neutral",
+        "displayName": "Avatar Lavender",
+        "canonical": "#ddd6fe",
+        "tonalRamp": [
+          "#2e1065",
+          "#4c1d95",
+          "#5b21b6",
+          "#6d28d9",
+          "#8b5cf6",
+          "#c4b5fd",
+          "#ddd6fe",
+          "#f5f3ff"
+        ]
+      },
+      "avatar-6-fg": {
+        "role": "neutral",
+        "displayName": "Avatar Lavender Ink",
+        "canonical": "#4c1d95",
+        "tonalRamp": [
+          "#2e1065",
+          "#4c1d95",
+          "#5b21b6",
+          "#6d28d9",
+          "#8b5cf6",
+          "#c4b5fd",
+          "#ddd6fe",
+          "#f5f3ff"
+        ]
+      },
+      "theme-pink-primary": {
+        "role": "primary",
+        "displayName": "Pink (theme accent)",
+        "canonical": "#be185d",
+        "tonalRamp": [
+          "#500724",
+          "#831843",
+          "#9d174d",
+          "#be185d",
+          "#db2777",
+          "#f9a8d4",
+          "#fce7f3",
+          "#fdf2f8"
+        ]
+      },
+      "theme-orchid-primary": {
+        "role": "primary",
+        "displayName": "Orchid (theme accent)",
+        "canonical": "#a21caf",
+        "tonalRamp": [
+          "#4a044e",
+          "#701a75",
+          "#86198f",
+          "#a21caf",
+          "#c026d3",
+          "#f0abfc",
+          "#fae8ff",
+          "#fdf4ff"
+        ]
+      },
+      "theme-sky-primary": {
+        "role": "primary",
+        "displayName": "Sky (theme accent)",
+        "canonical": "#0369a1",
+        "tonalRamp": [
+          "#082f49",
+          "#0c4a6e",
+          "#075985",
+          "#0369a1",
+          "#0284c7",
+          "#7dd3fc",
+          "#e0f2fe",
+          "#f0f9ff"
+        ]
+      },
+      "theme-indigo-primary": {
+        "role": "primary",
+        "displayName": "Indigo (theme accent)",
+        "canonical": "#4338ca",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#3730a3",
+          "#4338ca",
+          "#4f46e5",
+          "#a5b4fc",
+          "#e0e7ff",
+          "#eef2ff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The balance hero amount only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The landing headline and rare in-content page headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Screen header, sheet and dialog titles, detail titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Main text and every field (never under 16px)."
+      },
+      "body-sm": {
+        "displayName": "Body small",
+        "purpose": "The workhorse: row meta, descriptions, most UI text; row titles use it at 600."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Section headings above grouped lists (Stone Muted) and button labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Small hints, badges, per-row extras."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Things that float over the page: the phone nav pill, the add button, the snackbar (Tailwind shadow-lg)."
+      },
+      {
+        "name": "control",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "shadcn form controls such as selects and input groups (Tailwind shadow-xs)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "quick",
+        "value": "100ms ease-out",
+        "purpose": "Tiny state changes."
+      },
+      {
+        "name": "standard",
+        "value": "150ms ease-out",
+        "purpose": "Hover, colour and focus transitions; the default."
+      },
+      {
+        "name": "enter",
+        "value": "200ms ease-out",
+        "purpose": "Sheets, dialogs and the snackbar fading or sliding in."
+      },
+      {
+        "name": "star-pop",
+        "value": "fsl-tap-pop keyframes",
+        "purpose": "Rating star tap; off under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action per view (pay, save, create).",
+      "html": "<button class=\"ds-btn-primary\">Pay with VietQR</button>",
+      "css": ".ds-btn-primary{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:0 20px;border:1px solid transparent;border-radius:9999px;background:var(--primary);color:var(--primary-foreground);font-size:14px;font-weight:600;line-height:1.43;white-space:nowrap;cursor:pointer;transition:all .15s ease-out}.ds-btn-primary:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}.ds-btn-primary:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 50%,transparent);outline:none;}.ds-btn-primary:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The second action beside or below a primary one.",
+      "html": "<button class=\"ds-btn-secondary\">Remind</button>",
+      "css": ".ds-btn-secondary{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:0 20px;border:1px solid transparent;border-radius:9999px;background:var(--secondary);color:var(--secondary-foreground);font-size:14px;font-weight:600;line-height:1.43;white-space:nowrap;cursor:pointer;transition:all .15s ease-out}.ds-btn-secondary:hover{background:color-mix(in oklch,var(--secondary),var(--foreground) 5%)}.ds-btn-secondary:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 50%,transparent);outline:none;}.ds-btn-secondary:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-key actions in rows and headers.",
+      "html": "<button class=\"ds-btn-ghost\">Edit</button>",
+      "css": ".ds-btn-ghost{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:0 20px;border:1px solid transparent;border-radius:9999px;background:transparent;color:var(--foreground);font-size:14px;font-weight:600;line-height:1.43;white-space:nowrap;cursor:pointer;transition:all .15s ease-out}.ds-btn-ghost:hover{background:var(--muted)}.ds-btn-ghost:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 50%,transparent);outline:none;}.ds-btn-ghost:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field, 20px corners, 16px text so iOS never zooms.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">Description</span><input class=\"ds-input\" placeholder=\"Dinner in Đà Lạt\"></label>",
+      "css": ".ds-field{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;width:100%;max-width:448px;display:flex;flex-direction:column;gap:6px}.ds-field__label{font-size:14px;font-weight:600;color:var(--muted-foreground)}.ds-input{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;box-sizing:border-box;height:44px;width:100%;padding:4px 12px;border:1px solid var(--input);border-radius:20px;background:var(--card);color:var(--foreground);font-size:16px;transition:border-color .15s ease-out,box-shadow .15s ease-out}.ds-input::placeholder{color:var(--muted-foreground)}.ds-input:focus-visible{border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 50%,transparent);outline:none;}"
+    },
+    {
+      "name": "Status Pills",
+      "kind": "chip",
+      "refersTo": "pill-warning",
+      "description": "Soft-filled status chips; colour means money state.",
+      "html": "<div class=\"ds-pills\"><span class=\"ds-pill ds-pill--warning\">Waiting</span><span class=\"ds-pill ds-pill--success\">Paid</span><span class=\"ds-pill ds-pill--danger\">Owes</span><span class=\"ds-pill ds-pill--accent\">Fund</span><span class=\"ds-pill ds-pill--neutral\">Disabled</span></div>",
+      "css": ".ds-pills{display:flex;flex-wrap:wrap;gap:8px}.ds-pill{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:inline-flex;align-items:center;height:20px;padding:2px 8px;border-radius:9999px;font-size:12px;font-weight:600;white-space:nowrap}.ds-pill--warning{background:var(--warning-soft);color:var(--warning-foreground)}.ds-pill--success{background:var(--success-soft);color:var(--success)}.ds-pill--danger{background:var(--danger-soft);color:var(--danger)}.ds-pill--accent{background:var(--secondary);color:var(--secondary-foreground)}.ds-pill--neutral{background:var(--muted);color:var(--muted-foreground)}"
+    },
+    {
+      "name": "Grouped List",
+      "kind": "card",
+      "refersTo": "grouped-list",
+      "description": "The ledger pattern: a section label over a white list of rows, amounts at the right edge.",
+      "html": "<section class=\"ds-group\"><h2 class=\"ds-group__label\">Recent</h2><ul class=\"ds-list\"><li class=\"ds-row\"><span class=\"ds-avatar ds-avatar--1\">B</span><span class=\"ds-row__text\"><span class=\"ds-row__title\">Breakfast</span><span class=\"ds-row__meta\">Bình paid · today</span></span><span class=\"ds-row__amount\">245.000₫</span></li><li class=\"ds-row\"><span class=\"ds-avatar ds-avatar--2\">C</span><span class=\"ds-row__text\"><span class=\"ds-row__title\">Taxi to the airport</span><span class=\"ds-row__meta\">Chi paid · yesterday</span></span><span class=\"ds-row__right\"><span class=\"ds-row__amount\">180.000₫</span><span class=\"ds-pill-sm\">Waiting</span></span></li></ul></section>",
+      "css": ".ds-group{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;width:100%;max-width:448px;display:flex;flex-direction:column;gap:4px}.ds-group__label{margin:0;padding:0 4px;font-size:14px;font-weight:600;color:var(--muted-foreground)}.ds-list{margin:0;padding:0;list-style:none;background:var(--card);border-radius:20px}.ds-list>li+li{border-top:1px solid var(--border)}.ds-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:12px 16px;color:var(--foreground);cursor:pointer;transition:background .15s ease-out}.ds-row:first-child{border-radius:20px 20px 0 0}.ds-row:last-child{border-radius:0 0 20px 20px}.ds-row:hover{background:var(--accent)}.ds-row__text{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}.ds-row__title{font-size:14px;font-weight:600}.ds-row__meta{font-size:14px;color:var(--muted-foreground)}.ds-row__right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.ds-row__amount{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}.ds-avatar{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:9999px;font-size:14px;font-weight:600}.ds-avatar--1{background:var(--avatar-1);color:var(--avatar-1-fg)}.ds-avatar--2{background:var(--avatar-2);color:var(--avatar-2-fg)}.ds-pill-sm{display:inline-flex;align-items:center;height:20px;padding:2px 8px;border-radius:9999px;font-size:12px;font-weight:600;background:var(--warning-soft);color:var(--warning-foreground)}"
+    },
+    {
+      "name": "Floating Nav",
+      "kind": "nav",
+      "refersTo": "nav-bar",
+      "description": "Phone navigation: a floating white pill of icon links beside the dark add button.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main\"><div class=\"ds-nav__pill\"><a class=\"ds-nav__item\" href=\"#\" aria-current=\"page\" aria-label=\"Home\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg></a><a class=\"ds-nav__item\" href=\"#\" aria-label=\"Groups\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/></svg></a><a class=\"ds-nav__item\" href=\"#\" aria-label=\"Activity\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg></a></div><a class=\"ds-nav__add\" href=\"#\" aria-label=\"Add\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:448px}.ds-nav__pill{display:flex;align-items:center;padding:6px;border:1px solid var(--border);border-radius:9999px;background:var(--card);box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-nav__item{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;color:var(--muted-foreground);transition:color .15s ease-out,background .15s ease-out}.ds-nav__item:hover{color:var(--foreground)}.ds-nav__item[aria-current=page]{background:var(--secondary);color:var(--foreground)}.ds-nav__item:focus-visible,.ds-nav__add:focus-visible{outline:none;box-shadow:0 0 0 2px var(--ring)}.ds-nav__add{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:9999px;background:var(--foreground);color:var(--background);box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);transition:opacity .15s ease-out}.ds-nav__add:hover{opacity:.9}"
+    },
+    {
+      "name": "Balance Hero",
+      "kind": "custom",
+      "refersTo": "summary-card",
+      "description": "The loudest element on a group screen: one tabular figure coloured by meaning, then the pay action.",
+      "html": "<div class=\"ds-balance\"><p class=\"ds-balance__label\">You owe Bình</p><p class=\"ds-balance__amount\">1.245.000₫</p><button class=\"ds-balance__pay\">Pay with VietQR</button></div><div class=\"ds-balance\"><p class=\"ds-balance__settled\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>All settled up</p></div>",
+      "css": ".ds-balance{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;box-sizing:border-box;width:100%;max-width:448px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:20px;margin-bottom:12px;border:1px solid var(--border);border-radius:20px;background:var(--card);color:var(--foreground)}.ds-balance__label{margin:0;font-size:14px;font-weight:500;color:var(--muted-foreground)}.ds-balance__amount{margin:0;font-size:30px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--danger)}.ds-balance__pay{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;margin-top:12px;width:100%;min-height:44px;padding:8px 20px;border:0;border-radius:9999px;background:var(--primary);color:var(--primary-foreground);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s ease-out}.ds-balance__pay:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}.ds-balance__pay:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 50%,transparent);outline:none;}.ds-balance__settled{display:flex;align-items:center;gap:8px;margin:0;font-size:18px;font-weight:600}.ds-balance__settled svg{color:var(--primary)}"
+    },
+    {
+      "name": "Snackbar",
+      "kind": "custom",
+      "refersTo": "snackbar",
+      "description": "Dark floating confirmation with one undo action.",
+      "html": "<div class=\"ds-snackbar\" role=\"status\"><span class=\"ds-snackbar__msg\">Payment of 180.000₫ removed</span><button class=\"ds-snackbar__action\">Undo</button></div>",
+      "css": ".ds-snackbar{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:flex;align-items:center;gap:12px;min-height:48px;max-width:448px;padding:4px 8px 4px 16px;border-radius:24px;background:var(--foreground);color:var(--background);font-size:16px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-snackbar__msg{flex:1;min-width:0;padding:8px 0;font-variant-numeric:tabular-nums}.ds-snackbar__action{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;min-width:44px;min-height:44px;padding:0 12px;border:0;border-radius:9999px;background:transparent;color:var(--secondary);font-size:16px;font-weight:600;cursor:pointer}.ds-snackbar__action:hover{background:color-mix(in srgb,var(--background) 10%,transparent)}.ds-snackbar__action:focus-visible{outline:none;box-shadow:0 0 0 2px var(--secondary)}"
+    },
+    {
+      "name": "Gender Pill",
+      "kind": "pill",
+      "refersTo": "gender-pill",
+      "description": "Tap-to-flip gender on a sport group's person rows. Neutral Muted Fill for both genders, 28px visible, 44px tap area; admins flip anyone, members their own, guests see text.",
+      "html": "<button class=\"ds-gender-pill\">♀ Nữ</button>",
+      "css": ".ds-gender-pill{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;position:relative;display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border:0;border-radius:9999px;background:var(--muted);color:var(--foreground);font-size:14px;font-weight:600;cursor:pointer}.ds-gender-pill::after{content:'';position:absolute;inset:-8px -4px}.ds-gender-pill:focus-visible{box-shadow:0 0 0 2px var(--ring);outline:none}"
+    },
+    {
+      "name": "Add Bar",
+      "kind": "form",
+      "refersTo": "add-bar",
+      "description": "Adds people one after another: a name field plus '+ Nam' / '+ Nữ' (sport) or '+ Add' (trip). Docked above the keyboard on People, inline when creating a group; Enter adds, paste adds each line, Undo in the snackbar.",
+      "html": "<div class=\"ds-add-bar\"><input class=\"ds-add-bar__field\" placeholder=\"Tên\"><button class=\"ds-add-bar__add\">+ Nam</button><button class=\"ds-add-bar__add\">+ Nữ</button></div>",
+      "css": ".ds-add-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--card);border-top:1px solid var(--border)}.ds-add-bar__field{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid var(--input);border-radius:20px;font-size:16px;background:var(--card)}.ds-add-bar__add{height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--secondary);color:var(--secondary-foreground);font-size:14px;font-weight:600;white-space:nowrap}"
+    },
+    {
+      "name": "People Entry",
+      "kind": "list-row",
+      "refersTo": "people-entry",
+      "description": "First row under the group page header: an overlapping stack of up to four small avatars, 'N people' and a chevron; opens People. Hidden for view-only links.",
+      "html": "<a class=\"ds-people-entry\" href=\"#\" aria-label=\"People in this group: 4\"><span class=\"ds-people-entry__stack\" aria-hidden=\"true\"><span class=\"ds-people-entry__av\">M</span><span class=\"ds-people-entry__av\">B</span><span class=\"ds-people-entry__av\">C</span><span class=\"ds-people-entry__av\">A</span></span><span class=\"ds-people-entry__count\">4 people</span><span aria-hidden=\"true\">›</span></a>",
+      "css": ".ds-people-entry{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--foreground);text-decoration:none}.ds-people-entry__stack{display:flex}.ds-people-entry__av{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;background:var(--secondary);color:var(--secondary-foreground);font-size:12px;font-weight:600}.ds-people-entry__av+.ds-people-entry__av{margin-left:-8px;box-shadow:0 0 0 2px var(--card)}.ds-people-entry__count{flex:1;font-size:16px;font-weight:600}"
+    },
+    {
+      "name": "Floating Leaderboard Bar",
+      "kind": "custom",
+      "refersTo": "leaderboard-float",
+      "description": "Phones and tablets only, shown while the sport group's ratings widget is above the screen: the one-line top-3 summary under the header (below Zalo's safe-area inset in the Mini App), with an expand button that scrolls back to the podium. The in-page widget never changes height on scroll.",
+      "html": "<div class=\"ds-lb-float\" role=\"region\" aria-label=\"Leaderboard\"><span class=\"ds-lb-float__sum\"><b>#1 Minh 18★</b> · #2 An 14★ · #3 Bình 11★</span><button class=\"ds-lb-float__expand\" aria-label=\"Expand leaderboard\">⌄</button></div>",
+      "css": ".ds-lb-float{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:flex;align-items:center;gap:8px;max-width:480px;padding:4px 4px 4px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--muted-foreground);font-size:12px;font-variant-numeric:tabular-nums;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-lb-float__sum{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-lb-float__sum b{color:var(--foreground)}.ds-lb-float__expand{width:44px;height:44px;border:0;border-radius:9999px;background:transparent;color:var(--muted-foreground);cursor:pointer}"
+    },
+    {
+      "name": "Theme Picker",
+      "kind": "custom",
+      "refersTo": "theme-picker",
+      "description": "A sheet of theme swatches, two per row. Each swatch is a mini screen in its own theme (wash, header strip, accent pill, mist chip) above the theme's name. The chosen one shows a check and a 2px accent ring. A tap saves straight away. The group version starts with \"Each person's own theme\".",
+      "html": "<div class=\"ds-theme-picker\" role=\"radiogroup\" aria-label=\"Theme\"><button class=\"ds-theme-picker__opt ds-theme-picker__opt--on\" role=\"radio\" aria-checked=\"true\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__row\"><span class=\"ds-theme-picker__pill\"></span><span class=\"ds-theme-picker__chip\"></span></span></span><span class=\"ds-theme-picker__name\">Jade ✓</span></button><button class=\"ds-theme-picker__opt\" role=\"radio\" aria-checked=\"false\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__row\"><span class=\"ds-theme-picker__pill\"></span><span class=\"ds-theme-picker__chip\"></span></span></span><span class=\"ds-theme-picker__name\">Orchid</span></button></div>",
+      "css": ".ds-theme-picker{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:360px}.ds-theme-picker__opt{display:flex;flex-direction:column;gap:8px;min-height:44px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);text-align:left;cursor:pointer}.ds-theme-picker__opt--on{box-shadow:0 0 0 2px var(--primary)}.ds-theme-picker__mini{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--background)}.ds-theme-picker__bar{height:6px;border-radius:9999px;background:var(--border)}.ds-theme-picker__pill{width:40px;height:16px;border-radius:9999px;background:var(--primary)}.ds-theme-picker__name{font-size:14px;font-weight:600;color:var(--foreground)}.ds-theme-picker__row{display:flex;gap:6px}.ds-theme-picker__chip{width:32px;height:16px;border-radius:9999px;background:var(--secondary)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Friendly Ledger",
+    "overview": "CoinCrew is bookkeeping you'd happily show your friends. The sums are exact and easy to read, and nothing about money feels stern. Every screen is a ledger page: white grouped lists on Rice Paper, one name per row, the amount at the right edge. Teal is the one confident colour, and Leaf, Lychee and Turmeric say only whether money is coming in, going out, or waiting. The tone is calm: round pills, soft pastel avatars, and generous 44px touch targets. That calm never slows anyone down. The surfaces are light and quick, because people are on a phone in a group chat and want to be done in a minute.\n\nThe system is shadcn/ui on Tailwind v4, themed in one stylesheet (`libs/web/ui/src/styles/globals.css`). It is phone first: a single 480px column with a floating bottom nav. From 1024px a side nav appears and a few screens widen to two columns. Depth comes from white on warm off-white, not from shadows. Two looks are rejected: the stock shadcn demo (black buttons, sharp grey borders) and anything that reads as a corporate bank app or a dense spreadsheet.\n\nThere are five light themes: Jade (the default), Pink, Orchid, Sky and Indigo. Signed-in people pick their own, and a group's admin can pick the group's colours, which win inside that group. A theme changes only the accent and a faint page wash, never the money colours or the avatar pastels, and no accent ever colours money.",
+    "keyCharacteristics": [
+      "Warm off-white page, white `rounded-xl` grouped lists, no nested cards",
+      "Pill buttons, 44px tall, semibold labels",
+      "One accent per theme (Jade by default; Pink, Orchid, Sky, Indigo); money states in Leaf, Lychee, Turmeric in every theme",
+      "Money always in `tabular-nums`; the balance is the loudest thing on screen",
+      "Pastel initial avatars, picked by name",
+      "Flat surfaces; shadows only on things that float",
+      "Fast, small motion (100–200ms, ease-out) that respects reduced motion"
+    ],
+    "rules": [
+      {
+        "name": "The One Source Rule",
+        "body": "Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The five themes (Jade, Pink, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.",
+        "section": "colors"
+      },
+      {
+        "name": "The Money Means Something Rule",
+        "body": "Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Money Rule",
+        "body": "Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets --success*, --danger*, --warning* or --avatar-* fails the token test. \"You owe\", \"paid\" and \"waiting\" must read the same in every theme. The other half: money never wears the theme's accent. Amounts, the \"owed to you\" balance and the settled tick use Leaf, Lychee or Turmeric, so a Pink button never sits beside a Pink amount that could pass for Lychee.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rice Paper Rule",
+        "body": "`subtle-foreground` sits on white only. On the Rice Paper page, quiet text uses `muted-foreground`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Every amount is set in `tabular-nums` and formatted `1.245.000₫`, so columns of money line up and digits don't jump as they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Weight Not Size Rule",
+        "body": "Emphasis comes from 600 weight inside the 12–20px range. Only the balance goes bigger.",
+        "section": "typography"
+      },
+      {
+        "name": "The Float Only Rule",
+        "body": "A shadow means \"this floats over the page\". Lists, cards and forms sit flat on Rice Paper.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** take every colour from the theme (`bg-primary`, `bg-card`, `text-muted-foreground`, `bg-warning-soft`…), so another colour theme stays a token swap.",
+      "**Do** put content in white `rounded-xl` grouped lists on Rice Paper, with a small semibold Stone Muted label above.",
+      "**Do** make every touch target at least 44px (`min-h-11`), and every field at least 16px text.",
+      "**Do** set money in `tabular-nums`, formatted `1.245.000₫`, coloured by meaning (Leaf, Lychee, Turmeric) or Ink.",
+      "**Do** use the app wrappers (`Button`, `Sheet`, `Modal`, `Pill`, `Avatar`, `Amount`) before raw shadcn parts. Look shadcn parts up with the shadcn MCP and add them with its CLI.",
+      "**Do** keep one primary (Jade) button per view; the second action is secondary or ghost."
+    ],
+    "donts": [
+      "**Don't** let it look like the stock shadcn demo: no black buttons, no sharp grey borders.",
+      "**Don't** let it look like a corporate bank app: no navy or blue-grey palette, dense forms, small type or formal tone.",
+      "**Don't** let it look like a dense spreadsheet (the Excel bill it replaces): no grid lines everywhere, no tiny numbers, no tables of borders.",
+      "**Don't** write raw hex or add a `.css` file per component; `globals.css` is the only stylesheet.",
+      "**Don't** nest cards inside cards, or add shadows to content that doesn't float.",
+      "**Don't** use Leaf, Lychee or Turmeric for decoration.",
+      "**Don't** use shadcn `Drawer` or `Dialog` directly for a sheet; use `Sheet` / `Modal`.",
+      "**Don't** put `subtle-foreground` text on the Rice Paper page."
+    ]
+  }
+}

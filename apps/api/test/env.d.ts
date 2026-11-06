@@ -1,4 +1,4 @@
-import type { Env as AppEnv } from '../src/env';
+import type { Env as AppEnv } from '@cc/api-db/env';
 
 declare global {
   namespace Cloudflare {

@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, isNotNull } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { accountMergeRequests } from '../db/schema';
-import { nowIso } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { accountMergeRequests } from '@cc/api-db/schema';
+import { nowIso } from '@cc/api-util/ids';
 
 export async function getClaimGrant(
   db: Db,

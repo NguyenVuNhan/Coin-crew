@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm';
-import type { ActivityAction, MyActivityItem, MyActivityPage } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { activity, participants, trips } from '../db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
-import { ApiError } from '../lib/errors';
-import { actorName, loadActivityNames } from '../lib/activityNames';
+import type { ActivityAction, MyActivityItem, MyActivityPage } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { activity, participants, trips } from '@cc/api-db/schema';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
+import { ApiError } from '@cc/api-util/errors';
+import { actorName, loadActivityNames } from '@cc/api-db/activityNames';
 
 const PAGE_SIZE = 50;
 /** Keys in `details` that hold participant ids. */

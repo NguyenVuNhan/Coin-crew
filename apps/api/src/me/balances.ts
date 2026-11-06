@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
-import { nicknames, participants, personLinks, trips, tripViews } from '../db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
+import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import { nicknames, participants, personLinks, trips, tripViews } from '@cc/api-db/schema';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
-import type { TripRow } from '../access/actor';
-import { ApiError } from '../lib/errors';
+import type { TripRow } from '@cc/api-auth/actor';
+import { ApiError } from '@cc/api-util/errors';
 
 /** A participant in one of the caller's trips, with its account's identity when signed in. */
 export interface OtherRow {

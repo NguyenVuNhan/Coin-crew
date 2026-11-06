@@ -7,7 +7,7 @@ import {
   exchangeZaloCode,
   fetchZaloProfile,
   ZaloError,
-} from '../src/auth/zalo';
+} from '@cc/api-auth/zalo';
 
 afterEach(() => {
   vi.restoreAllMocks();

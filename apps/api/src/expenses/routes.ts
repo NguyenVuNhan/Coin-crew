@@ -11,23 +11,23 @@ import type {
   SplitMode,
   SportParticipantEntry,
   SportRule,
-} from '@fsl/core';
+} from '@cc/core';
 import {
   computeShares,
   computeSportShares,
   initialExpenseStatus,
   isFundPaid,
   MAX_AMOUNT,
-} from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
-import { participants, transactions, transactionShares } from '../db/schema';
-import { assertWritable, resolveActor, type ResolvedActor } from '../access/actor';
-import { ensure } from '../access/guard';
+} from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import { participants, transactions, transactionShares } from '@cc/api-db/schema';
+import { assertWritable, resolveActor, type ResolvedActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
 import { assertFundCovers, assertSportGroup, currentFundBalance } from '../fund/check';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fetchZaloProfile } from '../src/auth/zalo';
+import { fetchZaloProfile } from '@cc/api-auth/zalo';
 
 const relayEnv = { ZALO_RELAY_URL: 'https://relay.example', ZALO_RELAY_SECRET: 's3cret' };
 const fullProfile = { id: '123', name: 'An', picture: { data: { url: 'https://a/p.jpg' } } };

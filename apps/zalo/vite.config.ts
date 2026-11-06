@@ -60,8 +60,6 @@ export default defineConfig(({ command, mode }) => {
   }
   return {
     define: { __APP_VERSION__: JSON.stringify(appVersion()) },
-    // shadcn files in @fsl/web-common import `@/…`, which points into that package.
-    resolve: { alias: { '@': fileURLToPath(new URL('../../packages/web-common/src', import.meta.url)) } },
     plugins: [react(), tailwindcss(), zaloAppConfig()],
     base: command === 'serve' ? '/' : './',
     build: {

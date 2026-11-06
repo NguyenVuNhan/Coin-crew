@@ -12,7 +12,7 @@ import {
   T,
   U,
 } from './helpers';
-import type { ExpenseView, TripView } from '@fsl/core';
+import type { ExpenseView, TripView } from '@cc/core';
 
 async function minhHeaders(): Promise<Record<string, string>> {
   const sid = await memberSid(U.minh, 'Minh');

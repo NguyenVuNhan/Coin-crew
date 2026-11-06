@@ -1,0 +1,8 @@
+{
+  "moves": [
+    { "from": "libs/web/screens/src/platform/index.tsx", "to": "libs/web/platform/src/index.tsx" },
+    { "from": "libs/web/screens/src/platform/browser.ts", "to": "libs/web/platform/src/browser.ts" },
+    { "from": "libs/web/screens/src/platform/session.ts", "to": "libs/web/platform/src/session.ts" }
+  ],
+  "scan": ["apps", "libs"]
+}

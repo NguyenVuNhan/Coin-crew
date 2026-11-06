@@ -1,0 +1,127 @@
+{
+  "moves": [
+    {
+      "from": "libs/web/screens/src/lib/activityText.ts",
+      "to": "libs/web/util/src/activityText.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/clipboard.ts",
+      "to": "libs/web/util/src/clipboard.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/linkTokens.ts",
+      "to": "libs/web/util/src/linkTokens.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/media.ts",
+      "to": "libs/web/util/src/media.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/nameSearch.ts",
+      "to": "libs/web/util/src/nameSearch.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/openInBrowser.ts",
+      "to": "libs/web/util/src/openInBrowser.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/qr.ts",
+      "to": "libs/web/util/src/qr.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/recentGroups.ts",
+      "to": "libs/web/util/src/recentGroups.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/recentPeople.ts",
+      "to": "libs/web/util/src/recentPeople.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/screenName.ts",
+      "to": "libs/web/util/src/screenName.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/searchPeople.ts",
+      "to": "libs/web/util/src/searchPeople.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/splitInput.ts",
+      "to": "libs/web/util/src/splitInput.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/time.ts",
+      "to": "libs/web/util/src/time.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/tripText.ts",
+      "to": "libs/web/util/src/tripText.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/useListMode.ts",
+      "to": "libs/web/util/src/useListMode.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/useSwipeReveal.ts",
+      "to": "libs/web/util/src/useSwipeReveal.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/zaloEnv.ts",
+      "to": "libs/web/util/src/zaloEnv.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/clipboard.test.ts",
+      "to": "libs/web/util/src/__tests__/clipboard.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/format-expiry.test.ts",
+      "to": "libs/web/util/src/__tests__/format-expiry.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/name-search.test.ts",
+      "to": "libs/web/util/src/__tests__/name-search.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/open-in-browser.test.ts",
+      "to": "libs/web/util/src/__tests__/open-in-browser.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/qr.test.ts",
+      "to": "libs/web/util/src/__tests__/qr.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/qr-logo.test.ts",
+      "to": "libs/web/util/src/__tests__/qr-logo.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/recent-groups.test.ts",
+      "to": "libs/web/util/src/__tests__/recent-groups.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/recent-people.test.ts",
+      "to": "libs/web/util/src/__tests__/recent-people.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/screenName.test.ts",
+      "to": "libs/web/util/src/__tests__/screenName.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/searchPeople.test.ts",
+      "to": "libs/web/util/src/__tests__/searchPeople.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/split-input.test.ts",
+      "to": "libs/web/util/src/__tests__/split-input.test.ts"
+    },
+    {
+      "from": "libs/web/screens/src/lib/__tests__/zalo-env.test.ts",
+      "to": "libs/web/util/src/__tests__/zalo-env.test.ts"
+    }
+  ],
+  "aliases": {
+    "@/": "libs/web/screens/src/"
+  },
+  "scan": [
+    "apps",
+    "libs"
+  ]
+}

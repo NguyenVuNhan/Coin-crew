@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { RequestView } from '@fsl/core';
+import type { RequestView } from '@cc/core';
 import { app, call, json, memberSid, newDevice, seedUser, U } from './helpers';
 import { INDEX_HTML } from './fixtures/indexHtml';
 
@@ -183,7 +183,7 @@ describe('request links', () => {
     const token = await tokenFor('p:g-lan');
     const { deviceId, cookie } = await newDevice();
     expect((await view(token, { Cookie: cookie })).status).toBe(200);
-    const { sha256Hex } = await import('../src/lib/ids');
+    const { sha256Hex } = await import('@cc/api-util/ids');
     const row = await env.DB.prepare('SELECT dp.participant_id AS pid FROM device_participants dp JOIN participants p ON p.id = dp.participant_id WHERE dp.device_hash = ? AND p.request_token = ?')
       .bind(await sha256Hex(deviceId), token).first<{ pid: string }>();
     expect(row).not.toBeNull();

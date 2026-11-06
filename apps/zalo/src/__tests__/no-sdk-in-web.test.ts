@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 const assets = join(import.meta.dirname, '../../../api/public/assets');
 
 describe('web bundle', () => {
-  it.skipIf(!existsSync(assets))('contains no zmp-sdk code (run `npm run build -w @fsl/web` first)', () => {
+  it.skipIf(!existsSync(assets))('contains no zmp-sdk code (run `npm run build -w @cc/web` first)', () => {
     const js = readdirSync(assets).filter((f) => f.endsWith('.js'));
     expect(js.length).toBeGreaterThan(0);
     const offenders = js.filter((f) => /zmp-sdk|openShareSheet|saveImageToGallery/.test(readFileSync(join(assets, f), 'utf8')));

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { ProposalsResponse, TripView } from '@fsl/core';
-import { getDb } from '../src/db/client';
+import type { ProposalsResponse, TripView } from '@cc/core';
+import { getDb } from '@cc/api-db/client';
 import { insertProposal } from '../src/proposals/store';
 import { call, json, memberSid, pickAs, newDevice, seedUser } from './helpers';
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { PickerView } from '@fsl/core';
-import { getDb } from '../src/db/client';
+import type { PickerView } from '@cc/core';
+import { getDb } from '@cc/api-db/client';
 import { getFriendGrant } from '../src/expenses/friendGrant';
-import { sha256Hex } from '../src/lib/ids';
+import { sha256Hex } from '@cc/api-util/ids';
 import { call, json, seedTrip, newDevice, guestHeaders, linkMember, T, U, PID } from './helpers';
 
 const base = `/api/trips/${T.tripId}`;

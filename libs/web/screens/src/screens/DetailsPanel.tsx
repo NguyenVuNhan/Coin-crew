@@ -1,0 +1,124 @@
+import { useCallback, useEffect, useRef } from 'react';
+import type { TripView } from '@cc/core';
+import { useT } from '@cc/web-i18n';
+import { useOpenDetails } from '../lib/detailsNav';
+import { useBack } from '../lib/navHistory';
+import { useTrip } from '../lib/tripBase';
+import { Icon } from '@cc/web-ui/components/icons';
+import { ExpenseDetails } from '../components/ExpenseDetails';
+import { PaymentDetails } from '../components/PaymentDetails';
+import { IncomeDetails } from '../components/IncomeDetails';
+import type { Selection } from './TripRoute';
+import { ApprovalList } from './Approvals';
+import { RatingsPanel } from './RatingsScreen';
+
+/** The expense, payment or fund income whose details are open (the approvals list and ratings are not one). */
+export type Detail = Exclude<Selection, { kind: 'approvals' } | { kind: 'ratings' }>;
+
+/**
+ * The wide screen's right panel showing one expense, payment or fund income, the full approvals list (members only), or player ratings.
+ * Not modal: it takes focus when it opens, × and Esc close it (back in history, or to the trip for a shared link),
+ * and nothing else is trapped.
+ */
+export function DetailsPanel({ view, selection, onClose }: { view: TripView; selection: Selection; onClose?: () => void }) {
+  const t = useT();
+  const { base } = useTrip(view.trip.id);
+  const backToTrip = useBack(base).goBack;
+  // The main screen keeps its own selection and closes by clearing it.
+  const close = onClose ?? backToTrip;
+  const panel = useRef<HTMLElement>(null);
+  const label =
+    selection.kind === 'expense' ? t('details.expense')
+    : selection.kind === 'payment' ? t('details.payment')
+    : selection.kind === 'income' ? t('details.income')
+    : selection.kind === 'ratings' ? t('ratings.title')
+    : t('approvals.allTitle');
+  const selectedId = selection.kind === 'approvals' || selection.kind === 'ratings' ? null : selection.id;
+
+  useEffect(() => {
+    const el = panel.current;
+    (el?.querySelector<HTMLElement>('h2') ?? el)?.focus();
+  }, [selection.kind, selectedId]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // A sheet open on top (Invite) handles its own Esc.
+      if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return;
+      // Esc in a field (a reject reason being typed) belongs to the field: closing would lose the text.
+      if (isEditable(e.target)) return;
+      close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [close]);
+
+  return (
+    <section
+      ref={panel}
+      tabIndex={-1}
+      className="fsl-details-panel flex flex-col gap-2 min-w-0 focus:outline-none focus:shadow-none"
+      aria-label={label}
+    >
+      <div className="fsl-details-panel__head flex items-center justify-between gap-3">
+        <span className="fsl-details-panel__kind text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <button
+          type="button"
+          className="fsl-details-panel__close inline-flex size-11 items-center justify-center -mr-1 p-0 border-0 rounded-full bg-transparent text-muted-foreground cursor-pointer transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+          aria-label={t('common.close')}
+          title={t('common.close')}
+          onClick={close}
+        >
+          <Icon name="x" size={20} />
+        </button>
+      </div>
+      {/* Keyed by id so a reject reason or an error never carries over to the next row. */}
+      {selection.kind === 'expense' ? (
+        <ExpenseDetails key={selection.id} view={view} expenseId={selection.id} onClose={close} />
+      ) : selection.kind === 'payment' ? (
+        <PaymentDetails key={selection.id} view={view} paymentId={selection.id} onClose={close} />
+      ) : selection.kind === 'income' ? (
+        <IncomeDetails key={selection.id} view={view} incomeId={selection.id} onClose={close} />
+      ) : selection.kind === 'ratings' ? (
+        <RatingsPanel view={view} />
+      ) : (
+        <ApprovalList view={view} onClose={close} switching />
+      )}
+    </section>
+  );
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') !== null;
+}
+
+/**
+ * How a trip page's lists open the details panel. `detail` is the open expense or payment (null when nothing, or the
+ * approvals list, is selected); `open` selects another row, and when the panel closes again focus goes back to the
+ * row that opened it.
+ */
+export function useDetailsSelection(tripId: string, selection: Selection | null): { detail: Detail | null; open(kind: Detail['kind'], id: string): void } {
+  const openDetails = useOpenDetails(tripId);
+  const opener = useRef<HTMLElement | null>(null);
+  const detail: Detail | null = selection && selection.kind !== 'approvals' && selection.kind !== 'ratings' ? selection : null;
+  const detailKey = detail ? `${detail.kind}/${detail.id}` : null;
+
+  const open = useCallback(
+    (kind: Detail['kind'], id: string) => {
+      if (detail?.kind === kind && detail.id === id) return;
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      // The panel shows one thing at a time (details or the approvals list): switching replaces the entry, so × is one step from the list.
+      openDetails(kind, id, selection !== null);
+    },
+    [detail, openDetails, selection],
+  );
+
+  const lastDetail = useRef(detailKey);
+  useEffect(() => {
+    if (lastDetail.current !== null && detailKey === null && opener.current?.isConnected) opener.current.focus();
+    lastDetail.current = detailKey;
+  }, [detailKey]);
+
+  return { detail, open };
+}

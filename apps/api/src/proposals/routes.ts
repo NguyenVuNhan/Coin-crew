@@ -1,16 +1,16 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { PersonKey, ProposalView, ProposalsResponse } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
-import { mergeProposals, participants, trips } from '../db/schema';
-import { getSessionUser, requireUser } from '../auth/session';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ensure } from '../access/guard';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { nowIso } from '../lib/ids';
+import type { PersonKey, ProposalView, ProposalsResponse } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import { mergeProposals, participants, trips } from '@cc/api-db/schema';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso } from '@cc/api-util/ids';
 import { completeIfReady, type ProposalRow } from './store';
 
 /** Outgoing proposals stay listed this long after they are decided. */

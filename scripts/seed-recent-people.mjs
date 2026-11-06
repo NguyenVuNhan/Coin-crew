@@ -1,5 +1,5 @@
 // Seeds the local e2e D1 database with 30 trips x 10 people and benchmarks GET /api/me/people and filterRecentPeople.
-// Run server first: npm run e2e:server -w @fsl/api
+// Run server first: npm run e2e:server -w @cc/api
 // Then: node scripts/seed-recent-people.mjs [--web http://localhost:5173]
 
 import child_process from 'node:child_process';

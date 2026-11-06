@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { call, json, memberSid, PID, seedExpenses, seedTrip, T, U } from './helpers';
 import { bumpVersion, makeSport, seedFundExpense, seedIncome } from './fund-helpers';
-import type { TripListItem, TripView } from '@fsl/core';
+import type { TripListItem, TripView } from '@cc/core';
 
 let minh: Record<string, string>;
 const view = (headers: Record<string, string>) => json<TripView>(call(`/api/trips/${T.tripId}`, { headers }));

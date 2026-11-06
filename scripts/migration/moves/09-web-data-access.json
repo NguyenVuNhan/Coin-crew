@@ -1,0 +1,48 @@
+{
+  "moves": [
+    {
+      "from": "libs/web/screens/src/api/client.ts",
+      "to": "libs/web/data-access/src/client.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/expensePay.ts",
+      "to": "libs/web/data-access/src/expensePay.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/feedback.ts",
+      "to": "libs/web/data-access/src/feedback.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/focus.ts",
+      "to": "libs/web/data-access/src/focus.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/hooks.ts",
+      "to": "libs/web/data-access/src/hooks.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/myActivity.ts",
+      "to": "libs/web/data-access/src/myActivity.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/payInfo.ts",
+      "to": "libs/web/data-access/src/payInfo.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/people.ts",
+      "to": "libs/web/data-access/src/people.ts"
+    },
+    {
+      "from": "libs/web/screens/src/api/recentPeople.ts",
+      "to": "libs/web/data-access/src/recentPeople.ts"
+    },
+    {
+      "from": "libs/web/screens/src/platform/zaloSession.ts",
+      "to": "libs/web/data-access/src/zaloSession.ts"
+    }
+  ],
+  "scan": [
+    "apps",
+    "libs"
+  ]
+}

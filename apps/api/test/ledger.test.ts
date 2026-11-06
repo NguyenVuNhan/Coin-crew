@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { TripListItem } from '@fsl/core';
+import type { TripListItem } from '@cc/core';
 import { call, json, linkMember, memberSid, seedTrip, PID, U } from './helpers';
 
 type Ledger = { tripId: string; ownerPid: string };
@@ -72,6 +72,12 @@ describe('personal ledger', () => {
 
     const bad = await post('/api/me/ledger/people', sid, { name: '  ' });
     expect(bad.status).toBe(422);
+  });
+
+  it('the quick-expense ledger adds a look-alike too', async () => {
+    const sid = await memberSid(U.minh, 'Minh');
+    expect((await post('/api/me/ledger/people', sid, { name: 'Lan' })).status).toBe(201);
+    expect((await post('/api/me/ledger/people', sid, { name: 'Lân' })).status).toBe(201);
   });
 
   it('importing a group member with an account gives a ledger participant with that userId', async () => {

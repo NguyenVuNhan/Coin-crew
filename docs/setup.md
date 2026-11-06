@@ -68,7 +68,7 @@ Pieces: image `ghcr.io/nguyenvunhan/coin-crew-zalo-relay` (tags: `latest` from `
 3. **Container Manager → Project → Create**: path e.g. `/docker/zalo-relay`, source "Upload compose.yaml" with `apps/zalo-relay/compose.yaml`. Put a `.env` next to it copied from `apps/zalo-relay/.env.example`; set `ZALO_RELAY_SECRET` to the output of `openssl rand -hex 32`; `RELAY_TAG=latest`; `RELAY_PORT=8080` (pick another free port if 8080 is taken). Start the project. It runs the relay and an updater that checks for a new image every 15 minutes.
 4. Reverse proxy: **Control Panel → Login Portal → Advanced → Reverse Proxy → Create**. Source: HTTPS, hostname `zalo-relay.<name>.diskstation.me`, port 443. Destination: HTTP, localhost, port `RELAY_PORT`. Then **Control Panel → Security → Certificate → Settings** and assign the certificate to that reverse proxy entry.
 5. Check from a phone on mobile data: `https://zalo-relay.<name>.diskstation.me/health` shows "ok".
-6. Tell the Worker: `npx -w @fsl/api wrangler secret put ZALO_RELAY_URL` (value `https://zalo-relay.<name>.diskstation.me`) and `npx -w @fsl/api wrangler secret put ZALO_RELAY_SECRET` (same secret as the DSM `.env`). For the tunnel on your machine, add the same two keys to `apps/api/.dev.vars` and restart `npm run tunnel`.
+6. Tell the Worker: `npx -w @cc/api wrangler secret put ZALO_RELAY_URL` (value `https://zalo-relay.<name>.diskstation.me`) and `npx -w @cc/api wrangler secret put ZALO_RELAY_SECRET` (same secret as the DSM `.env`). For the tunnel on your machine, add the same two keys to `apps/api/.dev.vars` and restart `npm run tunnel`.
 7. Check: sign in with Zalo on the live app; your real name and avatar appear. The relay's log in Container Manager shows a line like `GET /me 200 312ms`.
 
 Updates: automatic. A merge to `main` that touches `apps/zalo-relay` publishes `:latest` and the updater swaps the container within about 15 minutes. To try a branch on the DSM before merging: push it (or run the "Zalo relay image" workflow by hand on it with `gh workflow run zalo-relay.yml --ref <branch>`), set `RELAY_TAG=edge` in the DSM `.env` and restart the project; set it back to `latest` afterwards.
@@ -92,7 +92,7 @@ APP_ORIGIN=http://localhost:8787
 Create the local database (it lives under `apps/api/.wrangler/`; the placeholder database ID in `wrangler.jsonc` is fine locally):
 
 ```bash
-npx -w @fsl/api wrangler d1 migrations apply fsl --local
+npx -w @cc/api wrangler d1 migrations apply fsl --local
 ```
 
 Build the web app and start the Worker on http://localhost:8787:
@@ -101,7 +101,7 @@ Build the web app and start the Worker on http://localhost:8787:
 npm run dev
 ```
 
-For front-end work with hot reload, run `npm run dev -w @fsl/api` and `npm run dev -w @fsl/web` side by side, and open http://localhost:5173 (it proxies `/api` to port 8787).
+For front-end work with hot reload, run `npm run dev -w @cc/api` and `npm run dev -w @cc/web` side by side, and open http://localhost:5173 (it proxies `/api` to port 8787).
 
 Check everything passes:
 
@@ -162,7 +162,7 @@ export D1_DATABASE_ID=<your database id>
 Then apply the migrations to the live database:
 
 ```bash
-npm run db:migrate:remote -w @fsl/api
+npm run db:migrate:remote -w @cc/api
 ```
 
 This writes a git-ignored `apps/api/wrangler.deploy.jsonc` with the real ID and runs `wrangler d1 migrations apply fsl --remote` against it.
@@ -174,8 +174,8 @@ In **Workers & Pages → Create application**, choose **Continue with GitHub** (
 | Field | Value |
 |---|---|
 | Project name | `coin-crew`. It must match `name` in `apps/api/wrangler.jsonc`; if you choose another name, change it there too, and your address in 4.2 changes with it. |
-| Build command | `npm run build -w @fsl/web` |
-| Deploy command | `npm run deploy -w @fsl/api` (replace the default `npx wrangler deploy`) |
+| Build command | `npm run build -w apps/web` |
+| Deploy command | `npm run deploy -w apps/api` (replace the default `npx wrangler deploy`) |
 | Preview command | Leave it; it's unused with preview builds off. |
 | Enable Preview builds | **Off.** A preview would use the live database, and Google sign-in always returns to the main address. |
 | Protect with Cloudflare Access | **Off.** Friends open group links without signing in. |
@@ -183,7 +183,7 @@ In **Workers & Pages → Create application**, choose **Continue with GitHub** (
 | Advanced settings → API token | Leave **Create new token**. The token it creates includes D1 Storage (edit). |
 | Advanced settings → Variable name / value | `D1_DATABASE_ID` = your database ID. It isn't a secret, so you don't need to encrypt it. |
 
-Click **Deploy**. The build page shows the log: it installs with `npm clean-install` at the repo root on Node 24, builds the web app, then `npm run deploy -w @fsl/api` writes `wrangler.deploy.jsonc` with the real ID from `D1_DATABASE_ID`, applies any pending D1 migrations (`wrangler d1 migrations apply fsl --remote`), and runs `wrangler deploy` with it. The log ends with the Worker's address, the hourly cron (`0 * * * *`) and "Success! Build completed."
+Click **Deploy**. The build page shows the log: it installs with `npm clean-install` at the repo root on Node 24, builds the web app, then `npm run deploy -w apps/api` writes `wrangler.deploy.jsonc` with the real ID from `D1_DATABASE_ID`, applies any pending D1 migrations (`wrangler d1 migrations apply fsl --remote`), and runs `wrangler deploy` with it. The log ends with the Worker's address, the hourly cron (`0 * * * *`) and "Success! Build completed."
 
 ### 4.5 Add the runtime variables and secrets
 
@@ -202,11 +202,11 @@ Click **Add variable and deploy**. The dashboard then suggests copying `APP_ORIG
 You can set the two Google values from a terminal instead; each command asks for the value:
 
 ```bash
-npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_ID
+npx -w @cc/api wrangler secret put GOOGLE_CLIENT_ID
 ```
 
 ```bash
-npx -w @fsl/api wrangler secret put GOOGLE_CLIENT_SECRET
+npx -w @cc/api wrangler secret put GOOGLE_CLIENT_SECRET
 ```
 
 Never add `E2E_LOGIN`. It turns on a sign-in shortcut meant only for local test runs.
@@ -250,21 +250,21 @@ Write the whole digest twice: first in Vietnamese, then in English. Start with a
 
 ## 5. Day to day
 
-- **Pull requests** run GitHub Actions (`.github/workflows/ci.yml`): typecheck and unit tests in one job, the end-to-end golden path in another. Failed e2e runs keep their Playwright traces as an artifact.
+- **Pull requests** run GitHub Actions (`.github/workflows/ci.yml`): lint, typecheck, unit tests and builds for the projects the change affects (`nx affected`) in one job, the end-to-end golden path in another. Failed e2e runs keep their Playwright traces as an artifact.
 - **Merging to `main`** automatically applies any pending D1 migrations and deploys the Worker through Workers Builds.
 - **Changing the database schema:**
-  1. Edit `apps/api/src/db/schema.ts`.
+  1. Edit `libs/api/db/src/schema.ts`.
   2. Generate a migration and commit it:
      ```bash
-     npx -w @fsl/api drizzle-kit generate
+     npx -w @cc/api drizzle-kit generate
      ```
-  3. Merging to `main` runs `npm run deploy -w @fsl/api`, which applies any unapplied migrations to the live database before deploying the new Worker. Keep migrations additive so the currently running version keeps working while the deploy completes. You can also apply migrations manually at any time with `D1_DATABASE_ID` set:
+  3. Merging to `main` runs `npm run deploy -w @cc/api`, which applies any unapplied migrations to the live database before deploying the new Worker. Keep migrations additive so the currently running version keeps working while the deploy completes. You can also apply migrations manually at any time with `D1_DATABASE_ID` set:
      ```bash
-     npm run db:migrate:remote -w @fsl/api
+     npm run db:migrate:remote -w @cc/api
      ```
 - **Deploying by hand**, with `D1_DATABASE_ID` set (also applies pending remote migrations first):
   ```bash
-  npm run build -w @fsl/web && npm run deploy -w @fsl/api
+  npm run build -w @cc/web && npm run deploy -w @cc/api
   ```
 
 ## 6. Troubleshooting

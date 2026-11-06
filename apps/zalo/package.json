@@ -1,5 +1,5 @@
 {
-  "name": "@fsl/zalo",
+  "name": "@cc/zalo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,8 @@
     "deploy:tunnel": "npm run build -- --mode tunnel && npx zmp-cli@4 deploy --existing --testing --outputDir dist"
   },
   "dependencies": {
-    "@fsl/web-common": "*",
+    "@cc/web-screens": "*",
+    "@cc/web-ui": "*",
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -26,5 +27,11 @@
     "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4"
+  },
+  "nx": {
+    "tags": [
+      "scope:web",
+      "type:app"
+    ]
   }
 }

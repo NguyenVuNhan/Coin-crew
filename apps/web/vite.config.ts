@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import tailwindcss from '@tailwindcss/vite';
-import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 
 /** Short git sha of the build, sent with feedback so reports can be matched to a deploy. */
@@ -16,8 +15,6 @@ function appVersion(): string {
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion()) },
-  // shadcn files in @fsl/web-common import `@/…`, which points into that package.
-  resolve: { alias: { '@': fileURLToPath(new URL('../../packages/web-common/src', import.meta.url)) } },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { ExpensePayView, TripView } from '@fsl/core';
+import type { ExpensePayView, TripView } from '@cc/core';
 import {
   call,
   json,

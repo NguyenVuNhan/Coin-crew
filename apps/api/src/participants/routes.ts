@@ -2,10 +2,10 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, asc, eq, isNull, max, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import type { PickerView } from '@fsl/core';
-import { expenseShareOf, findSimilarNames, isFundPaid, normalizeName, rowSlots } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
+import type { PickerView } from '@cc/core';
+import { expenseShareOf, findSimilarNames, isFundPaid, normalizeName, rowSlots } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
 import {
   deviceExpenseGrants,
   deviceParticipants,
@@ -14,15 +14,15 @@ import {
   participants,
   trips,
   users,
-} from '../db/schema';
-import { getSessionUser } from '../auth/session';
-import { deviceZaloSub } from '../auth/zaloSlots';
-import type { ResolvedActor } from '../access/actor';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ensure } from '../access/guard';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError, isDbError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+} from '@cc/api-db/schema';
+import { getSessionUser } from '@cc/api-auth/session';
+import { deviceZaloSub } from '@cc/api-auth/zaloSlots';
+import type { ResolvedActor } from '@cc/api-auth/actor';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ensure } from '@cc/api-auth/guard';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError, isDbError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 import { pendingProposalFor } from '../proposals/store';
 import { getSnapshot } from '../trips/snapshot';
 import { mergeParticipants } from './merge';
@@ -84,7 +84,7 @@ async function getActor(c: Context<AppBindings>, tripId: string): Promise<Resolv
 
 /**
  * Add a plain name to a trip as `actor` (POST /trips/:id/people, and the personal ledger).
- * Validates the body, checks for similar names and the guest pending limit, and commits.
+ * Validates the body and the guest pending limit, and commits (look-alikes are added, never refused).
  */
 export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unknown): Promise<string> {
   const tripId = actor.trip.id;
@@ -115,25 +115,12 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
     throw new ApiError('VALIDATION', 422, 'Invalid request');
   }
 
-  // Before the similar-name check. Any status counts: the unique index covers left people too.
+  // Any status counts: the unique index covers left people too. (Look-alikes are added, never refused.)
   if (zaloSub && (await zaloSubTaken(db, tripId, zaloSub))) {
     throw new ApiError('CONFLICT', 409, 'This Zalo friend is already in this group.');
   }
 
-  const existing = await db
-    .select({ id: participants.id, name: participants.name })
-    .from(participants)
-    .where(
-      and(
-        eq(participants.tripId, tripId),
-        or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
-      ),
-    );
-
-  const matches = findSimilarNames(name, existing);
-  if (matches.length > 0 && body.confirmNew !== true) {
-    throw new ApiError('VALIDATION', 422, 'A similar name is already in this trip.');
-  }
+  // Look-alike names are added, never refused: the screens suggest a merge instead. confirmNew stays accepted.
 
   if (actor.kind === 'guest') {
     const pendingCount = await db
@@ -519,15 +506,12 @@ export function participantRoutes(): Hono<AppBindings> {
 
     const isGroupAdmin = Boolean(actor.isAdmin) || actor.isOrganiser;
 
-    if (actor.kind === 'guest') {
-      if (actor.participantPending || actor.participantId !== pid) {
-        throw new ApiError('FORBIDDEN', 403);
-      }
-    } else if (actor.kind === 'member') {
-      if (!isGroupAdmin && actor.participantId !== pid) {
-        throw new ApiError('FORBIDDEN', 403);
-      }
-    } else {
+    // Members only: admins change anyone, other members only themselves. Guests change nothing, not even their
+    // own gender (spec 2026-11-05 §5.3).
+    if (actor.kind !== 'member') {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+    if (!isGroupAdmin && actor.participantId !== pid) {
       throw new ApiError('FORBIDDEN', 403);
     }
 
@@ -546,9 +530,6 @@ export function participantRoutes(): Hono<AppBindings> {
     const updates: { name?: string; normalizedName?: string; gender?: 'M' | 'F' | null } = {};
 
     if ('name' in body) {
-      if (actor.kind === 'guest') {
-        throw new ApiError('FORBIDDEN', 403, 'Guests cannot rename');
-      }
       if (typeof body.name !== 'string') {
         throw new ApiError('VALIDATION', 422, 'Invalid name');
       }

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { drizzle } from 'drizzle-orm/d1';
-import type { ActivityItem, PeopleSummaryResponse, PersonSummary, TripListItem, TripView } from '@fsl/core';
-import * as schema from '../src/db/schema';
+import type { ActivityItem, PeopleSummaryResponse, PersonSummary, TripListItem, TripView } from '@cc/core';
+import * as schema from '@cc/api-db/schema';
 import { createSettlement } from '../src/me/settle';
 import { call, guestHeaders, json, memberSid, seedUser, U } from './helpers';
 

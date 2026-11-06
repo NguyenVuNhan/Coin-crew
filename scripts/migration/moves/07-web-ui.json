@@ -1,0 +1,99 @@
+{
+  "moves": [
+    {
+      "from": "libs/web/screens/src/components/ui/",
+      "to": "libs/web/ui/src/components/ui/"
+    },
+    {
+      "from": "libs/web/screens/src/lib/utils.ts",
+      "to": "libs/web/ui/src/lib/utils.ts"
+    },
+    {
+      "from": "libs/web/screens/src/styles/globals.css",
+      "to": "libs/web/ui/src/styles/globals.css"
+    },
+    {
+      "from": "libs/web/screens/src/components/ActionRow.tsx",
+      "to": "libs/web/ui/src/components/ActionRow.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/ActionSheet.tsx",
+      "to": "libs/web/ui/src/components/ActionSheet.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Amount.tsx",
+      "to": "libs/web/ui/src/components/Amount.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Avatar.tsx",
+      "to": "libs/web/ui/src/components/Avatar.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/AvatarCropModal.tsx",
+      "to": "libs/web/ui/src/components/AvatarCropModal.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/BottomBar.tsx",
+      "to": "libs/web/ui/src/components/BottomBar.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Button.tsx",
+      "to": "libs/web/ui/src/components/Button.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/EmptyState.tsx",
+      "to": "libs/web/ui/src/components/EmptyState.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/FocusWatch.tsx",
+      "to": "libs/web/ui/src/components/FocusWatch.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/icons.tsx",
+      "to": "libs/web/ui/src/components/icons.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/InlineError.tsx",
+      "to": "libs/web/ui/src/components/InlineError.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/LanguageButton.tsx",
+      "to": "libs/web/ui/src/components/LanguageButton.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/ListModeChip.tsx",
+      "to": "libs/web/ui/src/components/ListModeChip.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Modal.tsx",
+      "to": "libs/web/ui/src/components/Modal.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Pill.tsx",
+      "to": "libs/web/ui/src/components/Pill.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Sheet.tsx",
+      "to": "libs/web/ui/src/components/Sheet.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Skeleton.tsx",
+      "to": "libs/web/ui/src/components/Skeleton.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/Snackbar.tsx",
+      "to": "libs/web/ui/src/components/Snackbar.tsx"
+    },
+    {
+      "from": "libs/web/screens/src/components/__tests__/responsive-sheet.test.tsx",
+      "to": "libs/web/ui/src/components/__tests__/responsive-sheet.test.tsx"
+    }
+  ],
+  "aliases": {
+    "@/": "libs/web/screens/src/"
+  },
+  "scan": [
+    "apps",
+    "libs"
+  ]
+}

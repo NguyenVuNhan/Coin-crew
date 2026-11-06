@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { ExpensePayView, PickerView, TripView } from '@fsl/core';
+import type { ExpensePayView, PickerView, TripView } from '@cc/core';
 import {
   call,
   json,
@@ -14,10 +14,10 @@ import {
   U,
   PID,
 } from './helpers';
-import { getDb } from '../src/db/client';
-import { requestClaim, upsertIdentity } from '../src/auth/identity';
+import { getDb } from '@cc/api-db/client';
+import { requestClaim, upsertIdentity } from '@cc/api-auth/identity';
 import { getClaimGrant } from '../src/expenses/claimGrant';
-import { sha256Hex } from '../src/lib/ids';
+import { sha256Hex } from '@cc/api-util/ids';
 
 const base = `/api/trips/${T.tripId}`;
 const post = (path: string, headers: Record<string, string>, body?: unknown) =>

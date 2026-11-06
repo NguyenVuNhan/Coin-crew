@@ -1,0 +1,13 @@
+{
+  "moves": [
+    { "from": "apps/api/src/lib/errors.ts", "to": "libs/api/util/src/errors.ts" },
+    { "from": "apps/api/src/lib/ids.ts", "to": "libs/api/util/src/ids.ts" },
+    { "from": "apps/api/src/db/schema.ts", "to": "libs/api/db/src/schema.ts" },
+    { "from": "apps/api/src/db/client.ts", "to": "libs/api/db/src/client.ts" },
+    { "from": "apps/api/src/db/types.ts", "to": "libs/api/db/src/types.ts" },
+    { "from": "apps/api/src/env.ts", "to": "libs/api/db/src/env.ts" },
+    { "from": "apps/api/src/lib/commit.ts", "to": "libs/api/db/src/commit.ts" },
+    { "from": "apps/api/src/lib/activityNames.ts", "to": "libs/api/db/src/activityNames.ts" }
+  ],
+  "scan": ["apps/api", "libs/api"]
+}

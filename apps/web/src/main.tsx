@@ -8,8 +8,8 @@ import '@fontsource/be-vietnam-pro/vietnamese-600.css';
 import '@fontsource/be-vietnam-pro/latin-600.css';
 import '@fontsource/be-vietnam-pro/vietnamese-700.css';
 import '@fontsource/be-vietnam-pro/latin-700.css';
-import '@fsl/web-common/styles.css';
-import { AppRoot, bootApp } from '@fsl/web-common';
+import '@cc/web-ui/styles.css';
+import { AppRoot, bootApp } from '@cc/web-screens';
 
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
   let refreshing = false;

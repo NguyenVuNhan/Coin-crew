@@ -15,17 +15,18 @@ import type {
   SplitMode,
   Transfer,
   TripView,
-} from '@fsl/core';
+} from '@cc/core';
 import {
   computeBalances,
   fundSummary,
   isFundPaid,
+  isThemeId,
   maxStarsForGroup,
   pairwiseTransfers,
   suggestTransfers,
-} from '@fsl/core';
-import type { Db } from '../db/client';
-import type { TripRow } from '../access/actor';
+} from '@cc/core';
+import type { Db } from '@cc/api-db/client';
+import type { TripRow } from '@cc/api-auth/actor';
 import {
   bankDetails,
   participants,
@@ -34,8 +35,8 @@ import {
   transactions,
   tripViews,
   users,
-} from '../db/schema';
-import { nowIso } from '../lib/ids';
+} from '@cc/api-db/schema';
+import { nowIso } from '@cc/api-util/ids';
 
 export type TripSnapshot = Omit<TripView, 'me' | 'myBalance' | 'approvals' | 'links'>;
 
@@ -416,6 +417,7 @@ export async function buildSnapshot(
       fewestTransfers: trip.fewestTransfers === 1,
       roundTransfers: trip.roundTransfers === 1,
       ratingsEnabled: trip.ratingsEnabled === 1,
+      theme: isThemeId(trip.theme) ? trip.theme : null,
       defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
       version: trip.version,

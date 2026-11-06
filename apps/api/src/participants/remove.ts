@@ -1,7 +1,7 @@
 import type { BatchItem } from 'drizzle-orm/batch';
 import { and, eq, or, sql } from 'drizzle-orm';
-import type { Db } from '../db/client';
-import { nowIso } from '../lib/ids';
+import type { Db } from '@cc/api-db/client';
+import { nowIso } from '@cc/api-util/ids';
 import {
   bankDetails,
   deviceParticipants,
@@ -10,7 +10,7 @@ import {
   playerRatings,
   transactions,
   transactionShares,
-} from '../db/schema';
+} from '@cc/api-db/schema';
 
 /** Takes a participant out of a trip: deleted if no history, status 'left' if history exists. */
 export async function takeOutOfTrip(

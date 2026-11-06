@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { sql } from 'drizzle-orm';
-import type { GroupPerson, RecentPerson } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb, type Db } from '../db/client';
-import { getSessionUser, requireUser } from '../auth/session';
+import type { GroupPerson, RecentPerson } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 
 const MAX_PEOPLE = 50;
 const MAX_TRIPS = 2;

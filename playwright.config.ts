@@ -16,7 +16,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run e2e:server -w @fsl/api',
+    command: 'npm run e2e:server -w @cc/api',
     url: 'http://localhost:8788/api/health',
     timeout: 180_000,
     reuseExistingServer: false,

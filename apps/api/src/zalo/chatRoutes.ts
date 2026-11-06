@@ -1,15 +1,15 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, asc, eq } from 'drizzle-orm';
-import type { ZaloChatLookup } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { devices, participants, trips, zaloChatLinks } from '../db/schema';
-import { getSessionUser } from '../auth/session';
-import type { ResolvedActor } from '../access/actor';
-import { assertWritable, resolveActor } from '../access/actor';
-import { ApiError } from '../lib/errors';
-import { nowIso } from '../lib/ids';
+import type { ZaloChatLookup } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { devices, participants, trips, zaloChatLinks } from '@cc/api-db/schema';
+import { getSessionUser } from '@cc/api-auth/session';
+import type { ResolvedActor } from '@cc/api-auth/actor';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso } from '@cc/api-util/ids';
 
 function validateChatId(chatId: string | undefined): asserts chatId is string {
   if (!chatId || chatId.length < 1 || chatId.length > 64) {

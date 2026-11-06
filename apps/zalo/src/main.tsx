@@ -9,8 +9,8 @@ import '@fontsource/be-vietnam-pro/vietnamese-600.css';
 import '@fontsource/be-vietnam-pro/latin-600.css';
 import '@fontsource/be-vietnam-pro/vietnamese-700.css';
 import '@fontsource/be-vietnam-pro/latin-700.css';
-import '@fsl/web-common/styles.css';
-import { AppRoot, bootApp } from '@fsl/web-common';
+import '@cc/web-ui/styles.css';
+import { AppRoot, bootApp } from '@cc/web-screens';
 import { createZaloPlatform, zmpBasename, type ZmpSdk } from './platform/zaloMiniApp';
 
 const apiOrigin = import.meta.env.VITE_API_ORIGIN as string;

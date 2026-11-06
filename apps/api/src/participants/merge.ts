@@ -1,8 +1,8 @@
 import type { BatchItem } from 'drizzle-orm/batch';
 import { and, eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
-import type { Db } from '../db/client';
-import type { ResolvedActor } from '../access/actor';
+import type { Db } from '@cc/api-db/client';
+import type { ResolvedActor } from '@cc/api-auth/actor';
 import {
   bankDetails,
   deviceParticipants,
@@ -15,10 +15,10 @@ import {
   personLinks,
   transactions,
   transactionShares,
-} from '../db/schema';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError, isDbError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+} from '@cc/api-db/schema';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError, isDbError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 
 /** Rows per participant_merge_rows insert: 4 bound params each, D1 allows 100 per statement. */
 const MERGE_ROWS_PER_INSERT = 25;

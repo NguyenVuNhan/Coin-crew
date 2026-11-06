@@ -1,0 +1,6 @@
+{
+  "moves": [
+    { "from": "packages/core/", "to": "libs/shared/core/" },
+    { "from": "packages/web-common/", "to": "libs/web/screens/" }
+  ]
+}

@@ -1,5 +1,5 @@
-import { formatVnd } from '@fsl/core';
-import type { ExpenseView } from '@fsl/core';
+import { formatVnd } from '@cc/core';
+import type { ExpenseView } from '@cc/core';
 import type { TripSnapshot } from '../trips/snapshot';
 
 export type PageMetaInput =

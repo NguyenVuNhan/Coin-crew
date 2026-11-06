@@ -38,12 +38,11 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.getByRole('button', { name: 'Continue' }).click();
   await minh.getByRole('link', { name: 'New group' }).click();
   await minh.getByLabel('Group name').fill('Đà Lạt');
-  const others = minh.getByPlaceholder('Name');
-  await others.nth(0).fill('An');
-  await minh.getByRole('button', { name: 'Add person' }).click();
-  await others.nth(1).fill('Bình');
-  await minh.getByRole('button', { name: 'Add person' }).click();
-  await others.nth(2).fill('Chi');
+  const nameToAdd = minh.getByLabel('Name to add');
+  for (const name of ['An', 'Bình', 'Chi']) {
+    await nameToAdd.fill(name);
+    await nameToAdd.press('Enter');
+  }
   await minh.getByText('Your bank details (optional)').click();
   await minh.getByRole('combobox', { name: 'Bank' }).click();
   await minh.getByPlaceholder('Search banks').fill('Techcombank');
@@ -65,7 +64,10 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await expect(minh.getByText('Homestay Bloom')).toBeVisible();
   await noSidewaysScroll(minh);
 
-  // The group link lives in the Invite sheet once the trip has an expense.
+  // Once the trip has an expense, the group link lives in People's Invite sheet,
+  // one tap from the group page.
+  await minh.getByRole('link', { name: /^\d+ people in this group$/ }).click();
+  await expect(minh).toHaveURL(/\/people$/);
   await minh.getByRole('button', { name: 'Invite' }).click();
   const invite = minh.getByRole('dialog', { name: 'Invite' });
   const groupLink = await invite.getByLabel('Group link').inputValue();
@@ -73,6 +75,8 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await noSidewaysScroll(minh);
   await minh.keyboard.press('Escape');
   await expect(invite).toHaveCount(0);
+  await minh.getByRole('link', { name: 'Back' }).click();
+  await expect(minh).toHaveURL(tripUrl);
 
   // Chi opens the group link, picks their name and adds an expense that waits for approval.
   await chi.goto(groupLink);

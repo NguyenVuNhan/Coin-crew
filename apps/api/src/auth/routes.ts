@@ -3,18 +3,18 @@ import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { decodeIdToken, generateCodeVerifier, generateState } from 'arctic';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import type { UpdateProfileInput } from '@fsl/core';
-import { normalizeName } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { deviceParticipants, participants, sessions, trips, users } from '../db/schema';
-import { ApiError } from '../lib/errors';
-import { nowIso, sha256Hex } from '../lib/ids';
-import { GOOGLE_SCOPES, googleClient } from './google';
-import { linkIdentity, requestClaim, upsertIdentity } from './identity';
-import { buildMeResponse, toMeUserView } from './me';
-import { createSession, getSessionUser, readSessionToken, requireUser, setSessionCookie } from './session';
-import { linkZaloSlots } from './zaloSlots';
+import type { UpdateProfileInput } from '@cc/core';
+import { isThemeId, normalizeName } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { deviceExpenseGrants, deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso, sha256Hex } from '@cc/api-util/ids';
+import { GOOGLE_SCOPES, googleClient } from '@cc/api-auth/google';
+import { linkIdentity, requestClaim, upsertIdentity } from '@cc/api-auth/identity';
+import { buildMeResponse, toMeUserView } from '@cc/api-auth/me';
+import { createSession, getSessionUser, readSessionToken, requireUser, setSessionCookie } from '@cc/api-auth/session';
+import { linkZaloSlots } from '@cc/api-auth/zaloSlots';
 import {
   exchangeZaloCode,
   fetchZaloProfile,
@@ -22,7 +22,7 @@ import {
   zaloConfigured,
   zaloPkce,
   ZaloError,
-} from './zalo';
+} from '@cc/api-auth/zalo';
 
 /** Only same-site paths: "/x" but not "//host" or "/\host" (browsers read a backslash as a slash). */
 export function safeReturnTo(raw: string | undefined): string {
@@ -300,12 +300,19 @@ export function authRoutes(): Hono<AppBindings> {
   });
 
   app.post('/auth/logout', async (c) => {
+    const db = getDb(c.env);
     const sid = readSessionToken(c);
     if (sid) {
       const idHash = await sha256Hex(sid);
-      const db = getDb(c.env);
       await db.delete(sessions).where(eq(sessions.idHash, idHash));
     }
+    // Signing out means "forget me on this phone": a shared phone must not keep opening the person's groups as them.
+    // The name this device picked in each group (as a guest, or by joining) and its bill passes go with the session.
+    const deviceHash = c.get('deviceHash');
+    await db.batch([
+      db.delete(deviceParticipants).where(eq(deviceParticipants.deviceHash, deviceHash)),
+      db.delete(deviceExpenseGrants).where(eq(deviceExpenseGrants.deviceHash, deviceHash)),
+    ]);
     deleteCookie(c, 'sid', { path: '/' });
     return c.body(null, 204);
   });
@@ -349,6 +356,10 @@ export function authRoutes(): Hono<AppBindings> {
       }
     }
 
+    if (body.theme !== undefined && body.theme !== null && !isThemeId(body.theme)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
     const db = getDb(c.env);
     const updates: Partial<typeof users.$inferInsert> = {};
     if (trimmedName !== undefined) {
@@ -359,6 +370,9 @@ export function authRoutes(): Hono<AppBindings> {
     }
     if (body.avatarUrl !== undefined) {
       updates.avatarUrl = body.avatarUrl;
+    }
+    if (body.theme !== undefined) {
+      updates.theme = body.theme;
     }
     if (body.name !== undefined || body.avatarUrl !== undefined) {
       updates.customProfile = 1;

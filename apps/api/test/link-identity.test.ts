@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import { call, cookiesFrom, cookieHeader, unsignedJwt, memberSid } from './helpers';
-import { sha256Hex } from '../src/lib/ids';
+import { sha256Hex } from '@cc/api-util/ids';
 
 const realFetch = globalThis.fetch;
 

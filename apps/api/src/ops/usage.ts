@@ -1,6 +1,6 @@
-import type { Env } from '../env';
-import { getDb } from '../db/client';
-import { opsAlerts } from '../db/schema';
+import type { Env } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { opsAlerts } from '@cc/api-db/schema';
 
 // Cloudflare free-plan daily limits. To be confirmed against current Cloudflare pricing (spec §14).
 export const FREE_LIMITS = { workerRequests: 100_000, d1RowsRead: 5_000_000, d1RowsWritten: 100_000 } as const;

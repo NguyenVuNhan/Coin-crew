@@ -1,14 +1,14 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
-import { accountMergeRequests, users } from '../db/schema';
-import { ApiError } from '../lib/errors';
-import { nowIso } from '../lib/ids';
-import { toMeUserView } from './me';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { accountMergeRequests, users } from '@cc/api-db/schema';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso } from '@cc/api-util/ids';
+import { toMeUserView } from '@cc/api-auth/me';
 import { mergeUsers } from './mergeUsers';
-import { getSessionUser, requireUser } from './session';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
 
 /**
  * Decline (on the side that must approve) or cancel (on the side that started it) an open request in one conditional write.

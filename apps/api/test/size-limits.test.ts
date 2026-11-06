@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { TripListItem, TripView } from '@fsl/core';
+import type { TripListItem, TripView } from '@cc/core';
 import { call, json, seedTrip, seedManyExpenses, memberSid, U, T, PID } from './helpers';
 
 const minh = async () => ({ Cookie: `sid=${await memberSid(U.minh, 'Minh')}` });

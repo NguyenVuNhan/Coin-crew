@@ -1,10 +1,10 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import type { ExpenseMeta, FundItem, IncomeStatus, LedgerIncome } from '@fsl/core';
-import { fundEffect, fundSummary } from '@fsl/core';
-import type { Db } from '../db/client';
-import { transactions } from '../db/schema';
-import type { TripRow } from '../access/actor';
-import { ApiError } from '../lib/errors';
+import type { ExpenseMeta, FundItem, IncomeStatus, LedgerIncome } from '@cc/core';
+import { fundEffect, fundSummary } from '@cc/core';
+import type { Db } from '@cc/api-db/client';
+import { transactions } from '@cc/api-db/schema';
+import type { TripRow } from '@cc/api-auth/actor';
+import { ApiError } from '@cc/api-util/errors';
 
 export function assertSportGroup(trip: TripRow): void {
   if (trip.preset !== 'sport') {

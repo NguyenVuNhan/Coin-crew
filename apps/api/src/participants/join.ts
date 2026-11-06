@@ -1,20 +1,20 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, max, or } from 'drizzle-orm';
-import type { JoinResponse } from '@fsl/core';
-import { findSimilarNames, normalizeName } from '@fsl/core';
-import type { AppBindings } from '../env';
-import { getDb } from '../db/client';
+import type { JoinResponse } from '@cc/core';
+import { normalizeName } from '@cc/core';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
 import {
   deviceParticipants,
   membershipRequests,
   participants,
-} from '../db/schema';
-import { getSessionUser } from '../auth/session';
-import { assertWritable, resolveActor } from '../access/actor';
-import { commitTripWrite } from '../lib/commit';
-import { ApiError } from '../lib/errors';
-import { newId, nowIso } from '../lib/ids';
+} from '@cc/api-db/schema';
+import { getSessionUser } from '@cc/api-auth/session';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
+import { commitTripWrite } from '@cc/api-db/commit';
+import { ApiError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -123,20 +123,8 @@ export function joinRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Gender required');
     }
 
-    const existing = await db
-      .select({ id: participants.id, name: participants.name })
-      .from(participants)
-      .where(
-        and(
-          eq(participants.tripId, tripId),
-          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
-        ),
-      );
-
-    const matches = findSimilarNames(name, existing);
-    if (matches.length > 0 && body.confirmNew !== true) {
-      throw new ApiError('VALIDATION', 422, 'A similar name is already in this trip.');
-    }
+    // A look-alike name never blocks joining: the person already chose "No, add me" (WhoAreYou asks first), and
+    // confirmNew stays accepted for older clients.
 
     const maxOrderRow = await db
       .select({ maxOrder: max(participants.sortOrder) })

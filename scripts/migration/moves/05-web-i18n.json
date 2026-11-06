@@ -1,0 +1,11 @@
+{
+  "moves": [
+    { "from": "libs/web/screens/src/i18n/index.ts", "to": "libs/web/i18n/src/index.ts" },
+    { "from": "libs/web/screens/src/i18n/en.ts", "to": "libs/web/i18n/src/en.ts" },
+    { "from": "libs/web/screens/src/i18n/vi.ts", "to": "libs/web/i18n/src/vi.ts" },
+    { "from": "libs/web/screens/src/i18n/__tests__/detect-lang.test.ts", "to": "libs/web/i18n/src/__tests__/detect-lang.test.ts" },
+    { "from": "libs/web/screens/src/i18n/__tests__/review-markers.test.ts", "to": "libs/web/i18n/src/__tests__/review-markers.test.ts" }
+  ],
+  "aliases": { "@/": "libs/web/screens/src/" },
+  "scan": ["apps", "libs"]
+}

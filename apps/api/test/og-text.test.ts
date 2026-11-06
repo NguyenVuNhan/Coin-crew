@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { pageMeta, OG_TEXT } from '../src/og/text';
 import type { TripSnapshot } from '../src/trips/snapshot';
-import type { ExpenseView } from '@fsl/core';
+import type { ExpenseView } from '@cc/core';
 
 const NOW = new Date('2026-10-20T20:00:00Z');
 

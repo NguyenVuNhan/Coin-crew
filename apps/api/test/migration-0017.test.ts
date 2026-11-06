@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
-import { accountMergeRequests, transactions } from '../src/db/schema';
+import { accountMergeRequests, transactions } from '@cc/api-db/schema';
 
 const run = (query: string, ...binds: unknown[]) => env.DB.prepare(query).bind(...binds).run();
 
