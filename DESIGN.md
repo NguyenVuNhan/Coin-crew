@@ -212,7 +212,7 @@ CoinCrew is bookkeeping you'd happily show your friends. The sums are exact and 
 
 The system is shadcn/ui on Tailwind v4, themed in one stylesheet (`libs/web/ui/src/styles/globals.css`). It is phone first: a single 480px column with a floating bottom nav. From 1024px a side nav appears and a few screens widen to two columns. Depth comes from white on warm off-white, not from shadows. Two looks are rejected: the stock shadcn demo (black buttons, sharp grey borders) and anything that reads as a corporate bank app or a dense spreadsheet.
 
-There is one theme today, light. More colour themes are planned (a friend has asked for a pink one), so colour lives only in theme tokens.
+There are four light themes: Jade (the default, everything above), Orchid, Sky and Indigo. Signed-in people pick their own, and a group's admin can pick the group's colours, which win inside that group. A theme changes only the accent and a faint wash on the page; colour lives only in theme tokens, so a theme is a token swap.
 
 **Key Characteristics:**
 - Warm off-white page, white `rounded-xl` grouped lists, no nested cards
@@ -230,6 +230,26 @@ One teal accent on warm stone neutrals, with three soft money-state hues. Each c
 ### Primary
 - **Jade** (`primary`): the one confident colour. Primary buttons, the focus ring, the "owed to you" balance, links, active states. White text on it passes AA.
 - **Jade Mist** (`secondary`) with **Jade Ink** (`secondary-foreground`): soft-teal pills for secondary buttons, the active nav item, accent pills and empty-state icon tiles.
+
+### Themes
+Each theme is a `[data-theme='<id>']` block in `globals.css` that sets six tokens and nothing else. `data-theme` sits on `<html>`, so sheets and other portals follow it.
+
+| Theme | Page wash (`background`) | Accent (`primary`) | Mist (`secondary`) | Ink on mist (`secondary-foreground`) |
+|---|---|---|---|---|
+| **Jade** (default) | Rice Paper `#f6f7f4` | `#0f766e` | `#ccfbf1` | `#134e4a` |
+| **Orchid** | `#fbf6fb` | `#a21caf` | `#fae8ff` | `#701a75` |
+| **Sky** | `#f4f8fb` | `#0369a1` | `#e0f2fe` | `#0c4a6e` |
+| **Indigo** | `#f6f6fb` | `#4338ca` | `#e0e7ff` | `#312e81` |
+
+- **Text on accents:** `primary-foreground` is white in every theme. `ring` matches `primary`.
+- **What follows the theme:** buttons, the active nav item, accent pills, links, the focus ring, the "owed to you" balance, and the faint wash on the page and the header. Cards, lists, sheets and fields stay white.
+- **Who picks:**
+  - Signed-in people pick theirs in the account menu → Theme.
+  - A group's admin picks the group's colours in Group settings → Group colours. The default there is "Each person's own theme".
+  - Inside a group, its colours win for everyone, guests included. Elsewhere, people see their own theme, and guests see Jade.
+- **Remembered on the device:** the personal theme is cached on the phone (`localStorage` key `theme`), so the first paint already uses it. Signing out forgets it.
+- **Status bar:** the phone's status bar (`<meta name="theme-color">`) follows the accent of the theme in view.
+- **Adding a theme:** it must pass AA for every text pairing, and its accent must sit at least 30° of hue away from Leaf, Lychee and Turmeric. `libs/web/ui/src/styles/__tests__/theme-tokens.test.ts` checks both.
 
 ### Tertiary (money states)
 - **Leaf** (`success`, soft fill `success-soft`): money owed to you, paid, settled, confirmed.
@@ -250,6 +270,8 @@ One teal accent on warm stone neutrals, with three soft money-state hues. Each c
 **The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. More colour themes are coming (a pink one has been asked for), and a new theme must be a token swap, not a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
 
 **The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look.
+
+**The Fixed Money Rule.** Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets `--success*`, `--danger*`, `--warning*` or `--avatar-*` fails the token test. "You owe", "paid" and "waiting" must read the same in every theme.
 
 **The Rice Paper Rule.** `subtle-foreground` sits on white only. On the Rice Paper page, quiet text uses `muted-foreground`.
 
@@ -286,7 +308,7 @@ The layout is phone first, one column. Screen content sits in a centred column a
 - **From 640px (`sm`):** bottom sheets become centred dialogs.
 - **From 1024px (`lg`):** "layout A". A 240px white side nav with a hairline right edge replaces the floating pill. The bottom action bar becomes part of the page flow.
 - **Safe areas:** iOS safe-area insets are added to fixed bars (the page uses `viewport-fit=cover`). Inside the Zalo Mini App the header also clears Zalo's top inset and its capsule button on the right.
-- **Home screen:** saved to the home screen, the app runs standalone with no browser bar, a Jade status-bar colour and a Rice Paper launch screen. The app's own header, back button and nav are the only way around there. These two colours are set outside the theme, in `apps/web/index.html` (`theme-color`) and the PWA manifest in `apps/web/vite.config.ts`, so a new colour theme must update them too.
+- **Home screen:** saved to the home screen, the app runs standalone with no browser bar, a status-bar colour that follows the theme in view, and a Rice Paper launch screen. The app's own header, back button and nav are the only way around there. The launch colours in the PWA manifest (`apps/web/vite.config.ts`) and the starting `theme-color` in `apps/web/index.html` stay Jade. Once the app runs, `applyTheme` points `theme-color` at the current accent.
 
 ## Elevation & Depth
 
@@ -390,6 +412,12 @@ Round initial avatars, 28 / 36 / 96px, in a soft pastel fill with dark text of t
 - **Focus:** the outline turns Jade, with a 3px soft Jade ring.
 - **Error:** Lychee outline and ring. Messages appear inline (`InlineError`), next to what failed.
 - **Disabled:** 50% opacity.
+
+### Theme picker
+- **Where:** a sheet from the account menu's Theme row (your own theme) or from Group settings' Group colours row (admins only).
+- **Options:** a two-column grid of swatches. Each one is a mini screen in its own theme: the wash, a thin header strip, an accent pill and a mist chip, with the theme's name underneath.
+- **The group picker** starts with "Each person's own theme".
+- **Choosing:** the chosen swatch shows a check and a 2px accent ring. A tap saves straight away; there is no Save button. A failed save shows the error under the grid and goes back to the previous choice.
 
 ### Sheets and dialogs
 On phones a sheet is a bottom drawer: white, 32px top corners, at most 85% of the screen tall, with an 18px semibold title. From 640px the same component opens as a centred dialog up to 448px wide. Always use the `Sheet` / `Modal` wrappers; focus moves in on open and returns on close.
