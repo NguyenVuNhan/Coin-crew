@@ -193,7 +193,7 @@ export function ExpenseDetails({
           const saveRes = await platform.saveImage(blob, fileName);
           saved = saveRes === 'saved';
         }
-        await platform.share(sportBillCard(view, e.id, msgText, platform.apiBase));
+        await platform.share(sportBillCard(view, e.rootId ?? e.id, msgText, platform.apiBase));
         setShareStatus(saved ? 'saved' : 'failed');
       } catch {
         setShareStatus('failed');

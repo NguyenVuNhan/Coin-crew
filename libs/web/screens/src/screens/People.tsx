@@ -18,7 +18,7 @@ import { Sheet } from '@cc/web-ui/components/Sheet';
 import { ActionRow } from '@cc/web-ui/components/ActionRow';
 import { ActionSheet } from '@cc/web-ui/components/ActionSheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
-import { InlineError } from '@cc/web-ui/components/InlineError';
+import { InlineError, errorText } from '@cc/web-ui/components/InlineError';
 import { AddPeopleBar, type NewPerson } from '../components/AddPeopleBar';
 import { GenderPill } from '../components/GenderPill';
 import { showUndo } from '../components/UndoSnackbarHost';
@@ -121,7 +121,7 @@ export function People() {
   const actionErrorText = (err: unknown) =>
     err instanceof ApiClientError && err.status === 403
       ? t('people.cannotRemove')
-      : (err as Error).message || t('error.generic');
+      : errorText(err, t);
 
   const makeAdmin = async (person: PersonView) => {
     if (busy) return;
@@ -216,7 +216,7 @@ export function People() {
       } catch (err) {
         notAdded = people.slice(index);
         const failed = notAdded.map((p) => p.name);
-        const why = (err as Error).message || t('error.generic');
+        const why = errorText(err, t);
         setFailedNames((prev) => [...prev, ...failed]);
         setAddError(why);
         break;
@@ -252,7 +252,7 @@ export function People() {
           try {
             for (const id of ids) await removeTripPerson(tid, id);
           } catch (err) {
-            setAddError((err as Error).message || t('error.generic'));
+            setAddError(errorText(err, t));
           }
           await queryClient.invalidateQueries({ queryKey: ['trip', tid] });
           dropHints(ids);

@@ -84,13 +84,14 @@ describe('shareCards', () => {
     expect(card.thumbnailUrl).toBe('https://api.test/og/trip.png');
   });
 
-  it("sportBillCard sets path to 'j/gtok-1/expenses/e-1'", () => {
+  // Final review I-1: the card opens the bill link (`/j/<token>/e/<rootId>`), which goes on to the pay screen.
+  it("sportBillCard sets path to the bill link 'j/gtok-1/e/e-1'", () => {
     const view = tripView({ links: { group: 'gtok-1', view: 'vtok-1' } });
     const text = 'Court 200.000₫, each pays 50.000₫';
     const card = sportBillCard(view, 'e-1', text, origin);
 
-    expect(card.path).toBe('j/gtok-1/expenses/e-1');
-    expect(card.url).toBe('https://api.test/j/gtok-1/expenses/e-1');
+    expect(card.path).toBe('j/gtok-1/e/e-1');
+    expect(card.url).toBe('https://api.test/j/gtok-1/e/e-1');
     expect(card.text).toBe(text);
     expect(card.description).toBe(text);
     expect(card.title).toBe(`Bill for ${view.trip.name}`);
@@ -143,9 +144,9 @@ describe('shareCards', () => {
     const view = tripView({ links: { group: 'special/token?a=1', view: 'vtok-1' } });
     const card = sportBillCard(view, 'expense/1?foo=bar', 'sport text', origin);
 
-    expect(card.path).toBe('j/special%2Ftoken%3Fa%3D1/expenses/expense%2F1%3Ffoo%3Dbar');
+    expect(card.path).toBe('j/special%2Ftoken%3Fa%3D1/e/expense%2F1%3Ffoo%3Dbar');
     expect(card.url).toBe(
-      'https://api.test/j/special%2Ftoken%3Fa%3D1/expenses/expense%2F1%3Ffoo%3Dbar',
+      'https://api.test/j/special%2Ftoken%3Fa%3D1/e/expense%2F1%3Ffoo%3Dbar',
     );
   });
 });

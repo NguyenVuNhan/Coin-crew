@@ -23,8 +23,11 @@ export interface AddPeopleBarProps {
   onAdd(people: NewPerson[]): Promise<NewPerson[]>;
   /** Creating a group: suggest friends from your other groups; these userIds are already listed. */
   suggest?: { exclude: Set<string> };
-  /** Called with the field's current text whenever it changes (including '' after an add). */
-  onDraftChange?: (draft: string) => void;
+  /**
+   * Called with the field's current text whenever it changes (including '' after an add), and the gender Enter would
+   * add it with (sport groups: the one last used; trip groups: null).
+   */
+  onDraftChange?: (draft: string, gender: Gender | null) => void;
 }
 
 export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeopleBarProps): JSX.Element {
@@ -41,8 +44,8 @@ export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeople
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    onDraftChange?.(name);
-  }, [name, onDraftChange]);
+    onDraftChange?.(name, sport ? lastGender : null);
+  }, [name, sport, lastGender, onDraftChange]);
 
   const { data } = useRecentPeople({ enabled: suggest !== undefined });
   const exclude = suggest?.exclude;

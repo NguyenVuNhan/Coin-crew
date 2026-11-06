@@ -27,7 +27,7 @@ export function PeopleInput({
   onChange(v: PersonEntry[]): void;
   showGender?: boolean;
   me?: PeopleInputMe;
-  onDraftChange?: (draft: string) => void;
+  onDraftChange?: (draft: string, gender: Gender | null) => void;
 }) {
   const t = useT();
   const baseId = useId();

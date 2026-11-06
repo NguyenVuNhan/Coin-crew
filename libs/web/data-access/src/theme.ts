@@ -13,8 +13,10 @@ export function useSetMyTheme() {
     { previousMe: MeResponse | undefined; previousCached: ThemeId | null }
   >({
     mutationFn: (theme: ThemeId | null) => apiSend('/api/me', 'PATCH', { theme }),
+    // `exact`: only the session answer carries the theme. Without it every `['me', …]` query (ledger, people,
+    // activity…) would be cancelled and refetched on each swatch tap.
     onMutate: async (theme) => {
-      await queryClient.cancelQueries({ queryKey: ['me'] });
+      await queryClient.cancelQueries({ queryKey: ['me'], exact: true });
       const previousMe = queryClient.getQueryData<MeResponse>(['me']);
       const previousCached = isThemeId(previousMe?.user?.theme)
         ? previousMe.user.theme
@@ -37,7 +39,7 @@ export function useSetMyTheme() {
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['me'] });
+      await queryClient.invalidateQueries({ queryKey: ['me'], exact: true });
     },
   });
 }

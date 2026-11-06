@@ -210,9 +210,48 @@ describe('ZMP save, card sharing, and bank app fallback', () => {
 
     await waitFor(() => expect(fake.calls.share.length).toBe(1));
     const card = fake.calls.share[0]![0] as { path: string };
-    expect(card.path).toContain('/expenses/');
+    // The bill link, which opens the friend's share and QR (final review I-1), not the bill page.
+    expect(card.path).toBe('j/gtok-sport/e/e-sport-1');
 
     expect(await screen.findByText(en['pay.shareSaved'])).toBeInTheDocument();
+  });
+
+  it('zmp: an edited bill shares a card for its first version, so cards already in the chat keep working', async () => {
+    setLang('en');
+    const fake = fakePlatform();
+    const user = userEvent.setup();
+    const edited: TripView = {
+      ...sampleSportView,
+      expenses: [{ ...sampleSportView.expenses[0]!, id: 'e-sport-1-v2', rootId: 'e-sport-1' }],
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/pay/')) {
+          return Response.json({
+            to: { id: 'p-minh', name: 'Minh' },
+            amount: 0,
+            bankState: 'ok',
+            bank: BANK,
+            refCode: 'CAU LONG T5',
+            payload: PAYLOAD,
+            inFlight: [],
+          });
+        }
+        return Response.json(edited);
+      }),
+    );
+
+    renderAt(<ExpenseDetails view={edited} expenseId="e-sport-1-v2" onClose={() => {}} />, { platform: fake });
+
+    const shareBtn = await screen.findByRole('button', { name: 'Share bill & QR' });
+    await waitFor(() => expect(shareBtn).toBeEnabled());
+    await user.click(shareBtn);
+
+    await waitFor(() => expect(fake.calls.share.length).toBe(1));
+    expect((fake.calls.share[0]![0] as { path: string }).path).toBe('j/gtok-sport/e/e-sport-1');
   });
 
   it('web: Download QR saves through the browser platform', async () => {
