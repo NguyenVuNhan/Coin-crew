@@ -32,9 +32,9 @@ export function Privacy() {
         <div className={cn('bg-card rounded-xl border border-border divide-y divide-border overflow-hidden')}>
           {/* Section 1: Operator */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.operator.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {t('privacy.sections.operator.body')}
@@ -43,9 +43,9 @@ export function Privacy() {
 
           {/* Section 2: Data Collected & Classification (Decree 13) */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.data.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed space-y-2">
               <p className="m-0">
@@ -61,9 +61,9 @@ export function Privacy() {
 
           {/* Section 3: Visibility & Who Sees Bank Details */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.sharing.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {t('privacy.sections.sharing.body')}
@@ -72,9 +72,9 @@ export function Privacy() {
 
           {/* Section 4: Processors & Cross-Border Hosting */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.processors.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {t('privacy.sections.processors.body')}
@@ -83,9 +83,9 @@ export function Privacy() {
 
           {/* Section 5: Unintended Risks */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.risks.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {t('privacy.sections.risks.body')}
@@ -94,9 +94,9 @@ export function Privacy() {
 
           {/* Section 6: Retention Period */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.retention.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {t('privacy.sections.retention.body')}
@@ -105,9 +105,9 @@ export function Privacy() {
 
           {/* Section 7: User Rights (Article 9 Decree 13 & PDPL) */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.rights.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {t('privacy.sections.rights.body')}
@@ -116,9 +116,9 @@ export function Privacy() {
 
           {/* Section 8: Contact & Deletion Requests */}
           <details className="group">
-            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">
               <span>{t('privacy.sections.contact.title')}</span>
-              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+              <span className="text-xs text-primary transition-transform motion-reduce:transition-none group-open:rotate-180">▾</span>
             </summary>
             <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
               <p className="m-0">
