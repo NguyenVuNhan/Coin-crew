@@ -290,4 +290,20 @@ describe('enable restores the status a payment had', () => {
     await send(`/payments/${body!.paymentId}/enable`, headers);
     expect((await view(headers)).payments.find((p) => p.id === body!.paymentId)?.status).toBe('confirmed');
   });
+
+  it('records disabledByName when disabled and clears it when re-enabled', async () => {
+    const { body } = await record(await guestHeaders(PID.C), PID.C, PID.M, 1245000);
+    const headers = await minh();
+    expect((await send(`/payments/${body!.paymentId}/disable`, headers)).status).toBe(204);
+    let v = await view(headers);
+    let payment = v.payments.find((p) => p.id === body!.paymentId);
+    expect(payment?.status).toBe('disabled');
+    expect(payment?.disabledByName).toBe('Minh');
+
+    expect((await send(`/payments/${body!.paymentId}/enable`, headers)).status).toBe(204);
+    v = await view(headers);
+    payment = v.payments.find((p) => p.id === body!.paymentId);
+    expect(payment?.status).toBe('says_paid');
+    expect(payment?.disabledByName).toBeNull();
+  });
 });

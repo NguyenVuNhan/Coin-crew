@@ -249,9 +249,12 @@ export async function buildSnapshot(
 
   const activeExpenseRows = txRows.filter((tx) => tx.type === 'expense' && tx.isLatest === 1);
   const activeIncomeRows = txRows.filter((tx) => tx.type === 'income' && tx.isLatest === 1);
+  const activePaymentRows = txRows.filter((tx) => tx.type === 'payment' && tx.isLatest === 1);
   const disabledUserIds = Array.from(
     new Set(
-      [...activeExpenseRows, ...activeIncomeRows].map((e) => e.disabledByUserId).filter((id): id is string => id !== null),
+      [...activeExpenseRows, ...activeIncomeRows, ...activePaymentRows]
+        .map((e) => e.disabledByUserId)
+        .filter((id): id is string => id !== null),
     ),
   );
 
@@ -299,7 +302,6 @@ export async function buildSnapshot(
     history: incomeHistoryByRootId.get(i.rootId) ?? [],
   }));
 
-  const activePaymentRows = txRows.filter((tx) => tx.type === 'payment' && tx.isLatest === 1);
   const paymentViews: PaymentView[] = activePaymentRows.map((p) => {
     let meta: { expenseId?: string; paidBy?: 'self' | 'friend' } | null = null;
     if (p.metaJson) {
@@ -317,6 +319,7 @@ export async function buildSnapshot(
       amountConfirmed: p.amountConfirmed,
       status: p.status as PaymentStatus,
       notArrived: p.notArrivedAt !== null,
+      disabledByName: p.disabledByUserId ? (disabledNameMap.get(p.disabledByUserId) ?? null) : null,
       createdAt: p.createdAt,
       confirmedById: p.confirmedByParticipantId,
       ...(isOffsetPart(p.metaJson) ? { throughPeople: true } : {}),
