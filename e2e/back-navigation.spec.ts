@@ -65,9 +65,12 @@ test('walks back navigation with history, scroll restoration, and fallback to pa
 
   // 5. Scroll down: await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)),
   // then read const y = await page.evaluate(() => window.scrollY) and expect(y).toBeGreaterThan(0).
+  await expect(page.locator('.fsl-expense-list__item').first()).toBeVisible();
   await page.setViewportSize({ width: 375, height: 480 });
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await expect.poll(async () => {
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    return page.evaluate(() => window.scrollY);
+  }).toBeGreaterThan(0);
 
   // 6. Click the last expense row (scroll it into view first if needed, keep the window scrolled).
   // Expect /t/<id>/expenses/<eid>.
