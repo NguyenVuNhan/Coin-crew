@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, desc, eq, lt, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type {
   ActivityAction,
@@ -157,6 +157,7 @@ export function tripRoutes(): Hono<AppBindings> {
       }
     }
 
+    let normalizedHolderName: string | null = null;
     if (body.myBank !== undefined && body.myBank !== null) {
       if (typeof body.myBank !== 'object') {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -175,7 +176,8 @@ export function tripRoutes(): Hono<AppBindings> {
       if (!/^\d{6,19}$/.test(accountNumber)) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
-      if (!toTransferNote(holderName, 50)) {
+      normalizedHolderName = toTransferNote(holderName, 50);
+      if (!normalizedHolderName) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
     }
@@ -252,24 +254,26 @@ export function tripRoutes(): Hono<AppBindings> {
       queries.push(db.update(users).set(userSync).where(eq(users.id, user.id)));
     }
 
-    if (body.myBank) {
+    if (body.myBank && normalizedHolderName) {
       const updateBank = db
         .update(bankDetails)
         .set({ status: 'replaced' })
         .where(
           and(
             eq(bankDetails.userId, user.id),
-            eq(bankDetails.status, 'approved'),
+            inArray(bankDetails.status, ['approved', 'pending']),
           ),
         );
 
       const insertBank = db.insert(bankDetails).values({
         id: newId(),
         userId: user.id,
+        participantId: null,
         bin: body.myBank.bin,
         accountNumber: body.myBank.accountNumber,
-        holderName: body.myBank.holderName,
+        holderName: normalizedHolderName,
         status: 'approved',
+        approvedByUserId: user.id,
         consentAt: now,
         createdAt: now,
       });
@@ -284,6 +288,34 @@ export function tripRoutes(): Hono<AppBindings> {
       actorDevice: c.get('deviceHash'),
       details: { name, addedAccounts: people.filter((p) => p.userId).map((p) => p.name) },
     });
+
+    if (body.myBank) {
+      const otherParticipations = await db
+        .select({ tripId: participants.tripId, participantId: participants.id })
+        .from(participants)
+        .where(
+          and(
+            eq(participants.userId, user.id),
+            eq(participants.status, 'active'),
+            ne(participants.tripId, tripId),
+          ),
+        );
+      const tripMap = new Map<string, string>();
+      for (const p of otherParticipations) {
+        if (!tripMap.has(p.tripId)) {
+          tripMap.set(p.tripId, p.participantId);
+        }
+      }
+      for (const [otherTripId, participantId] of tripMap) {
+        await commitTripWrite(db, otherTripId, [], {
+          action: 'bank_submitted',
+          actorUserId: user.id,
+          actorParticipantId: participantId,
+          actorDevice: c.get('deviceHash'),
+          details: { member: true },
+        });
+      }
+    }
 
     return c.json({ tripId }, 201);
   });

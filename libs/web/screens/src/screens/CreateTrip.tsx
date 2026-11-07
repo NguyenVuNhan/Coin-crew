@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import type { CreateTripInput, GroupPreset, Gender } from '@cc/core';
+import { toTransferNote, type CreateTripInput, type GroupPreset, type Gender } from '@cc/core';
 import { useT, useLang } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
 import { apiSend } from '@cc/web-data-access/client';
@@ -110,7 +110,7 @@ export function CreateTrip() {
       input.myBank = {
         bin: bank.bin.trim(),
         accountNumber: bank.accountNumber.trim(),
-        holderName: bank.holderName.trim(),
+        holderName: toTransferNote(bank.holderName, 50) || bank.holderName.trim(),
       };
     }
 
