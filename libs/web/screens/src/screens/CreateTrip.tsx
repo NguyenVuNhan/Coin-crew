@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toTransferNote, type CreateTripInput, type GroupPreset, type Gender } from '@cc/core';
 import { useT, useLang } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
@@ -22,6 +22,7 @@ export function CreateTrip() {
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const meQuery = useMe();
 
@@ -58,7 +59,15 @@ export function CreateTrip() {
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
       apiSend<{ tripId: string }>('/api/trips', 'POST', input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      if (variables.myBank) {
+        void queryClient.invalidateQueries({ queryKey: ['me', 'bank'] });
+        void queryClient.invalidateQueries({ queryKey: ['trip'] });
+        void queryClient.invalidateQueries({ queryKey: ['pay'] });
+        void queryClient.invalidateQueries({ queryKey: ['expense-pay'] });
+        void queryClient.invalidateQueries({ queryKey: ['me', 'people'] });
+      }
+      void queryClient.invalidateQueries({ queryKey: ['trips'] });
       navigate(`/t/${data.tripId}`, { replace: true });
     },
     onError: (err) => {

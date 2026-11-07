@@ -93,11 +93,17 @@ export function BankDetails() {
     try {
       if (tripId) {
         await apiSend(`/api/trips/${tripId}/bank`, 'PUT', body, tripId);
-        await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
       } else {
         await apiSend('/api/me/bank', 'PUT', body);
       }
-      await queryClient.invalidateQueries({ queryKey: ['me', 'bank'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['me', 'bank'] }),
+        queryClient.invalidateQueries({ queryKey: ['trip'] }),
+        queryClient.invalidateQueries({ queryKey: ['trips'] }),
+        queryClient.invalidateQueries({ queryKey: ['pay'] }),
+        queryClient.invalidateQueries({ queryKey: ['expense-pay'] }),
+        queryClient.invalidateQueries({ queryKey: ['me', 'people'] }),
+      ]);
       setSuccess(true);
     } catch (err) {
       setSubmitError(err);
