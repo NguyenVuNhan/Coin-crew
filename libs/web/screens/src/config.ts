@@ -6,6 +6,9 @@ import {
 } from '@cc/core';
 
 export const APP_NAME = 'CoinCrew (Tiền Đâu)';
+export const PRIVACY_CONTACT_EMAIL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PRIVACY_EMAIL) ||
+  'nguyenvunhan1999@gmail.com';
 export const RATING_STAR_MULTIPLIER = CORE_RATING_STAR_MULTIPLIER;
 export const RATING_MAX_STARS_PER_TARGET = CORE_RATING_MAX_STARS_PER_TARGET;
 export const RATING_SEARCH_THRESHOLD = CORE_RATING_SEARCH_THRESHOLD;
