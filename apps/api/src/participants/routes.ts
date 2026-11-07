@@ -967,6 +967,37 @@ export function participantRoutes(): Hono<AppBindings> {
       } catch {}
     }
 
+    const existingOnPerson = await db
+      .select({ id: membershipRequests.id, userId: membershipRequests.userId })
+      .from(membershipRequests)
+      .where(
+        and(
+          eq(membershipRequests.tripId, tripId),
+          eq(membershipRequests.participantId, participantId),
+          eq(membershipRequests.status, 'pending'),
+        ),
+      )
+      .get();
+
+    if (existingOnPerson) {
+      if (existingOnPerson.userId === user.id) {
+        return c.json({ requestId: existingOnPerson.id }, 200);
+      }
+      throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
+    }
+
+    // A user may only have one pending claim in the trip at a time; claiming a different person supersedes prior claims.
+    await db
+      .update(membershipRequests)
+      .set({ status: 'rejected' })
+      .where(
+        and(
+          eq(membershipRequests.tripId, tripId),
+          eq(membershipRequests.userId, user.id),
+          eq(membershipRequests.status, 'pending'),
+        ),
+      );
+
     const requestId = newId();
     let inserted: number;
     try {
@@ -985,6 +1016,20 @@ export function participantRoutes(): Hono<AppBindings> {
       inserted = r.meta.changes;
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed')) {
+        const existing = await db
+          .select({ id: membershipRequests.id, userId: membershipRequests.userId })
+          .from(membershipRequests)
+          .where(
+            and(
+              eq(membershipRequests.tripId, tripId),
+              eq(membershipRequests.participantId, participantId),
+              eq(membershipRequests.status, 'pending'),
+            ),
+          )
+          .get();
+        if (existing?.userId === user.id) {
+          return c.json({ requestId: existing.id }, 200);
+        }
         throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
       }
       throw err;
