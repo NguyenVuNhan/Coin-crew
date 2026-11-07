@@ -212,6 +212,29 @@ export const vi: Record<MessageKey, string> = {
 
   'privacy.title': 'Thông báo quyền riêng tư', // REVIEW
   'privacy.draft': 'Bản nháp — đang chờ duyệt pháp lý', // REVIEW
+  'privacy.summary.badge': '🌱 Tóm tắt nhanh', // REVIEW
+  'privacy.summary.readTime': 'Đọc trong 30 giây', // REVIEW
+  'privacy.summary.lead': 'CoinCrew chỉ lưu tên và số tài khoản ngân hàng để giúp bạn bè chia tiền và tạo mã VietQR thanh toán. Chúng tôi không bao giờ bán dữ liệu, không chạy quảng cáo và bạn có toàn quyền xóa dữ liệu của mình bất cứ lúc nào.', // REVIEW
+  'privacy.sectionLabel': 'Chi tiết quy định (Nghị định 13/2023 & PDPL 2026)', // REVIEW
+  'privacy.sections.operator.title': '1. Đơn vị vận hành', // REVIEW
+  'privacy.sections.operator.body': 'CoinCrew (Tiền Đâu) được vận hành độc lập như một công cụ hỗ trợ chia sẻ chi phí nhóm và tạo mã thanh toán VietQR trực tiếp giữa các thành viên.', // REVIEW
+  'privacy.sections.data.title': '2. Dữ liệu thu thập & Phân loại', // REVIEW
+  'privacy.sections.data.basicLabel': 'Dữ liệu cá nhân cơ bản', // REVIEW
+  'privacy.sections.data.basicBody': 'Tên hiển thị, địa chỉ email từ Google, Zalo user ID, tên hiển thị và ảnh đại diện từ Zalo (Zalo không cung cấp số điện thoại); tên nhóm, người tham gia, lịch sử chi tiêu và thanh toán.', // REVIEW
+  'privacy.sections.data.sensitiveLabel': 'Dữ liệu cá nhân nhạy cảm (Điều 2.4 NĐ 13/2023/NĐ-CP)', // REVIEW
+  'privacy.sections.data.sensitiveBody': 'Tên ngân hàng (hoặc mã BIN), số tài khoản ngân hàng và tên chủ tài khoản phục vụ tạo mã chuyển khoản VietQR. Người nhập thông tin cho người khác có nghĩa vụ đảm bảo đã nhận được sự đồng ý của họ.', // REVIEW
+  'privacy.sections.sharing.title': '3. Ai nhìn thấy thông tin của bạn?', // REVIEW
+  'privacy.sections.sharing.body': 'Thành viên cùng nhóm có thể xem tên và các khoản chi. Số tài khoản ngân hàng chỉ hiển thị cho người có nghĩa vụ chuyển khoản trả nợ cho bạn khi họ mở màn hình thanh toán VietQR.', // REVIEW
+  'privacy.sections.processors.title': '4. Hạ tầng lưu trữ & Bên thứ ba', // REVIEW
+  'privacy.sections.processors.body': 'Dữ liệu được lưu trữ trên hạ tầng điện toán đám mây của Cloudflare (Workers & D1 Database). Dịch vụ xác thực do Google và VNG Zalo cung cấp. Máy chủ lưu trữ có thể đặt ngoài lãnh thổ Việt Nam.', // REVIEW
+  'privacy.sections.risks.title': '5. Rủi ro không mong muốn', // REVIEW
+  'privacy.sections.risks.body': 'Bất kỳ ai có đường liên kết tham gia nhóm (/j/...) đều có thể xem lịch sử chi tiêu nhóm. Độ chính xác của việc chuyển khoản phụ thuộc vào số tài khoản do người dùng nhập.', // REVIEW
+  'privacy.sections.retention.title': '6. Thời gian lưu trữ dữ liệu', // REVIEW
+  'privacy.sections.retention.body': 'Dữ liệu được lưu trữ cho đến khi bạn xóa nhóm, xóa thông tin ngân hàng hoặc gửi yêu cầu xóa tài khoản.', // REVIEW
+  'privacy.sections.rights.title': '7. Quyền của bạn theo quy định pháp luật', // REVIEW
+  'privacy.sections.rights.body': 'Bạn có đầy đủ 11 quyền theo Điều 9 Nghị định 13/2023 và Luật Bảo vệ dữ liệu cá nhân 2026: quyền được biết, đồng ý, truy cập, chỉnh sửa, xóa dữ liệu, rút lại sự đồng ý, hạn chế xử lý, cung cấp dữ liệu, phản đối xử lý, khiếu nại tố cáo và yêu cầu bồi thường thiệt hại.', // REVIEW
+  'privacy.sections.contact.title': '8. Liên hệ & Yêu cầu xóa dữ liệu', // REVIEW
+  'privacy.sections.contact.body': 'Để thực hiện các quyền của chủ thể dữ liệu hoặc yêu cầu xóa hoàn toàn tài khoản, vui lòng liên hệ qua email:', // REVIEW
 
   'join.opening': 'Đang mở chuyến đi…', // REVIEW
 
