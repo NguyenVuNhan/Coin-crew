@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { devices } from '@cc/api-db/schema';
+import { isDbError } from '@cc/api-util/errors';
 import { newToken, nowIso, sha256Hex } from '@cc/api-util/ids';
 
 export const deviceMiddleware: MiddlewareHandler<AppBindings> = async (c, next) => {
@@ -25,21 +26,32 @@ export const deviceMiddleware: MiddlewareHandler<AppBindings> = async (c, next) 
   const db = getDb(c.env);
   const now = nowIso();
 
-  const existing = await db
-    .select()
-    .from(devices)
-    .where(eq(devices.idHash, hash))
-    .get();
+  const existing = created
+    ? undefined
+    : await db
+        .select()
+        .from(devices)
+        .where(eq(devices.idHash, hash))
+        .get();
 
   const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(c.req.method);
   const shouldPersist = Boolean(cookieDid || c.req.header('X-Device-Restore') || isMutation);
 
   if (!existing && shouldPersist) {
-    await db.insert(devices).values({
-      idHash: hash,
-      createdAt: now,
-      lastSeenAt: now,
-    });
+    try {
+      await db
+        .insert(devices)
+        .values({
+          idHash: hash,
+          createdAt: now,
+          lastSeenAt: now,
+        })
+        .onConflictDoNothing();
+    } catch (err) {
+      if (!isDbError(err, 'UNIQUE constraint failed')) {
+        throw err;
+      }
+    }
   } else if (existing && Date.now() - new Date(existing.lastSeenAt).getTime() > 3_600_000) {
     await db
       .update(devices)
