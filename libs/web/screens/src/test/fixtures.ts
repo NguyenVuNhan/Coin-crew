@@ -1,4 +1,4 @@
-import type { ExpenseView, PickerView, TripView } from '@cc/core';
+import type { ExpenseView, PaymentView, PickerView, TripView } from '@cc/core';
 
 /** The mockup trip (docs/superpowers/mockups/v1-flow.html) as the API returns it. */
 export const PIDS = { M: 'p-minh', A: 'p-an', B: 'p-binh', C: 'p-chi' } as const;
@@ -9,6 +9,25 @@ const all = [PIDS.M, PIDS.A, PIDS.B, PIDS.C];
 const expense = (id: string, description: string, payerId: string, amount: number, people: string[], extra: Partial<ExpenseView> = {}): ExpenseView => ({
   id, description, amount, spentOn: '2026-10-10', payerId, mode: 'equal', status: 'approved', rejectReason: null,
   disabledByName: null, createdById: PIDS.M, shares: eq(people, amount / people.length), ...extra,
+});
+
+export const paymentView = (
+  id: string,
+  fromId: string,
+  toId: string,
+  amount: number,
+  extra: Partial<PaymentView> = {},
+): PaymentView => ({
+  id,
+  fromId,
+  toId,
+  amountClaimed: amount,
+  amountConfirmed: amount,
+  status: 'confirmed',
+  notArrived: false,
+  createdAt: '2026-10-10T10:00:00Z',
+  disabledByName: null,
+  ...extra,
 });
 
 export function tripView(overrides: Partial<TripView> = {}): TripView {

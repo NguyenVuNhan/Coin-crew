@@ -900,6 +900,7 @@ const payment = (p: Partial<PaymentItem> & Pick<PaymentItem, 'id' | 'fromId' | '
   amountConfirmed: p.status === 'confirmed' ? 100000 : null,
   notArrived: false,
   createdAt: '2026-10-12T08:00:00.000Z',
+  disabledByName: null,
   ...p,
 });
 

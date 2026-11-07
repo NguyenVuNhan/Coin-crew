@@ -56,7 +56,7 @@ function ledgerView(): TripView {
       },
     ],
     payments: [
-      { id: 'pay-1', fromId: 'p-minh', toId: 'p-me', amountClaimed: 120000, amountConfirmed: 120000, status: 'confirmed', notArrived: false, createdAt: '2026-10-31T08:00:00.000Z' },
+      { id: 'pay-1', fromId: 'p-minh', toId: 'p-me', amountClaimed: 120000, amountConfirmed: 120000, status: 'confirmed', notArrived: false, createdAt: '2026-10-31T08:00:00.000Z', disabledByName: null },
     ],
   });
 }

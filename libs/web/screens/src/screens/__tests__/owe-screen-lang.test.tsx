@@ -60,6 +60,7 @@ describe('OweScreen & SportBillTable language and formatting', () => {
       status: 'says_paid',
       notArrived: false,
       createdAt: new Date().toISOString(),
+      disabledByName: null,
     };
     mockApi({
       'GET /api/links/gtok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' },

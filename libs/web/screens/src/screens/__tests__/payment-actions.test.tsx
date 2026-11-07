@@ -13,7 +13,7 @@ afterEach(() => {
 
 const route = { route: '/t/t-1', path: '/t/:tripId' };
 const payment = (p: Partial<PaymentView> & Pick<PaymentView, 'id' | 'fromId' | 'toId' | 'status'>): PaymentView => ({
-  amountClaimed: 100000, amountConfirmed: p.status === 'confirmed' ? 100000 : null, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', ...p,
+  amountClaimed: 100000, amountConfirmed: p.status === 'confirmed' ? 100000 : null, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', disabledByName: null, ...p,
 });
 
 describe('member: payment actions (spec §9.4)', () => {

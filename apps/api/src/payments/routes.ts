@@ -597,6 +597,7 @@ export function paymentRoutes(): Hono<AppBindings> {
       .update(transactions)
       .set({
         status: 'disabled',
+        disabledByUserId: actor.userId,
         updatedAt: now,
       })
       .where(
@@ -659,6 +660,7 @@ export function paymentRoutes(): Hono<AppBindings> {
         status: sql<'says_paid' | 'confirmed'>`CASE WHEN ${transactions.confirmedByParticipantId} IS NULL THEN 'says_paid' ELSE 'confirmed' END`,
         amountConfirmed: sql<number | null>`CASE WHEN ${transactions.confirmedByParticipantId} IS NULL THEN NULL ELSE coalesce(${transactions.amountConfirmed}, ${transactions.amount}) END`,
         notArrivedAt: null,
+        disabledByUserId: null,
         updatedAt: now,
       })
       .where(

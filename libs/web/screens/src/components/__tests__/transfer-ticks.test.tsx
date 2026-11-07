@@ -337,6 +337,7 @@ describe('Your transfers: tick to confirm', () => {
     const saysPaid: PaymentView = {
       id: 'pay-9', fromId: PIDS.C, toId: PIDS.M, amountClaimed: 1245000, amountConfirmed: null,
       status: 'says_paid', notArrived: false, createdAt: '2026-10-15T08:00:00.000Z',
+      disabledByName: null,
     };
     // After Chi says she paid, the debt leaves the suggestions until Minh confirms it.
     const after: TripView = { ...guestChiView(), suggestions: tripView().suggestions.filter((s) => s.fromId !== PIDS.C), payments: [saysPaid] };

@@ -5,7 +5,7 @@ import { owedTransfers, waitingPayments } from '../owe';
 
 const payment = (overrides: Partial<PaymentView>): PaymentView => ({
   id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, amountClaimed: 500000, amountConfirmed: null,
-  status: 'says_paid', notArrived: false, createdAt: '2026-10-12T00:00:00.000Z', ...overrides,
+  status: 'says_paid', notArrived: false, createdAt: '2026-10-12T00:00:00.000Z', disabledByName: null, ...overrides,
 });
 
 describe('owedTransfers', () => {

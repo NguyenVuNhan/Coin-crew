@@ -192,6 +192,7 @@ describe('Task 4: 2-Tab Group View on narrow screen', () => {
           status: 'says_paid',
           notArrived: false,
           createdAt: '2026-10-10',
+          disabledByName: null,
         },
       ],
     });

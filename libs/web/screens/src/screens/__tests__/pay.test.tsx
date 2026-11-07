@@ -40,6 +40,7 @@ function payment(status: PaymentView['status'], overrides: Partial<PaymentView> 
     status,
     notArrived: false,
     createdAt: new Date().toISOString(),
+    disabledByName: null,
     ...overrides,
   };
 }

@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 const payment = (p: Partial<PaymentView> & Pick<PaymentView, 'id' | 'fromId' | 'toId'>): PaymentView => ({
-  status: 'confirmed', amountClaimed: 100000, amountConfirmed: 100000, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', ...p,
+  status: 'confirmed', amountClaimed: 100000, amountConfirmed: 100000, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', disabledByName: null, ...p,
 });
 
 /** Minh's view: Chi paid him, and An paid Bình (nothing to do with Minh). */
@@ -60,5 +60,17 @@ describe('PaymentsList', () => {
   it('no payments at all: no section', () => {
     render(withPayments([]));
     expect(screen.queryByRole('region', { name: /payments/i })).toBeNull();
+  });
+
+  it('renders disabled attribution when payment is disabled and has disabledByName', () => {
+    const disabledPay = payment({
+      id: 'pay-dis',
+      fromId: PIDS.C,
+      toId: PIDS.M,
+      status: 'disabled',
+      disabledByName: 'Minh',
+    });
+    render(withPayments([disabledPay]));
+    expect(screen.getByText('Disabled by Minh')).toBeInTheDocument();
   });
 });
