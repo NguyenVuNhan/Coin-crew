@@ -24,7 +24,7 @@ export function TripTabs({ activeTab, onChange }: TripTabsProps) {
           value="expenses"
           className={cn(
             'fsl-trip-tab',
-            'flex-1 min-h-9 px-3 py-1 rounded-full text-sm font-medium text-muted-foreground text-center cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'flex-1 min-h-11 px-3 py-1.5 rounded-full text-sm font-medium text-muted-foreground text-center cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             'data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold',
             activeTab === 'expenses' && 'fsl-trip-tab--active',
           )}
@@ -35,7 +35,7 @@ export function TripTabs({ activeTab, onChange }: TripTabsProps) {
           value="payments"
           className={cn(
             'fsl-trip-tab',
-            'flex-1 min-h-9 px-3 py-1 rounded-full text-sm font-medium text-muted-foreground text-center cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'flex-1 min-h-11 px-3 py-1.5 rounded-full text-sm font-medium text-muted-foreground text-center cursor-pointer transition-colors motion-reduce:transition-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             'data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold',
             activeTab === 'payments' && 'fsl-trip-tab--active',
           )}
