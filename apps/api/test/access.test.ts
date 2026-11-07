@@ -20,24 +20,59 @@ const count = async (table: string) => (await env.DB.prepare(`SELECT count(*) AS
 beforeEach(seedTrip);
 
 describe('device identity', () => {
-  it('first request creates a device cookie and tells the browser its id', async () => {
+  it('health probe does not set cookies or insert device rows', async () => {
+    const before = await count('devices');
     const res = await call('/api/health');
-    expect(res.headers.get('X-Device-Id')).toBeTruthy();
-    expect(cookiesFrom(res).did).toBe(res.headers.get('X-Device-Id'));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Device-Id')).toBeNull();
+    expect(res.headers.get('Set-Cookie')).toBeNull();
+    expect(await count('devices')).toBe(before);
   });
 
-  it('a request with the cookie reuses the device', async () => {
-    const { cookie } = await newDevice();
+  it('first GET request issues cookie but does not insert device row until handshake or mutation', async () => {
     const before = await count('devices');
-    const res = await call('/api/health', { headers: { Cookie: cookie } });
-    expect(res.headers.get('X-Device-Id')).toBeNull();
+    const res1 = await call('/api/me');
+    const did = res1.headers.get('X-Device-Id');
+    expect(did).toBeTruthy();
+    expect(cookiesFrom(res1).did).toBe(did);
+    // No row inserted yet on cookie-less GET
     expect(await count('devices')).toBe(before);
+
+    // Handshake request presenting the cookie persists the device
+    const res2 = await call('/api/me', { headers: { Cookie: `did=${did}` } });
+    expect(res2.status).toBe(200);
+    expect(res2.headers.get('X-Device-Id')).toBeNull();
+    expect(await count('devices')).toBe(before + 1);
+
+    // Subsequent request with the cookie reuses the device without inserting new row
+    const res3 = await call('/api/me', { headers: { Cookie: `did=${did}` } });
+    expect(res3.status).toBe(200);
+    expect(await count('devices')).toBe(before + 1);
+  });
+
+  it('mutating request eagerly inserts device row even on first contact', async () => {
+    const before = await count('devices');
+    const res = await call('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'test feedback',
+        screen: 'home',
+        device: 'phone',
+        lang: 'vi',
+        appVersion: '1.0.0',
+        contactMe: false,
+      }),
+    });
+    const did = res.headers.get('X-Device-Id');
+    expect(did).toBeTruthy();
+    expect(await count('devices')).toBe(before + 1);
   });
 
   it('X-Device-Restore brings back a lost cookie without a new device', async () => {
     const { deviceId } = await newDevice();
     const before = await count('devices');
-    const res = await call('/api/health', { headers: { 'X-Device-Restore': deviceId } });
+    const res = await call('/api/me', { headers: { 'X-Device-Restore': deviceId } });
     expect(cookiesFrom(res).did).toBe(deviceId);
     expect(await count('devices')).toBe(before);
   });

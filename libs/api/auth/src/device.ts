@@ -31,13 +31,16 @@ export const deviceMiddleware: MiddlewareHandler<AppBindings> = async (c, next) 
     .where(eq(devices.idHash, hash))
     .get();
 
-  if (!existing) {
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(c.req.method);
+  const shouldPersist = Boolean(cookieDid || c.req.header('X-Device-Restore') || isMutation);
+
+  if (!existing && shouldPersist) {
     await db.insert(devices).values({
       idHash: hash,
       createdAt: now,
       lastSeenAt: now,
     });
-  } else if (Date.now() - new Date(existing.lastSeenAt).getTime() > 3_600_000) {
+  } else if (existing && Date.now() - new Date(existing.lastSeenAt).getTime() > 3_600_000) {
     await db
       .update(devices)
       .set({ lastSeenAt: now })
