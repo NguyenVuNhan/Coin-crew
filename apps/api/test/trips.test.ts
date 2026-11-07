@@ -306,6 +306,40 @@ describe('POST /api/trips', () => {
       const acts = await json<ActivityItem[]>(call(`/api/trips/${tripId}/activity`, { headers }));
       expect(acts[0]?.details).toMatchObject({ name: 'Huế', addedAccounts: [] });
     });
+
+    it('silently deduplicates plain names and omits organizer from people array', async () => {
+      const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+      const res = await call('/api/trips', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: 'Ninh Bình',
+          myName: 'Minh',
+          people: ['An', 'an', 'An ', 'Minh', 'Bình'],
+        }),
+      });
+      expect(res.status).toBe(201);
+      const { tripId } = await json<{ tripId: string }>(res);
+      const v = await view(headers, tripId);
+      expect(v.people.map((p) => p.name)).toEqual(['Minh', 'An', 'Bình']);
+    });
+
+    it('silently omits organizer if passed with userId in people array', async () => {
+      const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+      const res = await call('/api/trips', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: 'Ninh Bình 2',
+          myName: 'Minh',
+          people: [{ name: 'Minh', userId: U.minh }, 'Bình'],
+        }),
+      });
+      expect(res.status).toBe(201);
+      const { tripId } = await json<{ tripId: string }>(res);
+      const v = await view(headers, tripId);
+      expect(v.people.map((p) => p.name)).toEqual(['Minh', 'Bình']);
+    });
   });
 });
 

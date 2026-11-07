@@ -139,14 +139,19 @@ export function tripRoutes(): Hono<AppBindings> {
       people.push({ name: trimmed, userId, gender, zaloSub });
     }
 
-    const zaloSubs = people.flatMap((p) => (p.zaloSub ? [p.zaloSub] : []));
+    const organizerNorm = normalizeName(myName);
+    const nonOrganizerPeople = people.filter(
+      (p) => !(p.userId && p.userId === user.id) && normalizeName(p.name) !== organizerNorm,
+    );
+
+    const zaloSubs = nonOrganizerPeople.flatMap((p) => (p.zaloSub ? [p.zaloSub] : []));
     if (new Set(zaloSubs).size !== zaloSubs.length) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
     // Only people the caller already shares a trip with can be added by account, each once.
     const db = getDb(c.env);
-    const accountIds = people.flatMap((p) => (p.userId ? [p.userId] : []));
+    const accountIds = nonOrganizerPeople.flatMap((p) => (p.userId ? [p.userId] : []));
     if (accountIds.length > 0) {
       if (new Set(accountIds).size !== accountIds.length) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -155,6 +160,19 @@ export function tripRoutes(): Hono<AppBindings> {
       if (!accountIds.every((id) => recent.has(id))) {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
+    }
+
+    const seenPlainNormalized = new Set<string>();
+    const uniquePeople: typeof people = [];
+    for (const p of nonOrganizerPeople) {
+      const norm = normalizeName(p.name);
+      if (!p.userId && seenPlainNormalized.has(norm)) {
+        continue;
+      }
+      if (!p.userId) {
+        seenPlainNormalized.add(norm);
+      }
+      uniquePeople.push(p);
     }
 
     let normalizedHolderName: string | null = null;
@@ -220,7 +238,7 @@ export function tripRoutes(): Hono<AppBindings> {
       createdAt: now,
     });
 
-    const otherParticipantInserts = people.map((p, index) =>
+    const otherParticipantInserts = uniquePeople.map((p, index) =>
       db.insert(participants).values({
         id: newId(),
         tripId,
@@ -286,7 +304,7 @@ export function tripRoutes(): Hono<AppBindings> {
       actorUserId: user.id,
       actorParticipantId: organiserParticipantId,
       actorDevice: c.get('deviceHash'),
-      details: { name, addedAccounts: people.filter((p) => p.userId).map((p) => p.name) },
+      details: { name, addedAccounts: uniquePeople.filter((p) => p.userId).map((p) => p.name) },
     });
 
     if (body.myBank) {
