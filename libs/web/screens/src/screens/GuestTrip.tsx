@@ -46,7 +46,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const archived = view.trip.archived;
   const showsPay = hasExpenses && guestPayTarget(view) !== null && !(wide && detail !== null);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const becomeMemberParam = searchParams.get('becomeMember') === '1';
   const [memberRequested, setMemberRequested] = useState(false);
   const requestedRef = useRef(false);
@@ -71,6 +71,10 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
     ) {
       requestedRef.current = true;
       setMemberRequested(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('becomeMember');
+      setSearchParams(nextParams, { replace: true });
+
       apiSend(
         `/api/trips/${view.trip.id}/membership`,
         'POST',
@@ -80,10 +84,12 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         if (err instanceof ApiClientError && err.code === 'PROPOSAL_PENDING' && typeof err.details.proposalId === 'string') {
           setMemberRequested(false);
           setProposal({ id: err.details.proposalId, by: typeof err.details.requestedByName === 'string' ? err.details.requestedByName : '' });
+        } else if (err instanceof ApiClientError && err.code === 'ALREADY_CLAIMED') {
+          setMemberRequested(true);
         }
       });
     }
-  }, [becomeMemberParam, archived, view.me.kind, myId, view.trip.id]);
+  }, [becomeMemberParam, archived, view.me.kind, myId, view.trip.id, searchParams, setSearchParams]);
 
   const addLink = (block: boolean) =>
     archived ? undefined : (
