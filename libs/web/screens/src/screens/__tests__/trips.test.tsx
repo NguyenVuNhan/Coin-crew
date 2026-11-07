@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient } from '@tanstack/react-query';
 import { renderAt, mockApi } from '../../test/render';
 import { MyTrips } from '../MyTrips';
 import { CreateTrip } from '../CreateTrip';
@@ -338,5 +339,53 @@ describe('CreateTrip people', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create group' })).toBeEnabled();
+  });
+
+  it('creating a trip with myBank invalidates me-bank, trip, and trips query caches', async () => {
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    mockApi({
+      'GET /api/me': me(),
+      'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
+    });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Group name');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Đà Lạt');
+    await userEvent.type(nameField(), 'An{Enter}');
+
+    // Fill in bank details
+    await userEvent.click(screen.getByLabelText('Bank'));
+    await userEvent.type(screen.getByPlaceholderText('Search banks'), 'quan doi');
+    await userEvent.click(screen.getAllByRole('option', { name: /^MBBank/ })[0]!);
+    await userEvent.type(screen.getByLabelText('Account number'), '0123456789');
+    await userEvent.type(screen.getByLabelText('Account holder name'), 'NGUYEN VAN MINH');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['me', 'bank'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trip'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trips'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['pay'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expense-pay'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['me', 'people'] });
+  });
+
+  it('CreateTrip deduplicates plain names and ignores draft if already in roster', async () => {
+    const { calls } = mockApi({
+      'GET /api/me': me(),
+      'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
+    });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Group name');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Hà Giang');
+    await userEvent.type(nameField(), 'An{Enter}');
+    await userEvent.type(nameField(), 'Bình{Enter}');
+    // Leave duplicate 'An' in draft field without hitting Enter
+    await userEvent.type(nameField(), 'An');
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+    const postBody = posted(calls)[0]?.body as any;
+    expect(postBody.people).toEqual([{ name: 'An' }, { name: 'Bình' }]);
   });
 });

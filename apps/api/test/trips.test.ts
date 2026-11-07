@@ -27,6 +27,59 @@ describe('POST /api/trips', () => {
     expect(acts[0]?.action).toBe('trip_created');
   });
 
+  it('normalises bank holder name and sets approvedByUserId on group creation', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Vũng Tàu',
+        myName: 'Minh',
+        people: ['An'],
+        myBank: {
+          bin: '970407',
+          accountNumber: '19031234565678',
+          holderName: 'Nguyễn Văn Minh',
+        },
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+    const row = await env.DB.prepare(
+      "SELECT holder_name, approved_by_user_id, status FROM bank_details WHERE user_id = 'u-minh' AND status = 'approved'",
+    ).first<{ holder_name: string; approved_by_user_id: string; status: string }>();
+    expect(row?.holder_name).toBe('NGUYEN VAN MINH');
+    expect(row?.approved_by_user_id).toBe('u-minh');
+  });
+
+  it('bumps version on creator other active groups when myBank is provided during group creation', async () => {
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    // Group 1
+    const res1 = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Group 1', myName: 'Minh', people: ['An'] }),
+    });
+    const { tripId: trip1Id } = await json<{ tripId: string }>(res1);
+    const v1Before = await view(headers, trip1Id);
+
+    // Group 2 with new bank details
+    const res2 = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Group 2',
+        myName: 'Minh',
+        people: ['Bình'],
+        myBank: { bin: '970422', accountNumber: '0123456789', holderName: 'NGUYEN VAN MINH' },
+      }),
+    });
+    expect(res2.status).toBe(201);
+
+    const v1After = await view(headers, trip1Id);
+    expect(v1After.trip.version).toBe(v1Before.trip.version + 1);
+  });
+
   it('creates an empty group when people is an empty array', async () => {
     const headers = { ...(await minh()), 'Content-Type': 'application/json' };
     const res = await call('/api/trips', {
@@ -252,6 +305,40 @@ describe('POST /api/trips', () => {
       expect(v.people.map((p) => [p.name, p.isMember])).toEqual([['Minh', true], ['An', false], ['Bình', false]]);
       const acts = await json<ActivityItem[]>(call(`/api/trips/${tripId}/activity`, { headers }));
       expect(acts[0]?.details).toMatchObject({ name: 'Huế', addedAccounts: [] });
+    });
+
+    it('silently deduplicates plain names and omits organizer from people array', async () => {
+      const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+      const res = await call('/api/trips', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: 'Ninh Bình',
+          myName: 'Minh',
+          people: ['An', 'an', 'An ', 'Minh', 'Bình'],
+        }),
+      });
+      expect(res.status).toBe(201);
+      const { tripId } = await json<{ tripId: string }>(res);
+      const v = await view(headers, tripId);
+      expect(v.people.map((p) => p.name)).toEqual(['Minh', 'An', 'Bình']);
+    });
+
+    it('silently omits organizer if passed with userId in people array', async () => {
+      const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+      const res = await call('/api/trips', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: 'Ninh Bình 2',
+          myName: 'Minh',
+          people: [{ name: 'Minh', userId: U.minh }, 'Bình'],
+        }),
+      });
+      expect(res.status).toBe(201);
+      const { tripId } = await json<{ tripId: string }>(res);
+      const v = await view(headers, tripId);
+      expect(v.people.map((p) => p.name)).toEqual(['Minh', 'Bình']);
     });
   });
 });

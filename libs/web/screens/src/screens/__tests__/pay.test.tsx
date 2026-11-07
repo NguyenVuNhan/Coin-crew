@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient } from '@tanstack/react-query';
 import type { PayInfo, PaymentView, TripView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
@@ -480,5 +481,31 @@ describe('BankDetails', () => {
     renderAt(<BankDetails />, route);
     expect(await screen.findByText('You can add them once a member approves your name.')).toBeInTheDocument();
     expect(screen.queryByLabelText('Account number')).toBeNull();
+  });
+
+  it('saving /me/bank invalidates cross-group and payment query caches', async () => {
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    mockApi({
+      'GET /api/me/bank': null,
+      'PUT /api/me/bank': null,
+    });
+    renderAt(<BankDetails />, { route: '/me/bank', path: '/me/bank' });
+    await userEvent.click(screen.getByLabelText('Bank'));
+    await userEvent.type(screen.getByPlaceholderText('Search banks'), 'quan doi');
+    await userEvent.click(screen.getAllByRole('option', { name: /^MBBank/ })[0]!);
+    await userEvent.type(screen.getByLabelText('Account number'), '0123456789');
+    const holder = screen.getByLabelText('Account holder name');
+    await userEvent.type(holder, 'NGUYEN VAN MINH');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'I agree to the privacy notice' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save bank details' }));
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['me', 'bank'] });
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trip'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trips'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['pay'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expense-pay'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['me', 'people'] });
   });
 });

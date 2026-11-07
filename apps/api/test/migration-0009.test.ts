@@ -11,11 +11,11 @@ function insertTrip(id: string, preset: string, organiser: string) {
     .run();
 }
 
-function insertRequest(id: string, participantId: string, status: string) {
+function insertRequest(id: string, participantId: string, status: string, userId = `u-${id}`) {
   return env.DB.prepare(
     'INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
   )
-    .bind(id, 't1', participantId, 'u1', status, NOW)
+    .bind(id, 't1', participantId, userId, status, NOW)
     .run();
 }
 
@@ -92,11 +92,11 @@ describe('migration 0009', () => {
 
     // Back to the state before 0009: duplicates were possible.
     await env.DB.prepare('DROP INDEX membership_requests_one_pending').run();
-    const insert = (id: string, participantId: string, status: string, createdAt: string) =>
+    const insert = (id: string, participantId: string, status: string, createdAt: string, userId = `u-${id}`) =>
       env.DB.prepare(
         'INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
-        .bind(id, 't1', participantId, 'u1', status, createdAt)
+        .bind(id, 't1', participantId, userId, status, createdAt)
         .run();
     await insert('r-c', 'p1', 'pending', '2026-10-02T00:00:00.000Z');
     await insert('r-b', 'p1', 'pending', '2026-10-01T00:00:00.000Z');

@@ -37,6 +37,7 @@ export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeople
   const optionId = (idx: number) => `${listboxId}-opt-${idx}`;
 
   const [name, setName] = useState('');
+  const [duplicateHint, setDuplicateHint] = useState<string | null>(null);
   const [lastGender, setLastGender] = useState<Gender>('M');
   const [focused, setFocused] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
@@ -57,6 +58,7 @@ export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeople
   const highlighted = suggestions.length > 0 ? Math.min(highlight, suggestions.length - 1) : -1;
 
   const submit = (people: NewPerson[], clearField = true) => {
+    setDuplicateHint(null);
     const pending = onAdd(people);
     if (clearField) {
       setName('');
@@ -69,6 +71,7 @@ export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeople
         if (left.length === 1 && left[0]) {
           const restore = left[0].name;
           setName((current) => (current === '' ? restore : current));
+          setDuplicateHint(t('addBar.duplicateHint'));
         }
       });
     }
@@ -149,36 +152,38 @@ export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeople
   const empty = name.trim() === '';
 
   return (
-    <div className={cn('fsl-add-bar flex items-center gap-2 w-full')}>
-      <div className={cn('relative flex-1 min-w-0')}>
-        <Input
-          ref={inputRef}
-          className={cn('fsl-add-bar__field fsl-input flex-1 min-w-0 text-base')}
-          type="text"
-          maxLength={40}
-          autoComplete="off"
-          enterKeyHint="done"
-          placeholder={t('create.otherPlaceholder')}
-          aria-label={t('addBar.nameLabel')}
-          role={suggest ? 'combobox' : undefined}
-          aria-autocomplete={suggest ? 'list' : undefined}
-          aria-expanded={suggest ? isOpen : undefined}
-          aria-controls={suggest && isOpen ? listboxId : undefined}
-          aria-activedescendant={suggest && isOpen && highlighted >= 0 ? optionId(highlighted) : undefined}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setFocused(true);
-            setHighlight(-1);
-          }}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onFocus={() => {
-            setFocused(true);
-            setHighlight(-1);
-          }}
-          onBlur={() => setFocused(false)}
-        />
+    <div className={cn('fsl-add-bar flex flex-col w-full gap-1')}>
+      <div className={cn('flex items-center gap-2 w-full')}>
+        <div className={cn('relative flex-1 min-w-0')}>
+          <Input
+            ref={inputRef}
+            className={cn('fsl-add-bar__field fsl-input flex-1 min-w-0 text-base')}
+            type="text"
+            maxLength={40}
+            autoComplete="off"
+            enterKeyHint="done"
+            placeholder={t('create.otherPlaceholder')}
+            aria-label={t('addBar.nameLabel')}
+            role={suggest ? 'combobox' : undefined}
+            aria-autocomplete={suggest ? 'list' : undefined}
+            aria-expanded={suggest ? isOpen : undefined}
+            aria-controls={suggest && isOpen ? listboxId : undefined}
+            aria-activedescendant={suggest && isOpen && highlighted >= 0 ? optionId(highlighted) : undefined}
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setDuplicateHint(null);
+              setFocused(true);
+              setHighlight(-1);
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onFocus={() => {
+              setFocused(true);
+              setHighlight(-1);
+            }}
+            onBlur={() => setFocused(false)}
+          />
         {isOpen && (
           <div
             className={cn(
@@ -260,6 +265,12 @@ export function AddPeopleBar({ sport, onAdd, suggest, onDraftChange }: AddPeople
         >
           {t('addBar.add')}
         </Button>
+      )}
+      </div>
+      {duplicateHint && (
+        <span className={cn('text-xs text-muted-foreground px-1')}>
+          {duplicateHint}
+        </span>
       )}
     </div>
   );

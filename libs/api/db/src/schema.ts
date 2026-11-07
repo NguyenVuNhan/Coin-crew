@@ -126,6 +126,9 @@ export const membershipRequests = sqliteTable(
     uniqueIndex('membership_requests_one_pending')
       .on(t.participantId)
       .where(sql`${t.status} = 'pending'`),
+    uniqueIndex('membership_requests_one_pending_user')
+      .on(t.tripId, t.userId)
+      .where(sql`${t.status} = 'pending'`),
   ],
 );
 

@@ -63,9 +63,11 @@ export async function seedTrip(): Promise<void> {
 
 /** A new device: returns its id (as the browser would store it) and its cookie header. */
 export async function newDevice(): Promise<{ deviceId: string; cookie: string }> {
-  const res = await call('/api/health');
+  const res = await call('/api/me');
   const deviceId = res.headers.get('X-Device-Id')!;
-  return { deviceId, cookie: `did=${deviceId}` };
+  const cookie = `did=${deviceId}`;
+  await call('/api/me', { headers: { Cookie: cookie } });
+  return { deviceId, cookie };
 }
 
 /** Make a device's current pick in the trip (as POST people/pick will do in Task 11). */

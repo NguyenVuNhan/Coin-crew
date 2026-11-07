@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { useMutation } from '@tanstack/react-query';
-import type { CreateTripInput, GroupPreset, Gender } from '@cc/core';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { normalizeName, toTransferNote, type CreateTripInput, type GroupPreset, type Gender } from '@cc/core';
 import { useT, useLang } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
 import { apiSend } from '@cc/web-data-access/client';
@@ -22,6 +22,7 @@ export function CreateTrip() {
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const meQuery = useMe();
 
@@ -58,7 +59,15 @@ export function CreateTrip() {
   const createMutation = useMutation({
     mutationFn: (input: CreateTripInput) =>
       apiSend<{ tripId: string }>('/api/trips', 'POST', input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      if (variables.myBank) {
+        void queryClient.invalidateQueries({ queryKey: ['me', 'bank'] });
+        void queryClient.invalidateQueries({ queryKey: ['trip'] });
+        void queryClient.invalidateQueries({ queryKey: ['pay'] });
+        void queryClient.invalidateQueries({ queryKey: ['expense-pay'] });
+        void queryClient.invalidateQueries({ queryKey: ['me', 'people'] });
+      }
+      void queryClient.invalidateQueries({ queryKey: ['trips'] });
       navigate(`/t/${data.tripId}`, { replace: true });
     },
     onError: (err) => {
@@ -72,13 +81,38 @@ export function CreateTrip() {
 
     hideUndo();
     setSubmitError(null);
+    const existingPlainNorms = new Set([
+      normalizeName(user?.name || ''),
+      ...people.filter((p) => !p.userId).map((p) => normalizeName(p.name)),
+    ]);
     const typedName = draft.trim();
-    const roster: PersonEntry[] =
-      typedName !== '' && typedName.length <= 40 ? [...people, { key: 'draft', name: typedName, gender: draftGender }] : people;
+    const typedNorm = normalizeName(typedName);
+    const shouldIncludeDraft = typedName !== '' && typedName.length <= 40 && !existingPlainNorms.has(typedNorm);
+    const roster: PersonEntry[] = shouldIncludeDraft
+      ? [...people, { key: 'draft', name: typedName, gender: draftGender }]
+      : people;
+
+    const seenPlainNorms = new Set<string>();
+    const organizerNorm = normalizeName(user?.name || '');
+    const uniqueRoster: PersonEntry[] = [];
+    for (const p of roster) {
+      const norm = normalizeName(p.name);
+      if (norm === '' || (!p.userId && norm === organizerNorm)) {
+        continue;
+      }
+      if (!p.userId && seenPlainNorms.has(norm)) {
+        continue;
+      }
+      if (!p.userId) {
+        seenPlainNorms.add(norm);
+      }
+      uniqueRoster.push(p);
+    }
+
     const input: CreateTripInput = {
       name: tripName.trim(),
       defaultLang: lang,
-      people: roster.flatMap((p) => {
+      people: uniqueRoster.flatMap((p) => {
         const name = p.name.trim();
         if (name === '') return [];
         if (preset === 'sport') {
@@ -110,7 +144,7 @@ export function CreateTrip() {
       input.myBank = {
         bin: bank.bin.trim(),
         accountNumber: bank.accountNumber.trim(),
-        holderName: bank.holderName.trim(),
+        holderName: toTransferNote(bank.holderName, 50) || bank.holderName.trim(),
       };
     }
 

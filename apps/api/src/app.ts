@@ -36,9 +36,10 @@ export function createApp(): Hono<AppBindings> {
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Not found' } }, 404));
 
   app.use('/api/*', corsMiddleware);
-  app.use('/api/*', deviceMiddleware);
 
   app.get('/api/health', (c) => c.json({ ok: true }));
+
+  app.use('/api/*', deviceMiddleware);
   app.route('/api', authRoutes());
   app.route('/api', zaloMiniRoutes());
   app.route('/api', accountRoutes());
