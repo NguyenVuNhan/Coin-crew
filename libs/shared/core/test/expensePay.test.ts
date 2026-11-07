@@ -88,6 +88,7 @@ const payments: PaymentView[] = [
     status: 'says_paid',
     notArrived: false,
     createdAt: '2026-11-03T10:00:00Z',
+    disabledByName: null,
     expenseId: 'root1',
     paidBy: 'friend',
   },
@@ -100,6 +101,7 @@ const payments: PaymentView[] = [
     status: 'confirmed',
     notArrived: false,
     createdAt: '2026-11-03T10:01:00Z',
+    disabledByName: null,
     expenseId: 'root1',
     paidBy: 'self',
   },
@@ -112,6 +114,7 @@ const payments: PaymentView[] = [
     status: 'rejected',
     notArrived: false,
     createdAt: '2026-11-03T10:02:00Z',
+    disabledByName: null,
     expenseId: 'root1',
     paidBy: 'self',
   },
@@ -124,6 +127,7 @@ const payments: PaymentView[] = [
     status: 'confirmed',
     notArrived: true,
     createdAt: '2026-11-03T10:03:00Z',
+    disabledByName: null,
     expenseId: 'root1',
     paidBy: 'self',
   },
@@ -136,6 +140,7 @@ const payments: PaymentView[] = [
     status: 'confirmed',
     notArrived: false,
     createdAt: '2026-11-03T10:04:00Z',
+    disabledByName: null,
     expenseId: 'root2',
     paidBy: 'self',
   },
@@ -148,6 +153,7 @@ const payments: PaymentView[] = [
     status: 'confirmed',
     notArrived: false,
     createdAt: '2026-11-03T10:05:00Z',
+    disabledByName: null,
     expenseId: 'root1',
     paidBy: 'self',
   },
@@ -185,5 +191,26 @@ describe('expensePay', () => {
     expect(payerLabel({ paidBy: 'self', fromIsMember: false, slots: 2 })).toBe('name_or_friend');
     expect(payerLabel({ paidBy: 'self', fromIsMember: false, slots: 1 })).toBe('name');
     expect(payerLabel({ paidBy: 'self', fromIsMember: true, slots: 2 })).toBe('name');
+  });
+  it('PaymentView supports disabledByName', () => {
+    const disabledPayment: PaymentView = {
+      id: 'p-disabled',
+      fromId: 'lan',
+      toId: 'nhan',
+      amountClaimed: 50000,
+      amountConfirmed: null,
+      status: 'disabled',
+      notArrived: false,
+      createdAt: '2026-11-03T10:00:00Z',
+      disabledByName: 'Minh',
+    };
+    const activePayment: PaymentView = {
+      ...disabledPayment,
+      id: 'p-active',
+      status: 'says_paid',
+      disabledByName: null,
+    };
+    expect(disabledPayment.disabledByName).toBe('Minh');
+    expect(activePayment.disabledByName).toBeNull();
   });
 });
