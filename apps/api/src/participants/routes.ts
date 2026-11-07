@@ -986,6 +986,19 @@ export function participantRoutes(): Hono<AppBindings> {
       throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
     }
 
+    const proposal = await pendingProposalFor(db, participantId);
+    if (proposal?.targetUserId === user.id) {
+      // Someone already said this guest is the caller: accepting that proposal is their claim.
+      const by = await db.select({ name: users.name }).from(users).where(eq(users.id, proposal.requestedByUserId)).get();
+      throw new ApiError('PROPOSAL_PENDING', 409, 'Someone already said this is you.', {
+        proposalId: proposal.id,
+        requestedByName: by?.name ?? '',
+      });
+    }
+    if (proposal) {
+      throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
+    }
+
     // A user may only have one pending claim in the trip at a time; claiming a different person supersedes prior claims.
     await db
       .update(membershipRequests)
@@ -1035,18 +1048,6 @@ export function participantRoutes(): Hono<AppBindings> {
       throw err;
     }
     if (inserted === 0) {
-      const proposal = await pendingProposalFor(db, participantId);
-      if (proposal?.targetUserId === user.id) {
-        // Someone already said this guest is the caller: accepting that proposal is their claim.
-        const by = await db.select({ name: users.name }).from(users).where(eq(users.id, proposal.requestedByUserId)).get();
-        throw new ApiError('PROPOSAL_PENDING', 409, 'Someone already said this is you.', {
-          proposalId: proposal.id,
-          requestedByName: by?.name ?? '',
-        });
-      }
-      if (proposal) {
-        throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
-      }
       throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
     }
 

@@ -86,4 +86,34 @@ describe('membership request deduplication & idempotency (#72)', () => {
       error: { code: 'ALREADY_CLAIMED', message: 'Someone already claimed this person, ask the owner' },
     });
   });
+
+  it('does not reject prior pending claim if new target participant is blocked by pending proposal', async () => {
+    const sid = await memberSid('u-safe-claim', 'Safe Claimer');
+    const guestA = await guestHeaders(PID.A);
+    const userA = { ...guestA, Cookie: `${guestA.Cookie}; sid=${sid}` };
+
+    // First claim on PID.A succeeds
+    const res1 = await post('/membership', userA, { participantId: PID.A });
+    expect(res1.status).toBe(201);
+    const { requestId: id1 } = await json<{ requestId: string }>(res1);
+
+    // Create a pending merge proposal on PID.B
+    await env.DB.prepare(
+      "INSERT INTO merge_proposals (id, trip_id, guest_pid, target_user_id, requested_by_user_id, status, created_at) VALUES ('mp-1', ?, ?, 'u-other', 'u-minh', 'pending', '2026-10-12T00:00:00.000Z')",
+    )
+      .bind(T.tripId, PID.B)
+      .run();
+
+    // Now attempt to claim PID.B
+    const guestB = await guestHeaders(PID.B);
+    const userB = { ...guestB, Cookie: `${guestB.Cookie}; sid=${sid}` };
+    const res2 = await post('/membership', userB, { participantId: PID.B });
+    expect(res2.status).toBe(409);
+
+    // Claim on PID.A must STILL be pending!
+    const req1 = await env.DB.prepare('SELECT status FROM membership_requests WHERE id = ?')
+      .bind(id1)
+      .first<{ status: string }>();
+    expect(req1?.status).toBe('pending');
+  });
 });
