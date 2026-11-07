@@ -80,6 +80,42 @@ describe('AddPeopleBar', () => {
     expect(field).toHaveValue('An');
   });
 
+  it('shows coaching hint and restores name when a typed name is duplicate', async () => {
+    const onAdd = vi.fn(async (people: NewPerson[]): Promise<NewPerson[]> => {
+      return people;
+    });
+    renderAt(<AddPeopleBar sport={false} onAdd={onAdd} />);
+    const field = screen.getByLabelText('Name to add');
+    await userEvent.type(field, 'An{Enter}');
+
+    expect(onAdd).toHaveBeenCalledWith([{ name: 'An', gender: null }]);
+    expect(await screen.findByText('Already in the group. Add a last name or nickname to tell them apart.')).toBeInTheDocument();
+    expect(field).toHaveValue('An');
+  });
+
+  it('pasting names with duplicates passes all names to onAdd for deduplication', async () => {
+    const onAdd = vi.fn(async (people: NewPerson[]): Promise<NewPerson[]> => {
+      const seen = new Set<string>();
+      const skipped: NewPerson[] = [];
+      for (const p of people) {
+        if (seen.has(p.name.toLowerCase())) skipped.push(p);
+        else seen.add(p.name.toLowerCase());
+      }
+      return skipped;
+    });
+    renderAt(<AddPeopleBar sport={false} onAdd={onAdd} />);
+    const field = screen.getByLabelText('Name to add');
+    await userEvent.click(field);
+    await userEvent.paste('An, Bình, An, Chi');
+
+    expect(onAdd).toHaveBeenCalledWith([
+      { name: 'An', gender: null },
+      { name: 'Bình', gender: null },
+      { name: 'An', gender: null },
+      { name: 'Chi', gender: null },
+    ]);
+  });
+
   it('Enter is always cancelled, so no form submits', async () => {
     const onAdd = vi.fn(async (_people: NewPerson[]): Promise<NewPerson[]> => []);
     renderAt(<AddPeopleBar sport={false} onAdd={onAdd} />);

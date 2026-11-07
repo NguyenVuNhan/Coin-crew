@@ -369,4 +369,23 @@ describe('CreateTrip people', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expense-pay'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['me', 'people'] });
   });
+
+  it('CreateTrip deduplicates plain names and ignores draft if already in roster', async () => {
+    const { calls } = mockApi({
+      'GET /api/me': me(),
+      'POST /api/trips': () => Response.json({ tripId: 't-9' }, { status: 201 }),
+    });
+    renderAt(<CreateTrip />);
+    await screen.findByLabelText('Group name');
+    await userEvent.type(screen.getByLabelText('Group name'), 'Hà Giang');
+    await userEvent.type(nameField(), 'An{Enter}');
+    await userEvent.type(nameField(), 'Bình{Enter}');
+    // Leave duplicate 'An' in draft field without hitting Enter
+    await userEvent.type(nameField(), 'An');
+    await userEvent.click(screen.getByRole('button', { name: 'Create group' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-9'));
+    const postBody = posted(calls)[0]?.body as any;
+    expect(postBody.people).toEqual([{ name: 'An' }, { name: 'Bình' }]);
+  });
 });

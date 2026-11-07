@@ -58,26 +58,63 @@ export function PeopleInput({
   };
 
   const handleAdd = (people: NewPerson[]): Promise<NewPerson[]> => {
-    const added = people.map((p) => newPersonEntry(p.name, p.userId, p.gender));
-    if (added.length === 0) return Promise.resolve([]);
+    const existingPlainNorms = new Set([
+      ...(me ? [normalizeName(me.name)] : []),
+      ...valueRef.current.filter((e) => !e.userId).map((e) => normalizeName(e.name)),
+    ]);
+    const existingUserIds = new Set(
+      valueRef.current.flatMap((e) => (e.userId ? [e.userId] : [])),
+    );
+
+    const uniqueToAdd: NewPerson[] = [];
+    const skipped: NewPerson[] = [];
+
+    for (const p of people) {
+      const norm = normalizeName(p.name);
+      if (norm === '') {
+        skipped.push(p);
+        continue;
+      }
+      if (p.userId && existingUserIds.has(p.userId)) {
+        skipped.push(p);
+        continue;
+      }
+      if (!p.userId && existingPlainNorms.has(norm)) {
+        skipped.push(p);
+        continue;
+      }
+
+      if (!p.userId) {
+        existingPlainNorms.add(norm);
+      }
+      if (p.userId) {
+        existingUserIds.add(p.userId);
+      }
+      uniqueToAdd.push(p);
+    }
+    if (uniqueToAdd.length === 0) return Promise.resolve(skipped);
+
+    const added = uniqueToAdd.map((p) => newPersonEntry(p.name, p.userId, p.gender));
     commit([...valueRef.current, ...added]);
     const keys = new Set(added.map((e) => e.key));
-    const first = people[0];
+    const first = uniqueToAdd[0];
     const message =
-      people.length > 1 || !first
-        ? t('addBar.addedMany', { count: people.length })
-        : first.gender
-          ? t('addBar.addedWithGender', {
-              name: first.name,
-              gender: first.gender === 'M' ? t('gender.pillM') : t('gender.pillF'),
-            })
-          : t('addBar.added', { name: first.name });
+      skipped.length > 0
+        ? t('addBar.addedManyWithSkipped', { count: uniqueToAdd.length, skipped: skipped.length })
+        : uniqueToAdd.length > 1 || !first
+          ? t('addBar.addedMany', { count: uniqueToAdd.length })
+          : first.gender
+            ? t('addBar.addedWithGender', {
+                name: first.name,
+                gender: first.gender === 'M' ? t('gender.pillM') : t('gender.pillF'),
+              })
+            : t('addBar.added', { name: first.name });
     showUndo({
       message,
       actionLabel: t('common.undo'),
       onAction: () => commit(valueRef.current.filter((e) => !keys.has(e.key))),
     });
-    return Promise.resolve([]);
+    return Promise.resolve(skipped);
   };
 
   const rowClass =

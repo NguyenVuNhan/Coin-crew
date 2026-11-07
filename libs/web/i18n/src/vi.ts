@@ -179,6 +179,8 @@ export const vi: Record<MessageKey, string> = {
   'addBar.added': 'Đã thêm {name}', // REVIEW
   'addBar.addedWithGender': 'Đã thêm {name} · {gender}', // REVIEW
   'addBar.addedMany': 'Đã thêm {count} người', // REVIEW
+  'addBar.addedManyWithSkipped': 'Đã thêm {count} người (bỏ qua {skipped} tên trùng)', // REVIEW
+  'addBar.duplicateHint': 'Đã có tên này trong nhóm. Thêm họ hoặc biệt danh để dễ phân biệt.', // REVIEW
   'create.removePerson': 'Xóa {name}', // REVIEW
   'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
   'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW

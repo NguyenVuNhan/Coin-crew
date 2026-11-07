@@ -179,6 +179,8 @@ export const en = {
   'addBar.added': 'Added {name}',
   'addBar.addedWithGender': 'Added {name} · {gender}',
   'addBar.addedMany': 'Added {count} people',
+  'addBar.addedManyWithSkipped': 'Added {count} people ({skipped} duplicates skipped)',
+  'addBar.duplicateHint': 'Already in the group. Add a last name or nickname to tell them apart.',
   'create.removePerson': 'Remove {name}',
   'create.bankTitle': 'Your bank details (optional)',
   'create.bankHint': 'So friends can pay you back with VietQR. You can add them later.',
