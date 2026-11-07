@@ -1,7 +1,7 @@
 import { useT } from '@cc/web-i18n';
 import { Screen } from '../components/Screen';
 import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
-import { Pill } from '@cc/web-ui/components/Pill';
+import { PRIVACY_CONTACT_EMAIL } from '../config';
 import { cn } from '@cc/web-ui/lib/utils';
 
 export function Privacy() {
@@ -10,82 +10,130 @@ export function Privacy() {
   return (
     <Screen title={t('privacy.title')} back="/" right={<LanguageButton />}>
       <div className={cn('fsl-privacy flex flex-col gap-4 py-4 max-w-[65ch]')}>
-        <div className={cn('fsl-privacy__draft-notice mb-2')}>
-          <Pill tone="warning">{t('privacy.draft')}</Pill>
+        {/* Quick Summary Card */}
+        <div className={cn('bg-card rounded-xl p-5 border border-border')}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-secondary text-secondary-foreground text-xs font-semibold px-2.5 py-0.5 rounded-full">
+              {t('privacy.summary.badge')}
+            </span>
+            <span className="text-xs text-muted-foreground">{t('privacy.summary.readTime')}</span>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed m-0">
+            {t('privacy.summary.lead')}
+          </p>
         </div>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          Who runs the service
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          Coin Crew is operated as an independent group expense splitting
-          service.
-        </p>
+        {/* Section Label */}
+        <div className="text-sm font-semibold text-muted-foreground px-1 mt-2">
+          {t('privacy.sectionLabel')}
+        </div>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          What information is stored
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          We store your name and email address from Google sign-in, or your Zalo user ID, display name and profile picture from Zalo sign-in (Zalo does not share your phone number); trip names,
-          participant names, expense records, and payment records; and bank name,
-          account number, and account holder name entered for VietQR settlements.
-        </p>
+        {/* Grouped Ledger Accordion */}
+        <div className={cn('bg-card rounded-xl border border-border divide-y divide-border overflow-hidden')}>
+          {/* Section 1: Operator */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.operator.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              {t('privacy.sections.operator.body')}
+            </div>
+          </details>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          Why we process your data
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          We process this information to calculate cost splits and allow group
-          members to pay each other directly via VietQR.
-        </p>
+          {/* Section 2: Data Collected & Classification (Decree 13) */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.data.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed space-y-2">
+              <p className="m-0">
+                <strong className="text-foreground">{t('privacy.sections.data.basicLabel')}:</strong>{' '}
+                {t('privacy.sections.data.basicBody')}
+              </p>
+              <p className="m-0">
+                <strong className="text-foreground">{t('privacy.sections.data.sensitiveLabel')}:</strong>{' '}
+                {t('privacy.sections.data.sensitiveBody')}
+              </p>
+            </div>
+          </details>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          Who sees your information
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          Your trip information is visible to other members of the same trip. Your
-          bank account details are only displayed to members who owe you money.
-        </p>
+          {/* Section 3: Visibility & Who Sees Bank Details */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.sharing.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              {t('privacy.sections.sharing.body')}
+            </div>
+          </details>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          Where data is hosted
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          Data is hosted on Cloudflare infrastructure. Servers and storage may be
-          located outside Vietnam.
-        </p>
+          {/* Section 4: Processors & Cross-Border Hosting */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.processors.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              {t('privacy.sections.processors.body')}
+            </div>
+          </details>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          How long data is kept
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          Your data is retained until you delete the trip or request the deletion
-          of your account.
-        </p>
+          {/* Section 5: Unintended Risks */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.risks.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              {t('privacy.sections.risks.body')}
+            </div>
+          </details>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          Your rights
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          You have the right to access, correct, and delete your data, and you may
-          withdraw your consent at any time.
-        </p>
+          {/* Section 6: Retention Period */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.retention.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              {t('privacy.sections.retention.body')}
+            </div>
+          </details>
 
-        <h2 className={cn('m-0 mt-4 mb-2 text-lg font-semibold text-foreground text-left leading-snug')}>
-          Contact
-        </h2>
-        <p className={cn('m-0 text-base text-muted-foreground text-left leading-normal')}>
-          For privacy inquiries or requests, contact{' '}
-          <a
-            href="mailto:privacy@example.com"
-            className={cn(
-              'text-primary underline underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs',
-            )}
-          >
-            privacy@example.com
-          </a>
-          .
-        </p>
+          {/* Section 7: User Rights (Article 9 Decree 13 & PDPL) */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.rights.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              {t('privacy.sections.rights.body')}
+            </div>
+          </details>
+
+          {/* Section 8: Contact & Deletion Requests */}
+          <details className="group">
+            <summary className="min-h-[44px] py-3 px-4 flex items-center justify-between cursor-pointer font-semibold text-foreground text-sm select-none hover:bg-muted/40 transition-colors">
+              <span>{t('privacy.sections.contact.title')}</span>
+              <span className="text-xs text-primary transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="px-4 pb-3.5 pt-1 text-sm text-muted-foreground leading-relaxed">
+              <p className="m-0">
+                {t('privacy.sections.contact.body')}{' '}
+                <a
+                  href={`mailto:${PRIVACY_CONTACT_EMAIL}`}
+                  className="text-primary underline underline-offset-2 hover:opacity-80"
+                >
+                  {PRIVACY_CONTACT_EMAIL}
+                </a>
+                .
+              </p>
+            </div>
+          </details>
+        </div>
       </div>
     </Screen>
   );
