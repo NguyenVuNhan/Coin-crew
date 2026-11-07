@@ -64,6 +64,11 @@ function PaymentItem({
             >
               {title}
             </span>
+            {off && payment.disabledByName ? (
+              <span className="fsl-payments__disabled-by truncate text-xs text-muted-foreground">
+                {t('expenses.disabledBy', { name: payment.disabledByName })}
+              </span>
+            ) : null}
             {payment.throughPeople ? (
               <span className="fsl-payments__through truncate text-sm text-muted-foreground">{t('payments.throughPeople')}</span>
             ) : null}

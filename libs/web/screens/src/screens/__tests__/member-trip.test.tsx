@@ -27,8 +27,8 @@ function busyView(): TripView {
     people: [...base.people, { id: 'p-new', name: 'Chi Nguyễn', status: 'pending', isMember: false, bank: 'none' }],
     expenses: [chiPending, { ...base.expenses[3]!, id: 'e-1d', description: 'Old taxi', status: 'disabled', disabledByName: 'Minh' }, ...base.expenses],
     payments: [
-      { id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, amountClaimed: 1245000, amountConfirmed: null, status: 'says_paid', notArrived: false, createdAt: '2026-10-12T08:00:00.000Z' },
-      { id: 'pay-2', fromId: PIDS.A, toId: PIDS.C, amountClaimed: 200000, amountConfirmed: 200000, status: 'confirmed', notArrived: true, createdAt: '2026-10-12T09:00:00.000Z' },
+      { id: 'pay-1', fromId: PIDS.C, toId: PIDS.M, amountClaimed: 1245000, amountConfirmed: null, status: 'says_paid', notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', disabledByName: null },
+      { id: 'pay-2', fromId: PIDS.A, toId: PIDS.C, amountClaimed: 200000, amountConfirmed: 200000, status: 'confirmed', notArrived: true, createdAt: '2026-10-12T09:00:00.000Z', disabledByName: null },
     ],
     approvals: [
       { kind: 'expense', expenseId: chiPending.id },
@@ -100,7 +100,7 @@ describe('member trip page', () => {
 
   it('says who I am waiting on', async () => {
     const view = tripView({
-      payments: [{ id: 'pay-w', fromId: PIDS.M, toId: PIDS.B, amountClaimed: 100000, amountConfirmed: null, status: 'says_paid', notArrived: false, createdAt: '2026-10-12T08:00:00.000Z' }],
+      payments: [{ id: 'pay-w', fromId: PIDS.M, toId: PIDS.B, amountClaimed: 100000, amountConfirmed: null, status: 'says_paid', notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', disabledByName: null }],
     });
     mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
     renderAt(<TripRoute />, route);

@@ -74,6 +74,12 @@ export function PaymentDetails({
         </div>
       )}
 
+      {p.status === 'disabled' && p.disabledByName ? (
+        <p className="fsl-details__note text-sm text-muted-foreground m-0">
+          {t('expenses.disabledBy', { name: p.disabledByName })}
+        </p>
+      ) : null}
+
       <dl className="fsl-details__facts m-0 bg-card rounded-xl border border-border divide-y divide-border overflow-hidden">
         <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
           <dt className="text-sm text-muted-foreground">{t('details.amountClaimed')}</dt>
