@@ -257,6 +257,7 @@ describe('JoinRequestSheet and joining workflow', () => {
           createdAt: '2026-10-10T12:00:00Z',
           expenseId: 'e-1',
           claimPending: true,
+          disabledByName: null,
         },
       ],
     });
@@ -288,6 +289,7 @@ describe('JoinRequestSheet and joining workflow', () => {
           createdAt: '2026-10-10T12:00:00Z',
           expenseId: 'e-1',
           claimPending: true,
+          disabledByName: null,
         },
       ],
     });
@@ -302,6 +304,36 @@ describe('JoinRequestSheet and joining workflow', () => {
 
     expect(
       await screen.findByText('Marked by a Zalo account waiting to join An'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows disabled by attribution in PaymentDetails when payment is disabled', async () => {
+    const trip: TripView = tripView({
+      payments: [
+        {
+          id: 'pay-dis',
+          fromId: PIDS.A,
+          toId: PIDS.M,
+          amountClaimed: 385000,
+          amountConfirmed: null,
+          status: 'disabled',
+          notArrived: false,
+          createdAt: '2026-10-10T12:00:00Z',
+          disabledByName: 'Minh',
+        },
+      ],
+    });
+
+    renderAt(
+      <PaymentDetails
+        view={trip}
+        paymentId="pay-dis"
+        onClose={() => {}}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Disabled by Minh'),
     ).toBeInTheDocument();
   });
 });

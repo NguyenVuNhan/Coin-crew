@@ -25,7 +25,7 @@ const TRIP_API = { 'GET /api/trips/t-1/version': { version: 3 } };
 const route = { route: '/t/t-1', path: '/t/:tripId' };
 
 const payment = (p: Partial<PaymentView> & Pick<PaymentView, 'id' | 'fromId' | 'toId' | 'status'>): PaymentView => ({
-  amountClaimed: 150000, amountConfirmed: p.status === 'confirmed' ? 150000 : null, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', ...p,
+  amountClaimed: 150000, amountConfirmed: p.status === 'confirmed' ? 150000 : null, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', disabledByName: null, ...p,
 });
 
 const myBalance = (now: number, ifPendingApproved: number | null): TripView['myBalance'] => ({ now, beforePayments: now, ifPendingApproved, waitingConfirm: 0 });

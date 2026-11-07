@@ -102,6 +102,7 @@ function ledgerView(): TripView {
         status: 'confirmed',
         notArrived: false,
         createdAt: '2026-10-31T08:00:00.000Z',
+        disabledByName: null,
       },
     ],
   });

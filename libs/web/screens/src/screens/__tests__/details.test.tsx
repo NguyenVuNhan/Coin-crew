@@ -23,7 +23,7 @@ const ACTION_BUTTONS = /^(edit|disable|enable|approve|reject|confirm|didn't arri
 const memberViewWithChiPending = (): TripView => tripView({ expenses: guestChiView().expenses });
 
 const payment = (p: Partial<PaymentView> & Pick<PaymentView, 'id' | 'fromId' | 'toId' | 'status'>): PaymentView => ({
-  amountClaimed: 150000, amountConfirmed: p.status === 'confirmed' ? 145000 : null, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', ...p,
+  amountClaimed: 150000, amountConfirmed: p.status === 'confirmed' ? 145000 : null, notArrived: false, createdAt: '2026-10-12T08:00:00.000Z', disabledByName: null, ...p,
 });
 
 function open(view: TripView, route: string) {

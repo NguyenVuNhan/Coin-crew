@@ -67,6 +67,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       expenseId: 'e-badminton',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const payB: PaymentView = {
       id: 'pay-b',
@@ -78,6 +79,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       expenseId: 'e-badminton',
       notArrived: false,
       createdAt: '2026-10-10T09:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       expenses: [expense],
@@ -140,6 +142,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       expenseId: 'e-badminton',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       expenses: [expense],
@@ -216,6 +219,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       expenseId: 'e-badminton',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const payB: PaymentView = {
       id: 'pay-b',
@@ -227,6 +231,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       expenseId: 'e-badminton',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       expenses: [expense],
@@ -314,6 +319,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       notArrived: false,
       confirmedById: PIDS.M,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       expenses: [expense],
@@ -374,6 +380,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       paidBy: 'friend',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       people,
@@ -428,6 +435,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       paidBy: 'friend',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       people,
@@ -462,6 +470,7 @@ describe('Task 9: Grouped approval card with undo and edit', () => {
       expenseId: 'e-badminton',
       notArrived: false,
       createdAt: '2026-10-10T10:00:00Z',
+      disabledByName: null,
     };
     const view = tripView({
       expenses: [expense],
