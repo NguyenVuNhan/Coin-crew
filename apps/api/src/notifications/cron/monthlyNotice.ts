@@ -32,8 +32,8 @@ export async function sendMonthlyNotices(
   now: Date = new Date(),
   options?: { force?: boolean },
 ): Promise<void> {
-  // Runs on 1st of month unless force is specified
-  if (!options?.force && now.getUTCDate() !== 1) {
+  // Runs on 1st of month at 01:00 UTC (08:00 AM ICT) unless force is specified
+  if (!options?.force && (now.getUTCDate() !== 1 || now.getUTCHours() !== 1)) {
     return;
   }
 

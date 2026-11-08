@@ -147,7 +147,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     const sendSpy = vi.spyOn(ConsoleEmailService.prototype, 'send');
     const now = new Date('2026-11-01T08:00:00Z');
 
-    await sendMonthlyNotices(env, now);
+    await sendMonthlyNotices(env, now, { force: true });
 
     const anEmails = sendSpy.mock.calls.filter(([c]) => c.to === `${U.an}@example.com`);
     expect(anEmails).toHaveLength(1);
@@ -175,7 +175,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     const sendSpy = vi.spyOn(ConsoleEmailService.prototype, 'send');
     const now = new Date('2026-11-01T08:00:00Z');
 
-    await sendMonthlyNotices(env, now);
+    await sendMonthlyNotices(env, now, { force: true });
 
     const anEmails = sendSpy.mock.calls.filter(([c]) => c.to === `${U.an}@example.com`);
     expect(anEmails).toHaveLength(1);
@@ -221,7 +221,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     await sendWeeklyLoanReminders(env, now, { force: true });
     expect(sendSpy).not.toHaveBeenCalled();
 
-    await sendMonthlyNotices(env, now);
+    await sendMonthlyNotices(env, now, { force: true });
     expect(sendSpy).not.toHaveBeenCalled();
   });
 
@@ -248,7 +248,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     await sendWeeklyLoanReminders(env, now, { force: true });
     expect(sendSpy).not.toHaveBeenCalled();
 
-    await sendMonthlyNotices(env, now);
+    await sendMonthlyNotices(env, now, { force: true });
     expect(sendSpy).not.toHaveBeenCalled();
   });
 });
