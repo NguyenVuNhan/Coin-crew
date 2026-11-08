@@ -529,3 +529,12 @@ export interface FeedbackRequest {
   contactMe: boolean;
   contactText?: string;
 }
+
+export type UserNotificationSettings = {
+  transactionCrud: boolean;
+  loanReminders: boolean;
+  monthlyNotice: boolean;
+};
+
+export type NotificationLogType = 'transaction_crud' | 'loan_reminder' | 'monthly_notice';
+
