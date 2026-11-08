@@ -67,7 +67,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     const sendSpy = vi.spyOn(ConsoleEmailService.prototype, 'send');
     const now = new Date('2026-11-08T00:00:00Z');
 
-    await sendWeeklyLoanReminders(env, now);
+    await sendWeeklyLoanReminders(env, now, { force: true });
 
     const anEmails = sendSpy.mock.calls.filter(([c]) => c.to === `${U.an}@example.com`);
     expect(anEmails).toHaveLength(1);
@@ -104,7 +104,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
 
     const sendSpy = vi.spyOn(ConsoleEmailService.prototype, 'send');
 
-    await sendWeeklyLoanReminders(env, now);
+    await sendWeeklyLoanReminders(env, now, { force: true });
 
     const anEmails = sendSpy.mock.calls.filter(([c]) => c.to === `${U.an}@example.com`);
     expect(anEmails).toHaveLength(1);
@@ -120,7 +120,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
       .bind('log-prev-2', U.an, 't-2', 'loan_reminder', 't-2', threeDaysAgo)
       .run();
 
-    await sendWeeklyLoanReminders(env, now);
+    await sendWeeklyLoanReminders(env, now, { force: true });
     const anEmails2 = sendSpy.mock.calls.filter(([c]) => c.to === `${U.an}@example.com`);
     expect(anEmails2).toHaveLength(0);
   });
@@ -133,7 +133,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     const sendSpy = vi.spyOn(ConsoleEmailService.prototype, 'send');
     const now = new Date('2026-11-08T00:00:00Z');
 
-    await sendWeeklyLoanReminders(env, now);
+    await sendWeeklyLoanReminders(env, now, { force: true });
 
     const anEmails = sendSpy.mock.calls.filter(([c]) => c.to === `${U.an}@example.com`);
     expect(anEmails).toHaveLength(0);
@@ -218,7 +218,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     const now = new Date('2026-11-01T08:00:00Z');
 
     // Neither archived t-1 nor direct t-direct should produce loan reminders or monthly notices
-    await sendWeeklyLoanReminders(env, now);
+    await sendWeeklyLoanReminders(env, now, { force: true });
     expect(sendSpy).not.toHaveBeenCalled();
 
     await sendMonthlyNotices(env, now);
@@ -245,7 +245,7 @@ describe('Consolidated Loan Reminders & Monthly Notice Crons', () => {
     const sendSpy = vi.spyOn(ConsoleEmailService.prototype, 'send');
     const now = new Date('2026-11-01T08:00:00Z');
 
-    await sendWeeklyLoanReminders(env, now);
+    await sendWeeklyLoanReminders(env, now, { force: true });
     expect(sendSpy).not.toHaveBeenCalled();
 
     await sendMonthlyNotices(env, now);

@@ -28,7 +28,15 @@ interface CandidateTripGroup {
   defaultLang: string;
 }
 
-export async function sendWeeklyLoanReminders(env: Env, now: Date = new Date()): Promise<void> {
+export async function sendWeeklyLoanReminders(
+  env: Env,
+  now: Date = new Date(),
+  options?: { force?: boolean },
+): Promise<void> {
+  // Runs on Mondays at 02:00 UTC (09:00 AM ICT) unless force is specified
+  if (!options?.force && (now.getUTCDay() !== 1 || now.getUTCHours() !== 2)) {
+    return;
+  }
   const db = getDb(env);
 
   // Active trips: not archived and not preset = 'direct'

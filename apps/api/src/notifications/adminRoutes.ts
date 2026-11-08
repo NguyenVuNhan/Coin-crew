@@ -8,7 +8,7 @@ import {
   notificationLogs,
 } from '@cc/api-db/schema';
 import { and, eq, gte } from 'drizzle-orm';
-import { resolveActor } from '@cc/api-auth/actor';
+import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ApiError } from '@cc/api-util/errors';
 import { getSnapshot } from '../trips/snapshot';
 import { createEmailService } from './emailService';
@@ -26,6 +26,7 @@ export function adminNotificationRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
 
     const actor = await resolveActor(c, tripId);
+    assertWritable(actor.trip);
     const isGroupAdmin = Boolean(actor.isAdmin) || Boolean(actor.isOrganiser);
     if (!isGroupAdmin) {
       throw new ApiError('FORBIDDEN', 403, 'Admin access required');
