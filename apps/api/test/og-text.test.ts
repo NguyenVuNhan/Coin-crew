@@ -227,4 +227,75 @@ describe('pageMeta', () => {
   it('vi and en have the same keys', () => {
     expect(Object.keys(OG_TEXT.vi).sort()).toEqual(Object.keys(OG_TEXT.en).sort());
   });
+
+  it('rounds sport slot rates in OG description when roundTransfers is true', () => {
+    const snapshot = snap({ trip: { roundTransfers: true, preset: 'sport' } });
+    const expense = exp({
+      amount: 400000,
+      meta: {
+        sport: {
+          court: 400000,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'equal' },
+          maleSlotRate: 66667,
+          femaleSlotRate: 66667,
+          entries: [
+            { participantId: 'p1', maleSlots: 6, femaleSlots: 0 },
+          ],
+        },
+      },
+    });
+    const meta = pageMeta({ kind: 'expense', snapshot, expense, now: NOW });
+    expect(meta.description).toContain('67.000₫');
+    expect(meta.description).not.toContain('66.667₫');
+  });
+
+  it('rounds different male/female slot rates in OG description when roundTransfers is true', () => {
+    const snapshot = snap({ trip: { roundTransfers: true, preset: 'sport' } });
+    const expense = exp({
+      amount: 400000,
+      meta: {
+        sport: {
+          court: 400000,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'male_female', maleRatio: 1.2, femaleRatio: 1.0 },
+          maleSlotRate: 72727,
+          femaleSlotRate: 60606,
+          entries: [
+            { participantId: 'p1', maleSlots: 3, femaleSlots: 0 },
+            { participantId: 'p2', maleSlots: 0, femaleSlots: 3 },
+          ],
+        },
+      },
+    });
+    const meta = pageMeta({ kind: 'expense', snapshot, expense, now: NOW });
+    expect(meta.description).toContain('Nam 73.000₫ / Nữ 61.000₫');
+    expect(meta.description).not.toContain('72.727₫');
+    expect(meta.description).not.toContain('60.606₫');
+  });
+
+  it('preserves unrounded slot rates in OG description when roundTransfers is false', () => {
+    const snapshot = snap({ trip: { roundTransfers: false, preset: 'sport' } });
+    const expense = exp({
+      amount: 400000,
+      meta: {
+        sport: {
+          court: 400000,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'equal' },
+          maleSlotRate: 66667,
+          femaleSlotRate: 66667,
+          entries: [
+            { participantId: 'p1', maleSlots: 6, femaleSlots: 0 },
+          ],
+        },
+      },
+    });
+    const meta = pageMeta({ kind: 'expense', snapshot, expense, now: NOW });
+    expect(meta.description).toContain('66.667₫');
+    expect(meta.description).not.toContain('67.000₫');
+  });
 });

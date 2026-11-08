@@ -7,6 +7,7 @@ import {
   rowSlots,
   slotTiles,
   expenseShareOf,
+  roundToThousand,
   type PaymentView,
   type TripView,
 } from '@cc/core';
@@ -445,7 +446,7 @@ export function ExpensePaymentsApproval({
                       remindText(getLang(), {
                         name: row.rawName,
                         creditor: nameOf(view, expense.payerId),
-                        amount: formatVnd(row.amount),
+                        amount: formatVnd(view.trip.roundTransfers ? roundToThousand(row.amount) : row.amount),
                         trip: view.trip.name,
                         link: expenseLink(view, rootId),
                       }),

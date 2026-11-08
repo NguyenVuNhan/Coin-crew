@@ -59,6 +59,64 @@ describe('sportShareText', () => {
     });
     expect(text).toBe('Court 500.000₫, each pays 50.000₫. QR & details: https://coincrew.app/j/tok123');
   });
+
+  it('rounds slot rates and participant amounts when roundTransfers is true', () => {
+    const text = sportShareText('vi', {
+      court: 400000,
+      shuttlecocksTotal: 0,
+      extra: 0,
+      maleSlotRate: 66667,
+      femaleSlotRate: 66667,
+      totalMaleSlots: 6,
+      totalFemaleSlots: 0,
+      participants: [{ participantId: 'p1', name: 'An', maleSlots: 1, femaleSlots: 0, amount: 66667 }],
+      link: 'https://coincrew.app/j/tok',
+      roundTransfers: true,
+    });
+    expect(text).toContain('67.000₫');
+    expect(text).not.toContain('66.667₫');
+  });
+
+  it('rounds male/female slot rates and exception amounts when roundTransfers is true', () => {
+    const text = sportShareText('vi', {
+      court: 400000,
+      shuttlecocksTotal: 0,
+      extra: 0,
+      maleSlotRate: 72727,
+      femaleSlotRate: 60606,
+      totalMaleSlots: 3,
+      totalFemaleSlots: 3,
+      participants: [
+        { participantId: 'p1', name: 'Minh', rosterGender: 'M', maleSlots: 1, femaleSlots: 0, amount: 72727 },
+        { participantId: 'p2', name: 'Chi', rosterGender: 'F', maleSlots: 0, femaleSlots: 1, amount: 60606 },
+        { participantId: 'p3', name: 'Bình', rosterGender: 'M', maleSlots: 2, femaleSlots: 0, amount: 145454 },
+      ],
+      link: 'https://coincrew.app/j/tok',
+      roundTransfers: true,
+    });
+    expect(text).toContain('Nam đóng 73.000₫, nữ đóng 61.000₫');
+    expect(text).toContain('riêng Bình đóng 145.000₫');
+    expect(text).not.toContain('72.727₫');
+    expect(text).not.toContain('60.606₫');
+    expect(text).not.toContain('145.454₫');
+  });
+
+  it('preserves unrounded slot rates and amounts when roundTransfers is false or undefined', () => {
+    const text = sportShareText('vi', {
+      court: 400000,
+      shuttlecocksTotal: 0,
+      extra: 0,
+      maleSlotRate: 66667,
+      femaleSlotRate: 66667,
+      totalMaleSlots: 6,
+      totalFemaleSlots: 0,
+      participants: [{ participantId: 'p1', name: 'An', maleSlots: 1, femaleSlots: 0, amount: 66667 }],
+      link: 'https://coincrew.app/j/tok',
+      roundTransfers: false,
+    });
+    expect(text).toContain('66.667₫');
+    expect(text).not.toContain('67.000₫');
+  });
 });
 
 describe('splitText for sport expenses', () => {
