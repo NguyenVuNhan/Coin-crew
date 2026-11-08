@@ -1007,13 +1007,13 @@ export const vi: Record<MessageKey, string> = {
   'theme.name.sky': 'Bầu trời', // REVIEW
   'theme.name.indigo': 'Chàm', // REVIEW
 
-  'notifications.title': 'Thông báo qua email',
-  'notifications.transactionCrud': 'Biến động giao dịch',
-  'notifications.transactionCrudDesc': 'Nhận email khi có giao dịch mới, cập nhật hoặc xoá trong nhóm',
-  'notifications.loanReminders': 'Nhắc nhở số dư & khoản nợ',
-  'notifications.loanRemindersDesc': 'Nhận email định kỳ nhắc nhở về các khoản nợ cần thanh toán',
-  'notifications.monthlyNotice': 'Báo cáo thu chi hàng tháng',
-  'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư các nhóm vào đầu mỗi tháng',
-  'notifications.noEmailWarning': 'Bạn chưa liên kết email. Vui lòng liên kết tài khoản Google để nhận thông báo qua email.',
+  'notifications.title': 'Thông báo qua email', // REVIEW
+  'notifications.transactionCrud': 'Biến động giao dịch', // REVIEW
+  'notifications.transactionCrudDesc': 'Nhận email khi có giao dịch mới, cập nhật hoặc xoá trong nhóm', // REVIEW
+  'notifications.loanReminders': 'Nhắc nhở số dư & khoản nợ', // REVIEW
+  'notifications.loanRemindersDesc': 'Nhận email định kỳ nhắc nhở về các khoản nợ cần thanh toán', // REVIEW
+  'notifications.monthlyNotice': 'Báo cáo thu chi hàng tháng', // REVIEW
+  'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư các nhóm vào đầu mỗi tháng', // REVIEW
+  'notifications.noEmailWarning': 'Bạn chưa liên kết email. Vui lòng liên kết tài khoản Google để nhận thông báo qua email.', // REVIEW
 };
 
