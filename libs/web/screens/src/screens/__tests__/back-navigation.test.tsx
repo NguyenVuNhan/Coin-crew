@@ -875,6 +875,8 @@ describe('finished steps', () => {
     const navBar = await screen.findByTestId('app-nav-bar');
     const addBtn = within(navBar).getByTestId('nav-add');
     await userEvent.click(addBtn);
+    const addExpenseOption = await screen.findByRole('link', { name: 'Add expense' });
+    await userEvent.click(addExpenseOption);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/new'));
 

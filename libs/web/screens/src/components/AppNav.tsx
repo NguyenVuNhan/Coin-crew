@@ -39,6 +39,7 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
     <PopoverContent align={align} side={side} sideOffset={8} className="w-56 p-1.5 gap-1 rounded-2xl">
       <Link
         to={planHref!}
+        data-testid="nav-plan-session"
         className="min-h-11 rounded-xl flex items-center gap-3 px-3 text-sm font-medium text-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors no-underline"
       >
         <Icon name="calendar" size={18} />
@@ -46,10 +47,11 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
       </Link>
       <Link
         to={addHref}
+        data-testid="nav-add-expense"
         className="min-h-11 rounded-xl flex items-center gap-3 px-3 text-sm font-medium text-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors no-underline"
       >
         <Icon name="receipt" size={18} />
-        <span>{t('trip.addExpense')}</span>
+        <span>{t('expenseForm.add')}</span>
       </Link>
     </PopoverContent>
   );
