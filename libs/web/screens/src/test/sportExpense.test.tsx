@@ -387,4 +387,37 @@ describe('Sport ExpenseForm and ExpenseDetails bill sharing', () => {
     expect(container.querySelector('.fsl-sport-preview-qr')).toBeNull();
     expect(container.querySelector('.fsl-sport-preview-title')).toBeNull();
   });
+
+  it('displays rounded thousand in sport share button when roundTransfers is true', async () => {
+    const roundSportView: TripView = {
+      ...baseSportView,
+      trip: { ...baseSportView.trip, roundTransfers: true },
+      people: [
+        { id: 'p-1', name: 'Minh', status: 'active', isMember: true, isOrganiser: true, bank: 'approved', gender: 'M' },
+        { id: 'p-2', name: 'Quang', status: 'active', isMember: false, isOrganiser: false, bank: 'none', gender: 'M' },
+        { id: 'p-3', name: 'Chi', status: 'active', isMember: false, isOrganiser: false, bank: 'none', gender: 'F' },
+        { id: 'p-4', name: 'An', status: 'active', isMember: false, isOrganiser: false, bank: 'none', gender: 'M' },
+        { id: 'p-5', name: 'Bình', status: 'active', isMember: false, isOrganiser: false, bank: 'none', gender: 'M' },
+        { id: 'p-6', name: 'Dũng', status: 'active', isMember: false, isOrganiser: false, bank: 'none', gender: 'M' },
+      ],
+      balances: { 'p-1': 0, 'p-2': 0, 'p-3': 0, 'p-4': 0, 'p-5': 0, 'p-6': 0 },
+    };
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json(roundSportView)));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-sport/expenses/new']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Court')).toBeInTheDocument());
+    await userEvent.type(screen.getByLabelText('Court'), '400k');
+
+    // 400.000 ₫ court split 6 ways -> raw 66.667 ₫ -> rounded 67.000 ₫
+    expect(await screen.findByTestId('sport-share-btn-p-1')).toHaveTextContent('67.000₫');
+  });
 });
