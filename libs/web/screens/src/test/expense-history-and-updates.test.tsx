@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
 import { renderAt, mockApi } from './render';
 import { tripView, guestChiView, PIDS } from './fixtures';
+import { mockMedia } from './media';
 import { ExpenseHistoryList } from '../components/ExpenseHistoryList';
 import { UpdatedTransactionsBanner } from '../components/UpdatedTransactionsBanner';
 import { ExpenseDetails } from '../components/ExpenseDetails';
@@ -321,5 +322,113 @@ describe('Integration in ExpenseDetails, MemberTrip, and GuestTrip', () => {
     // Render GuestTrip directly
     renderAt(<GuestTrip view={guestView} />);
     expect(screen.getByText('Transactions involving you were updated')).toBeInTheDocument();
+  });
+
+  it('rounds participant shares in ExpenseDetails when trip roundTransfers is true', () => {
+    const exp50k: ExpenseView = {
+      id: 'e-50k',
+      rootId: 'e-50k',
+      description: 'Trà sữa',
+      amount: 50000,
+      spentOn: '2026-10-12',
+      payerId: PIDS.A,
+      mode: 'equal',
+      status: 'approved',
+      rejectReason: null,
+      disabledByName: null,
+      createdById: PIDS.A,
+      shares: [
+        { participantId: PIDS.M, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.A, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.B, amount: 16666, inputValue: 1 },
+      ],
+    };
+    const viewWithRounding = tripView({
+      trip: { ...tripView().trip, roundTransfers: true },
+      expenses: [exp50k],
+    });
+    renderAt(<ExpenseDetails view={viewWithRounding} expenseId="e-50k" onClose={() => {}} />);
+    const roundedAmounts = screen.getAllByText('17.000₫');
+    expect(roundedAmounts.length).toBe(3);
+    expect(screen.queryByText('16.667₫')).toBeNull();
+    expect(screen.queryByText('16.666₫')).toBeNull();
+  });
+
+  it('keeps exact participant shares in ExpenseDetails when trip roundTransfers is false', () => {
+    const exp50k: ExpenseView = {
+      id: 'e-50k',
+      rootId: 'e-50k',
+      description: 'Trà sữa',
+      amount: 50000,
+      spentOn: '2026-10-12',
+      payerId: PIDS.A,
+      mode: 'equal',
+      status: 'approved',
+      rejectReason: null,
+      disabledByName: null,
+      createdById: PIDS.A,
+      shares: [
+        { participantId: PIDS.M, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.A, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.B, amount: 16666, inputValue: 1 },
+      ],
+    };
+    const viewExact = tripView({
+      trip: { ...tripView().trip, roundTransfers: false },
+      expenses: [exp50k],
+    });
+    renderAt(<ExpenseDetails view={viewExact} expenseId="e-50k" onClose={() => {}} />);
+    expect(screen.getAllByText('16.667₫').length).toBe(2);
+    expect(screen.getByText('16.666₫')).toBeInTheDocument();
+  });
+
+  it('passes roundTransfers to sportShareText when sharing sport bill from ExpenseDetails', async () => {
+    mockMedia({ mouse: true });
+    const user = userEvent.setup();
+    const sportExp: ExpenseView = {
+      id: 'e-sport-50k',
+      rootId: 'e-sport-50k',
+      description: 'Cầu lông',
+      amount: 100000,
+      spentOn: '2026-10-12',
+      payerId: PIDS.M,
+      mode: 'amounts',
+      status: 'approved',
+      rejectReason: null,
+      disabledByName: null,
+      createdById: PIDS.M,
+      shares: [
+        { participantId: PIDS.M, amount: 33334, inputValue: 33334 },
+        { participantId: PIDS.A, amount: 33333, inputValue: 33333 },
+        { participantId: PIDS.B, amount: 33333, inputValue: 33333 },
+      ],
+      meta: {
+        sport: {
+          court: 100000,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'equal' },
+          entries: [
+            { participantId: PIDS.M, maleSlots: 1, femaleSlots: 0 },
+            { participantId: PIDS.A, maleSlots: 1, femaleSlots: 0 },
+            { participantId: PIDS.B, maleSlots: 1, femaleSlots: 0 },
+          ],
+          maleSlotRate: 33333,
+          femaleSlotRate: 33333,
+        },
+      },
+    };
+    const viewWithRounding = tripView({
+      trip: { ...tripView().trip, roundTransfers: true },
+      expenses: [sportExp],
+    });
+    renderAt(<ExpenseDetails view={viewWithRounding} expenseId="e-sport-50k" onClose={() => {}} />);
+
+    const shareBtn = screen.getByRole('button', { name: 'Share bill & QR' });
+    await user.click(shareBtn);
+
+    const copied = await navigator.clipboard.readText();
+    expect(copied).toContain('33.000₫');
+    expect(copied).not.toContain('33.333₫');
   });
 });

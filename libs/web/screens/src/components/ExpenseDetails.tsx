@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { ExpenseView, TripView } from '@cc/core';
-import { isFundPaid } from '@cc/core';
+import { isFundPaid, roundToThousand } from '@cc/core';
 import { useT, useLang } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { nameOf, splitText } from '@cc/web-util/tripText';
@@ -102,6 +102,7 @@ export function ExpenseDetails({
       totalFemaleSlots: sportCalc.totalFemaleSlots,
       participants: sportCalc.participants,
       link,
+      roundTransfers: Boolean(view.trip.roundTransfers),
     });
   }, [sportCalc, lang, view, e]);
 
@@ -313,6 +314,7 @@ export function ExpenseDetails({
         <ul className="fsl-details__shares m-0 p-0 list-none bg-card rounded-xl border border-border divide-y divide-border overflow-hidden" aria-label={t('details.split')}>
           {shares.map((s) => {
             const isMe = s.participantId === view.me.participantId;
+            const shareVal = view.trip.roundTransfers ? roundToThousand(s.amount) : s.amount;
             return (
               <li
                 key={s.participantId}
@@ -329,7 +331,7 @@ export function ExpenseDetails({
                 {view.people.find((p) => p.id === s.participantId)?.status === 'left' && (
                   <Pill tone="neutral">{t('people.leftBadge')}</Pill>
                 )}
-                <Amount value={s.amount} className="font-semibold tabular-nums text-right" />
+                <Amount value={shareVal} className="font-semibold tabular-nums text-right" />
               </li>
             );
           })}

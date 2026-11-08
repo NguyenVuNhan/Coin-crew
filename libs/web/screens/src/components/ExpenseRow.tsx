@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { formatVnd, isFundPaid, type ExpenseView, type TripView } from '@cc/core';
+import { formatVnd, isFundPaid, roundToThousand, type ExpenseView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { nameOf, splitText } from '@cc/web-util/tripText';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -32,6 +32,7 @@ export function ExpenseRow({
 
   const me = view.me.participantId;
   const amount = rowAmount(expense, view);
+  const finalAmount = view.trip.roundTransfers ? roundToThousand(amount) : amount;
   const isMe = me !== null && expense.payerId === me;
   const payerText =
     me !== null
@@ -95,12 +96,12 @@ export function ExpenseRow({
 
       <div className="fsl-expense-row__right shrink-0 text-right flex flex-col items-end gap-1">
         <Amount
-          value={amount}
+          value={finalAmount}
           style={isDisabled ? { textDecoration: 'line-through' } : undefined}
           className={cn(
             isDisabled && 'fsl-expense-row__amount--disabled line-through text-muted-foreground',
             isFundPaid(expense) && 'fsl-expense-row__amount--fund text-muted-foreground',
-            amount === 0 && 'fsl-expense-row__amount--none text-muted-foreground',
+            finalAmount === 0 && 'fsl-expense-row__amount--none text-muted-foreground',
           )}
         />
         {isPending && (
