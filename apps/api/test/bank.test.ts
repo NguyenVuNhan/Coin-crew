@@ -243,6 +243,30 @@ describe('pay info', () => {
       buildVietQrPayload({ bin: '970407', accountNumber: '19031234565678', amount: 17000, note: rounded.refCode }),
     );
   });
+
+  it('?bill=1 returns rounded billAmount in PayInfo.amount when roundTransfers is on', async () => {
+    await env.DB.prepare(
+      "INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES ('e-bill-amount', 'e-bill-amount', NULL, 1, ?, 'expense', 'Ăn sáng 50k', 50000, 'VND', '2026-10-12', ?, 'equal', 'approved', ?, '2026-10-12T00:00:00.000Z', '2026-10-12T00:00:00.000Z')",
+    )
+      .bind(T.tripId, PID.M, PID.M)
+      .run();
+    await env.DB.prepare(
+      "INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES ('e-bill-amount', ?, 1, 16666), ('e-bill-amount', ?, 1, 16667), ('e-bill-amount', ?, 1, 16667)",
+    )
+      .bind(PID.M, PID.A, PID.B)
+      .run();
+
+    await env.DB.prepare('UPDATE trips SET round_transfers = 1, version = version + 1 WHERE id = ?')
+      .bind(T.tripId)
+      .run();
+
+    const res = await call(`${base}/pay/${PID.M}?bill=1&expense=e-bill-amount`, {
+      headers: await guestHeaders(PID.A),
+    });
+    expect(res.status).toBe(200);
+    const info = await json<PayInfo>(res);
+    expect(info.amount).toBe(17000);
+  });
 });
 
 describe('pay info for the receiver', () => {

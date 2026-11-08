@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Approval, PersonView, TripView } from '@cc/core';
-import { computeBalances, findBank, findSimilarNames, maskAccountNumber } from '@cc/core';
+import { computeBalances, findBank, findSimilarNames, maskAccountNumber, snapResidual } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
 import type { ResolvedActor } from '@cc/api-auth/actor';
 import type { TripSnapshot } from './snapshot';
@@ -28,6 +28,21 @@ export async function toTripView(
     isAdmin,
   };
 
+  let balances = snapshot.balances;
+  if (snapshot.trip.roundTransfers) {
+    const roundedBalances: Record<string, number> = {};
+    for (const person of snapshot.people) {
+      const owedToMe = snapshot.suggestions
+        .filter((s) => s.toId === person.id)
+        .reduce((sum, s) => sum + s.amount, 0);
+      const iOwe = snapshot.suggestions
+        .filter((s) => s.fromId === person.id)
+        .reduce((sum, s) => sum + s.amount, 0);
+      roundedBalances[person.id] = owedToMe - iOwe;
+    }
+    balances = roundedBalances;
+  }
+
   let myBalance: TripView['myBalance'] = null;
   if (
     actor.participantId !== null &&
@@ -36,18 +51,9 @@ export async function toTripView(
     const pid = actor.participantId;
     const ledger = toLedger(snapshot);
     const roundBal = (val: number) =>
-      snapshot.trip.roundTransfers ? (Math.abs(val) <= 500 ? 0 : Math.round(val / 1000) * 1000) : val;
+      snapshot.trip.roundTransfers ? snapResidual(val) : val;
 
-    let now = snapshot.balances[pid] ?? 0;
-    if (snapshot.trip.roundTransfers) {
-      const owedToMe = snapshot.suggestions
-        .filter((s) => s.toId === pid)
-        .reduce((sum, s) => sum + s.amount, 0);
-      const iOwe = snapshot.suggestions
-        .filter((s) => s.fromId === pid)
-        .reduce((sum, s) => sum + s.amount, 0);
-      now = owedToMe - iOwe;
-    }
+    const now = balances[pid] ?? 0;
     const beforePayments = roundBal(
       computeBalances(ledger.order, ledger.expenses, ledger.payments, {
         ignorePayments: true,
@@ -285,7 +291,7 @@ export async function toTripView(
     trip: snapshot.trip,
     me,
     people,
-    balances: snapshot.balances,
+    balances,
     suggestions: snapshot.suggestions,
     expenses: snapshot.expenses,
     payments: snapshot.payments,

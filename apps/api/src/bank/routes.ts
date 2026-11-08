@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { MyBankResponse, PayInfo } from '@cc/core';
-import { buildTransferNote, buildVietQrPayload, can, SETTLE_PURPOSE, equalBillShare, findBank, isFundPaid, maskAccountNumber, toTransferNote } from '@cc/core';
+import { buildTransferNote, buildVietQrPayload, can, SETTLE_PURPOSE, equalBillShare, findBank, isFundPaid, maskAccountNumber, snapResidual, toTransferNote } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import type { Db } from '@cc/api-db/client';
 import { getDb } from '@cc/api-db/client';
@@ -582,7 +582,8 @@ export async function buildPayInfo(
     senderId?: string | null;
   },
 ): Promise<PayInfo> {
-  const { payerId, toId, amount, snapshot, forPayer, bill } = opts;
+  const { payerId, toId, snapshot, forPayer, bill } = opts;
+  let amount = opts.amount;
 
   const toParticipant = await db
     .select()
@@ -675,23 +676,24 @@ export async function buildPayInfo(
   // QR only exists while something is owed.
   let payload: string | null = null;
   if (bill) {
+    // The bill of one expense this person paid asks for the share when everyone owes the same.
+    const expenseId = bill.expenseId;
+    const billExpense = expenseId
+      ? snapshot.expenses.find(
+          (e) =>
+            (e.id === expenseId || e.rootId === expenseId) &&
+            e.payerId === toId &&
+            (e.status === 'approved' || e.status === 'pending') &&
+            !isFundPaid(e),
+        )
+      : undefined;
+    let billAmount = billExpense ? (equalBillShare(billExpense) ?? 0) : 0;
+    if (trip.roundTransfers === 1 && billAmount > 0) {
+      billAmount = snapResidual(billAmount);
+    }
+    amount = billAmount;
     if (bankState === 'ok' && approvedRow) {
       const billNote = refCode || buildTransferNote({ group: trip.name, purpose: billExpenseName });
-      // The bill of one expense this person paid asks for the share when everyone owes the same.
-      const expenseId = bill.expenseId;
-      const billExpense = expenseId
-        ? snapshot.expenses.find(
-            (e) =>
-              (e.id === expenseId || e.rootId === expenseId) &&
-              e.payerId === toId &&
-              (e.status === 'approved' || e.status === 'pending') &&
-              !isFundPaid(e),
-          )
-        : undefined;
-      let billAmount = billExpense ? (equalBillShare(billExpense) ?? 0) : 0;
-      if (trip.roundTransfers === 1 && billAmount > 0) {
-        billAmount = billAmount <= 500 ? 0 : Math.round(billAmount / 1000) * 1000;
-      }
       payload = buildVietQrPayload({
         bin: approvedRow.bin,
         accountNumber: approvedRow.accountNumber,
