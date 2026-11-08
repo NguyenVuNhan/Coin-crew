@@ -42,6 +42,16 @@ function normalizeExtracted(raw: unknown): ExtractedSportBooking {
     return null;
   };
 
+  const cleanDate = (val: unknown): string | null => {
+    const raw = cleanString(val);
+    if (!raw) return null;
+    const dmy = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(raw);
+    const normalized = dmy
+      ? `${dmy[3]}-${dmy[2]!.padStart(2, '0')}-${dmy[1]!.padStart(2, '0')}`
+      : raw;
+    return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
+  };
+
   const cleanAmount = (val: unknown): number | null => {
     if (typeof val === 'number' && Number.isFinite(val) && val >= 0) {
       return Math.round(val);
@@ -76,7 +86,7 @@ function normalizeExtracted(raw: unknown): ExtractedSportBooking {
     clubName: cleanString(obj.clubName),
     address: cleanString(obj.address),
     phone: cleanString(obj.phone),
-    date: cleanString(obj.date),
+    date: cleanDate(obj.date),
     bookingCode: cleanString(obj.bookingCode),
     totalDuration: cleanString(obj.totalDuration),
     totalAmount: cleanAmount(obj.totalAmount),

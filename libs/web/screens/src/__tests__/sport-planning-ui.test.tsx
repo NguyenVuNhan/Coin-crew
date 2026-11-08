@@ -9,6 +9,7 @@ import { ExpenseRow } from '../components/ExpenseRow';
 import { ExpenseDetails } from '../components/ExpenseDetails';
 import { ExpenseForm } from '../screens/ExpenseForm';
 import { AppNav } from '../components/AppNav';
+import * as qrUtil from '@cc/web-util/qr';
 import type { ExpenseView, TripView } from '@cc/core';
 
 afterEach(() => {
@@ -286,5 +287,136 @@ describe('Sport Planning UI components', () => {
         },
       },
     });
+  });
+
+  it('auto-fills form fields from { extracted } on booking screenshot upload and saves new venue via { location }', async () => {
+    vi.spyOn(qrUtil, 'compressBookingImage').mockResolvedValue('data:image/webp;base64,AAAA');
+    const postedLocations: unknown[] = [];
+    const postedExpenses: unknown[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === 'POST' && url.endsWith('/api/trips/t-1/sport-booking/extract')) {
+          return Response.json({
+            extracted: {
+              clubName: 'Sân Mới Cầu Giấy',
+              address: '99 Cầu Giấy',
+              phone: '0988888888',
+              date: '2026-11-10',
+              bookingCode: 'BK-99',
+              totalDuration: '2h',
+              totalAmount: 200000,
+              courtSlots: [{ courtName: 'Sân 1', timeRange: '18h-20h' }],
+            },
+          });
+        }
+        if (init?.method === 'POST' && url.endsWith('/api/trips/t-1/locations')) {
+          postedLocations.push(JSON.parse(String(init.body)));
+          return Response.json(
+            {
+              location: {
+                id: 'loc-new',
+                name: 'Sân Mới Cầu Giấy',
+                address: '99 Cầu Giấy',
+                phone: '0988888888',
+                mapUrl: null,
+                notes: null,
+              },
+            },
+            { status: 201 },
+          );
+        }
+        if (init?.method === 'POST' && url.endsWith('/api/trips/t-1/expenses')) {
+          postedExpenses.push(JSON.parse(String(init.body)));
+          return Response.json({ expenseId: 'e-new-plan-2' }, { status: 201 });
+        }
+        return Response.json(planningTripView);
+      }),
+    );
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+            <Route path="/t/:tripId/expenses/:expenseId" element={<div>Details page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/What for|Khoản chi gì/i)).toBeTruthy());
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput).toBeTruthy();
+    const fakeFile = new File(['img'], 'booking.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [fakeFile] } });
+
+    await waitFor(() =>
+      expect((screen.getByLabelText(/Venue name|Tên sân/i) as HTMLInputElement).value).toBe('Sân Mới Cầu Giấy'),
+    );
+    expect((screen.getByLabelText(/Address|Địa chỉ/i) as HTMLInputElement).value).toBe('99 Cầu Giấy');
+    expect((screen.getByLabelText(/Booking code|Mã đặt sân/i) as HTMLInputElement).value).toBe('BK-99');
+    expect((container.querySelector('#expense-date') as HTMLInputElement).value).toBe('2026-11-10');
+
+    fireEvent.change(screen.getByLabelText(/What for|Khoản chi gì/i), {
+      target: { value: 'Cầu lông tối T3' },
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /Save planned session|Lưu lịch dự kiến/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => expect(postedExpenses).toHaveLength(1));
+    expect(postedLocations).toHaveLength(1);
+    expect(postedExpenses[0]).toMatchObject({
+      description: 'Cầu lông tối T3',
+      amount: 0,
+      spentOn: '2026-11-10',
+      meta: {
+        sport: {
+          planning: true,
+          bookingCode: 'BK-99',
+          totalDuration: '2h',
+          court: 200000,
+          courtSlots: [{ courtName: 'Sân 1', timeRange: '18h-20h' }],
+          location: {
+            locationId: 'loc-new',
+            name: 'Sân Mới Cầu Giấy',
+            address: '99 Cầu Giấy',
+            phone: '0988888888',
+          },
+        },
+      },
+    });
+  });
+
+  it('blocks non-admin members from opening ?mode=planning', async () => {
+    const nonAdminView: TripView = {
+      ...planningTripView,
+      me: {
+        kind: 'member',
+        participantId: 'p-2',
+        participantPending: false,
+        isOrganiser: false,
+        isAdmin: false,
+      },
+    };
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json(nonAdminView)));
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText(/Only the person who added|Chỉ người thêm/i)).toBeTruthy());
   });
 });

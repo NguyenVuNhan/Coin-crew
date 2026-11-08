@@ -175,6 +175,59 @@ describe('POST /api/trips/:id/sport-booking/extract', () => {
     expect(String(calledUrl)).toContain('gemini-1.5-pro:generateContent?key=test-key');
   });
 
+  it('normalizes DD/MM/YYYY date into YYYY-MM-DD and drops invalid date strings', async () => {
+    (env as Record<string, unknown>).GEMINI_API_KEY = 'test-key';
+    const headers = await minh();
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: '{"clubName":"Sân A","date":"04/11/2026"}' }],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    const res1 = await call(`${base}/sport-booking/extract`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageDataUrl: sampleDataUrl }),
+    });
+    expect(res1.status).toBe(200);
+    const body1 = await json<{ extracted: ExtractedSportBooking }>(res1);
+    expect(body1.extracted.date).toBe('2026-11-04');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: '{"clubName":"Sân A","date":"next-sunday"}' }],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    const res2 = await call(`${base}/sport-booking/extract`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageDataUrl: sampleDataUrl }),
+    });
+    expect(res2.status).toBe(200);
+    const body2 = await json<{ extracted: ExtractedSportBooking }>(res2);
+    expect(body2.extracted.date).toBeNull();
+  });
+
   it('handles upstream Gemini error with 502', async () => {
     (env as Record<string, unknown>).GEMINI_API_KEY = 'test-key';
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(

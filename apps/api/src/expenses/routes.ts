@@ -890,6 +890,7 @@ export function expenseRoutes(): Hono<AppBindings> {
 
     // The new latest copies the target (its meta included) but keeps the current status.
     const targetItem = fundItemOf(targetRow, head.status);
+    if (isPlanningExpense(targetItem)) ensure(actor, 'plan_session');
     if (isFundPaid(targetItem)) ensureFundWrite(actor);
     if (isFundPaid(targetItem) && head.status === 'pending') {
       throw new ApiError('VALIDATION', 422, 'A pending expense cannot be paid from the group fund.');

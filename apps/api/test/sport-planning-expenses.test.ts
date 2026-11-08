@@ -214,4 +214,66 @@ describe('sport planning expenses lifecycle', () => {
     });
     expect(res.status).toBe(422);
   });
+
+  it('allows an admin to rollback a completed session back to its planning version while blocking non-admins', async () => {
+    const minhHeaders = await minh();
+    const { expenseId } = await json<{ expenseId: string }>(
+      call(`${base}/expenses`, {
+        method: 'POST',
+        headers: { ...minhHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(planningInput),
+      }),
+    );
+
+    const completedInput: ExpenseInput = {
+      description: 'Cầu lông sáng CN',
+      amount: 220000,
+      spentOn: '2026-11-08',
+      payerId: PID.M,
+      mode: 'amounts',
+      entries: [
+        { participantId: PID.M, value: 110000 },
+        { participantId: PID.A, value: 110000 },
+      ],
+      meta: {
+        sport: {
+          ...planningInput.meta!.sport!,
+          planning: false,
+          shuttlecocks: [{ qty: 2, unitPrice: 26000 }],
+          maleSlotRate: 110000,
+          femaleSlotRate: 110000,
+        },
+      },
+    };
+
+    const patchRes = await call(`${base}/expenses/${expenseId}`, {
+      method: 'PATCH',
+      headers: { ...minhHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(completedInput),
+    });
+    expect(patchRes.status).toBe(200);
+
+    // Non-admin cannot rollback to planning version
+    const nonAdminHeaders = await anMember();
+    const rbDenied = await call(`${base}/expenses/${expenseId}/rollback`, {
+      method: 'POST',
+      headers: { ...nonAdminHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetHistoryId: expenseId }),
+    });
+    expect(rbDenied.status).toBe(403);
+
+    // Admin can rollback to planning version
+    const rbOk = await call(`${base}/expenses/${expenseId}/rollback`, {
+      method: 'POST',
+      headers: { ...minhHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetHistoryId: expenseId }),
+    });
+    expect(rbOk.status).toBe(200);
+
+    const v = await json<TripView>(call(base, { headers: minhHeaders }));
+    const rolledBack = v.expenses.find((e) => e.rootId === expenseId);
+    expect(rolledBack?.amount).toBe(0);
+    expect(rolledBack?.meta?.sport?.planning).toBe(true);
+    expect(v.balances[PID.M]).toBe(0);
+  });
 });

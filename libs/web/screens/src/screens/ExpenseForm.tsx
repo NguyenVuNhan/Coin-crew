@@ -13,6 +13,7 @@ import type {
   SportRule,
   SportCourtSlot,
   SportLocationSnapshot,
+  TripLocationView,
   ExtractedSportBooking,
 } from '@cc/core';
 import { can, computeShares, computeSportShares, formatVnd, isFundPaid, isPlanningExpense, parseVnd, roundToThousand } from '@cc/core';
@@ -181,7 +182,7 @@ function ExpenseFormContent({
   // Fund admins may pay from the group fund. A fund-paid expense keeps the choice while it is edited (the route lets
   // only fund admins open it), and may spend its own amount again on top of the balance.
   const editingFundPaid = expense !== undefined && isFundPaid(expense);
-  const offerFund = isFundAdmin(view) || editingFundPaid;
+  const offerFund = (isFundAdmin(view) || editingFundPaid) && !isPlanningMode;
   const available = fundAvailable(view, expense);
 
   // People who left stay only on an expense they are already on; a new expense never offers them.
@@ -642,6 +643,15 @@ function ExpenseFormContent({
           mapUrl: found.mapUrl,
         };
       }
+      if (locName.trim() && locAddress.trim()) {
+        return {
+          locationId: locationChoice,
+          name: locName.trim(),
+          address: locAddress.trim(),
+          phone: locPhone.trim() || null,
+          mapUrl: locMapUrl.trim() || null,
+        };
+      }
     }
     return null;
   }, [locationChoice, locName, locAddress, locPhone, locMapUrl, view.locations]);
@@ -677,7 +687,7 @@ function ExpenseFormContent({
     if (view.aiBookingExtract) {
       setIsExtracting(true);
       try {
-        const extracted = await apiSend<ExtractedSportBooking>(
+        const { extracted } = await apiSend<{ extracted: ExtractedSportBooking }>(
           `/api/trips/${tripId}/sport-booking/extract`,
           'POST',
           { imageDataUrl: dataUrl },
@@ -698,7 +708,7 @@ function ExpenseFormContent({
             if (extracted.phone) setLocPhone(extracted.phone);
           }
         }
-        if (extracted.date) {
+        if (extracted.date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.date)) {
           setSpentOn(extracted.date);
         }
         if (extracted.courtSlots && extracted.courtSlots.length > 0) {
@@ -781,12 +791,13 @@ function ExpenseFormContent({
       } else if (sportSelected) {
         let finalLocation = resolvedLocation;
         if (
+          isPlanningMode &&
           locationChoice === '__new__' &&
           finalLocation &&
           can(actorOf(view), 'plan_session')
         ) {
           try {
-            const locRes = await apiSend<{ locationId: string }>(
+            const locRes = await apiSend<{ location: TripLocationView }>(
               `/api/trips/${tripId}/locations`,
               'POST',
               {
@@ -797,7 +808,8 @@ function ExpenseFormContent({
               },
               tripId,
             );
-            finalLocation = { ...finalLocation, locationId: locRes.locationId };
+            finalLocation = { ...finalLocation, locationId: locRes.location.id };
+            setLocationChoice(locRes.location.id);
           } catch {
             // Keep inline snapshot if saving location fails
           }
@@ -1005,7 +1017,7 @@ function ExpenseFormContent({
                 <button
                   type="button"
                   aria-label={t('common.cancel')}
-                  className="inline-flex items-center justify-center size-8 rounded-full bg-transparent border-0 text-secondary-foreground hover:opacity-80 cursor-pointer p-0"
+                  className="inline-flex items-center justify-center size-11 min-h-11 min-w-11 rounded-full bg-transparent border-0 text-secondary-foreground hover:opacity-80 cursor-pointer p-0"
                   onClick={() => setBookingImageDataUrl(null)}
                 >
                   <Icon name="x" size={14} />
@@ -2116,13 +2128,14 @@ export function ExpenseForm() {
   // An expense paid from the fund also needs a fund admin, even to edit one they added.
   const actor = actorOf(view);
   if (
-    expense &&
-    (!can(actor, 'edit_expense', {
-      expenseCreatedById: expense.createdById,
-      expenseStatus: expense.status,
-      isPlanning: isPlanningExpense(expense),
-    }) ||
-      (isFundPaid(expense) && !can(actor, 'manage_fund')))
+    (isPlanningMode && !expense && !can(actor, 'plan_session')) ||
+    (expense &&
+      (!can(actor, 'edit_expense', {
+        expenseCreatedById: expense.createdById,
+        expenseStatus: expense.status,
+        isPlanning: isPlanningExpense(expense),
+      }) ||
+        (isFundPaid(expense) && !can(actor, 'manage_fund'))))
   ) {
     return (
       <Screen title={title} onBack={leave}>
