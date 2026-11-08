@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatVnd, parseVnd } from '../src/money';
+import { formatVnd, parseVnd, roundToThousand, snapResidual } from '../src/money';
 
 describe('formatVnd', () => {
   it('formats with dot groups and ₫', () => {
@@ -19,3 +19,24 @@ describe('parseVnd', () => {
   it.each(['12.5', 'abc', '', '0', '-5000', '10000000001', '1.2.3'])('rejects %s', (input) =>
     expect(parseVnd(input)).toBeNull());
 });
+
+describe('roundToThousand and snapResidual', () => {
+  it('rounds amounts to the nearest 1,000 VND', () => {
+    expect(roundToThousand(16667)).toBe(17000);
+    expect(roundToThousand(16499)).toBe(16000);
+    expect(roundToThousand(83333)).toBe(83000);
+    expect(roundToThousand(0)).toBe(0);
+    expect(roundToThousand(-16667)).toBe(-17000);
+  });
+
+  it('snaps residuals <= 500 to 0', () => {
+    expect(snapResidual(333)).toBe(0);
+    expect(snapResidual(-333)).toBe(0);
+    expect(snapResidual(500)).toBe(0);
+    expect(snapResidual(-500)).toBe(0);
+    expect(snapResidual(501)).toBe(1000);
+    expect(snapResidual(-501)).toBe(-1000);
+    expect(snapResidual(16667)).toBe(17000);
+  });
+});
+
