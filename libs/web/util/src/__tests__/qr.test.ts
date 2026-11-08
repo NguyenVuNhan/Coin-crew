@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { qrSrc, shareQr, useQrSvg } from '../qr';
+import { qrSrc, shareQr, useQrSvg, renderSportBillPng, type SportBillCardInput } from '../qr';
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><path d="M0 0h1v1H0z"/></svg>';
 
@@ -144,3 +144,87 @@ describe('useQrSvg', () => {
     expect(forB.some((s) => s.svg === pictureA)).toBe(false);
   });
 });
+
+describe('renderSportBillPng rounding', () => {
+  function stubCanvasForBill() {
+    const fillText = vi.fn();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => ({
+      fillStyle: '',
+      font: '',
+      textAlign: '',
+      textBaseline: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      fillRect: vi.fn(),
+      fillText,
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      drawImage: vi.fn(),
+    })) as never);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb) => cb(new Blob(['png'], { type: 'image/png' })));
+    return { fillText };
+  }
+
+  const sampleInput: SportBillCardInput = {
+    description: 'Badminton Sunday',
+    spentOn: '2026-11-08',
+    groupName: 'Sunday Crew',
+    total: 400000,
+    court: 400000,
+    shuttlecocksTotal: 0,
+    extra: 0,
+    maleSlotRate: 66667,
+    femaleSlotRate: 66667,
+    totalMaleSlots: 6,
+    totalFemaleSlots: 0,
+    rows: [
+      { name: 'An', femaleSlots: 0, maleSlots: 1, isFixed: false, amount: 66667 },
+    ],
+    payerName: 'Minh',
+  };
+
+  it('draws rounded slot rates and row amounts on Canvas when roundTransfers is true', async () => {
+    const { fillText } = stubCanvasForBill();
+    await renderSportBillPng({
+      ...sampleInput,
+      maleSlotRate: 72727,
+      femaleSlotRate: 60606,
+      rows: [
+        { name: 'An', femaleSlots: 0, maleSlots: 1, isFixed: false, amount: 72727 },
+        { name: 'Chi', femaleSlots: 1, maleSlots: 0, isFixed: false, amount: 60606 },
+      ],
+      roundTransfers: true,
+    });
+
+    const calls = fillText.mock.calls.map((c) => c[0]);
+    // Slot rates rounded
+    expect(calls).toContain('73.000₫');
+    expect(calls).toContain('61.000₫');
+    // Row amounts rounded
+    expect(calls).not.toContain('72.727₫');
+    expect(calls).not.toContain('60.606₫');
+  });
+
+  it('draws exact slot rates and row amounts when roundTransfers is false or undefined', async () => {
+    const { fillText } = stubCanvasForBill();
+    await renderSportBillPng({
+      ...sampleInput,
+      maleSlotRate: 72727,
+      femaleSlotRate: 60606,
+      rows: [
+        { name: 'An', femaleSlots: 0, maleSlots: 1, isFixed: false, amount: 72727 },
+        { name: 'Chi', femaleSlots: 1, maleSlots: 0, isFixed: false, amount: 60606 },
+      ],
+      roundTransfers: false,
+    });
+
+    const calls = fillText.mock.calls.map((c) => c[0]);
+    expect(calls).toContain('72.727₫');
+    expect(calls).toContain('60.606₫');
+    expect(calls).not.toContain('73.000₫');
+    expect(calls).not.toContain('61.000₫');
+  });
+});
+

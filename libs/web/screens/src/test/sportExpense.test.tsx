@@ -420,4 +420,86 @@ describe('Sport ExpenseForm and ExpenseDetails bill sharing', () => {
     // 400.000 ₫ court split 6 ways -> raw 66.667 ₫ -> rounded 67.000 ₫
     expect(await screen.findByTestId('sport-share-btn-p-1')).toHaveTextContent('67.000₫');
   });
+
+  it('renders rounded slot rates and participant amounts in SportBillTable when roundTransfers is true', async () => {
+    const viewWithRoundExpense: TripView = {
+      ...baseSportView,
+      trip: { ...baseSportView.trip, roundTransfers: true },
+      expenses: [
+        {
+          id: 'e-sport-round',
+          description: 'Badminton Session',
+          amount: 400000,
+          spentOn: '2026-11-08',
+          payerId: 'p-minh',
+          mode: 'amounts',
+          status: 'approved',
+          rejectReason: null,
+          disabledByName: null,
+          createdById: 'p-minh',
+          shares: [
+            { participantId: 'p-minh', amount: 66667, inputValue: 66667 },
+            { participantId: 'p-quang', amount: 66667, inputValue: 66667 },
+            { participantId: 'p-chi', amount: 66666, inputValue: 66666 },
+          ],
+          meta: {
+            sport: {
+              court: 400000,
+              shuttlecocks: [],
+              extra: 0,
+              rule: { kind: 'equal' },
+              entries: [
+                { participantId: 'p-minh', maleSlots: 1, femaleSlots: 0 },
+                { participantId: 'p-quang', maleSlots: 1, femaleSlots: 0 },
+                { participantId: 'p-chi', maleSlots: 0, femaleSlots: 1 },
+              ],
+              maleSlotRate: 66667,
+              femaleSlotRate: 66667,
+            },
+          },
+        },
+      ],
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/pay/p-minh?bill=1')) {
+          return Response.json({
+            to: { id: 'p-minh', name: 'Minh' },
+            amount: 0,
+            bankState: 'ok',
+            bank: { bin: '970407', bankName: 'Techcombank', accountNumber: '19031234565678', accountNumberMasked: '1903 •••• 5678', holderName: 'NGUYEN VAN MINH' },
+            refCode: 'CAU LONG T5',
+            payload: '00020101021138580010A000000727012800069704070114190312345656780208QRIBFTTA53037045802VN62150811CAU LONG T56304ABCD',
+            inFlight: [],
+          });
+        }
+        return Response.json(viewWithRoundExpense);
+      }),
+    );
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-sport/expenses/e-sport-round']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/:expenseId" element={<TripRoute />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Share bill & QR' })).toBeInTheDocument());
+
+    // Minh: 66.667 -> 67.000₫
+    // Quang: 66.667 -> 67.000₫
+    // Chi: 66.666 -> 67.000₫
+    // Slot rates: 66.667 -> 67.000₫
+    // Unrounded 66.667₫ and 66.666₫ should not appear in the document
+    expect(screen.queryAllByText('66.667₫')).toHaveLength(0);
+    expect(screen.queryAllByText('66.666₫')).toHaveLength(0);
+    expect(screen.getAllByText('67.000₫').length).toBeGreaterThanOrEqual(1);
+  });
 });

@@ -388,7 +388,12 @@ export function ExpensePay() {
           title={t('expensePay.billTitle')}
         >
           {calc ? (
-            <SportBillTable calc={calc} total={billExpense.amount} meId={view.me.participantId} />
+            <SportBillTable
+              calc={calc}
+              total={billExpense.amount}
+              meId={view.me.participantId}
+              roundTransfers={Boolean(view.trip.roundTransfers)}
+            />
           ) : (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3 text-base">

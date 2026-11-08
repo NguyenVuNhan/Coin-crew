@@ -181,6 +181,7 @@ export function ExpenseDetails({
       payerName: nameOf(view, e.payerId),
       bank: payInfo?.bankState === 'ok' && payInfo.bank ? payInfo.bank : null,
       qrSvg: qrSvg || undefined,
+      roundTransfers: Boolean(view.trip.roundTransfers),
     };
 
     if (platform.kind === 'zmp') {
@@ -281,7 +282,12 @@ export function ExpenseDetails({
         <p className="fsl-details__note text-sm text-muted-foreground m-0">{t('fund.expenseNote')}</p>
       ) : sportCalc ? (
         <>
-          <SportBillTable calc={sportCalc} total={e.amount} meId={view.me.participantId} />
+          <SportBillTable
+            calc={sportCalc}
+            total={e.amount}
+            meId={view.me.participantId}
+            roundTransfers={Boolean(view.trip.roundTransfers)}
+          />
 
           <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
             <Button
