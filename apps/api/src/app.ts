@@ -29,6 +29,7 @@ import { zaloChatRoutes } from './zalo/chatRoutes';
 import { pageRoutes } from './og/routes';
 import { feedbackRoutes } from './feedback/routes';
 import { notificationSettingsRoutes } from './notifications/settingsRoutes';
+import { adminNotificationRoutes } from './notifications/adminRoutes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -66,6 +67,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', zaloChatRoutes());
   app.route('/api', feedbackRoutes());
   app.route('/api', notificationSettingsRoutes());
+  app.route('/api', adminNotificationRoutes());
   app.route('/', pageRoutes());
 
   return app;

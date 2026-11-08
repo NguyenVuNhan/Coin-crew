@@ -280,7 +280,7 @@ describe('Transaction Email Notifications', () => {
     const logsAfterSaysPaid = await getNotificationLogs();
     const paymentLogs1 = logsAfterSaysPaid.filter((l) => l.reference_id === paymentId);
     expect(paymentLogs1).toHaveLength(1);
-    expect(paymentLogs1[0].user_id).toBe(U.minh);
+    expect(paymentLogs1[0]?.user_id).toBe(U.minh);
 
     sendSpy.mockClear();
 
