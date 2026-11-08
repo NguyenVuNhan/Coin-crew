@@ -1006,5 +1006,14 @@ export const vi: Record<MessageKey, string> = {
   'theme.name.orchid': 'Lan tím', // REVIEW
   'theme.name.sky': 'Bầu trời', // REVIEW
   'theme.name.indigo': 'Chàm', // REVIEW
+
+  'notifications.title': 'Thông báo qua email',
+  'notifications.transactionCrud': 'Biến động giao dịch',
+  'notifications.transactionCrudDesc': 'Nhận email khi có giao dịch mới, cập nhật hoặc xoá trong nhóm',
+  'notifications.loanReminders': 'Nhắc nhở số dư & khoản nợ',
+  'notifications.loanRemindersDesc': 'Nhận email định kỳ nhắc nhở về các khoản nợ cần thanh toán',
+  'notifications.monthlyNotice': 'Báo cáo thu chi hàng tháng',
+  'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư các nhóm vào đầu mỗi tháng',
+  'notifications.noEmailWarning': 'Bạn chưa liên kết email. Vui lòng liên kết tài khoản Google để nhận thông báo qua email.',
 };
 
