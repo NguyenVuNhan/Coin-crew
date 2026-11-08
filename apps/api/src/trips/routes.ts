@@ -607,7 +607,7 @@ export function tripRoutes(): Hono<AppBindings> {
     const actor = await resolveActor(c, tripId);
     const db = getDb(c.env);
     const snapshot = await getSnapshot(db, actor.trip);
-    const view = await toTripView(db, snapshot, actor);
+    const view = await toTripView(db, snapshot, actor, c.env);
     return c.json(view);
   });
 

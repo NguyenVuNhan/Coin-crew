@@ -9,6 +9,7 @@ import { testLoginRoutes } from './auth/testLogin';
 import { deviceMiddleware } from '@cc/api-auth/device';
 import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
+import { locationRoutes } from './trips/locations';
 import { participantRoutes } from './participants/routes';
 import { joinRoutes } from './participants/join';
 import { expenseRoutes } from './expenses/routes';
@@ -48,6 +49,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', testLoginRoutes());
   app.route('/api', accessRoutes());
   app.route('/api', tripRoutes());
+  app.route('/api', locationRoutes());
   app.route('/api', participantRoutes());
   app.route('/api', joinRoutes());
   app.route('/api', expenseRoutes());
