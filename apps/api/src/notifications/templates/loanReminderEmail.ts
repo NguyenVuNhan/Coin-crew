@@ -55,8 +55,8 @@ export function renderLoanReminderEmail(options: LoanReminderEmailOptions): {
 
   const greeting = recipientName
     ? isVi
-      ? `Xin chào ${recipientName},`
-      : `Hi ${recipientName},`
+      ? `Xin chào ${escapeHtml(recipientName)},`
+      : `Hi ${escapeHtml(recipientName)},`
     : isVi
     ? 'Xin chào bạn,'
     : 'Hello,';
