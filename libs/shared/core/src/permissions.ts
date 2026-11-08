@@ -4,7 +4,8 @@ export type ActorKind = 'member' | 'guest' | 'viewer';
 export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean }
 export type Action = 'view' | 'add_expense' | 'edit_expense' | 'delete_expense' | 'approve' | 'disable' | 'merge'
   | 'remove_person' | 'regenerate_links' | 'archive' | 'unarchive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank'
-  | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin' | 'leave' | 'restore_person' | 'manage_fund' | 'manage_ratings' | 'rate_player' | 'set_theme';
+  | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin' | 'leave' | 'restore_person' | 'manage_fund' | 'manage_ratings' | 'rate_player' | 'set_theme'
+  | 'plan_session';
 export interface ActionContext {
   expenseCreatedById?: string; expenseStatus?: ExpenseStatus;
   paymentFromId?: string; paymentToId?: string; owesTo?: boolean;
@@ -14,6 +15,7 @@ export interface ActionContext {
   expenseInvolved?: boolean;
   /** The person being removed is an admin: only the organiser removes admins. */
   targetIsAdmin?: boolean;
+  isPlanning?: boolean;
 }
 
 // Source of truth for the permission matrix in the plan (Task 6). Every API route checks through here.
@@ -30,6 +32,7 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
       return true;
     case 'edit_expense':
     case 'delete_expense':
+      if (ctx.isPlanning === true) return isMember && isAdmin;
       // Only the person who added an expense edits or deletes it: a member any time, a guest while it is pending.
       return me !== null && ctx.expenseCreatedById === me && (isMember || ctx.expenseStatus === 'pending');
     case 'archive':
@@ -65,6 +68,7 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
     case 'manage_fund':
     case 'manage_ratings':
     case 'set_theme':
+    case 'plan_session':
       return isMember && isAdmin;
     default:
       return false;

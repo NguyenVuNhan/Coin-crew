@@ -456,3 +456,20 @@ export const notificationLogs = sqliteTable(
   ],
 );
 
+export const tripLocations = sqliteTable(
+  'trip_locations',
+  {
+    id: text('id').primaryKey(),
+    tripId: text('trip_id').notNull(),
+    name: text('name').notNull(),
+    address: text('address').notNull(),
+    phone: text('phone'),
+    mapUrl: text('map_url'),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('trip_locations_trip_id_idx').on(t.tripId)],
+);
+
+

@@ -22,6 +22,8 @@ export type Env = {
   CF_ACCOUNT_ID?: string;
   ZMP_ALLOWED_ORIGINS?: string;
   DEVICE_SECRET?: string;
+  GEMINI_API_KEY?: string;
+  GEMINI_MODEL?: string;
   TEST_MIGRATIONS?: D1Migration[];
 };
 
