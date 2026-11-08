@@ -21,6 +21,7 @@ export type ApiErrorCode =
   | 'PROPOSAL_PENDING'
   | 'CONFLICT'
   | 'ZALO_TOKEN_INVALID'
+  | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
 /** `POST /api/auth/zalo-mini`: the Zalo Mini App handshake (and, with `consent`, its sign-up). */

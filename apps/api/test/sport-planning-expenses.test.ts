@@ -190,4 +190,28 @@ describe('sport planning expenses lifecycle', () => {
     const v = await json<TripView>(call(base, { headers: minhHeaders }));
     expect(v.expenses.find((e) => e.id === expenseId)).toBeUndefined();
   });
+
+  it('rejects invalid mapUrl scheme in planning session location', async () => {
+    const headers = await minh();
+    const badInput = {
+      ...planningInput,
+      meta: {
+        ...planningInput.meta,
+        sport: {
+          ...planningInput.meta?.sport,
+          location: {
+            name: 'Sân Cầu Lông',
+            address: '123 Đường',
+            mapUrl: 'javascript:alert(1)',
+          },
+        },
+      },
+    };
+    const res = await call(`${base}/expenses`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(badInput),
+    });
+    expect(res.status).toBe(422);
+  });
 });

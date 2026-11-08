@@ -88,8 +88,22 @@ function validateSportExtended(sport: Record<string, unknown>): {
     if (loc.phone !== undefined && loc.phone !== null && (typeof loc.phone !== 'string' || loc.phone.length > 40)) {
       throw new ApiError('VALIDATION', 422, 'Invalid location phone');
     }
-    if (loc.mapUrl !== undefined && loc.mapUrl !== null && (typeof loc.mapUrl !== 'string' || loc.mapUrl.length > 2048)) {
-      throw new ApiError('VALIDATION', 422, 'Invalid location mapUrl');
+    let mapUrlVal: string | null | undefined = undefined;
+    if (loc.mapUrl !== undefined) {
+      if (loc.mapUrl === null) {
+        mapUrlVal = null;
+      } else if (typeof loc.mapUrl !== 'string') {
+        throw new ApiError('VALIDATION', 422, 'Invalid location mapUrl');
+      } else {
+        const trimmed = loc.mapUrl.trim();
+        if (trimmed.length === 0) {
+          mapUrlVal = null;
+        } else if (trimmed.length > 500 || !/^https?:\/\/\S+$/i.test(trimmed)) {
+          throw new ApiError('VALIDATION', 422, 'Invalid location mapUrl');
+        } else {
+          mapUrlVal = trimmed;
+        }
+      }
     }
     if (loc.locationId !== undefined && loc.locationId !== null && (typeof loc.locationId !== 'string' || loc.locationId.length > 40)) {
       throw new ApiError('VALIDATION', 422, 'Invalid location locationId');
@@ -99,7 +113,7 @@ function validateSportExtended(sport: Record<string, unknown>): {
       address: loc.address.trim(),
       ...(loc.locationId !== undefined ? { locationId: loc.locationId as string | null } : {}),
       ...(loc.phone !== undefined ? { phone: loc.phone as string | null } : {}),
-      ...(loc.mapUrl !== undefined ? { mapUrl: loc.mapUrl as string | null } : {}),
+      ...(loc.mapUrl !== undefined ? { mapUrl: mapUrlVal } : {}),
     };
   } else if (sport.location === null) {
     result.location = null;
