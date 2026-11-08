@@ -212,4 +212,21 @@ describe('SportBillTable and sportBillCalc', () => {
       expect(cell).toHaveClass('break-words');
     });
   });
+
+  it('renders rounded slot rates and row amounts when roundTransfers is true', () => {
+    setLang('en');
+    const calc = sportBillCalc(baseSportTripView, sportExpense380k)!;
+    render(<SportBillTable calc={calc} total={sportExpense380k.amount} meId="p-minh" roundTransfers={true} />);
+
+    // Unrounded 113.334₫ and 113.333₫ become 113.000₫
+    // Unrounded 98.333₫ becomes 98.000₫
+    // 55.000₫ remains 55.000₫
+    expect(screen.getAllByText('113.000₫').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('98.000₫').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('55.000₫')).toBeInTheDocument();
+
+    expect(screen.queryByText('113.334₫')).toBeNull();
+    expect(screen.queryByText('113.333₫')).toBeNull();
+    expect(screen.queryByText('98.333₫')).toBeNull();
+  });
 });

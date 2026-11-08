@@ -432,3 +432,27 @@ export const feedbackRate = sqliteTable(
   },
   (t) => [index('feedback_rate_bucket_idx').on(t.bucket)],
 );
+
+export const userNotificationSettings = sqliteTable('user_notification_settings', {
+  userId: text('user_id').primaryKey().references(() => users.id),
+  transactionCrud: integer('transaction_crud').notNull().default(1),
+  loanReminders: integer('loan_reminders').notNull().default(1),
+  monthlyNotice: integer('monthly_notice').notNull().default(1),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const notificationLogs = sqliteTable(
+  'notification_logs',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id),
+    tripId: text('trip_id').references(() => trips.id),
+    type: text('type', { enum: ['transaction_crud', 'loan_reminder', 'monthly_notice'] }).notNull(),
+    referenceId: text('reference_id').notNull(),
+    sentAt: text('sent_at').notNull(),
+  },
+  (t) => [
+    index('notification_logs_user_trip_type_sent_idx').on(t.userId, t.tripId, t.type, t.sentAt),
+  ],
+);
+

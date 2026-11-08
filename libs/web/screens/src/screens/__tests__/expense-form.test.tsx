@@ -48,6 +48,28 @@ describe('ExpenseForm', () => {
     for (const name of ['Minh', 'An', 'Bình', 'Chi']) expect(within(rowOf(name)).getByText('45.000₫')).toBeInTheDocument();
   });
 
+  it('displays rounded thousand in split row share preview when roundTransfers is true for equal split', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView({ trip: { ...tripView().trip, roundTransfers: true } }) });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
+    await untick('Chi');
+    // 100.000 split 3 ways -> 33.334₫ and 33.333₫ raw -> both round to 33.000₫
+    for (const name of ['Minh', 'An', 'Bình']) {
+      expect(within(rowOf(name)).getByText('33.000₫')).toBeInTheDocument();
+    }
+  });
+
+  it('preserves exact typed amounts in amounts mode even when roundTransfers is true', async () => {
+    mockApi({ 'GET /api/trips/t-1': tripView({ trip: { ...tripView().trip, roundTransfers: true } }) });
+    renderAt(<ExpenseForm />, newRoute);
+    await userEvent.type(await screen.findByLabelText('Amount'), '100.000');
+    await userEvent.click(screen.getByRole('radio', { name: 'Exact amounts' }));
+    await userEvent.type(screen.getByLabelText('Amount for Minh'), '33.333');
+    await userEvent.type(screen.getByLabelText('Amount for An'), '33.333');
+    await userEvent.type(screen.getByLabelText('Amount for Bình'), '33.334');
+    expect(within(rowOf('Minh')).getByText('33.333₫')).toBeInTheDocument();
+  });
+
   it('understands 1,5tr', async () => {
     mockApi({ 'GET /api/trips/t-1': tripView() });
     renderAt(<ExpenseForm />, newRoute);

@@ -1,4 +1,4 @@
-import { formatVnd } from '@cc/core';
+import { formatVnd, roundToThousand } from '@cc/core';
 import type { ExpenseView } from '@cc/core';
 import type { TripSnapshot } from '../trips/snapshot';
 
@@ -195,15 +195,17 @@ export function pageMeta(input: PageMetaInput): PageMeta {
       }
     }
 
+    const round = snapshot.trip.roundTransfers ? roundToThousand : (v: number) => v;
+
     if (maleSlots > 0 && femaleSlots > 0 && sport.maleSlotRate !== sport.femaleSlotRate) {
       parts.push(
         interpolate(t.sportMaleFemaleRate, {
-          male: formatVnd(sport.maleSlotRate),
-          female: formatVnd(sport.femaleSlotRate),
+          male: formatVnd(round(sport.maleSlotRate)),
+          female: formatVnd(round(sport.femaleSlotRate)),
         }),
       );
     } else {
-      const rate = maleSlots > 0 ? sport.maleSlotRate : sport.femaleSlotRate;
+      const rate = round(maleSlots > 0 ? sport.maleSlotRate : sport.femaleSlotRate);
       parts.push(interpolate(t.sportPerSlotRate, { rate: formatVnd(rate) }));
     }
 

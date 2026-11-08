@@ -16,6 +16,8 @@ export type Env = {
   /** Google Apps Script web app that appends feedback to the Sheet (docs/setup.md §4.8). */
   FEEDBACK_SHEET_WEBHOOK_URL?: string;
   FEEDBACK_SHEET_TOKEN?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
   ZMP_ALLOWED_ORIGINS?: string;

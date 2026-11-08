@@ -5,6 +5,7 @@ import type { ExpenseView, TripView } from '@cc/core';
 import { renderAt } from '../../test/render';
 import { tripView, viewerView, PIDS } from '../../test/fixtures';
 import { ExpenseList } from '../ExpenseList';
+import { ExpenseRow } from '../ExpenseRow';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -80,5 +81,57 @@ describe('ExpenseList', () => {
     render(tripView({ expenses: [] }));
     expect(screen.getByText('No expenses yet.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Show all' })).toBeNull();
+  });
+
+  it('rounds user share in ExpenseRow when trip roundTransfers is true', () => {
+    const exp50k: ExpenseView = {
+      id: 'e-50k',
+      description: 'Trà sữa',
+      amount: 50000,
+      spentOn: '2026-10-12',
+      payerId: PIDS.A,
+      mode: 'equal',
+      status: 'approved',
+      rejectReason: null,
+      disabledByName: null,
+      createdById: PIDS.A,
+      shares: [
+        { participantId: PIDS.M, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.A, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.B, amount: 16666, inputValue: 1 },
+      ],
+    };
+    const viewWithRounding = tripView({
+      trip: { ...tripView().trip, roundTransfers: true },
+      expenses: [exp50k],
+    });
+    renderAt(<ExpenseRow expense={exp50k} view={viewWithRounding} />);
+    expect(screen.getByText('17.000₫')).toBeInTheDocument();
+  });
+
+  it('keeps exact user share in ExpenseRow when trip roundTransfers is false or undefined', () => {
+    const exp50k: ExpenseView = {
+      id: 'e-50k',
+      description: 'Trà sữa',
+      amount: 50000,
+      spentOn: '2026-10-12',
+      payerId: PIDS.A,
+      mode: 'equal',
+      status: 'approved',
+      rejectReason: null,
+      disabledByName: null,
+      createdById: PIDS.A,
+      shares: [
+        { participantId: PIDS.M, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.A, amount: 16667, inputValue: 1 },
+        { participantId: PIDS.B, amount: 16666, inputValue: 1 },
+      ],
+    };
+    const viewExact = tripView({
+      trip: { ...tripView().trip, roundTransfers: false },
+      expenses: [exp50k],
+    });
+    renderAt(<ExpenseRow expense={exp50k} view={viewExact} />);
+    expect(screen.getByText('16.667₫')).toBeInTheDocument();
   });
 });

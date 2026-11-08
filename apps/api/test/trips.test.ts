@@ -477,4 +477,63 @@ describe('trip view', () => {
     const acts = await json<ActivityItem[]>(call(`/api/trips/${T.tripId}/activity`, { headers }));
     expect(acts.some((a) => a.action === 'trip_unarchived')).toBe(false);
   });
+
+  it('derives TripView.balances from rounded suggestions when roundTransfers is enabled', async () => {
+    // Setup group where 50k 3-way split is settled with 17k payment from Binh to An.
+    // Verify TripView.balances[binhId] is 0 and TripView.balances[anId] is 17000 (from remaining suggestion from Chi), with no 333 residual.
+    const headers = { ...(await minh()), 'Content-Type': 'application/json' };
+    const res = await call('/api/trips', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Split 50k 3-way Test',
+        myName: 'An',
+        people: ['Bình', 'Chi'],
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { tripId } = await json<{ tripId: string }>(res);
+
+    const v0 = await view(headers, tripId);
+    expect(v0.trip.roundTransfers).toBe(true);
+    const anId = v0.people[0]!.id;
+    const binhId = v0.people[1]!.id;
+    const chiId = v0.people[2]!.id;
+
+    // 50k expense paid by An, split 3 ways
+    const expRes = await call(`/api/trips/${tripId}/expenses`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        description: 'Ăn trưa',
+        amount: 50000,
+        spentOn: '2026-10-12',
+        payerId: anId,
+        mode: 'equal',
+        entries: [
+          { participantId: anId, value: 1 },
+          { participantId: binhId, value: 1 },
+          { participantId: chiId, value: 1 },
+        ],
+      }),
+    });
+    expect(expRes.status).toBe(201);
+
+    // Binh pays An 17.000 (rounded suggestion)
+    const payRes = await call(`/api/trips/${tripId}/payments`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        fromId: binhId,
+        toId: anId,
+        amount: 17000,
+      }),
+    });
+    expect(payRes.status).toBe(201);
+
+    const v = await view(headers, tripId);
+    expect(v.balances[binhId]).toBe(0);
+    expect(v.balances[anId]).toBe(17000);
+    expect(v.balances[chiId]).toBe(-17000);
+  });
 });

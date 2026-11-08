@@ -12,7 +12,7 @@ import type {
   SportParticipantEntry,
   SportRule,
 } from '@cc/core';
-import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd } from '@cc/core';
+import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd, roundToThousand } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { useTripView } from '@cc/web-data-access/hooks';
@@ -518,6 +518,13 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         return '0';
     }
   }
+
+  const splitMode = sportSelected ? 'sport' : mode;
+  const displayShare = (amt: number | undefined) => {
+    if (amt === undefined) return '';
+    const rounded = view.trip.roundTransfers && splitMode !== 'amounts' ? roundToThousand(amt) : amt;
+    return formatVnd(rounded);
+  };
 
   // Each person's share as the amount and the split are typed. Once the split adds up it is core's result (which
   // places the leftover dong); before that, exact amounts are what was typed and a percentage is its part of the
@@ -1236,7 +1243,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                               setOpenDrawerId(openDrawerId === person.id ? null : person.id)
                             }
                           >
-                            <span>{formatVnd(shareAmount ?? 0)}</span>
+                            <span>{displayShare(shareAmount ?? 0)}</span>
                             <Icon name="edit" size={14} />
                           </button>
                         </div>
@@ -1505,7 +1512,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
                       {shareAmount !== undefined && (
                         <span className={cn('fsl-split-row__share font-semibold tabular-nums text-right whitespace-nowrap text-base text-foreground min-w-16')}>
-                          {formatVnd(shareAmount)}
+                          {displayShare(shareAmount)}
                         </span>
                       )}
                     </div>

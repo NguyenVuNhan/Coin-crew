@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
-import { formatVnd, payerLabel, type ExpensePayView, type PaidBy } from '@cc/core';
+import { formatVnd, payerLabel, roundToThousand, type ExpensePayView, type PaidBy } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { useTripView, useMe } from '@cc/web-data-access/hooks';
@@ -388,7 +388,12 @@ export function ExpensePay() {
           title={t('expensePay.billTitle')}
         >
           {calc ? (
-            <SportBillTable calc={calc} total={billExpense.amount} meId={view.me.participantId} />
+            <SportBillTable
+              calc={calc}
+              total={billExpense.amount}
+              meId={view.me.participantId}
+              roundTransfers={Boolean(view.trip.roundTransfers)}
+            />
           ) : (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3 text-base">
@@ -396,15 +401,18 @@ export function ExpensePay() {
                 <Amount value={billExpense.amount} />
               </div>
               <div className="rounded-xl bg-card divide-y divide-border border border-border overflow-hidden">
-                {billExpense.shares.map((s) => (
-                  <div
-                    key={s.participantId}
-                    className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-sm"
-                  >
-                    <span className="text-foreground">{nameOf(view, s.participantId)}</span>
-                    <Amount value={s.amount} />
-                  </div>
-                ))}
+                {billExpense.shares.map((s) => {
+                  const shareVal = view.trip.roundTransfers ? roundToThousand(s.amount) : s.amount;
+                  return (
+                    <div
+                      key={s.participantId}
+                      className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-sm"
+                    >
+                      <span className="text-foreground">{nameOf(view, s.participantId)}</span>
+                      <Amount value={shareVal} />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

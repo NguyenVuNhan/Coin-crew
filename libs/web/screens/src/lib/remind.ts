@@ -1,4 +1,4 @@
-import { formatVnd, type TripView, type Gender } from '@cc/core';
+import { formatVnd, roundToThousand, type TripView, type Gender } from '@cc/core';
 import type { Lang } from '@cc/web-i18n';
 import { en } from '@cc/web-i18n/en';
 import { vi } from '@cc/web-i18n/vi';
@@ -25,10 +25,12 @@ export interface SportShareTextInput {
   totalFemaleSlots: number;
   participants: SportShareParticipant[];
   link: string;
+  roundTransfers?: boolean;
 }
 
 export function sportShareText(lang: Lang, input: SportShareTextInput): string {
   const parts: string[] = [];
+  const round = input.roundTransfers ? roundToThousand : (v: number) => v;
 
   if (input.court > 0) {
     parts.push(lang === 'vi' ? `Sân ${formatVnd(input.court)}` : `Court ${formatVnd(input.court)}`);
@@ -47,11 +49,11 @@ export function sportShareText(lang: Lang, input: SportShareTextInput): string {
   ) {
     parts.push(
       lang === 'vi'
-        ? `Nam đóng ${formatVnd(input.maleSlotRate)}, nữ đóng ${formatVnd(input.femaleSlotRate)}`
-        : `Men pay ${formatVnd(input.maleSlotRate)}, women pay ${formatVnd(input.femaleSlotRate)}`,
+        ? `Nam đóng ${formatVnd(round(input.maleSlotRate))}, nữ đóng ${formatVnd(round(input.femaleSlotRate))}`
+        : `Men pay ${formatVnd(round(input.maleSlotRate))}, women pay ${formatVnd(round(input.femaleSlotRate))}`,
     );
   } else {
-    const r = input.totalMaleSlots > 0 ? input.maleSlotRate : input.femaleSlotRate;
+    const r = round(input.totalMaleSlots > 0 ? input.maleSlotRate : input.femaleSlotRate);
     parts.push(
       lang === 'vi'
         ? `mỗi suất đóng ${formatVnd(r)}`
@@ -71,8 +73,8 @@ export function sportShareText(lang: Lang, input: SportShareTextInput): string {
     if (isFixed || multiSlots || genderFlip) {
       parts.push(
         lang === 'vi'
-          ? `riêng ${p.name} đóng ${formatVnd(p.amount)}`
-          : `except ${p.name} pays ${formatVnd(p.amount)}`,
+          ? `riêng ${p.name} đóng ${formatVnd(round(p.amount))}`
+          : `except ${p.name} pays ${formatVnd(round(p.amount))}`,
       );
     }
   }

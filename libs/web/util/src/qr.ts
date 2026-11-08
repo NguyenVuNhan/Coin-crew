@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { formatVnd } from '@cc/core';
+import { formatVnd, roundToThousand } from '@cc/core';
 
 const PNG_SIZE = 1024;
 
@@ -167,6 +167,7 @@ export interface SportBillCardInput {
   payerName: string;
   bank?: { bankName: string; accountNumber: string; holderName: string } | null;
   qrSvg?: string;
+  roundTransfers?: boolean;
 }
 
 export function renderSportBillPng(input: SportBillCardInput): Promise<Blob | null> {
@@ -259,6 +260,8 @@ export function renderSportBillPng(input: SportBillCardInput): Promise<Blob | nu
   currentY += rowHeight;
   drawRowBorder(currentY);
 
+  const round = input.roundTransfers ? roundToThousand : (v: number) => v;
+
   // 2. Participant Rows
   for (const row of input.rows) {
     ctx.fillStyle = '#ffffff';
@@ -266,7 +269,7 @@ export function renderSportBillPng(input: SportBillCardInput): Promise<Blob | nu
     drawCell(row.name + (row.isFixed ? ' (Cố định)' : ''), colX[0], currentY, colWidths[0], rowHeight, 'left', false);
     drawCell(row.femaleSlots ? String(row.femaleSlots) : '—', colX[1], currentY, colWidths[1], rowHeight, 'center', false);
     drawCell(row.maleSlots ? String(row.maleSlots) : '—', colX[2], currentY, colWidths[2], rowHeight, 'center', false);
-    drawCell(formatVnd(row.amount), colX[3], currentY, colWidths[3], rowHeight, 'right', false);
+    drawCell(formatVnd(round(row.amount)), colX[3], currentY, colWidths[3], rowHeight, 'right', false);
     currentY += rowHeight;
     drawRowBorder(currentY);
   }
@@ -299,8 +302,8 @@ export function renderSportBillPng(input: SportBillCardInput): Promise<Blob | nu
   ctx.fillStyle = '#f3f4f6';
   ctx.fillRect(padX, currentY, tableWidth, rowHeight);
   drawCell('MỖI SUẤT', colX[0], currentY, colWidths[0], rowHeight, 'left', true);
-  drawCell(formatVnd(input.femaleSlotRate), colX[1], currentY, colWidths[1], rowHeight, 'center', true);
-  drawCell(formatVnd(input.maleSlotRate), colX[2], currentY, colWidths[2], rowHeight, 'center', true);
+  drawCell(formatVnd(round(input.femaleSlotRate)), colX[1], currentY, colWidths[1], rowHeight, 'center', true);
+  drawCell(formatVnd(round(input.maleSlotRate)), colX[2], currentY, colWidths[2], rowHeight, 'center', true);
   drawCell('', colX[3], currentY, colWidths[3], rowHeight, 'right', true);
   currentY += rowHeight;
   drawRowBorder(currentY);

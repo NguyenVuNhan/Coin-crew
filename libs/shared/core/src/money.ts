@@ -30,3 +30,12 @@ export function parseVnd(input: string): number | null {
   if (value === null || !Number.isSafeInteger(value) || value <= 0 || value > MAX_AMOUNT) return null;
   return value;
 }
+
+export function roundToThousand(val: number): number {
+  return Math.round(val / 1000) * 1000;
+}
+
+export function snapResidual(val: number, threshold = 500): number {
+  return Math.abs(val) <= threshold ? 0 : Math.round(val / 1000) * 1000;
+}
+
