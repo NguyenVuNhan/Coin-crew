@@ -2,6 +2,7 @@ import {
   can,
   canConfirmPayment,
   isFundPaid,
+  isPlanningExpense,
   notArrivedOutcome,
   arrivedOutcome,
   type Actor,
@@ -60,7 +61,13 @@ export function expenseActions(view: TripView, e: ExpenseView, deps: ActionDeps)
     );
   }
 
-  if (can(actor, 'edit_expense', { expenseCreatedById: e.createdById, expenseStatus: e.status })) {
+  if (
+    can(actor, 'edit_expense', {
+      expenseCreatedById: e.createdById,
+      expenseStatus: e.status,
+      isPlanning: isPlanningExpense(e),
+    })
+  ) {
     actions.push({ id: 'edit', label: t('approvals.edit'), icon: 'edit', onSelect: () => navigate(`${base}/expenses/${e.id}/edit`) });
   }
 

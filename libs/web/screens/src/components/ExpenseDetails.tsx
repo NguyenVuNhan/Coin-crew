@@ -1,14 +1,14 @@
 import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { ExpenseView, TripView } from '@cc/core';
-import { isFundPaid, roundToThousand } from '@cc/core';
+import { can, isFundPaid, isPlanningExpense, roundToThousand } from '@cc/core';
 import { useT, useLang } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { nameOf, splitText } from '@cc/web-util/tripText';
 import { formatDay } from '@cc/web-util/time';
 import { useTripAction } from '../lib/useTripAction';
 import { useTrip } from '../lib/tripBase';
-import { expenseActions } from '../lib/rowActions';
+import { actorOf, expenseActions } from '../lib/rowActions';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Pill, type PillProps } from '@cc/web-ui/components/Pill';
@@ -17,19 +17,28 @@ import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Icon } from '@cc/web-ui/components/icons';
 import { usePayInfo } from '@cc/web-data-access/payInfo';
-import { useQrSvg, shareSportBill, renderSportBillPng, type SportBillCardInput } from '@cc/web-util/qr';
+import {
+  useQrSvg,
+  shareSportBill,
+  renderSportBillPng,
+  shareSportPlanning,
+  renderSportPlanningPng,
+  type SportBillCardInput,
+  type SportPlanningCardInput,
+} from '@cc/web-util/qr';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
 import { useIsMousePointer } from '@cc/web-util/media';
 import { copyText } from '@cc/web-util/clipboard';
 import { useImageSheet } from './SaveImageSheet';
 import { useBankFirst } from './BankFirstSheet';
 import { SportBillTable } from './SportBillTable';
-import { sportShareText, expenseLink } from '../lib/remind';
-import { sportBillCard } from '../lib/shareCards';
+import { sportShareText, sportPlanningShareText, expenseLink } from '../lib/remind';
+import { sportBillCard, sportPlanningCard } from '../lib/shareCards';
 import { sportBillCalc } from '../lib/sportBill';
 import { usePlatform } from '@cc/web-platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
 import { cn } from '@cc/web-ui/lib/utils';
+import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 
@@ -60,21 +69,24 @@ export function ExpenseDetails({
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [sharing, setSharing] = useState(false);
+  const [includeProofImage, setIncludeProofImage] = useState(false);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
   const mouse = useIsMousePointer();
   const [shareStatus, setShareStatus] = useState<'saved' | 'copied' | 'failed' | null>(null);
   const reasonId = useId();
+  const proofCheckboxId = useId();
 
   const e = view.expenses.find(
     (x) => x.id === expenseId || x.rootId === expenseId || x.history?.some((h) => h.id === expenseId),
   );
+  const isPlanning = Boolean(e && isPlanningExpense(e));
 
   const { data: payInfo } = usePayInfo({
     tripId: view.trip.id,
     toId: e?.payerId ?? '',
     bill: true,
     expenseId: e ? (e.rootId ?? e.id) : undefined,
-    enabled: Boolean(e?.meta?.sport),
+    enabled: Boolean(e?.meta?.sport) && !isPlanning,
     version: view.trip.version,
   });
   const qrSvg = useQrSvg(payInfo?.payload ?? null);
@@ -105,6 +117,22 @@ export function ExpenseDetails({
       roundTransfers: Boolean(view.trip.roundTransfers),
     });
   }, [sportCalc, lang, view, e]);
+
+  const planningMsgText = useMemo(() => {
+    if (!sportCalc || !e || !isPlanning) return '';
+    const link = expenseLink(view, e.rootId ?? e.id);
+    return sportPlanningShareText(lang, {
+      description: e.description,
+      spentOn: formatDay(e.spentOn),
+      location: e.meta?.sport?.location ?? null,
+      courtSlots: e.meta?.sport?.courtSlots ?? [],
+      bookingCode: e.meta?.sport?.bookingCode ?? null,
+      totalDuration: e.meta?.sport?.totalDuration ?? null,
+      totalFemaleSlots: sportCalc.totalFemaleSlots,
+      totalMaleSlots: sportCalc.totalMaleSlots,
+      link,
+    });
+  }, [sportCalc, lang, view, e, isPlanning]);
 
   if (!e) {
     return (
@@ -225,6 +253,72 @@ export function ExpenseDetails({
     }
   };
 
+  const canPlanSession = !view.trip.archived && can(actorOf(view), 'plan_session');
+  const sportMeta = e.meta?.sport;
+
+  const handleShareSportPlanning = async () => {
+    if (!sportCalc) return;
+    setShareStatus(null);
+
+    const planningInput: SportPlanningCardInput = {
+      description: e.description,
+      spentOn: formatDay(e.spentOn),
+      groupName: view.trip.name,
+      location: sportMeta?.location ?? null,
+      courtSlots: sportMeta?.courtSlots ?? [],
+      bookingCode: sportMeta?.bookingCode ?? null,
+      totalDuration: sportMeta?.totalDuration ?? null,
+      totalMaleSlots: sportCalc.totalMaleSlots,
+      totalFemaleSlots: sportCalc.totalFemaleSlots,
+      rows: sportCalc.participants.map((p) => ({
+        name: p.name,
+        femaleSlots: p.femaleSlots,
+        maleSlots: p.maleSlots,
+      })),
+      bookingImageDataUrl: sportMeta?.bookingImageDataUrl ?? null,
+      includeProofImage,
+    };
+
+    if (platform.kind === 'zmp') {
+      setSharing(true);
+      try {
+        const blob = await renderSportPlanningPng(planningInput);
+        let saved = false;
+        if (blob) {
+          const fileName = `plan-${(e.description || 'sport').replace(/\s+/g, '-')}.png`;
+          const saveRes = await platform.saveImage(blob, fileName);
+          saved = saveRes === 'saved';
+        }
+        await platform.share(sportPlanningCard(view, e.rootId ?? e.id, planningMsgText, platform.apiBase));
+        setShareStatus(saved ? 'saved' : 'failed');
+      } catch {
+        setShareStatus('failed');
+      } finally {
+        setSharing(false);
+      }
+      return;
+    }
+
+    if (isZaloWebView()) {
+      showImage(() => renderSportPlanningPng(planningInput), planningMsgText);
+      return;
+    }
+
+    setSharing(true);
+    try {
+      const res = await shareSportPlanning(planningInput, planningMsgText, e.description);
+      if (res === 'saved') {
+        setShareStatus('saved');
+      } else if (res === 'failed') {
+        setShareStatus('failed');
+      }
+    } catch {
+      setShareStatus('failed');
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <article className="fsl-details flex flex-col gap-4 min-w-0">
       {imageSheet}
@@ -233,10 +327,29 @@ export function ExpenseDetails({
         <h2 className="fsl-details__title text-lg font-semibold text-foreground m-0 break-words focus:outline-none" tabIndex={-1}>
           {e.description}
         </h2>
-        <Pill tone={status.tone}>{t(status.label)}</Pill>
+        {isPlanning && e.status !== 'disabled' ? (
+          <Pill tone="accent">{t('sport.planningBadge')}</Pill>
+        ) : (
+          <Pill tone={status.tone}>{t(status.label)}</Pill>
+        )}
       </div>
 
-      <Amount value={e.amount} size="xl" className="text-3xl font-bold tabular-nums" />
+      {isPlanning ? (
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold tabular-nums text-foreground">
+            {t('sport.slotsCount', {
+              count: (sportCalc?.totalFemaleSlots ?? 0) + (sportCalc?.totalMaleSlots ?? 0),
+            })}
+          </span>
+          {sportCalc && (
+            <span className="text-sm font-medium text-muted-foreground tabular-nums">
+              ({t('sport.slotsBadge', { f: sportCalc.totalFemaleSlots, m: sportCalc.totalMaleSlots })})
+            </span>
+          )}
+        </div>
+      ) : (
+        <Amount value={e.amount} size="xl" className="text-3xl font-bold tabular-nums" />
+      )}
 
       {e.status === 'rejected' && e.rejectReason ? (
         <p className="fsl-details__note fsl-details__note--danger text-sm text-danger m-0">
@@ -254,17 +367,71 @@ export function ExpenseDetails({
           <dt className="text-sm text-muted-foreground">{t('details.date')}</dt>
           <dd className="text-sm font-medium text-foreground text-right m-0">{formatDay(e.spentOn)}</dd>
         </div>
-        <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
-          <dt className="text-sm text-muted-foreground">{t('details.paidBy')}</dt>
-          <dd className="text-sm font-medium text-foreground text-right m-0">{fromFund ? t('fund.title') : whoText(e.payerId)}</dd>
-        </div>
+        {sportMeta?.location?.name && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('sport.locationLabel')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">{sportMeta.location.name}</dd>
+          </div>
+        )}
+        {sportMeta?.location?.address && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('sport.locationAddress')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0 flex items-center justify-end gap-2 flex-wrap">
+              <span>{sportMeta.location.address}</span>
+              {sportMeta.location.mapUrl && (
+                <a
+                  href={sportMeta.location.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(ev) => {
+                    if (platform.kind === 'zmp' && sportMeta.location?.mapUrl) {
+                      ev.preventDefault();
+                      void platform.openExternal(sportMeta.location.mapUrl);
+                    }
+                  }}
+                  className="inline-flex items-center min-h-11 px-2 text-primary font-semibold hover:underline"
+                >
+                  {t('sport.openMap')}
+                </a>
+              )}
+            </dd>
+          </div>
+        )}
+        {sportMeta?.location?.phone && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('sport.locationPhone')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">{sportMeta.location.phone}</dd>
+          </div>
+        )}
+        {sportMeta?.courtSlots && sportMeta.courtSlots.length > 0 && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('sport.courtSlotsLabel')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">
+              {sportMeta.courtSlots.map((c) => `${c.courtName} (${c.timeRange})`).join(' · ')}
+            </dd>
+          </div>
+        )}
+        {(sportMeta?.bookingCode || sportMeta?.totalDuration) && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('sport.bookingCodeLabel')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">
+              {[sportMeta.bookingCode, sportMeta.totalDuration].filter(Boolean).join(' · ')}
+            </dd>
+          </div>
+        )}
+        {!isPlanning && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('details.paidBy')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">{fromFund ? t('fund.title') : whoText(e.payerId)}</dd>
+          </div>
+        )}
         <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
           <dt className="text-sm text-muted-foreground">{t('details.addedBy')}</dt>
           <dd className="text-sm font-medium text-foreground text-right m-0">
             {fromFund ? `${whoText(e.createdById)} · ${formatDay(e.spentOn)}` : whoText(e.createdById)}
           </dd>
         </div>
-        {!fromFund && (
+        {!fromFund && !isPlanning && (
           <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
             <dt className="text-sm text-muted-foreground">{t('details.split')}</dt>
             <dd className="text-sm font-medium text-foreground text-right m-0">
@@ -284,37 +451,81 @@ export function ExpenseDetails({
         <>
           <SportBillTable
             calc={sportCalc}
-            total={e.amount}
+            total={isPlanning ? 0 : e.amount}
             meId={view.me.participantId}
             roundTransfers={Boolean(view.trip.roundTransfers)}
+            planning={isPlanning}
           />
 
-          <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
-            <Button
-              variant="primary"
-              loading={sharing}
-              onClick={() => (e.payerId === view.me.participantId ? guard(handleShareSportBill) : void handleShareSportBill())}
-              className="rounded-full"
-            >
-              <Icon name="share" size={18} />
-              {t('sport.shareBillQr')}
-            </Button>
-            {shareStatus === 'saved' && (
-              <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
-                {t('pay.shareSaved')}
-              </p>
-            )}
-            {shareStatus === 'copied' && (
-              <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
-                {t('sport.shareCopied')}
-              </p>
-            )}
-            {shareStatus === 'failed' && (
-              <p className="fsl-sport-share-status fsl-sport-share-status--danger text-sm text-danger m-0" role="alert">
-                {t('pay.shareFailed')}
-              </p>
-            )}
-          </div>
+          {isPlanning ? (
+            canPlanSession ? (
+              <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
+                {sportMeta?.bookingImageDataUrl && (
+                  <div className="flex items-center gap-3 min-h-11">
+                    <Checkbox
+                      id={proofCheckboxId}
+                      checked={includeProofImage}
+                      onCheckedChange={(checked) => setIncludeProofImage(checked === true)}
+                    />
+                    <Label htmlFor={proofCheckboxId} className="text-sm font-medium text-foreground cursor-pointer">
+                      {t('sport.includeProofImage')}
+                    </Label>
+                  </div>
+                )}
+                <Button
+                  variant="primary"
+                  loading={sharing}
+                  onClick={() => void handleShareSportPlanning()}
+                  className="rounded-full"
+                >
+                  <Icon name="share" size={18} />
+                  {t('sport.sharePlanning')}
+                </Button>
+                {shareStatus === 'saved' && (
+                  <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
+                    {t('pay.shareSaved')}
+                  </p>
+                )}
+                {shareStatus === 'copied' && (
+                  <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
+                    {t('sport.shareCopied')}
+                  </p>
+                )}
+                {shareStatus === 'failed' && (
+                  <p className="fsl-sport-share-status fsl-sport-share-status--danger text-sm text-danger m-0" role="alert">
+                    {t('pay.shareFailed')}
+                  </p>
+                )}
+              </div>
+            ) : null
+          ) : (
+            <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
+              <Button
+                variant="primary"
+                loading={sharing}
+                onClick={() => (e.payerId === view.me.participantId ? guard(handleShareSportBill) : void handleShareSportBill())}
+                className="rounded-full"
+              >
+                <Icon name="share" size={18} />
+                {t('sport.shareBillQr')}
+              </Button>
+              {shareStatus === 'saved' && (
+                <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
+                  {t('pay.shareSaved')}
+                </p>
+              )}
+              {shareStatus === 'copied' && (
+                <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
+                  {t('sport.shareCopied')}
+                </p>
+              )}
+              {shareStatus === 'failed' && (
+                <p className="fsl-sport-share-status fsl-sport-share-status--danger text-sm text-danger m-0" role="alert">
+                  {t('pay.shareFailed')}
+                </p>
+              )}
+            </div>
+          )}
         </>
       ) : (
         <ul className="fsl-details__shares m-0 p-0 list-none bg-card rounded-xl border border-border divide-y divide-border overflow-hidden" aria-label={t('details.split')}>
@@ -372,8 +583,18 @@ export function ExpenseDetails({
             </Button>
           </div>
         </div>
-      ) : actions.length > 0 ? (
+      ) : actions.length > 0 || (isPlanning && canPlanSession && e.status !== 'disabled') ? (
         <div className="fsl-details__actions flex flex-wrap gap-2">
+          {isPlanning && canPlanSession && e.status !== 'disabled' && (
+            <Button
+              variant="secondary"
+              className="fsl-details__action flex-1 min-w-[140px] rounded-full"
+              onClick={() => navigate(`${base}/expenses/${e.id}/edit?mode=complete`)}
+            >
+              <Icon name="check" size={18} />
+              {t('sport.completeSession')}
+            </Button>
+          )}
           {actions.map((a) => (
             <Button
               key={a.id}

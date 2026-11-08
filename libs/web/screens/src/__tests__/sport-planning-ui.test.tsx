@@ -1,0 +1,290 @@
+// @vitest-environment jsdom
+import '../test/setup';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SportBillTable } from '../components/SportBillTable';
+import { ExpenseRow } from '../components/ExpenseRow';
+import { ExpenseDetails } from '../components/ExpenseDetails';
+import { ExpenseForm } from '../screens/ExpenseForm';
+import { AppNav } from '../components/AppNav';
+import type { ExpenseView, TripView } from '@cc/core';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+const planningExpense: ExpenseView = {
+  id: 'e-1',
+  description: 'Cầu lông sáng CN',
+  amount: 0,
+  spentOn: '2026-11-08',
+  payerId: 'p-1',
+  mode: 'amounts',
+  status: 'approved',
+  rejectReason: null,
+  disabledByName: null,
+  createdById: 'p-1',
+  shares: [
+    { participantId: 'p-1', amount: 0, inputValue: 0 },
+    { participantId: 'p-2', amount: 0, inputValue: 0 },
+  ],
+  meta: {
+    sport: {
+      planning: true,
+      location: {
+        name: 'Sân Putin',
+        address: '158 Phú Diễn',
+        phone: '0912345678',
+        mapUrl: 'https://maps.google.com/?q=Putin',
+      },
+      courtSlots: [{ courtName: 'Sân 6', timeRange: '5h-7h' }],
+      bookingCode: 'BK-4139',
+      totalDuration: '2h',
+      bookingImageDataUrl: 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=',
+      court: 168000,
+      shuttlecocks: [],
+      extra: 0,
+      rule: { kind: 'equal' },
+      entries: [
+        { participantId: 'p-1', femaleSlots: 7, maleSlots: 0 },
+        { participantId: 'p-2', femaleSlots: 0, maleSlots: 12 },
+      ],
+      maleSlotRate: 0,
+      femaleSlotRate: 0,
+    },
+  },
+};
+
+const planningTripView: TripView = {
+  trip: {
+    id: 't-1',
+    name: '5AM',
+    currency: 'VND',
+    preset: 'sport',
+    fewestTransfers: true,
+    archived: false,
+    version: 1,
+    total: 0,
+  },
+  me: {
+    kind: 'member',
+    participantId: 'p-1',
+    participantPending: false,
+    isOrganiser: true,
+    isAdmin: true,
+  },
+  people: [
+    { id: 'p-1', name: 'Thủy', status: 'active', isMember: true, isOrganiser: true, bank: 'approved', gender: 'F' },
+    { id: 'p-2', name: 'Quang', status: 'active', isMember: true, isOrganiser: false, bank: 'none', gender: 'M' },
+  ],
+  expenses: [planningExpense],
+  payments: [],
+  balances: { 'p-1': 0, 'p-2': 0 },
+  suggestions: [],
+  myBalance: null,
+  approvals: [],
+  links: { group: 'gtok-1', view: 'vtok-1' },
+  locations: [
+    {
+      id: 'loc-1',
+      name: 'Sân Putin',
+      address: '158 Phú Diễn',
+      phone: '0912345678',
+      mapUrl: 'https://maps.google.com/?q=Putin',
+      notes: null,
+    },
+  ],
+  aiBookingExtract: true,
+};
+
+describe('Sport Planning UI components', () => {
+  it('renders SportBillTable in 3-column planning mode without money columns or cost rows', () => {
+    render(
+      <SportBillTable
+        planning
+        total={0}
+        meId="p-1"
+        calc={{
+          court: 168000,
+          shuttlecocksTotal: 0,
+          extra: 0,
+          maleSlotRate: 0,
+          femaleSlotRate: 0,
+          totalFemaleSlots: 7,
+          totalMaleSlots: 12,
+          participants: [
+            { participantId: 'p-1', name: 'Thủy Nguyễn', rosterGender: 'F', femaleSlots: 1, maleSlots: 0, fixedAmount: null, amount: 0 },
+            { participantId: 'p-2', name: 'Quang', rosterGender: 'M', femaleSlots: 0, maleSlots: 1, fixedAmount: null, amount: 0 },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Thủy Nguyễn (you)')).toBeTruthy();
+    expect(screen.queryByText(/AMOUNT|THÀNH TIỀN/i)).toBeNull();
+    expect(screen.queryByText(/COSTS|CHI PHÍ/i)).toBeNull();
+    expect(screen.queryByText(/PER SLOT|MỖI SUẤT/i)).toBeNull();
+  });
+
+  it('renders ExpenseRow with Planning pill and slot count instead of VND amount', () => {
+    render(
+      <MemoryRouter>
+        <ExpenseRow expense={planningExpense} view={planningTripView} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Cầu lông sáng CN')).toBeTruthy();
+    expect(screen.getByText(/Sân Putin/)).toBeTruthy();
+    expect(screen.getByText(/Planning|Lên lịch/i)).toBeTruthy();
+    expect(screen.getAllByText(/19/).length).toBeGreaterThan(0);
+  });
+
+  it('opens 2-option menu when clicking + in AppNav with planHref', () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <AppNav section="groups" addHref="/t/t-1/expenses/new" planHref="/t/t-1/expenses/new?mode=planning" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const addButtons = screen.getAllByTestId('nav-add');
+    fireEvent.click(addButtons[0]!);
+    expect(screen.getAllByText(/Plan session|Lên lịch buổi đánh/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders ExpenseDetails in planning mode with 3-column table, venue facts, share button, and completion action for admins', () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/e-1']}>
+          <Routes>
+            <Route
+              path="/t/:tripId/expenses/:expenseId"
+              element={<ExpenseDetails view={planningTripView} expenseId="e-1" onClose={() => {}} />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('Cầu lông sáng CN')).toBeTruthy();
+    expect(screen.getByText(/Planning|Lên lịch/i)).toBeTruthy();
+    expect(screen.getByText('Sân Putin')).toBeTruthy();
+    expect(screen.getByText(/158 Phú Diễn/)).toBeTruthy();
+    expect(screen.getByText(/Open map|Mở bản đồ/i)).toBeTruthy();
+    expect(screen.getByText(/Sân 6 \(5h-7h\)/)).toBeTruthy();
+    expect(screen.queryByText(/AMOUNT|THÀNH TIỀN/i)).toBeNull();
+    expect(screen.getByText(/Share schedule & headcount|Chia sẻ lịch & danh sách/i)).toBeTruthy();
+    expect(screen.getByText(/Include booking image|Ghép kèm ảnh đặt sân/i)).toBeTruthy();
+    expect(screen.getByText(/Complete & split bill|Hoàn tất & Tính tiền/i)).toBeTruthy();
+  });
+
+  it('renders ExpenseForm in planning mode (?mode=planning) with venue/court fields and saves with amount 0 and planning: true', async () => {
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === 'POST' && url.endsWith('/api/trips/t-1/expenses')) {
+          posted.push(JSON.parse(String(init.body)));
+          return Response.json({ expenseId: 'e-new-plan' }, { status: 201 });
+        }
+        return Response.json(planningTripView);
+      }),
+    );
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+            <Route path="/t/:tripId/expenses/:expenseId" element={<div>Details page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/What for|Khoản chi gì/i)).toBeTruthy());
+    // Should hide shuttlecocks & extra fee in planning mode
+    expect(screen.queryByText(/Add shuttlecock|Thêm tiền cầu/i)).toBeNull();
+    // Should show AI extract trigger when view.aiBookingExtract is true
+    expect(screen.getByText(/Auto-fill from booking image|Đọc từ ảnh đặt sân/i)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText(/What for|Khoản chi gì/i), {
+      target: { value: 'Cầu lông tối T3' },
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /Save planned session|Lưu lịch dự kiến/i });
+    expect(saveBtn).not.toBeDisabled();
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => expect(posted).toHaveLength(1));
+    expect(posted[0]).toMatchObject({
+      description: 'Cầu lông tối T3',
+      amount: 0,
+      mode: 'amounts',
+      meta: {
+        sport: {
+          planning: true,
+        },
+      },
+    });
+  });
+
+  it('renders ExpenseForm in completion mode (?mode=complete) with pre-filled court cost and submits planning: false', async () => {
+    const patched: unknown[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === 'PATCH' && url.endsWith('/api/trips/t-1/expenses/e-1')) {
+          patched.push(JSON.parse(String(init.body)));
+          return Response.json({ expenseId: 'e-2' });
+        }
+        return Response.json(planningTripView);
+      }),
+    );
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/e-1/edit?mode=complete']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/:expenseId/edit" element={<ExpenseForm />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/^(Court|Tiền sân)$/i)).toBeTruthy());
+    // Shuttlecock button should be visible now in complete mode
+    expect(screen.getByText(/\+ Add shuttlecock price|\+ Thêm tiền cầu/i)).toBeTruthy();
+
+    const saveBtn = screen.getByRole('button', { name: /Save|Lưu/i });
+    expect(saveBtn).not.toBeDisabled();
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => expect(patched).toHaveLength(1));
+    expect(patched[0]).toMatchObject({
+      description: 'Cầu lông sáng CN',
+      amount: 168000,
+      meta: {
+        sport: {
+          planning: false,
+          court: 168000,
+          location: {
+            name: 'Sân Putin',
+            address: '158 Phú Diễn',
+          },
+          courtSlots: [{ courtName: 'Sân 6', timeRange: '5h-7h' }],
+        },
+      },
+    });
+  });
+});

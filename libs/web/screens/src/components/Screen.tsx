@@ -20,7 +20,7 @@ export interface ScreenProps {
   bottomBar?: ReactNode;
   barAboveKeyboard?: boolean;
   wide?: boolean;
-  nav?: { section: NavSection; addHref: string };
+  nav?: { section: NavSection; addHref: string; planHref?: string };
   children?: ReactNode;
   className?: string;
 }
@@ -185,7 +185,7 @@ export function Screen({
     <div className={rootClass}>
       {/* The same tree with or without the nav: it often appears once sign-in is known, and a different wrapper
           would remount the whole page (scroll, open sheets and tab state lost). */}
-      {nav && <AppNav section={nav.section} addHref={nav.addHref} />}
+      {nav && <AppNav section={nav.section} addHref={nav.addHref} planHref={nav.planHref} />}
       <div className="fsl-screen__body flex-1 flex flex-col min-w-0">{content}</div>
     </div>
   );
