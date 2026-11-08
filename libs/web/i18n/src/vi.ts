@@ -424,6 +424,27 @@ export const vi: Record<MessageKey, string> = {
   'sport.tableTotalSlots': 'TỔNG SUẤT', // REVIEW
   'sport.tableCosts': 'CHI PHÍ', // REVIEW
   'sport.tablePerSlot': 'MỖI SUẤT', // REVIEW
+  'sport.planSession': 'Lên lịch buổi đánh', // REVIEW
+  'sport.planningBadge': 'Lên lịch', // REVIEW
+  'sport.completeSession': 'Hoàn tất & Tính tiền', // REVIEW
+  'sport.sharePlanning': 'Chia sẻ lịch & danh sách', // REVIEW
+  'sport.includeProofImage': 'Ghép kèm ảnh đặt sân', // REVIEW
+  'sport.extractFromImage': '✨ Đọc từ ảnh đặt sân', // REVIEW
+  'sport.extracting': 'Đang đọc ảnh đặt sân…', // REVIEW
+  'sport.locationLabel': 'Địa điểm', // REVIEW
+  'sport.addLocation': '+ Thêm sân mới', // REVIEW
+  'sport.locationName': 'Tên sân', // REVIEW
+  'sport.locationAddress': 'Địa chỉ', // REVIEW
+  'sport.locationPhone': 'Số điện thoại', // REVIEW
+  'sport.locationMapUrl': 'Link Google Maps', // REVIEW
+  'sport.openMap': 'Mở bản đồ ↗', // REVIEW
+  'sport.courtSlotsLabel': 'Sân & khung giờ', // REVIEW
+  'sport.addCourtSlot': '+ Thêm sân', // REVIEW
+  'sport.courtNamePlaceholder': 'VD: Sân 6', // REVIEW
+  'sport.timeRangePlaceholder': 'VD: 05:00 - 07:00', // REVIEW
+  'sport.bookingCodeLabel': 'Mã đặt / Tổng giờ', // REVIEW
+  'sport.savePlanning': 'Lưu lịch dự kiến', // REVIEW
+  'sport.slotsCount': '{count} suất', // REVIEW
 
   'member.settings': 'Cài đặt chuyến đi', // REVIEW
   'member.peopleCount': '{count} người', // REVIEW
@@ -448,6 +469,7 @@ export const vi: Record<MessageKey, string> = {
   'share.inviteDescription': 'Chia tiền nhóm, trả nhau bằng VietQR.', // REVIEW
   'share.remindTitle': 'Nhắc thanh toán · {trip}', // REVIEW
   'share.sportTitle': 'Hoá đơn {trip}', // REVIEW
+  'share.sportPlanningTitle': 'Lịch buổi chơi {trip}', // REVIEW
   'share.requestDescription': 'Mở để xem số tiền và trả bằng VietQR.', // REVIEW
 
   'expenses.emptyTitle': 'Thêm khoản chi đầu tiên', // REVIEW

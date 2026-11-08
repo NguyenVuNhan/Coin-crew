@@ -62,6 +62,24 @@ export function sportBillCard(
   };
 }
 
+export function sportPlanningCard(
+  view: TripView,
+  rootExpenseId: string,
+  text: string,
+  origin: string,
+): ShareCard {
+  const token = encodeURIComponent(groupToken(view));
+  const encExpenseId = encodeURIComponent(rootExpenseId);
+  return {
+    title: clip(t('share.sportPlanningTitle', { trip: view.trip.name }), 100),
+    description: clip(text, 400),
+    path: `j/${token}/e/${encExpenseId}`,
+    thumbnailUrl: `${origin}/og/sport.png`,
+    text,
+    url: `${origin}/j/${token}/e/${encExpenseId}`,
+  };
+}
+
 export function requestCard(url: string, title: string): ShareCard {
   const u = new URL(url);
   const path = u.pathname.replace(/^\//, '') + u.search;

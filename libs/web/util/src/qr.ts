@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { formatVnd, roundToThousand } from '@cc/core';
+import {
+  formatVnd,
+  roundToThousand,
+  type SportCourtSlot,
+  type SportLocationSnapshot,
+} from '@cc/core';
 
 const PNG_SIZE = 1024;
 
@@ -398,5 +403,412 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error ?? new Error('read failed'));
     reader.readAsDataURL(blob);
+  });
+}
+
+export interface SportPlanningCardInput {
+  description: string;
+  spentOn: string;
+  groupName: string;
+  location?: SportLocationSnapshot | null;
+  courtSlots?: SportCourtSlot[];
+  bookingCode?: string | null;
+  totalDuration?: string | null;
+  totalMaleSlots: number;
+  totalFemaleSlots: number;
+  rows: { name: string; femaleSlots: number; maleSlots: number }[];
+  bookingImageDataUrl?: string | null;
+  includeProofImage?: boolean;
+}
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function loadProofImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export async function renderSportPlanningPng(input: SportPlanningCardInput): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
+
+  let proofImg: HTMLImageElement | null = null;
+  let isStyleB = Boolean(input.includeProofImage && input.bookingImageDataUrl);
+  if (isStyleB) {
+    proofImg = await loadProofImage(input.bookingImageDataUrl!);
+    if (!proofImg) {
+      isStyleB = false;
+    }
+  }
+
+  const rowHeight = 56;
+  const headerHeight = 140;
+  const padX = 48;
+  const curTableWidth = isStyleB ? 804 : 984;
+
+  // Prepare venue box lines if present
+  const venueLines: { text: string; font: string; color: string }[] = [];
+  if (input.location?.name) {
+    venueLines.push({
+      text: input.location.name,
+      font: 'bold 22px system-ui, -apple-system, sans-serif',
+      color: '#111827',
+    });
+  }
+  const locDetail = [
+    input.location?.address && !input.location?.name.includes(input.location.address)
+      ? input.location.address
+      : null,
+    input.location?.phone,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  if (locDetail) {
+    venueLines.push({
+      text: locDetail,
+      font: '18px system-ui, -apple-system, sans-serif',
+      color: '#4b5563',
+    });
+  }
+  if (input.courtSlots && input.courtSlots.length > 0) {
+    const slotsStr = input.courtSlots.map((s) => `${s.courtName} (${s.timeRange})`).join('  ·  ');
+    venueLines.push({
+      text: slotsStr,
+      font: '18px system-ui, -apple-system, sans-serif',
+      color: '#0f766e',
+    });
+  }
+  if (input.bookingCode || input.totalDuration) {
+    const metaStr = [
+      input.bookingCode ? `Mã đặt: ${input.bookingCode}` : null,
+      input.totalDuration ? `Thời gian: ${input.totalDuration}` : null,
+    ]
+      .filter(Boolean)
+      .join('  ·  ');
+    if (metaStr) {
+      venueLines.push({
+        text: metaStr,
+        font: '16px system-ui, -apple-system, sans-serif',
+        color: '#6b7280',
+      });
+    }
+  }
+
+  const hasVenueBox = venueLines.length > 0;
+  const venueBoxPaddingY = 18;
+  const venueLineGap = 8;
+  const venueLineHeight = 24;
+  const venueBoxHeight = hasVenueBox
+    ? venueLines.length * venueLineHeight +
+      (venueLines.length - 1) * venueLineGap +
+      venueBoxPaddingY * 2
+    : 0;
+
+  const tableRows = 1 + input.rows.length + 1; // header + rows + total row
+  const tableHeight = tableRows * rowHeight;
+  const leftHeight = headerHeight + (hasVenueBox ? venueBoxHeight + 24 : 0) + tableHeight + 48;
+
+  const canvas = document.createElement('canvas');
+  const imgWidth = 540;
+  if (isStyleB && proofImg) {
+    const imgAspect = proofImg.width > 0 ? proofImg.height / proofImg.width : 1;
+    const imgHeight = Math.round(imgWidth * imgAspect);
+    canvas.width = 1488;
+    canvas.height = Math.max(leftHeight, 48 + imgHeight + 48);
+  } else {
+    canvas.width = 1080;
+    canvas.height = leftHeight;
+  }
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // Background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Header Title & Subtitle
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(input.description, padX, 48);
+
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '22px system-ui, -apple-system, sans-serif';
+  ctx.fillText(`${input.spentOn} · ${input.groupName}`, padX, 96);
+
+  // Jade Mist Badge (LÊN LỊCH · X SUẤT)
+  const totalSlots = input.totalFemaleSlots + input.totalMaleSlots;
+  const badgeText = `LÊN LỊCH · ${totalSlots} SUẤT`;
+  ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+  const textWidth = ctx.measureText ? ctx.measureText(badgeText).width : 160;
+  const badgeWidth = Math.max(textWidth + 28, 160);
+  const badgeHeight = 36;
+  const badgeRight = isStyleB ? padX + curTableWidth : canvas.width - padX;
+  const badgeX = badgeRight - badgeWidth;
+  const badgeY = 48;
+
+  drawRoundedRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, 18);
+  ctx.fillStyle = '#ccfbf1';
+  ctx.fill();
+  ctx.fillStyle = '#134e4a';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+
+  let currentY = headerHeight;
+
+  // Venue & Court Schedule Box
+  if (hasVenueBox) {
+    drawRoundedRect(ctx, padX, currentY, curTableWidth, venueBoxHeight, 14);
+    ctx.fillStyle = '#efefeb';
+    ctx.fill();
+    let lineY = currentY + venueBoxPaddingY;
+    for (const line of venueLines) {
+      ctx.fillStyle = line.color;
+      ctx.font = line.font;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(line.text, padX + 20, lineY);
+      lineY += venueLineHeight + venueLineGap;
+    }
+    currentY += venueBoxHeight + 24;
+  }
+
+  // 3-Column Table
+  const colWidths = isStyleB
+    ? ([504, 150, 150] as const)
+    : ([664, 160, 160] as const);
+  const colX = [padX, padX + colWidths[0], padX + colWidths[0] + colWidths[1]] as const;
+
+  function drawCell(
+    text: string,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    align: 'left' | 'center' | 'right',
+    isBold: boolean,
+    color = '#111827',
+  ) {
+    if (!ctx) return;
+    ctx.fillStyle = color;
+    ctx.font = `${isBold ? 'bold ' : ''}20px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    const textX = align === 'left' ? x + 16 : align === 'center' ? x + w / 2 : x + w - 16;
+    ctx.fillText(text, textX, y + h / 2);
+  }
+
+  function drawRowBorder(y: number) {
+    if (!ctx) return;
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padX, y);
+    ctx.lineTo(padX + curTableWidth, y);
+    ctx.stroke();
+  }
+
+  // 1. Table Header
+  ctx.fillStyle = '#f3f4f6';
+  ctx.fillRect(padX, currentY, curTableWidth, rowHeight);
+  drawRowBorder(currentY);
+  drawCell('TÊN', colX[0], currentY, colWidths[0], rowHeight, 'left', true);
+  drawCell('NỮ', colX[1], currentY, colWidths[1], rowHeight, 'center', true);
+  drawCell('NAM', colX[2], currentY, colWidths[2], rowHeight, 'center', true);
+  currentY += rowHeight;
+  drawRowBorder(currentY);
+
+  // 2. Participant Rows
+  for (const row of input.rows) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(padX, currentY, curTableWidth, rowHeight);
+    drawCell(row.name, colX[0], currentY, colWidths[0], rowHeight, 'left', false);
+    drawCell(
+      row.femaleSlots ? String(row.femaleSlots) : '—',
+      colX[1],
+      currentY,
+      colWidths[1],
+      rowHeight,
+      'center',
+      false,
+    );
+    drawCell(
+      row.maleSlots ? String(row.maleSlots) : '—',
+      colX[2],
+      currentY,
+      colWidths[2],
+      rowHeight,
+      'center',
+      false,
+    );
+    currentY += rowHeight;
+    drawRowBorder(currentY);
+  }
+
+  // 3. Footer Row: Neutral TỔNG SUẤT
+  ctx.fillStyle = '#f3f4f6';
+  ctx.fillRect(padX, currentY, curTableWidth, rowHeight);
+  drawCell(`TỔNG SUẤT (${totalSlots} suất)`, colX[0], currentY, colWidths[0], rowHeight, 'left', true);
+  drawCell(String(input.totalFemaleSlots), colX[1], currentY, colWidths[1], rowHeight, 'center', true);
+  drawCell(String(input.totalMaleSlots), colX[2], currentY, colWidths[2], rowHeight, 'center', true);
+  currentY += rowHeight;
+  drawRowBorder(currentY);
+
+  // Right column: Proof image for Style B
+  if (isStyleB && proofImg) {
+    const imgX = 900;
+    const imgY = 48;
+    const imgAspect = proofImg.width > 0 ? proofImg.height / proofImg.width : 1;
+    const imgHeight = Math.round(imgWidth * imgAspect);
+
+    ctx.save();
+    drawRoundedRect(ctx, imgX, imgY, imgWidth, imgHeight, 16);
+    ctx.clip();
+    ctx.drawImage(proofImg, imgX, imgY, imgWidth, imgHeight);
+    ctx.restore();
+
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    drawRoundedRect(ctx, imgX, imgY, imgWidth, imgHeight, 16);
+    ctx.stroke();
+  }
+
+  return new Promise((resolve) => {
+    try {
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export async function shareSportPlanning(
+  input: SportPlanningCardInput,
+  text: string,
+  refCode: string,
+): Promise<'shared' | 'saved' | 'failed'> {
+  const blob = await renderSportPlanningPng(input);
+  const planFileName = `plan-${(refCode || 'sport').replace(/\s+/g, '-')}.png`;
+
+  if (blob && typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof File !== 'undefined') {
+    const files = [new File([blob], planFileName, { type: 'image/png' })];
+    if (navigator.canShare?.({ files })) {
+      try {
+        await navigator.share({ files, text });
+        return 'shared';
+      } catch (err) {
+        if ((err as { name?: unknown } | null)?.name === 'AbortError') return 'shared';
+      }
+    }
+  }
+
+  let saved = false;
+  if (blob) {
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = planFileName;
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      saved = true;
+    } catch {
+      // fall through to clipboard
+    }
+  }
+  if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      saved = true;
+    } catch {
+      // clipboard blocked
+    }
+  }
+  return saved ? 'saved' : 'failed';
+}
+
+export function compressBookingImage(file: Blob): Promise<string | null> {
+  if (typeof document === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          URL.revokeObjectURL(url);
+          const maxDim = 720;
+          let width = img.width || 720;
+          let height = img.height || 720;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(null);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let dataUrl = canvas.toDataURL('image/webp', 0.75);
+          if (dataUrl.length > 80_000) {
+            dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          }
+          if (dataUrl.length > 80_000) {
+            dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          }
+          resolve(dataUrl);
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+        resolve(null);
+      };
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
   });
 }
