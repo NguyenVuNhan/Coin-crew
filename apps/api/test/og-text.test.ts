@@ -260,7 +260,7 @@ describe('pageMeta', () => {
           court: 400000,
           shuttlecocks: [],
           extra: 0,
-          rule: { kind: 'male_female', maleRatio: 1.2, femaleRatio: 1.0 },
+          rule: { kind: 'ratio', maleWeight: 1.2, femaleWeight: 1.0 },
           maleSlotRate: 72727,
           femaleSlotRate: 60606,
           entries: [

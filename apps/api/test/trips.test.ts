@@ -496,9 +496,9 @@ describe('trip view', () => {
 
     const v0 = await view(headers, tripId);
     expect(v0.trip.roundTransfers).toBe(true);
-    const anId = v0.people[0].id;
-    const binhId = v0.people[1].id;
-    const chiId = v0.people[2].id;
+    const anId = v0.people[0]!.id;
+    const binhId = v0.people[1]!.id;
+    const chiId = v0.people[2]!.id;
 
     // 50k expense paid by An, split 3 ways
     const expRes = await call(`/api/trips/${tripId}/expenses`, {
