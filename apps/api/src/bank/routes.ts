@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { MyBankResponse, PayInfo } from '@cc/core';
-import { buildTransferNote, buildVietQrPayload, can, SETTLE_PURPOSE, equalBillShare, findBank, isFundPaid, maskAccountNumber, snapResidual, toTransferNote } from '@cc/core';
+import { buildTransferNote, buildVietQrPayload, can, SETTLE_PURPOSE, equalBillShare, findBank, isFundPaid, isPlanningExpense, maskAccountNumber, snapResidual, toTransferNote } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import type { Db } from '@cc/api-db/client';
 import { getDb } from '@cc/api-db/client';
@@ -539,6 +539,15 @@ export function bankRoutes(): Hono<AppBindings> {
 
     const isBill = c.req.query('bill') === '1';
     const snapshot = await getSnapshot(db, actor.trip);
+
+    const expenseIdParam = c.req.query('expense');
+    if (expenseIdParam) {
+      const exp = snapshot.expenses.find((e) => e.id === expenseIdParam || e.rootId === expenseIdParam);
+      if (exp && isPlanningExpense(exp)) {
+        throw new ApiError('NOT_FOUND', 404, 'Planning session cannot be paid yet');
+      }
+    }
+
     const suggestion = snapshot.suggestions.find(
       (s) => s.fromId === payerId && s.toId === toId,
     );
@@ -547,7 +556,9 @@ export function bankRoutes(): Hono<AppBindings> {
     // (and the receiver's details) while it waits for confirmation.
     const waiting = snapshot.payments.some((p) => p.status === 'says_paid' && p.fromId === payerId && p.toId === toId);
     // A fund-paid expense names the admin who recorded it, but nobody owes them for it.
-    const isExpensePayer = isBill && snapshot.expenses.some((e) => e.payerId === toId && (e.status === 'approved' || e.status === 'pending') && !isFundPaid(e));
+    const isExpensePayer = isBill && snapshot.expenses.some(
+      (e) => e.payerId === toId && (e.status === 'approved' || e.status === 'pending') && !isFundPaid(e) && !isPlanningExpense(e),
+    );
     ensure(actor, 'view_bank', { owesTo: self || suggestion !== undefined || waiting, isExpensePayer });
 
     const amount = self && !forPayer ? 0 : (suggestion?.amount ?? 0);
@@ -557,7 +568,7 @@ export function bankRoutes(): Hono<AppBindings> {
       amount,
       snapshot,
       forPayer,
-      bill: isBill ? { expenseId: c.req.query('expense') } : undefined,
+      bill: isBill ? { expenseId: expenseIdParam } : undefined,
     });
 
     return c.json<PayInfo>(info);
@@ -678,13 +689,20 @@ export async function buildPayInfo(
   if (bill) {
     // The bill of one expense this person paid asks for the share when everyone owes the same.
     const expenseId = bill.expenseId;
+    if (expenseId) {
+      const exp = snapshot.expenses.find((e) => e.id === expenseId || e.rootId === expenseId);
+      if (exp && isPlanningExpense(exp)) {
+        throw new ApiError('NOT_FOUND', 404, 'Planning session cannot be paid yet');
+      }
+    }
     const billExpense = expenseId
       ? snapshot.expenses.find(
           (e) =>
             (e.id === expenseId || e.rootId === expenseId) &&
             e.payerId === toId &&
             (e.status === 'approved' || e.status === 'pending') &&
-            !isFundPaid(e),
+            !isFundPaid(e) &&
+            !isPlanningExpense(e),
         )
       : undefined;
     let billAmount = billExpense ? (equalBillShare(billExpense) ?? 0) : 0;

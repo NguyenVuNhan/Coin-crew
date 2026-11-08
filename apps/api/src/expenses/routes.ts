@@ -9,6 +9,8 @@ import type {
   FundItem,
   SplitEntry,
   SplitMode,
+  SportCourtSlot,
+  SportLocationSnapshot,
   SportParticipantEntry,
   SportRule,
 } from '@cc/core';
@@ -17,6 +19,7 @@ import {
   computeSportShares,
   initialExpenseStatus,
   isFundPaid,
+  isPlanningExpense,
   MAX_AMOUNT,
 } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
@@ -54,6 +57,114 @@ interface ValidatedExpense {
   mode: SplitMode;
   shares: { participantId: string; inputValue: number; inputAuto: 0 | 1; amount: number }[];
   meta?: ExpenseMeta | null;
+}
+
+function validateSportExtended(sport: Record<string, unknown>): {
+  location?: SportLocationSnapshot | null;
+  courtSlots?: SportCourtSlot[];
+  bookingCode?: string | null;
+  totalDuration?: string | null;
+  bookingImageDataUrl?: string | null;
+} {
+  const result: {
+    location?: SportLocationSnapshot | null;
+    courtSlots?: SportCourtSlot[];
+    bookingCode?: string | null;
+    totalDuration?: string | null;
+    bookingImageDataUrl?: string | null;
+  } = {};
+
+  if (sport.location !== undefined && sport.location !== null) {
+    if (typeof sport.location !== 'object' || Array.isArray(sport.location)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid location');
+    }
+    const loc = sport.location as Record<string, unknown>;
+    if (typeof loc.name !== 'string' || loc.name.trim().length < 1 || loc.name.trim().length > 120) {
+      throw new ApiError('VALIDATION', 422, 'Invalid location name');
+    }
+    if (typeof loc.address !== 'string' || loc.address.trim().length < 1 || loc.address.trim().length > 200) {
+      throw new ApiError('VALIDATION', 422, 'Invalid location address');
+    }
+    if (loc.phone !== undefined && loc.phone !== null && (typeof loc.phone !== 'string' || loc.phone.length > 40)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid location phone');
+    }
+    if (loc.mapUrl !== undefined && loc.mapUrl !== null && (typeof loc.mapUrl !== 'string' || loc.mapUrl.length > 2048)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid location mapUrl');
+    }
+    if (loc.locationId !== undefined && loc.locationId !== null && (typeof loc.locationId !== 'string' || loc.locationId.length > 40)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid location locationId');
+    }
+    result.location = {
+      name: loc.name.trim(),
+      address: loc.address.trim(),
+      ...(loc.locationId !== undefined ? { locationId: loc.locationId as string | null } : {}),
+      ...(loc.phone !== undefined ? { phone: loc.phone as string | null } : {}),
+      ...(loc.mapUrl !== undefined ? { mapUrl: loc.mapUrl as string | null } : {}),
+    };
+  } else if (sport.location === null) {
+    result.location = null;
+  }
+
+  if (sport.courtSlots !== undefined && sport.courtSlots !== null) {
+    if (!Array.isArray(sport.courtSlots) || sport.courtSlots.length > 10) {
+      throw new ApiError('VALIDATION', 422, 'Invalid court slots');
+    }
+    const slots: SportCourtSlot[] = [];
+    for (const slot of sport.courtSlots) {
+      if (!slot || typeof slot !== 'object') {
+        throw new ApiError('VALIDATION', 422, 'Invalid court slot');
+      }
+      const cs = slot as Record<string, unknown>;
+      if (
+        typeof cs.courtName !== 'string' ||
+        cs.courtName.trim().length < 1 ||
+        cs.courtName.trim().length > 40 ||
+        typeof cs.timeRange !== 'string' ||
+        cs.timeRange.trim().length < 1 ||
+        cs.timeRange.trim().length > 40
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Invalid court slot values');
+      }
+      slots.push({
+        courtName: cs.courtName.trim(),
+        timeRange: cs.timeRange.trim(),
+      });
+    }
+    result.courtSlots = slots;
+  }
+
+  if (sport.bookingCode !== undefined && sport.bookingCode !== null) {
+    if (typeof sport.bookingCode !== 'string' || sport.bookingCode.length > 40) {
+      throw new ApiError('VALIDATION', 422, 'Invalid booking code');
+    }
+    result.bookingCode = sport.bookingCode;
+  } else if (sport.bookingCode === null) {
+    result.bookingCode = null;
+  }
+
+  if (sport.totalDuration !== undefined && sport.totalDuration !== null) {
+    if (typeof sport.totalDuration !== 'string' || sport.totalDuration.length > 40) {
+      throw new ApiError('VALIDATION', 422, 'Invalid total duration');
+    }
+    result.totalDuration = sport.totalDuration;
+  } else if (sport.totalDuration === null) {
+    result.totalDuration = null;
+  }
+
+  if (sport.bookingImageDataUrl !== undefined && sport.bookingImageDataUrl !== null) {
+    if (
+      typeof sport.bookingImageDataUrl !== 'string' ||
+      sport.bookingImageDataUrl.length > 80_000 ||
+      !sport.bookingImageDataUrl.startsWith('data:image/')
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Invalid booking image');
+    }
+    result.bookingImageDataUrl = sport.bookingImageDataUrl;
+  } else if (sport.bookingImageDataUrl === null) {
+    result.bookingImageDataUrl = null;
+  }
+
+  return result;
 }
 
 /** `allowedLeftIds`: people who left but are already on the expense being edited, so they may stay on it. */
@@ -174,83 +285,231 @@ async function validateExpenseInput(
     return (pA?.sortOrder ?? 0) - (pB?.sortOrder ?? 0);
   });
 
+  const rawMeta =
+    input.meta && typeof input.meta === 'object' && !Array.isArray(input.meta)
+      ? (input.meta as Record<string, unknown>)
+      : null;
+  if (input.meta !== undefined && input.meta !== null && !rawMeta) {
+    throw new ApiError('VALIDATION', 422, 'Invalid meta');
+  }
+
+  const rawSport =
+    rawMeta && rawMeta.sport && typeof rawMeta.sport === 'object' && !Array.isArray(rawMeta.sport)
+      ? (rawMeta.sport as Record<string, unknown>)
+      : null;
+  if (rawMeta?.sport !== undefined && rawMeta?.sport !== null && !rawSport) {
+    throw new ApiError('VALIDATION', 422, 'Invalid sport meta');
+  }
+
+  if (rawSport?.planning === true) {
+    if (mode !== 'amounts') {
+      throw new ApiError('VALIDATION', 422, 'Sport planning requires amounts mode');
+    }
+    if (!Number.isSafeInteger(amount) || amount !== 0) {
+      throw new ApiError('VALIDATION', 422, 'INVALID_AMOUNT');
+    }
+    const court = rawSport.court ?? 0;
+    if (!Number.isSafeInteger(court) || (court as number) < 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid court amount');
+    }
+    const extra = rawSport.extra ?? 0;
+    if (!Number.isSafeInteger(extra) || (extra as number) < 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid extra amount');
+    }
+    const rawShuttlecocks = rawSport.shuttlecocks ?? [];
+    if (!Array.isArray(rawShuttlecocks) || rawShuttlecocks.length > 5) {
+      throw new ApiError('VALIDATION', 422, 'Invalid shuttlecocks');
+    }
+    for (const item of rawShuttlecocks) {
+      if (!item || typeof item !== 'object') {
+        throw new ApiError('VALIDATION', 422, 'Invalid shuttlecock item');
+      }
+      const { qty, unitPrice } = item as { qty: unknown; unitPrice: unknown };
+      if (
+        !Number.isSafeInteger(qty) ||
+        (qty as number) < 0 ||
+        !Number.isSafeInteger(unitPrice) ||
+        (unitPrice as number) < 0
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Invalid shuttlecock item values');
+      }
+    }
+    const extended = validateSportExtended(rawSport);
+    const rule = (rawSport.rule ?? { kind: 'equal' }) as SportRule;
+    if (typeof rule !== 'object' || !rule) {
+      throw new ApiError('VALIDATION', 422, 'Invalid sport rule');
+    }
+    if (rule.kind === 'equal') {
+      // valid
+    } else if (rule.kind === 'discount') {
+      if (!Number.isSafeInteger(rule.femaleDiscount) || rule.femaleDiscount < 0) {
+        throw new ApiError('VALIDATION', 422, 'Invalid female discount');
+      }
+    } else if (rule.kind === 'ratio') {
+      if (
+        !Number.isSafeInteger(rule.maleWeight) ||
+        rule.maleWeight <= 0 ||
+        !Number.isSafeInteger(rule.femaleWeight) ||
+        rule.femaleWeight <= 0
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Invalid ratio weights');
+      }
+    } else {
+      throw new ApiError('VALIDATION', 422, 'Invalid sport rule');
+    }
+    if (!Array.isArray(rawSport.entries) || rawSport.entries.length === 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid sport entries');
+    }
+    if (rawSport.entries.length !== sortedEntries.length) {
+      throw new ApiError('VALIDATION', 422, 'Sport entries participant count mismatch');
+    }
+    const sportEntryMap = new Map<string, SportParticipantEntry>();
+    let totalMaleSlots = 0;
+    let totalFemaleSlots = 0;
+    for (const se of rawSport.entries) {
+      if (!se || typeof se !== 'object') {
+        throw new ApiError('VALIDATION', 422, 'Invalid sport entry');
+      }
+      const entry = se as Record<string, unknown>;
+      const pid = entry.participantId;
+      if (typeof pid !== 'string' || !participantMap.has(pid)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid participant in sport entries');
+      }
+      if (sportEntryMap.has(pid)) {
+        throw new ApiError('VALIDATION', 422, 'Duplicate participant in sport entries');
+      }
+      if (
+        !Number.isSafeInteger(entry.maleSlots) ||
+        (entry.maleSlots as number) < 0 ||
+        !Number.isSafeInteger(entry.femaleSlots) ||
+        (entry.femaleSlots as number) < 0
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Invalid slot numbers in sport entry');
+      }
+      const maleSlots = entry.maleSlots as number;
+      const femaleSlots = entry.femaleSlots as number;
+      totalMaleSlots += maleSlots;
+      totalFemaleSlots += femaleSlots;
+      sportEntryMap.set(pid, { participantId: pid, maleSlots, femaleSlots });
+    }
+    for (const e of sortedEntries) {
+      if (!sportEntryMap.has(e.participantId)) {
+        throw new ApiError('VALIDATION', 422, 'Sport entries do not match expense entries');
+      }
+    }
+    if (totalMaleSlots + totalFemaleSlots <= 0) {
+      throw new ApiError('VALIDATION', 422, 'Planning session requires at least one slot');
+    }
+
+    const shares = sortedEntries.map((sh) => ({
+      participantId: sh.participantId,
+      inputValue: 0,
+      inputAuto: 0 as const,
+      amount: 0,
+    }));
+    const sportMeta: ExpenseSportMeta = {
+      planning: true,
+      court: court as number,
+      extra: extra as number,
+      shuttlecocks: rawShuttlecocks as { qty: number; unitPrice: number }[],
+      rule,
+      entries: sortedEntries.map((e) => sportEntryMap.get(e.participantId)!),
+      maleSlotRate: 0,
+      femaleSlotRate: 0,
+      ...extended,
+    };
+    return {
+      description,
+      amount: 0,
+      spentOn,
+      payerId,
+      mode,
+      shares,
+      meta: { sport: sportMeta },
+    };
+  }
+
   const r = computeShares(amount, mode, sortedEntries);
   if (!r.ok) {
     throw new ApiError('VALIDATION', 422, r.error);
   }
 
   let meta: ExpenseMeta | null = null;
-  if (input.meta !== undefined && input.meta !== null) {
-    if (typeof input.meta !== 'object' || Array.isArray(input.meta)) {
-      throw new ApiError('VALIDATION', 422, 'Invalid meta');
+  if (rawSport) {
+    if (mode !== 'amounts') {
+      throw new ApiError('VALIDATION', 422, 'Sport meta requires amounts mode');
     }
-    const rawMeta = input.meta as Record<string, unknown>;
-    if (rawMeta.sport !== undefined && rawMeta.sport !== null) {
-      if (typeof rawMeta.sport !== 'object' || Array.isArray(rawMeta.sport)) {
-        throw new ApiError('VALIDATION', 422, 'Invalid sport meta');
+    if (!Number.isSafeInteger(rawSport.court) || (rawSport.court as number) < 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid court amount');
+    }
+    if (!Number.isSafeInteger(rawSport.extra) || (rawSport.extra as number) < 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid extra amount');
+    }
+    if (!Array.isArray(rawSport.shuttlecocks) || rawSport.shuttlecocks.length > 5) {
+      throw new ApiError('VALIDATION', 422, 'Invalid shuttlecocks');
+    }
+    for (const item of rawSport.shuttlecocks) {
+      if (!item || typeof item !== 'object') {
+        throw new ApiError('VALIDATION', 422, 'Invalid shuttlecock item');
       }
-      if (mode !== 'amounts') {
-        throw new ApiError('VALIDATION', 422, 'Sport meta requires amounts mode');
-      }
-      const sport = rawMeta.sport as Record<string, unknown>;
-      if (!Number.isSafeInteger(sport.court) || (sport.court as number) < 0) {
-        throw new ApiError('VALIDATION', 422, 'Invalid court amount');
-      }
-      if (!Number.isSafeInteger(sport.extra) || (sport.extra as number) < 0) {
-        throw new ApiError('VALIDATION', 422, 'Invalid extra amount');
-      }
-      if (!Array.isArray(sport.shuttlecocks) || sport.shuttlecocks.length > 5) {
-        throw new ApiError('VALIDATION', 422, 'Invalid shuttlecocks');
-      }
-      for (const item of sport.shuttlecocks) {
-        if (!item || typeof item !== 'object') {
-          throw new ApiError('VALIDATION', 422, 'Invalid shuttlecock item');
-        }
-        const { qty, unitPrice } = item as { qty: unknown; unitPrice: unknown };
-        if (
-          !Number.isSafeInteger(qty) ||
-          (qty as number) < 0 ||
-          !Number.isSafeInteger(unitPrice) ||
-          (unitPrice as number) < 0
-        ) {
-          throw new ApiError('VALIDATION', 422, 'Invalid shuttlecock item values');
-        }
-      }
-      const shuttlecockTotal = (sport.shuttlecocks as { qty: number; unitPrice: number }[]).reduce(
-        (sum, item) => sum + item.qty * item.unitPrice,
-        0,
-      );
-      if ((sport.court as number) + (sport.extra as number) + shuttlecockTotal !== amount) {
-        throw new ApiError('VALIDATION', 422, 'Sport breakdown does not equal total amount');
-      }
-
-      const sportRes = computeSportShares(
-        amount,
-        sport.rule as SportRule,
-        sport.entries as SportParticipantEntry[],
-      );
-      if (!sportRes.ok) {
-        throw new ApiError('VALIDATION', 422, sportRes.error);
-      }
+      const { qty, unitPrice } = item as { qty: unknown; unitPrice: unknown };
       if (
-        sportRes.maleSlotRate !== sport.maleSlotRate ||
-        sportRes.femaleSlotRate !== sport.femaleSlotRate
+        !Number.isSafeInteger(qty) ||
+        (qty as number) < 0 ||
+        !Number.isSafeInteger(unitPrice) ||
+        (unitPrice as number) < 0
       ) {
-        throw new ApiError('VALIDATION', 422, 'Sport slot rates mismatch');
+        throw new ApiError('VALIDATION', 422, 'Invalid shuttlecock item values');
       }
-      if (sportRes.shares.length !== r.shares.length) {
-        throw new ApiError('VALIDATION', 422, 'Sport shares length mismatch');
-      }
-      const rMap = new Map(r.shares.map((s) => [s.participantId, s.amount]));
-      for (const s of sportRes.shares) {
-        if (rMap.get(s.participantId) !== s.amount) {
-          throw new ApiError('VALIDATION', 422, 'Sport shares mismatch with expense shares');
-        }
-      }
-      meta = { sport: sport as unknown as ExpenseSportMeta };
-    } else {
-      meta = rawMeta as ExpenseMeta;
     }
+    const shuttlecockTotal = (rawSport.shuttlecocks as { qty: number; unitPrice: number }[]).reduce(
+      (sum, item) => sum + item.qty * item.unitPrice,
+      0,
+    );
+    if ((rawSport.court as number) + (rawSport.extra as number) + shuttlecockTotal !== amount) {
+      throw new ApiError('VALIDATION', 422, 'Sport breakdown does not equal total amount');
+    }
+
+    const extended = validateSportExtended(rawSport);
+
+    const sportRes = computeSportShares(
+      amount,
+      rawSport.rule as SportRule,
+      rawSport.entries as SportParticipantEntry[],
+    );
+    if (!sportRes.ok) {
+      throw new ApiError('VALIDATION', 422, sportRes.error);
+    }
+    if (
+      sportRes.maleSlotRate !== rawSport.maleSlotRate ||
+      sportRes.femaleSlotRate !== rawSport.femaleSlotRate
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Sport slot rates mismatch');
+    }
+    if (sportRes.shares.length !== r.shares.length) {
+      throw new ApiError('VALIDATION', 422, 'Sport shares length mismatch');
+    }
+    const rMap = new Map(r.shares.map((s) => [s.participantId, s.amount]));
+    for (const s of sportRes.shares) {
+      if (rMap.get(s.participantId) !== s.amount) {
+        throw new ApiError('VALIDATION', 422, 'Sport shares mismatch with expense shares');
+      }
+    }
+    meta = {
+      sport: {
+        court: rawSport.court as number,
+        extra: rawSport.extra as number,
+        shuttlecocks: rawSport.shuttlecocks as { qty: number; unitPrice: number }[],
+        rule: rawSport.rule as SportRule,
+        entries: rawSport.entries as SportParticipantEntry[],
+        maleSlotRate: sportRes.maleSlotRate,
+        femaleSlotRate: sportRes.femaleSlotRate,
+        ...(rawSport.planning === false ? { planning: false } : {}),
+        ...extended,
+      },
+    };
+  } else if (rawMeta) {
+    meta = rawMeta as ExpenseMeta;
   }
 
   const entryValueMap = new Map(sortedEntries.map((e) => [e.participantId, e.value]));
@@ -342,6 +601,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     const validated = await validateExpenseInput(db, tripId, body, new Set());
     const fundPaid = isFundPaid(validated);
     if (fundPaid) ensureFundWrite(actor);
+    if (isPlanningExpense(validated)) {
+      ensure(actor, 'plan_session');
+    }
 
     const status = initialExpenseStatus(actor);
     if (fundPaid) {
@@ -401,7 +663,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       },
     });
 
-    if (status === 'approved') {
+    if (status === 'approved' && !isPlanningExpense(validated)) {
       await dispatchExpenseNotification(c, 'approved', expenseId, {
         actorUserId: actor.userId,
         actorParticipantId: actor.participantId,
@@ -442,6 +704,7 @@ export function expenseRoutes(): Hono<AppBindings> {
     ensure(actor, 'edit_expense', {
       expenseCreatedById: head.createdByParticipantId,
       expenseStatus: head.status as ExpenseStatus,
+      isPlanning: isPlanningExpense(headItem),
     });
 
     const body = await parseJson<ExpenseInput>(c);
@@ -453,6 +716,9 @@ export function expenseRoutes(): Hono<AppBindings> {
     const validated = await validateExpenseInput(db, tripId, body, onExpense);
     const fundPaid = isFundPaid(validated);
     if (fundPaid) ensureFundWrite(actor);
+    if (isPlanningExpense(validated)) {
+      ensure(actor, 'plan_session');
+    }
     // The new version keeps the head's status, and fund-paid expenses are never pending (spec §3).
     if (fundPaid && head.status === 'pending') {
       throw new ApiError('VALIDATION', 422, 'A pending expense cannot be paid from the group fund.');
@@ -531,10 +797,21 @@ export function expenseRoutes(): Hono<AppBindings> {
       },
     });
 
-    await dispatchExpenseNotification(c, 'updated', head.rootId, {
-      actorUserId: actor.userId,
-      actorParticipantId: actor.participantId,
-    });
+    if (isPlanningExpense(validated)) {
+      // Skip notification while in planning mode
+    } else if (isPlanningExpense(headItem)) {
+      if (head.status === 'approved') {
+        await dispatchExpenseNotification(c, 'approved', head.rootId, {
+          actorUserId: actor.userId,
+          actorParticipantId: actor.participantId,
+        });
+      }
+    } else {
+      await dispatchExpenseNotification(c, 'updated', head.rootId, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
 
     return c.json({ expenseId: newHeadId, rootId: head.rootId }, 200);
   });
@@ -570,6 +847,7 @@ export function expenseRoutes(): Hono<AppBindings> {
     ensure(actor, 'edit_expense', {
       expenseCreatedById: head.createdByParticipantId,
       expenseStatus: head.status as ExpenseStatus,
+      isPlanning: isPlanningExpense(headItem),
     });
 
     const body = await parseJson<{ targetHistoryId?: unknown }>(c);
@@ -706,12 +984,14 @@ export function expenseRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
+    const headItem = fundItemOf(head);
     // Deleting only returns money to the fund, so it needs no fund check.
-    if (isFundPaid(fundItemOf(head))) ensureFundWrite(actor);
+    if (isFundPaid(headItem)) ensureFundWrite(actor);
 
     ensure(actor, 'delete_expense', {
       expenseCreatedById: head.createdByParticipantId,
       expenseStatus: head.status as ExpenseStatus,
+      isPlanning: isPlanningExpense(headItem),
     });
 
     const rootTxIds = db

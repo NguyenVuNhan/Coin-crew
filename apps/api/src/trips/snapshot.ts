@@ -21,6 +21,7 @@ import {
   computeBalances,
   fundSummary,
   isFundPaid,
+  isPlanningExpense,
   isThemeId,
   maxStarsForGroup,
   pairwiseTransfers,
@@ -48,7 +49,7 @@ export function toLedger(s: TripSnapshot): {
   payments: LedgerPayment[];
 } {
   const order = s.people.map((p) => p.id);
-  const ledgerExpenses: LedgerExpense[] = s.expenses.filter((e) => !isFundPaid(e)).map((e) => ({
+  const ledgerExpenses: LedgerExpense[] = s.expenses.filter((e) => !isFundPaid(e) && !isPlanningExpense(e)).map((e) => ({
     id: e.id,
     payerId: e.payerId,
     amount: e.amount,
