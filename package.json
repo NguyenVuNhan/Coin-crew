@@ -6,6 +6,7 @@
     "libs/*/*"
   ],
   "scripts": {
+    "setup": "node scripts/orca-setup.mjs",
     "test": "nx run-many -t test --parallel=1",
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint",
