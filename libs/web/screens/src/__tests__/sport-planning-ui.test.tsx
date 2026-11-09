@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SportBillTable } from '../components/SportBillTable';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { ExpenseDetails } from '../components/ExpenseDetails';
-import { ExpenseForm } from '../screens/ExpenseForm';
+import { ExpenseForm, calculateSlotsDuration } from '../screens/ExpenseForm';
 import { AppNav } from '../components/AppNav';
 import * as qrUtil from '@cc/web-util/qr';
 import type { ExpenseView, TripView } from '@cc/core';
@@ -418,5 +418,163 @@ describe('Sport Planning UI components', () => {
     );
 
     await waitFor(() => expect(screen.getByText(/Only the person who added|Chỉ người thêm/i)).toBeTruthy());
+  });
+
+  describe('calculateSlotsDuration', () => {
+    it('returns null for empty or invalid slots', () => {
+      expect(calculateSlotsDuration([])).toBeNull();
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '' }])).toBeNull();
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: 'invalid' }])).toBeNull();
+    });
+
+    it('calculates duration for single slot format (05:00 - 07:00)', () => {
+      expect(calculateSlotsDuration([{ courtName: 'Sân 6', timeRange: '05:00 - 07:00' }])).toBe('2h');
+    });
+
+    it('calculates duration for single slot format (5h00 - 7h00)', () => {
+      expect(calculateSlotsDuration([{ courtName: 'Sân 6', timeRange: '5h00 - 7h00' }])).toBe('2h');
+    });
+
+    it('calculates duration across multiple overlapping or consecutive slots', () => {
+      expect(
+        calculateSlotsDuration([
+          { courtName: 'Sân 6', timeRange: '5h00 - 7h00' },
+          { courtName: 'Sân 5', timeRange: '5h30 - 7h00' },
+        ]),
+      ).toBe('2h');
+    });
+
+    it('calculates duration with minutes (e.g. 18h - 20h30)', () => {
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '18h - 20h30' }])).toBe('2h30p');
+    });
+  });
+
+  it('prefills time range from previous slot when clicking add court slot in ExpenseForm', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json(planningTripView)));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i })).toBeTruthy());
+
+    const addCourtBtn = screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i });
+    fireEvent.click(addCourtBtn);
+
+    const timeInputs = container.querySelectorAll<HTMLInputElement>('input[placeholder*="05:00"]');
+    expect(timeInputs.length).toBe(1);
+    fireEvent.change(timeInputs[0]!, { target: { value: '18:00 - 20:00' } });
+
+    fireEvent.click(addCourtBtn);
+
+    const updatedTimeInputs = container.querySelectorAll<HTMLInputElement>('input[placeholder*="05:00"]');
+    expect(updatedTimeInputs.length).toBe(2);
+    expect(updatedTimeInputs[1]!.value).toBe('18:00 - 20:00');
+  });
+
+  it('renders duration suggestion button and fills total duration on click', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json(planningTripView)));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
+          <Routes>
+            <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i })).toBeTruthy());
+
+    const addCourtBtn = screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i });
+    fireEvent.click(addCourtBtn);
+
+    const timeInput = container.querySelector<HTMLInputElement>('input[placeholder*="05:00"]')!;
+    fireEvent.change(timeInput, { target: { value: '05:00 - 07:00' } });
+
+    const durationInput = screen.getByLabelText(/Duration|Thời lượng/i) as HTMLInputElement;
+    expect(durationInput.value).toBe('');
+
+    const suggestionBtn = await screen.findByRole('button', { name: /Suggested: 2h|Gợi ý: 2h/i });
+    expect(suggestionBtn).toBeTruthy();
+
+    fireEvent.click(suggestionBtn);
+    expect(durationInput.value).toBe('2h');
+  });
+
+  it('renders decoupled booking code and duration fact rows in ExpenseDetails', () => {
+    const expenseOnlyBookingCode: ExpenseView = {
+      ...planningExpense,
+      meta: {
+        ...planningExpense.meta,
+        sport: {
+          ...planningExpense.meta!.sport!,
+          bookingCode: '#4139',
+          totalDuration: null,
+        },
+      },
+    };
+    const tripWithOnlyBookingCode: TripView = {
+      ...planningTripView,
+      expenses: [expenseOnlyBookingCode],
+    };
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { rerender } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/e-1']}>
+          <Routes>
+            <Route
+              path="/t/:tripId/expenses/:expenseId"
+              element={<ExpenseDetails view={tripWithOnlyBookingCode} expenseId="e-1" onClose={() => {}} />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('#4139')).toBeTruthy();
+    expect(screen.getByText(/Booking code|Mã đặt sân/i)).toBeTruthy();
+    expect(screen.queryByText(/Duration|Thời lượng/i)).toBeNull();
+
+    const expenseOnlyDuration: ExpenseView = {
+      ...planningExpense,
+      meta: {
+        ...planningExpense.meta,
+        sport: {
+          ...planningExpense.meta!.sport!,
+          bookingCode: null,
+          totalDuration: '3h',
+        },
+      },
+    };
+    const tripWithOnlyDuration: TripView = {
+      ...planningTripView,
+      expenses: [expenseOnlyDuration],
+    };
+
+    rerender(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/t/t-1/expenses/e-1']}>
+          <Routes>
+            <Route
+              path="/t/:tripId/expenses/:expenseId"
+              element={<ExpenseDetails view={tripWithOnlyDuration} expenseId="e-1" onClose={() => {}} />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('3h')).toBeTruthy();
+    expect(screen.getByText(/Duration|Thời lượng/i)).toBeTruthy();
+    expect(screen.queryByText('#4139')).toBeNull();
   });
 });

@@ -411,12 +411,16 @@ export function ExpenseDetails({
             </dd>
           </div>
         )}
-        {(sportMeta?.bookingCode || sportMeta?.totalDuration) && (
+        {sportMeta?.bookingCode && (
           <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
-            <dt className="text-sm text-muted-foreground">{t('sport.bookingCodeLabel')}</dt>
-            <dd className="text-sm font-medium text-foreground text-right m-0">
-              {[sportMeta.bookingCode, sportMeta.totalDuration].filter(Boolean).join(' · ')}
-            </dd>
+            <dt className="text-sm text-muted-foreground">{t('sport.bookingCodeFact')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">{sportMeta.bookingCode}</dd>
+          </div>
+        )}
+        {sportMeta?.totalDuration && (
+          <div className="fsl-details__fact flex items-center justify-between gap-3 px-4 py-3 min-h-11">
+            <dt className="text-sm text-muted-foreground">{t('sport.totalDurationFact')}</dt>
+            <dd className="text-sm font-medium text-foreground text-right m-0">{sportMeta.totalDuration}</dd>
           </div>
         )}
         {!isPlanning && (

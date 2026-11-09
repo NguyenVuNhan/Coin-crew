@@ -56,6 +56,60 @@ function getTodayLocalDate(): string {
   return `${year}-${month}-${day}`;
 }
 
+function parseTimeToMinutes(t: string): number | null {
+  const clean = t.trim().toLowerCase();
+  const colonMatch = clean.match(/^(\d{1,2}):(\d{2})$/);
+  if (colonMatch && colonMatch[1] && colonMatch[2]) {
+    const h = parseInt(colonMatch[1], 10);
+    const m = parseInt(colonMatch[2], 10);
+    return h * 60 + m;
+  }
+  const hMatch = clean.match(/^(\d{1,2})h(\d{1,2})?$/);
+  if (hMatch && hMatch[1]) {
+    const h = parseInt(hMatch[1], 10);
+    const m = hMatch[2] ? parseInt(hMatch[2], 10) : 0;
+    return h * 60 + m;
+  }
+  const numMatch = clean.match(/^(\d{1,2})$/);
+  if (numMatch && numMatch[1]) {
+    const h = parseInt(numMatch[1], 10);
+    return h * 60;
+  }
+  return null;
+}
+
+export function calculateSlotsDuration(slots: { courtName: string; timeRange: string }[]): string | null {
+  let minStart = Infinity;
+  let maxEnd = -Infinity;
+  let validSlots = 0;
+
+  for (const slot of slots) {
+    const parts = slot.timeRange.split(/[-–—to]/);
+    if (parts.length !== 2 || !parts[0] || !parts[1]) continue;
+    const start = parseTimeToMinutes(parts[0]);
+    const end = parseTimeToMinutes(parts[1]);
+    if (start === null || end === null) continue;
+    let adjustedEnd = end;
+    if (adjustedEnd <= start) {
+      adjustedEnd += 24 * 60;
+    }
+    minStart = Math.min(minStart, start);
+    maxEnd = Math.max(maxEnd, adjustedEnd);
+    validSlots++;
+  }
+
+  if (validSlots === 0 || !isFinite(minStart) || !isFinite(maxEnd)) {
+    return null;
+  }
+
+  const diff = maxEnd - minStart;
+  if (diff <= 0) return null;
+  const hours = Math.floor(diff / 60);
+  const mins = diff % 60;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h${mins}p`;
+}
+
 type T = ReturnType<typeof useT>;
 
 /**
@@ -656,11 +710,18 @@ function ExpenseFormContent({
     return null;
   }, [locationChoice, locName, locAddress, locPhone, locMapUrl, view.locations]);
 
-  const activeCourtSlots = useMemo(
-    () =>
-      courtSlots
-        .map((s) => ({ courtName: s.courtName.trim(), timeRange: s.timeRange.trim() }))
-        .filter((s) => s.courtName.length > 0 && s.timeRange.length > 0),
+  const activeCourtSlots = useMemo(() => {
+    const firstNonEmptyTime = courtSlots.find((s) => s.timeRange.trim())?.timeRange.trim() ?? '';
+    return courtSlots
+      .map((s) => ({
+        courtName: s.courtName.trim(),
+        timeRange: s.timeRange.trim() || firstNonEmptyTime,
+      }))
+      .filter((s) => s.courtName.length > 0 && s.timeRange.length > 0);
+  }, [courtSlots]);
+
+  const suggestedDuration = useMemo(
+    () => calculateSlotsDuration(courtSlots),
     [courtSlots],
   );
 
@@ -1150,37 +1211,58 @@ function ExpenseFormContent({
                 <button
                   type="button"
                   className="fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                  onClick={() => setCourtSlots((rows) => [...rows, { courtName: '', timeRange: '' }])}
+                  onClick={() => {
+                    setCourtSlots((rows) => {
+                      const lastTime = [...rows].reverse().find((r) => r.timeRange.trim())?.timeRange.trim() ?? '';
+                      return [...rows, { courtName: '', timeRange: lastTime }];
+                    });
+                  }}
                 >
                   {t('sport.addCourtSlot')}
                 </button>
               </div>
             </div>
 
-            <div className="fsl-field flex flex-col gap-1.5">
-              <Label htmlFor="sport-booking-code" className="fsl-field-label text-foreground">
-                {t('sport.bookingCodeLabel')}
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="fsl-field flex flex-col gap-1.5">
+                <Label htmlFor="sport-booking-code" className="fsl-field-label text-foreground">
+                  {t('sport.bookingCodeLabel')}
+                </Label>
                 <Input
                   id="sport-booking-code"
                   type="text"
                   className="fsl-input"
-                  placeholder="BK-4139"
+                  placeholder={t('sport.bookingCodePlaceholder')}
                   maxLength={40}
                   value={bookingCode}
                   onChange={(e) => setBookingCode(e.target.value)}
                 />
+              </div>
+              <div className="fsl-field flex flex-col gap-1.5">
+                <Label htmlFor="sport-total-duration" className="fsl-field-label text-foreground">
+                  {t('sport.totalDurationLabel')}
+                </Label>
                 <Input
                   id="sport-total-duration"
                   type="text"
                   className="fsl-input"
-                  placeholder="2h"
-                  aria-label="Duration"
+                  placeholder={t('sport.totalDurationPlaceholder')}
                   maxLength={40}
                   value={totalDuration}
                   onChange={(e) => setTotalDuration(e.target.value)}
                 />
+                {suggestedDuration && totalDuration.trim() !== suggestedDuration && (
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer bg-transparent border-0 p-0"
+                      onClick={() => setTotalDuration(suggestedDuration)}
+                    >
+                      <Icon name="clock" size={13} />
+                      <span>{t('sport.durationSuggestion', { duration: suggestedDuration })}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -432,17 +432,23 @@ export const vi: Record<MessageKey, string> = {
   'sport.extractFromImage': '✨ Đọc từ ảnh đặt sân', // REVIEW
   'sport.extracting': 'Đang đọc ảnh đặt sân…', // REVIEW
   'sport.locationLabel': 'Địa điểm', // REVIEW
-  'sport.addLocation': '+ Thêm sân mới', // REVIEW
+  'sport.addLocation': '+ Thêm địa điểm mới', // REVIEW
   'sport.locationName': 'Tên sân', // REVIEW
   'sport.locationAddress': 'Địa chỉ', // REVIEW
   'sport.locationPhone': 'Số điện thoại', // REVIEW
   'sport.locationMapUrl': 'Link Google Maps', // REVIEW
   'sport.openMap': 'Mở bản đồ ↗', // REVIEW
-  'sport.courtSlotsLabel': 'Sân & khung giờ', // REVIEW
-  'sport.addCourtSlot': '+ Thêm sân', // REVIEW
+  'sport.courtSlotsLabel': 'Sân đấu & khung giờ', // REVIEW
+  'sport.addCourtSlot': '+ Thêm sân đấu', // REVIEW
   'sport.courtNamePlaceholder': 'VD: Sân 6', // REVIEW
   'sport.timeRangePlaceholder': 'VD: 05:00 - 07:00', // REVIEW
-  'sport.bookingCodeLabel': 'Mã đặt / Tổng giờ', // REVIEW
+  'sport.bookingCodeLabel': 'Mã đặt sân', // REVIEW
+  'sport.bookingCodePlaceholder': 'VD: BK-4139', // REVIEW
+  'sport.totalDurationLabel': 'Thời lượng', // REVIEW
+  'sport.totalDurationPlaceholder': 'VD: 2h', // REVIEW
+  'sport.durationSuggestion': 'Gợi ý: {duration}', // REVIEW
+  'sport.bookingCodeFact': 'Mã đặt sân', // REVIEW
+  'sport.totalDurationFact': 'Thời lượng', // REVIEW
   'sport.savePlanning': 'Lưu lịch dự kiến', // REVIEW
   'sport.slotsCount': '{count} suất', // REVIEW
 
