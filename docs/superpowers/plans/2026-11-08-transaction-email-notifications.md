@@ -33,7 +33,7 @@
 ### Task 1: Core Types, Schema & Database Migrations
 
 **Files:**
-- Create: `apps/api/migrations/0008_notifications.sql`
+- Create: `apps/api/migrations/0020_notifications.sql`
 - Modify: `libs/shared/core/src/api-types.ts`
 - Modify: `libs/api/db/src/schema.ts`
 - Test: `apps/api/test/schema-notifications.test.ts`
@@ -89,7 +89,7 @@ In `libs/api/db/src/schema.ts`, define and export:
 - `userNotificationSettings` table with `userId`, `transactionCrud` (default 1), `loanReminders` (default 1), `monthlyNotice` (default 1), `updatedAt`.
 - `notificationLogs` table with `id`, `userId`, `tripId`, `type`, `referenceId`, `sentAt`, and compound index on `(userId, tripId, type, sentAt)`.
 
-In `apps/api/migrations/0008_notifications.sql`, write the corresponding `CREATE TABLE` and `CREATE INDEX` DDL statements.
+In `apps/api/migrations/0020_notifications.sql`, write the corresponding `CREATE TABLE` and `CREATE INDEX` DDL statements.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -99,7 +99,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add libs/shared/core/src/api-types.ts libs/api/db/src/schema.ts apps/api/migrations/0008_notifications.sql apps/api/test/schema-notifications.test.ts
+git add libs/shared/core/src/api-types.ts libs/api/db/src/schema.ts apps/api/migrations/0020_notifications.sql apps/api/test/schema-notifications.test.ts
 git commit -m "feat(db): add user_notification_settings and notification_logs tables (#84)"
 ```
 

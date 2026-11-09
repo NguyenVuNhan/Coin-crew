@@ -37,15 +37,15 @@ export function renderMonthlyNoticeEmail(options: MonthlyNoticeEmailOptions): {
 
   const greeting = recipientName
     ? isVi
-      ? `Xin chào ${recipientName},`
-      : `Hi ${recipientName},`
+      ? `Xin chào ${escapeHtml(recipientName)},`
+      : `Hi ${escapeHtml(recipientName)},`
     : isVi
     ? 'Xin chào bạn,'
     : 'Hello,';
 
   const introText = isVi
-    ? `Dưới đây là báo cáo tổng kết tình hình thu chi và số dư trong <strong>tháng ${month}</strong> của các nhóm bạn tham gia.`
-    : `Here is your monthly spending summary and closing balance across active groups for <strong>${month}</strong>.`;
+    ? `Dưới đây là báo cáo tổng kết tình hình thu chi và số dư trong <strong>tháng ${escapeHtml(month)}</strong> của các nhóm bạn tham gia.`
+    : `Here is your monthly spending summary and closing balance across active groups for <strong>${escapeHtml(month)}</strong>.`;
 
   const groupsHtml = groups
     .map((g) => {

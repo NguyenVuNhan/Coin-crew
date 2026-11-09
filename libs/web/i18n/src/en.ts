@@ -1008,6 +1008,15 @@ export const en = {
   'theme.name.orchid': 'Orchid',
   'theme.name.sky': 'Sky',
   'theme.name.indigo': 'Indigo',
+
+  'notifications.title': 'Email notifications',
+  'notifications.transactionCrud': 'Transaction activity',
+  'notifications.transactionCrudDesc': 'Get notified when transactions are created, edited, or deleted',
+  'notifications.loanReminders': 'Loan & balance reminders',
+  'notifications.loanRemindersDesc': 'Periodic reminders for outstanding balances and debts',
+  'notifications.monthlyNotice': 'Monthly group notice',
+  'notifications.monthlyNoticeDesc': 'Summary of group expenses and balances at month end',
+  'notifications.noEmailWarning': 'No email linked. Please link a Google account to receive email notifications.',
 } as const;
 
 export type MessageKey = keyof typeof en;

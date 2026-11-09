@@ -13,6 +13,7 @@ The live deployment's own values (database ID, public address, Google credential
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in | Cloudflare secrets; `apps/api/.dev.vars` locally |
 | `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `OPS_ALERT_WEBHOOK_URL` | Optional usage alerts | Cloudflare secrets |
 | `FEEDBACK_SHEET_WEBHOOK_URL`, `FEEDBACK_SHEET_TOKEN` | Optional user feedback to Google Sheet | Cloudflare secrets |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Optional transaction & loan email notifications | Cloudflare secrets; `apps/api/.dev.vars` locally |
 
 ## 1. Prerequisites
 
@@ -247,6 +248,19 @@ Write the whole digest twice: first in Vietnamese, then in English. Start with a
 
 8. **Rotating the token:** change the Script Property and the Worker secret together.
 9. **Check:** run `sendWeeklyDigest` once from the editor; send a test POST with `curl` to the URL and see a row appear.
+
+### 4.9 Optional: transaction emails & loan reminders (Resend)
+
+Coin Crew sends automated email notifications for transaction CRUD events, weekly consolidated loan reminders to debtors, and monthly club finance digests.
+
+1. Sign up for a free account at [resend.com](https://resend.com) and create an API key under **API Keys**.
+2. Add the secret to your Worker:
+   ```bash
+   npx -w @cc/api wrangler secret put RESEND_API_KEY
+   ```
+3. For local development, add `RESEND_API_KEY=re_...` to `apps/api/.dev.vars`.
+4. (Optional) Set `EMAIL_FROM` variable if using a verified custom domain on Resend (e.g. `Coin Crew <notifications@yourdomain.com>`). If omitted, it defaults to `Coin Crew <notifications@coincrew.io>` (or `onboarding@resend.dev` in development).
+5. If `RESEND_API_KEY` is not set, the app gracefully falls back to `ConsoleEmailService`, logging email payloads to the console without interrupting user flows or throwing errors.
 
 ## 5. Day to day
 

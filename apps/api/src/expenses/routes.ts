@@ -28,6 +28,7 @@ import { assertFundCovers, assertSportGroup, currentFundBalance } from '../fund/
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
+import { dispatchExpenseNotification } from '../notifications/transactionDispatcher';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -400,6 +401,13 @@ export function expenseRoutes(): Hono<AppBindings> {
       },
     });
 
+    if (status === 'approved') {
+      await dispatchExpenseNotification(c, 'approved', expenseId, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
+
     return c.json({ expenseId }, 201);
   });
 
@@ -521,6 +529,11 @@ export function expenseRoutes(): Hono<AppBindings> {
         amount: validated.amount,
         ...(fundPaid ? { paidFromFund: true } : {}),
       },
+    });
+
+    await dispatchExpenseNotification(c, 'updated', head.rootId, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
     });
 
     return c.json({ expenseId: newHeadId, rootId: head.rootId }, 200);
@@ -814,6 +827,11 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       details: { description: head.description },
     });
 
+    await dispatchExpenseNotification(c, 'approved', head.rootId, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
+    });
+
     return c.body(null, 204);
   });
 
@@ -885,6 +903,11 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       details: { description: head.description, reason },
     });
 
+    await dispatchExpenseNotification(c, 'deleted', head.rootId, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
+    });
+
     return c.body(null, 204);
   });
 
@@ -947,6 +970,11 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: {},
+    });
+
+    await dispatchExpenseNotification(c, 'deleted', head.rootId, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
     });
 
     return c.body(null, 204);

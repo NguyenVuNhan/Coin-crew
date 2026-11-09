@@ -21,6 +21,7 @@ import { AvatarCropModal } from '@cc/web-ui/components/AvatarCropModal';
 import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
 import { ThemePicker } from './ThemePicker';
+import { NotificationSettingsModal } from './NotificationSettingsModal';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
@@ -68,6 +69,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const setMyTheme = useSetMyTheme();
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -75,6 +77,8 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const themeRowRef = useRef<HTMLButtonElement | null>(null);
   const wasThemeOpenRef = useRef(false);
+  const notificationsRowRef = useRef<HTMLButtonElement | null>(null);
+  const wasNotificationsOpenRef = useRef(false);
 
   useEffect(() => {
     if (wasThemeOpenRef.current && !themeOpen) {
@@ -87,6 +91,18 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     }
     wasThemeOpenRef.current = themeOpen;
   }, [themeOpen]);
+
+  useEffect(() => {
+    if (wasNotificationsOpenRef.current && !notificationsOpen) {
+      notificationsRowRef.current?.focus();
+      const raf = requestAnimationFrame(() => {
+        notificationsRowRef.current?.focus();
+      });
+      wasNotificationsOpenRef.current = false;
+      return () => cancelAnimationFrame(raf);
+    }
+    wasNotificationsOpenRef.current = notificationsOpen;
+  }, [notificationsOpen]);
 
   useEffect(() => {
     if (u) {
@@ -106,7 +122,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   };
 
   useEffect(() => {
-    if (!wide || !open || cropOpen || themeOpen) return;
+    if (!wide || !open || cropOpen || themeOpen || notificationsOpen) return;
 
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target;
@@ -391,6 +407,21 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           </span>
         </button>
 
+        <button
+          ref={notificationsRowRef}
+          type="button"
+          className={cn(
+            'fsl-account-menu__row fsl-account-menu__link fsl-account-menu__notifications flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground bg-transparent hover:bg-accent transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+          onClick={() => setNotificationsOpen(true)}
+        >
+          <span className="fsl-account-menu__row-left inline-flex items-center gap-2">
+            <Icon name="bell" size={20} />
+            <span>{t('notifications.title')}</span>
+          </span>
+          <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
+        </button>
+
         <div className="fsl-account-menu__row flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground">
           <span>{t('account.language')}</span>
           <LanguageButton />
@@ -448,11 +479,19 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     />
   );
 
+  const notificationsModal = (
+    <NotificationSettingsModal
+      open={notificationsOpen}
+      onClose={() => setNotificationsOpen(false)}
+      user={u}
+    />
+  );
+
   if (wide) {
     return (
       <div className="fsl-account-menu relative inline-flex" ref={wrapperRef}>
         {trigger}
-        {open && !cropOpen && !themeOpen && (
+        {open && !cropOpen && !themeOpen && !notificationsOpen && (
           <div
             role="dialog"
             aria-label={t('account.label')}
@@ -463,6 +502,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
         )}
         {cropModal}
         {themePicker}
+        {notificationsModal}
       </div>
     );
   }
@@ -470,11 +510,12 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   return (
     <span className="fsl-account-menu inline-flex">
       {trigger}
-      <Sheet open={open && !cropOpen && !themeOpen} onClose={close} title={t('account.label')}>
+      <Sheet open={open && !cropOpen && !themeOpen && !notificationsOpen} onClose={close} title={t('account.label')}>
         {body}
       </Sheet>
       {cropModal}
       {themePicker}
+      {notificationsModal}
     </span>
   );
 }
