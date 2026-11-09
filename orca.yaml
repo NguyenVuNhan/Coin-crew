@@ -1,0 +1,4 @@
+# Orca workspace lifecycle configuration
+# Docs / Specification: https://github.com/NguyenVuNhan/Coin-crew
+scripts:
+  setup: node scripts/orca-setup.mjs
