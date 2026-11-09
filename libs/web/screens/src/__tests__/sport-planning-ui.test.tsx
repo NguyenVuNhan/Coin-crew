@@ -447,6 +447,12 @@ describe('Sport Planning UI components', () => {
     it('calculates duration with minutes (e.g. 18h - 20h30)', () => {
       expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '18h - 20h30' }])).toBe('2h30p');
     });
+
+    it('handles "to" separator, identical start/end times, and sub-1-hour durations', () => {
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '05:00 to 07:00' }])).toBe('2h');
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '18:00 - 18:00' }])).toBeNull();
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '08:00 - 08:45' }])).toBe('45p');
+    });
   });
 
   it('prefills time range from previous slot when clicking add court slot in ExpenseForm', async () => {

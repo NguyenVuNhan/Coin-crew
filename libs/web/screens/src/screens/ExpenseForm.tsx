@@ -84,13 +84,13 @@ export function calculateSlotsDuration(slots: { courtName: string; timeRange: st
   let validSlots = 0;
 
   for (const slot of slots) {
-    const parts = slot.timeRange.split(/[-–—to]/);
+    const parts = slot.timeRange.split(/[-–—]|\s+to\s+/i);
     if (parts.length !== 2 || !parts[0] || !parts[1]) continue;
     const start = parseTimeToMinutes(parts[0]);
     const end = parseTimeToMinutes(parts[1]);
     if (start === null || end === null) continue;
     let adjustedEnd = end;
-    if (adjustedEnd <= start) {
+    if (adjustedEnd < start) {
       adjustedEnd += 24 * 60;
     }
     minStart = Math.min(minStart, start);
@@ -106,6 +106,7 @@ export function calculateSlotsDuration(slots: { courtName: string; timeRange: st
   if (diff <= 0) return null;
   const hours = Math.floor(diff / 60);
   const mins = diff % 60;
+  if (hours === 0) return `${mins}p`;
   if (mins === 0) return `${hours}h`;
   return `${hours}h${mins}p`;
 }
@@ -1255,7 +1256,7 @@ function ExpenseFormContent({
                   <div className="flex items-center gap-1.5 pt-0.5">
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer bg-transparent border-0 p-0"
+                      className="inline-flex items-center gap-1 py-1 text-xs font-medium text-primary hover:underline cursor-pointer bg-transparent border-0 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
                       onClick={() => setTotalDuration(suggestedDuration)}
                     >
                       <Icon name="clock" size={13} />
