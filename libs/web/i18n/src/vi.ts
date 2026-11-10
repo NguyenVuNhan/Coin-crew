@@ -442,6 +442,13 @@ export const vi: Record<MessageKey, string> = {
   'sport.addCourtSlot': '+ Thêm sân đấu', // REVIEW
   'sport.courtNamePlaceholder': 'VD: Sân 6', // REVIEW
   'sport.timeRangePlaceholder': 'VD: 05:00 - 07:00', // REVIEW
+  'sport.startTimeLabel': 'Giờ bắt đầu', // REVIEW
+  'sport.durationLabel': 'Thời lượng', // REVIEW
+  'sport.courtNameIndex': 'Tên sân {index}', // REVIEW
+  'sport.timeRangeIndex': 'Khung giờ sân {index}', // REVIEW
+  'sport.removeCourtIndex': 'Xóa sân {index}', // REVIEW
+  'sport.calculatedRange': 'Khung giờ tính toán: {range}', // REVIEW
+  'sport.totalDurationBanner': 'Thời lượng: {duration} ({range}) · {courts} sân', // REVIEW
   'sport.bookingCodeLabel': 'Mã đặt sân', // REVIEW
   'sport.bookingCodePlaceholder': 'VD: BK-4139', // REVIEW
   'sport.totalDurationLabel': 'Thời lượng', // REVIEW
