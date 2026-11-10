@@ -7,7 +7,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SportBillTable } from '../components/SportBillTable';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { ExpenseDetails } from '../components/ExpenseDetails';
-import { ExpenseForm, calculateSlotsDuration } from '../screens/ExpenseForm';
+import {
+  ExpenseForm,
+  calculateSlotsDuration,
+  extractRecentStartTimes,
+  parseStartAndDuration,
+  formatTimeRange,
+} from '../screens/ExpenseForm';
 import { AppNav } from '../components/AppNav';
 import * as qrUtil from '@cc/web-util/qr';
 import type { ExpenseView, TripView } from '@cc/core';
@@ -582,5 +588,66 @@ describe('Sport Planning UI components', () => {
     expect(screen.getByText('3h')).toBeTruthy();
     expect(screen.getByText(/Duration|Thời lượng/i)).toBeTruthy();
     expect(screen.queryByText('#4139')).toBeNull();
+  });
+
+  describe('Time & Duration utilities', () => {
+    it('extracts unique recent start times from expenses up to maxCount', () => {
+      const e1: ExpenseView = {
+        ...planningExpense,
+        id: 'e-recent-1',
+        spentOn: '2026-11-09',
+        meta: { sport: { courtSlots: [{ courtName: 'Sân 1', timeRange: '18:00 - 20:00' }] } } as any,
+      };
+      const e2: ExpenseView = {
+        ...planningExpense,
+        id: 'e-recent-2',
+        spentOn: '2026-11-08',
+        meta: { sport: { courtSlots: [{ courtName: 'Sân 2', timeRange: '19:30 - 21:30' }] } } as any,
+      };
+      const e3: ExpenseView = {
+        ...planningExpense,
+        id: 'e-recent-3',
+        spentOn: '2026-11-07',
+        meta: { sport: { courtSlots: [{ courtName: 'Sân 3', timeRange: '18:00 - 20:00' }] } } as any,
+      };
+      const e4: ExpenseView = {
+        ...planningExpense,
+        id: 'e-recent-4',
+        spentOn: '2026-11-06',
+        meta: { sport: { courtSlots: [{ courtName: 'Sân 4', timeRange: '05:30 - 07:30' }] } } as any,
+      };
+      const result = extractRecentStartTimes([e4, e2, e1, e3], 3);
+      expect(result).toEqual(['18:00', '19:30', '05:30']);
+    });
+
+    it('returns empty array when expenses have no court slots', () => {
+      expect(extractRecentStartTimes([])).toEqual([]);
+      expect(extractRecentStartTimes([{ ...planningExpense, meta: null }])).toEqual([]);
+    });
+
+    it('parses start time and duration correctly', () => {
+      expect(parseStartAndDuration('18:00 - 20:00')).toEqual({ startTime: '18:00', durationHours: 2 });
+      expect(parseStartAndDuration('05:30 - 07:00')).toEqual({ startTime: '05:30', durationHours: 1.5 });
+      expect(parseStartAndDuration('23:00 - 01:00')).toEqual({ startTime: '23:00', durationHours: 2 });
+      expect(parseStartAndDuration('invalid')).toBeNull();
+    });
+
+    it('formats time range given start time and duration hours', () => {
+      expect(formatTimeRange('18:00', 2)).toBe('18:00 - 20:00');
+      expect(formatTimeRange('05:30', 1.5)).toBe('05:30 - 07:00');
+      expect(formatTimeRange('23:00', 2)).toBe('23:00 - 01:00');
+    });
+
+    it('calculates duration across single and multiple court slots', () => {
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '18:00 - 20:00' }])).toBe('2h');
+      expect(
+        calculateSlotsDuration([
+          { courtName: 'Sân 1', timeRange: '18:00 - 20:00' },
+          { courtName: 'Sân 2', timeRange: '18:00 - 20:00' },
+        ]),
+      ).toBe('2h');
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '05:30 - 07:00' }])).toBe('1h30p');
+      expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '23:00 - 01:00' }])).toBe('2h');
+    });
   });
 });

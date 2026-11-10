@@ -58,7 +58,7 @@ function getTodayLocalDate(): string {
 
 function parseTimeToMinutes(t: string): number | null {
   const clean = t.trim().toLowerCase();
-  const colonMatch = clean.match(/^(\d{1,2}):(\d{2})$/);
+  const colonMatch = clean.match(/^(\d{1,2})[:.](\d{2})$/);
   if (colonMatch && colonMatch[1] && colonMatch[2]) {
     const h = parseInt(colonMatch[1], 10);
     const m = parseInt(colonMatch[2], 10);
@@ -78,23 +78,85 @@ function parseTimeToMinutes(t: string): number | null {
   return null;
 }
 
+export function parseStartAndDuration(timeRange: string): { startTime: string; durationHours: number } | null {
+  if (!timeRange || typeof timeRange !== 'string') return null;
+  const parts = timeRange.split(/[-–—~]|\s+(?:to|đến|tới)\s+/i);
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const startMins = parseTimeToMinutes(parts[0]);
+  const endMins = parseTimeToMinutes(parts[1]);
+  if (startMins === null || endMins === null) return null;
+
+  let adjustedEnd = endMins;
+  if (adjustedEnd < startMins) {
+    adjustedEnd += 24 * 60;
+  }
+  const diffMinutes = adjustedEnd - startMins;
+  if (diffMinutes <= 0) return null;
+
+  const durationHours = diffMinutes / 60;
+  const startH = Math.floor(startMins / 60);
+  const startM = startMins % 60;
+  const startTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+
+  return { startTime, durationHours };
+}
+
+export function formatTimeRange(startTime: string, durationHours: number): string {
+  const mins = parseTimeToMinutes(startTime);
+  if (mins === null) return startTime;
+  const endMins = Math.round(mins + durationHours * 60);
+  const startH = Math.floor(mins / 60) % 24;
+  const startM = mins % 60;
+  const endH = Math.floor(endMins / 60) % 24;
+  const endM = endMins % 60;
+  const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+  const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  return `${startStr} - ${endStr}`;
+}
+
+export function extractRecentStartTimes(expenses: ExpenseView[] | undefined | null, maxCount = 3): string[] {
+  if (!expenses || expenses.length === 0) return [];
+
+  const sorted = [...expenses].sort((a, b) => {
+    const dateA = a.spentOn || a.createdAt || '';
+    const dateB = b.spentOn || b.createdAt || '';
+    return dateB.localeCompare(dateA);
+  });
+
+  const uniqueTimes = new Set<string>();
+  for (const exp of sorted) {
+    const slots = exp.meta?.sport?.courtSlots;
+    if (!slots || !Array.isArray(slots)) continue;
+    for (const slot of slots) {
+      if (!slot.timeRange) continue;
+      const parsed = parseStartAndDuration(slot.timeRange);
+      if (parsed) {
+        uniqueTimes.add(parsed.startTime);
+        if (uniqueTimes.size >= maxCount) {
+          return Array.from(uniqueTimes);
+        }
+      }
+    }
+  }
+
+  return Array.from(uniqueTimes);
+}
+
 export function calculateSlotsDuration(slots: { courtName: string; timeRange: string }[]): string | null {
+  if (!slots || slots.length === 0) return null;
+
   let minStart = Infinity;
   let maxEnd = -Infinity;
   let validSlots = 0;
 
   for (const slot of slots) {
-    const parts = slot.timeRange.split(/[-–—]|\s+to\s+/i);
-    if (parts.length !== 2 || !parts[0] || !parts[1]) continue;
-    const start = parseTimeToMinutes(parts[0]);
-    const end = parseTimeToMinutes(parts[1]);
-    if (start === null || end === null) continue;
-    let adjustedEnd = end;
-    if (adjustedEnd < start) {
-      adjustedEnd += 24 * 60;
-    }
-    minStart = Math.min(minStart, start);
-    maxEnd = Math.max(maxEnd, adjustedEnd);
+    const parsed = parseStartAndDuration(slot.timeRange);
+    if (!parsed) continue;
+    const startMins = parseTimeToMinutes(parsed.startTime);
+    if (startMins === null) continue;
+    const endMins = startMins + parsed.durationHours * 60;
+    minStart = Math.min(minStart, startMins);
+    maxEnd = Math.max(maxEnd, endMins);
     validSlots++;
   }
 
@@ -105,7 +167,7 @@ export function calculateSlotsDuration(slots: { courtName: string; timeRange: st
   const diff = maxEnd - minStart;
   if (diff <= 0) return null;
   const hours = Math.floor(diff / 60);
-  const mins = diff % 60;
+  const mins = Math.round(diff % 60);
   if (hours === 0) return `${mins}p`;
   if (mins === 0) return `${hours}h`;
   return `${hours}h${mins}p`;
