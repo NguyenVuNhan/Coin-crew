@@ -1,4 +1,11 @@
-import { formatVnd, roundToThousand, type TripView, type Gender } from '@cc/core';
+import {
+  formatVnd,
+  roundToThousand,
+  type TripView,
+  type Gender,
+  type SportLocationSnapshot,
+  type SportCourtSlot,
+} from '@cc/core';
 import type { Lang } from '@cc/web-i18n';
 import { en } from '@cc/web-i18n/en';
 import { vi } from '@cc/web-i18n/vi';
@@ -85,6 +92,62 @@ export function sportShareText(lang: Lang, input: SportShareTextInput): string {
   }
 
   return `${lang === 'vi' ? 'Mã QR & chi tiết: ' : 'QR & details: '}${input.link}`;
+}
+
+export interface SportPlanningShareTextInput {
+  description?: string;
+  spentOn?: string;
+  location?: SportLocationSnapshot | null;
+  courtSlots?: SportCourtSlot[];
+  bookingCode?: string | null;
+  totalDuration?: string | null;
+  totalFemaleSlots: number;
+  totalMaleSlots: number;
+  link: string;
+}
+
+export function sportPlanningShareText(lang: Lang, input: SportPlanningShareTextInput): string {
+  const lines: string[] = [];
+  if (input.description) {
+    lines.push(input.description);
+  }
+  if (input.spentOn) {
+    lines.push(lang === 'vi' ? `Ngày: ${input.spentOn}` : `Date: ${input.spentOn}`);
+  }
+  if (input.location?.name) {
+    const loc =
+      input.location.address && !input.location.name.includes(input.location.address)
+        ? `${input.location.name} - ${input.location.address}`
+        : input.location.name;
+    lines.push(lang === 'vi' ? `Địa điểm: ${loc}` : `Venue: ${loc}`);
+  }
+  if (input.location?.mapUrl) {
+    lines.push(input.location.mapUrl);
+  }
+  if (input.courtSlots && input.courtSlots.length > 0) {
+    const slots = input.courtSlots.map((s) => `${s.courtName} (${s.timeRange})`).join(', ');
+    lines.push(lang === 'vi' ? `Sân: ${slots}` : `Courts: ${slots}`);
+  }
+  const totalSlots = input.totalFemaleSlots + input.totalMaleSlots;
+  const slotCount =
+    lang === 'vi'
+      ? `${totalSlots} suất (${input.totalFemaleSlots} Nữ, ${input.totalMaleSlots} Nam)`
+      : `${totalSlots} slots (${input.totalFemaleSlots}F, ${input.totalMaleSlots}M)`;
+  lines.push(lang === 'vi' ? `Danh sách: ${slotCount}` : `Headcount: ${slotCount}`);
+
+  if (input.bookingCode || input.totalDuration) {
+    const meta = [
+      input.bookingCode ? (lang === 'vi' ? `Mã đặt: ${input.bookingCode}` : `Booking code: ${input.bookingCode}`) : null,
+      input.totalDuration ? (lang === 'vi' ? `Thời gian: ${input.totalDuration}` : `Duration: ${input.totalDuration}`) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    if (meta) lines.push(meta);
+  }
+  if (input.link) {
+    lines.push(lang === 'vi' ? `Chi tiết: ${input.link}` : `Details: ${input.link}`);
+  }
+  return lines.join('\n');
 }
 
 /** The group link that goes into a reminder: a member's view carries it, a guest still has the link they came by. */

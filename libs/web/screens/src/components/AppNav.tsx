@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router';
 import { useT } from '@cc/web-i18n';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { Button } from '@cc/web-ui/components/Button';
+import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
 import { AccountMenu } from './AccountMenu';
 import { cn } from '@cc/web-ui/lib/utils';
 
@@ -11,6 +12,7 @@ export type NavSection = 'home' | 'groups' | 'activity';
 export interface AppNavProps {
   section: NavSection;
   addHref: string;
+  planHref?: string;
 }
 
 interface NavItem {
@@ -28,10 +30,31 @@ const NAV_ITEMS: readonly NavItem[] = [
   { id: 'activity', labelKey: 'nav.activity', href: '/activity', icon: 'clock' },
 ] as const;
 
-export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
+export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element {
   const t = useT();
   const location = useLocation();
   const shouldReplace = TAB_ROOTS.includes(location.pathname);
+
+  const renderPlanMenu = (align: 'start' | 'end', side: 'top' | 'bottom') => (
+    <PopoverContent align={align} side={side} sideOffset={8} className="w-56 p-1.5 gap-1 rounded-2xl">
+      <Link
+        to={planHref!}
+        data-testid="nav-plan-session"
+        className="min-h-11 rounded-xl flex items-center gap-3 px-3 text-sm font-medium text-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors no-underline"
+      >
+        <Icon name="calendar" size={18} />
+        <span>{t('sport.planSession')}</span>
+      </Link>
+      <Link
+        to={addHref}
+        data-testid="nav-add-expense"
+        className="min-h-11 rounded-xl flex items-center gap-3 px-3 text-sm font-medium text-foreground hover:bg-secondary hover:text-secondary-foreground transition-colors no-underline"
+      >
+        <Icon name="receipt" size={18} />
+        <span>{t('expenseForm.add')}</span>
+      </Link>
+    </PopoverContent>
+  );
 
   return (
     <nav
@@ -68,14 +91,30 @@ export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
           })}
         </div>
 
-        <Link
-          to={addHref}
-          data-testid="nav-add"
-          aria-label={t('nav.add')}
-          className="pointer-events-auto size-14 rounded-full bg-foreground text-background shadow-lg inline-flex items-center justify-center text-3xl font-light hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity shrink-0 leading-none select-none"
-        >
-          +
-        </Link>
+        {planHref ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                data-testid="nav-add"
+                aria-label={t('nav.add')}
+                className="pointer-events-auto size-14 rounded-full bg-foreground text-background shadow-lg inline-flex items-center justify-center text-3xl font-light hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity shrink-0 leading-none select-none cursor-pointer border-0"
+              >
+                +
+              </button>
+            </PopoverTrigger>
+            {renderPlanMenu('end', 'top')}
+          </Popover>
+        ) : (
+          <Link
+            to={addHref}
+            data-testid="nav-add"
+            aria-label={t('nav.add')}
+            className="pointer-events-auto size-14 rounded-full bg-foreground text-background shadow-lg inline-flex items-center justify-center text-3xl font-light hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity shrink-0 leading-none select-none"
+          >
+            +
+          </Link>
+        )}
       </div>
 
       {/* Computer side panel (from lg) */}
@@ -87,15 +126,31 @@ export function AppNav({ section, addHref }: AppNavProps): JSX.Element {
           CoinCrew
         </div>
 
-        <Button
-          variant="primary"
-          block
-          href={addHref}
-          data-testid="nav-add"
-          className="mb-2"
-        >
-          + {t('nav.add')}
-        </Button>
+        {planHref ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="primary"
+                block
+                data-testid="nav-add"
+                className="mb-2"
+              >
+                + {t('nav.add')}
+              </Button>
+            </PopoverTrigger>
+            {renderPlanMenu('start', 'bottom')}
+          </Popover>
+        ) : (
+          <Button
+            variant="primary"
+            block
+            href={addHref}
+            data-testid="nav-add"
+            className="mb-2"
+          >
+            + {t('nav.add')}
+          </Button>
+        )}
 
         <div className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {

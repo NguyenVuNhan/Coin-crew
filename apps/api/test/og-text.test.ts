@@ -298,4 +298,32 @@ describe('pageMeta', () => {
     expect(meta.description).toContain('66.667₫');
     expect(meta.description).not.toContain('67.000₫');
   });
+
+  it('formats sport planning expense without 0₫ or QR prompt', () => {
+    const snapshot = snap({ trip: { preset: 'sport' } });
+    const expense = exp({
+      description: 'Cầu lông sáng CN',
+      amount: 0,
+      meta: {
+        sport: {
+          planning: true,
+          location: { name: 'Sân Putin', address: '158 Phú Diễn' },
+          court: 168000,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'equal' },
+          maleSlotRate: 0,
+          femaleSlotRate: 0,
+          entries: [
+            { participantId: 'p1', maleSlots: 12, femaleSlots: 0 },
+            { participantId: 'p2', maleSlots: 0, femaleSlots: 7 },
+          ],
+        },
+      },
+    });
+    const meta = pageMeta({ kind: 'expense', snapshot, expense, now: NOW });
+    expect(meta.description).toBe('Sân Putin · 19 suất — mở để xem lịch và danh sách.');
+    expect(meta.description).not.toContain('0₫');
+    expect(meta.description).not.toContain('QR');
+  });
 });

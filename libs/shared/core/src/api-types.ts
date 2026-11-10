@@ -21,6 +21,7 @@ export type ApiErrorCode =
   | 'PROPOSAL_PENDING'
   | 'CONFLICT'
   | 'ZALO_TOKEN_INVALID'
+  | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
 /** `POST /api/auth/zalo-mini`: the Zalo Mini App handshake (and, with `consent`, its sign-up). */
@@ -235,6 +236,47 @@ export interface PersonView {
   avatarUrl?: string | null;
 }
 
+export interface SportCourtSlot {
+  courtName: string;
+  timeRange: string;
+}
+
+export interface SportLocationSnapshot {
+  locationId?: string | null;
+  name: string;
+  address: string;
+  phone?: string | null;
+  mapUrl?: string | null;
+}
+
+export interface TripLocationView {
+  id: string;
+  name: string;
+  address: string;
+  phone: string | null;
+  mapUrl: string | null;
+  notes: string | null;
+}
+
+export interface TripLocationInput {
+  name: string;
+  address: string;
+  phone?: string | null;
+  mapUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface ExtractedSportBooking {
+  clubName: string | null;
+  address: string | null;
+  phone: string | null;
+  date: string | null;
+  bookingCode: string | null;
+  totalDuration: string | null;
+  totalAmount: number | null;
+  courtSlots: SportCourtSlot[];
+}
+
 export interface ExpenseSportMeta {
   court: number;
   shuttlecocks: { qty: number; unitPrice: number }[];
@@ -243,6 +285,12 @@ export interface ExpenseSportMeta {
   entries: SportParticipantEntry[];
   maleSlotRate: number;
   femaleSlotRate: number;
+  planning?: boolean;
+  location?: SportLocationSnapshot | null;
+  courtSlots?: SportCourtSlot[];
+  bookingCode?: string | null;
+  totalDuration?: string | null;
+  bookingImageDataUrl?: string | null;
 }
 
 export interface ExpenseMeta {
@@ -359,6 +407,8 @@ export interface TripView {
   fund?: { balance: number; added: number; spent: number; incomes: IncomeView[] } | null;
   /** Sport groups only; null otherwise. Left out by an older server: read it as null. */
   ratings?: RatingsView | null;
+  locations?: TripLocationView[];
+  aiBookingExtract?: boolean;
 }
 export interface TripListItem { id: string; name: string; archived: boolean; myBalance: number; preset?: GroupPreset }
 export interface ActivityItem {

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ExpenseHistoryItem, ExpenseView, TripView } from '@cc/core';
-import { can, formatVnd, isFundPaid } from '@cc/core';
+import { can, formatVnd, isFundPaid, isPlanningExpense } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
@@ -22,7 +22,8 @@ function isSameState(item: ExpenseHistoryItem, current: ExpenseView): boolean {
     item.amount !== current.amount ||
     item.description !== current.description ||
     item.payerId !== current.payerId ||
-    item.spentOn !== current.spentOn
+    item.spentOn !== current.spentOn ||
+    JSON.stringify(item.meta?.sport ?? null) !== JSON.stringify(current.meta?.sport ?? null)
   ) {
     return false;
   }
@@ -68,7 +69,9 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
     (view.me.kind === 'member' ||
       (view.me.participantId === expense.createdById && expense.status === 'pending'));
   // A roll back to or from a fund-paid version is a fund write (spec §9.4).
-  const fundWriter = can(actorOf(view), 'manage_fund');
+  const actor = actorOf(view);
+  const fundWriter = can(actor, 'manage_fund');
+  const canPlan = can(actor, 'plan_session');
 
   return (
     <section className="fsl-history mt-4 flex flex-col gap-2" aria-labelledby="fsl-history-title">
@@ -87,7 +90,10 @@ export function ExpenseHistoryList({ view, expense }: ExpenseHistoryListProps) {
             date: dateStr,
           });
           const itemCanRollback =
-            canRollback && !isSameState(item, expense) && (fundWriter || (!isFundPaid(expense) && !isFundPaid(item)));
+            canRollback &&
+            !isSameState(item, expense) &&
+            (fundWriter || (!isFundPaid(expense) && !isFundPaid(item))) &&
+            (canPlan || (!isPlanningExpense(expense) && !isPlanningExpense(item)));
 
           return (
             <li key={item.id} className="fsl-history-item flex items-start justify-between gap-3 p-3">

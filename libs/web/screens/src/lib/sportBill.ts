@@ -8,7 +8,7 @@ export interface SportBillRow {
   rosterGender: 'M' | 'F' | null;
   maleSlots: number;
   femaleSlots: number;
-  fixedAmount: number | null;
+  fixedAmount?: number | null;
   amount: number;
 }
 

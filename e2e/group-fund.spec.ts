@@ -49,6 +49,7 @@ test('an admin fills and spends the group fund', async ({ browser }) => {
 
   // Drinks after the game come out of the fund: nobody owes a share.
   await page.getByTestId('app-nav-bar').getByTestId('nav-add').click();
+  await page.getByTestId('nav-add-expense').click();
   await page.getByLabel('What for').fill('Nước sau trận');
   await page.getByLabel('Paid by').selectOption({ label: 'Group fund · 200.000₫' });
   await page.getByLabel('Amount', { exact: true }).fill('150k');

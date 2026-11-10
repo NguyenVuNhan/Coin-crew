@@ -14,12 +14,14 @@ import type {
   RatingsView,
   SplitMode,
   Transfer,
+  TripLocationView,
   TripView,
 } from '@cc/core';
 import {
   computeBalances,
   fundSummary,
   isFundPaid,
+  isPlanningExpense,
   isThemeId,
   maxStarsForGroup,
   pairwiseTransfers,
@@ -33,6 +35,7 @@ import {
   playerRatings,
   transactionShares,
   transactions,
+  tripLocations,
   tripViews,
   users,
 } from '@cc/api-db/schema';
@@ -46,7 +49,7 @@ export function toLedger(s: TripSnapshot): {
   payments: LedgerPayment[];
 } {
   const order = s.people.map((p) => p.id);
-  const ledgerExpenses: LedgerExpense[] = s.expenses.filter((e) => !isFundPaid(e)).map((e) => ({
+  const ledgerExpenses: LedgerExpense[] = s.expenses.filter((e) => !isFundPaid(e) && !isPlanningExpense(e)).map((e) => ({
     id: e.id,
     payerId: e.payerId,
     amount: e.amount,
@@ -411,6 +414,21 @@ export async function buildSnapshot(
     };
   }
 
+  const locationRows = await db
+    .select()
+    .from(tripLocations)
+    .where(eq(tripLocations.tripId, trip.id))
+    .orderBy(asc(tripLocations.createdAt));
+
+  const locations: TripLocationView[] = locationRows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    address: r.address,
+    phone: r.phone ?? null,
+    mapUrl: r.mapUrl ?? null,
+    notes: r.notes ?? null,
+  }));
+
   return {
     trip: {
       id: trip.id,
@@ -433,6 +451,7 @@ export async function buildSnapshot(
     payments: paymentViews,
     fund,
     ratings,
+    locations,
   };
 }
 
@@ -456,8 +475,8 @@ export async function getSnapshot(
 
   if (row && row.version === trip.version) {
     const view = JSON.parse(row.json) as TripSnapshot;
-    // Views cached before the group fund or player ratings lack those fields: rebuild them once.
-    if ('fund' in view && 'ratings' in view) return view;
+    // Views cached before the group fund, player ratings, or trip locations lack those fields: rebuild them once.
+    if ('fund' in view && 'ratings' in view && 'locations' in view) return view;
   }
 
   let previous: Transfer[] | undefined;

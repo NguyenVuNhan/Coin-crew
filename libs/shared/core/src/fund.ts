@@ -11,10 +11,15 @@ export function isFundPaid(e: { meta?: ExpenseMeta | null }): boolean {
   return e.meta?.paidFromFund === true;
 }
 
+export function isPlanningExpense(e: { meta?: ExpenseMeta | null }): boolean {
+  return e.meta?.sport?.planning === true;
+}
+
 /** What one entry does to the fund balance: approved income adds, an approved fund-paid expense takes away, the rest nothing. */
 export function fundEffect(item: FundItem): number {
   if (item.status !== 'approved') return 0;
   if (item.kind === 'income') return item.amount;
+  if (item.kind === 'expense' && isPlanningExpense(item)) return 0;
   return isFundPaid(item) ? -item.amount : 0;
 }
 

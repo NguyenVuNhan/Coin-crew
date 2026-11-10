@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Approval, PersonView, TripView } from '@cc/core';
-import { computeBalances, findBank, findSimilarNames, maskAccountNumber, snapResidual } from '@cc/core';
+import { can, computeBalances, findBank, findSimilarNames, maskAccountNumber, snapResidual } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
 import type { ResolvedActor } from '@cc/api-auth/actor';
 import type { TripSnapshot } from './snapshot';
@@ -18,6 +18,7 @@ export async function toTripView(
   db: Db,
   snapshot: TripSnapshot,
   actor: ResolvedActor,
+  env?: { GEMINI_API_KEY?: string },
 ): Promise<TripView> {
   const isAdmin = Boolean(actor.isAdmin) || actor.isOrganiser;
   const me: TripView['me'] = {
@@ -297,6 +298,8 @@ export async function toTripView(
     payments: snapshot.payments,
     fund: snapshot.fund,
     ratings,
+    locations: snapshot.locations ?? [],
+    aiBookingExtract: Boolean(env?.GEMINI_API_KEY) && can(actor, 'plan_session'),
     myBalance,
     approvals,
     links,
