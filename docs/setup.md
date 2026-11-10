@@ -248,10 +248,6 @@ Write the whole digest twice: first in Vietnamese, then in English. Start with a
 8. **Rotating the token:** change the Script Property and the Worker secret together.
 9. **Check:** run `sendWeeklyDigest` once from the editor; send a test POST with `curl` to the URL and see a row appear.
 
-### 4.9 Optional: transaction emails & loan reminders (Resend)
-
-Coin Crew sends automated email notifications for transaction CRUD events, weekly consolidated loan reminders to debtors, and monthly club finance digests.
-
 ## 5. Day to day
 
 - **Pull requests** run GitHub Actions (`.github/workflows/ci.yml`): lint, typecheck, unit tests and builds for the projects the change affects (`nx affected`) in one job, the end-to-end golden path in another. Failed e2e runs keep their Playwright traces as an artifact.
