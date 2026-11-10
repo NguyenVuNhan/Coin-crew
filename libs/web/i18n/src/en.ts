@@ -449,6 +449,8 @@ export const en = {
   'sport.removeCourtIndex': 'Remove court {index}',
   'sport.calculatedRange': 'Calculated slot: {range}',
   'sport.totalDurationBanner': 'Duration: {duration} ({range}) · {courts} courts',
+  'sport.courtCount': '{count} courts',
+  'sport.defaultCourtName': 'Court {index}',
   'sport.bookingCodeLabel': 'Booking code',
   'sport.bookingCodePlaceholder': 'e.g. BK-4139',
   'sport.totalDurationLabel': 'Duration',

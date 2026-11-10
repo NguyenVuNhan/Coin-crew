@@ -449,6 +449,8 @@ export const vi: Record<MessageKey, string> = {
   'sport.removeCourtIndex': 'Xóa sân {index}', // REVIEW
   'sport.calculatedRange': 'Khung giờ tính toán: {range}', // REVIEW
   'sport.totalDurationBanner': 'Thời lượng: {duration} ({range}) · {courts} sân', // REVIEW
+  'sport.courtCount': '{count} sân', // REVIEW
+  'sport.defaultCourtName': 'Sân {index}', // REVIEW
   'sport.bookingCodeLabel': 'Mã đặt sân', // REVIEW
   'sport.bookingCodePlaceholder': 'VD: BK-4139', // REVIEW
   'sport.totalDurationLabel': 'Thời lượng', // REVIEW

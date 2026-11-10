@@ -13,6 +13,7 @@ import {
   extractRecentStartTimes,
   parseStartAndDuration,
   formatTimeRange,
+  formatSlotsRange,
 } from '../screens/ExpenseForm';
 import { AppNav } from '../components/AppNav';
 import * as qrUtil from '@cc/web-util/qr';
@@ -452,6 +453,15 @@ describe('Sport Planning UI components', () => {
 
     it('calculates duration with minutes (e.g. 18h - 20h30)', () => {
       expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '18h - 20h30' }])).toBe('2h30p');
+    });
+
+    it('keeps overnight multi-court sessions on the same night', () => {
+      const slots = [
+        { courtName: 'Sân 1', timeRange: '23:00 - 01:00' },
+        { courtName: 'Sân 2', timeRange: '00:00 - 02:00' },
+      ];
+      expect(calculateSlotsDuration(slots)).toBe('3h');
+      expect(formatSlotsRange(slots)).toBe('23:00 – 02:00');
     });
 
     it('handles "to" separator, identical start/end times, and sub-1-hour durations', () => {

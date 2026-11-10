@@ -142,29 +142,44 @@ export function extractRecentStartTimes(expenses: ExpenseView[] | undefined | nu
   return Array.from(uniqueTimes);
 }
 
-export function calculateSlotsDuration(slots: { courtName: string; timeRange: string }[]): string | null {
-  if (!slots || slots.length === 0) return null;
-
-  let minStart = Infinity;
-  let maxEnd = -Infinity;
-  let validSlots = 0;
-
+/**
+ * Overall span of the parseable slots, in minutes. Starts are placed on the
+ * same night as the first slot (within ±12h), so 23:00–01:00 plus 00:00–02:00
+ * spans 3h rather than 25h.
+ */
+export function slotsSpan(slots: { timeRange: string }[]): { start: number; end: number } | null {
+  let anchor: number | null = null;
+  let start = Infinity;
+  let end = -Infinity;
   for (const slot of slots) {
     const parsed = parseStartAndDuration(slot.timeRange);
     if (!parsed) continue;
-    const startMins = parseTimeToMinutes(parsed.startTime);
-    if (startMins === null) continue;
-    const endMins = startMins + parsed.durationHours * 60;
-    minStart = Math.min(minStart, startMins);
-    maxEnd = Math.max(maxEnd, endMins);
-    validSlots++;
+    let s = parseTimeToMinutes(parsed.startTime);
+    if (s === null) continue;
+    if (anchor === null) anchor = s;
+    else if (s < anchor - 12 * 60) s += 24 * 60;
+    else if (s > anchor + 12 * 60) s -= 24 * 60;
+    start = Math.min(start, s);
+    end = Math.max(end, s + parsed.durationHours * 60);
   }
+  return anchor === null ? null : { start, end };
+}
 
-  if (validSlots === 0 || !isFinite(minStart) || !isFinite(maxEnd)) {
-    return null;
-  }
+function formatClock(mins: number): string {
+  const m = ((Math.round(mins) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
 
-  const diff = maxEnd - minStart;
+export function formatSlotsRange(slots: { timeRange: string }[]): string {
+  const span = slotsSpan(slots);
+  return span ? `${formatClock(span.start)} – ${formatClock(span.end)}` : '';
+}
+
+export function calculateSlotsDuration(slots: { courtName: string; timeRange: string }[]): string | null {
+  const span = slotsSpan(slots ?? []);
+  if (!span) return null;
+
+  const diff = span.end - span.start;
   if (diff <= 0) return null;
   const hours = Math.floor(diff / 60);
   const mins = Math.round(diff % 60);
@@ -793,27 +808,7 @@ function ExpenseFormContent({
     [courtSlots],
   );
 
-  const overallRangeText = useMemo(() => {
-    let minStart = Infinity;
-    let maxEnd = -Infinity;
-    for (const slot of courtSlots) {
-      const parsed = parseStartAndDuration(slot.timeRange);
-      if (!parsed) continue;
-      const startMins = parseTimeToMinutes(parsed.startTime);
-      if (startMins === null) continue;
-      const endMins = startMins + parsed.durationHours * 60;
-      minStart = Math.min(minStart, startMins);
-      maxEnd = Math.max(maxEnd, endMins);
-    }
-    if (!isFinite(minStart) || !isFinite(maxEnd)) return '';
-    const startH = Math.floor(minStart / 60) % 24;
-    const startM = minStart % 60;
-    const endH = Math.floor(maxEnd / 60) % 24;
-    const endM = maxEnd % 60;
-    const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
-    const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-    return `${startStr} – ${endStr}`;
-  }, [courtSlots]);
+  const overallRangeText = useMemo(() => formatSlotsRange(courtSlots), [courtSlots]);
 
   const canSubmit =
     isDescriptionValid &&
@@ -1264,7 +1259,7 @@ function ExpenseFormContent({
                 <span className="fsl-field-label text-sm font-medium text-foreground">{t('sport.courtSlotsLabel')}</span>
                 {courtSlots.length > 0 && (
                   <span className="text-xs font-semibold text-primary">
-                    {courtSlots.length} {t('sport.locationName').toLowerCase()}
+                    {t('sport.courtCount', { count: courtSlots.length })}
                   </span>
                 )}
               </div>
@@ -1356,7 +1351,7 @@ function ExpenseFormContent({
                       <div className="flex flex-wrap items-center gap-1.5">
                         {[1, 1.5, 2, 2.5, 3].map((dur) => {
                           const isSelected = Math.abs(currentDuration - dur) < 0.01;
-                          const durLabel = dur % 1 === 0 ? `${dur}h` : `${dur}h`;
+                          const durLabel = `${dur}h`;
                           return (
                             <button
                               key={dur}
@@ -1397,7 +1392,10 @@ function ExpenseFormContent({
                         const defaultStart = recentStartTimes[0] || '18:00';
                         nextTime = formatTimeRange(defaultStart, 2);
                       }
-                      return [...rows, { courtName: `Sân ${rows.length + 1}`, timeRange: nextTime }];
+                      return [
+                        ...rows,
+                        { courtName: t('sport.defaultCourtName', { index: rows.length + 1 }), timeRange: nextTime },
+                      ];
                     });
                   }}
                 >
@@ -1428,7 +1426,7 @@ function ExpenseFormContent({
                   {t('sport.totalDurationBanner', {
                     duration: suggestedDuration,
                     range: overallRangeText,
-                    courts: courtSlots.length,
+                    courts: activeCourtSlots.length,
                   })}
                 </span>
               </div>
