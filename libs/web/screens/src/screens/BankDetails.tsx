@@ -13,6 +13,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { MyBankRow } from '../components/MyBankRow';
+import { PrivacyNoticeLink } from '../components/PrivacyNotice';
 import { buttonVariants } from '@cc/web-ui/components/ui/button';
 import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
 import { Label } from '@cc/web-ui/components/ui/label';
@@ -216,14 +217,7 @@ export function BankDetails() {
               />
               <Label htmlFor="fsl-bank-consent" className={cn('fsl-bank-details__consent-label flex-1 block font-normal leading-snug py-3 cursor-pointer')}>
                 {beforeLink}
-                <Link
-                  to="/privacy"
-                  className={cn(
-                    'fsl-bank-details__privacy-link font-medium underline underline-offset-[3px] text-primary hover:text-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs',
-                  )}
-                >
-                  {t('bankForm.privacyLink')}
-                </Link>
+                <PrivacyNoticeLink className="fsl-bank-details__privacy-link font-medium underline underline-offset-[3px] text-primary hover:text-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs" />
                 {afterLink}
               </Label>
             </div>
