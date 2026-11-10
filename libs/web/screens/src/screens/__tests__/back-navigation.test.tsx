@@ -358,13 +358,15 @@ describe('screens with one hard-coded back', () => {
     await userEvent.click(addBank);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/bank'));
-    const privacyLink = await screen.findByRole('link', { name: 'privacy notice' });
+    // #90: the notice opens in a sheet over the form (no route change), so typed details survive.
+    const privacyLink = await screen.findByRole('button', { name: 'privacy notice' });
     await userEvent.click(privacyLink);
 
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/privacy'));
-    await userEvent.click(screen.getByRole('link', { name: 'Back' }));
+    expect(await screen.findByRole('dialog', { name: 'Privacy notice' })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/bank');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/bank'));
     await userEvent.click(screen.getByRole('link', { name: 'Back' }));
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1'));

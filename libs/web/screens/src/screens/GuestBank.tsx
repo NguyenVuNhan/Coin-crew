@@ -11,6 +11,7 @@ import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { BankFields, type BankFieldsValue } from '../components/BankFields';
+import { PrivacyNoticeLink } from '../components/PrivacyNotice';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { buttonVariants } from '@cc/web-ui/components/ui/button';
 import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
@@ -220,7 +221,7 @@ export function GuestBank(): JSX.Element | null {
                 className="fsl-bank-details__checkbox"
               />
               <Label htmlFor="fsl-bank-consent" className="fsl-bank-details__consent-label flex-1 block font-normal leading-snug py-3 cursor-pointer">
-                {beforeLink}<Link to="/privacy" className="fsl-bank-details__privacy-link text-primary underline underline-offset-[3px] font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs">{t('bankForm.privacyLink')}</Link>{afterLink}
+                {beforeLink}<PrivacyNoticeLink className="fsl-bank-details__privacy-link text-primary underline underline-offset-[3px] font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs" />{afterLink}
               </Label>
             </div>
           </form>
