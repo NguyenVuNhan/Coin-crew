@@ -783,10 +783,37 @@ function ExpenseFormContent({
       .filter((s) => s.courtName.length > 0 && s.timeRange.length > 0);
   }, [courtSlots]);
 
+  const recentStartTimes = useMemo(
+    () => extractRecentStartTimes(view.expenses, 3),
+    [view.expenses],
+  );
+
   const suggestedDuration = useMemo(
     () => calculateSlotsDuration(courtSlots),
     [courtSlots],
   );
+
+  const overallRangeText = useMemo(() => {
+    let minStart = Infinity;
+    let maxEnd = -Infinity;
+    for (const slot of courtSlots) {
+      const parsed = parseStartAndDuration(slot.timeRange);
+      if (!parsed) continue;
+      const startMins = parseTimeToMinutes(parsed.startTime);
+      if (startMins === null) continue;
+      const endMins = startMins + parsed.durationHours * 60;
+      minStart = Math.min(minStart, startMins);
+      maxEnd = Math.max(maxEnd, endMins);
+    }
+    if (!isFinite(minStart) || !isFinite(maxEnd)) return '';
+    const startH = Math.floor(minStart / 60) % 24;
+    const startM = minStart % 60;
+    const endH = Math.floor(maxEnd / 60) % 24;
+    const endM = maxEnd % 60;
+    const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+    const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    return `${startStr} – ${endStr}`;
+  }, [courtSlots]);
 
   const canSubmit =
     isDescriptionValid &&
@@ -956,7 +983,7 @@ function ExpenseFormContent({
                 location: finalLocation,
                 courtSlots: activeCourtSlots,
                 bookingCode: bookingCode.trim() || null,
-                totalDuration: totalDuration.trim() || null,
+                totalDuration: (suggestedDuration || totalDuration).trim() || null,
                 bookingImageDataUrl,
                 court: parsedCourt,
                 shuttlecocks: [],
@@ -998,7 +1025,7 @@ function ExpenseFormContent({
               ...(finalLocation ? { location: finalLocation } : {}),
               ...(activeCourtSlots.length > 0 ? { courtSlots: activeCourtSlots } : {}),
               ...(bookingCode.trim() ? { bookingCode: bookingCode.trim() } : {}),
-              ...(totalDuration.trim() ? { totalDuration: totalDuration.trim() } : {}),
+              ...((suggestedDuration || totalDuration).trim() ? { totalDuration: (suggestedDuration || totalDuration).trim() } : {}),
               ...(bookingImageDataUrl ? { bookingImageDataUrl } : {}),
               court: parsedCourt,
               shuttlecocks: parsedShuttlecocks,
@@ -1233,51 +1260,144 @@ function ExpenseFormContent({
             )}
 
             <div className="fsl-field flex flex-col gap-2">
-              <span className="fsl-field-label text-sm font-medium text-foreground">{t('sport.courtSlotsLabel')}</span>
-              {courtSlots.map((slot, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <Input
-                    type="text"
-                    className="fsl-input flex-1"
-                    placeholder={t('sport.courtNamePlaceholder')}
-                    aria-label={`${t('sport.courtSlotsLabel')} ${idx + 1}`}
-                    maxLength={40}
-                    value={slot.courtName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCourtSlots((rows) => rows.map((r, i) => (i === idx ? { ...r, courtName: val } : r)));
-                    }}
-                  />
-                  <Input
-                    type="text"
-                    className="fsl-input flex-1"
-                    placeholder={t('sport.timeRangePlaceholder')}
-                    aria-label={`Time ${idx + 1}`}
-                    maxLength={40}
-                    value={slot.timeRange}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCourtSlots((rows) => rows.map((r, i) => (i === idx ? { ...r, timeRange: val } : r)));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center size-11 shrink-0 rounded-lg bg-transparent p-0 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                    aria-label={`Remove court ${idx + 1}`}
-                    onClick={() => setCourtSlots((rows) => rows.filter((_, i) => i !== idx))}
-                  >
-                    <Icon name="x" size={16} />
-                  </button>
-                </div>
-              ))}
+              <div className="flex items-center justify-between">
+                <span className="fsl-field-label text-sm font-medium text-foreground">{t('sport.courtSlotsLabel')}</span>
+                {courtSlots.length > 0 && (
+                  <span className="text-xs font-semibold text-primary">
+                    {courtSlots.length} {t('sport.locationName').toLowerCase()}
+                  </span>
+                )}
+              </div>
+
+              {courtSlots.map((slot, idx) => {
+                const parsed = parseStartAndDuration(slot.timeRange);
+                const currentStart = parsed?.startTime ?? (recentStartTimes[0] || '18:00');
+                const currentDuration = parsed?.durationHours ?? 2;
+                const formattedRange = formatTimeRange(currentStart, currentDuration);
+
+                const handleUpdateSlot = (newStart: string, newDuration: number) => {
+                  const updatedRange = formatTimeRange(newStart, newDuration);
+                  setCourtSlots((rows) =>
+                    rows.map((r, i) => (i === idx ? { ...r, timeRange: updatedRange } : r)),
+                  );
+                };
+
+                return (
+                  <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-border bg-background">
+                    <div className="flex items-center justify-between gap-2">
+                      <Input
+                        type="text"
+                        className="fsl-input max-w-[140px]"
+                        placeholder={t('sport.courtNamePlaceholder')}
+                        aria-label={t('sport.courtNameIndex', { index: idx + 1 })}
+                        maxLength={40}
+                        value={slot.courtName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCourtSlots((rows) =>
+                            rows.map((r, i) => (i === idx ? { ...r, courtName: val } : r)),
+                          );
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.preventDefault();
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center size-11 shrink-0 rounded-full bg-transparent p-0 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                        aria-label={t('sport.removeCourtIndex', { index: idx + 1 })}
+                        onClick={() => setCourtSlots((rows) => rows.filter((_, i) => i !== idx))}
+                      >
+                        <Icon name="x" size={16} />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                        <span>{t('sport.startTimeLabel')}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Input
+                          type="time"
+                          className="fsl-input w-[110px] text-center font-semibold"
+                          value={currentStart}
+                          aria-label={t('sport.timeRangeIndex', { index: idx + 1 })}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleUpdateSlot(e.target.value, currentDuration);
+                            }
+                          }}
+                        />
+                        {recentStartTimes.map((time) => {
+                          const isSelected = currentStart === time;
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              className={cn(
+                                'inline-flex items-center justify-center min-h-11 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-card text-foreground border-border hover:bg-muted',
+                              )}
+                              onClick={() => handleUpdateSlot(time, currentDuration)}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <div className="text-xs font-medium text-muted-foreground">
+                        <span>{t('sport.durationLabel')}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[1, 1.5, 2, 2.5, 3].map((dur) => {
+                          const isSelected = Math.abs(currentDuration - dur) < 0.01;
+                          const durLabel = dur % 1 === 0 ? `${dur}h` : `${dur}h`;
+                          return (
+                            <button
+                              key={dur}
+                              type="button"
+                              className={cn(
+                                'inline-flex items-center justify-center min-h-11 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-card text-foreground border-border hover:bg-muted',
+                              )}
+                              onClick={() => handleUpdateSlot(currentStart, dur)}
+                            >
+                              {durLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground pt-0.5">
+                      {t('sport.calculatedRange', { range: formattedRange })}
+                    </div>
+                  </div>
+                );
+              })}
+
               <div>
                 <button
                   type="button"
                   className="fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                   onClick={() => {
                     setCourtSlots((rows) => {
-                      const lastTime = [...rows].reverse().find((r) => r.timeRange.trim())?.timeRange.trim() ?? '';
-                      return [...rows, { courtName: '', timeRange: lastTime }];
+                      const lastRow = rows[rows.length - 1];
+                      let nextTime = '';
+                      if (lastRow && lastRow.timeRange.trim()) {
+                        nextTime = lastRow.timeRange.trim();
+                      } else {
+                        const defaultStart = recentStartTimes[0] || '18:00';
+                        nextTime = formatTimeRange(defaultStart, 2);
+                      }
+                      return [...rows, { courtName: `Sân ${rows.length + 1}`, timeRange: nextTime }];
                     });
                   }}
                 >
@@ -1286,48 +1406,33 @@ function ExpenseFormContent({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="fsl-field flex flex-col gap-1.5">
-                <Label htmlFor="sport-booking-code" className="fsl-field-label text-foreground">
-                  {t('sport.bookingCodeLabel')}
-                </Label>
-                <Input
-                  id="sport-booking-code"
-                  type="text"
-                  className="fsl-input"
-                  placeholder={t('sport.bookingCodePlaceholder')}
-                  maxLength={40}
-                  value={bookingCode}
-                  onChange={(e) => setBookingCode(e.target.value)}
-                />
-              </div>
-              <div className="fsl-field flex flex-col gap-1.5">
-                <Label htmlFor="sport-total-duration" className="fsl-field-label text-foreground">
-                  {t('sport.totalDurationLabel')}
-                </Label>
-                <Input
-                  id="sport-total-duration"
-                  type="text"
-                  className="fsl-input"
-                  placeholder={t('sport.totalDurationPlaceholder')}
-                  maxLength={40}
-                  value={totalDuration}
-                  onChange={(e) => setTotalDuration(e.target.value)}
-                />
-                {suggestedDuration && totalDuration.trim() !== suggestedDuration && (
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 py-1 text-xs font-medium text-primary hover:underline cursor-pointer bg-transparent border-0 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs"
-                      onClick={() => setTotalDuration(suggestedDuration)}
-                    >
-                      <Icon name="clock" size={13} />
-                      <span>{t('sport.durationSuggestion', { duration: suggestedDuration })}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+            <div className="fsl-field flex flex-col gap-1.5">
+              <Label htmlFor="sport-booking-code" className="fsl-field-label text-foreground">
+                {t('sport.bookingCodeLabel')}
+              </Label>
+              <Input
+                id="sport-booking-code"
+                type="text"
+                className="fsl-input"
+                placeholder={t('sport.bookingCodePlaceholder')}
+                maxLength={40}
+                value={bookingCode}
+                onChange={(e) => setBookingCode(e.target.value)}
+              />
             </div>
+
+            {suggestedDuration && (
+              <div className="fsl-sport-duration-banner inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-secondary text-secondary-foreground text-sm font-semibold">
+                <Icon name="clock" size={16} />
+                <span>
+                  {t('sport.totalDurationBanner', {
+                    duration: suggestedDuration,
+                    range: overallRangeText,
+                    courts: courtSlots.length,
+                  })}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

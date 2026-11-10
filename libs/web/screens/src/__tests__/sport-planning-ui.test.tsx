@@ -479,21 +479,21 @@ describe('Sport Planning UI components', () => {
     const addCourtBtn = screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i });
     fireEvent.click(addCourtBtn);
 
-    const timeInputs = container.querySelectorAll<HTMLInputElement>('input[placeholder*="05:00"]');
+    const timeInputs = container.querySelectorAll<HTMLInputElement>('input[type="time"]');
     expect(timeInputs.length).toBe(1);
-    fireEvent.change(timeInputs[0]!, { target: { value: '18:00 - 20:00' } });
+    fireEvent.change(timeInputs[0]!, { target: { value: '18:00' } });
 
     fireEvent.click(addCourtBtn);
 
-    const updatedTimeInputs = container.querySelectorAll<HTMLInputElement>('input[placeholder*="05:00"]');
+    const updatedTimeInputs = container.querySelectorAll<HTMLInputElement>('input[type="time"]');
     expect(updatedTimeInputs.length).toBe(2);
-    expect(updatedTimeInputs[1]!.value).toBe('18:00 - 20:00');
+    expect(updatedTimeInputs[1]!.value).toBe('18:00');
   });
 
-  it('renders duration suggestion button and fills total duration on click', async () => {
+  it('renders auto calculated total duration banner and removes manual duration input', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json(planningTripView)));
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const { container } = render(
+    render(
       <QueryClientProvider client={qc}>
         <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
           <Routes>
@@ -505,20 +505,18 @@ describe('Sport Planning UI components', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i })).toBeTruthy());
 
+    // Manual input is removed
+    expect(document.getElementById('sport-total-duration')).toBeNull();
+
     const addCourtBtn = screen.getByRole('button', { name: /\+ Add court|\+ Thêm sân/i });
     fireEvent.click(addCourtBtn);
 
-    const timeInput = container.querySelector<HTMLInputElement>('input[placeholder*="05:00"]')!;
-    fireEvent.change(timeInput, { target: { value: '05:00 - 07:00' } });
-
-    const durationInput = screen.getByLabelText(/Duration|Thời lượng/i) as HTMLInputElement;
-    expect(durationInput.value).toBe('');
-
-    const suggestionBtn = await screen.findByRole('button', { name: /Suggested: 2h|Gợi ý: 2h/i });
-    expect(suggestionBtn).toBeTruthy();
-
-    fireEvent.click(suggestionBtn);
-    expect(durationInput.value).toBe('2h');
+    // Auto duration banner appears
+    await waitFor(() => {
+      const banner = document.querySelector('.fsl-sport-duration-banner');
+      expect(banner).toBeTruthy();
+      expect(banner?.textContent).toMatch(/2h|2 giờ/);
+    });
   });
 
   it('renders decoupled booking code and duration fact rows in ExpenseDetails', () => {
@@ -648,6 +646,69 @@ describe('Sport Planning UI components', () => {
       ).toBe('2h');
       expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '05:30 - 07:00' }])).toBe('1h30p');
       expect(calculateSlotsDuration([{ courtName: 'Sân 1', timeRange: '23:00 - 01:00' }])).toBe('2h');
+    });
+
+    it('renders schedule card with recent start time chips, custom time input, duration stepper and auto duration banner', async () => {
+      const postedExpenses: any[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+          const url = String(input);
+          if (init?.method === 'POST' && url.endsWith('/api/trips/t-1/expenses')) {
+            postedExpenses.push(JSON.parse(String(init.body)));
+            return Response.json({ expenseId: 'e-new-plan-auto-dur' }, { status: 201 });
+          }
+          return Response.json(planningTripView);
+        }),
+      );
+
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter initialEntries={['/t/t-1/expenses/new?mode=planning']}>
+            <Routes>
+              <Route path="/t/:tripId/expenses/new" element={<ExpenseForm />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      await waitFor(() => expect(screen.getByText(/\+ Add court slot|\+ Thêm sân đấu/i)).toBeTruthy());
+
+      // Standalone manual input#sport-total-duration should NOT exist
+      expect(document.getElementById('sport-total-duration')).toBeNull();
+
+      // Click + Add court slot
+      const addCourtBtn = screen.getByText(/\+ Add court slot|\+ Thêm sân đấu/i);
+      fireEvent.click(addCourtBtn);
+
+      // Verify recent start time chip from planningTripView (planningExpense has '5h-7h' -> start '05:00')
+      await waitFor(() => expect(screen.getByRole('button', { name: '05:00' })).toBeTruthy());
+
+      // Verify native time input exists
+      const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+      expect(timeInput).toBeTruthy();
+      expect(timeInput.value).toBe('05:00');
+
+      // Duration pills should exist (1h, 1.5h, 2h, 2.5h, 3h)
+      const dur2hBtn = screen.getByRole('button', { name: '2h' });
+      expect(dur2hBtn).toBeTruthy();
+
+      // Live duration banner should be visible
+      const banner = document.querySelector('.fsl-sport-duration-banner');
+      expect(banner).toBeTruthy();
+      expect(banner?.textContent).toMatch(/2h|2 giờ/i);
+
+      // Change time via native input
+      fireEvent.change(timeInput, { target: { value: '18:00' } });
+      expect(timeInput.value).toBe('18:00');
+
+      // Change duration to 1.5h
+      const dur15Btn = screen.getByRole('button', { name: '1.5h' });
+      fireEvent.click(dur15Btn);
+
+      // Verify banner updates to 1h30p
+      expect(banner?.textContent).toMatch(/1h30p/i);
     });
   });
 });
