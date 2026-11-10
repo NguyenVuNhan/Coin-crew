@@ -1,4 +1,4 @@
-import { formatVnd, roundToThousand } from '@cc/core';
+import { formatVnd, isPlanningExpense, roundToThousand } from '@cc/core';
 import type { ExpenseView } from '@cc/core';
 import type { TripSnapshot } from '../trips/snapshot';
 
@@ -32,6 +32,9 @@ export type OgTextKey =
   | 'sportMaleFemaleRate'
   | 'sportPerSlotRate'
   | 'sportSuffix'
+  | 'sportPlanningSlots'
+  | 'sportPlanningLabel'
+  | 'sportPlanningSuffix'
   | 'requestSingle'
   | 'requestSeveral'
   | 'requestDesc';
@@ -51,6 +54,9 @@ export const OG_TEXT: Record<'vi' | 'en', Record<OgTextKey, string>> = {
     sportMaleFemaleRate: 'Nam {male} / Nữ {female}',
     sportPerSlotRate: 'Mỗi suất {rate}',
     sportSuffix: ' — mở để lấy mã QR.',
+    sportPlanningSlots: '{slots} suất',
+    sportPlanningLabel: 'Lên lịch buổi đánh',
+    sportPlanningSuffix: ' — mở để xem lịch và danh sách.',
     requestSingle: '{name} nhờ bạn trả {amount}',
     requestSeveral: 'Bạn nợ {name} {amount}',
     requestDesc: 'Mở để xem chi tiết và trả bằng VietQR.',
@@ -69,6 +75,9 @@ export const OG_TEXT: Record<'vi' | 'en', Record<OgTextKey, string>> = {
     sportMaleFemaleRate: 'Men {male} / Women {female}',
     sportPerSlotRate: 'Per slot {rate}',
     sportSuffix: ' — open for your QR.',
+    sportPlanningSlots: '{slots} slots',
+    sportPlanningLabel: 'Planned session',
+    sportPlanningSuffix: ' — open to see the schedule and headcount.',
     requestSingle: '{name} asked you for {amount}',
     requestSeveral: 'You owe {name} {amount}',
     requestDesc: 'Open to see the details and pay with VietQR.',
@@ -170,7 +179,20 @@ export function pageMeta(input: PageMetaInput): PageMeta {
 
   let rawDescription: string;
   const sport = expense.meta?.sport;
-  if (sport) {
+  if (isPlanningExpense(expense) && sport) {
+    const parts: string[] = [];
+    if (sport.location?.name) {
+      parts.push(sport.location.name);
+    }
+    let totalSlots = 0;
+    for (const entry of sport.entries ?? []) {
+      totalSlots += (entry.maleSlots ?? 0) + (entry.femaleSlots ?? 0);
+    }
+    if (totalSlots > 0) {
+      parts.push(interpolate(t.sportPlanningSlots, { slots: totalSlots }));
+    }
+    rawDescription = (parts.length > 0 ? parts.join(' · ') : t.sportPlanningLabel) + t.sportPlanningSuffix;
+  } else if (sport) {
     const parts: string[] = [];
     if (sport.court > 0) {
       parts.push(interpolate(t.sportCourt, { court: formatVnd(sport.court) }));

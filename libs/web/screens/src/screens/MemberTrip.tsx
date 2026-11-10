@@ -1,11 +1,12 @@
 import { Link } from 'react-router';
-import type { TripView } from '@cc/core';
+import { can, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import { useTrip } from '../lib/tripBase';
 import { useIsWide } from '@cc/web-util/media';
 import { fundOf } from '../lib/fund';
+import { actorOf } from '../lib/rowActions';
 import { useEntryState } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -43,6 +44,10 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   // An archived group takes no new expenses: its "+" adds a quick expense, as on view-only pages.
   const { ledger } = useLedger({ enabled: signedIn && archived });
   const navAddHref = !archived ? `/t/${tripId}/expenses/new` : ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
+  const navPlanHref =
+    !archived && view.trip.preset === 'sport' && can(actorOf(view), 'plan_session')
+      ? `/t/${tripId}/expenses/new?mode=planning`
+      : undefined;
   const hasExpenses = view.expenses.length > 0;
   // The feed is empty only with no expenses and no fund income (spec §7.4); only then does the empty state carry the add link.
   const hasFeed = hasExpenses || (fundOf(view)?.incomes.length ?? 0) > 0;
@@ -118,7 +123,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       back={selection ? href() : '/groups'}
       right={header}
       wide
-      nav={signedIn ? { section: 'groups', addHref: navAddHref } : undefined}
+      nav={signedIn ? { section: 'groups', addHref: navAddHref, planHref: navPlanHref } : undefined}
       // R-D: no bottom bar on an empty trip, the empty state carries the only "+ Add expense". From 1024px it sits in the Expenses heading.
       bottomBar={signedIn || !meSettled ? undefined : (!wide && hasFeed ? addLink(true, addVariant) : undefined)}
     >

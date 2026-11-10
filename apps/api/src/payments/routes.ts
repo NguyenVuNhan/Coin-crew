@@ -18,6 +18,7 @@ import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
+import { dispatchPaymentNotification } from '../notifications/transactionDispatcher';
 import { getSnapshot } from '../trips/snapshot';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -253,6 +254,13 @@ export function paymentRoutes(): Hono<AppBindings> {
       actorDevice: actor.deviceHash,
     });
 
+    if (status === 'says_paid') {
+      await dispatchPaymentNotification(c, 'says_paid', paymentId, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
+
     return c.json({ paymentId, status }, 201);
   });
 
@@ -340,6 +348,11 @@ export function paymentRoutes(): Hono<AppBindings> {
       actorUserId: actor.userId,
       actorDevice: actor.deviceHash,
       details: { amount: confirmed },
+    });
+
+    await dispatchPaymentNotification(c, 'confirmed', pid, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
     });
 
     return c.body(null, 204);

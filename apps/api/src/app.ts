@@ -9,10 +9,12 @@ import { testLoginRoutes } from './auth/testLogin';
 import { deviceMiddleware } from '@cc/api-auth/device';
 import { accessRoutes } from './access/routes';
 import { tripRoutes } from './trips/routes';
+import { locationRoutes } from './trips/locations';
 import { participantRoutes } from './participants/routes';
 import { joinRoutes } from './participants/join';
 import { expenseRoutes } from './expenses/routes';
 import { expensePayRoutes } from './expenses/payView';
+import { bookingExtractRoutes } from './expenses/bookingExtract';
 import { fundRoutes } from './fund/routes';
 import { ratingRoutes } from './ratings/routes';
 import { bankRoutes } from './bank/routes';
@@ -29,6 +31,7 @@ import { zaloChatRoutes } from './zalo/chatRoutes';
 import { pageRoutes } from './og/routes';
 import { feedbackRoutes } from './feedback/routes';
 import { notificationSettingsRoutes } from './notifications/settingsRoutes';
+import { adminNotificationRoutes } from './notifications/adminRoutes';
 
 export function createApp(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -47,10 +50,12 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', testLoginRoutes());
   app.route('/api', accessRoutes());
   app.route('/api', tripRoutes());
+  app.route('/api', locationRoutes());
   app.route('/api', participantRoutes());
   app.route('/api', joinRoutes());
   app.route('/api', expenseRoutes());
   app.route('/api', expensePayRoutes());
+  app.route('/api', bookingExtractRoutes());
   app.route('/api', fundRoutes());
   app.route('/api', ratingRoutes());
   app.route('/api', bankRoutes());
@@ -66,6 +71,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', zaloChatRoutes());
   app.route('/api', feedbackRoutes());
   app.route('/api', notificationSettingsRoutes());
+  app.route('/api', adminNotificationRoutes());
   app.route('/', pageRoutes());
 
   return app;

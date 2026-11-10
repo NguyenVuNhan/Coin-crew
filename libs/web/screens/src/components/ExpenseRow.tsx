@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { formatVnd, isFundPaid, roundToThousand, type ExpenseView, type TripView } from '@cc/core';
+import { formatVnd, isFundPaid, isPlanningExpense, roundToThousand, type ExpenseView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { nameOf, splitText } from '@cc/web-util/tripText';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -46,7 +46,22 @@ export function ExpenseRow({
         ? t('expense.youPaid')
         : t('expense.personPaid', { name: nameOf(view, expense.payerId) });
 
-  const subline = isFundPaid(expense) ? t('fund.rowPaid') : `${payerText} · ${splitText(expense, t)}`;
+  const isPlanning = isPlanningExpense(expense);
+  const sport = expense.meta?.sport;
+  const totalSlots = sport?.entries?.reduce((acc, entry) => acc + (entry.femaleSlots || 0) + (entry.maleSlots || 0), 0) ?? 0;
+  const slotsLabel = t('sport.slotsCount', { count: totalSlots });
+  const courtSummary = sport?.courtSlots?.length
+    ? sport.courtSlots.map((c) => `${c.courtName} (${c.timeRange})`).join(', ')
+    : null;
+  const planningSubline = sport?.location?.name
+    ? [sport.location.name, courtSummary, slotsLabel].filter(Boolean).join(' · ')
+    : [nameOf(view, expense.payerId), courtSummary, slotsLabel].filter(Boolean).join(' · ');
+
+  const subline = isPlanning
+    ? planningSubline
+    : isFundPaid(expense)
+      ? t('fund.rowPaid')
+      : `${payerText} · ${splitText(expense, t)}`;
 
   const isDisabled = expense.status === 'disabled';
   const isPending = expense.status === 'pending';
@@ -68,7 +83,7 @@ export function ExpenseRow({
         )}
         aria-hidden="true"
       >
-        <Icon name="receipt" size={20} />
+        <Icon name={isPlanning ? 'calendar' : 'receipt'} size={20} />
       </div>
 
       <div className="fsl-expense-row__info min-w-0 flex-1 flex flex-col gap-0.5">
@@ -95,29 +110,52 @@ export function ExpenseRow({
       </div>
 
       <div className="fsl-expense-row__right shrink-0 text-right flex flex-col items-end gap-1">
-        <Amount
-          value={finalAmount}
-          style={isDisabled ? { textDecoration: 'line-through' } : undefined}
-          className={cn(
-            isDisabled && 'fsl-expense-row__amount--disabled line-through text-muted-foreground',
-            isFundPaid(expense) && 'fsl-expense-row__amount--fund text-muted-foreground',
-            finalAmount === 0 && 'fsl-expense-row__amount--none text-muted-foreground',
-          )}
-        />
-        {isPending && (
-          <div className="fsl-expense-row__status flex justify-end">
-            <Pill tone="warning">{t('status.waiting')}</Pill>
-          </div>
-        )}
-        {isRejected && (
-          <div className="fsl-expense-row__status flex justify-end">
-            <Pill tone="danger">{t('status.rejected')}</Pill>
-          </div>
-        )}
-        {isDisabled && (
-          <div className="fsl-expense-row__status flex justify-end">
-            <Pill tone="neutral">{t('status.disabled')}</Pill>
-          </div>
+        {isPlanning ? (
+          <>
+            <span
+              style={isDisabled ? { textDecoration: 'line-through' } : undefined}
+              className={cn(
+                'text-sm font-semibold tabular-nums text-muted-foreground whitespace-nowrap',
+                isDisabled && 'line-through',
+              )}
+            >
+              {slotsLabel}
+            </span>
+            <div className="fsl-expense-row__status flex justify-end">
+              {isDisabled ? (
+                <Pill tone="neutral">{t('status.disabled')}</Pill>
+              ) : (
+                <Pill tone="accent">{t('sport.planningBadge')}</Pill>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <Amount
+              value={finalAmount}
+              style={isDisabled ? { textDecoration: 'line-through' } : undefined}
+              className={cn(
+                isDisabled && 'fsl-expense-row__amount--disabled line-through text-muted-foreground',
+                isFundPaid(expense) && 'fsl-expense-row__amount--fund text-muted-foreground',
+                finalAmount === 0 && 'fsl-expense-row__amount--none text-muted-foreground',
+              )}
+            />
+            {isPending && (
+              <div className="fsl-expense-row__status flex justify-end">
+                <Pill tone="warning">{t('status.waiting')}</Pill>
+              </div>
+            )}
+            {isRejected && (
+              <div className="fsl-expense-row__status flex justify-end">
+                <Pill tone="danger">{t('status.rejected')}</Pill>
+              </div>
+            )}
+            {isDisabled && (
+              <div className="fsl-expense-row__status flex justify-end">
+                <Pill tone="neutral">{t('status.disabled')}</Pill>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>

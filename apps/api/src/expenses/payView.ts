@@ -6,6 +6,7 @@ import {
   expenseRemaining,
   expenseShareOf,
   isFundPaid,
+  isPlanningExpense,
   linkedPaid,
   pairwiseTransfers,
   rowSlots,
@@ -34,7 +35,8 @@ export async function buildExpensePayView(
     (e) =>
       (e.id === expenseId || e.rootId === expenseId) &&
       (e.status === 'approved' || e.status === 'pending') &&
-      !isFundPaid(e),
+      !isFundPaid(e) &&
+      !isPlanningExpense(e),
   );
   if (!expense) {
     throw new ApiError('NOT_FOUND', 404);

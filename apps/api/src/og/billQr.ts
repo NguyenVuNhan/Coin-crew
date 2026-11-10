@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type { ExpenseView } from '@cc/core';
-import { buildVietQrPayload, equalBillShare, isFundPaid, buildTransferNote } from '@cc/core';
+import { buildVietQrPayload, equalBillShare, isFundPaid, isPlanningExpense, buildTransferNote } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
 import { bankDetails, participants } from '@cc/api-db/schema';
 import type { TripSnapshot } from '../trips/snapshot';
@@ -11,7 +11,7 @@ import type { TripSnapshot } from '../trips/snapshot';
  * payer has no approved bank details.
  */
 export async function billQrPayload(db: Db, snapshot: TripSnapshot, expense: ExpenseView): Promise<string | null> {
-  if (!expense.meta?.sport || isFundPaid(expense)) return null;
+  if (!expense.meta?.sport || isFundPaid(expense) || isPlanningExpense(expense)) return null;
 
   const payer = await db
     .select({ id: participants.id, userId: participants.userId })

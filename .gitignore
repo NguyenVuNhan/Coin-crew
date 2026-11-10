@@ -18,3 +18,5 @@ apps/api/wrangler.deploy.jsonc
 /walkthrough-shots/
 *.tsbuildinfo
 .nx/
+.impeccable/*
+!.impeccable/design.json

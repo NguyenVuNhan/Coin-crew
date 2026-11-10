@@ -1,4 +1,4 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useState, useMemo, useRef, type ReactNode } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type {
@@ -11,8 +11,12 @@ import type {
   SplitResult,
   SportParticipantEntry,
   SportRule,
+  SportCourtSlot,
+  SportLocationSnapshot,
+  TripLocationView,
+  ExtractedSportBooking,
 } from '@cc/core';
-import { can, computeShares, computeSportShares, formatVnd, isFundPaid, parseVnd, roundToThousand } from '@cc/core';
+import { can, computeShares, computeSportShares, formatVnd, isFundPaid, isPlanningExpense, parseVnd, roundToThousand } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { useTripView } from '@cc/web-data-access/hooks';
@@ -20,6 +24,7 @@ import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '@cc/web-data-access/client';
 import { useGroupPeople, importPerson } from '@cc/web-data-access/people';
 import { readSplitInput, fromEntryValue } from '@cc/web-util/splitInput';
+import { compressBookingImage } from '@cc/web-util/qr';
 import { recentGroups } from '@cc/web-util/recentGroups';
 import { SplitBetween } from '../components/SplitBetween';
 import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
@@ -49,6 +54,138 @@ function getTodayLocalDate(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function parseTimeToMinutes(t: string): number | null {
+  const clean = t.trim().toLowerCase();
+  const colonMatch = clean.match(/^(\d{1,2})[:.](\d{2})$/);
+  if (colonMatch && colonMatch[1] && colonMatch[2]) {
+    const h = parseInt(colonMatch[1], 10);
+    const m = parseInt(colonMatch[2], 10);
+    return h * 60 + m;
+  }
+  const hMatch = clean.match(/^(\d{1,2})h(\d{1,2})?$/);
+  if (hMatch && hMatch[1]) {
+    const h = parseInt(hMatch[1], 10);
+    const m = hMatch[2] ? parseInt(hMatch[2], 10) : 0;
+    return h * 60 + m;
+  }
+  const numMatch = clean.match(/^(\d{1,2})$/);
+  if (numMatch && numMatch[1]) {
+    const h = parseInt(numMatch[1], 10);
+    return h * 60;
+  }
+  return null;
+}
+
+export function parseStartAndDuration(timeRange: string): { startTime: string; durationHours: number } | null {
+  if (!timeRange || typeof timeRange !== 'string') return null;
+  const parts = timeRange.split(/[-–—~]|\s+(?:to|đến|tới)\s+/i);
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const startMins = parseTimeToMinutes(parts[0]);
+  const endMins = parseTimeToMinutes(parts[1]);
+  if (startMins === null || endMins === null) return null;
+
+  let adjustedEnd = endMins;
+  if (adjustedEnd < startMins) {
+    adjustedEnd += 24 * 60;
+  }
+  const diffMinutes = adjustedEnd - startMins;
+  if (diffMinutes <= 0) return null;
+
+  const durationHours = diffMinutes / 60;
+  const startH = Math.floor(startMins / 60);
+  const startM = startMins % 60;
+  const startTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+
+  return { startTime, durationHours };
+}
+
+export function formatTimeRange(startTime: string, durationHours: number): string {
+  const mins = parseTimeToMinutes(startTime);
+  if (mins === null) return startTime;
+  const endMins = Math.round(mins + durationHours * 60);
+  const startH = Math.floor(mins / 60) % 24;
+  const startM = mins % 60;
+  const endH = Math.floor(endMins / 60) % 24;
+  const endM = endMins % 60;
+  const startStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+  const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  return `${startStr} - ${endStr}`;
+}
+
+export function extractRecentStartTimes(expenses: ExpenseView[] | undefined | null, maxCount = 3): string[] {
+  if (!expenses || expenses.length === 0) return [];
+
+  const sorted = [...expenses].sort((a, b) => {
+    const dateA = a.spentOn || a.createdAt || '';
+    const dateB = b.spentOn || b.createdAt || '';
+    return dateB.localeCompare(dateA);
+  });
+
+  const uniqueTimes = new Set<string>();
+  for (const exp of sorted) {
+    const slots = exp.meta?.sport?.courtSlots;
+    if (!slots || !Array.isArray(slots)) continue;
+    for (const slot of slots) {
+      if (!slot.timeRange) continue;
+      const parsed = parseStartAndDuration(slot.timeRange);
+      if (parsed) {
+        uniqueTimes.add(parsed.startTime);
+        if (uniqueTimes.size >= maxCount) {
+          return Array.from(uniqueTimes);
+        }
+      }
+    }
+  }
+
+  return Array.from(uniqueTimes);
+}
+
+/**
+ * Overall span of the parseable slots, in minutes. Starts are placed on the
+ * same night as the first slot (within ±12h), so 23:00–01:00 plus 00:00–02:00
+ * spans 3h rather than 25h.
+ */
+export function slotsSpan(slots: { timeRange: string }[]): { start: number; end: number } | null {
+  let anchor: number | null = null;
+  let start = Infinity;
+  let end = -Infinity;
+  for (const slot of slots) {
+    const parsed = parseStartAndDuration(slot.timeRange);
+    if (!parsed) continue;
+    let s = parseTimeToMinutes(parsed.startTime);
+    if (s === null) continue;
+    if (anchor === null) anchor = s;
+    else if (s < anchor - 12 * 60) s += 24 * 60;
+    else if (s > anchor + 12 * 60) s -= 24 * 60;
+    start = Math.min(start, s);
+    end = Math.max(end, s + parsed.durationHours * 60);
+  }
+  return anchor === null ? null : { start, end };
+}
+
+function formatClock(mins: number): string {
+  const m = ((Math.round(mins) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+export function formatSlotsRange(slots: { timeRange: string }[]): string {
+  const span = slotsSpan(slots);
+  return span ? `${formatClock(span.start)} – ${formatClock(span.end)}` : '';
+}
+
+export function calculateSlotsDuration(slots: { courtName: string; timeRange: string }[]): string | null {
+  const span = slotsSpan(slots ?? []);
+  if (!span) return null;
+
+  const diff = span.end - span.start;
+  if (diff <= 0) return null;
+  const hours = Math.floor(diff / 60);
+  const mins = Math.round(diff % 60);
+  if (hours === 0) return `${mins}p`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h${mins}p`;
 }
 
 type T = ReturnType<typeof useT>;
@@ -137,6 +274,8 @@ interface ExpenseFormContentProps {
   title: string;
   /** The Expense / Fund income switcher, shown first in the form (fund admins on a new entry). */
   switcher?: ReactNode;
+  isPlanningMode?: boolean;
+  isCompleteMode?: boolean;
   leave: () => void;
 }
 
@@ -151,7 +290,17 @@ interface SportGuestState {
   fixedText: string;
 }
 
-function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher, leave }: ExpenseFormContentProps) {
+function ExpenseFormContent({
+  view,
+  tripId,
+  expenseId,
+  expense,
+  title,
+  switcher,
+  isPlanningMode = false,
+  isCompleteMode = false,
+  leave,
+}: ExpenseFormContentProps) {
   const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -165,7 +314,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
   // Fund admins may pay from the group fund. A fund-paid expense keeps the choice while it is edited (the route lets
   // only fund admins open it), and may spend its own amount again on top of the balance.
   const editingFundPaid = expense !== undefined && isFundPaid(expense);
-  const offerFund = isFundAdmin(view) || editingFundPaid;
+  const offerFund = (isFundAdmin(view) || editingFundPaid) && !isPlanningMode;
   const available = fundAvailable(view, expense);
 
   // People who left stay only on an expense they are already on; a new expense never offers them.
@@ -220,8 +369,39 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
 
   // Sport mode toggle
   const [sportSelected, setSportSelected] = useState<boolean>(() => {
-    return Boolean(expense?.meta?.sport) || (!isEdit && view.trip.preset === 'sport');
+    return (
+      Boolean(expense?.meta?.sport) ||
+      isPlanningMode ||
+      isCompleteMode ||
+      (!isEdit && view.trip.preset === 'sport')
+    );
   });
+
+  // Sport Planning & Location state
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [bookingImageDataUrl, setBookingImageDataUrl] = useState<string | null>(
+    () => expense?.meta?.sport?.bookingImageDataUrl ?? null,
+  );
+  const [locationChoice, setLocationChoice] = useState<string>(() => {
+    const loc = expense?.meta?.sport?.location;
+    if (!loc) return '';
+    if (loc.locationId && view.locations?.some((l) => l.id === loc.locationId)) {
+      return loc.locationId;
+    }
+    const byName = view.locations?.find((l) => l.name.toLowerCase() === loc.name.toLowerCase());
+    if (byName) return byName.id;
+    return '__new__';
+  });
+  const [locName, setLocName] = useState(() => expense?.meta?.sport?.location?.name ?? '');
+  const [locAddress, setLocAddress] = useState(() => expense?.meta?.sport?.location?.address ?? '');
+  const [locPhone, setLocPhone] = useState(() => expense?.meta?.sport?.location?.phone ?? '');
+  const [locMapUrl, setLocMapUrl] = useState(() => expense?.meta?.sport?.location?.mapUrl ?? '');
+  const [courtSlots, setCourtSlots] = useState<SportCourtSlot[]>(() =>
+    expense?.meta?.sport?.courtSlots?.map((c) => ({ courtName: c.courtName, timeRange: c.timeRange })) ?? [],
+  );
+  const [bookingCode, setBookingCode] = useState(() => expense?.meta?.sport?.bookingCode ?? '');
+  const [totalDuration, setTotalDuration] = useState(() => expense?.meta?.sport?.totalDuration ?? '');
 
   // Sport Session Costs
   const [courtText, setCourtText] = useState(() => {
@@ -572,14 +752,130 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
   const isSportAmountValid = sportTotal > 0;
   const isSportSplitValid = Boolean(sportResult?.ok);
 
+  const isLocationValid =
+    locationChoice !== '__new__' || (locName.trim().length > 0 && locAddress.trim().length > 0);
+  const resolvedLocation: SportLocationSnapshot | null = useMemo(() => {
+    if (locationChoice === '__new__') {
+      if (!locName.trim() || !locAddress.trim()) return null;
+      return {
+        name: locName.trim(),
+        address: locAddress.trim(),
+        phone: locPhone.trim() || null,
+        mapUrl: locMapUrl.trim() || null,
+      };
+    }
+    if (locationChoice) {
+      const found = view.locations?.find((l) => l.id === locationChoice);
+      if (found) {
+        return {
+          locationId: found.id,
+          name: found.name,
+          address: found.address,
+          phone: found.phone,
+          mapUrl: found.mapUrl,
+        };
+      }
+      if (locName.trim() && locAddress.trim()) {
+        return {
+          locationId: locationChoice,
+          name: locName.trim(),
+          address: locAddress.trim(),
+          phone: locPhone.trim() || null,
+          mapUrl: locMapUrl.trim() || null,
+        };
+      }
+    }
+    return null;
+  }, [locationChoice, locName, locAddress, locPhone, locMapUrl, view.locations]);
+
+  const activeCourtSlots = useMemo(() => {
+    const firstNonEmptyTime = courtSlots.find((s) => s.timeRange.trim())?.timeRange.trim() ?? '';
+    return courtSlots
+      .map((s) => ({
+        courtName: s.courtName.trim(),
+        timeRange: s.timeRange.trim() || firstNonEmptyTime,
+      }))
+      .filter((s) => s.courtName.length > 0 && s.timeRange.length > 0);
+  }, [courtSlots]);
+
+  const recentStartTimes = useMemo(
+    () => extractRecentStartTimes(view.expenses, 3),
+    [view.expenses],
+  );
+
+  const suggestedDuration = useMemo(
+    () => calculateSlotsDuration(courtSlots),
+    [courtSlots],
+  );
+
+  const overallRangeText = useMemo(() => formatSlotsRange(courtSlots), [courtSlots]);
+
   const canSubmit =
     isDescriptionValid &&
     isPayerValid &&
     (fromFund
       ? isFundAmountValid
-      : sportSelected
-        ? isSportAmountValid && isSportSplitValid
-        : isAmountValid && isSplitValid);
+      : isPlanningMode
+        ? isLocationValid && totalMaleSlots + totalFemaleSlots > 0
+        : sportSelected
+          ? isLocationValid && isSportAmountValid && isSportSplitValid
+          : isAmountValid && isSplitValid);
+
+  async function handleBookingImageSelect(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file) return;
+    setSubmitError(null);
+    const dataUrl = await compressBookingImage(file);
+    if (!dataUrl) return;
+    setBookingImageDataUrl(dataUrl);
+
+    if (view.aiBookingExtract) {
+      setIsExtracting(true);
+      try {
+        const { extracted } = await apiSend<{ extracted: ExtractedSportBooking }>(
+          `/api/trips/${tripId}/sport-booking/extract`,
+          'POST',
+          { imageDataUrl: dataUrl },
+          tripId,
+        );
+        if (extracted.clubName) {
+          const match = (view.locations ?? []).find(
+            (l) =>
+              l.name.toLowerCase() === extracted.clubName!.trim().toLowerCase() ||
+              extracted.clubName!.toLowerCase().includes(l.name.toLowerCase()),
+          );
+          if (match) {
+            setLocationChoice(match.id);
+          } else {
+            setLocationChoice('__new__');
+            setLocName(extracted.clubName);
+            if (extracted.address) setLocAddress(extracted.address);
+            if (extracted.phone) setLocPhone(extracted.phone);
+          }
+        }
+        if (extracted.date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.date)) {
+          setSpentOn(extracted.date);
+        }
+        if (extracted.courtSlots && extracted.courtSlots.length > 0) {
+          setCourtSlots(extracted.courtSlots);
+        }
+        if (extracted.bookingCode) {
+          setBookingCode(extracted.bookingCode);
+        }
+        if (extracted.totalDuration) {
+          setTotalDuration(extracted.totalDuration);
+        }
+        if (extracted.totalAmount && extracted.totalAmount > 0) {
+          setCourtText(fromEntryValue('amounts', extracted.totalAmount));
+        }
+      } catch (err) {
+        setSubmitError(err);
+      } finally {
+        setIsExtracting(false);
+      }
+    }
+  }
 
   async function handleUpdateGender(personId: string, gender: 'M' | 'F') {
     setGenderOverrides((prev) => ({ ...prev, [personId]: gender }));
@@ -639,6 +935,74 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
         await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
         leave();
       } else if (sportSelected) {
+        let finalLocation = resolvedLocation;
+        if (
+          isPlanningMode &&
+          locationChoice === '__new__' &&
+          finalLocation &&
+          can(actorOf(view), 'plan_session')
+        ) {
+          try {
+            const locRes = await apiSend<{ location: TripLocationView }>(
+              `/api/trips/${tripId}/locations`,
+              'POST',
+              {
+                name: finalLocation.name,
+                address: finalLocation.address,
+                phone: finalLocation.phone ?? null,
+                mapUrl: finalLocation.mapUrl ?? null,
+              },
+              tripId,
+            );
+            finalLocation = { ...finalLocation, locationId: locRes.location.id };
+            setLocationChoice(locRes.location.id);
+          } catch {
+            // Keep inline snapshot if saving location fails
+          }
+        }
+
+        if (isPlanningMode) {
+          const body: ExpenseInput = {
+            description: description.trim(),
+            amount: 0,
+            spentOn,
+            payerId,
+            mode: 'amounts',
+            entries: sportEntries.map((en) => ({
+              participantId: en.participantId,
+              value: 0,
+            })),
+            meta: {
+              sport: {
+                planning: true,
+                location: finalLocation,
+                courtSlots: activeCourtSlots,
+                bookingCode: bookingCode.trim() || null,
+                totalDuration: (suggestedDuration || totalDuration).trim() || null,
+                bookingImageDataUrl,
+                court: parsedCourt,
+                shuttlecocks: [],
+                extra: 0,
+                rule: sportRule,
+                entries: sportEntries,
+                maleSlotRate: 0,
+                femaleSlotRate: 0,
+              },
+            },
+          };
+
+          if (isEdit && expenseId) {
+            await apiSend(`/api/trips/${tripId}/expenses/${expenseId}`, 'PATCH', body, tripId);
+            await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+            leave();
+          } else {
+            const res = await apiSend<{ expenseId: string }>(`/api/trips/${tripId}/expenses`, 'POST', body, tripId);
+            await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+            navigate(href(`/expenses/${res.expenseId}`), { replace: true });
+          }
+          return;
+        }
+
         if (!sportResult || !sportResult.ok || sportTotal <= 0) return;
         const body: ExpenseInput = {
           description: description.trim(),
@@ -652,6 +1016,12 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
           })),
           meta: {
             sport: {
+              ...(isCompleteMode ? { planning: false } : {}),
+              ...(finalLocation ? { location: finalLocation } : {}),
+              ...(activeCourtSlots.length > 0 ? { courtSlots: activeCourtSlots } : {}),
+              ...(bookingCode.trim() ? { bookingCode: bookingCode.trim() } : {}),
+              ...((suggestedDuration || totalDuration).trim() ? { totalDuration: (suggestedDuration || totalDuration).trim() } : {}),
+              ...(bookingImageDataUrl ? { bookingImageDataUrl } : {}),
               court: parsedCourt,
               shuttlecocks: parsedShuttlecocks,
               extra: parsedExtra,
@@ -702,11 +1072,13 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
     }
   }
 
-  const submitText = isEdit
-    ? t('expenseForm.save')
-    : view.me.kind === 'guest'
-      ? t('expense.sendForApproval')
-      : t('expenseForm.add');
+  const submitText = isPlanningMode
+    ? t('sport.savePlanning')
+    : isEdit
+      ? t('expenseForm.save')
+      : view.me.kind === 'guest'
+        ? t('expense.sendForApproval')
+        : t('expenseForm.add');
 
   return (
     <Screen
@@ -758,6 +1130,310 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
           />
         </div>
 
+        {isPlanningMode && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(ev) => void handleBookingImageSelect(ev)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              loading={isExtracting}
+              disabled={isExtracting}
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-xl"
+            >
+              <Icon name="camera" size={18} />
+              <span>
+                {isExtracting
+                  ? t('sport.extracting')
+                  : view.aiBookingExtract
+                    ? t('sport.extractFromImage')
+                    : t('sport.includeProofImage')}
+              </span>
+            </Button>
+            {bookingImageDataUrl && (
+              <div className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium">
+                <Icon name="check" size={16} />
+                <span>{t('sport.includeProofImage')}</span>
+                <button
+                  type="button"
+                  aria-label={t('common.cancel')}
+                  className="inline-flex items-center justify-center size-11 min-h-11 min-w-11 rounded-full bg-transparent border-0 text-secondary-foreground hover:opacity-80 cursor-pointer p-0"
+                  onClick={() => setBookingImageDataUrl(null)}
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(isPlanningMode || isCompleteMode) && sportShown && (
+          <div className="fsl-sport-schedule-card rounded-xl border border-border bg-card p-3 flex flex-col gap-3">
+            <div className="fsl-field flex flex-col gap-1.5">
+              <Label htmlFor="sport-location" className="fsl-field-label text-foreground">
+                {t('sport.locationLabel')}
+              </Label>
+              <NativeSelect
+                id="sport-location"
+                className="fsl-select"
+                value={locationChoice}
+                onChange={(e) => setLocationChoice(e.target.value)}
+              >
+                <NativeSelectOption value="">—</NativeSelectOption>
+                {(view.locations ?? []).map((loc) => (
+                  <NativeSelectOption key={loc.id} value={loc.id}>
+                    {loc.name} · {loc.address}
+                  </NativeSelectOption>
+                ))}
+                <NativeSelectOption value="__new__">{t('sport.addLocation')}</NativeSelectOption>
+              </NativeSelect>
+            </div>
+
+            {locationChoice === '__new__' && (
+              <div className="flex flex-col gap-3 pt-1 border-t border-border">
+                <div className="fsl-field flex flex-col gap-1.5">
+                  <Label htmlFor="sport-loc-name" className="fsl-field-label text-foreground">
+                    {t('sport.locationName')}
+                  </Label>
+                  <Input
+                    id="sport-loc-name"
+                    type="text"
+                    className="fsl-input"
+                    maxLength={120}
+                    value={locName}
+                    onChange={(e) => setLocName(e.target.value)}
+                  />
+                </div>
+                <div className="fsl-field flex flex-col gap-1.5">
+                  <Label htmlFor="sport-loc-address" className="fsl-field-label text-foreground">
+                    {t('sport.locationAddress')}
+                  </Label>
+                  <Input
+                    id="sport-loc-address"
+                    type="text"
+                    className="fsl-input"
+                    maxLength={200}
+                    value={locAddress}
+                    onChange={(e) => setLocAddress(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="fsl-field flex flex-col gap-1.5">
+                    <Label htmlFor="sport-loc-phone" className="fsl-field-label text-foreground">
+                      {t('sport.locationPhone')}
+                    </Label>
+                    <Input
+                      id="sport-loc-phone"
+                      type="tel"
+                      className="fsl-input"
+                      maxLength={30}
+                      value={locPhone}
+                      onChange={(e) => setLocPhone(e.target.value)}
+                    />
+                  </div>
+                  <div className="fsl-field flex flex-col gap-1.5">
+                    <Label htmlFor="sport-loc-map" className="fsl-field-label text-foreground">
+                      {t('sport.locationMapUrl')}
+                    </Label>
+                    <Input
+                      id="sport-loc-map"
+                      type="url"
+                      className="fsl-input"
+                      maxLength={500}
+                      value={locMapUrl}
+                      onChange={(e) => setLocMapUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="fsl-field flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="fsl-field-label text-sm font-medium text-foreground">{t('sport.courtSlotsLabel')}</span>
+                {courtSlots.length > 0 && (
+                  <span className="text-xs font-semibold text-primary">
+                    {t('sport.courtCount', { count: courtSlots.length })}
+                  </span>
+                )}
+              </div>
+
+              {courtSlots.map((slot, idx) => {
+                const parsed = parseStartAndDuration(slot.timeRange);
+                const currentStart = parsed?.startTime ?? (recentStartTimes[0] || '18:00');
+                const currentDuration = parsed?.durationHours ?? 2;
+                const formattedRange = formatTimeRange(currentStart, currentDuration);
+
+                const handleUpdateSlot = (newStart: string, newDuration: number) => {
+                  const updatedRange = formatTimeRange(newStart, newDuration);
+                  setCourtSlots((rows) =>
+                    rows.map((r, i) => (i === idx ? { ...r, timeRange: updatedRange } : r)),
+                  );
+                };
+
+                return (
+                  <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-border bg-background">
+                    <div className="flex items-center justify-between gap-2">
+                      <Input
+                        type="text"
+                        className="fsl-input max-w-[140px]"
+                        placeholder={t('sport.courtNamePlaceholder')}
+                        aria-label={t('sport.courtNameIndex', { index: idx + 1 })}
+                        maxLength={40}
+                        value={slot.courtName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCourtSlots((rows) =>
+                            rows.map((r, i) => (i === idx ? { ...r, courtName: val } : r)),
+                          );
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.preventDefault();
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center size-11 shrink-0 rounded-full bg-transparent p-0 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                        aria-label={t('sport.removeCourtIndex', { index: idx + 1 })}
+                        onClick={() => setCourtSlots((rows) => rows.filter((_, i) => i !== idx))}
+                      >
+                        <Icon name="x" size={16} />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                        <span>{t('sport.startTimeLabel')}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Input
+                          type="time"
+                          className="fsl-input w-[110px] text-center font-semibold"
+                          value={currentStart}
+                          aria-label={t('sport.timeRangeIndex', { index: idx + 1 })}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleUpdateSlot(e.target.value, currentDuration);
+                            }
+                          }}
+                        />
+                        {recentStartTimes.map((time) => {
+                          const isSelected = currentStart === time;
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              className={cn(
+                                'inline-flex items-center justify-center min-h-11 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-card text-foreground border-border hover:bg-muted',
+                              )}
+                              onClick={() => handleUpdateSlot(time, currentDuration)}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <div className="text-xs font-medium text-muted-foreground">
+                        <span>{t('sport.durationLabel')}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[1, 1.5, 2, 2.5, 3].map((dur) => {
+                          const isSelected = Math.abs(currentDuration - dur) < 0.01;
+                          const durLabel = `${dur}h`;
+                          return (
+                            <button
+                              key={dur}
+                              type="button"
+                              className={cn(
+                                'inline-flex items-center justify-center min-h-11 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-card text-foreground border-border hover:bg-muted',
+                              )}
+                              onClick={() => handleUpdateSlot(currentStart, dur)}
+                            >
+                              {durLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground pt-0.5">
+                      {t('sport.calculatedRange', { range: formattedRange })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div>
+                <button
+                  type="button"
+                  className="fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                  onClick={() => {
+                    setCourtSlots((rows) => {
+                      const lastRow = rows[rows.length - 1];
+                      let nextTime = '';
+                      if (lastRow && lastRow.timeRange.trim()) {
+                        nextTime = lastRow.timeRange.trim();
+                      } else {
+                        const defaultStart = recentStartTimes[0] || '18:00';
+                        nextTime = formatTimeRange(defaultStart, 2);
+                      }
+                      return [
+                        ...rows,
+                        { courtName: t('sport.defaultCourtName', { index: rows.length + 1 }), timeRange: nextTime },
+                      ];
+                    });
+                  }}
+                >
+                  {t('sport.addCourtSlot')}
+                </button>
+              </div>
+            </div>
+
+            <div className="fsl-field flex flex-col gap-1.5">
+              <Label htmlFor="sport-booking-code" className="fsl-field-label text-foreground">
+                {t('sport.bookingCodeLabel')}
+              </Label>
+              <Input
+                id="sport-booking-code"
+                type="text"
+                className="fsl-input"
+                placeholder={t('sport.bookingCodePlaceholder')}
+                maxLength={40}
+                value={bookingCode}
+                onChange={(e) => setBookingCode(e.target.value)}
+              />
+            </div>
+
+            {suggestedDuration && (
+              <div className="fsl-sport-duration-banner inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-secondary text-secondary-foreground text-sm font-semibold">
+                <Icon name="clock" size={16} />
+                <span>
+                  {t('sport.totalDurationBanner', {
+                    duration: suggestedDuration,
+                    range: overallRangeText,
+                    courts: activeCourtSlots.length,
+                  })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {sportShown ? (
           <div className={cn('fsl-sport-costs-card rounded-xl border border-border bg-card p-3 flex flex-col gap-3')}>
             <h3 className={cn('fsl-sport-costs-title m-0 text-base font-semibold text-foreground')}>{t('sport.costsTitle')}</h3>
@@ -782,7 +1458,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
               )}
             </div>
 
-            {shuttleRows.length > 0 && (
+            {!isPlanningMode && shuttleRows.length > 0 && (
               <div className={cn('fsl-sport-shuttle-section flex flex-col gap-2')}>
                 <span className={cn('fsl-field-label text-sm font-medium text-foreground')}>{t('sport.shuttlecocks')}</span>
                 {shuttleRows.map((row, idx) => {
@@ -843,7 +1519,7 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
               </div>
             )}
 
-            {showExtra && (
+            {!isPlanningMode && showExtra && (
               <div className={cn('fsl-field flex flex-col gap-1.5')}>
                 <Label htmlFor="sport-extra" className={cn('fsl-field-label text-foreground')}>
                   {t('sport.extra')}
@@ -881,32 +1557,34 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
               </div>
             )}
 
-            <div className={cn('fsl-sport-actions-row flex items-center gap-2 flex-wrap')}>
-              {shuttleRows.length < 3 && (
-                <button
-                  type="button"
-                  className={cn(
-                    'fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
-                  )}
-                  onClick={() => {
-                    setShuttleRows((rows) => [...rows, { qty: '1', unitPrice: '' }]);
-                  }}
-                >
-                  + {t('sport.addShuttlecock')}
-                </button>
-              )}
-              {!showExtra && (
-                <button
-                  type="button"
-                  className={cn(
-                    'fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
-                  )}
-                  onClick={() => setShowExtra(true)}
-                >
-                  + {t('sport.addExtraFee')}
-                </button>
-              )}
-            </div>
+            {!isPlanningMode && (
+              <div className={cn('fsl-sport-actions-row flex items-center gap-2 flex-wrap')}>
+                {shuttleRows.length < 3 && (
+                  <button
+                    type="button"
+                    className={cn(
+                      'fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                    )}
+                    onClick={() => {
+                      setShuttleRows((rows) => [...rows, { qty: '1', unitPrice: '' }]);
+                    }}
+                  >
+                    + {t('sport.addShuttlecock')}
+                  </button>
+                )}
+                {!showExtra && (
+                  <button
+                    type="button"
+                    className={cn(
+                      'fsl-sport-add-btn self-start inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-xl border border-dashed border-border bg-transparent text-sm font-semibold text-primary hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer',
+                    )}
+                    onClick={() => setShowExtra(true)}
+                  >
+                    + {t('sport.addExtraFee')}
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className={cn('fsl-sport-total-bar flex items-center justify-between px-3 py-2 bg-muted rounded-xl mt-1 text-sm text-foreground')}>
               <span className={cn('fsl-sport-total-bar__slots text-muted-foreground')}>
@@ -916,10 +1594,12 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                   m: totalMaleSlots,
                 })}
               </span>
-              <span className={cn('fsl-sport-total-bar__total tabular-nums text-foreground font-semibold whitespace-nowrap')}>
-                <span className={cn('fsl-sport-total-bar__label font-normal text-muted-foreground')}>{t('sport.totalLabel')}:</span>{' '}
-                <strong>{formatVnd(sportTotal)}</strong>
-              </span>
+              {(!isPlanningMode || sportTotal > 0) && (
+                <span className={cn('fsl-sport-total-bar__total tabular-nums text-foreground font-semibold whitespace-nowrap')}>
+                  <span className={cn('fsl-sport-total-bar__label font-normal text-muted-foreground')}>{t('sport.totalLabel')}:</span>{' '}
+                  <strong>{formatVnd(sportTotal)}</strong>
+                </span>
+              )}
             </div>
           </div>
         ) : (
@@ -1012,18 +1692,20 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
             <>
               <SplitBetween people={formPeople} chosen={included} me={me} onOpen={() => setPeopleSheetOpen(true)} />
 
-              <SplitModePicker
-                value={mode}
-                onChange={(m) => {
-                  setSportSelected(false);
-                  setMode(m);
-                }}
-                showSport={view.trip.preset === 'sport' || Boolean(expense?.meta?.sport)}
-                sportSelected={sportSelected}
-                onSelectSport={() => setSportSelected(true)}
-              />
+              {!isPlanningMode && (
+                <SplitModePicker
+                  value={mode}
+                  onChange={(m) => {
+                    setSportSelected(false);
+                    setMode(m);
+                  }}
+                  showSport={view.trip.preset === 'sport' || Boolean(expense?.meta?.sport)}
+                  sportSelected={sportSelected}
+                  onSelectSport={() => setSportSelected(true)}
+                />
+              )}
 
-              {sportSelected ? (
+              {sportSelected && !isPlanningMode ? (
                 <div className={cn('fsl-sport-rule-section flex flex-col gap-2 mt-2')}>
                   <div
                     role="radiogroup"
@@ -1126,11 +1808,11 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                     })}
                   </div>
                 </div>
-              ) : (
+              ) : !isPlanningMode ? (
                 <p className={cn('fsl-split-caption m-0 text-sm leading-snug text-muted-foreground tabular-nums')}>{caption}</p>
-              )}
+              ) : null}
 
-              {sportSelected && sportResult && !sportResult.ok && (
+              {sportSelected && !isPlanningMode && sportResult && !sportResult.ok && (
                 <div role="alert" className={cn('fsl-split-error mt-1 text-sm font-medium leading-snug text-danger')}>
                   {t(`splitError.${sportResult.error}` as MessageKey)}
                 </div>
@@ -1243,14 +1925,14 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                               setOpenDrawerId(openDrawerId === person.id ? null : person.id)
                             }
                           >
-                            <span>{displayShare(shareAmount ?? 0)}</span>
+                            {!isPlanningMode && <span>{displayShare(shareAmount ?? 0)}</span>}
                             <Icon name="edit" size={14} />
                           </button>
                         </div>
 
                         {openDrawerId === person.id && (
                           <div className={cn('fsl-sport-drawer flex flex-col gap-3 p-3 bg-muted rounded-xl mt-2 w-full')}>
-                            <div className={cn('fsl-sport-drawer__guest-section flex flex-col gap-2 pb-2 border-b border-border')}>
+                            <div className={cn('fsl-sport-drawer__guest-section flex flex-col gap-2', !isPlanningMode && 'pb-2 border-b border-border')}>
                               <div className={cn('fsl-sport-drawer__title text-sm font-semibold text-foreground mb-1')}>{t('sport.bringsGuest')}</div>
                               <div className={cn('fsl-sport-drawer__stepper-row flex items-center justify-between gap-2')}>
                                 <div className={cn('fsl-sport-drawer__stepper-label flex items-center gap-2 text-sm text-foreground')}>
@@ -1353,46 +2035,48 @@ function ExpenseFormContent({ view, tripId, expenseId, expense, title, switcher,
                               </div>
                             </div>
 
-                            <div className={cn('fsl-sport-drawer__fixed-section flex flex-col gap-1')}>
-                              <Label htmlFor={`sport-fixed-${person.id}`} className={cn('fsl-sport-drawer__subtitle block text-xs font-semibold text-muted-foreground mb-1')}>
-                                {t('sport.orFixedAmount', { name: person.name })}
-                              </Label>
-                              <div className={cn('fsl-sport-drawer__fixed-row flex items-center gap-2')}>
-                                <Input
-                                  id={`sport-fixed-${person.id}`}
-                                  type="text"
-                                  inputMode="decimal"
-                                  aria-label={t('sport.orFixedAmount', { name: person.name })}
-                                  placeholder={t('sport.fixedFor', { name: person.name })}
-                                  className="fsl-input fsl-input--fixed flex-1 tabular-nums"
-                                  value={guest.fixedText}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setSportGuests((prev) => ({
-                                      ...prev,
-                                      [person.id]: { ...prev[person.id]!, fixedText: val },
-                                    }));
-                                  }}
-                                />
-                                {guest.fixedText !== '' && (
-                                  <button
-                                    type="button"
-                                    className={cn(
-                                      'fsl-sport-drawer__clear-btn flex items-center justify-center size-11 bg-transparent border-0 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors',
-                                    )}
-                                    aria-label={t('sport.clearFixed', { name: person.name })}
-                                    onClick={() => {
+                            {!isPlanningMode && (
+                              <div className={cn('fsl-sport-drawer__fixed-section flex flex-col gap-1')}>
+                                <Label htmlFor={`sport-fixed-${person.id}`} className={cn('fsl-sport-drawer__subtitle block text-xs font-semibold text-muted-foreground mb-1')}>
+                                  {t('sport.orFixedAmount', { name: person.name })}
+                                </Label>
+                                <div className={cn('fsl-sport-drawer__fixed-row flex items-center gap-2')}>
+                                  <Input
+                                    id={`sport-fixed-${person.id}`}
+                                    type="text"
+                                    inputMode="decimal"
+                                    aria-label={t('sport.orFixedAmount', { name: person.name })}
+                                    placeholder={t('sport.fixedFor', { name: person.name })}
+                                    className="fsl-input fsl-input--fixed flex-1 tabular-nums"
+                                    value={guest.fixedText}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
                                       setSportGuests((prev) => ({
                                         ...prev,
-                                        [person.id]: { ...prev[person.id]!, fixedText: '' },
+                                        [person.id]: { ...prev[person.id]!, fixedText: val },
                                       }));
                                     }}
-                                  >
-                                    <Icon name="x" size={16} />
-                                  </button>
-                                )}
+                                  />
+                                  {guest.fixedText !== '' && (
+                                    <button
+                                      type="button"
+                                      className={cn(
+                                        'fsl-sport-drawer__clear-btn flex items-center justify-center size-11 bg-transparent border-0 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors',
+                                      )}
+                                      aria-label={t('sport.clearFixed', { name: person.name })}
+                                      onClick={() => {
+                                        setSportGuests((prev) => ({
+                                          ...prev,
+                                          [person.id]: { ...prev[person.id]!, fixedText: '' },
+                                        }));
+                                      }}
+                                    >
+                                      <Icon name="x" size={16} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1562,11 +2246,16 @@ export function ExpenseForm() {
   const leave = useBack((view?.trip.preset === 'direct' ? '/trips' : undefined) ?? base).goBack;
 
   const isEdit = Boolean(expenseId);
+  const modeParam = searchParams.get('mode');
   const title = incomeId
     ? t('fund.editTitle')
-    : isEdit
-      ? t('expenseForm.titleEdit')
-      : t('expenseForm.titleNew');
+    : modeParam === 'planning'
+      ? t('sport.planSession')
+      : modeParam === 'complete'
+        ? t('sport.completeSession')
+        : isEdit
+          ? t('expenseForm.titleEdit')
+          : t('expenseForm.titleNew');
   const wantsIncome = searchParams.get('type') === 'income';
 
   if (isLoading || !view) {
@@ -1650,7 +2339,7 @@ export function ExpenseForm() {
   }
 
   // Fund admins adding a new entry choose between an expense and fund income; everyone else just gets the expense form.
-  const showSwitcher = isFundAdmin(view) && !expenseId;
+  const showSwitcher = isFundAdmin(view) && !expenseId && modeParam !== 'planning';
   const entryType: EntryType = showSwitcher && wantsIncome ? 'income' : 'expense';
   const switcher = showSwitcher ? (
     <EntryTypeSwitch
@@ -1678,12 +2367,23 @@ export function ExpenseForm() {
     );
   }
 
+  const isPlanningMode =
+    (modeParam === 'planning' || Boolean(expense?.meta?.sport?.planning)) &&
+    modeParam !== 'complete';
+  const isCompleteMode =
+    modeParam === 'complete' && Boolean(expense?.meta?.sport?.planning);
+
   // An expense paid from the fund also needs a fund admin, even to edit one they added.
   const actor = actorOf(view);
   if (
-    expense &&
-    (!can(actor, 'edit_expense', { expenseCreatedById: expense.createdById, expenseStatus: expense.status }) ||
-      (isFundPaid(expense) && !can(actor, 'manage_fund')))
+    (isPlanningMode && !expense && !can(actor, 'plan_session')) ||
+    (expense &&
+      (!can(actor, 'edit_expense', {
+        expenseCreatedById: expense.createdById,
+        expenseStatus: expense.status,
+        isPlanning: isPlanningExpense(expense),
+      }) ||
+        (isFundPaid(expense) && !can(actor, 'manage_fund'))))
   ) {
     return (
       <Screen title={title} onBack={leave}>
@@ -1701,8 +2401,10 @@ export function ExpenseForm() {
       tripId={tripId}
       expenseId={expenseId}
       expense={expense}
-      title={title}
+      title={isPlanningMode ? t('sport.planSession') : isCompleteMode ? t('sport.completeSession') : title}
       switcher={switcher}
+      isPlanningMode={isPlanningMode}
+      isCompleteMode={isCompleteMode}
       leave={leave}
     />
   );
