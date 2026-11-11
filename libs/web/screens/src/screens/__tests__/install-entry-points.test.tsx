@@ -96,6 +96,8 @@ describe('install entry points', () => {
     expect(row.textContent).toContain('Add to home screen');
     await userEvent.click(row);
     expect(await screen.findByTestId('install-sheet')).toBeTruthy();
+    expect(screen.queryByTestId('account-install')).toBeNull();
+    expect(document.querySelector('.fsl-account-menu__body')).toBeNull();
   });
 
   it('hides the row and the pill when already standalone', async () => {

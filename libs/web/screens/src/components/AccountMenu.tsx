@@ -83,6 +83,8 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const wasThemeOpenRef = useRef(false);
   const notificationsRowRef = useRef<HTMLButtonElement | null>(null);
   const wasNotificationsOpenRef = useRef(false);
+  const installRowRef = useRef<HTMLButtonElement | null>(null);
+  const wasInstallOpenRef = useRef(false);
 
   useEffect(() => {
     if (wasThemeOpenRef.current && !themeOpen) {
@@ -109,6 +111,18 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   }, [notificationsOpen]);
 
   useEffect(() => {
+    if (wasInstallOpenRef.current && !installOpen) {
+      installRowRef.current?.focus();
+      const raf = requestAnimationFrame(() => {
+        installRowRef.current?.focus();
+      });
+      wasInstallOpenRef.current = false;
+      return () => cancelAnimationFrame(raf);
+    }
+    wasInstallOpenRef.current = installOpen;
+  }, [installOpen]);
+
+  useEffect(() => {
     if (u) {
       setDisplayName(u.name ?? '');
       setGender(u.gender ?? null);
@@ -126,7 +140,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   };
 
   useEffect(() => {
-    if (!wide || !open || cropOpen || themeOpen || notificationsOpen) return;
+    if (!wide || !open || cropOpen || themeOpen || notificationsOpen || installOpen) return;
 
     const onMouseDown = (event: MouseEvent) => {
       const target = event.target;
@@ -150,7 +164,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [wide, open, cropOpen, themeOpen]);
+  }, [wide, open, cropOpen, themeOpen, notificationsOpen, installOpen]);
 
   if (!u) {
     return null;
@@ -428,6 +442,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
 
         {menuRow && (
           <button
+            ref={installRowRef}
             type="button"
             data-testid="account-install"
             className={cn(
@@ -514,7 +529,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     return (
       <div className="fsl-account-menu relative inline-flex" ref={wrapperRef}>
         {trigger}
-        {open && !cropOpen && !themeOpen && !notificationsOpen && (
+        {open && !cropOpen && !themeOpen && !notificationsOpen && !installOpen && (
           <div
             role="dialog"
             aria-label={t('account.label')}
@@ -534,7 +549,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   return (
     <span className="fsl-account-menu inline-flex">
       {trigger}
-      <Sheet open={open && !cropOpen && !themeOpen && !notificationsOpen} onClose={close} title={t('account.label')}>
+      <Sheet open={open && !cropOpen && !themeOpen && !notificationsOpen && !installOpen} onClose={close} title={t('account.label')}>
         {body}
       </Sheet>
       {cropModal}
