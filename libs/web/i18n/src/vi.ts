@@ -1052,5 +1052,31 @@ export const vi: Record<MessageKey, string> = {
   'notifications.monthlyNotice': 'Báo cáo thu chi hàng tháng', // REVIEW
   'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư các nhóm vào đầu mỗi tháng', // REVIEW
   'notifications.noEmailWarning': 'Bạn chưa liên kết email. Vui lòng liên kết tài khoản Google để nhận thông báo qua email.', // REVIEW
+
+  'install.title': 'Thêm CoinCrew vào màn hình chính', // REVIEW
+  'install.pill': 'Thêm CoinCrew vào màn hình chính', // REVIEW
+  'install.menuRow': 'Thêm vào màn hình chính', // REVIEW
+  'install.promptBody': 'Mở bằng một chạm, toàn màn hình, không có thanh trình duyệt.', // REVIEW
+  'install.installNow': 'Cài đặt ngay', // REVIEW
+  'install.notNow': 'Để sau', // REVIEW
+  'install.gotIt': 'Đã hiểu', // REVIEW
+  'install.installed': 'Đã thêm vào màn hình chính', // REVIEW
+  'install.androidStep1': 'Nhấn ⋮ ở góc trên trình duyệt', // REVIEW
+  'install.androidStep2': 'Chọn "Thêm vào màn hình chính" hoặc "Cài đặt ứng dụng"', // REVIEW
+  'install.iosStepMore': 'Nhấn ⋯ trên thanh Safari', // REVIEW
+  'install.iosStepShare': 'Chọn Chia sẻ', // REVIEW
+  'install.iosStepShareOld': 'Nhấn Chia sẻ ở thanh dưới', // REVIEW
+  'install.iosStepAdd': 'Kéo xuống, chọn "Thêm vào MH chính"', // REVIEW
+  'install.iosChromeStep1': 'Nhấn Chia sẻ trên thanh địa chỉ', // REVIEW
+  'install.iosChromeStep2': 'Chọn "Thêm vào MH chính"', // REVIEW
+  'install.iosOtherStep': 'Mở menu của trình duyệt, chọn Chia sẻ → "Thêm vào MH chính"', // REVIEW
+  'install.iosSignInNote': 'Lần đầu mở từ màn hình chính, bạn cần đăng nhập lại một lần.', // REVIEW
+  'install.inAppTitle': 'Mở bằng trình duyệt để cài', // REVIEW
+  'install.inAppZalo': 'Không thể cài CoinCrew từ trong Zalo.', // REVIEW
+  'install.inAppOther': 'Không thể cài CoinCrew từ trong ứng dụng này.', // REVIEW
+  'install.inAppStep1': 'Nhấn ⋯ ở góc trên', // REVIEW
+  'install.inAppStep2': 'Chọn "Mở bằng trình duyệt", rồi nhấn lại "Thêm vào màn hình chính"', // REVIEW
+  'install.copyLink': 'Sao chép liên kết', // REVIEW
+  'install.desktopStep': 'Nhấn biểu tượng cài đặt trên thanh địa chỉ', // REVIEW
 };
 
