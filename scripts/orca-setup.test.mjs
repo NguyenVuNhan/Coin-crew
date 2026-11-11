@@ -108,6 +108,7 @@ test('runSetup calls npm install, wrangler migrations, and npm build in sequence
       assert.deepEqual(executedCommands, [
         'npm install',
         'npx -w @cc/api wrangler d1 migrations apply fsl --local',
+        'node scripts/seed-local.mjs',
         'npm run build -w @cc/web',
       ]);
     });
@@ -116,3 +117,47 @@ test('runSetup calls npm install, wrangler migrations, and npm build in sequence
   }
 });
 
+
+test('runSetup: migration exec receives env.CI === "1"', async () => {
+  const { runSetup } = await import('./orca-setup.mjs');
+  const calls = [];
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orca-setup-ci-'));
+  try {
+    runSetup({ cwd: tempDir, env: { ORCA_ROOT_PATH: tempDir, FOO: 'bar' }, exec: (cmd, opts) => calls.push({ cmd, opts }) });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+  const migrate = calls.find((c) => c.cmd.includes('d1 migrations apply'));
+  assert.equal(migrate.opts.env.CI, '1');
+  assert.equal(migrate.opts.env.FOO, 'bar');
+});
+
+test('runSetup: seed step runs with --from <source> after migrations and before build; a throwing seed does not throw runSetup', async () => {
+  const { runSetup } = await import('./orca-setup.mjs');
+  const source = fs.mkdtempSync(path.join(os.tmpdir(), 'orca-setup-src-'));
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'orca-setup-dst-'));
+  try {
+    const cmds = [];
+    runSetup({
+      cwd: target,
+      env: { ORCA_ROOT_PATH: source },
+      exec: (cmd) => {
+        cmds.push(cmd);
+        if (cmd.includes('seed-local.mjs')) throw new Error('seed boom');
+      },
+    });
+    const migrate = cmds.findIndex((c) => c.includes('d1 migrations apply'));
+    const seed = cmds.findIndex((c) => c.includes('seed-local.mjs'));
+    const build = cmds.findIndex((c) => c.includes('npm run build'));
+    assert.ok(migrate >= 0 && seed > migrate && build > seed, cmds.join(' | '));
+    assert.equal(cmds[seed], `node scripts/seed-local.mjs --from "${path.resolve(source)}"`);
+
+    // Same directory as the source: no --from.
+    const same = [];
+    runSetup({ cwd: target, env: { ORCA_ROOT_PATH: target }, exec: (cmd) => same.push(cmd) });
+    assert.ok(same.includes('node scripts/seed-local.mjs'), same.join(' | '));
+  } finally {
+    fs.rmSync(source, { recursive: true, force: true });
+    fs.rmSync(target, { recursive: true, force: true });
+  }
+});
