@@ -22,6 +22,8 @@ import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
 import { ThemePicker } from './ThemePicker';
 import { NotificationSettingsModal } from './NotificationSettingsModal';
+import { InstallAppSheet } from './InstallAppSheet';
+import { useInstallVisibility } from './InstallPill';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
@@ -70,6 +72,8 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [themeOpen, setThemeOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
+  const { menuRow } = useInstallVisibility();
   const setMyTheme = useSetMyTheme();
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -422,6 +426,23 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
         </button>
 
+        {menuRow && (
+          <button
+            type="button"
+            data-testid="account-install"
+            className={cn(
+              'fsl-account-menu__row fsl-account-menu__link fsl-account-menu__install flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground bg-transparent hover:bg-accent transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            )}
+            onClick={() => setInstallOpen(true)}
+          >
+            <span className="fsl-account-menu__row-left inline-flex items-center gap-2">
+              <Icon name="smartphone" size={20} />
+              <span>{t('install.menuRow')}</span>
+            </span>
+            <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
+          </button>
+        )}
+
         <div className="fsl-account-menu__row flex items-center justify-between min-h-11 rounded-lg px-3 text-base text-foreground">
           <span>{t('account.language')}</span>
           <LanguageButton />
@@ -487,6 +508,8 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     />
   );
 
+  const installSheet = <InstallAppSheet open={installOpen} onClose={() => setInstallOpen(false)} />;
+
   if (wide) {
     return (
       <div className="fsl-account-menu relative inline-flex" ref={wrapperRef}>
@@ -503,6 +526,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
         {cropModal}
         {themePicker}
         {notificationsModal}
+        {installSheet}
       </div>
     );
   }
@@ -516,6 +540,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       {cropModal}
       {themePicker}
       {notificationsModal}
+      {installSheet}
     </span>
   );
 }
