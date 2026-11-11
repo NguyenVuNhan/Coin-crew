@@ -13,7 +13,8 @@ export function RequestCovers({ item, owner }: { item: RequestItem; owner: strin
   if (lines.length === 0) return null;
 
   const titles = lines
-    .filter((l) => l.kind === 'expense' && l.title)
+    // Name only what counts: a disabled expense stays in the list but is never the headline.
+    .filter((l) => l.kind === 'expense' && l.title && l.state !== 'disabled')
     .slice(0, 2)
     .map((l) => l.title as string);
   const rest = lines.length - titles.length;

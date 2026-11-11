@@ -22,4 +22,4 @@ Seeded by `npm run seed:local` (`scripts/seed-local.mjs`), once per signed-in us
 - [ ] **S15 Rounding caption.** Cầu lông T5 (seed) → Chi. Expect: total 125.000₫, between you 125.300₫, "Rounded to 1.000₫".
 - [ ] **S16 Settled in a group.** Open `/people/in/seed-<o>-hoian/seed-<o>-hoian-giang` directly (no transfer row). Expect: settled line, no lines.
 - [ ] **S17 Guest sees no history entry.** Open `/j/seed-<o>-dalat-g` (Đà Lạt's group link) in a private window, pick Hà. Expect: no "See history" button.
-- [ ] **S18 Request page.** Open `/r/seed-r-<o>-an00000000000000` (ledger An's seeded request token; padded to the 32 characters `/r/` accepts). Expect: "Lunch…"-free open lines: "Taxi, Coffee and 2 more", which opens into the compact list.
+- [ ] **S18 Request page.** Open `/r/seed-r-<o>-an00000000000000` (ledger An's seeded request token; padded to the 32 characters `/r/` accepts). Expect: "You owe … 230.000₫" with three rows. The quick-expense row reads "Coffee, Taxi and 2 more" (the old Lunch stretch is trimmed; the disabled Boat is listed but never named) and opens into the compact list; the merged row reads "Snack"; the Hội An row reads "Lantern tour".
