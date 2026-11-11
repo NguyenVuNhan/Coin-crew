@@ -9,6 +9,7 @@ import { refetchOnWindowFocus } from '@cc/web-data-access/focus';
 import { ApiClientError, apiFetch } from '@cc/web-data-access/client';
 import { browserPlatform, PlatformProvider, type PlatformBridge } from '@cc/web-platform';
 import { sessionStore } from '@cc/web-platform/session';
+import { startInstallCapture } from '@cc/web-platform/install';
 import { zaloHandshake } from '@cc/web-data-access/zaloSession';
 import { SIGNED_OUT_KEY } from '@cc/web-data-access/signOut';
 
@@ -16,6 +17,8 @@ import { SIGNED_OUT_KEY } from '@cc/web-data-access/signOut';
 export async function bootApp(platform: PlatformBridge = browserPlatform): Promise<void> {
   // First, before any await: a slow Zalo handshake must never delay the person's colours.
   applyTheme(readCachedTheme() ?? DEFAULT_THEME);
+  // Keep the browser's install prompt before it fires; the Home screen sheet uses it later.
+  if (platform.kind === 'web') startInstallCapture();
   await sessionStore.init(platform);
   if (platform.kind === 'zmp') {
     await zaloBoot(platform);
