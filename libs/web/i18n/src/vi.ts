@@ -128,6 +128,21 @@ export const vi: Record<MessageKey, string> = {
   'person.guestIn': 'Khách trong {group}', // REVIEW
   'person.nameIn': 'Tên trong {group}', // REVIEW
   'person.saved': 'Đã lưu', // REVIEW
+  'history.title': 'Gồm những khoản nào', // REVIEW
+  'history.betweenYou': 'Giữa hai bạn', // REVIEW
+  'history.rerouted': 'Để bớt lượt chuyển, nhóm đổi số này thành {amount}.', // REVIEW
+  'history.reroutedVia': '{amount} được chuyển sang {name} để bớt lượt chuyển.', // REVIEW
+  'history.rounded': 'Làm tròn đến 1.000₫', // REVIEW
+  'history.paidBy': '{name} trả {amount}', // REVIEW
+  'history.shares': 'Bạn {mine} · {name} {theirs}', // REVIEW
+  'history.youPaid': 'Bạn đã trả {name}', // REVIEW
+  'history.theyPaid': '{name} đã trả bạn', // REVIEW
+  'history.waiting': 'Đang chờ', // REVIEW
+  'history.notApproved': 'Chờ duyệt', // REVIEW
+  'history.inTheirLedger': 'Trong sổ của {name}', // REVIEW
+  'history.seeAll': 'Xem tất cả với {name}', // REVIEW
+  'history.seeHistory': 'Xem lịch sử với {name}', // REVIEW
+  'history.covers': '{names} và {count} khoản khác', // REVIEW
   'person.samePerson': 'Cùng một người?', // REVIEW
   'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
   'person.mergeWith': 'Gộp với…', // REVIEW

@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { GroupPerson, MergeOptionsResponse, PayInfo, PersonKey, PersonSummary, PeopleSummaryResponse, ProposalsResponse } from '@cc/core';
+import type { GroupPerson, MergeOptionsResponse, PayInfo, PersonHistoryView, PersonKey, PersonSummary, PeopleSummaryResponse, ProposalsResponse } from '@cc/core';
 import { apiFetch, apiSend, ApiClientError } from './client';
 
 export const PEOPLE_SUMMARY_QUERY_KEY = ['me', 'people', 'summary'] as const;
@@ -111,6 +111,15 @@ export async function withTryAgain<T>(send: () => Promise<T>, retries = 3, delay
   }
 }
 
+/** Money moved: refresh the summary, every person page and every group's history. */
+async function invalidatePersonViews(queryClient: QueryClient): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: ['me', 'people'] }),
+    queryClient.invalidateQueries({ queryKey: ['me', 'trips'] }),
+  ]);
+}
+
 export async function settle(
   key: PersonKey,
   paid: number,
@@ -126,7 +135,7 @@ export async function settle(
     ),
   );
   if (queryClient) {
-    await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
+    await invalidatePersonViews(queryClient);
   }
   return result;
 }
@@ -140,7 +149,7 @@ export async function confirmSettlement(
     'POST',
   );
   if (queryClient) {
-    await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
+    await invalidatePersonViews(queryClient);
   }
 }
 
@@ -153,7 +162,7 @@ export async function rejectSettlement(
     'POST',
   );
   if (queryClient) {
-    await queryClient.invalidateQueries({ queryKey: PEOPLE_SUMMARY_QUERY_KEY });
+    await invalidatePersonViews(queryClient);
   }
 }
 
@@ -163,6 +172,27 @@ export function usePersonPay(key: PersonKey, enabled: boolean) {
     queryKey: ['me', 'people', key, 'pay'],
     queryFn: () => withTryAgain(() => apiFetch<PayInfo>(`/api/me/people/${encodeURIComponent(key)}/pay`)),
     enabled,
+    staleTime: 0,
+  });
+}
+
+/** The two-way lines behind the amount between the caller and this person. */
+export function usePersonHistory(key: PersonKey) {
+  return useQuery<PersonHistoryView, ApiClientError>({
+    queryKey: ['me', 'people', key, 'history'],
+    queryFn: () => withTryAgain(() => apiFetch<PersonHistoryView>(`/api/me/people/${encodeURIComponent(key)}/history`)),
+    staleTime: 0,
+  });
+}
+
+/** The same for one group person (a guest or member of that trip). */
+export function useGroupPersonHistory(tripId: string, pid: string) {
+  return useQuery<PersonHistoryView, ApiClientError>({
+    queryKey: ['me', 'trips', tripId, 'people', pid, 'history'],
+    queryFn: () =>
+      withTryAgain(() =>
+        apiFetch<PersonHistoryView>(`/api/me/trips/${encodeURIComponent(tripId)}/people/${encodeURIComponent(pid)}/history`),
+      ),
     staleTime: 0,
   });
 }
