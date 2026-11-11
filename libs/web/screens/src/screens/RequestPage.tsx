@@ -13,6 +13,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { PayQr } from '../components/PayQr';
 import { cn } from '@cc/web-ui/lib/utils';
+import { RequestCovers } from '../components/RequestCovers';
 
 function getItemLabel(item: PersonItem, owner: string, t: ReturnType<typeof useT>): string {
   return item.kind === 'direct' ? t('request.quickExpenses', { owner }) : item.tripName;
@@ -176,21 +177,23 @@ export function RequestPage(): JSX.Element {
           </div>
           <div className="fsl-request__items bg-card border border-border rounded-xl divide-y divide-border">
             {view.items.map((item) => (
-              <div
-                key={item.tripId}
-                data-testid={`request-item-${item.tripId}`}
-                className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
-              >
-                <span className="font-medium text-foreground truncate mr-2">
-                  {getItemLabel(item, owner, t)}
-                </span>
-                <span className={cn('font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5', item.amount < 0 ? 'text-success' : 'text-danger')}>
-                  {item.amount < 0 && '−'}
-                  <Amount
-                    value={Math.abs(item.amount)}
-                    tone={item.amount > 0 ? 'danger' : 'success'}
-                  />
-                </span>
+              <div key={item.tripId}>
+                <div
+                  data-testid={`request-item-${item.tripId}`}
+                  className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
+                >
+                  <span className="font-medium text-foreground truncate mr-2">
+                    {getItemLabel(item, owner, t)}
+                  </span>
+                  <span className={cn('font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5', item.amount < 0 ? 'text-success' : 'text-danger')}>
+                    {item.amount < 0 && '−'}
+                    <Amount
+                      value={Math.abs(item.amount)}
+                      tone={item.amount > 0 ? 'danger' : 'success'}
+                    />
+                  </span>
+                </div>
+                <RequestCovers item={item} owner={owner} />
               </div>
             ))}
           </div>
@@ -216,6 +219,7 @@ export function RequestPage(): JSX.Element {
                 {getItemLabel(view.items[0], owner, t)}
               </p>
             )}
+            {view.items[0] && <RequestCovers item={view.items[0]} owner={owner} />}
           </div>
         ) : (
           <div className="fsl-request__netted flex flex-col gap-4" data-testid="request-netted">
@@ -227,21 +231,23 @@ export function RequestPage(): JSX.Element {
             </div>
             <div className="fsl-request__items bg-card border border-border rounded-xl divide-y divide-border">
               {view.items.map((item) => (
-                <div
-                  key={item.tripId}
-                  data-testid={`request-item-${item.tripId}`}
-                  className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
-                >
-                  <span className="font-medium text-foreground truncate mr-2">
-                    {getItemLabel(item, owner, t)}
-                  </span>
-                  <span className={cn('font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5', item.amount < 0 ? 'text-success' : 'text-danger')}>
-                    {item.amount < 0 && '−'}
-                    <Amount
-                      value={Math.abs(item.amount)}
-                      tone={item.amount > 0 ? 'danger' : 'success'}
-                    />
-                  </span>
+                <div key={item.tripId}>
+                  <div
+                    data-testid={`request-item-${item.tripId}`}
+                    className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
+                  >
+                    <span className="font-medium text-foreground truncate mr-2">
+                      {getItemLabel(item, owner, t)}
+                    </span>
+                    <span className={cn('font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5', item.amount < 0 ? 'text-success' : 'text-danger')}>
+                      {item.amount < 0 && '−'}
+                      <Amount
+                        value={Math.abs(item.amount)}
+                        tone={item.amount > 0 ? 'danger' : 'success'}
+                      />
+                    </span>
+                  </div>
+                  <RequestCovers item={item} owner={owner} />
                 </div>
               ))}
             </div>
