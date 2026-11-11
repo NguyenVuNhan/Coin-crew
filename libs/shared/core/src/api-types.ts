@@ -96,6 +96,7 @@ import type { IncomeStatus } from './fund';
 import type { PersonKey, PersonItem } from './people';
 import type { MergePlan } from './mergePlan';
 import type { ThemeId } from './themes';
+import type { PairHistory } from './history';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -490,6 +491,30 @@ export interface PersonSummary {
    * own ledger row). Each can be split off with `DELETE /api/me/people/link/:participantId`.
    */
   linked: PersonLinkedEntry[];
+}
+
+export interface HistoryPlace {
+  tripId: string;
+  tripName: string;
+  kind: 'group' | 'direct';
+  /** 'own' = my ledger row for them; 'merged' = a ledger guest merged into them; 'theirs' = their ledger with me; 'group' otherwise. */
+  source: 'own' | 'merged' | 'theirs' | 'group';
+  /** The PersonItem amount (owner's view). */
+  amount: number;
+  /** null for group places in mode 'all'. */
+  history: PairHistory | null;
+}
+
+/** `GET /api/me/people/:key/history` (mode 'all') and `GET /api/me/trips/:tripId/people/:pid/history` (mode 'group'). */
+export interface PersonHistoryView {
+  /** Canonical. */
+  key: PersonKey;
+  name: string;
+  mode: 'all' | 'group';
+  /** Mode 'all': the person total; mode 'group': that place's amount. */
+  total: number;
+  /** Mode 'group': exactly one. */
+  places: HistoryPlace[];
 }
 
 export interface PersonLinkedEntry {
