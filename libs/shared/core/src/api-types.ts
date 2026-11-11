@@ -96,7 +96,7 @@ import type { IncomeStatus } from './fund';
 import type { PersonKey, PersonItem } from './people';
 import type { MergePlan } from './mergePlan';
 import type { ThemeId } from './themes';
-import type { PairHistory } from './history';
+import type { HistoryGap, HistoryLine, PairHistory } from './history';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -559,10 +559,21 @@ export interface MergeOptionsResponse {
   candidates: MergeCandidate[];
 }
 
+/**
+ * One row of the public request page with the lines behind it, from the owner's view.
+ * Lines carry only the two people's shares; a reroute's `viaPid` is always null here.
+ */
+export interface RequestItem extends PersonItem {
+  /** Newest first. Left out by an older server: read it as []. */
+  lines?: HistoryLine[];
+  /** Left out by an older server: read it as null. */
+  gap?: HistoryGap | null;
+}
+
 export interface RequestView {
   ownerName: string;
   total: number;
-  items: PersonItem[];
+  items: RequestItem[];
   settled: boolean;
   pay: PayInfo | null;
   settlementWaiting: boolean;
