@@ -23,7 +23,11 @@ import {
   cancelProposal,
   usePeopleSummary,
   usePersonPay,
+  usePersonHistory,
 } from '@cc/web-data-access/people';
+import { HistoryList } from '../components/HistoryList';
+import { PersonGroupHistory } from './PersonGroupHistory';
+import { PersonTotal } from './PersonTotal';
 import { copyText } from '@cc/web-util/clipboard';
 import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
@@ -43,7 +47,62 @@ import { usePlatform } from '@cc/web-platform';
 import { requestCard } from '../lib/shareCards';
 import { cn } from '@cc/web-ui/lib/utils';
 
+/** `/people/:key` shows everything with a person; `/people/in/:tripId/:pid` one group's history. */
 export function PersonScreen(): JSX.Element {
+  const { tripId, pid } = useParams<{ tripId: string; pid: string }>();
+  if (tripId && pid) return <PersonGroupHistory tripId={tripId} pid={pid} />;
+  return <PersonAll />;
+}
+
+/** The quick-expense (direct) lines behind the total, merged newest first. */
+function DirectHistory({
+  personKey,
+  name,
+  hasDirect,
+}: {
+  personKey: PersonKey;
+  name: string;
+  hasDirect: boolean;
+}): JSX.Element | null {
+  const t = useT();
+  const history = usePersonHistory(personKey);
+  const label = (
+    <h3 className="text-sm font-semibold text-muted-foreground px-1 m-0">{t('history.title')}</h3>
+  );
+
+  if (history.isLoading) {
+    return hasDirect ? (
+      <div className="flex flex-col gap-2" data-testid="person-history">
+        {label}
+        <SkeletonList rows={2} />
+      </div>
+    ) : null;
+  }
+  if (history.error) {
+    return hasDirect ? (
+      <div className="flex flex-col gap-2" data-testid="person-history">
+        {label}
+        <InlineError error={history.error} onRetry={() => void history.refetch()} />
+      </div>
+    ) : null;
+  }
+
+  const direct = (history.data?.places ?? []).filter((p) => p.kind === 'direct');
+  const lines = direct
+    .flatMap((p) => p.history?.lines ?? [])
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+  if (direct.length === 0 || lines.length === 0) return null;
+  const theirsTripIds = new Set(direct.filter((p) => p.source === 'theirs').map((p) => p.tripId));
+
+  return (
+    <div className="flex flex-col gap-2" data-testid="person-history">
+      {label}
+      <HistoryList lines={lines} otherName={name} theirsTripIds={theirsTripIds} />
+    </div>
+  );
+}
+
+function PersonAll(): JSX.Element {
   const { key: rawKey } = useParams<{ key: string }>();
   const key = (rawKey ? decodeURIComponent(rawKey) : '') as PersonKey;
 
@@ -334,27 +393,7 @@ export function PersonScreen(): JSX.Element {
         </div>
 
         {/* Total block */}
-        <div className="fsl-person__total flex flex-col items-center gap-1 text-center py-2">
-          {person.total > 0 ? (
-            <>
-              <span className="text-sm font-medium text-muted-foreground">
-                {t('person.owesYou')}
-              </span>
-              <Amount value={person.total} tone="success" size="xl" />
-            </>
-          ) : person.total < 0 ? (
-            <>
-              <span className="text-sm font-medium text-muted-foreground">
-                {t('person.youOwe')}
-              </span>
-              <Amount value={-person.total} tone="danger" size="xl" />
-            </>
-          ) : (
-            <span className="text-base font-semibold text-muted-foreground">
-              {t('person.settled')}
-            </span>
-          )}
-        </div>
+        <PersonTotal total={person.total} />
 
         {/* Waiting settlements */}
         {person.waiting.length > 0 && (
@@ -461,6 +500,12 @@ export function PersonScreen(): JSX.Element {
             })}
           </div>
         )}
+
+        <DirectHistory
+          personKey={person.key}
+          name={person.name}
+          hasDirect={person.items.some((i) => i.kind === 'direct')}
+        />
 
         {/* Linked list ("Đã gộp vào đây") */}
         {person.linked && person.linked.length > 0 && (

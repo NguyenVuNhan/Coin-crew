@@ -59,8 +59,8 @@ Line states (owner-confirmed):
 
 Opened from a person row on Home (today's entry point).
 - Total: the person's overall total (as now).
-- Each **group** stays one net loan/debt row ("Đà Lạt −50.000₫"), as now. *Builder's call (owner may correct):* tapping a group row opens **Mode B for that group** instead of the whole group page.
-- The single "Quick expenses" row is **replaced by the actual quick-expense transaction lines** (the caller's own `direct` ledger with this person), mixed in date order.
+- Each **group** stays one net loan/debt row ("Đà Lạt −50.000₫"), as now. Tapping it still opens the group page; the existing back-navigation behaviour is kept. (Changed during build: an earlier draft opened Mode B here.)
+- The "Quick expenses" row stays as it is now, with its total. **Directly under the rows**, under "What makes this up", the actual quick-expense transaction lines appear from every `direct` place, mixed in date order and adding up to that row. (Changed during build so the rows the owner already tests keep working.)
 
 ### Mode B: from a group (that group only)
 

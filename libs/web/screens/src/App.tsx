@@ -71,6 +71,7 @@ export function App() {
       <Route path="/activity" element={<MyActivity />} />
       <Route path="/trips/new" element={<CreateTrip />} />
       <Route path="/people/:key" element={<PersonScreen />} />
+      <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/me/bank" element={<BankDetails />} />
