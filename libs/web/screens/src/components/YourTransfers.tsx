@@ -6,6 +6,7 @@ import { nameOf } from '@cc/web-util/tripText';
 import { canManageBankOf } from '../lib/rowActions';
 import { groupLink, payLink, remind, remindText } from '../lib/remind';
 import { usePayInfo } from '@cc/web-data-access/payInfo';
+import { useMe } from '@cc/web-data-access/hooks';
 import { useTrip } from '../lib/tripBase';
 import { useIsCoarsePointer } from '@cc/web-util/media';
 import { usePendingPayment, type PendingPayment } from '../lib/usePendingPayment';
@@ -24,8 +25,8 @@ import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { usePlatform } from '@cc/web-platform';
 import { remindCard } from '../lib/shareCards';
 
-/** In-place detail for an open transfer row, showing QR code or bank status. */
-function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.Element | null {
+/** The QR code or bank status of an open transfer row. */
+function TransferPay({ view, row }: { view: TripView; row: Transfer }): JSX.Element | null {
   const t = useT();
   const platform = usePlatform();
   const { tripId, href } = useTrip(view.trip.id);
@@ -137,6 +138,30 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
   }
 
   return <PayQr info={info} variant="pay" />;
+}
+
+/** In-place detail for an open transfer row: QR code or bank status, then (members signed in) a way into the history. */
+function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.Element {
+  const t = useT();
+  const signedIn = useMe().data?.user != null;
+  const me = view.me.participantId;
+  const otherPid = row.toId === me ? row.fromId : row.toId;
+  return (
+    <>
+      <TransferPay view={view} row={row} />
+      {view.me.kind === 'member' && signedIn && (
+        <Button
+          href={`/people/in/${encodeURIComponent(view.trip.id)}/${encodeURIComponent(otherPid)}`}
+          variant="secondary"
+          block
+          className="mt-3"
+          data-testid="transfer-history"
+        >
+          {t('history.seeHistory', { name: nameOf(view, otherPid) })}
+        </Button>
+      )}
+    </>
+  );
 }
 
 /** What Your transfers keeps when the page switches layout: the open row and a tick waiting out its Undo. */
