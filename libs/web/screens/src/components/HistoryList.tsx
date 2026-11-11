@@ -73,6 +73,8 @@ export function HistoryList({
       <ul className="divide-y divide-border overflow-hidden rounded-xl bg-card">
         {lines.map((l) => {
           const disabled = l.state === 'disabled';
+          // Not counted (disabled, or a guest's expense waiting for approval): no money colour.
+          const uncounted = disabled || l.state === 'unapproved';
           const effect = viewerIsOwner ? l.effect : -l.effect;
           return (
             <li
@@ -100,15 +102,15 @@ export function HistoryList({
               <span
                 className={cn(
                   'fsl-history__effect inline-flex shrink-0 items-center tabular-nums font-semibold',
-                  disabled ? 'text-muted-foreground' : effect > 0 ? 'text-success' : effect < 0 ? 'text-danger' : 'text-foreground',
+                  uncounted ? 'text-muted-foreground' : effect > 0 ? 'text-success' : effect < 0 ? 'text-danger' : 'text-foreground',
                 )}
               >
                 {effect > 0 ? '+' : effect < 0 ? '−' : ''}
                 <Amount
                   value={Math.abs(effect)}
-                  tone={disabled ? 'neutral' : effect > 0 ? 'success' : effect < 0 ? 'danger' : 'neutral'}
+                  tone={uncounted ? 'neutral' : effect > 0 ? 'success' : effect < 0 ? 'danger' : 'neutral'}
                   size="md"
-                  className={disabled ? 'text-muted-foreground' : undefined}
+                  className={uncounted ? 'text-muted-foreground' : undefined}
                 />
               </span>
             </li>

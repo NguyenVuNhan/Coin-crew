@@ -69,6 +69,13 @@ describe('HistoryList', () => {
     expect(within(screen.getByTestId('history-line-u')).getByText('Waiting for approval')).toBeInTheDocument();
   });
 
+  it('unapproved line has no money colour (it is not counted)', () => {
+    renderAt(<HistoryList lines={[line({ id: 'u2', state: 'unapproved' })]} otherName="An" />);
+    const amount = within(screen.getByTestId('history-line-u2')).getByText(/120\.000/, { selector: '.fsl-amount' });
+    expect(amount.className).not.toContain('text-success');
+    expect(amount.className).not.toContain('text-danger');
+  });
+
   it('disabled line is line-through', () => {
     renderAt(<HistoryList lines={[line({ id: 'd', state: 'disabled' })]} otherName="An" />);
     const row = screen.getByTestId('history-line-d');
