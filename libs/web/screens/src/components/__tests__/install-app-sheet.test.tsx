@@ -7,6 +7,7 @@ import type { InstallContext } from '@cc/web-platform/install';
 
 const state = vi.hoisted(() => ({
   context: 'prompt' as string,
+  mobile: true,
   prompt: vi.fn(),
 }));
 
@@ -16,7 +17,7 @@ vi.mock('@cc/web-platform/install', async (orig) => {
     ...actual,
     useInstallPrompt: () => ({
       context: state.context as InstallContext,
-      mobile: true,
+      mobile: state.mobile,
       installed: false,
       prompt: state.prompt,
     }),
@@ -57,6 +58,7 @@ function setup(context: InstallContext, ua?: string) {
 }
 
 afterEach(() => {
+  state.mobile = true;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   state.prompt = vi.fn();
@@ -82,6 +84,34 @@ describe('InstallAppSheet', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Install now' }));
     expect(await screen.findByText(/Install app/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Install now' })).toBeNull();
+  });
+
+  it('reopening after a dismissal offers Install now again', async () => {
+    state.prompt = vi.fn().mockResolvedValue('dismissed');
+    function Reopen() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>reopen</button>
+          <InstallAppSheet open={open} onClose={() => setOpen(false)} />
+        </>
+      );
+    }
+    state.context = 'prompt';
+    renderAt(<Reopen />);
+    await userEvent.click(screen.getByRole('button', { name: 'Install now' }));
+    await screen.findByText(/Install app/);
+    await userEvent.click(screen.getByRole('button', { name: 'Got it' }));
+    await userEvent.click(screen.getByRole('button', { name: 'reopen', hidden: true }));
+    expect(await screen.findByRole('button', { name: 'Install now' })).toBeInTheDocument();
+  });
+
+  it('prompt dismissed on desktop: shows the desktop step', async () => {
+    state.mobile = false;
+    state.prompt = vi.fn().mockResolvedValue('dismissed');
+    setup('prompt');
+    await userEvent.click(screen.getByRole('button', { name: 'Install now' }));
+    expect(await screen.findByText('Click the install icon in the address bar')).toBeInTheDocument();
   });
 
   it('android-manual: two steps and Got it', async () => {
@@ -120,12 +150,15 @@ describe('InstallAppSheet', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     stubNav({ userAgent: ZALO, clipboard: { writeText } });
     state.context = 'in-app';
-    renderAt(<InstallAppSheet open onClose={vi.fn()} />);
+    const onClose = vi.fn();
+    renderAt(<InstallAppSheet open onClose={onClose} />);
     expect(screen.getByText('Open in your browser to install')).toBeInTheDocument();
     expect(screen.getByText(/inside Zalo/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Copy link' }));
     expect(writeText).toHaveBeenCalledWith(window.location.href);
     expect(await screen.findByRole('status')).toHaveTextContent('Copied');
+    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('in-app other app', () => {

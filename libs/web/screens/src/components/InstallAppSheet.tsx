@@ -69,7 +69,7 @@ const ANDROID_STEPS: Step[] = [{ key: 'install.androidStep1' }, { key: 'install.
 
 export function InstallAppSheet({ open, onClose, onInstalled }: InstallAppSheetProps): JSX.Element {
   const t = useT();
-  const { context: detected, prompt } = useInstallPrompt();
+  const { context: detected, mobile, prompt } = useInstallPrompt();
   const [fallback, setFallback] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -80,7 +80,12 @@ export function InstallAppSheet({ open, onClose, onInstalled }: InstallAppSheetP
     return () => clearTimeout(id);
   }, [message]);
 
-  const context: InstallContext = detected === 'prompt' && fallback ? 'android-manual' : detected;
+  useEffect(() => {
+    if (open) setFallback(false);
+  }, [open]);
+
+  const fallbackContext: InstallContext = mobile ? 'android-manual' : 'desktop';
+  const context: InstallContext = detected === 'prompt' && fallback ? fallbackContext : detected;
 
   async function installNow() {
     setBusy(true);
@@ -187,6 +192,9 @@ export function InstallAppSheet({ open, onClose, onInstalled }: InstallAppSheetP
           <Steps steps={[{ key: 'install.inAppStep1' }, { key: 'install.inAppStep2' }]} />
           <Button variant="secondary" block onClick={copyLink}>
             {t('install.copyLink')}
+          </Button>
+          <Button variant="ghost" block onClick={onClose}>
+            {t('install.notNow')}
           </Button>
         </>
       );

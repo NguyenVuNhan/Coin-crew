@@ -112,9 +112,10 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
 
   useEffect(() => {
     if (wasInstallOpenRef.current && !installOpen) {
-      installRowRef.current?.focus();
+      const target = () => installRowRef.current ?? triggerRef.current;
+      target()?.focus();
       const raf = requestAnimationFrame(() => {
-        installRowRef.current?.focus();
+        target()?.focus();
       });
       wasInstallOpenRef.current = false;
       return () => cancelAnimationFrame(raf);

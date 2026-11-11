@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   context: 'ios-safari' as string,
   mobile: true,
   installed: false,
+  prompt: vi.fn(),
 }));
 
 vi.mock('@cc/web-platform/install', async (orig) => {
@@ -19,7 +20,7 @@ vi.mock('@cc/web-platform/install', async (orig) => {
       context: state.context as InstallContext,
       mobile: state.mobile,
       installed: state.installed,
-      prompt: vi.fn(),
+      prompt: state.prompt,
     }),
   };
 });
@@ -34,6 +35,7 @@ beforeEach(() => {
   state.context = 'ios-safari';
   state.mobile = true;
   state.installed = false;
+  state.prompt = vi.fn();
   mockApi({ 'GET /api/me': USER });
 });
 
@@ -48,6 +50,21 @@ describe('InstallPill', () => {
     const pill = await screen.findByTestId('install-pill');
     await userEvent.click(pill.querySelector('button:not(.fsl-install-pill__close)')!);
     expect(await screen.findByTestId('install-sheet')).toBeTruthy();
+  });
+
+  it('keeps the sheet mounted to show the installed status after a 1-tap install', async () => {
+    localStorage.setItem('cc.install.visits', '1');
+    state.context = 'prompt';
+    state.prompt = vi.fn().mockImplementation(async () => {
+      state.installed = true;
+      return 'accepted';
+    });
+    renderAt(<InstallPill />);
+    const pill = await screen.findByTestId('install-pill');
+    await userEvent.click(pill.querySelector('button:not(.fsl-install-pill__close)')!);
+    await userEvent.click(await screen.findByRole('button', { name: 'Install now' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Added to your home screen');
+    await waitFor(() => expect(screen.queryByTestId('install-pill')).toBeNull());
   });
 
   it('hides on the first visit and counts a visit once per page load', async () => {

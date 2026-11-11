@@ -47,7 +47,6 @@ export function InstallPill(): JSX.Element | null {
   const t = useT();
   const { pill } = useInstallVisibility();
   const [open, setOpen] = useState(false);
-  if (!pill && !open) return null;
   return (
     <>
       {pill && (
@@ -58,7 +57,7 @@ export function InstallPill(): JSX.Element | null {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex min-h-11 flex-1 items-center gap-2 text-left"
+            className="flex min-h-11 flex-1 items-center gap-2 rounded-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Icon name="smartphone" size={18} />
             <span className="flex-1 text-sm font-semibold">{t('install.pill')}</span>
@@ -68,7 +67,7 @@ export function InstallPill(): JSX.Element | null {
             type="button"
             aria-label={t('common.dismiss')}
             onClick={() => installStore.dismiss()}
-            className="fsl-install-pill__close flex size-11 items-center justify-center rounded-full"
+            className="fsl-install-pill__close flex size-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Icon name="x" size={18} />
           </button>
