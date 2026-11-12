@@ -356,7 +356,18 @@ export async function shareSportBill(
 ): Promise<'shared' | 'saved' | 'failed'> {
   const blob = await renderSportBillPng(input);
   const billFileName = `bill-${(refCode || 'sport').replace(/\s+/g, '-')}.png`;
+  return shareImageFile(blob, billFileName, text);
+}
 
+/**
+ * Share a picture with its message: the system share sheet with the file when it takes files, else download the
+ * picture and copy the message. 'shared' also covers a share sheet the person cancelled.
+ */
+export async function shareImageFile(
+  blob: Blob | null,
+  billFileName: string,
+  text: string,
+): Promise<'shared' | 'saved' | 'failed'> {
   if (blob && typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof File !== 'undefined') {
     const files = [new File([blob], billFileName, { type: 'image/png' })];
     if (navigator.canShare?.({ files })) {
