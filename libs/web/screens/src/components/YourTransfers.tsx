@@ -238,6 +238,7 @@ function OwnTransfers({ view }: { view: TripView }): JSX.Element {
 function TransfersSection({ view, state }: { view: TripView; state: TransfersState }): JSX.Element {
   const t = useT();
   const me = view.me.participantId;
+  const signedIn = useMe().data?.user != null;
   const [mode, setMode] = useState<'mine' | 'all'>(() => {
     try {
       return localStorage.getItem('fsl.transfers.mode') === 'all' ? 'all' : 'mine';
@@ -322,6 +323,11 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
             {rows.map((s) => {
               const key = keyOf(s);
               const isOpen = openRow !== null && key === keyOf(openRow);
+              // A signed-in member's incoming debt opens that person's page (the history sheet) instead of the QR.
+              const personHref =
+                s.toId === me && view.me.kind === 'member' && signedIn
+                  ? `/people/in/${encodeURIComponent(view.trip.id)}/${encodeURIComponent(s.fromId)}`
+                  : undefined;
               const involves = involvesMe(s);
               const rowTitle = t('trip.pays', { from: label(s.fromId), to: label(s.toId) });
 
@@ -381,10 +387,12 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                       <ActionRow
                         label={rowTitle + ', ' + formatVnd(s.amount)}
                         actions={actions}
-                        expanded={isOpen}
-                        controls={isOpen ? detailId : undefined}
+                        expanded={personHref ? undefined : isOpen}
+                        controls={isOpen && !personHref ? detailId : undefined}
                         leading={leading}
                         onOpen={() => setOpenKey(isOpen ? null : key)}
+                        href={personHref}
+                        hrefTestId={personHref ? 'transfer-person-' + s.fromId : undefined}
                       >
                         <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                         <span className={cn('fsl-transfers__text min-w-0 flex-1 truncate text-base font-semibold text-foreground', done && 'fsl-transfers__text--done text-muted-foreground')}>{rowTitle}</span>
@@ -395,12 +403,12 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                           className={s.toId === me ? 'text-success' : s.fromId === me ? 'text-danger' : 'text-foreground'}
                         />
                         <Icon
-                          name={isOpen ? 'chevronUp' : 'chevronDown'}
+                          name={personHref ? 'chevronRight' : isOpen ? 'chevronUp' : 'chevronDown'}
                           size={20}
                           className="fsl-transfers__chevron shrink-0 text-muted-foreground"
                         />
                       </ActionRow>
-                      {isOpen && (
+                      {isOpen && !personHref && (
                         <div className="fsl-transfers__detail border-t border-border px-4 pt-2 pb-4" id={detailId}>
                           <TransferDetail view={view} row={openRow} />
                         </div>

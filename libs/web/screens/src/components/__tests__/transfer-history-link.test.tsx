@@ -18,16 +18,17 @@ const payInfo: PayInfo = { to: { id: PIDS.M, name: 'Minh' }, amount: 565000, ban
 const ME_USER = { id: 'u-1', email: 'minh@example.com', name: 'Minh', avatarUrl: null, zaloName: null };
 
 describe('Your transfers: history link', () => {
-  it('member signed in: open row shows "See history with Bình" → /people/in/t-1/p-binh', async () => {
+  it('member signed in, I owe: open row shows "See history with Minh" → /people/in/t-1/p-minh', async () => {
     mockApi({
       'GET /api/me': { user: ME_USER, signIn: { zalo: false }, mergeRequests: { incoming: [], outgoing: [], joining: [], claim: null } },
       'GET /api/trips/t-1/pay/p-minh': payInfo,
     });
-    renderAt(<YourTransfers view={tripView()} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Bình → You/ }));
+    const view = tripView({ me: { kind: 'member', participantId: PIDS.C, participantPending: false, isOrganiser: false } });
+    renderAt(<YourTransfers view={view} />);
+    await userEvent.click(screen.getByRole('button', { name: /^You → Minh/ }));
     const link = await screen.findByTestId('transfer-history');
-    expect(link).toHaveTextContent('See history with Bình');
-    expect(link).toHaveAttribute('href', '/people/in/t-1/p-binh');
+    expect(link).toHaveTextContent('See history with Minh');
+    expect(link).toHaveAttribute('href', '/people/in/t-1/p-minh');
   });
 
   it('guest: no transfer-history button', async () => {
