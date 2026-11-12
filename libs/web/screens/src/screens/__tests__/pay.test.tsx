@@ -208,7 +208,7 @@ describe('PayScreen', () => {
     expect(screen.queryByRole('img', { name: /VietQR/ })).not.toBeInTheDocument();
     expect(screen.queryByText('0₫')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: "I've paid" })).not.toBeInTheDocument();
-    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 1245000 });
+    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 1245000, idempotencyKey: expect.any(String) });
   });
 
   it('turns into "Paid" once the member confirms', async () => {
@@ -242,7 +242,7 @@ describe('PayScreen', () => {
     expect(await screen.findByText('Paid · 1.245.000₫ to An')).toBeInTheDocument();
     expect(screen.queryByText(/Payment sent/)).not.toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /VietQR/ })).not.toBeInTheDocument();
-    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.M, toId: PIDS.A, amount: 1245000 });
+    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.M, toId: PIDS.A, amount: 1245000, idempotencyKey: expect.any(String) });
   });
 
   it('a payment already on its way shows the status, not a QR', async () => {
@@ -315,7 +315,7 @@ describe('PayScreen', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Show QR for the rest' }));
     await userEvent.click(await screen.findByRole('button', { name: "I've paid" }));
     expect(await screen.findByText('Payment sent · 245.000₫')).toBeInTheDocument();
-    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 245000 });
+    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ fromId: PIDS.C, toId: PIDS.M, amount: 245000, idempotencyKey: expect.any(String) });
   });
 
   it('offers to check again on the status card after 10 minutes', async () => {

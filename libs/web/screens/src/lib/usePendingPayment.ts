@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiClientError, apiSend } from '@cc/web-data-access/client';
+import { newIdempotencyKey } from '@cc/web-data-access/people';
 
 export interface PendingPayment {
   fromId: string;
@@ -12,6 +13,8 @@ export interface PendingPayment {
 export const UNDO_MS = 5000;
 
 type InFlight = PendingPayment & { tripId: string };
+/** A scheduled tick carries the key it will be sent with, so the server records it once however often it is sent. */
+type Scheduled = PendingPayment & { idempotencyKey: string };
 
 /**
  * Ticks sent and not yet back from the server with the reloaded trip, kept outside any component: a tick sent as its
@@ -60,7 +63,7 @@ export function usePendingPayment(tripId: string): {
   const allInFlight = useSyncExternalStore(subscribeInFlight, getInFlight, getInFlight);
   const sending = useMemo(() => allInFlight.filter((p) => p.tripId === tripId), [allInFlight, tripId]);
   // The source of truth for timers and page listeners, which outlive the render that started them.
-  const current = useRef<{ payment: PendingPayment; tripId: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const current = useRef<{ payment: Scheduled; tripId: string; timer: ReturnType<typeof setTimeout> } | null>(null);
   const mounted = useRef(false);
 
   const flush = useCallback(() => {
@@ -70,9 +73,10 @@ export function usePendingPayment(tripId: string): {
     clearTimeout(cur.timer);
     const { payment, tripId: id } = cur;
     if (mounted.current) setPending(null);
-    const entry: InFlight = { ...payment, tripId: id };
+    const { idempotencyKey, ...rest } = payment;
+    const entry: InFlight = { ...rest, tripId: id };
     setInFlight([...inFlight, entry]);
-    apiSend(`/api/trips/${id}/payments`, 'POST', { ...payment, settles: true }, id, { keepalive: true })
+    apiSend(`/api/trips/${id}/payments`, 'POST', { ...rest, settles: true, idempotencyKey }, id, { keepalive: true })
       // Reload the trip even if nothing shows it now, so a screen that comes back finds the debt gone.
       .then(() => queryClient.invalidateQueries({ queryKey: ['trip', id], refetchType: 'all' }))
       .catch((err: unknown) => {
@@ -112,7 +116,7 @@ export function usePendingPayment(tripId: string): {
       if (isInFlight(tripId, payment)) return; // already on its way: never record it twice
       flush();
       setError(null);
-      current.current = { payment, tripId, timer: setTimeout(flush, UNDO_MS) };
+      current.current = { payment: { ...payment, idempotencyKey: newIdempotencyKey() }, tripId, timer: setTimeout(flush, UNDO_MS) };
       setPending(payment);
     },
     [flush, tripId],

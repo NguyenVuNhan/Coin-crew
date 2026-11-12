@@ -9,6 +9,7 @@ import { activity, bankDetails, participants, personLinks, settlementKeys, trans
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
+import { parseIdempotencyKey } from '@cc/api-util/idempotency';
 import { loadPersonItems, type PersonItems } from './balances';
 import { ensurePersonalLedger, findLedger } from './ledger';
 
@@ -44,14 +45,8 @@ export interface SettlementResult {
   replayed: boolean;
 }
 
-const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9_-]{16,64}$/;
-
-/** The body's `idempotencyKey`: absent (old clients) is null, anything malformed is 422. */
-export function parseIdempotencyKey(raw: unknown): string | null {
-  if (raw === undefined || raw === null) return null;
-  if (typeof raw !== 'string' || !IDEMPOTENCY_KEY_RE.test(raw)) throw new ApiError('VALIDATION', 422, 'Invalid request');
-  return raw;
-}
+/** Kept here too: `requests/routes.ts` imports it from this module. */
+export { parseIdempotencyKey };
 
 /**
  * The settlement an idempotency key already made for this owner, or null when the key is new.

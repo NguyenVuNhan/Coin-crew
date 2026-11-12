@@ -85,6 +85,7 @@ describe('member trip page', () => {
         toId: PIDS.M,
         amount: 385000,
         settles: true,
+        idempotencyKey: expect.any(String),
       });
     });
     vi.useRealTimers();
