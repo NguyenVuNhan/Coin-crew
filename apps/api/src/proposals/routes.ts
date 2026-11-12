@@ -8,7 +8,7 @@ import { mergeProposals, participants, trips } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { commitTripWrite } from '@cc/api-db/commit';
+import { guardedTripWrite, type ActivityInput } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import { completeIfReady, type ProposalRow } from './store';
@@ -111,13 +111,27 @@ async function myPid(db: Db, tripId: string, userId: string): Promise<string | n
   return row?.id ?? null;
 }
 
-/** Sets status (declined/cancelled) on a pending proposal; 0 changes → ALREADY_HANDLED. */
-async function decide(db: Db, id: string, status: 'declined' | 'cancelled', extra = sql`1 = 1`): Promise<void> {
-  const r = await db
+/**
+ * Sets status (declined/cancelled) on a pending proposal; a miss → ALREADY_HANDLED. With an activity the
+ * status change, version bump and activity row land in one batch; a cancel writes no activity, so it stays
+ * a single conditional update.
+ */
+async function decide(
+  db: Db,
+  row: ProposalRow,
+  status: 'declined' | 'cancelled',
+  activity?: ActivityInput,
+  extra = sql`1 = 1`,
+): Promise<void> {
+  const update = db
     .update(mergeProposals)
     .set({ status, decidedAt: nowIso() })
-    .where(and(eq(mergeProposals.id, id), eq(mergeProposals.status, 'pending'), extra))
-    .run();
+    .where(and(eq(mergeProposals.id, row.id), eq(mergeProposals.status, 'pending'), extra));
+  if (activity) {
+    await guardedTripWrite(db, row.tripId, update, [], activity, alreadyHandled);
+    return;
+  }
+  const r = await update.run();
   if (r.meta.changes === 0) throw alreadyHandled();
 }
 
@@ -166,8 +180,7 @@ export function proposalRoutes(): Hono<AppBindings> {
 
   app.post('/me/proposals/:id/decline', requireUser, async (c) => {
     const { db, row, actor } = await asTarget(c);
-    await decide(db, row.id, 'declined');
-    await commitTripWrite(db, row.tripId, [], {
+    await decide(db, row, 'declined', {
       action: 'merge_proposal_declined',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -183,7 +196,7 @@ export function proposalRoutes(): Hono<AppBindings> {
     const row = await loadProposal(db, c.req.param('id'));
     if (row.requestedByUserId !== user.id) throw new ApiError('FORBIDDEN', 403);
     await writableTrip(db, row.tripId);
-    await decide(db, row.id, 'cancelled');
+    await decide(db, row, 'cancelled');
     return c.body(null, 204);
   });
 
@@ -220,14 +233,19 @@ export function proposalRoutes(): Hono<AppBindings> {
 
   app.post('/trips/:id/proposals/:pid/reject', async (c) => {
     const { db, row, actor } = await asAdmin(c);
-    await decide(db, row.id, 'declined', sql`${mergeProposals.needsAdmin} = 1`);
-    await commitTripWrite(db, row.tripId, [], {
-      action: 'merge_proposal_declined',
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-      details: declinedLog(row, 'admin'),
-    });
+    await decide(
+      db,
+      row,
+      'declined',
+      {
+        action: 'merge_proposal_declined',
+        actorParticipantId: actor.participantId,
+        actorUserId: actor.userId,
+        actorDevice: actor.deviceHash,
+        details: declinedLog(row, 'admin'),
+      },
+      sql`${mergeProposals.needsAdmin} = 1`,
+    );
     return c.body(null, 204);
   });
 

@@ -7,7 +7,7 @@ import { getDb } from '@cc/api-db/client';
 import { transactions } from '@cc/api-db/schema';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { commitTripWrite } from '@cc/api-db/commit';
+import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { assertFundCovers, assertSportGroup, currentFundBalance } from './check';
@@ -369,7 +369,7 @@ export function fundRoutes(): Hono<AppBindings> {
     assertFundCovers(balance, { kind: 'income', amount: head.amount, status: head.status }, null);
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({
         status: 'disabled',
@@ -383,14 +383,9 @@ export function fundRoutes(): Hono<AppBindings> {
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'approved'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'income_disabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -436,7 +431,7 @@ export function fundRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({
         status: 'approved',
@@ -450,14 +445,9 @@ export function fundRoutes(): Hono<AppBindings> {
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'disabled'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'income_enabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
