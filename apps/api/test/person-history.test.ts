@@ -47,7 +47,7 @@ async function view(path: string): Promise<PersonHistoryView> {
 }
 
 describe('GET /api/me/people/:key/history', () => {
-  it('all mode: ledger with two quick expenses and a group → direct place has history lines, group place history null, total = sum of amounts', async () => {
+  it('all mode: ledger with two quick expenses and a group → direct and group places both carry history lines, total = sum of amounts', async () => {
     await seedUser(OWNER, 'Owen');
     await seedUser(U.minh, 'Minh');
     await addTrip('t-din', 'Dinner');
@@ -66,7 +66,7 @@ describe('GET /api/me/people/:key/history', () => {
     expect(body.places).toHaveLength(2);
     const group = body.places.find((p) => p.tripId === 't-din')!;
     const direct = body.places.find((p) => p.tripId === 't-led')!;
-    expect(group).toMatchObject({ kind: 'group', source: 'group', amount: -50, history: null, tripName: 'Dinner' });
+    expect(group).toMatchObject({ kind: 'group', source: 'group', amount: -50, history: expect.objectContaining({ lines: expect.any(Array) }), tripName: 'Dinner' });
     expect(direct).toMatchObject({ kind: 'direct', source: 'own', amount: 150 });
     expect(direct.history!.lines.map((l) => [l.id, l.effect])).toEqual([['e-led2', 30], ['e-led1', 120]]);
     expect(direct.history!.twoWay).toBe(150);

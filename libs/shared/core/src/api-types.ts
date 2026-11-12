@@ -501,7 +501,7 @@ export interface HistoryPlace {
   source: 'own' | 'merged' | 'theirs' | 'group';
   /** The PersonItem amount (owner's view). */
   amount: number;
-  /** null for group places in mode 'all'. */
+  /** The two-way lines with the person in this place; set for every place (groups too) in both modes. */
   history: PairHistory | null;
 }
 

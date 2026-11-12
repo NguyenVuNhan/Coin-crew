@@ -32,8 +32,8 @@ function sourceOf(userId: string, person: PersonItems, trip: TripRow, personPid:
 }
 
 /**
- * Mode 'all': every open item with the person becomes a place; ledgers carry their lines, groups
- * don't (the group screen shows those). No queries beyond loadPersonItems.
+ * Mode 'all': every open item with the person becomes a place, each with its two-way lines
+ * (groups included). No queries beyond loadPersonItems.
  */
 export async function loadPersonHistory(db: Db, userId: string, key: PersonKey): Promise<PersonHistoryView | null> {
   const person = await loadPersonItems(db, userId, key);
@@ -49,7 +49,7 @@ export async function loadPersonHistory(db: Db, userId: string, key: PersonKey):
       kind: item.kind,
       source: sourceOf(userId, person, trip, item.personPid),
       amount: item.amount,
-      history: item.kind === 'direct' ? historyOf(trip, snapshot, item.ownerPid, item.personPid) : null,
+      history: historyOf(trip, snapshot, item.ownerPid, item.personPid),
     });
   }
   return {
