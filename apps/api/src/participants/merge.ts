@@ -118,14 +118,18 @@ export async function mergeParticipants(
 
   const mergeId = newId();
   // Goes first in the batch and doubles as the race guard: if a claim became pending since the
-  // check above, actor_user_id is NULL, the NOT NULL constraint fails, and the whole batch rolls back.
+  // check above, or another request already merged either person away, actor_user_id is NULL,
+  // the NOT NULL constraint fails, and the whole batch rolls back.
   const queries: BatchItem<'sqlite'>[] = [
     db.insert(participantMerges).values({
       id: mergeId,
       tripId,
       fromId,
       intoId,
-      actorUserId: sql`CASE WHEN EXISTS (SELECT 1 FROM membership_requests WHERE participant_id IN (${fromId}, ${intoId}) AND status = 'pending') THEN NULL ELSE ${actorUserId} END`,
+      actorUserId: sql`CASE WHEN EXISTS (SELECT 1 FROM membership_requests WHERE participant_id IN (${fromId}, ${intoId}) AND status = 'pending')
+        OR NOT EXISTS (SELECT 1 FROM participants WHERE id = ${fromId} AND status IN ('active', 'pending'))
+        OR NOT EXISTS (SELECT 1 FROM participants WHERE id = ${intoId} AND status IN ('active', 'pending'))
+        THEN NULL ELSE ${actorUserId} END`,
       createdAt: nowIso(),
     }),
   ];
@@ -341,6 +345,47 @@ export async function mergeParticipants(
   const touchedBanks = await db.select().from(bankDetails).where(eq(bankDetails.participantId, fromId));
   for (const b of touchedBanks) log.add(bankDetails, 'bank_details', ['id'], b);
 
+  // One note per payer→receiver pair (payment_refs_trip_pair_uidx). Before moving fromId's notes onto
+  // intoId, drop the ones that would collide: notes between the two (they'd become self-pairs) and
+  // fromId's notes to/from someone intoId already has a note with. The survivor's note is kept (it's
+  // the code people have been seeing). Every dropped row is in touchedRefs, so the log restores it.
+  const refsOf = (col: 'fromId' | 'toId', who: string) =>
+    db
+      .select({ id: col === 'fromId' ? paymentRefs.toId : paymentRefs.fromId })
+      .from(paymentRefs)
+      .where(and(eq(paymentRefs.tripId, tripId), eq(paymentRefs[col], who)));
+  queries.push(
+    db
+      .delete(paymentRefs)
+      .where(
+        and(
+          eq(paymentRefs.tripId, tripId),
+          or(
+            and(eq(paymentRefs.fromId, fromId), eq(paymentRefs.toId, intoId)),
+            and(eq(paymentRefs.fromId, intoId), eq(paymentRefs.toId, fromId)),
+          ),
+        ),
+      ),
+    db
+      .delete(paymentRefs)
+      .where(
+        and(
+          eq(paymentRefs.tripId, tripId),
+          eq(paymentRefs.fromId, fromId),
+          inArray(paymentRefs.toId, refsOf('fromId', intoId)),
+        ),
+      ),
+    db
+      .delete(paymentRefs)
+      .where(
+        and(
+          eq(paymentRefs.tripId, tripId),
+          eq(paymentRefs.toId, fromId),
+          inArray(paymentRefs.fromId, refsOf('toId', intoId)),
+        ),
+      ),
+  );
+
   queries.push(
     db
       .update(paymentRefs)
@@ -477,6 +522,14 @@ export async function mergeParticipants(
     });
   } catch (err) {
     if (isDbError(err, 'NOT NULL constraint failed: participant_merges.actor_user_id')) {
+      // The guard fired: tell "someone already merged them" apart from "a claim is pending".
+      const live = await db
+        .select({ id: participants.id })
+        .from(participants)
+        .where(and(inArray(participants.id, [fromId, intoId]), inArray(participants.status, ['active', 'pending'])));
+      if (live.length < 2) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+      }
       throw claimPending();
     }
     throw err;

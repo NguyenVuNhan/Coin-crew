@@ -28,7 +28,7 @@ import { participants, transactions, transactionShares } from '@cc/api-db/schema
 import { assertWritable, resolveActor, type ResolvedActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { assertFundCovers, assertSportGroup, currentFundBalance } from '../fund/check';
-import { commitTripWrite } from '@cc/api-db/commit';
+import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchExpenseNotification } from '../notifications/transactionDispatcher';
@@ -49,7 +49,9 @@ const SPLIT_MODES: ReadonlySet<SplitMode> = new Set([
   'adjust',
 ]);
 
-interface ValidatedExpense {
+export type TransactionRow = typeof transactions.$inferSelect;
+
+export interface ValidatedExpense {
   description: string;
   amount: number;
   spentOn: string;
@@ -575,6 +577,90 @@ function fundItemOf(row: { amount: number; status: string; metaJson: string | nu
   return { kind: 'expense', amount: row.amount, status, meta: row.metaJson ? (JSON.parse(row.metaJson) as ExpenseMeta) : null };
 }
 
+/**
+ * Writes an edit of `head`: supersedes it and inserts the new head with its shares. The supersede is
+ * the guard, so a stale read (the head was approved, rejected or edited meanwhile) writes nothing and
+ * throws `409 ALREADY_HANDLED`. Returns the new head's id.
+ */
+export async function writeExpenseEdit(
+  db: Db,
+  tripId: string,
+  head: TransactionRow,
+  validated: ValidatedExpense,
+  actor: ResolvedActor,
+  fundPaid: boolean,
+): Promise<string> {
+  const newHeadId = newId();
+  const now = nowIso();
+
+  const supersedeOld = db
+    .update(transactions)
+    .set({
+      status: 'superseded',
+      isLatest: 0,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(transactions.id, head.id),
+        eq(transactions.tripId, tripId),
+        eq(transactions.isLatest, 1),
+        eq(transactions.status, head.status),
+      ),
+    );
+
+  const insertNewHead = db.insert(transactions).values({
+    id: newHeadId,
+    rootId: head.rootId,
+    parentId: head.id,
+    isLatest: 1,
+    tripId,
+    type: 'expense',
+    description: validated.description,
+    amount: validated.amount,
+    amountConfirmed: null,
+    currency: 'VND',
+    spentOn: validated.spentOn,
+    payerId: fundPaid ? actor.participantId! : validated.payerId,
+    toId: null,
+    splitMode: validated.mode,
+    status: head.status,
+    rejectReason: head.rejectReason,
+    notArrivedAt: null,
+    disabledByUserId: head.disabledByUserId,
+    createdByParticipantId: actor.participantId!,
+    createdByDevice: actor.deviceHash,
+    confirmedByParticipantId: head.confirmedByParticipantId,
+    metaJson: validated.meta ? JSON.stringify(validated.meta) : null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const insertShares = validated.shares.map((sh) =>
+    db.insert(transactionShares).values({
+      transactionId: newHeadId,
+      participantId: sh.participantId,
+      inputValue: sh.inputValue,
+      inputAuto: sh.inputAuto,
+      amount: sh.amount,
+    }),
+  );
+
+  await guardedTripWrite(db, tripId, supersedeOld, [insertNewHead, ...insertShares], {
+    action: 'expense_edited',
+    actorParticipantId: actor.participantId,
+    actorUserId: actor.userId,
+    actorDevice: actor.deviceHash,
+    details: {
+      description: validated.description,
+      amount: validated.amount,
+      ...(fundPaid ? { paidFromFund: true } : {}),
+    },
+  });
+
+  return newHeadId;
+}
+
 export function expenseRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -744,72 +830,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       assertFundCovers(await currentFundBalance(db, tripId), headItem, after);
     }
 
-    const newHeadId = newId();
-    const now = nowIso();
-
-    const supersedeOld = db
-      .update(transactions)
-      .set({
-        status: 'superseded',
-        isLatest: 0,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(transactions.id, head.id),
-          eq(transactions.tripId, tripId),
-          eq(transactions.isLatest, 1),
-        ),
-      );
-
-    const insertNewHead = db.insert(transactions).values({
-      id: newHeadId,
-      rootId: head.rootId,
-      parentId: head.id,
-      isLatest: 1,
-      tripId,
-      type: 'expense',
-      description: validated.description,
-      amount: validated.amount,
-      amountConfirmed: null,
-      currency: 'VND',
-      spentOn: validated.spentOn,
-      payerId: fundPaid ? actor.participantId! : validated.payerId,
-      toId: null,
-      splitMode: validated.mode,
-      status: head.status,
-      rejectReason: head.rejectReason,
-      notArrivedAt: null,
-      disabledByUserId: head.disabledByUserId,
-      createdByParticipantId: actor.participantId!,
-      createdByDevice: actor.deviceHash,
-      confirmedByParticipantId: head.confirmedByParticipantId,
-      metaJson: validated.meta ? JSON.stringify(validated.meta) : null,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const insertShares = validated.shares.map((sh) =>
-      db.insert(transactionShares).values({
-        transactionId: newHeadId,
-        participantId: sh.participantId,
-        inputValue: sh.inputValue,
-        inputAuto: sh.inputAuto,
-        amount: sh.amount,
-      }),
-    );
-
-    await commitTripWrite(db, tripId, [supersedeOld, insertNewHead, ...insertShares], {
-      action: 'expense_edited',
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-      details: {
-        description: validated.description,
-        amount: validated.amount,
-        ...(fundPaid ? { paidFromFund: true } : {}),
-      },
-    });
+    const newHeadId = await writeExpenseEdit(db, tripId, head, validated, actor, fundPaid);
 
     if (isPlanningExpense(validated)) {
       // Skip notification while in planning mode
@@ -919,6 +940,7 @@ export function expenseRoutes(): Hono<AppBindings> {
           eq(transactions.id, head.id),
           eq(transactions.tripId, tripId),
           eq(transactions.isLatest, 1),
+          eq(transactions.status, head.status),
         ),
       );
 
@@ -959,7 +981,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       }),
     );
 
-    await commitTripWrite(db, tripId, [supersedeOld, insertNewHead, ...insertNewShares], {
+    await guardedTripWrite(db, tripId, supersedeOld, [insertNewHead, ...insertNewShares], {
       action: 'expense_rolled_back',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -1009,6 +1031,20 @@ export function expenseRoutes(): Hono<AppBindings> {
       isPlanning: isPlanningExpense(headItem),
     });
 
+    // Touches the head only if it is still the one read (same status, still latest), so a delete
+    // racing an approval or an edit writes nothing and gets 409 ALREADY_HANDLED.
+    const headUnchanged = db
+      .update(transactions)
+      .set({ updatedAt: nowIso() })
+      .where(
+        and(
+          eq(transactions.id, head.id),
+          eq(transactions.tripId, tripId),
+          eq(transactions.isLatest, 1),
+          eq(transactions.status, head.status),
+        ),
+      );
+
     const rootTxIds = db
       .select({ id: transactions.id })
       .from(transactions)
@@ -1022,7 +1058,7 @@ export function expenseRoutes(): Hono<AppBindings> {
       .delete(transactions)
       .where(and(eq(transactions.tripId, tripId), eq(transactions.rootId, head.rootId)));
 
-    await commitTripWrite(db, tripId, [deleteShares, deleteTransactions], {
+    await guardedTripWrite(db, tripId, headUnchanged, [deleteShares, deleteTransactions], {
       action: 'expense_deleted',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -1097,7 +1133,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({ status: 'approved', updatedAt: now })
       .where(
@@ -1107,14 +1143,9 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'pending'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'expense_approved',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -1173,7 +1204,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({ status: 'rejected', rejectReason: reason, updatedAt: now })
       .where(
@@ -1183,14 +1214,9 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'pending'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'expense_rejected',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -1238,7 +1264,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     ensure(actor, 'disable', { expenseInvolved });
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({
         status: 'disabled',
@@ -1252,14 +1278,9 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
           eq(transactions.isLatest, 1),
           inArray(transactions.status, ['approved', 'pending']),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'expense_disabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -1313,7 +1334,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({
         status: 'approved',
@@ -1327,14 +1348,9 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'disabled'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'expense_enabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
