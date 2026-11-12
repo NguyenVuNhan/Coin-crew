@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Route, Routes, useLocation } from 'react-router';
 import type { HistoryLine, PersonHistoryView, PersonSummary } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { PersonScreen } from '../PersonScreen';
@@ -117,8 +119,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Shows the current path and query so the redirect can be asserted. */
+function UrlProbe() {
+  const location = useLocation();
+  return <div data-testid="url">{location.pathname + location.search}</div>;
+}
+
 describe('PersonScreen history', () => {
-  it('all mode: rows stay; quick-expense lines render under "What makes this up"; group row links to /t/<trip>', async () => {
+  it('all mode: the ledger rows keep their test ids; the Quick expenses sheet shows the merged lines newest first; the group sheet links to /t/<trip>', async () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/me/people/summary': { incomplete: false, people: [an] },
@@ -127,29 +135,34 @@ describe('PersonScreen history', () => {
 
     renderAt(<PersonScreen />, { route: '/people/u%3Au-an', path: '/people/:key' });
 
-    const section = await screen.findByTestId('person-history');
-    expect(within(section).getByText('What makes this up')).toBeInTheDocument();
-    const lines = await within(section).findAllByTestId(/^history-line-/);
+    const direct = await screen.findByTestId('person-item-t-led');
+    expect(within(direct).getByText('Quick expenses')).toBeInTheDocument();
+    expect(screen.queryByTestId('person-history')).not.toBeInTheDocument();
+
+    await userEvent.click(direct);
+    const sheet = await screen.findByRole('dialog', { name: 'Quick expenses' });
+    const lines = within(sheet).getAllByTestId(/^history-line-/);
     // Merged newest first across both direct places.
     expect(lines.map((l) => l.getAttribute('data-testid'))).toEqual(['history-line-e-new', 'history-line-e-old']);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
-    // The rows from the summary are unchanged.
-    expect(within(screen.getByTestId('person-item-t-led')).getByText('Quick expenses')).toBeInTheDocument();
-    expect(screen.getByTestId('person-item-t-bad')).toHaveAttribute('href', '/t/t-bad');
+    await userEvent.click(screen.getByTestId('person-item-t-bad'));
+    const group = await screen.findByRole('dialog', { name: 'Badminton' });
+    expect(within(group).getByTestId('ledger-open-group')).toHaveAttribute('href', '/t/t-bad');
   });
 
-  it('all mode: a history error shows only in its slot, with retry; the rows stay', async () => {
+  it('all mode: a history error shows only in its slot, with retry; the actions stay', async () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/me/people/summary': { incomplete: false, people: [an] },
     });
 
-    renderAt(<PersonScreen />, { route: '/people/u%3Au-an', path: '/people/:key' });
+    const { container } = renderAt(<PersonScreen />, { route: '/people/u%3Au-an', path: '/people/:key' });
 
-    const section = await screen.findByTestId('person-history');
-    expect(await within(section).findByRole('button', { name: /try again|retry/i })).toBeInTheDocument();
-    expect(screen.getByTestId('person-item-t-led')).toBeInTheDocument();
-    expect(screen.getByTestId('person-item-t-bad')).toBeInTheDocument();
+    await waitFor(() => expect(container.querySelector('.fsl-person__items')).not.toBeNull());
+    const slot = container.querySelector('.fsl-person__items') as HTMLElement;
+    expect(await within(slot).findByRole('button', { name: /try again|retry/i })).toBeInTheDocument();
     expect(screen.getByTestId('person-request')).toBeInTheDocument();
   });
 
@@ -162,61 +175,38 @@ describe('PersonScreen history', () => {
 
     renderAt(<PersonScreen />, { route: '/people/u%3Au-an', path: '/people/:key' });
 
+    await userEvent.click(await screen.findByTestId('person-item-t-led'));
     const theirs = await screen.findByTestId('history-line-e-new');
     expect(within(theirs).getByText("In An's expenses")).toBeInTheDocument();
     expect(within(screen.getByTestId('history-line-e-old')).queryByText("In An's expenses")).not.toBeInTheDocument();
   });
 
-  it('group mode: shows the group name, the group amount and the gap block; no Request button; "See everything with An" links to /people/<key>', async () => {
+  it('group mode: /people/in/<trip>/<pid> replaces itself with /people/<key>?open=<trip>', async () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/me/trips/t-bad/people/b-a/history': groupHistory,
     });
 
-    const { container } = renderAt(<PersonScreen />, {
-      route: '/people/in/t-bad/b-a',
-      path: '/people/in/:tripId/:pid',
-    });
+    renderAt(
+      <>
+        <Routes>
+          <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
+          <Route path="*" element={null} />
+        </Routes>
+        <UrlProbe />
+      </>,
+      { route: '/people/in/t-bad/b-a', path: '*' },
+    );
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'An' })).toBeInTheDocument();
-    expect(container.querySelector('.fsl-person__group')).toHaveTextContent('Badminton');
-    const total = container.querySelector('.fsl-person__total')!;
-    expect(total).toHaveTextContent('Owes you');
-    expect(total).toHaveTextContent('210.000');
-    expect(container.querySelector('.fsl-history__gap')).toHaveTextContent('Between you two');
-    expect(screen.getByText('To save transfers, the group changed this to 210.000₫.')).toBeInTheDocument();
-    expect(screen.getByTestId('history-line-e-court')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('person-request')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('person-cash')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('person-edit')).not.toBeInTheDocument();
-
-    const seeAll = screen.getByRole('link', { name: 'See everything with An' });
-    expect(seeAll).toHaveAttribute('href', '/people/u%3Au-an');
+    await waitFor(() => expect(screen.getByTestId('url')).toHaveTextContent('/people/u%3Au-an?open=t-bad'));
   });
 
-  it('settled: no history list, settled line shown', async () => {
-    mockApi({
-      'GET /api/me': me(),
-      'GET /api/me/trips/t-bad/people/b-a/history': {
-        ...groupHistory,
-        total: 0,
-        places: [
-          {
-            ...groupHistory.places[0]!,
-            amount: 0,
-            history: { lines: [], twoWay: 0, suggested: 0, gap: null, trimmed: false },
-          },
-        ],
-      } satisfies PersonHistoryView,
-    });
+  it('group mode: an error shows with retry and no redirect', async () => {
+    mockApi({ 'GET /api/me': me() });
 
-    const { container } = renderAt(<PersonScreen />, {
-      route: '/people/in/t-bad/b-a',
-      path: '/people/in/:tripId/:pid',
-    });
+    renderAt(<PersonScreen />, { route: '/people/in/t-bad/b-a', path: '/people/in/:tripId/:pid' });
 
-    expect(await screen.findByText('All settled')).toBeInTheDocument();
-    expect(container.querySelector('.fsl-history')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /try again|retry/i })).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/people/in/t-bad/b-a');
   });
 });

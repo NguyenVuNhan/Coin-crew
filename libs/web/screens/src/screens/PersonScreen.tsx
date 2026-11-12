@@ -1,10 +1,11 @@
 import { useEffect, useState, type JSX } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   formatVnd,
   type PersonKey,
   type PersonWaitingSettlement,
+  type TripView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
@@ -25,7 +26,7 @@ import {
   usePersonPay,
   usePersonHistory,
 } from '@cc/web-data-access/people';
-import { HistoryList } from '../components/HistoryList';
+import { PersonLedger, toLedgerPlaces } from '../components/PersonLedger';
 import { PersonGroupHistory } from './PersonGroupHistory';
 import { PersonTotal } from './PersonTotal';
 import { copyText } from '@cc/web-util/clipboard';
@@ -45,7 +46,6 @@ import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { usePlatform } from '@cc/web-platform';
 import { requestCard } from '../lib/shareCards';
-import { cn } from '@cc/web-ui/lib/utils';
 
 /** `/people/:key` shows everything with a person; `/people/in/:tripId/:pid` one group's history. */
 export function PersonScreen(): JSX.Element {
@@ -54,51 +54,73 @@ export function PersonScreen(): JSX.Element {
   return <PersonAll />;
 }
 
-/** The quick-expense (direct) lines behind the total, merged newest first. */
-function DirectHistory({
-  personKey,
-  name,
-  hasDirect,
-}: {
-  personKey: PersonKey;
-  name: string;
-  hasDirect: boolean;
-}): JSX.Element | null {
+/** The ledger: one row per place (quick expenses merged), each opening a sheet; `?open=<tripId>` drives it. */
+function PersonPlaces({ personKey, name }: { personKey: PersonKey; name: string }): JSX.Element {
   const t = useT();
+  const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const history = usePersonHistory(personKey);
-  const label = (
-    <h3 className="text-sm font-semibold text-muted-foreground px-1 m-0">{t('history.title')}</h3>
-  );
 
-  if (history.isLoading) {
-    return hasDirect ? (
-      <div className="flex flex-col gap-2" data-testid="person-history">
-        {label}
-        <SkeletonList rows={2} />
-      </div>
-    ) : null;
-  }
-  if (history.error) {
-    return hasDirect ? (
-      <div className="flex flex-col gap-2" data-testid="person-history">
-        {label}
-        <InlineError error={history.error} onRetry={() => void history.refetch()} />
-      </div>
-    ) : null;
+  const wrap = (children: JSX.Element) => <div className="fsl-person__items">{children}</div>;
+
+  if (history.isLoading) return wrap(<SkeletonList rows={2} />);
+  if (history.error || !history.data) {
+    return wrap(<InlineError error={history.error} onRetry={() => void history.refetch()} />);
   }
 
-  const direct = (history.data?.places ?? []).filter((p) => p.kind === 'direct');
-  const lines = direct
-    .flatMap((p) => p.history?.lines ?? [])
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
-  if (direct.length === 0 || lines.length === 0) return null;
-  const theirsTripIds = new Set(direct.filter((p) => p.source === 'theirs').map((p) => p.tripId));
+  const historyPlaces = history.data.places;
+  const directTripIds = historyPlaces.filter((p) => p.kind === 'direct').map((p) => p.tripId);
+  // The trip behind each ledger row: the first direct trip for the merged row.
+  const tripOf = new Map<string, string>();
+  const places = toLedgerPlaces(historyPlaces, { quickExpenses: t('person.quickExpenses') }).map((p) => {
+    if (p.kind !== 'group') {
+      if (directTripIds[0]) tripOf.set(p.id, directTripIds[0]);
+      return p;
+    }
+    const tripId = p.id;
+    // Two linked guests can sit in one trip: later rows get a unique id; ?open opens the first.
+    let id = tripId;
+    for (let n = 2; tripOf.has(id); n++) id = `${tripId}#${n}`;
+    tripOf.set(id, tripId);
+    // Only a trip view already in the cache names the person the money moved to; no extra fetch.
+    const gap = p.summary?.gap;
+    const viaPid = gap?.kind === 'reroute' ? gap.viaPid : null;
+    const viaName = viaPid
+      ? (qc.getQueryData<TripView>(['trip', tripId])?.people.find((x) => x.id === viaPid)?.name ?? null)
+      : null;
+    return {
+      ...p,
+      id,
+      groupHref: `/t/${tripId}`,
+      ...(p.summary && viaName ? { summary: { ...p.summary, viaName } } : {}),
+    };
+  });
 
-  return (
-    <div className="flex flex-col gap-2" data-testid="person-history">
-      {label}
-      <HistoryList lines={lines} otherName={name} theirsTripIds={theirsTripIds} />
-    </div>
+  // ?open=<tripId>: a direct trip opens the merged row; an id with no row opens nothing.
+  const openParam = searchParams.get('open');
+  const openId = openParam === null ? null : directTripIds.includes(openParam) ? 'direct' : openParam;
+  const setOpen = (id: string | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        const tripId = id === null ? undefined : tripOf.get(id);
+        if (tripId) next.set('open', tripId);
+        else next.delete('open');
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  return wrap(
+    <PersonLedger
+      places={places}
+      otherName={name}
+      open="sheet"
+      openId={places.some((p) => p.id === openId) ? openId : null}
+      onOpenChange={setOpen}
+      rowTestId={(p) => `person-item-${tripOf.get(p.id) ?? p.id}`}
+    />,
   );
 }
 
@@ -442,70 +464,8 @@ function PersonAll(): JSX.Element {
           </div>
         )}
 
-        {/* Items list */}
-        {person.items.length > 0 && (
-          <div className="fsl-person__items bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-            {person.items.map((item, index) => {
-              // Two linked guests can sit in one trip: the trip id alone is not a unique key.
-              const rowKey = `${item.tripId}:${item.otherPid ?? index}`;
-              const isGroup = item.kind !== 'direct';
-              const label =
-                item.kind === 'direct' ? t('person.quickExpenses') : item.tripName;
-              const isPositive = item.amount > 0;
-              const isNegative = item.amount < 0;
-              const sign = isPositive ? '+' : isNegative ? '−' : '';
-              const tone = isPositive ? 'success' : isNegative ? 'danger' : 'neutral';
-
-              const content = (
-                <>
-                  <span className="truncate text-base font-semibold text-foreground flex-1 min-w-0">
-                    {label}
-                  </span>
-                  <span
-                    className={cn(
-                      'inline-flex items-center tabular-nums font-semibold shrink-0',
-                      isPositive && 'text-success',
-                      isNegative && 'text-danger',
-                      !isPositive && !isNegative && 'text-muted-foreground',
-                    )}
-                  >
-                    {sign}
-                    <Amount value={Math.abs(item.amount)} tone={tone} />
-                  </span>
-                </>
-              );
-
-              if (isGroup) {
-                return (
-                  <Link
-                    key={rowKey}
-                    to={`/t/${item.tripId}`}
-                    data-testid={`person-item-${item.tripId}`}
-                    className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors"
-                  >
-                    {content}
-                  </Link>
-                );
-              }
-
-              return (
-                <div
-                  key={rowKey}
-                  data-testid={`person-item-${item.tripId}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 min-h-11 text-foreground"
-                >
-                  {content}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <DirectHistory
-          personKey={person.key}
-          name={person.name}
-          hasDirect={person.items.some((i) => i.kind === 'direct')}
-        />
+        {/* The ledger */}
+        {person.items.length > 0 && <PersonPlaces personKey={person.key} name={person.name} />}
 
         {/* Linked list ("Đã gộp vào đây") */}
         {person.linked && person.linked.length > 0 && (

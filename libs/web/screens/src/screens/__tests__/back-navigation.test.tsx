@@ -247,6 +247,15 @@ describe('screens with one hard-coded back', () => {
       'GET /api/me': meUser,
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/people/summary': { incomplete: false, people: [tuan] },
+      'GET /api/me/people/p%3Ap-tuan/history': {
+        key: 'p:p-tuan',
+        name: 'Tuấn',
+        mode: 'all',
+        total: -80000,
+        places: [
+          { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', kind: 'group', source: 'group', amount: -80000, history: null },
+        ],
+      },
       'GET /api/trips/t-1': tripView(),
       'GET /api/trips/t-1/version': { version: 1 },
     });
@@ -254,6 +263,7 @@ describe('screens with one hard-coded back', () => {
 
     const groupLink = await screen.findByTestId('person-item-t-1');
     await userEvent.click(groupLink);
+    await userEvent.click(await within(await screen.findByRole('dialog')).findByTestId('ledger-open-group'));
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
@@ -734,6 +744,15 @@ describe('finished steps', () => {
       'GET /api/me': meUser,
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/people/summary': { people: [tuan], incomplete: false },
+      'GET /api/me/people/p%3Ap-tuan/history': {
+        key: 'p:p-tuan',
+        name: 'Tuấn',
+        mode: 'all',
+        total: -80000,
+        places: [
+          { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', kind: 'group', source: 'group', amount: -80000, history: null },
+        ],
+      },
       'GET /api/links/tok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' },
       'GET /api/trips/t-1': () => Response.json({
         ...guestChiView(),
@@ -753,6 +772,7 @@ describe('finished steps', () => {
 
     const groupLink = await screen.findByTestId('person-item-t-1');
     await userEvent.click(groupLink);
+    await userEvent.click(await within(await screen.findByRole('dialog')).findByTestId('ledger-open-group'));
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
@@ -805,6 +825,15 @@ describe('finished steps', () => {
       'GET /api/me': meUser,
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/people/summary': { people: [tuan], incomplete: false },
+      'GET /api/me/people/p%3Ap-tuan/history': {
+        key: 'p:p-tuan',
+        name: 'Tuấn',
+        mode: 'all',
+        total: -80000,
+        places: [
+          { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', kind: 'group', source: 'group', amount: -80000, history: null },
+        ],
+      },
       'GET /api/links/vtok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'view' },
       'GET /api/trips/t-1': viewerView(),
       'GET /api/trips/t-1/version': { version: 3 },
@@ -813,6 +842,7 @@ describe('finished steps', () => {
 
     const groupLink = await screen.findByTestId('person-item-t-1');
     await userEvent.click(groupLink);
+    await userEvent.click(await within(await screen.findByRole('dialog')).findByTestId('ledger-open-group'));
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/vtok-1'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
