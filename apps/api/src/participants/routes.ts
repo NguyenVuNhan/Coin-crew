@@ -1035,21 +1035,26 @@ export function participantRoutes(): Hono<AppBindings> {
       inserted = r!.meta.changes;
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed')) {
+        // Keyed on the participant alone, like membership_requests_one_pending: any pending claim on this name
+        // means that index clashed; none means the clash was membership_requests_one_pending_user.
         const existing = await db
           .select({ id: membershipRequests.id, userId: membershipRequests.userId })
           .from(membershipRequests)
-          .where(
-            and(
-              eq(membershipRequests.tripId, tripId),
-              eq(membershipRequests.participantId, participantId),
-              eq(membershipRequests.status, 'pending'),
-            ),
-          )
+          .where(and(eq(membershipRequests.participantId, participantId), eq(membershipRequests.status, 'pending')))
           .get();
         if (existing?.userId === user.id) {
           return c.json({ requestId: existing.id }, 200);
         }
-        throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
+        if (existing) {
+          throw new ApiError('ALREADY_CLAIMED', 409, 'Someone already claimed this person, ask the owner');
+        }
+        // Nobody holds this name, so the clash was membership_requests_one_pending_user: another claim by the
+        // same user landed between the supersede and the insert (two claims sent at once).
+        throw new ApiError(
+          'ALREADY_HAVE_PENDING_CLAIM',
+          409,
+          'You already asked to be someone in this group, wait for it to be handled',
+        );
       }
       throw err;
     }

@@ -14,6 +14,12 @@ describe('worker scaffold', () => {
     expect(await res.json()).toEqual({ ok: true });
   });
 
+  it('health check answers HEAD for uptime probes (#79)', async () => {
+    const res = await createApp().request('/api/health', { method: 'HEAD' }, env);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('');
+  });
+
   it('ApiError becomes a JSON error body', async () => {
     const app = createApp();
     app.get('/api/test/throw', () => { throw new ApiError('VALIDATION', 400, 'x'); });

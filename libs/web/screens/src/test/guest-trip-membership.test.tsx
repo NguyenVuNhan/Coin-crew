@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import { useLocation } from 'react-router';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { useLocation, useNavigate } from 'react-router';
 import { renderAt, mockApi } from './render';
 import { tripView } from './fixtures';
 import { GuestTrip } from '../screens/GuestTrip';
@@ -65,6 +65,70 @@ describe('GuestTrip becomeMember parameter handling (#72)', () => {
     await waitFor(() => {
       expect(screen.getByText('You asked to become a member. A member will approve it.')).toBeInTheDocument();
     });
+  });
+});
+
+function ReopenLink() {
+  const navigate = useNavigate();
+  return <button type="button" data-testid="reopen" onClick={() => navigate('/t/t-1?becomeMember=1')}>reopen</button>;
+}
+
+describe('GuestTrip failed membership request (#79)', () => {
+  const guestView = tripView({
+    me: { kind: 'guest', participantId: 'p-an', participantPending: false, isOrganiser: false },
+  });
+  const requested = 'You asked to become a member. A member will approve it.';
+  const posts = (calls: { method: string; path: string }[]) =>
+    calls.filter((c) => c.method === 'POST' && c.path === '/api/trips/t-1/membership');
+
+  it('a network failure drops the requested banner, shows an error, and Try again sends it again', async () => {
+    let fail = true;
+    const { calls } = mockApi({
+      'POST /api/trips/t-1/membership': () => {
+        if (fail) return Promise.reject(new TypeError('Failed to fetch'));
+        return Response.json({ requestId: 'req-1' }, { status: 201 });
+      },
+    });
+
+    renderAt(<GuestTrip view={guestView} />, { route: '/t/t-1?becomeMember=1', path: '/t/:id' });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/./);
+    expect(screen.queryByText(requested)).not.toBeInTheDocument();
+
+    fail = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() => expect(screen.getByText(requested)).toBeInTheDocument());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(posts(calls)).toHaveLength(2);
+  });
+
+  it('a server error lets the same link ask again', async () => {
+    let fail = true;
+    const { calls } = mockApi({
+      'POST /api/trips/t-1/membership': () =>
+        fail
+          ? Response.json({ error: { code: 'INTERNAL', message: 'boom' } }, { status: 500 })
+          : Response.json({ requestId: 'req-1' }, { status: 201 }),
+    });
+
+    renderAt(
+      <>
+        <GuestTrip view={guestView} />
+        <ReopenLink />
+      </>,
+      { route: '/t/t-1?becomeMember=1', path: '/t/:id' },
+    );
+
+    await screen.findByRole('alert');
+    expect(screen.queryByText(requested)).not.toBeInTheDocument();
+
+    fail = false;
+    fireEvent.click(screen.getByTestId('reopen'));
+
+    await waitFor(() => expect(screen.getByText(requested)).toBeInTheDocument());
+    expect(posts(calls)).toHaveLength(2);
   });
 });
 
