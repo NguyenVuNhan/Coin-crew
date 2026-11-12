@@ -92,3 +92,30 @@ export function requestCard(url: string, title: string): ShareCard {
     url,
   };
 }
+
+/** The Mini App card for the group "request payment" share: it opens `/j/<token>/owe`, where each person finds their QR. */
+export function groupRequestCard(view: TripView, text: string, origin: string): ShareCard {
+  const token = encodeURIComponent(groupToken(view));
+  return {
+    title: clip(t('share.requestTitle', { trip: view.trip.name }), 100),
+    description: clip(text, 400),
+    path: `j/${token}/owe`,
+    thumbnailUrl: thumbnailFor(view, origin),
+    text,
+    url: `${origin}/j/${token}/owe`,
+  };
+}
+
+/** The Mini App card for one expense's bill. Pass the root id, so a card already in the chat survives an edit. */
+export function expenseBillCard(view: TripView, rootExpenseId: string, text: string, origin: string): ShareCard {
+  const token = encodeURIComponent(groupToken(view));
+  const id = encodeURIComponent(rootExpenseId);
+  return {
+    title: clip(t('share.billTitle', { trip: view.trip.name }), 100),
+    description: clip(text, 400),
+    path: `j/${token}/e/${id}`,
+    thumbnailUrl: thumbnailFor(view, origin),
+    text,
+    url: `${origin}/j/${token}/e/${id}`,
+  };
+}

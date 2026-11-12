@@ -1098,6 +1098,30 @@ export const en = {
   'install.inAppStep2': 'Choose "Open in browser", then tap "Add to home screen" again',
   'install.copyLink': 'Copy link',
   'install.desktopStep': 'Click the install icon in the address bar',
+
+  // Group payment request and single-expense bill share (issue #93).
+  'request.button': 'Request payment',
+  'request.copied': 'Message copied. Paste it into a message or group chat.',
+  'request.textHead': '"{trip}": please send {creditor}:',
+  'request.textFoot': 'Pick your name to see your QR: {link}',
+  'request.cardTitle': '{trip} · Payment request',
+  'request.cardMeta': '{date} · To: {name}',
+  'request.cardAmount': 'TO SEND',
+  'request.cardTotal': 'TOTAL',
+  'request.cardHint': 'Open the link for a QR with your exact amount',
+  'card.name': 'NAME',
+  'bill.button': 'Share bill & QR',
+  'bill.cardMeta': '{date} · {trip} · Paid by: {name}',
+  'bill.cardAmount': 'SHARE',
+  'bill.cardTotal': 'BILL TOTAL',
+  'bill.payerTag': '(paid)',
+  'bill.hintEqual': 'Scan to send {amount}',
+  'bill.hintUneven': 'Open the link for a QR with your exact share',
+  'bill.textEqual': '{description}: {total}, {amount} each.',
+  'bill.textUneven': '{description}: {total}. {list}.',
+  'bill.textFoot': 'QR & details: {link}',
+  'share.requestTitle': 'Payment request · {trip}',
+  'share.billTitle': 'Bill · {trip}',
 } as const;
 
 export type MessageKey = keyof typeof en;

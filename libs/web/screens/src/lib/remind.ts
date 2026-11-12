@@ -7,7 +7,7 @@ import {
   type SportCourtSlot,
 } from '@cc/core';
 import type { Lang } from '@cc/web-i18n';
-import { en } from '@cc/web-i18n/en';
+import { en, type MessageKey } from '@cc/web-i18n/en';
 import { vi } from '@cc/web-i18n/vi';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { appOrigin } from '@cc/web-platform/session';
@@ -177,6 +177,42 @@ export function remindText(
     msg = msg.replaceAll(`{${key}}`, value);
   }
   return msg;
+}
+
+/** `key` from `lang`'s dictionary with each `{var}` filled in. */
+function fill(lang: Lang, key: MessageKey, vars: Record<string, string>): string {
+  let msg: string = (lang === 'vi' ? vi : en)[key];
+  for (const [k, v] of Object.entries(vars)) msg = msg.replaceAll(`{${k}}`, v);
+  return msg;
+}
+
+/** The group "request payment" message: who sends the creditor how much, then the one link everyone opens. */
+export function groupRequestText(
+  lang: Lang,
+  input: { trip: string; creditor: string; rows: { name: string; amount: number }[]; link: string },
+): string {
+  return [
+    fill(lang, 'request.textHead', { trip: input.trip, creditor: input.creditor }),
+    ...input.rows.map((r) => `• ${r.name} ${formatVnd(r.amount)}`),
+    fill(lang, 'request.textFoot', { link: input.link }),
+  ].join('\n');
+}
+
+/** One expense's bill message. `shares` are everyone but the payer; equal shares read "X each". */
+export function expenseBillText(
+  lang: Lang,
+  input: { description: string; total: number; shares: { name: string; amount: number }[]; link: string },
+): string {
+  const first = input.shares[0];
+  const equal = first !== undefined && input.shares.every((s) => s.amount === first.amount);
+  const head = equal
+    ? fill(lang, 'bill.textEqual', { description: input.description, total: formatVnd(input.total), amount: formatVnd(first.amount) })
+    : fill(lang, 'bill.textUneven', {
+        description: input.description,
+        total: formatVnd(input.total),
+        list: input.shares.map((s) => `${s.name} ${formatVnd(s.amount)}`).join(', '),
+      });
+  return `${head}\n${fill(lang, 'bill.textFoot', { link: input.link })}`;
 }
 
 export async function remind(text: string): Promise<'shared' | 'copied' | 'failed'> {
