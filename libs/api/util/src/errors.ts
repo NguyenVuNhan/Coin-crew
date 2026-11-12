@@ -20,7 +20,8 @@ export function errorResponse(err: unknown): Response {
 
   if (isDailyLimit(err)) {
     return Response.json(
-      { error: { code: 'DAILY_LIMIT', message: "We're over today's free limit. Try again after 07:00." } },
+      // Users see a maintenance line, never the plan limit (the web copy for DAILY_LIMIT says the same).
+      { error: { code: 'DAILY_LIMIT', message: 'CoinCrew is down for maintenance. Try again after 07:00.' } },
       { status: 503 },
     );
   }
@@ -32,10 +33,18 @@ export function errorResponse(err: unknown): Response {
   );
 }
 
-/** D1's daily free-plan limit error. Drizzle wraps query errors, so the D1 text may sit in `cause`. */
+/**
+ * D1's Workers Free daily row limit, enforced since 2026-09-01 and reset at 00:00 UTC (07:00 in Vietnam):
+ * "Your account has exceeded D1's free tier daily row read limit." (or "row write limit"), sometimes after a
+ * `D1_ERROR: ` prefix. Source: https://developers.cloudflare.com/d1/observability/debug-d1/
+ * Drizzle wraps query errors, so the D1 text may sit in `cause`. The match is exact on purpose: Drizzle's own
+ * message carries the failed SQL (`limit ?`), and the storage-limit error does not reset overnight.
+ */
+const DAILY_LIMIT_TEXT = /free tier daily row (read|write) limit/i;
+
 function isDailyLimit(err: unknown): boolean {
   for (let e: unknown = err, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
-    if (/limit/i.test(e.message) && /row|exceed/i.test(e.message)) return true;
+    if (DAILY_LIMIT_TEXT.test(e.message)) return true;
   }
   return false;
 }

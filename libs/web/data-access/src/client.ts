@@ -15,6 +15,9 @@ export class ApiClientError extends Error {
   }
 }
 
+/** Cloudflare's own error page for a Worker over the free daily request limit (error 1027). */
+const CF_DAILY_LIMIT_PAGE = /error(?: code)?:?\s*1027\b/i;
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit & { tripId?: string } = {},
@@ -70,8 +73,9 @@ export async function apiFetch<T>(
     let code: ApiErrorCode = 'INTERNAL';
     let message = response.statusText || 'Error';
     let details: Record<string, unknown> = {};
+    const body = await response.text().catch(() => '');
     try {
-      const data = await response.json();
+      const data = JSON.parse(body);
       if (data && typeof data === 'object' && 'error' in data && data.error) {
         if (typeof data.error.code === 'string') {
           code = data.error.code as ApiErrorCode;
@@ -82,7 +86,9 @@ export async function apiFetch<T>(
         details = data.error as Record<string, unknown>;
       }
     } catch {
-      // parse failed, use fallback
+      // Not our JSON. Cloudflare answers itself (the Worker never runs) once the Workers Free daily request limit
+      // is spent: "error code: 1027" as text, or an HTML page with "Error 1027". Show it as the daily limit.
+      if (CF_DAILY_LIMIT_PAGE.test(body)) code = 'DAILY_LIMIT';
     }
     throw new ApiClientError(code, response.status, message, details);
   }
