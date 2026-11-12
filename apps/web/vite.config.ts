@@ -20,7 +20,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'brand/google-signin-icon.png', 'brand/zalo-app-icon.png'],
+      includeAssets: ['icon.svg', 'icons/*.png', 'apple-touch-icon.png', 'brand/google-signin-icon.png', 'brand/zalo-app-icon.png'],
       manifest: {
         name: 'CoinCrew (Tiền Đâu)',
         short_name: 'CoinCrew',
@@ -28,8 +28,15 @@ export default defineConfig({
         theme_color: '#0f766e',
         background_color: '#f6f7f4',
         display: 'standalone',
-        start_url: '/',
-        icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+        start_url: '/trips',
+        scope: '/',
+        id: '/',
+        icons: [
+          { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
       // Offline use is not required; never serve the API from the service worker.
       workbox: { skipWaiting: true, clientsClaim: true, cleanupOutdatedCaches: true, navigateFallbackDenylist: [/^\/api\//] },

@@ -1000,33 +1000,40 @@ export function participantRoutes(): Hono<AppBindings> {
     }
 
     // A user may only have one pending claim in the trip at a time; claiming a different person supersedes prior claims.
-    await db
-      .update(membershipRequests)
-      .set({ status: 'rejected' })
-      .where(
-        and(
-          eq(membershipRequests.tripId, tripId),
-          eq(membershipRequests.userId, user.id),
-          eq(membershipRequests.status, 'pending'),
-        ),
-      );
-
+    // Supersede and insert run in one batch (one transaction): the supersede must come first (the partial unique
+    // index membership_requests_one_pending_user allows one pending claim per user in a trip), and it only fires
+    // when the name is still claimable, so a claim that can't be made never cancels the user's earlier one. A
+    // UNIQUE failure on the insert rolls the supersede back too.
+    // ?1 participant, ?2 trip, ?3 user, ?4 request id, ?5 created at.
+    const claimable = `EXISTS (
+          SELECT 1 FROM participants
+          WHERE id = ?1 AND trip_id = ?2 AND status IN ('active', 'pending') AND user_id IS NULL
+        ) AND NOT EXISTS (
+          SELECT 1 FROM merge_proposals WHERE guest_pid = ?1 AND status = 'pending'
+        )`;
     const requestId = newId();
     let inserted: number;
     try {
       // Only for a name that is still active or pending and unlinked; the partial unique index
       // membership_requests_one_pending refuses a second pending claim on the same name, and a
       // pending merge proposal on the name blocks a claim (one pending claim or proposal per guest).
-      const r = await db.run(sql`
-        INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at)
-        SELECT ${requestId}, ${tripId}, ${participantId}, ${user.id}, 'pending', ${nowIso()}
-        WHERE EXISTS (
-          SELECT 1 FROM participants
-          WHERE id = ${participantId} AND trip_id = ${tripId} AND status IN ('active', 'pending') AND user_id IS NULL
-        ) AND NOT EXISTS (
-          SELECT 1 FROM merge_proposals WHERE guest_pid = ${participantId} AND status = 'pending'
-        )`);
-      inserted = r.meta.changes;
+      // Raw D1 statements: drizzle's db.run(sql) can't be put in db.batch.
+      const [, r] = await c.env.DB.batch([
+        c.env.DB.prepare(
+          `UPDATE membership_requests SET status = 'rejected'
+          WHERE trip_id = ?2 AND user_id = ?3 AND status = 'pending'
+            AND ${claimable}
+            AND NOT EXISTS (
+              SELECT 1 FROM membership_requests WHERE participant_id = ?1 AND status = 'pending'
+            )`,
+        ).bind(participantId, tripId, user.id),
+        c.env.DB.prepare(
+          `INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at)
+          SELECT ?4, ?2, ?1, ?3, 'pending', ?5
+          WHERE ${claimable}`,
+        ).bind(participantId, tripId, user.id, requestId, nowIso()),
+      ]);
+      inserted = r!.meta.changes;
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed')) {
         const existing = await db

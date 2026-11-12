@@ -42,15 +42,15 @@ describe('i18n', () => {
     expect((viMessages as Record<string, string>)['settings.archive']).toBe('Lưu trữ nhóm');
 
     expect((en as Record<string, string>)['sport.addShuttlecock']).toBe('Add shuttlecock price');
-    expect((viMessages as Record<string, string>)['sport.addShuttlecock']).toBe('Thêm tiền cầu');
+    expect((viMessages as Record<string, string>)['sport.addShuttlecock']).toBe('Thêm giá cầu');
     expect((en as Record<string, string>)['sport.addExtraFee']).toBe('Add extra fee');
     expect((viMessages as Record<string, string>)['sport.addExtraFee']).toBe('Thêm phụ phí');
     expect((en as Record<string, string>)['sport.bringsGuest']).toBe('This player brings guest?');
-    expect((viMessages as Record<string, string>)['sport.bringsGuest']).toBe('Người chơi này có dẫn khách?');
+    expect((viMessages as Record<string, string>)['sport.bringsGuest']).toBe('Người chơi này có dẫn khách không?');
     expect((en as Record<string, string>)['sport.femaleGuest']).toBe('Female guest');
-    expect((viMessages as Record<string, string>)['sport.femaleGuest']).toBe('Khách Nữ');
+    expect((viMessages as Record<string, string>)['sport.femaleGuest']).toBe('Khách nữ');
     expect((en as Record<string, string>)['sport.maleGuest']).toBe('Male guest');
-    expect((viMessages as Record<string, string>)['sport.maleGuest']).toBe('Khách Nam');
+    expect((viMessages as Record<string, string>)['sport.maleGuest']).toBe('Khách nam');
     expect((en as Record<string, string>)['sport.orFixedAmount']).toBe('Or want to set a fixed amount for {name}');
     expect((viMessages as Record<string, string>)['sport.orFixedAmount']).toBe('Hoặc đặt số tiền cố định cho {name}');
 
@@ -68,17 +68,17 @@ describe('i18n', () => {
     expect((en as Record<string, string>)['people.admin']).toBe('Admin');
     expect((viMessages as Record<string, string>)['people.admin']).toBe('Quản trị viên');
     expect((en as Record<string, string>)['people.makeAdmin']).toBe('Make admin');
-    expect((viMessages as Record<string, string>)['people.makeAdmin']).toBe('Chỉ định quản trị viên');
+    expect((viMessages as Record<string, string>)['people.makeAdmin']).toBe('Đặt làm quản trị viên');
 
     expect((en as Record<string, string>)['expense.historyTitle']).toBe('Edit history');
     expect((viMessages as Record<string, string>)['expense.historyTitle']).toBe('Lịch sử chỉnh sửa');
     expect((en as Record<string, string>)['expense.rollback']).toBe('Roll back to this update');
-    expect((viMessages as Record<string, string>)['expense.rollback']).toBe('Khôi phục về bản cập nhật này');
+    expect((viMessages as Record<string, string>)['expense.rollback']).toBe('Khôi phục về phiên bản này');
 
     expect((en as Record<string, string>)['updates.bannerTitle']).toBe('Transactions involving you were updated');
-    expect((viMessages as Record<string, string>)['updates.bannerTitle']).toBe('Có giao dịch liên quan đến bạn vừa được cập nhật');
+    expect((viMessages as Record<string, string>)['updates.bannerTitle']).toBe('Một số giao dịch liên quan đến bạn vừa được cập nhật');
     expect((en as Record<string, string>)['updates.viewAll']).toBe('View updated transactions');
-    expect((viMessages as Record<string, string>)['updates.viewAll']).toBe('Xem giao dịch cập nhật');
+    expect((viMessages as Record<string, string>)['updates.viewAll']).toBe('Xem các giao dịch đã cập nhật');
     expect((en as Record<string, string>)['updates.previous']).toBe('Previous');
     expect((viMessages as Record<string, string>)['updates.previous']).toBe('Trước đó');
     expect((en as Record<string, string>)['updates.now']).toBe('Now');
@@ -87,7 +87,7 @@ describe('i18n', () => {
     expect((viMessages as Record<string, string>)['updates.dismiss']).toBe('Đã hiểu');
 
     expect((en as Record<string, string>)['activity.adminPromoted']).toBe('{actor} made {name} a group admin');
-    expect((viMessages as Record<string, string>)['activity.adminPromoted']).toBe('{actor} đã chỉ định {name} làm quản trị viên nhóm');
+    expect((viMessages as Record<string, string>)['activity.adminPromoted']).toBe('{actor} đã đặt {name} làm quản trị viên nhóm');
     expect((en as Record<string, string>)['activity.expenseRolledBack']).toBe('{actor} rolled back "{description}"');
     expect((viMessages as Record<string, string>)['activity.expenseRolledBack']).toBe('{actor} đã khôi phục "{description}"');
   });

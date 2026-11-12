@@ -198,7 +198,7 @@ for (const lang of langs) {
           await minh.goto(`${sportTripUrl}/expenses/new`);
 
           const whatFor = minh
-            .getByLabel(lang === 'vi' ? 'Chi tiêu cho' : 'What for')
+            .getByLabel(lang === 'vi' ? 'Nội dung' : 'What for')
             .or(minh.locator('#expense-what-for'));
           await whatFor.fill('Sunday badminton');
 
@@ -208,7 +208,7 @@ for (const lang of langs) {
           await courtInput.fill('400k');
 
           const addShuttleBtn = minh.getByRole('button', {
-            name: lang === 'vi' ? /Thêm tiền cầu/ : /Add shuttlecock/,
+            name: lang === 'vi' ? /Thêm giá cầu/ : /Add shuttlecock/,
           });
           if (await addShuttleBtn.isVisible()) {
             await addShuttleBtn.click();
@@ -508,7 +508,7 @@ for (const lang of langs) {
           }
 
           const iPaidBtn = chiGuestPage.getByRole('button', {
-            name: lang === 'vi' ? 'Tôi đã chuyển' : "I've paid",
+            name: lang === 'vi' ? 'Tôi đã trả' : "I've paid",
           });
           await iPaidBtn.click();
           await shot('13-chi-marked-paid', chiGuestPage);
@@ -628,7 +628,7 @@ for (const lang of langs) {
           // Join from the bill link (a new account has no gender, so a sport group asks first).
           await hoaPage.getByRole('button', { name: lang === 'vi' ? /Tham gia với tên Hoa$/ : /Join as Hoa$/ }).first().click();
           await hoaPage
-            .getByRole('radiogroup', { name: lang === 'vi' ? 'Bạn chơi là' : 'You play as' })
+            .getByRole('radiogroup', { name: lang === 'vi' ? 'Bạn chơi suất' : 'You play as' })
             .getByRole('radio', { name: lang === 'vi' ? 'Nam' : 'Male', exact: true })
             .click();
           await shot('23-hoa-join-gender', hoaPage);

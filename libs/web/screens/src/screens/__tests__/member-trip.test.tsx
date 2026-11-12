@@ -776,7 +776,7 @@ describe('remindText', () => {
   it('builds the English and Vietnamese messages', () => {
     const vars = { name: 'Chi', creditor: 'Minh', amount: '1.245.000₫', trip: 'Đà Lạt', link: 'https://x/j/g' };
     expect(remindText('en', vars)).toBe('Hi Chi! You still owe Minh 1.245.000₫ for "Đà Lạt". See details and pay with VietQR: https://x/j/g');
-    expect(remindText('vi', vars)).toBe('Chào Chi! Bạn còn 1.245.000₫ cần trả Minh cho chuyến "Đà Lạt". Xem chi tiết và chuyển khoản bằng VietQR: https://x/j/g');
+    expect(remindText('vi', vars)).toBe('Chào Chi! Bạn còn 1.245.000₫ cần trả cho Minh trong nhóm "Đà Lạt". Xem chi tiết và chuyển khoản bằng VietQR tại đây nhé: https://x/j/g');
   });
 });
 

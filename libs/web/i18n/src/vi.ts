@@ -1,1074 +1,1105 @@
 import type { MessageKey } from './en';
 
+// Vietnamese copy, reviewed 2026-11 (issue #67). House style:
+// - "nhóm" for the group (trips and sport groups alike); "chuyến đi" only where the copy is about travelling.
+// - "link" for a URL; "liên kết" only for linking a sign-in account.
+// - "Nhấn" for tap, "Tắt" / "Bật lại" for disable / enable, "Gộp" for merge, "quản trị viên" for admin.
+// - "thông tin ngân hàng" for bank details; "tôi" when the user speaks, "bạn" when we speak to them.
+// - Spelling: hủy, xóa, hóa (accent on the main vowel), lowercase "nam" / "nữ" inside sentences.
 export const vi: Record<MessageKey, string> = {
-  'common.retry': 'Thử lại', // REVIEW
-  'common.cancel': 'Hủy', // REVIEW
-  'common.continue': 'Tiếp tục', // REVIEW
-  'common.back': 'Quay lại', // REVIEW
-  'common.close': 'Đóng', // REVIEW
-  'common.dismiss': 'Bỏ qua', // REVIEW
-  'common.undo': 'Hoàn tác', // REVIEW
+  'common.retry': 'Thử lại',
+  'common.cancel': 'Hủy',
+  'common.continue': 'Tiếp tục',
+  'common.back': 'Quay lại',
+  'common.close': 'Đóng',
+  'common.dismiss': 'Bỏ qua',
+  'common.undo': 'Hoàn tác',
 
-  'error.generic': 'Có lỗi xảy ra. Thử lại.', // REVIEW
-  'error.dailyLimit': 'Đã vượt giới hạn miễn phí hôm nay. Thử lại sau 07:00.', // REVIEW
-  'error.linkDead': 'Liên kết này không còn hoạt động. Hãy xin trưởng nhóm liên kết mới.', // REVIEW
-  'error.rateLimited': 'Quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.', // REVIEW
+  'error.generic': 'Có lỗi xảy ra. Hãy thử lại.',
+  'error.dailyLimit': 'Hôm nay đã hết hạn mức miễn phí. Hãy thử lại sau 07:00.',
+  'error.linkDead': 'Link này không còn dùng được. Hãy xin trưởng nhóm link mới.',
+  'error.rateLimited': 'Có quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.',
 
-  'noAccess.title': 'Bạn chưa có quyền vào nhóm này', // REVIEW
-  'noAccess.body': 'Đăng nhập nếu bạn là thành viên, hoặc mở liên kết mời mà nhóm đã gửi cho bạn.', // REVIEW
+  'noAccess.title': 'Bạn chưa có quyền vào nhóm này',
+  'noAccess.body': 'Đăng nhập nếu bạn là thành viên, hoặc mở link mời mà nhóm đã gửi cho bạn.',
 
-  'lang.vi': 'Tiếng Việt', // REVIEW
-  'lang.en': 'English', // REVIEW
-  'lang.switchTo': 'Chuyển sang {lang}', // REVIEW
+  'lang.vi': 'Tiếng Việt',
+  'lang.en': 'English',
+  'lang.switchTo': 'Chuyển sang {lang}',
 
-  'time.justNow': 'vừa xong', // REVIEW
-  'time.minutesAgo': '{n} phút trước', // REVIEW
-  'time.hoursAgo': '{n} giờ trước', // REVIEW
-  'time.daysAgo': '{n} ngày trước', // REVIEW
+  'time.justNow': 'vừa xong',
+  'time.minutesAgo': '{n} phút trước',
+  'time.hoursAgo': '{n} giờ trước',
+  'time.daysAgo': '{n} ngày trước',
 
-  'fewest.title': 'Ít lần chuyển khoản nhất', // REVIEW
-  'fewest.explain': 'Khoản nợ của mọi người được gom lại để số lần chuyển khoản là ít nhất. Tổng số tiền mỗi người phải trả không đổi.', // REVIEW
+  'fewest.title': 'Ít lần chuyển khoản nhất',
+  'fewest.explain': 'Gom các khoản nợ của mọi người lại để số lần chuyển khoản ít nhất có thể. Tổng số tiền mỗi người phải trả vẫn giữ nguyên.',
 
-  'roundTransfers.title': 'Làm tròn số tiền trả', // REVIEW
-  'roundTransfers.explain': 'Làm tròn số tiền chuyển khoản và mã QR đến 1.000 ₫ gần nhất.', // REVIEW
+  'roundTransfers.title': 'Làm tròn số tiền chuyển khoản',
+  'roundTransfers.explain': 'Làm tròn số tiền chuyển khoản gợi ý và mã QR đến 1.000 ₫ gần nhất.',
 
-  'who.lastUsedHere': 'Lần trước bạn đã chọn người này trên điện thoại này', // REVIEW
-  'who.activeElsewhere': 'Đang hoạt động trên máy khác · {ago}', // REVIEW
-  'who.areYou': 'Bạn là {name} phải không?', // REVIEW
-  'who.yesIm': 'Đúng, tôi là {name}', // REVIEW
-  'who.noAddMe': 'Không, thêm tôi vào', // REVIEW
+  'who.lastUsedHere': 'Lần trước bạn đã chọn tên này trên điện thoại này',
+  'who.activeElsewhere': 'Đang dùng trên điện thoại khác · {ago}',
+  'who.areYou': 'Bạn là {name} phải không?',
+  'who.yesIm': 'Đúng, tôi là {name}',
+  'who.noAddMe': 'Không phải, thêm tôi vào',
 
-  'expenses.disabledBy': 'Đã bị vô hiệu hóa bởi {name}', // REVIEW
-  'expense.sendForApproval': 'Gửi để duyệt', // REVIEW
+  'expenses.disabledBy': '{name} đã tắt khoản này',
+  'expense.sendForApproval': 'Gửi chờ duyệt',
 
-  'approvals.paidYou': '{name} báo đã chuyển khoản cho bạn {amount}', // REVIEW
-  'approvals.didItArrive': 'Bạn đã nhận được tiền chưa?', // REVIEW
+  'approvals.paidYou': '{name} báo đã chuyển cho bạn {amount}',
+  'approvals.didItArrive': 'Bạn đã nhận được tiền chưa?',
 
-  'pay.payWithVietQr': 'Thanh toán bằng VietQR', // REVIEW
-  'pay.keepNote': 'Giữ nguyên nội dung chuyển khoản này để đối soát thanh toán.', // REVIEW
-  'pay.bankPending': 'Thông tin ngân hàng của {name} đang chờ duyệt', // REVIEW
-  'pay.bankNone': '{name} chưa thêm thông tin ngân hàng', // REVIEW
-  'pay.openBankApp': 'Mở ứng dụng ngân hàng', // REVIEW
-  'pay.openApp': 'Mở {app}', // REVIEW
-  'pay.switchBank': 'Đổi ngân hàng', // REVIEW
-  'pay.downloadQr': 'Tải mã QR', // REVIEW
-  'pay.pickBank': 'Chọn ngân hàng của bạn', // REVIEW
-  'pay.searchBank': 'Tìm: vcb, techcom, Á Châu…', // REVIEW
-  'pay.recentBank': 'Dùng gần đây', // REVIEW
-  'pay.popularBanks': 'Phổ biến', // REVIEW
-  'pay.noBankMatch': 'Không tìm thấy ngân hàng "{q}"', // REVIEW
+  'pay.payWithVietQr': 'Thanh toán bằng VietQR',
+  'pay.keepNote': 'Giữ nguyên nội dung chuyển khoản để người nhận biết bạn trả khoản nào.',
+  'pay.bankPending': 'Thông tin ngân hàng của {name} đang chờ duyệt',
+  'pay.bankNone': '{name} chưa thêm thông tin ngân hàng',
+  'pay.openBankApp': 'Mở ứng dụng ngân hàng',
+  'pay.openApp': 'Mở {app}',
+  'pay.switchBank': 'Đổi ngân hàng',
+  'pay.downloadQr': 'Tải mã QR',
+  'pay.pickBank': 'Chọn ngân hàng của bạn',
+  'pay.searchBank': 'Tìm: vcb, techcom, Á Châu…',
+  'pay.recentBank': 'Dùng gần đây',
+  'pay.popularBanks': 'Phổ biến',
+  'pay.noBankMatch': 'Không tìm thấy ngân hàng "{q}"',
 
-  'landing.headline': 'Chia tiền chuyến đi. Thanh toán bằng VietQR.', // REVIEW
-  'landing.tagline': 'Bạn bè tham gia từ một liên kết trong nhóm chat, không cần tài khoản.', // REVIEW
-  'landing.signIn': 'Đăng nhập bằng Google', // REVIEW
-  'landing.howItWorks': 'Cách hoạt động', // REVIEW
-  'landing.step1': 'Tạo chuyến đi', // REVIEW
-  'landing.step1Body': 'Thêm những người đi cùng.', // REVIEW
-  'landing.step2': 'Chia sẻ một liên kết', // REVIEW
-  'landing.step2Body': 'Mọi người tự thêm khoản đã chi.', // REVIEW
-  'landing.step3': 'Thanh toán bằng VietQR', // REVIEW
-  'landing.step3Body': 'Chuyển khoản cho nhau bằng mã VietQR.', // REVIEW
+  'landing.headline': 'Chia tiền chuyến đi. Trả nhau bằng VietQR.',
+  'landing.tagline': 'Bạn bè vào từ một link trong nhóm chat, không cần tài khoản.',
+  'landing.signIn': 'Đăng nhập bằng Google',
+  'landing.howItWorks': 'Cách hoạt động',
+  'landing.step1': 'Tạo chuyến đi',
+  'landing.step1Body': 'Thêm những ai đi cùng.',
+  'landing.step2': 'Gửi một link',
+  'landing.step2Body': 'Mỗi người tự thêm khoản mình đã trả.',
+  'landing.step3': 'Trả nhau bằng VietQR',
+  'landing.step3Body': 'Chuyển khoản cho nhau bằng mã VietQR.',
 
-  'trips.title': 'Nhóm của bạn', // REVIEW
-  'trips.new': 'Tạo nhóm mới', // REVIEW
-  'trips.emptyTitle': 'Tạo nhóm đầu tiên của bạn', // REVIEW
-  'trips.emptyBody': 'Tạo nhóm chuyến đi hoặc thể thao, rồi chia sẻ một liên kết cho cả nhóm.', // REVIEW
-  'trips.youreOwed': 'Bạn được nhận', // REVIEW
-  'trips.youOwe': 'Bạn cần trả', // REVIEW
-  'trips.settled': 'Đã thanh toán xong', // REVIEW
-  'trips.archived': 'đã lưu trữ', // REVIEW
+  'trips.title': 'Nhóm của bạn',
+  'trips.new': 'Tạo nhóm mới',
+  'trips.emptyTitle': 'Tạo nhóm đầu tiên của bạn',
+  'trips.emptyBody': 'Tạo nhóm đi chơi hoặc nhóm thể thao, rồi gửi một link cho cả nhóm.',
+  'trips.youreOwed': 'Bạn được nhận',
+  'trips.youOwe': 'Bạn cần trả',
+  'trips.settled': 'Đã thanh toán xong',
+  'trips.archived': 'đã lưu trữ',
 
-  'account.label': 'Tài khoản', // REVIEW
-  'account.language': 'Ngôn ngữ', // REVIEW
-  'account.signOut': 'Đăng xuất', // REVIEW
-  'account.changePhoto': 'Đổi ảnh đại diện', // REVIEW
-  'account.cropTitle': 'Cắt & chỉnh ảnh đại diện', // REVIEW
-  'account.zoom': 'Thu phóng', // REVIEW
-  'account.savePhoto': 'Lưu ảnh', // REVIEW
-  'account.removePhoto': 'Xóa ảnh', // REVIEW
-  'account.saveProfile': 'Lưu hồ sơ', // REVIEW
-  'account.displayName': 'Tên hiển thị', // REVIEW
-  'account.gender': 'Giới tính', // REVIEW
-  'trips.accountAria': 'Tài khoản', // REVIEW
-  'trips.signOut': 'Đăng xuất', // REVIEW
+  'account.label': 'Tài khoản',
+  'account.language': 'Ngôn ngữ',
+  'account.signOut': 'Đăng xuất',
+  'account.changePhoto': 'Đổi ảnh đại diện',
+  'account.cropTitle': 'Cắt & chỉnh ảnh đại diện',
+  'account.zoom': 'Thu phóng',
+  'account.savePhoto': 'Lưu ảnh',
+  'account.removePhoto': 'Xóa ảnh',
+  'account.saveProfile': 'Lưu hồ sơ',
+  'account.displayName': 'Tên hiển thị',
+  'account.gender': 'Giới tính',
+  'trips.accountAria': 'Tài khoản',
+  'trips.signOut': 'Đăng xuất',
 
-  'home.title': 'Khoản chi nhanh', // REVIEW
-  'home.totalOwed': 'Mọi người nợ bạn (tất cả nhóm)', // REVIEW
-  'home.totalOwe': 'Bạn nợ {amount}', // REVIEW
-  'home.byPerson': 'Theo người · mọi nhóm', // REVIEW
-  'home.tabPeople': 'Mọi người', // REVIEW
-  'home.tabGroups': 'Nhóm', // REVIEW
-  'home.tabActivity': 'Hoạt động', // REVIEW
-  'home.newExpense': 'Thêm khoản chi', // REVIEW
-  'home.owedToYou': 'Nợ bạn', // REVIEW
-  'home.youOwe': 'Bạn nợ', // REVIEW
-  'home.peopleEmptyTitle': 'Không có khoản nợ nào', // REVIEW
-  'home.peopleEmptyBody': 'Thêm một khoản chi và chọn người chia cùng.', // REVIEW
-  'home.stillCounting': 'Đang cộng thêm vài nhóm…', // REVIEW
-  'home.waiting': 'Chờ bạn xác nhận', // REVIEW
-  'person.title': 'Người', // REVIEW
-  'person.owesYou': 'Nợ bạn', // REVIEW
-  'person.youOwe': 'Bạn nợ', // REVIEW
-  'person.settled': 'Đã xong hết', // REVIEW
-  'person.quickExpenses': 'Khoản chi nhanh', // REVIEW
-  'person.request': 'Gửi yêu cầu', // REVIEW
-  'person.settleUp': 'Thanh toán', // REVIEW
-  'person.paidInCash': 'Đã trả tiền mặt', // REVIEW
-  'person.paidInCashTitle': '{name} đã trả bạn bao nhiêu?', // REVIEW
-  'person.amountLabel': 'Số tiền', // REVIEW
-  'person.save': 'Lưu', // REVIEW
-  'person.linkCopied': 'Đã sao chép liên kết', // REVIEW
-  'person.shareTitle': '{owner} gửi yêu cầu thanh toán', // REVIEW
-  'person.saysPaid': '{name} báo đã trả {amount}', // REVIEW
-  'person.recordedFromYou': '{name} ghi nhận {amount} từ bạn', // REVIEW
-  'person.confirm': 'Xác nhận', // REVIEW
-  'person.nickname': 'Biệt danh', // REVIEW
-  'person.nicknameHelp': 'Chỉ mình bạn thấy.', // REVIEW
-  'person.edit': 'Sửa', // REVIEW
-  'person.guestIn': 'Khách trong {group}', // REVIEW
-  'person.nameIn': 'Tên trong {group}', // REVIEW
-  'person.saved': 'Đã lưu', // REVIEW
-  'history.title': 'Gồm những khoản nào', // REVIEW
-  'history.betweenYou': 'Giữa hai bạn', // REVIEW
-  'history.rerouted': 'Để bớt lượt chuyển, nhóm đổi số này thành {amount}.', // REVIEW
-  'history.reroutedVia': '{amount} được chuyển sang {name} để bớt lượt chuyển.', // REVIEW
-  'history.rounded': 'Làm tròn đến 1.000₫', // REVIEW
-  'history.paidBy': '{name} trả {amount}', // REVIEW
-  'history.shares': 'Bạn {mine} · {name} {theirs}', // REVIEW
-  'history.youPaid': 'Bạn đã trả {name}', // REVIEW
-  'history.theyPaid': '{name} đã trả bạn', // REVIEW
-  'history.waiting': 'Đang chờ', // REVIEW
-  'history.notApproved': 'Chờ duyệt', // REVIEW
-  'history.inTheirLedger': 'Trong sổ của {name}', // REVIEW
-  'history.seeAll': 'Xem tất cả với {name}', // REVIEW
-  'history.seeHistory': 'Xem lịch sử với {name}', // REVIEW
-  'history.covers': '{names} và {count} khoản khác', // REVIEW
-  'history.total': 'Tổng', // REVIEW
-  'history.openGroup': 'Mở {group}', // REVIEW
-  'person.samePerson': 'Cùng một người?', // REVIEW
-  'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
-  'person.mergeWith': 'Gộp với…', // REVIEW
-  'person.mergeHelp': 'Họ sẽ thành một người ở đây, với một tổng. Các nhóm không thay đổi.', // REVIEW
-  'person.mergeBothSignedIn': 'Cả hai đều có tài khoản', // REVIEW
-  'person.unmerge': 'Tách {name} ra', // REVIEW
-  'person.merged': 'Đã gộp', // REVIEW
-  'person.unmerged': 'Đã tách {name} ra', // REVIEW
-  'person.linkedTitle': 'Đã gộp vào đây', // REVIEW
-  'person.notFound': 'Không còn khoản nào với người này.', // REVIEW
-  'person.notReceived': 'Chưa nhận được', // REVIEW
-  'person.payTitle': 'Trả cho {name}', // REVIEW
-  'person.paidThem': 'Tôi đã trả', // REVIEW
-  'person.noBank': '{name} chưa thêm tài khoản ngân hàng. Hãy trả bằng cách khác rồi bấm Tôi đã trả.', // REVIEW
-  'quick.fromGroups': 'Từ các nhóm của bạn', // REVIEW
-  'quick.addName': 'Thêm “{name}” là người mới', // REVIEW
-  'quick.addFailed': 'Không thêm được. Thử lại.', // REVIEW
-  'request.title': 'Yêu cầu thanh toán', // REVIEW
-  'request.askedYou': '{owner} gửi yêu cầu', // REVIEW
-  'request.youOwe': 'Bạn nợ {owner}', // REVIEW
-  'request.ownerOwes': '{owner} nợ bạn', // REVIEW
-  'request.settled': 'Bạn đã hết nợ với {owner}', // REVIEW
-  'request.noBank': '{owner} chưa thêm tài khoản ngân hàng — hãy trả trực tiếp.', // REVIEW
-  'request.paid': 'Tôi đã trả', // REVIEW
-  'request.cashHint': 'Trả tiền mặt? Báo {owner} để họ đánh dấu.', // REVIEW
-  'request.waiting': 'Đang chờ {owner} xác nhận', // REVIEW
-  'request.quickExpenses': 'Khoản chi với {owner}', // REVIEW
-  'request.covers': 'Gồm những khoản nào ({count})', // REVIEW
-  'request.notFound': 'Liên kết này không còn hiệu lực. Hãy xin liên kết mới.', // REVIEW
-  'trip.tabExpenses': 'Chi tiêu', // REVIEW
-  'trip.tabPayments': 'Thanh toán', // REVIEW
-  'trip.tabs': 'Các tab', // REVIEW
+  'home.title': 'Khoản chi nhanh',
+  'home.totalOwed': 'Mọi người nợ bạn · tất cả nhóm',
+  'home.totalOwe': 'Bạn nợ {amount}',
+  'home.byPerson': 'Theo từng người · tất cả nhóm',
+  'home.tabPeople': 'Mọi người',
+  'home.tabGroups': 'Nhóm',
+  'home.tabActivity': 'Hoạt động',
+  'home.newExpense': 'Thêm khoản chi',
+  'home.owedToYou': 'Nợ bạn',
+  'home.youOwe': 'Bạn nợ',
+  'home.peopleEmptyTitle': 'Chưa có khoản nợ nào',
+  'home.peopleEmptyBody': 'Thêm một khoản chi và chọn người cùng chia.',
+  'home.stillCounting': 'Vẫn đang tính thêm vài nhóm…',
+  'home.waiting': 'Đang chờ bạn xác nhận',
+  'person.title': 'Chi tiết',
+  'person.owesYou': 'Nợ bạn',
+  'person.youOwe': 'Bạn nợ',
+  'person.settled': 'Đã thanh toán xong',
+  'person.quickExpenses': 'Khoản chi nhanh',
+  'person.request': 'Yêu cầu trả',
+  'person.settleUp': 'Thanh toán',
+  'person.paidInCash': 'Đã trả tiền mặt',
+  'person.paidInCashTitle': '{name} đã trả bạn bao nhiêu?',
+  'person.amountLabel': 'Số tiền',
+  'person.save': 'Lưu',
+  'person.linkCopied': 'Đã sao chép link',
+  'person.shareTitle': '{owner} nhờ bạn trả tiền',
+  'person.saysPaid': '{name} báo đã trả {amount}',
+  'person.recordedFromYou': '{name} đã ghi nhận {amount} từ bạn',
+  'person.confirm': 'Xác nhận',
+  'person.nickname': 'Biệt danh',
+  'person.nicknameHelp': 'Chỉ mình bạn thấy.',
+  'person.edit': 'Sửa',
+  'person.guestIn': 'Khách trong {group}',
+  'person.nameIn': 'Tên trong {group}',
+  'person.saved': 'Đã lưu',
+  'history.title': 'Gồm những khoản nào',
+  'history.betweenYou': 'Giữa hai bạn',
+  'history.rerouted': 'Để bớt lượt chuyển, nhóm đổi số này thành {amount}.',
+  'history.reroutedVia': '{amount} được chuyển sang {name} để bớt lượt chuyển.',
+  'history.rounded': 'Làm tròn đến 1.000₫',
+  'history.paidBy': '{name} trả {amount}',
+  'history.shares': 'Bạn {mine} · {name} {theirs}',
+  'history.youPaid': 'Bạn đã trả {name}',
+  'history.theyPaid': '{name} đã trả bạn',
+  'history.waiting': 'Đang chờ',
+  'history.notApproved': 'Chờ duyệt',
+  'history.inTheirLedger': 'Trong sổ của {name}',
+  'history.seeAll': 'Xem tất cả với {name}',
+  'history.seeHistory': 'Xem lịch sử với {name}',
+  'history.covers': '{names} và {count} khoản khác',
+  'history.total': 'Tổng',
+  'history.openGroup': 'Mở {group}',
+  'person.samePerson': 'Cùng một người?',
+  'person.samePersonHelp': 'Gộp lại để cộng chung số tiền. Chỉ mình bạn thấy.',
+  'person.mergeWith': 'Gộp với…',
+  'person.mergeHelp': 'Ở đây họ sẽ thành một người, với một tổng chung. Các nhóm của bạn không thay đổi.',
+  'person.mergeBothSignedIn': 'Cả hai đều có tài khoản',
+  'person.unmerge': 'Tách {name} ra',
+  'person.merged': 'Đã gộp',
+  'person.unmerged': 'Đã tách {name} ra',
+  'person.linkedTitle': 'Đã gộp vào đây',
+  'person.notFound': 'Không còn khoản nào chưa xong với người này.',
+  'person.notReceived': 'Chưa nhận được',
+  'person.payTitle': 'Trả cho {name}',
+  'person.paidThem': 'Tôi đã trả',
+  'person.noBank': '{name} chưa thêm thông tin ngân hàng. Hãy trả bằng cách khác rồi nhấn "Tôi đã trả".',
+  'quick.fromGroups': 'Từ các nhóm của bạn',
+  'quick.addName': 'Thêm “{name}” là người mới',
+  'quick.addFailed': 'Chưa thêm được. Hãy thử lại.',
+  'request.title': 'Yêu cầu thanh toán',
+  'request.askedYou': '{owner} nhờ bạn trả',
+  'request.youOwe': 'Bạn nợ {owner}',
+  'request.ownerOwes': '{owner} nợ bạn',
+  'request.settled': 'Bạn và {owner} đã hết nợ nhau',
+  'request.noBank': '{owner} chưa thêm thông tin ngân hàng — hãy trả trực tiếp.',
+  'request.paid': 'Tôi đã trả',
+  'request.cashHint': 'Trả tiền mặt? Báo {owner} để họ đánh dấu.',
+  'request.waiting': 'Đang chờ {owner} xác nhận',
+  'request.quickExpenses': 'Khoản chi với {owner}',
+  'request.covers': 'Gồm những khoản nào ({count})',
+  'request.notFound': 'Link này không còn dùng được. Hãy xin link mới.',
+  'trip.tabExpenses': 'Chi tiêu',
+  'trip.tabPayments': 'Thanh toán',
+  'trip.tabs': 'Các tab của nhóm',
   'people.genderMale': 'Nam',
   'people.genderFemale': 'Nữ',
 
-  'create.title': 'Tạo nhóm mới', // REVIEW
-  'create.tripName': 'Tên nhóm', // REVIEW
-  'create.tripNamePlaceholder': 'Đà Lạt · Th10 2026', // REVIEW
-  'create.presetLabel': 'Loại nhóm', // REVIEW
-  'create.presetTrip': 'Chuyến đi / Chung', // REVIEW
-  'create.presetSport': 'Nhóm thể thao', // REVIEW
-  'create.sportNamePlaceholder': 'Cầu lông tối thứ 5', // REVIEW
-  'create.myName': 'Tên của bạn', // REVIEW
-  'create.others': 'Ai sẽ tham gia cùng? (tùy chọn)', // REVIEW
-  'create.otherPlaceholder': 'Tên', // REVIEW
-  'addBar.nameLabel': 'Tên người cần thêm', // REVIEW
-  'addBar.add': '+ Thêm', // REVIEW
-  'addBar.addM': '+ Nam', // REVIEW
-  'addBar.addF': '+ Nữ', // REVIEW
-  'addBar.added': 'Đã thêm {name}', // REVIEW
-  'addBar.addedWithGender': 'Đã thêm {name} · {gender}', // REVIEW
-  'addBar.addedMany': 'Đã thêm {count} người', // REVIEW
-  'addBar.addedManyWithSkipped': 'Đã thêm {count} người (bỏ qua {skipped} tên trùng)', // REVIEW
-  'addBar.duplicateHint': 'Đã có tên này trong nhóm. Thêm họ hoặc biệt danh để dễ phân biệt.', // REVIEW
-  'create.removePerson': 'Xóa {name}', // REVIEW
-  'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)', // REVIEW
-  'create.bankHint': 'Để bạn bè có thể chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.', // REVIEW
-  'create.submit': 'Tạo nhóm', // REVIEW
-  'create.suggestTitle': 'Từ các chuyến đi gần đây', // REVIEW
-  'create.hasAccount': '{name} · có tài khoản', // REVIEW
-  'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.', // REVIEW
+  'create.title': 'Tạo nhóm mới',
+  'create.tripName': 'Tên nhóm',
+  'create.tripNamePlaceholder': 'Đà Lạt · 10/2026',
+  'create.presetLabel': 'Loại nhóm',
+  'create.presetTrip': 'Chuyến đi / Chi tiêu chung',
+  'create.presetSport': 'Nhóm thể thao',
+  'create.sportNamePlaceholder': 'Cầu lông tối thứ 5',
+  'create.myName': 'Tên của bạn',
+  'create.others': 'Còn ai tham gia? (không bắt buộc)',
+  'create.otherPlaceholder': 'Tên',
+  'addBar.nameLabel': 'Tên người cần thêm',
+  'addBar.add': '+ Thêm',
+  'addBar.addM': '+ Nam',
+  'addBar.addF': '+ Nữ',
+  'addBar.added': 'Đã thêm {name}',
+  'addBar.addedWithGender': 'Đã thêm {name} · {gender}',
+  'addBar.addedMany': 'Đã thêm {count} người',
+  'addBar.addedManyWithSkipped': 'Đã thêm {count} người (bỏ qua {skipped} tên trùng)',
+  'addBar.duplicateHint': 'Tên này đã có trong nhóm. Thêm họ hoặc biệt danh để dễ phân biệt.',
+  'create.removePerson': 'Xóa {name}',
+  'create.bankTitle': 'Thông tin ngân hàng của bạn (không bắt buộc)',
+  'create.bankHint': 'Để bạn bè chuyển khoản trả bạn qua VietQR. Bạn có thể thêm sau.',
+  'create.submit': 'Tạo nhóm',
+  'create.suggestTitle': 'Từ các nhóm gần đây',
+  'create.hasAccount': '{name} · có tài khoản',
+  'create.alreadyListed': '{name} đã có trong danh sách với tài khoản của họ.',
 
-  'gender.label': 'Giới tính của {name}', // REVIEW
-  'gender.pillM': 'Nam', // REVIEW
-  'gender.pillF': 'Nữ', // REVIEW
-  'gender.pillLabel': 'Giới tính của {name}: {gender}', // REVIEW
-  'gender.set': 'Giới tính?', // REVIEW
-  'gender.setFor': 'Chọn giới tính cho {name}', // REVIEW
-  'gender.changed': '{name} · {gender}', // REVIEW
+  'gender.label': 'Giới tính của {name}',
+  'gender.pillM': 'Nam',
+  'gender.pillF': 'Nữ',
+  'gender.pillLabel': 'Giới tính của {name}: {gender}',
+  'gender.set': 'Chọn giới tính',
+  'gender.setFor': 'Chọn giới tính cho {name}',
+  'gender.changed': '{name} · {gender}',
 
-  'bank.bank': 'Ngân hàng', // REVIEW
-  'bank.popular': 'Phổ biến', // REVIEW
-  'bank.allBanks': 'Tất cả ngân hàng', // REVIEW
-  'bank.choose': 'Chọn ngân hàng', // REVIEW
-  'bank.search': 'Tìm ngân hàng', // REVIEW
-  'bank.noResults': 'Không tìm thấy ngân hàng', // REVIEW
-  'bank.accountNumber': 'Số tài khoản', // REVIEW
-  'bank.holderName': 'Tên chủ tài khoản', // REVIEW
-  'bank.holderHint': 'Như hiển thị trên ngân hàng, không dấu.', // REVIEW
+  'bank.bank': 'Ngân hàng',
+  'bank.popular': 'Phổ biến',
+  'bank.allBanks': 'Tất cả ngân hàng',
+  'bank.choose': 'Chọn ngân hàng',
+  'bank.search': 'Tìm ngân hàng',
+  'bank.noResults': 'Không tìm thấy ngân hàng',
+  'bank.accountNumber': 'Số tài khoản',
+  'bank.holderName': 'Tên chủ tài khoản',
+  'bank.holderHint': 'Ghi đúng như ngân hàng hiển thị, không dấu.',
 
-  'consent.title': 'Trước khi bắt đầu', // REVIEW
-  'consent.body': 'Chúng tôi lưu tên, email, các chuyến đi bạn tham gia và thông tin ngân hàng bạn thêm, để nhóm của bạn có thể chia tiền và thanh toán cho nhau.', // REVIEW
-  'consent.agree': 'Tôi đồng ý với thông báo quyền riêng tư', // REVIEW
-  'consent.readNotice': 'Đọc thông báo quyền riêng tư', // REVIEW
+  'consent.title': 'Trước khi bắt đầu',
+  'consent.body': 'Chúng tôi lưu tên, email, các nhóm bạn tham gia và thông tin ngân hàng bạn thêm, để cả nhóm có thể chia tiền và trả tiền cho nhau.',
+  'consent.agree': 'Tôi đồng ý với thông báo quyền riêng tư',
+  'consent.readNotice': 'Đọc thông báo quyền riêng tư',
 
-  'privacy.title': 'Thông báo quyền riêng tư', // REVIEW
-  'privacy.draft': 'Bản nháp — đang chờ duyệt pháp lý', // REVIEW
-  'privacy.summary.badge': '🌱 Tóm tắt nhanh', // REVIEW
-  'privacy.summary.readTime': 'Đọc trong 30 giây', // REVIEW
-  'privacy.summary.lead': 'CoinCrew chỉ lưu tên và số tài khoản ngân hàng để giúp bạn bè chia tiền và tạo mã VietQR thanh toán. Chúng tôi không bao giờ bán dữ liệu, không chạy quảng cáo và bạn có toàn quyền xóa dữ liệu của mình bất cứ lúc nào.', // REVIEW
-  'privacy.sectionLabel': 'Chi tiết quy định (Nghị định 13/2023 & PDPL 2026)', // REVIEW
-  'privacy.sections.operator.title': '1. Đơn vị vận hành', // REVIEW
-  'privacy.sections.operator.body': 'CoinCrew (Tiền Đâu) được vận hành độc lập như một công cụ hỗ trợ chia sẻ chi phí nhóm và tạo mã thanh toán VietQR trực tiếp giữa các thành viên.', // REVIEW
-  'privacy.sections.data.title': '2. Dữ liệu thu thập & Phân loại', // REVIEW
-  'privacy.sections.data.basicLabel': 'Dữ liệu cá nhân cơ bản', // REVIEW
-  'privacy.sections.data.basicBody': 'Tên hiển thị, địa chỉ email từ Google, Zalo user ID, tên hiển thị và ảnh đại diện từ Zalo (Zalo không cung cấp số điện thoại); tên nhóm, người tham gia, lịch sử chi tiêu và thanh toán.', // REVIEW
-  'privacy.sections.data.sensitiveLabel': 'Dữ liệu cá nhân nhạy cảm (Điều 2.4 NĐ 13/2023/NĐ-CP)', // REVIEW
-  'privacy.sections.data.sensitiveBody': 'Tên ngân hàng (hoặc mã BIN), số tài khoản ngân hàng và tên chủ tài khoản phục vụ tạo mã chuyển khoản VietQR. Người nhập thông tin cho người khác có nghĩa vụ đảm bảo đã nhận được sự đồng ý của họ.', // REVIEW
-  'privacy.sections.sharing.title': '3. Ai nhìn thấy thông tin của bạn?', // REVIEW
-  'privacy.sections.sharing.body': 'Thành viên cùng nhóm có thể xem tên và các khoản chi. Số tài khoản ngân hàng chỉ hiển thị cho người có nghĩa vụ chuyển khoản trả nợ cho bạn khi họ mở màn hình thanh toán VietQR.', // REVIEW
-  'privacy.sections.processors.title': '4. Hạ tầng lưu trữ & Bên thứ ba', // REVIEW
-  'privacy.sections.processors.body': 'Dữ liệu được lưu trữ trên hạ tầng điện toán đám mây của Cloudflare (Workers & D1 Database). Dịch vụ xác thực do Google và VNG Zalo cung cấp. Máy chủ lưu trữ có thể đặt ngoài lãnh thổ Việt Nam.', // REVIEW
-  'privacy.sections.risks.title': '5. Rủi ro không mong muốn', // REVIEW
-  'privacy.sections.risks.body': 'Bất kỳ ai có đường liên kết tham gia nhóm (/j/...) đều có thể xem lịch sử chi tiêu nhóm. Độ chính xác của việc chuyển khoản phụ thuộc vào số tài khoản do người dùng nhập.', // REVIEW
-  'privacy.sections.retention.title': '6. Thời gian lưu trữ dữ liệu', // REVIEW
-  'privacy.sections.retention.body': 'Dữ liệu được lưu trữ cho đến khi bạn xóa nhóm, xóa thông tin ngân hàng hoặc gửi yêu cầu xóa tài khoản.', // REVIEW
-  'privacy.sections.rights.title': '7. Quyền của bạn theo quy định pháp luật', // REVIEW
-  'privacy.sections.rights.body': 'Bạn có đầy đủ 11 quyền theo Điều 9 Nghị định 13/2023 và Luật Bảo vệ dữ liệu cá nhân 2026: quyền được biết, đồng ý, truy cập, chỉnh sửa, xóa dữ liệu, rút lại sự đồng ý, hạn chế xử lý, cung cấp dữ liệu, phản đối xử lý, khiếu nại tố cáo và yêu cầu bồi thường thiệt hại.', // REVIEW
-  'privacy.sections.contact.title': '8. Liên hệ & Yêu cầu xóa dữ liệu', // REVIEW
-  'privacy.sections.contact.body': 'Để thực hiện các quyền của chủ thể dữ liệu hoặc yêu cầu xóa hoàn toàn tài khoản, vui lòng liên hệ qua email:', // REVIEW
+  'privacy.title': 'Thông báo quyền riêng tư',
+  'privacy.draft': 'Bản nháp — đang chờ duyệt pháp lý',
+  'privacy.summary.badge': '🌱 Tóm tắt nhanh',
+  'privacy.summary.readTime': 'Đọc trong 30 giây',
+  'privacy.summary.lead': 'CoinCrew chỉ lưu tên và số tài khoản ngân hàng để giúp các nhóm chia tiền và tạo mã VietQR thanh toán. Chúng tôi không bao giờ bán dữ liệu, không chạy quảng cáo, và bạn có thể xóa dữ liệu của mình bất cứ lúc nào.',
+  'privacy.sectionLabel': 'Chi tiết theo quy định (Nghị định 13/2023 & Luật Bảo vệ dữ liệu cá nhân 2026)',
+  'privacy.sections.operator.title': '1. Đơn vị vận hành',
+  'privacy.sections.operator.body': 'CoinCrew (Tiền Đâu) được vận hành độc lập, là công cụ giúp nhóm chia chi phí và tạo mã VietQR để các thành viên chuyển khoản trực tiếp cho nhau.',
+  'privacy.sections.data.title': '2. Dữ liệu thu thập & phân loại',
+  'privacy.sections.data.basicLabel': 'Dữ liệu cá nhân cơ bản',
+  'privacy.sections.data.basicBody': 'Tên và địa chỉ email khi đăng nhập bằng Google, hoặc Zalo user ID, tên hiển thị và ảnh đại diện khi đăng nhập bằng Zalo (Zalo không chia sẻ số điện thoại của bạn); tên nhóm, tên người tham gia, lịch sử chi tiêu và thanh toán.',
+  'privacy.sections.data.sensitiveLabel': 'Dữ liệu cá nhân nhạy cảm (Điều 2.4 NĐ 13/2023/NĐ-CP)',
+  'privacy.sections.data.sensitiveBody': 'Tên ngân hàng (hoặc mã BIN), số tài khoản và tên chủ tài khoản dùng để tạo mã chuyển khoản VietQR. Người nhập thông tin ngân hàng thay cho người khác phải được người đó đồng ý.',
+  'privacy.sections.sharing.title': '3. Ai thấy thông tin của bạn?',
+  'privacy.sections.sharing.body': 'Thành viên cùng nhóm có thể xem tên và các khoản chi. Thông tin tài khoản ngân hàng của bạn chỉ hiện cho người cần chuyển tiền cho bạn, khi họ mở màn hình thanh toán VietQR.',
+  'privacy.sections.processors.title': '4. Hạ tầng lưu trữ & bên thứ ba',
+  'privacy.sections.processors.body': 'Dữ liệu được lưu trên hạ tầng điện toán đám mây của Cloudflare (Workers & D1 Database). Dịch vụ đăng nhập do Google và VNG Zalo cung cấp. Máy chủ và nơi lưu trữ có thể đặt ngoài lãnh thổ Việt Nam.',
+  'privacy.sections.risks.title': '5. Rủi ro ngoài ý muốn',
+  'privacy.sections.risks.body': 'Bất kỳ ai có link tham gia nhóm (/j/...) đều có thể xem lịch sử chi tiêu của nhóm. Việc chuyển khoản đúng người phụ thuộc vào thông tin tài khoản do người dùng nhập.',
+  'privacy.sections.retention.title': '6. Thời gian lưu trữ dữ liệu',
+  'privacy.sections.retention.body': 'Dữ liệu được lưu cho đến khi bạn xóa nhóm, xóa thông tin ngân hàng hoặc yêu cầu xóa tài khoản.',
+  'privacy.sections.rights.title': '7. Quyền của bạn theo quy định pháp luật',
+  'privacy.sections.rights.body': 'Bạn có đầy đủ 11 quyền theo Điều 9 Nghị định 13/2023 và Luật Bảo vệ dữ liệu cá nhân 2026: quyền được biết, đồng ý, truy cập, chỉnh sửa, xóa dữ liệu, rút lại sự đồng ý, hạn chế xử lý, nhận dữ liệu, phản đối xử lý, khiếu nại, tố cáo và yêu cầu bồi thường thiệt hại.',
+  'privacy.sections.contact.title': '8. Liên hệ & yêu cầu xóa dữ liệu',
+  'privacy.sections.contact.body': 'Để hỏi về quyền riêng tư, thực hiện các quyền về dữ liệu hoặc yêu cầu xóa hẳn tài khoản, vui lòng liên hệ qua email:',
 
-  'join.opening': 'Đang mở chuyến đi…', // REVIEW
+  'join.opening': 'Đang mở nhóm…',
 
-  'who.title': 'Bạn là ai?', // REVIEW
-  'who.subtitle': 'Chọn tên của bạn để tiếp tục.', // REVIEW
-  'who.continueAs': 'Tiếp tục với tên {name}', // REVIEW
-  'who.hasAccount': 'Đã có tài khoản · nhấn để đăng nhập', // REVIEW
-  'who.search': 'Tìm tên', // REVIEW
-  'who.clearSearch': 'Xóa tìm kiếm', // REVIEW
-  'who.count': '{shown} trên {total} người', // REVIEW
-  'who.addNamed': 'Không có trong danh sách? Thêm "{name}"', // REVIEW
-  'who.pending': 'Đang chờ duyệt', // REVIEW
-  'who.nameLabel': 'Tên của bạn', // REVIEW
-  'who.inTrip': 'Đã có trong chuyến đi này', // REVIEW
-  'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong chuyến đi này.', // REVIEW
-  'who.joinAs': 'Không có trong danh sách? Tham gia với tên {name}', // REVIEW
-  'who.joinButton': 'Tham gia với tên {name}', // REVIEW
-  'who.rejoinAs': 'Vào lại với tên {name}', // REVIEW
-  'who.playAs': 'Bạn chơi là', // REVIEW
-  'who.playAsHint': 'Dùng để chia tiền sân. Bạn có thể đổi sau.', // REVIEW
-  'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn', // REVIEW
-  'who.nameOrFriend': '{name} hoặc bạn của {name}', // REVIEW
-  'who.slots': '{n} suất', // REVIEW
+  'who.title': 'Bạn là ai?',
+  'who.subtitle': 'Chọn tên của bạn để tiếp tục.',
+  'who.continueAs': 'Tiếp tục với tên {name}',
+  'who.hasAccount': 'Đã có tài khoản · nhấn để đăng nhập',
+  'who.search': 'Tìm tên',
+  'who.clearSearch': 'Xóa tìm kiếm',
+  'who.count': '{shown}/{total} người',
+  'who.addNamed': 'Không có trong danh sách? Thêm "{name}"',
+  'who.pending': 'Đang chờ duyệt',
+  'who.nameLabel': 'Tên của bạn',
+  'who.inTrip': 'Đã có trong nhóm này',
+  'who.similar': '"{typed}" có vẻ giống "{name}", người đã có trong nhóm này.',
+  'who.joinAs': 'Không có trong danh sách? Tham gia với tên {name}',
+  'who.joinButton': 'Tham gia với tên {name}',
+  'who.rejoinAs': 'Vào lại với tên {name}',
+  'who.playAs': 'Bạn chơi suất',
+  'who.playAsHint': 'Dùng để chia tiền sân. Bạn có thể đổi sau.',
+  'who.rejoinHint': 'Bạn đã rời nhóm này · các khoản chi trước đây vẫn còn',
+  'who.nameOrFriend': '{name} hoặc bạn của {name}',
+  'who.slots': '{n} suất',
 
-  'guest.viewingAs': 'Đang xem với tư cách {name}', // REVIEW
-  'guest.switch': 'Không phải {name}? Đổi tên', // REVIEW
-  'guest.ifApprovedOwe': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ cần trả {amount}', // REVIEW
-  'guest.ifApprovedOwed': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ được nhận {amount}', // REVIEW
-  'guest.ifApprovedSettled': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ thanh toán hết', // REVIEW
-  'guest.yourShare': 'Cách tính phần của bạn', // REVIEW
-  'guest.yourTotal': 'Tổng của bạn', // REVIEW
-  'guest.becomeMember': 'Đăng nhập bằng Google để trở thành thành viên', // REVIEW
-  'guest.memberRequested': 'Bạn đã yêu cầu trở thành thành viên. Một thành viên sẽ duyệt yêu cầu này.', // REVIEW
+  'guest.viewingAs': 'Đang xem với tư cách {name}',
+  'guest.switch': 'Không phải {name}? Đổi người',
+  'guest.ifApprovedOwe': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ cần trả {amount}',
+  'guest.ifApprovedOwed': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ được nhận {amount}',
+  'guest.ifApprovedSettled': 'Nếu các khoản chi của bạn được duyệt, bạn sẽ hết nợ',
+  'guest.yourShare': 'Phần của bạn được tính thế nào',
+  'guest.yourTotal': 'Tổng của bạn',
+  'guest.becomeMember': 'Đăng nhập bằng Google để trở thành thành viên',
+  'guest.memberRequested': 'Bạn đã xin trở thành thành viên. Một thành viên sẽ duyệt yêu cầu này.',
 
-  'trip.total': 'Tổng chuyến đi {amount}', // REVIEW
-  'trip.people': '{n} người', // REVIEW
-  'trip.balances': 'Số dư', // REVIEW
-  'trip.expenses': 'Khoản chi', // REVIEW
-  'trip.addExpense': '+ Thêm khoản chi', // REVIEW
-  'trip.pays': '{from} → {to}', // REVIEW
-  'trip.viewOnly': 'Chỉ xem', // REVIEW
-  'trip.you': 'Bạn', // REVIEW
-  'trip.allSettled': 'Mọi người đã thanh toán hết.', // REVIEW
+  'trip.total': 'Tổng chi {amount}',
+  'trip.people': '{n} người',
+  'trip.balances': 'Số dư',
+  'trip.expenses': 'Khoản chi',
+  'trip.addExpense': '+ Thêm khoản chi',
+  'trip.pays': '{from} → {to}',
+  'trip.viewOnly': 'Chỉ xem',
+  'trip.you': 'Bạn',
+  'trip.allSettled': 'Mọi người đã thanh toán xong.',
 
-  'expense.youPaid': 'Bạn đã trả', // REVIEW
-  'expense.personPaid': '{name} đã trả', // REVIEW
-  'split.equal': 'chia đều, {n}', // REVIEW
-  'split.amounts': 'số tiền chính xác', // REVIEW
-  'split.percent': 'theo phần trăm', // REVIEW
-  'split.shares': 'theo phần chia', // REVIEW
-  'split.adjust': 'có điều chỉnh', // REVIEW
-  'split.sport': 'chia theo buổi chơi', // REVIEW
-  'status.waiting': 'Đang chờ', // REVIEW
-  'status.rejected': 'Bị từ chối', // REVIEW
-  'status.disabled': 'Đã vô hiệu hóa', // REVIEW
-  'expense.rejectedBecause': 'Bị từ chối: {reason}', // REVIEW
+  'expense.youPaid': 'Bạn đã trả',
+  'expense.personPaid': '{name} đã trả',
+  'split.equal': 'chia đều {n} người',
+  'split.amounts': 'theo số tiền',
+  'split.percent': 'theo phần trăm',
+  'split.shares': 'theo số phần',
+  'split.adjust': 'có điều chỉnh',
+  'split.sport': 'chia theo buổi chơi',
+  'status.waiting': 'Đang chờ',
+  'status.rejected': 'Bị từ chối',
+  'status.disabled': 'Đã tắt',
+  'expense.rejectedBecause': 'Bị từ chối: {reason}',
 
-  'expenseForm.titleNew': 'Thêm khoản chi', // REVIEW
-  'expenseForm.titleEdit': 'Chỉnh sửa khoản chi', // REVIEW
-  'expenseForm.whatFor': 'Chi tiêu cho', // REVIEW
-  'expenseForm.whatForPlaceholder': 'Bánh tráng nướng, chợ đêm', // REVIEW
-  'expenseForm.amount': 'Số tiền', // REVIEW
-  'expenseForm.amountHint': 'Bạn có thể nhập 180.000, 50k hoặc 1,5tr.', // REVIEW
-  'expenseForm.amountInvalid': 'Nhập số tiền như 180.000, 50k hoặc 1,5tr.', // REVIEW
-  'expenseForm.date': 'Ngày', // REVIEW
-  'expenseForm.paidBy': 'Người trả', // REVIEW
-  'expenseForm.me': '{name} (tôi)', // REVIEW
-  'expenseForm.choosePayer': 'Chọn người trả', // REVIEW
-  'expenseForm.peopleLeft': '{names} đã rời nhóm nên không còn trong khoản chi này.', // REVIEW
-  'expenseForm.personLeft': 'Có người trong khoản chi này đã rời nhóm. Kiểm tra lại cách chia rồi thử lại.', // REVIEW
-  'expenseForm.split': 'Chia tiền', // REVIEW
-  'expenseForm.include': 'Bao gồm {name}', // REVIEW
-  'expenseForm.amountFor': 'Số tiền của {name}', // REVIEW
-  'expenseForm.percentFor': 'Phần trăm của {name}', // REVIEW
-  'expenseForm.sharesFor': 'Số phần của {name}', // REVIEW
-  'expenseForm.adjustFor': 'Khoản điều chỉnh của {name}', // REVIEW
-  'expenseForm.add': 'Thêm khoản chi', // REVIEW
-  'expenseForm.save': 'Lưu thay đổi', // REVIEW
-  'expenseForm.guestNote': 'Một thành viên trong nhóm sẽ duyệt trước khi tính.', // REVIEW
-  'split.tab.equal': 'Chia đều', // REVIEW
-  'split.tab.sport': 'Chia theo buổi chơi', // REVIEW
-  'split.mode.equal': 'Chia đều', // REVIEW
-  'split.mode.exact': 'Số tiền chính xác', // REVIEW
-  'split.mode.percent': 'Phần trăm', // REVIEW
-  'split.mode.shares': 'Số phần', // REVIEW
-  'split.mode.adjust': 'Điều chỉnh', // REVIEW
-  'split.mode.sport': 'Thể thao', // REVIEW
-  'split.captionEqual': 'Chia đều · {n} người · mỗi người {each}', // REVIEW
-  'split.captionEqualAbout': 'Chia đều · {n} người · mỗi người khoảng {each}', // REVIEW
-  'split.captionEqualNone': 'Chia đều · {n} người', // REVIEW
-  'split.captionExact': 'Số tiền chính xác · {n} người', // REVIEW
-  'split.captionExactLeft': 'Số tiền chính xác · {n} người · còn {amount} chưa chia', // REVIEW
-  'split.captionExactOver': 'Số tiền chính xác · {n} người · vượt {amount}', // REVIEW
-  'split.captionPercent': 'Theo phần trăm · {n} người', // REVIEW
-  'split.captionPercentLeft': 'Theo phần trăm · {n} người · còn {pct}%', // REVIEW
-  'split.captionPercentOver': 'Theo phần trăm · {n} người · vượt {pct}%', // REVIEW
-  'split.captionShares': 'Theo số phần · {n} người', // REVIEW
-  'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người', // REVIEW
-  'split.captionPercentShare': 'Theo phần trăm · {n} người · {k} người chia {pct}% còn lại', // REVIEW
-  'split.captionPercentLeftFor': 'Theo phần trăm · {n} người · còn {pct}% cho {name}', // REVIEW
-  'split.captionPercentNothing': 'Theo phần trăm · {n} người · {k} người không phải trả', // REVIEW
-  'split.captionPercentNothingOne': 'Theo phần trăm · {n} người · {name} không phải trả', // REVIEW
-  'split.captionExactShare': 'Số tiền chính xác · {n} người · {k} người chia {amount} còn lại', // REVIEW
-  'split.captionExactLeftFor': 'Số tiền chính xác · {n} người · còn {amount} cho {name}', // REVIEW
-  'split.captionExactNothing': 'Số tiền chính xác · {n} người · {k} người không phải trả', // REVIEW
-  'split.captionExactNothingOne': 'Số tiền chính xác · {n} người · {name} không phải trả', // REVIEW
-  'splitBetween.label': 'Chia cho · {n}/{total} người', // REVIEW
-  'splitBetween.everyone': 'Chia cho · Mọi người ({n})', // REVIEW
-  'splitBetween.none': 'Chưa có ai', // REVIEW
-  'splitBetween.change': 'Đổi', // REVIEW
-  'splitBetween.you': 'Bạn', // REVIEW
-  'splitBetween.aria': '{label}. {names}. Đổi', // REVIEW
-  'splitSheet.title': 'Chia cho', // REVIEW
-  'splitSheet.count': '{n}/{total} người', // REVIEW
-  'splitSheet.recent': 'Giống nhóm người ở', // REVIEW
-  'splitSheet.recentMeta': '{date} · {n} người · {names}', // REVIEW
-  'splitSheet.more': '+{n}', // REVIEW
-  'splitSheet.use': 'Dùng', // REVIEW
-  'splitSheet.useAria': 'Dùng nhóm người của {description}', // REVIEW
-  'splitSheet.clearAll': 'Bỏ chọn hết', // REVIEW
-  'splitSheet.addEveryone': 'Chọn mọi người', // REVIEW
-  'splitSheet.searchLabel': 'Thêm người', // REVIEW
-  'splitSheet.searchPlaceholder': 'Thêm người…', // REVIEW
-  'splitSheet.remove': 'Bỏ {name}', // REVIEW
-  'splitSheet.add': 'Thêm {name}', // REVIEW
-  'splitSheet.alreadyIn': 'Đã có: {names}', // REVIEW
-  'splitSheet.noMatch': 'Không có ai tên "{q}" trong nhóm.', // REVIEW
-  'splitSheet.allChosen': 'Đã chọn tất cả mọi người trong nhóm.', // REVIEW
-  'splitSheet.matches': '{n} kết quả', // REVIEW
-  'splitSheet.done': 'Xong', // REVIEW
-  'expense.notYours': 'Chỉ người đã thêm khoản chi này mới có thể chỉnh sửa.', // REVIEW
-  'expense.historyTitle': 'Lịch sử chỉnh sửa', // REVIEW
-  'expense.rollback': 'Khôi phục về bản cập nhật này', // REVIEW
-  'expense.editedBy': 'Chỉnh sửa bởi {name} · {date}', // REVIEW
-  'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.', // REVIEW
-  'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.', // REVIEW
-  'splitError.AMOUNTS_DONT_ADD_UP': 'Tổng số tiền không khớp với tổng chi phí.', // REVIEW
-  'splitError.PERCENT_NOT_100': 'Tổng phần trăm phải bằng 100%.', // REVIEW
-  'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần chia phải lớn hơn 0.', // REVIEW
-  'splitError.NEGATIVE_SHARE': 'Khoản điều chỉnh lớn hơn tổng số tiền.', // REVIEW
+  'expenseForm.titleNew': 'Thêm khoản chi',
+  'expenseForm.titleEdit': 'Sửa khoản chi',
+  'expenseForm.whatFor': 'Nội dung',
+  'expenseForm.whatForPlaceholder': 'Bánh tráng nướng, chợ đêm',
+  'expenseForm.amount': 'Số tiền',
+  'expenseForm.amountHint': 'Bạn có thể nhập 180.000, 50k hoặc 1,5tr.',
+  'expenseForm.amountInvalid': 'Nhập số tiền, ví dụ 180.000, 50k hoặc 1,5tr.',
+  'expenseForm.date': 'Ngày',
+  'expenseForm.paidBy': 'Người trả',
+  'expenseForm.me': '{name} (tôi)',
+  'expenseForm.choosePayer': 'Chọn người trả',
+  'expenseForm.peopleLeft': '{names} đã rời nhóm nên được bỏ khỏi khoản chi này.',
+  'expenseForm.personLeft': 'Có người trong khoản chi này đã rời nhóm. Kiểm tra lại cách chia rồi thử lại.',
+  'expenseForm.split': 'Cách chia',
+  'expenseForm.include': 'Tính cả {name}',
+  'expenseForm.amountFor': 'Số tiền của {name}',
+  'expenseForm.percentFor': 'Phần trăm của {name}',
+  'expenseForm.sharesFor': 'Số phần của {name}',
+  'expenseForm.adjustFor': 'Điều chỉnh cho {name}',
+  'expenseForm.add': 'Thêm khoản chi',
+  'expenseForm.save': 'Lưu thay đổi',
+  'expenseForm.guestNote': 'Một thành viên trong nhóm sẽ duyệt trước khi khoản này được tính.',
+  'split.tab.equal': 'Chia đều',
+  'split.tab.sport': 'Chia theo buổi chơi',
+  'split.mode.equal': 'Chia đều',
+  'split.mode.exact': 'Theo số tiền',
+  'split.mode.percent': 'Phần trăm',
+  'split.mode.shares': 'Số phần',
+  'split.mode.adjust': 'Điều chỉnh',
+  'split.mode.sport': 'Thể thao',
+  'split.captionEqual': 'Chia đều · {n} người · mỗi người {each}',
+  'split.captionEqualAbout': 'Chia đều · {n} người · mỗi người khoảng {each}',
+  'split.captionEqualNone': 'Chia đều · {n} người',
+  'split.captionExact': 'Theo số tiền · {n} người',
+  'split.captionExactLeft': 'Theo số tiền · {n} người · còn {amount} chưa chia',
+  'split.captionExactOver': 'Theo số tiền · {n} người · thừa {amount}',
+  'split.captionPercent': 'Theo phần trăm · {n} người',
+  'split.captionPercentLeft': 'Theo phần trăm · {n} người · còn {pct}%',
+  'split.captionPercentOver': 'Theo phần trăm · {n} người · thừa {pct}%',
+  'split.captionShares': 'Theo số phần · {n} người',
+  'split.captionAdjust': 'Chia đều có điều chỉnh · {n} người',
+  'split.captionPercentShare': 'Theo phần trăm · {n} người · {k} người chia {pct}% còn lại',
+  'split.captionPercentLeftFor': 'Theo phần trăm · {n} người · còn {pct}% cho {name}',
+  'split.captionPercentNothing': 'Theo phần trăm · {n} người · {k} người không phải trả',
+  'split.captionPercentNothingOne': 'Theo phần trăm · {n} người · {name} không phải trả',
+  'split.captionExactShare': 'Theo số tiền · {n} người · {k} người chia {amount} còn lại',
+  'split.captionExactLeftFor': 'Theo số tiền · {n} người · còn {amount} cho {name}',
+  'split.captionExactNothing': 'Theo số tiền · {n} người · {k} người không phải trả',
+  'split.captionExactNothingOne': 'Theo số tiền · {n} người · {name} không phải trả',
+  'splitBetween.label': 'Chia cho · {n}/{total} người',
+  'splitBetween.everyone': 'Chia cho · Mọi người ({n})',
+  'splitBetween.none': 'Chưa chọn ai',
+  'splitBetween.change': 'Đổi',
+  'splitBetween.you': 'Bạn',
+  'splitBetween.aria': '{label}. {names}. Đổi',
+  'splitSheet.title': 'Chia cho',
+  'splitSheet.count': '{n}/{total} người',
+  'splitSheet.recent': 'Chọn lại như khoản trước',
+  'splitSheet.recentMeta': '{date} · {n} người · {names}',
+  'splitSheet.more': '+{n}',
+  'splitSheet.use': 'Dùng',
+  'splitSheet.useAria': 'Dùng danh sách người của {description}',
+  'splitSheet.clearAll': 'Bỏ chọn hết',
+  'splitSheet.addEveryone': 'Chọn cả nhóm',
+  'splitSheet.searchLabel': 'Thêm người',
+  'splitSheet.searchPlaceholder': 'Thêm người…',
+  'splitSheet.remove': 'Bỏ {name}',
+  'splitSheet.add': 'Thêm {name}',
+  'splitSheet.alreadyIn': 'Đã chọn: {names}',
+  'splitSheet.noMatch': 'Trong nhóm không có ai tên "{q}".',
+  'splitSheet.allChosen': 'Đã chọn tất cả mọi người trong nhóm.',
+  'splitSheet.matches': '{n} kết quả',
+  'splitSheet.done': 'Xong',
+  'expense.notYours': 'Chỉ người đã thêm khoản chi này mới sửa được.',
+  'expense.historyTitle': 'Lịch sử chỉnh sửa',
+  'expense.rollback': 'Khôi phục về phiên bản này',
+  'expense.editedBy': '{name} đã sửa · {date}',
+  'splitError.NO_PARTICIPANTS': 'Chọn ít nhất một người.',
+  'splitError.INVALID_AMOUNT': 'Nhập số tiền trước.',
+  'splitError.AMOUNTS_DONT_ADD_UP': 'Các số tiền cộng lại không bằng tổng.',
+  'splitError.PERCENT_NOT_100': 'Tổng phần trăm phải bằng 100%.',
+  'splitError.SHARES_NOT_POSITIVE': 'Mỗi phần phải lớn hơn 0.',
+  'splitError.NEGATIVE_SHARE': 'Phần điều chỉnh lớn hơn tổng số tiền.',
 
-  'sport.whatForPlaceholder': 'Cầu lông tối thứ 5 · Sân 3', // REVIEW
-  'sport.costsTitle': 'Chi phí buổi chơi', // REVIEW
-  'sport.court': 'Tiền sân', // REVIEW
-  'sport.shuttlecocks': 'Tiền cầu', // REVIEW
-  'sport.qty': 'SL', // REVIEW
-  'sport.unitPrice': 'Đơn giá', // REVIEW
-  'sport.addShuttlePrice': '+ Thêm loại cầu', // REVIEW
-  'sport.addShuttlecock': 'Thêm tiền cầu', // REVIEW
-  'sport.addExtraFee': 'Thêm phụ phí', // REVIEW
-  'sport.removeShuttleRow': 'Xóa dòng cầu {n}', // REVIEW
-  'sport.removeExtraFee': 'Xóa phụ phí', // REVIEW
-  'sport.extra': 'Phụ phí (nước, gửi xe…)', // REVIEW
-  'sport.totalBar': '{slots} suất ({f} Nữ, {m} Nam)', // REVIEW
-  'sport.totalLabel': 'Tổng cộng', // REVIEW
-  'sport.ruleTitle': 'Quy tắc Nam / Nữ', // REVIEW
-  'sport.ruleEqual': 'Đều', // REVIEW
-  'sport.ruleDiscount': 'Lệch ₫', // REVIEW
-  'sport.ruleRatio': 'Tỷ lệ', // REVIEW
-  'sport.femaleDiscountLabel': 'Nữ giảm mỗi suất', // REVIEW
-  'sport.maleWeightLabel': 'Tỷ lệ Nam', // REVIEW
-  'sport.femaleWeightLabel': 'Tỷ lệ Nữ', // REVIEW
-  'sport.slotSummary': 'Nam: {m} · Nữ: {f}', // REVIEW
-  'sport.slotsBadge': '{f} Nữ · {m} Nam', // REVIEW
-  'sport.oneMale': '1 Nam', // REVIEW
-  'sport.oneFemale': '1 Nữ', // REVIEW
-  'sport.fixedBadge': 'Cố định', // REVIEW
-  'sport.femaleSlotsFor': 'Số suất Nữ của {name}', // REVIEW
-  'sport.maleSlotsFor': 'Số suất Nam của {name}', // REVIEW
-  'sport.sameAsFemale': '= Nữ', // REVIEW
-  'sport.fixedFor': 'Số tiền cố định của {name}', // REVIEW
-  'sport.clearFixed': 'Bỏ cố định cho {name}', // REVIEW
-  'sport.bringsGuest': 'Người chơi này có dẫn khách?', // REVIEW
-  'sport.femaleGuest': 'Khách Nữ', // REVIEW
-  'sport.maleGuest': 'Khách Nam', // REVIEW
-  'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}', // REVIEW
-  'sport.editGender': 'Đổi giới tính', // REVIEW
-  'sport.shareBillQr': 'Chia sẻ bill & QR', // REVIEW
-  'sport.shareCopied': 'Đã sao chép tin nhắn và link. Dán vào nhóm chat nhé.', // REVIEW
-  'sport.zaloPreviewTitle': 'Tin nhắn Zalo & bảng tính', // REVIEW
-  'sport.tableColName': 'TÊN', // REVIEW
-  'sport.tableColFemale': 'NỮ', // REVIEW
-  'sport.tableColMale': 'NAM', // REVIEW
-  'sport.tableColAmount': 'THÀNH TIỀN', // REVIEW
-  'sport.tableTotalSlots': 'TỔNG SUẤT', // REVIEW
-  'sport.tableCosts': 'CHI PHÍ', // REVIEW
-  'sport.tablePerSlot': 'MỖI SUẤT', // REVIEW
-  'sport.planSession': 'Lên lịch buổi đánh', // REVIEW
-  'sport.planningBadge': 'Lên lịch', // REVIEW
-  'sport.completeSession': 'Hoàn tất & Tính tiền', // REVIEW
-  'sport.sharePlanning': 'Chia sẻ lịch & danh sách', // REVIEW
-  'sport.includeProofImage': 'Ghép kèm ảnh đặt sân', // REVIEW
-  'sport.extractFromImage': '✨ Đọc từ ảnh đặt sân', // REVIEW
-  'sport.extracting': 'Đang đọc ảnh đặt sân…', // REVIEW
-  'sport.locationLabel': 'Địa điểm', // REVIEW
-  'sport.addLocation': '+ Thêm địa điểm mới', // REVIEW
-  'sport.locationName': 'Tên sân', // REVIEW
-  'sport.locationAddress': 'Địa chỉ', // REVIEW
-  'sport.locationPhone': 'Số điện thoại', // REVIEW
-  'sport.locationMapUrl': 'Link Google Maps', // REVIEW
-  'sport.openMap': 'Mở bản đồ ↗', // REVIEW
-  'sport.courtSlotsLabel': 'Sân đấu & khung giờ', // REVIEW
-  'sport.addCourtSlot': '+ Thêm sân đấu', // REVIEW
-  'sport.courtNamePlaceholder': 'VD: Sân 6', // REVIEW
-  'sport.timeRangePlaceholder': 'VD: 05:00 - 07:00', // REVIEW
-  'sport.startTimeLabel': 'Giờ bắt đầu', // REVIEW
-  'sport.durationLabel': 'Thời lượng', // REVIEW
-  'sport.courtNameIndex': 'Tên sân {index}', // REVIEW
-  'sport.timeRangeIndex': 'Khung giờ sân {index}', // REVIEW
-  'sport.removeCourtIndex': 'Xóa sân {index}', // REVIEW
-  'sport.calculatedRange': 'Khung giờ tính toán: {range}', // REVIEW
-  'sport.totalDurationBanner': 'Thời lượng: {duration} ({range}) · {courts} sân', // REVIEW
-  'sport.courtCount': '{count} sân', // REVIEW
-  'sport.defaultCourtName': 'Sân {index}', // REVIEW
-  'sport.bookingCodeLabel': 'Mã đặt sân', // REVIEW
-  'sport.bookingCodePlaceholder': 'VD: BK-4139', // REVIEW
-  'sport.totalDurationLabel': 'Thời lượng', // REVIEW
-  'sport.totalDurationPlaceholder': 'VD: 2h', // REVIEW
-  'sport.durationSuggestion': 'Gợi ý: {duration}', // REVIEW
-  'sport.bookingCodeFact': 'Mã đặt sân', // REVIEW
-  'sport.totalDurationFact': 'Thời lượng', // REVIEW
-  'sport.savePlanning': 'Lưu lịch dự kiến', // REVIEW
-  'sport.slotsCount': '{count} suất', // REVIEW
+  'sport.whatForPlaceholder': 'Cầu lông tối thứ 5 · Sân 3',
+  'sport.costsTitle': 'Chi phí buổi chơi',
+  'sport.court': 'Tiền sân',
+  'sport.shuttlecocks': 'Tiền cầu',
+  'sport.qty': 'SL',
+  'sport.unitPrice': 'Đơn giá',
+  'sport.addShuttlePrice': '+ Thêm giá cầu',
+  'sport.addShuttlecock': 'Thêm giá cầu',
+  'sport.addExtraFee': 'Thêm phụ phí',
+  'sport.removeShuttleRow': 'Xóa dòng tiền cầu {n}',
+  'sport.removeExtraFee': 'Xóa phụ phí',
+  'sport.extra': 'Phụ phí (nước, gửi xe…)',
+  'sport.totalBar': '{slots} suất ({f} Nữ, {m} Nam)',
+  'sport.totalLabel': 'Tổng cộng',
+  'sport.ruleTitle': 'Cách tính nam / nữ',
+  'sport.ruleEqual': 'Như nhau',
+  'sport.ruleDiscount': 'Chênh tiền',
+  'sport.ruleRatio': 'Tỷ lệ',
+  'sport.femaleDiscountLabel': 'Nữ được giảm mỗi suất',
+  'sport.maleWeightLabel': 'Hệ số nam',
+  'sport.femaleWeightLabel': 'Hệ số nữ',
+  'sport.slotSummary': 'Nam: {m} · Nữ: {f}',
+  'sport.slotsBadge': '{f} Nữ · {m} Nam',
+  'sport.oneMale': '1 Nam',
+  'sport.oneFemale': '1 Nữ',
+  'sport.fixedBadge': 'Cố định',
+  'sport.femaleSlotsFor': 'Số suất nữ của {name}',
+  'sport.maleSlotsFor': 'Số suất nam của {name}',
+  'sport.sameAsFemale': '= giá nữ',
+  'sport.fixedFor': 'Số tiền cố định của {name}',
+  'sport.clearFixed': 'Bỏ số tiền cố định của {name}',
+  'sport.bringsGuest': 'Người chơi này có dẫn khách không?',
+  'sport.femaleGuest': 'Khách nữ',
+  'sport.maleGuest': 'Khách nam',
+  'sport.orFixedAmount': 'Hoặc đặt số tiền cố định cho {name}',
+  'sport.editGender': 'Đổi giới tính',
+  'sport.shareBillQr': 'Chia sẻ bill & QR',
+  'sport.shareCopied': 'Đã sao chép tin nhắn và link. Dán vào nhóm chat nhé.',
+  'sport.zaloPreviewTitle': 'Tin nhắn Zalo & ảnh bill',
+  'sport.tableColName': 'TÊN',
+  'sport.tableColFemale': 'NỮ',
+  'sport.tableColMale': 'NAM',
+  'sport.tableColAmount': 'THÀNH TIỀN',
+  'sport.tableTotalSlots': 'TỔNG SUẤT',
+  'sport.tableCosts': 'CHI PHÍ',
+  'sport.tablePerSlot': 'MỖI SUẤT',
+  'sport.planSession': 'Lên lịch buổi chơi',
+  'sport.planningBadge': 'Lên lịch',
+  'sport.completeSession': 'Hoàn tất & chia tiền',
+  'sport.sharePlanning': 'Chia sẻ lịch & danh sách',
+  'sport.includeProofImage': 'Gửi kèm ảnh đặt sân',
+  'sport.extractFromImage': '✨ Tự điền từ ảnh đặt sân',
+  'sport.extracting': 'Đang đọc ảnh đặt sân…',
+  'sport.locationLabel': 'Địa điểm',
+  'sport.addLocation': '+ Thêm địa điểm mới',
+  'sport.locationName': 'Tên sân',
+  'sport.locationAddress': 'Địa chỉ',
+  'sport.locationPhone': 'Số điện thoại',
+  'sport.locationMapUrl': 'Link Google Maps',
+  'sport.openMap': 'Mở bản đồ ↗',
+  'sport.courtSlotsLabel': 'Sân & khung giờ',
+  'sport.addCourtSlot': '+ Thêm sân',
+  'sport.courtNamePlaceholder': 'VD: Sân 6',
+  'sport.timeRangePlaceholder': 'VD: 05:00 - 07:00',
+  'sport.startTimeLabel': 'Giờ bắt đầu',
+  'sport.durationLabel': 'Thời lượng',
+  'sport.courtNameIndex': 'Tên sân {index}',
+  'sport.timeRangeIndex': 'Khung giờ sân {index}',
+  'sport.removeCourtIndex': 'Xóa sân {index}',
+  'sport.calculatedRange': 'Khung giờ tính được: {range}',
+  'sport.totalDurationBanner': 'Thời lượng: {duration} ({range}) · {courts} sân',
+  'sport.courtCount': '{count} sân',
+  'sport.defaultCourtName': 'Sân {index}',
+  'sport.bookingCodeLabel': 'Mã đặt sân',
+  'sport.bookingCodePlaceholder': 'VD: BK-4139',
+  'sport.totalDurationLabel': 'Thời lượng',
+  'sport.totalDurationPlaceholder': 'VD: 2h',
+  'sport.durationSuggestion': 'Gợi ý: {duration}',
+  'sport.bookingCodeFact': 'Mã đặt sân',
+  'sport.totalDurationFact': 'Thời lượng',
+  'sport.savePlanning': 'Lưu lịch dự kiến',
+  'sport.slotsCount': '{count} suất',
 
-  'member.settings': 'Cài đặt chuyến đi', // REVIEW
-  'member.peopleCount': '{count} người', // REVIEW
-  'member.peopleEntry': '{count} người trong nhóm', // REVIEW
+  'member.settings': 'Cài đặt nhóm',
+  'member.peopleCount': '{count} người',
+  'member.peopleEntry': '{count} người trong nhóm',
 
-  'balance.owed': 'Bạn được nhận', // REVIEW
-  'balance.owe': 'Bạn cần trả', // REVIEW
-  'balance.oweName': 'Bạn cần trả {name}', // REVIEW
-  'balance.settled': 'Bạn đã thanh toán xong', // REVIEW
-  'balance.tripTotal': 'Tổng chuyến đi {total}', // REVIEW
-  'balance.received': 'đã nhận {amount}', // REVIEW
-  'balance.waitingFor': '{amount} đang chờ {name} xác nhận', // REVIEW
+  'balance.owed': 'Bạn được nhận',
+  'balance.owe': 'Bạn cần trả',
+  'balance.oweName': 'Bạn cần trả {name}',
+  'balance.settled': 'Bạn đã thanh toán xong',
+  'balance.tripTotal': 'Tổng chi {total}',
+  'balance.received': 'đã nhận {amount}',
+  'balance.waitingFor': '{amount} đang chờ {name} xác nhận',
 
-  'invite.button': 'Mời', // REVIEW
-  'invite.title': 'Mời bạn bè', // REVIEW
-  'invite.cardTitle': 'Mời nhóm của bạn', // REVIEW
-  'invite.cardBody': 'Gửi liên kết này vào nhóm chat. Bạn bè chọn tên của mình, không cần tài khoản.', // REVIEW
-  'invite.share': 'Chia sẻ', // REVIEW
-  'invite.shareText': 'Tham gia "{trip}" để chia tiền:', // REVIEW
+  'invite.button': 'Mời',
+  'invite.title': 'Mời bạn bè',
+  'invite.cardTitle': 'Mời nhóm của bạn',
+  'invite.cardBody': 'Gửi link này vào nhóm chat. Bạn bè chọn tên của mình, không cần tài khoản.',
+  'invite.share': 'Chia sẻ',
+  'invite.shareText': 'Tham gia nhóm "{trip}" để chia tiền:',
 
-  'share.inviteTitle': 'Tham gia nhóm {trip} trên CoinCrew', // REVIEW
-  'share.inviteDescription': 'Chia tiền nhóm, trả nhau bằng VietQR.', // REVIEW
-  'share.remindTitle': 'Nhắc thanh toán · {trip}', // REVIEW
-  'share.sportTitle': 'Hoá đơn {trip}', // REVIEW
-  'share.sportPlanningTitle': 'Lịch buổi chơi {trip}', // REVIEW
-  'share.requestDescription': 'Mở để xem số tiền và trả bằng VietQR.', // REVIEW
+  'share.inviteTitle': 'Tham gia nhóm {trip} trên CoinCrew',
+  'share.inviteDescription': 'Chia tiền nhóm, trả nhau bằng VietQR.',
+  'share.remindTitle': 'Nhắc thanh toán · {trip}',
+  'share.sportTitle': 'Hóa đơn {trip}',
+  'share.sportPlanningTitle': 'Lịch buổi chơi {trip}',
+  'share.requestDescription': 'Mở để xem số tiền cần trả và trả bằng VietQR.',
 
-  'expenses.emptyTitle': 'Thêm khoản chi đầu tiên', // REVIEW
-  'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.', // REVIEW
-  'expenses.emptyViewer': 'Chưa có khoản chi nào.', // REVIEW
+  'expenses.emptyTitle': 'Thêm khoản chi đầu tiên',
+  'expenses.emptyBody': 'Homestay, ăn uống, xăng xe: mọi thứ cả nhóm dùng chung.',
+  'expenses.emptyViewer': 'Chưa có khoản chi nào.',
 
-  'approvals.title': 'Cần duyệt', // REVIEW
-  'approvals.allTitle': 'Đang chờ duyệt', // REVIEW
-  'approvals.position': '{i} trên {n} đang chờ', // REVIEW
-  'approvals.previous': 'Trước', // REVIEW
-  'approvals.next': 'Tiếp', // REVIEW
-  'approvals.seeAll': 'Xem tất cả {n}', // REVIEW
-  'approvals.addedBy': '{name} đã thêm · {amount} · {split}', // REVIEW
-  'approvals.differentAmount': 'Số tiền nhận khác?', // REVIEW
-  'approvals.approve': 'Duyệt', // REVIEW
-  'approvals.edit': 'Chỉnh sửa', // REVIEW
-  'approvals.reject': 'Từ chối', // REVIEW
-  'approvals.rejectReason': 'Lý do từ chối?', // REVIEW
-  'approvals.name': '{name} muốn tham gia', // REVIEW
-  'approvals.looksLike': 'Có vẻ giống {name}', // REVIEW
-  'approvals.sameAs': 'Là {name}', // REVIEW
-  'approvals.bank': '{name} đã thêm thông tin ngân hàng', // REVIEW
-  'approvals.confirm': 'Xác nhận', // REVIEW
-  'approvals.didntArrive': 'Chưa nhận được', // REVIEW
-  'approvals.amountReceived': 'Số tiền nhận được', // REVIEW
-  'approvals.notArrived': '{name} báo chưa nhận được {amount} từ {payer}', // REVIEW
-  'approvals.disable': 'Vô hiệu hóa', // REVIEW
-  'approvals.keep': 'Giữ lại', // REVIEW
-  'approvals.membership': '{name} muốn trở thành thành viên', // REVIEW
-  'approvals.proposal': '{by} nói "{guest}" là {into}', // REVIEW
-  'proposal.waitingFor': 'Đang chờ {who}', // REVIEW
-  'proposal.theAdmin': 'quản trị {group}', // REVIEW
-  'proposal.and': '{a} và {b}', // REVIEW
-  'proposal.cancel': 'Huỷ yêu cầu', // REVIEW
-  'proposal.cancelled': 'Đã huỷ yêu cầu', // REVIEW
-  'proposal.declined': 'Yêu cầu gộp {guest} đã bị từ chối', // REVIEW
-  'proposal.isThisYou': '{by} nói đây là bạn', // REVIEW
-  'proposal.item': '"{guest}" trong {group}', // REVIEW
-  'proposal.accept': 'Đồng ý', // REVIEW
-  'proposal.decline': 'Từ chối', // REVIEW
-  'proposal.acceptAll': 'Đồng ý tất cả', // REVIEW
-  'proposal.accepted': 'Đã đồng ý', // REVIEW
-  'proposal.alreadySaid': '{by} đã nói đây là bạn', // REVIEW
-  'approvals.approveNameFirst': 'Duyệt {name} trước', // REVIEW
+  'approvals.title': 'Cần duyệt',
+  'approvals.allTitle': 'Đang chờ duyệt',
+  'approvals.position': '{i}/{n} đang chờ',
+  'approvals.previous': 'Trước',
+  'approvals.next': 'Tiếp',
+  'approvals.seeAll': 'Xem cả {n}',
+  'approvals.addedBy': '{name} đã thêm · {amount} · {split}',
+  'approvals.differentAmount': 'Nhận được số tiền khác?',
+  'approvals.approve': 'Duyệt',
+  'approvals.edit': 'Sửa',
+  'approvals.reject': 'Từ chối',
+  'approvals.rejectReason': 'Lý do từ chối?',
+  'approvals.name': '{name} muốn tham gia',
+  'approvals.looksLike': 'Có vẻ giống {name}',
+  'approvals.sameAs': 'Chính là {name}',
+  'approvals.bank': '{name} đã thêm thông tin ngân hàng',
+  'approvals.confirm': 'Xác nhận',
+  'approvals.didntArrive': 'Chưa nhận được',
+  'approvals.amountReceived': 'Số tiền nhận được',
+  'approvals.notArrived': '{name} báo chưa nhận được {amount} từ {payer}',
+  'approvals.disable': 'Tắt',
+  'approvals.keep': 'Giữ lại',
+  'approvals.membership': '{name} muốn trở thành thành viên',
+  'approvals.proposal': '{by} nói "{guest}" là {into}',
+  'proposal.waitingFor': 'Đang chờ {who}',
+  'proposal.theAdmin': 'quản trị viên {group}',
+  'proposal.and': '{a} và {b}',
+  'proposal.cancel': 'Hủy yêu cầu',
+  'proposal.cancelled': 'Đã hủy yêu cầu',
+  'proposal.declined': 'Yêu cầu gộp {guest} đã bị từ chối',
+  'proposal.isThisYou': '{by} nói đây là bạn',
+  'proposal.item': '"{guest}" trong {group}',
+  'proposal.accept': 'Đồng ý',
+  'proposal.decline': 'Từ chối',
+  'proposal.acceptAll': 'Đồng ý tất cả',
+  'proposal.accepted': 'Đã đồng ý',
+  'proposal.alreadySaid': '{by} đã nói đây là bạn',
+  'approvals.approveNameFirst': 'Duyệt {name} trước',
 
-  'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat.', // REVIEW
-  'whoPays.paid': 'Đã trả ✓', // REVIEW
+  'whoPays.remindCopied': 'Đã sao chép lời nhắc — dán vào nhóm chat nhé.',
+  'whoPays.paid': 'Đã trả ✓',
 
-  'transfers.mine': 'Khoản chuyển của bạn', // REVIEW
-  'transfers.all': 'Ai trả ai', // REVIEW
-  'transfers.showAll': 'Xem tất cả', // REVIEW
-  'transfers.showMine': 'Chỉ của tôi', // REVIEW
-  'transfers.addBank': 'Thêm thông tin ngân hàng để có mã QR', // REVIEW
-  'transfers.markReceived': 'Đánh dấu đã nhận {amount} từ {name}', // REVIEW
-  'transfers.markPaid': 'Đánh dấu đã trả {amount} cho {name}', // REVIEW
-  'transfers.received': 'Đã nhận', // REVIEW
-  'transfers.paid': 'Tôi đã trả', // REVIEW
-  'transfers.receivedSnack': '{name} đã trả {amount}', // REVIEW
-  'transfers.paidSnack': 'Bạn đã trả {name} {amount}', // REVIEW
-  'transfers.waitingFor': 'Đang chờ {name}', // REVIEW
-  'transfers.nothingDue': '{name} hiện không nợ bạn khoản nào.', // REVIEW
-  'transfers.alreadySettled': 'Khoản này đã được ghi nhận. Danh sách đã được cập nhật.', // REVIEW
-  'payments.title': 'Các khoản đã trả', // REVIEW
-  'payments.disable': 'Tắt', // REVIEW
-  'payments.enable': 'Bật lại', // REVIEW
-  'payments.reported': 'Đã báo. Một thành viên sẽ kiểm tra.', // REVIEW
-  'payments.notArrivedPill': 'Chưa nhận được', // REVIEW
-  'remind.text': 'Chào {name}! Bạn còn {amount} cần trả {creditor} cho chuyến "{trip}". Xem chi tiết và chuyển khoản bằng VietQR: {link}', // REVIEW
+  'transfers.mine': 'Các khoản chuyển của bạn',
+  'transfers.all': 'Ai trả ai',
+  'transfers.showAll': 'Xem tất cả',
+  'transfers.showMine': 'Chỉ của tôi',
+  'transfers.addBank': 'Thêm thông tin ngân hàng để có mã QR',
+  'transfers.markReceived': 'Đánh dấu đã nhận {amount} từ {name}',
+  'transfers.markPaid': 'Đánh dấu đã trả {amount} cho {name}',
+  'transfers.received': 'Đã nhận',
+  'transfers.paid': 'Tôi đã trả',
+  'transfers.receivedSnack': '{name} đã trả {amount}',
+  'transfers.paidSnack': 'Bạn đã trả {name} {amount}',
+  'transfers.waitingFor': 'Đang chờ {name}',
+  'transfers.nothingDue': '{name} hiện không nợ bạn khoản nào.',
+  'transfers.alreadySettled': 'Khoản này đã được ghi nhận. Danh sách đã cập nhật.',
+  'payments.title': 'Các khoản đã trả',
+  'payments.disable': 'Tắt',
+  'payments.enable': 'Bật lại',
+  'payments.reported': 'Đã báo. Một thành viên sẽ kiểm tra.',
+  'payments.notArrivedPill': 'Chưa nhận được',
+  'remind.text': 'Chào {name}! Bạn còn {amount} cần trả cho {creditor} trong nhóm "{trip}". Xem chi tiết và chuyển khoản bằng VietQR tại đây nhé: {link}',
 
-  'expenses.disable': 'Vô hiệu hóa', // REVIEW
-  'expenses.enable': 'Kích hoạt lại', // REVIEW
+  'expenses.disable': 'Tắt',
+  'expenses.enable': 'Bật lại',
 
-  'share.groupLink': 'Liên kết nhóm', // REVIEW
-  'share.groupHint': 'Gửi vào nhóm chat của bạn. Bạn bè chọn tên của mình — không cần tài khoản.', // REVIEW
-  'share.viewLink': 'Liên kết chỉ xem', // REVIEW
-  'share.viewHint': 'Những người có liên kết này có thể xem nhưng không thể thay đổi.', // REVIEW
-  'share.copy': 'Sao chép', // REVIEW
-  'share.copied': 'Đã sao chép', // REVIEW
-  'share.imageTitle': 'Lưu ảnh', // REVIEW
-  'share.longPress': 'Nhấn giữ ảnh (2 giây) để Lưu về máy hoặc Chia sẻ ngay vào nhóm Zalo', // REVIEW
-  'share.messageCopied': 'Đã sao chép tin nhắn — dán vào nhóm Zalo', // REVIEW
-  'share.copyMessage': 'Sao chép tin nhắn', // REVIEW
-  'share.openInBrowser': 'Không lưu được? Nhấn ⋯ → Mở bằng trình duyệt', // REVIEW
-  'share.imageFailed': 'Không tạo được ảnh.', // REVIEW
-  'share.regenerate': 'Tạo liên kết mới', // REVIEW
-  'share.regenerateConfirm': 'Liên kết cũ sẽ ngừng hoạt động. Tạo liên kết mới?', // REVIEW
+  'share.groupLink': 'Link nhóm',
+  'share.groupHint': 'Gửi vào nhóm chat của bạn. Bạn bè chọn tên của mình — không cần tài khoản.',
+  'share.viewLink': 'Link chỉ xem',
+  'share.viewHint': 'Ai có link này đều xem được, nhưng không sửa được gì.',
+  'share.copy': 'Sao chép',
+  'share.copied': 'Đã sao chép',
+  'share.imageTitle': 'Lưu ảnh',
+  'share.longPress': 'Nhấn giữ ảnh (2 giây) để lưu về máy hoặc chia sẻ thẳng vào nhóm Zalo',
+  'share.messageCopied': 'Đã sao chép tin nhắn — dán vào nhóm Zalo',
+  'share.copyMessage': 'Sao chép tin nhắn',
+  'share.openInBrowser': 'Không lưu được? Nhấn ⋯ → Mở bằng trình duyệt',
+  'share.imageFailed': 'Không tạo được ảnh.',
+  'share.regenerate': 'Tạo link mới',
+  'share.regenerateConfirm': 'Link cũ sẽ không dùng được nữa. Tạo link mới?',
 
-  'settings.title': 'Cài đặt nhóm', // REVIEW
-  'settings.people': 'Thành viên', // REVIEW
-  'settings.activity': 'Hoạt động', // REVIEW
-  'settings.archive': 'Lưu trữ nhóm', // REVIEW
-  'settings.archiveConfirm': 'Không ai có thể thay đổi chuyến đi này cho đến khi bạn bỏ lưu trữ. Lưu trữ?', // REVIEW
-  'settings.archived': 'Chuyến đi này đã được lưu trữ. Bạn vẫn có thể xem.', // REVIEW
-  'settings.unarchive': 'Bỏ lưu trữ nhóm', // REVIEW
-  'settings.unarchiveHint': 'Mọi người có thể thay đổi trở lại.', // REVIEW
-  'settings.bank': 'Thông tin ngân hàng của bạn', // REVIEW
-  'settings.language': 'Ngôn ngữ', // REVIEW
-  'settings.dangerZone': 'Vùng nguy hiểm', // REVIEW
-  'settings.archiveHint': 'Không ai có thể thay đổi chuyến đi đã lưu trữ cho đến khi người tổ chức bỏ lưu trữ.', // REVIEW
-  'settings.leave': 'Rời nhóm', // REVIEW
-  'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.', // REVIEW
-  'settings.leaveConfirm': 'Rời {group}?', // REVIEW
+  'settings.title': 'Cài đặt nhóm',
+  'settings.people': 'Thành viên',
+  'settings.activity': 'Hoạt động',
+  'settings.archive': 'Lưu trữ nhóm',
+  'settings.archiveConfirm': 'Sẽ không ai thay đổi được nhóm này cho đến khi bạn bỏ lưu trữ. Lưu trữ nhóm?',
+  'settings.archived': 'Nhóm này đã được lưu trữ. Bạn vẫn có thể xem.',
+  'settings.unarchive': 'Bỏ lưu trữ nhóm',
+  'settings.unarchiveHint': 'Mọi người lại có thể thay đổi.',
+  'settings.bank': 'Thông tin ngân hàng của bạn',
+  'settings.language': 'Ngôn ngữ',
+  'settings.dangerZone': 'Vùng nguy hiểm',
+  'settings.archiveHint': 'Không ai thay đổi được nhóm đã lưu trữ cho đến khi trưởng nhóm bỏ lưu trữ.',
+  'settings.leave': 'Rời nhóm',
+  'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.',
+  'settings.leaveConfirm': 'Rời {group}?',
 
-  'people.title': 'Thành viên', // REVIEW
-  'people.organiser': 'Trưởng nhóm', // REVIEW
-  'people.admin': 'Quản trị viên', // REVIEW
-  'people.adminBadge': 'Quản trị viên', // REVIEW
-  'people.makeAdmin': 'Chỉ định quản trị viên', // REVIEW
-  'people.member': 'Thành viên', // REVIEW
-  'people.guest': 'Khách', // REVIEW
-  'people.merge': 'Hợp nhất', // REVIEW
-  'people.mergeInto': 'Hợp nhất {name} vào…', // REVIEW
-  'people.mergeConfirm': 'Chuyển toàn bộ khoản chi và thanh toán từ {from} sang {into}?', // REVIEW
-  'people.likeHint': 'Giống {name}?', // REVIEW
-  'people.likeMerge': 'Gộp', // REVIEW
-  'people.likeDismiss': 'Không phải cùng một người', // REVIEW
-  'people.addFailed': 'Không thêm được {names}.', // REVIEW
-  'people.mergeExplain': 'Hợp nhất sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, xử lý các trường hợp trùng lặp.', // REVIEW
-  'people.inviteZalo': 'Mời bạn bè Zalo', // REVIEW
-  'people.inviteLinks': 'Liên kết nhóm', // REVIEW
-  'people.remove': 'Xóa', // REVIEW
-  'people.useMerge': 'Dùng hợp nhất thay thế', // REVIEW
-  'people.removeConfirm': 'Xóa {name} khỏi nhóm? Các khoản chi và thanh toán trước đây vẫn được giữ.', // REVIEW
-  'people.cannotRemove': 'Bạn không thể xóa người này.', // REVIEW
-  'people.leftTitle': 'Đã rời nhóm', // REVIEW
-  'people.leftBadge': 'Đã rời', // REVIEW
-  'people.leftOwes': 'Còn nợ {amount}', // REVIEW
-  'people.leftOwed': 'Cần nhận {amount}', // REVIEW
-  'people.leftSettled': 'Đã thanh toán xong', // REVIEW
-  'people.restore': 'Thêm lại', // REVIEW
+  'people.title': 'Thành viên',
+  'people.organiser': 'Trưởng nhóm',
+  'people.admin': 'Quản trị viên',
+  'people.adminBadge': 'Quản trị viên',
+  'people.makeAdmin': 'Đặt làm quản trị viên',
+  'people.member': 'Thành viên',
+  'people.guest': 'Khách',
+  'people.merge': 'Gộp',
+  'people.mergeInto': 'Gộp {name} vào…',
+  'people.mergeConfirm': 'Chuyển toàn bộ khoản chi và thanh toán của {from} sang {into}?',
+  'people.likeHint': 'Giống {name}?',
+  'people.likeMerge': 'Gộp',
+  'people.likeDismiss': 'Không phải cùng một người',
+  'people.addFailed': 'Chưa thêm được {names}.',
+  'people.mergeExplain': 'Gộp sẽ chuyển mọi khoản chi và thanh toán từ tên này sang tên khác, dùng khi lỡ có tên bị trùng.',
+  'people.inviteZalo': 'Mời bạn bè Zalo',
+  'people.inviteLinks': 'Link nhóm',
+  'people.remove': 'Xóa',
+  'people.useMerge': 'Dùng Gộp thay vì xóa',
+  'people.removeConfirm': 'Xóa {name} khỏi nhóm? Các khoản chi và thanh toán trước đây vẫn được giữ.',
+  'people.cannotRemove': 'Bạn không thể xóa người này.',
+  'people.leftTitle': 'Đã rời nhóm',
+  'people.leftBadge': 'Đã rời',
+  'people.leftOwes': 'Còn nợ {amount}',
+  'people.leftOwed': 'Được nhận {amount}',
+  'people.leftSettled': 'Đã thanh toán xong',
+  'people.restore': 'Thêm lại',
 
-  'activity.title': 'Hoạt động', // REVIEW
-  'activity.empty': 'Chưa có hoạt động nào.', // REVIEW
-  'activity.loadMore': 'Xem thêm', // REVIEW
-  'activity.someone': 'Ai đó', // REVIEW
-  'activity.line': '{actor} {action}', // REVIEW
-  'activity.today': 'Hôm nay', // REVIEW
-  'activity.yesterday': 'Hôm qua', // REVIEW
-  'activity.device': 'thiết bị', // REVIEW
-  'activity.expenseAdded': '{actor} đã thêm {description} · {amount}', // REVIEW
-  'activity.expenseEdited': '{actor} đã sửa {description} · {amount}', // REVIEW
-  'activity.expenseApproved': '{actor} đã duyệt {description}', // REVIEW
-  'activity.expenseRejected': '{actor} đã từ chối {description}', // REVIEW
-  'activity.paymentRecorded': '{from} đã trả {to} {amount}', // REVIEW
-  'activity.paymentConfirmed': '{actor} đã xác nhận một khoản thanh toán · {amount}', // REVIEW
-  'activity.nameAdded': '{actor} đã thêm {name}', // REVIEW
-  'activity.nameApproved': '{actor} đã duyệt {name}', // REVIEW
-  'activity.nameMerged': '{actor} đã hợp nhất {from} vào {into}', // REVIEW
-  'activity.personRemoved': '{actor} đã xóa {name}', // REVIEW
-  'activity.personRestored': '{actor} đã thêm lại {name}', // REVIEW
-  'activity.personUnlinked': '{actor} đã tách {name} ra', // REVIEW
-  'activity.action.trip_created': 'đã tạo chuyến đi', // REVIEW
-  'activity.action.expense_added': 'đã thêm khoản chi', // REVIEW
-  'activity.action.expense_edited': 'đã sửa khoản chi', // REVIEW
-  'activity.action.expense_deleted': 'đã xóa khoản chi', // REVIEW
-  'activity.action.expense_approved': 'đã duyệt khoản chi', // REVIEW
-  'activity.action.expense_rejected': 'đã từ chối khoản chi', // REVIEW
-  'activity.action.expense_disabled': 'đã vô hiệu hóa khoản chi', // REVIEW
-  'activity.action.expense_enabled': 'đã kích hoạt lại khoản chi', // REVIEW
-  'activity.action.name_added': 'đã thêm tên', // REVIEW
-  'activity.action.name_approved': 'đã duyệt tên mới', // REVIEW
-  'activity.action.name_merged': 'đã hợp nhất hai tên', // REVIEW
-  'activity.action.person_removed': 'đã xóa một người', // REVIEW
-  'activity.action.person_left': 'đã rời nhóm', // REVIEW
-  'activity.action.person_restored': 'đã thêm lại một người', // REVIEW
-  'activity.action.person_unlinked': 'đã tách một người ra', // REVIEW
-  'activity.action.member_joined': 'đã tham gia', // REVIEW
-  'activity.action.member_rejoined': 'đã vào lại', // REVIEW
-  'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng', // REVIEW
-  'activity.action.bank_approved': 'đã duyệt thông tin ngân hàng', // REVIEW
-  'activity.action.bank_rejected': 'đã từ chối thông tin ngân hàng', // REVIEW
-  'activity.action.payment_recorded': 'đã ghi nhận thanh toán', // REVIEW
-  'activity.action.payment_confirmed': 'đã xác nhận thanh toán', // REVIEW
-  'activity.action.payment_not_arrived': 'báo chưa nhận được tiền', // REVIEW
-  'activity.action.payment_disabled': 'đã vô hiệu hóa thanh toán', // REVIEW
-  'activity.action.payment_enabled': 'đã kích hoạt lại thanh toán', // REVIEW
-  'activity.action.links_regenerated': 'đã tạo lại liên kết', // REVIEW
-  'activity.action.trip_archived': 'đã lưu trữ chuyến đi', // REVIEW
-  'activity.action.trip_unarchived': 'đã bỏ lưu trữ chuyến đi', // REVIEW
-  'activity.action.fewest_changed': 'đã thay đổi cài đặt ít lần chuyển khoản nhất', // REVIEW
-  'activity.action.round_transfers_changed': 'đã thay đổi làm tròn số tiền trả', // REVIEW
-  'activity.action.membership_requested': 'đã yêu cầu trở thành thành viên', // REVIEW
-  'activity.action.membership_approved': 'đã duyệt thành viên mới', // REVIEW
-  'activity.action.membership_rejected': 'đã từ chối thành viên mới', // REVIEW
-  'activity.action.merge_proposed': 'đã đề nghị gộp hai tên', // REVIEW
-  'activity.action.merge_proposal_accepted': 'đã đồng ý yêu cầu gộp tên', // REVIEW
-  'activity.action.merge_proposal_declined': 'đã từ chối yêu cầu gộp tên', // REVIEW
+  'activity.title': 'Hoạt động',
+  'activity.empty': 'Chưa có hoạt động nào.',
+  'activity.loadMore': 'Xem thêm',
+  'activity.someone': 'Ai đó',
+  'activity.line': '{actor} {action}',
+  'activity.today': 'Hôm nay',
+  'activity.yesterday': 'Hôm qua',
+  'activity.device': 'thiết bị',
+  'activity.expenseAdded': '{actor} đã thêm {description} · {amount}',
+  'activity.expenseEdited': '{actor} đã sửa {description} · {amount}',
+  'activity.expenseApproved': '{actor} đã duyệt {description}',
+  'activity.expenseRejected': '{actor} đã từ chối {description}',
+  'activity.paymentRecorded': '{from} đã trả {to} {amount}',
+  'activity.paymentConfirmed': '{actor} đã xác nhận một khoản thanh toán · {amount}',
+  'activity.nameAdded': '{actor} đã thêm {name}',
+  'activity.nameApproved': '{actor} đã duyệt {name}',
+  'activity.nameMerged': '{actor} đã gộp {from} vào {into}',
+  'activity.personRemoved': '{actor} đã xóa {name}',
+  'activity.personRestored': '{actor} đã thêm lại {name}',
+  'activity.personUnlinked': '{actor} đã tách {name} ra',
+  'activity.action.trip_created': 'đã tạo nhóm',
+  'activity.action.expense_added': 'đã thêm một khoản chi',
+  'activity.action.expense_edited': 'đã sửa một khoản chi',
+  'activity.action.expense_deleted': 'đã xóa một khoản chi',
+  'activity.action.expense_approved': 'đã duyệt một khoản chi',
+  'activity.action.expense_rejected': 'đã từ chối một khoản chi',
+  'activity.action.expense_disabled': 'đã tắt một khoản chi',
+  'activity.action.expense_enabled': 'đã bật lại một khoản chi',
+  'activity.action.name_added': 'đã thêm một tên',
+  'activity.action.name_approved': 'đã duyệt một tên mới',
+  'activity.action.name_merged': 'đã gộp hai tên',
+  'activity.action.person_removed': 'đã xóa một người',
+  'activity.action.person_left': 'đã rời nhóm',
+  'activity.action.person_restored': 'đã thêm lại một người',
+  'activity.action.person_unlinked': 'đã tách một người ra',
+  'activity.action.member_joined': 'đã tham gia',
+  'activity.action.member_rejoined': 'đã vào lại',
+  'activity.action.bank_submitted': 'đã thêm thông tin ngân hàng',
+  'activity.action.bank_approved': 'đã duyệt thông tin ngân hàng',
+  'activity.action.bank_rejected': 'đã từ chối thông tin ngân hàng',
+  'activity.action.payment_recorded': 'đã ghi nhận một khoản thanh toán',
+  'activity.action.payment_confirmed': 'đã xác nhận một khoản thanh toán',
+  'activity.action.payment_not_arrived': 'báo chưa nhận được tiền',
+  'activity.action.payment_disabled': 'đã tắt một khoản thanh toán',
+  'activity.action.payment_enabled': 'đã bật lại một khoản thanh toán',
+  'activity.action.links_regenerated': 'đã tạo link mới',
+  'activity.action.trip_archived': 'đã lưu trữ nhóm',
+  'activity.action.trip_unarchived': 'đã bỏ lưu trữ nhóm',
+  'activity.action.fewest_changed': 'đã đổi cài đặt Ít lần chuyển khoản nhất',
+  'activity.action.round_transfers_changed': 'đã đổi cài đặt làm tròn số tiền chuyển khoản',
+  'activity.action.membership_requested': 'đã xin trở thành thành viên',
+  'activity.action.membership_approved': 'đã duyệt một thành viên mới',
+  'activity.action.membership_rejected': 'đã từ chối một thành viên mới',
+  'activity.action.merge_proposed': 'đã đề nghị gộp hai tên',
+  'activity.action.merge_proposal_accepted': 'đã đồng ý một yêu cầu gộp tên',
+  'activity.action.merge_proposal_declined': 'đã từ chối một yêu cầu gộp tên',
 
-  'pay.title': 'Thanh toán cho {name}', // REVIEW
-  'pay.toLine': 'đến {holder} · {bank}', // REVIEW
-  'pay.iPaid': 'Tôi đã chuyển', // REVIEW
-  'pay.iPaidHint': 'Chạm sau khi tiền đã rời khỏi tài khoản của bạn.', // REVIEW
-  'pay.sentTitle': 'Đã gửi thanh toán · {amount}', // REVIEW
-  'pay.sentBody': 'Đang chờ {name} xác nhận đã nhận được. Trang này sẽ tự động cập nhật.', // REVIEW
-  'pay.mistake': 'Chuyển nhầm? Nhờ {name} chạm "Chưa nhận được".', // REVIEW
-  'pay.paidTitle': 'Đã trả · {amount} cho {name}', // REVIEW
-  'pay.paidBody': 'Được tính ngay.', // REVIEW
-  'pay.stillOwed': 'Còn nợ {amount}', // REVIEW
-  'pay.showQrRest': 'Hiện mã QR cho phần còn lại', // REVIEW
-  'pay.bankAskThem': 'Nhờ họ thêm thông tin, rồi quay lại đây.', // REVIEW
-  'pay.scanWithPhone': 'Quét mã QR bằng ứng dụng ngân hàng trên điện thoại của bạn.', // REVIEW
-  'pay.account': 'Số tài khoản', // REVIEW
-  'pay.note': 'Nội dung chuyển khoản', // REVIEW
-  'pay.copyAccount': 'Sao chép số tài khoản', // REVIEW
-  'pay.copyNote': 'Sao chép nội dung', // REVIEW
-  'pay.copied': 'Đã sao chép', // REVIEW
-  'pay.qrAlt': 'Mã VietQR thanh toán cho {name} {amount}', // REVIEW
-  'pay.tapToCheck': 'Chạm để kiểm tra lại', // REVIEW
-  'pay.waitingConfirm': 'Đang chờ {name} xác nhận', // REVIEW
-  'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.', // REVIEW
-  'pay.remindThem': 'Nhắc {name}', // REVIEW
-  'pay.share': 'Chia sẻ', // REVIEW
-  'pay.shareSaved': 'Đã lưu mã QR và sao chép lời nhắn.', // REVIEW
-  'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.', // REVIEW
-  'pay.remindBankText': 'Chào {name}! Nhớ thêm thông tin ngân hàng trong "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}', // REVIEW
-  'pay.savedToGallery': 'Đã lưu ảnh QR vào thư viện ảnh', // REVIEW
-  'pay.handoffTitle': 'Thanh toán bằng {app}', // REVIEW
-  'pay.saving': 'Đang lưu mã QR…', // REVIEW
-  'pay.savingIos': 'Chọn "Lưu hình ảnh"', // REVIEW
-  'pay.savedStep': 'Đã lưu mã QR', // REVIEW
-  'pay.saveStep': 'Lưu mã QR', // REVIEW
-  'pay.saveAction': 'Lưu', // REVIEW
-  'pay.opening': 'Đang mở {app}…', // REVIEW
-  'pay.openedStep': 'Đã mở {app}', // REVIEW
-  'pay.openStep': 'Mở {app}', // REVIEW
-  'pay.openAction': 'Mở', // REVIEW
-  'pay.notOpened': 'Chưa mở được?', // REVIEW
-  'pay.openManually': 'Tự mở {app}, rồi Quét QR → tải ảnh lên', // REVIEW
-  'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"', // REVIEW
-  'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.', // REVIEW
+  'pay.title': 'Trả cho {name}',
+  'pay.toLine': 'cho {holder} · {bank}',
+  'pay.iPaid': 'Tôi đã trả',
+  'pay.iPaidHint': 'Nhấn sau khi bạn đã chuyển tiền xong.',
+  'pay.sentTitle': 'Đã chuyển · {amount}',
+  'pay.sentBody': 'Đang chờ {name} xác nhận đã nhận tiền. Trang này sẽ tự cập nhật.',
+  'pay.mistake': 'Trả nhầm? Nhờ {name} nhấn "Chưa nhận được".',
+  'pay.paidTitle': 'Đã trả · {amount} cho {name}',
+  'pay.paidBody': 'Đã được tính ngay.',
+  'pay.stillOwed': 'Còn thiếu {amount}',
+  'pay.showQrRest': 'Hiện mã QR cho phần còn lại',
+  'pay.bankAskThem': 'Nhờ họ thêm thông tin ngân hàng, rồi quay lại đây.',
+  'pay.scanWithPhone': 'Quét mã QR bằng ứng dụng ngân hàng trên điện thoại của bạn.',
+  'pay.account': 'Số tài khoản',
+  'pay.note': 'Nội dung chuyển khoản',
+  'pay.copyAccount': 'Sao chép số tài khoản',
+  'pay.copyNote': 'Sao chép nội dung',
+  'pay.copied': 'Đã sao chép',
+  'pay.qrAlt': 'Mã VietQR để trả {name} {amount}',
+  'pay.tapToCheck': 'Nhấn để kiểm tra lại',
+  'pay.waitingConfirm': 'Đang chờ {name} xác nhận',
+  'pay.nothingOwed': 'Hiện tại bạn không nợ {name} khoản nào.',
+  'pay.remindThem': 'Nhắc {name}',
+  'pay.share': 'Chia sẻ',
+  'pay.shareSaved': 'Đã lưu mã QR và sao chép tin nhắn.',
+  'pay.shareFailed': 'Không chia sẻ được. Hãy thử Lưu mã QR.',
+  'pay.remindBankText': 'Chào {name}! Bạn nhớ thêm thông tin ngân hàng trong nhóm "{trip}" để mình chuyển khoản trả bạn qua VietQR nhé: {link}',
+  'pay.savedToGallery': 'Đã lưu mã QR vào thư viện ảnh',
+  'pay.handoffTitle': 'Thanh toán bằng {app}',
+  'pay.saving': 'Đang lưu mã QR…',
+  'pay.savingIos': 'Chọn "Lưu hình ảnh"',
+  'pay.savedStep': 'Đã lưu mã QR',
+  'pay.saveStep': 'Lưu mã QR',
+  'pay.saveAction': 'Lưu',
+  'pay.opening': 'Đang mở {app}…',
+  'pay.openedStep': 'Đã mở {app}',
+  'pay.openStep': 'Mở {app}',
+  'pay.openAction': 'Mở',
+  'pay.notOpened': 'Không mở được?',
+  'pay.openManually': 'Tự mở {app}, rồi chọn Quét QR → tải ảnh lên',
+  'pay.zaloAsks': 'Zalo sẽ hỏi: chọn "Tiếp tục"',
+  'pay.handoffTip': 'Trong {app}: Quét QR → tải ảnh lên → chọn mã QR vừa lưu.',
 
-  'expensePay.title': 'Trả cho {name}', // REVIEW
-  'expensePay.rowLabel': 'Phần của {name}', // REVIEW
-  'expensePay.allPaid': 'Đã trả đủ ✓', // REVIEW
-  'expensePay.friendOf': 'Bạn của {name}', // REVIEW
-  'expensePay.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
-  'expensePay.paidLine': '{who} đã trả {amount}', // REVIEW
-  'expensePay.notReceived': '{payer} chưa nhận được {amount}', // REVIEW
-  'expensePay.viewBill': 'Xem bill', // REVIEW
-  'expensePay.billTitle': 'Bill', // REVIEW
-  'expensePay.nothingHere': 'Bill này không có phần của {name}', // REVIEW
+  'expensePay.title': 'Trả cho {name}',
+  'expensePay.rowLabel': 'Phần của {name}',
+  'expensePay.allPaid': 'Đã trả đủ ✓',
+  'expensePay.friendOf': 'Bạn của {name}',
+  'expensePay.nameOrFriend': '{name} (hoặc bạn của {name})',
+  'expensePay.paidLine': '{who} đã trả {amount}',
+  'expensePay.notReceived': '{payer} chưa nhận được {amount}',
+  'expensePay.viewBill': 'Xem bill',
+  'expensePay.billTitle': 'Bill',
+  'expensePay.nothingHere': 'Bill này không có phần nào của {name}',
 
-  'owe.title': '{name} ơi, bạn cần trả', // REVIEW
-  'owe.pay': 'Trả cho {name}', // REVIEW
-  'owe.allSet': 'Bạn đã xong hết', // REVIEW
-  'owe.allSetBody': 'Bạn không nợ ai trong {trip}.', // REVIEW
-  'owe.waiting': 'Đang chờ {name} xác nhận', // REVIEW
-  'owe.seeGroup': 'Xem nhóm', // REVIEW
+  'owe.title': '{name} ơi, bạn cần trả',
+  'owe.pay': 'Trả cho {name}',
+  'owe.allSet': 'Bạn đã trả xong hết',
+  'owe.allSetBody': 'Bạn không nợ ai trong {trip}.',
+  'owe.waiting': 'Đang chờ {name} xác nhận',
+  'owe.seeGroup': 'Xem nhóm',
 
-  'bankFirst.title': 'Thêm thông tin ngân hàng trước?', // REVIEW
-  'bankFirst.body': 'Bạn bè mở link này chỉ thấy mã QR để trả bạn sau khi bạn thêm thông tin ngân hàng.', // REVIEW
-  'bankFirst.add': 'Thêm thông tin ngân hàng', // REVIEW
-  'bankFirst.anyway': 'Vẫn chia sẻ', // REVIEW
+  'bankFirst.title': 'Thêm thông tin ngân hàng trước?',
+  'bankFirst.body': 'Bạn bè mở link này chỉ thấy mã QR để trả bạn khi bạn đã thêm thông tin ngân hàng.',
+  'bankFirst.add': 'Thêm thông tin ngân hàng',
+  'bankFirst.anyway': 'Vẫn chia sẻ',
 
-  'whoPaid.title': 'Bạn trả cho ai?', // REVIEW
-  'whoPaid.wholeRow': 'Cả phần của {name} · {amount}', // REVIEW
-  'whoPaid.mySlot': 'Chỉ phần của tôi · {amount}', // REVIEW
-  'whoPaid.other': 'Số khác', // REVIEW
-  'whoPaid.otherConfirm': 'Đã trả {amount}', // REVIEW
-  'whoPaid.tooMuch': 'Tối đa {amount}', // REVIEW
+  'whoPaid.title': 'Bạn trả phần của ai?',
+  'whoPaid.wholeRow': 'Cả phần của {name} · {amount}',
+  'whoPaid.mySlot': 'Chỉ phần của tôi · {amount}',
+  'whoPaid.other': 'Số khác',
+  'whoPaid.otherConfirm': 'Đã trả {amount}',
+  'whoPaid.tooMuch': 'Tối đa {amount}',
 
-  'bankForm.title': 'Thông tin ngân hàng của bạn', // REVIEW
-  'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.', // REVIEW
-  'bankForm.memberNote': 'Đã lưu vào hồ sơ của bạn và được dùng trong tất cả chuyến đi.', // REVIEW
-  'bankForm.save': 'Lưu thông tin ngân hàng', // REVIEW
-  'bankForm.saved': 'Đã lưu', // REVIEW
-  'bankForm.pending': 'Đang chờ một thành viên duyệt thông tin ngân hàng của bạn.', // REVIEW
-  'bankForm.consentLabel': 'Tôi đồng ý với {link}', // REVIEW
-  'bankForm.privacyLink': 'thông báo quyền riêng tư', // REVIEW
-  'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.', // REVIEW
+  'bankForm.title': 'Thông tin ngân hàng của bạn',
+  'bankForm.guestNote': 'Một thành viên sẽ duyệt thông tin ngân hàng mới trước khi người khác có thể chuyển khoản cho bạn.',
+  'bankForm.memberNote': 'Đã lưu vào hồ sơ của bạn và dùng cho tất cả các nhóm.',
+  'bankForm.save': 'Lưu thông tin ngân hàng',
+  'bankForm.saved': 'Đã lưu',
+  'bankForm.pending': 'Đang chờ một thành viên duyệt thông tin ngân hàng của bạn.',
+  'bankForm.consentLabel': 'Tôi đồng ý với {link}',
+  'bankForm.privacyLink': 'thông báo quyền riêng tư',
+  'bankForm.addPrompt': 'Thêm thông tin ngân hàng để bạn bè có thể chuyển khoản trả bạn qua VietQR.',
 
-  'rows.swipeHint': 'Vuốt trái hoặc chạm vào dòng để xem tùy chọn', // REVIEW
+  'rows.swipeHint': 'Vuốt sang trái hoặc nhấn vào dòng để xem thêm tùy chọn',
 
-  'details.expense': 'Khoản chi', // REVIEW
-  'details.payment': 'Khoản chuyển', // REVIEW
-  'details.date': 'Ngày', // REVIEW
-  'details.paidBy': 'Người trả', // REVIEW
-  'details.addedBy': 'Người thêm', // REVIEW
-  'details.split': 'Cách chia', // REVIEW
-  'details.you': '{name} (bạn)', // REVIEW
-  'details.amountClaimed': 'Số tiền đã gửi', // REVIEW
-  'details.amountConfirmed': 'Số tiền đã nhận', // REVIEW
-  'details.recorded': 'Ghi lúc', // REVIEW
-  'details.gone': 'Mục này không còn trong chuyến đi.', // REVIEW
-  'details.backToTrip': 'Về chuyến đi', // REVIEW
-  'status.approved': 'Đã duyệt', // REVIEW
-  'who.guestLine': 'Bạn vào với tư cách khách: những gì bạn thêm cần thành viên duyệt.', // REVIEW
-  'signIn.zalo': 'Đăng nhập bằng Zalo', // REVIEW
-  'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.', // REVIEW
-  'signIn.zaloContinue': 'Tiếp tục với tài khoản Zalo', // REVIEW
-  'signIn.zaloDeclined': 'Cần tên và ảnh Zalo để tạo tài khoản', // REVIEW
-  'signIn.zaloGoogleWarning': 'Đã dùng CoinCrew bằng Google? Hãy liên kết Zalo trên web trước', // REVIEW
-  'guest.becomeMemberZalo': 'Đăng nhập bằng Zalo để trở thành thành viên', // REVIEW
-  'who.guestSignInZalo': 'Đăng nhập bằng Zalo để dùng đầy đủ', // REVIEW
-  'who.nameMatch': 'Có phải bạn là {name}? Đã chọn sẵn theo tên tài khoản của bạn.', // REVIEW
-  'who.zaloMatch': 'Bạn là {name} phải không?', // REVIEW
-  'who.zaloMatchContinue': 'Tiếp tục với tên {name}', // REVIEW
-  'who.signInTitle': 'Đăng nhập', // REVIEW
-  'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ', // REVIEW
-  'myBank.title': 'Thông tin ngân hàng của bạn', // REVIEW
-  'myBank.none': 'Chưa có thông tin ngân hàng', // REVIEW
-  'myBank.add': 'Thêm', // REVIEW
-  'myBank.pending': 'Đang chờ thành viên duyệt', // REVIEW
-  'myBank.change': 'Đổi', // REVIEW
-  'myBank.locked': 'Chỉ thành viên mới đổi được', // REVIEW
-  'myBank.namePending': 'Bạn có thể thêm sau khi thành viên duyệt tên của bạn.', // REVIEW
-  'guestBank.title': 'Thông tin ngân hàng của {name}', // REVIEW
-  'guestBank.pending': 'Đang chờ thành viên duyệt.', // REVIEW
-  'guestBank.note': 'Thông tin bạn lưu được dùng ngay. Chỉ nhập thông tin do {name} đưa cho bạn.', // REVIEW
-  'guestBank.consent': '{name} đã đồng ý chia sẻ thông tin này. Xem {link}', // REVIEW
-  'guestBank.change': 'Đổi', // REVIEW
-  'guestBank.delete': 'Xóa', // REVIEW
-  'guestBank.deleteConfirm': 'Xóa thông tin ngân hàng của {name}? Sẽ không ai chuyển cho {name} bằng mã QR được cho đến khi có thông tin mới.', // REVIEW
-  'guestBank.deleted': 'Đã xóa', // REVIEW
-  'people.bank': 'Thông tin ngân hàng', // REVIEW
-  'people.bankNone': 'Chưa có thông tin ngân hàng', // REVIEW
-  'people.bankPending': 'Thông tin ngân hàng đang chờ duyệt', // REVIEW
-  'people.bankWaitingSuffix': 'đang chờ duyệt', // REVIEW
-  'transfers.addFor': 'Thêm thông tin ngân hàng cho {name}', // REVIEW
-  'activity.bankSet': '{actor} đã lưu thông tin ngân hàng của {name}', // REVIEW
-  'activity.bankRemoved': '{actor} đã xóa thông tin ngân hàng của {name}', // REVIEW
-  'activity.action.bank_set': 'đã lưu thông tin ngân hàng', // REVIEW
-  'activity.action.bank_removed': 'đã xóa thông tin ngân hàng', // REVIEW
-  'payments.mine': 'Khoản đã trả của bạn', // REVIEW
-  'payments.all': 'Tất cả khoản đã trả', // REVIEW
-  'payments.emptyMine': 'Chưa có khoản đã trả nào liên quan đến bạn.', // REVIEW
-  'payments.throughPeople': 'Đã cấn trừ qua tổng trong mục Mọi người', // REVIEW
-  'payments.arrived': 'Đã nhận được', // REVIEW
-  'expenses.mine': 'Khoản chi của bạn', // REVIEW
-  'expenses.all': 'Tất cả khoản chi', // REVIEW
-  'expenses.emptyMine': 'Chưa có khoản chi nào liên quan đến bạn.', // REVIEW
-  'expense.youPaidTotal': 'Bạn đã trả {amount}', // REVIEW
-  'expense.personPaidTotal': '{name} đã trả {amount}', // REVIEW
-  'activity.paymentArrived': '{actor} cho biết đã nhận được một khoản thanh toán · {amount}', // REVIEW
-  'activity.action.payment_arrived': 'cho biết đã nhận được một khoản thanh toán', // REVIEW
-  'activity.adminPromoted': '{actor} đã chỉ định {name} làm quản trị viên nhóm', // REVIEW
-  'activity.adminDemoted': '{actor} đã gỡ quyền quản trị của {name}', // REVIEW
-  'activity.action.admin_promoted': 'đã chỉ định quản trị viên nhóm', // REVIEW
-  'activity.action.admin_demoted': 'đã gỡ quyền quản trị viên nhóm', // REVIEW
-  'activity.expenseRolledBack': '{actor} đã khôi phục "{description}"', // REVIEW
-  'activity.action.expense_rolled_back': 'đã khôi phục một khoản chi', // REVIEW
-  'people.removeAdmin': 'Gỡ quyền quản trị', // REVIEW
+  'details.expense': 'Khoản chi',
+  'details.payment': 'Khoản thanh toán',
+  'details.date': 'Ngày',
+  'details.paidBy': 'Người trả',
+  'details.addedBy': 'Người thêm',
+  'details.split': 'Cách chia',
+  'details.you': '{name} (bạn)',
+  'details.amountClaimed': 'Số tiền đã chuyển',
+  'details.amountConfirmed': 'Số tiền đã nhận',
+  'details.recorded': 'Ghi lúc',
+  'details.gone': 'Mục này không còn trong nhóm.',
+  'details.backToTrip': 'Về nhóm',
+  'status.approved': 'Đã duyệt',
+  'who.guestLine': 'Bạn đang vào với tư cách khách: những gì bạn thêm cần thành viên duyệt.',
+  'signIn.zalo': 'Đăng nhập bằng Zalo',
+  'signIn.googleInZalo': 'Đã dùng Google trước đây? Nhấn ⋯ → Mở bằng trình duyệt để đăng nhập Google, rồi liên kết Zalo trong menu tài khoản.',
+  'signIn.zaloContinue': 'Tiếp tục với tài khoản Zalo',
+  'signIn.zaloDeclined': 'Cần tên và ảnh Zalo của bạn để tạo tài khoản.',
+  'signIn.zaloGoogleWarning': 'Bạn đã dùng CoinCrew bằng Google? Hãy liên kết Zalo trên bản web trước.',
+  'guest.becomeMemberZalo': 'Đăng nhập bằng Zalo để trở thành thành viên',
+  'who.guestSignInZalo': 'Đăng nhập bằng Zalo để dùng đầy đủ tính năng',
+  'who.nameMatch': 'Đây là bạn phải không, {name}? Đã chọn sẵn theo tên tài khoản của bạn.',
+  'who.zaloMatch': 'Bạn là {name} phải không?',
+  'who.zaloMatchContinue': 'Tiếp tục với tên {name}',
+  'who.signInTitle': 'Đăng nhập',
+  'who.guestSignIn': 'Đăng nhập bằng Google để dùng đầy đủ tính năng',
+  'myBank.title': 'Thông tin ngân hàng của bạn',
+  'myBank.none': 'Chưa có thông tin ngân hàng',
+  'myBank.add': 'Thêm',
+  'myBank.pending': 'Đang chờ thành viên duyệt',
+  'myBank.change': 'Đổi',
+  'myBank.locked': 'Chỉ thành viên mới đổi được',
+  'myBank.namePending': 'Bạn có thể thêm sau khi thành viên duyệt tên của bạn.',
+  'guestBank.title': 'Thông tin ngân hàng của {name}',
+  'guestBank.pending': 'Đang chờ thành viên duyệt.',
+  'guestBank.note': 'Thông tin bạn lưu được dùng ngay. Chỉ nhập thông tin do {name} đưa cho bạn.',
+  'guestBank.consent': '{name} đã đồng ý chia sẻ thông tin này. Xem {link}',
+  'guestBank.change': 'Đổi',
+  'guestBank.delete': 'Xóa',
+  'guestBank.deleteConfirm': 'Xóa thông tin ngân hàng của {name}? Sẽ không ai chuyển tiền cho {name} bằng mã QR được cho đến khi có thông tin mới.',
+  'guestBank.deleted': 'Đã xóa',
+  'people.bank': 'Thông tin ngân hàng',
+  'people.bankNone': 'Chưa có thông tin ngân hàng',
+  'people.bankPending': 'Thông tin ngân hàng đang chờ duyệt',
+  'people.bankWaitingSuffix': 'đang chờ duyệt',
+  'transfers.addFor': 'Thêm thông tin ngân hàng cho {name}',
+  'activity.bankSet': '{actor} đã lưu thông tin ngân hàng của {name}',
+  'activity.bankRemoved': '{actor} đã xóa thông tin ngân hàng của {name}',
+  'activity.action.bank_set': 'đã lưu thông tin ngân hàng',
+  'activity.action.bank_removed': 'đã xóa thông tin ngân hàng',
+  'payments.mine': 'Các khoản đã trả của bạn',
+  'payments.all': 'Tất cả khoản đã trả',
+  'payments.emptyMine': 'Chưa có khoản thanh toán nào liên quan đến bạn.',
+  'payments.throughPeople': 'Đã tính vào tổng ở mục Mọi người',
+  'payments.arrived': 'Đã nhận được',
+  'expenses.mine': 'Khoản chi của bạn',
+  'expenses.all': 'Tất cả khoản chi',
+  'expenses.emptyMine': 'Chưa có khoản chi nào liên quan đến bạn.',
+  'expense.youPaidTotal': 'Bạn đã trả {amount}',
+  'expense.personPaidTotal': '{name} đã trả {amount}',
+  'activity.paymentArrived': '{actor} báo đã nhận được một khoản thanh toán · {amount}',
+  'activity.action.payment_arrived': 'báo đã nhận được một khoản thanh toán',
+  'activity.adminPromoted': '{actor} đã đặt {name} làm quản trị viên nhóm',
+  'activity.adminDemoted': '{actor} đã gỡ quyền quản trị viên của {name}',
+  'activity.action.admin_promoted': 'đã đặt một quản trị viên nhóm',
+  'activity.action.admin_demoted': 'đã gỡ một quản trị viên nhóm',
+  'activity.expenseRolledBack': '{actor} đã khôi phục "{description}"',
+  'activity.action.expense_rolled_back': 'đã khôi phục một khoản chi',
+  'people.removeAdmin': 'Gỡ quyền quản trị viên',
 
-  'updates.bannerTitle': 'Có giao dịch liên quan đến bạn vừa được cập nhật', // REVIEW
-  'updates.viewAll': 'Xem giao dịch cập nhật', // REVIEW
-  'updates.previous': 'Trước đó', // REVIEW
-  'updates.now': 'Hiện tại', // REVIEW
-  'updates.dismiss': 'Đã hiểu', // REVIEW
-  'auth.failed': 'Đăng nhập chưa xong — thử lại', // REVIEW
-  'auth.linked': 'Đã liên kết {provider}', // REVIEW
-  'auth.mergeRequested': 'Tài khoản {provider} này đã có tài khoản CoinCrew riêng. Đăng nhập vào tài khoản đó để xác nhận gộp (hết hạn sau 7 ngày).', // REVIEW
-  'account.zaloAccount': 'Tài khoản Zalo', // REVIEW
-  'error.lastIdentity': 'Liên kết thêm một cách đăng nhập trước.', // REVIEW
-  'error.mergeStale': 'Yêu cầu gộp này không còn hiệu lực.', // REVIEW
-  'account.methods': 'Cách đăng nhập', // REVIEW
-  'account.methodsHint': 'Quản lý các tài khoản liên kết để đăng nhập và bảo mật', // REVIEW
-  'account.whyLink': 'Vì sao nên liên kết?', // REVIEW
-  'account.notLinked': 'Chưa liên kết', // REVIEW
-  'account.linked': 'Đã liên kết', // REVIEW
-  'account.link': 'Liên kết', // REVIEW
-  'account.change': 'Đổi', // REVIEW
-  'account.unlink': 'Gỡ', // REVIEW
-  'account.unlinkConfirm': 'Gỡ {provider}? Bạn sẽ đăng nhập bằng cách còn lại.', // REVIEW
-  'account.backupNudgeZalo': 'Liên kết thêm Google để không mất tài khoản khi đổi số Zalo', // REVIEW
-  'account.backupNudgeGoogle': 'Liên kết thêm Zalo để đăng nhập ngay trong Zalo', // REVIEW
-  'account.manageOnWeb': 'Liên kết Google hoặc cách đăng nhập khác trên bản web:', // REVIEW
-  'merge.cancel': 'Huỷ', // REVIEW
-  'merge.chipPending': 'Chờ xác nhận', // REVIEW
-  'merge.chipDeclined': 'Bị từ chối', // REVIEW
-  'merge.chipAccepted': 'Đã gộp', // REVIEW
-  'merge.rowLabel': '{provider}: {status}, {name}. Xem chi tiết', // REVIEW
-  'merge.incoming': '{name} ({who}) muốn gộp tài khoản này vào tài khoản của họ', // REVIEW
-  'merge.review': 'Xem & gộp', // REVIEW
-  'merge.decline': 'Từ chối', // REVIEW
-  'merge.moves': '{groups} nhóm, tài khoản ngân hàng và lịch sử của bạn sẽ chuyển sang tài khoản của {name}.', // REVIEW
-  'merge.released': '{provider} {email} sẽ không còn đăng nhập vào đây', // REVIEW
-  'merge.dot': 'Có yêu cầu gộp tài khoản', // REVIEW
-  'merge.sheetTitle': 'Gộp với tài khoản {name}', // REVIEW
-  'merge.sheetIntro': '{provider} này đã thuộc tài khoản CoinCrew {name}. Khi gộp, nhóm, ngân hàng và lịch sử của {name} sẽ chuyển sang tài khoản này.', // REVIEW
-  'merge.step1': 'Bạn đã xác minh {provider} {label}', // REVIEW
-  'merge.step2Pending': 'Xác nhận từ tài khoản {name}', // REVIEW
-  'merge.step2Help': 'Đăng nhập bằng {provider} đó rồi chọn "Xem & gộp". Hết hạn {date}.', // REVIEW
-  'merge.step2Declined': '{name} đã từ chối gộp', // REVIEW
-  'merge.step2Accepted': '{name} đã đồng ý', // REVIEW
-  'merge.step3': 'Hai tài khoản thành một', // REVIEW
-  'merge.declinedHelp': 'Bạn có thể liên kết {provider} khác, hoặc thử lại nếu {name} đổi ý.', // REVIEW
-  'merge.acceptedSummary': 'Nhóm, ngân hàng và lịch sử của {name} đã chuyển sang tài khoản này.', // REVIEW
-  'merge.confirmHere': 'Đăng nhập {provider} để xác nhận', // REVIEW
-  'merge.switchNote': 'Thiết bị này sẽ chuyển sang tài khoản {name}. Sau khi gộp, bạn quay lại tài khoản này với mọi thứ của cả hai.', // REVIEW
-  'merge.cancelRequest': 'Huỷ yêu cầu', // REVIEW
-  'merge.linkAgain': 'Liên kết lại', // REVIEW
-  'merge.gotIt': 'Đã hiểu', // REVIEW
-  'merge.noRequestHere': 'Tài khoản này không có yêu cầu gộp nào đang chờ.', // REVIEW
-  'merge.pickTitle': 'Gộp {name} với…', // REVIEW
-  'merge.searchPlaceholder': 'Tìm tên, email hoặc nhóm', // REVIEW
-  'merge.suggested': 'Giống {name}', // REVIEW
-  'merge.everyone': 'Những người khác', // REVIEW
-  'merge.noResults': 'Không có ai khớp', // REVIEW
-  'merge.tagOnlyYou': 'Chỉ mình bạn thấy', // REVIEW
-  'merge.tagGroup': 'Gộp trong {group} cho mọi người', // REVIEW
-  'merge.tagAskAdmin': 'Cần quản trị {group} đồng ý', // REVIEW
-  'merge.tagAskUser': 'Cần {name} và quản trị {group} đồng ý', // REVIEW
-  'merge.tagAskUserOnly': 'Cần {name} đồng ý', // REVIEW
-  'merge.tagClaimPending': '{name} đã xin nhận tên này. Đang chờ quản trị {group}.', // REVIEW
-  'merge.tagBusy': 'Đã có yêu cầu đang chờ trong {group}', // REVIEW
-  'merge.pickConfirmTitle': 'Gộp {a} và {b}?', // REVIEW
-  'merge.confirmTitle': 'Gộp tài khoản?', // REVIEW
-  'merge.stepLink': 'Chỉ mình bạn: bạn sẽ thấy họ là một người. Các nhóm không thay đổi.', // REVIEW
-  'merge.stepMerge': '{b} được gộp vào {a} trong {group}. Mọi người trong {group} sẽ thấy một người tên {a}.', // REVIEW
-  'merge.stepAskAdmin': 'Quản trị {group} sẽ được hỏi để gộp.', // REVIEW
-  'merge.stepAskUser': '{name} và quản trị {group} sẽ được hỏi để đồng ý.', // REVIEW
-  'merge.stepAskUserOnly': '{name} sẽ được hỏi để đồng ý.', // REVIEW
-  'merge.pickConfirm': 'Xác nhận', // REVIEW
-  'merge.confirm': 'Gộp tài khoản', // REVIEW
-  'merge.back': 'Quay lại', // REVIEW
-  'merge.sent': 'Đã gửi yêu cầu', // REVIEW
-  'entry.tabs': 'Bạn đang thêm gì?', // REVIEW
-  'entry.expense': 'Chi tiêu', // REVIEW
-  'entry.income': 'Quỹ thu', // REVIEW
-  'fund.title': 'Quỹ nhóm', // REVIEW
-  'fund.pillLabel': 'Quỹ nhóm, {amount}', // REVIEW
-  'fund.addTitle': 'Thêm vào quỹ', // REVIEW
-  'fund.editTitle': 'Sửa khoản thu quỹ', // REVIEW
-  'fund.add': 'Thêm vào quỹ', // REVIEW
-  'fund.note': 'Ghi chú', // REVIEW
-  'fund.notePlaceholder': 'VD: Thu 2 khách vãng lai', // REVIEW
-  'fund.keepAtLeast': 'Giữ ít nhất {amount}: phần còn lại đã được chi.', // REVIEW
-  'fund.payerOption': 'Quỹ nhóm · {amount}', // REVIEW
-  'fund.paidTitle': 'Chi từ quỹ nhóm', // REVIEW
-  'fund.noShares': 'Không ai phải góp.', // REVIEW
-  'fund.after': 'Quỹ còn lại: {amount}', // REVIEW
-  'fund.overLimit': 'Quỹ chỉ còn {amount}. Giảm số tiền hoặc chọn người trả.', // REVIEW
-  'fund.rowIncome': 'Quỹ thu · {name} thêm', // REVIEW
-  'fund.rowIncomeMe': 'Quỹ thu · bạn thêm', // REVIEW
-  'fund.rowPaid': 'Chi từ quỹ nhóm', // REVIEW
-  'fund.added': 'Đã thu', // REVIEW
-  'fund.spent': 'Đã chi', // REVIEW
-  'fund.keptBy': 'Quản trị viên giữ', // REVIEW
-  'fund.adminsOnly': 'Chỉ quản trị viên được thêm hoặc chi tiền quỹ.', // REVIEW
-  'fund.emptyTitle': 'Quỹ đang trống.', // REVIEW
-  'fund.emptyBody': 'Tiền khách vãng lai hoặc tài trợ sẽ hiện ở đây.', // REVIEW
-  'fund.addedBy': 'Người thêm', // REVIEW
-  'fund.readOnly': 'Chỉ quản trị viên được sửa khoản thu quỹ.', // REVIEW
-  'fund.cantDisable': 'Không thể tắt: {amount} trong khoản này đã được chi.', // REVIEW
-  'fund.expenseNote': 'Không ai phải góp. Tiền được chi từ quỹ nhóm.', // REVIEW
-  'details.income': 'Khoản thu quỹ', // REVIEW
-  'error.fundShort': 'Quỹ nhóm không đủ cho khoản này. Kiểm tra quỹ rồi thử lại.', // REVIEW
-  'activity.incomeAdded': '{actor} thêm {amount} vào quỹ · {description}', // REVIEW
-  'activity.incomeEdited': '{actor} sửa khoản thu quỹ · {description} · {amount}', // REVIEW
-  'activity.incomeDisabled': '{actor} tắt khoản thu quỹ · {description}', // REVIEW
-  'activity.incomeEnabled': '{actor} bật khoản thu quỹ · {description}', // REVIEW
-  'activity.incomeRolledBack': '{actor} khôi phục khoản thu quỹ · {description}', // REVIEW
-  'activity.fundExpenseAdded': '{actor} chi {amount} từ quỹ · {description}', // REVIEW
-  'activity.action.income_added': 'thêm tiền vào quỹ', // REVIEW
-  'activity.action.income_edited': 'sửa khoản thu quỹ', // REVIEW
-  'activity.action.income_disabled': 'tắt khoản thu quỹ', // REVIEW
-  'activity.action.income_enabled': 'bật khoản thu quỹ', // REVIEW
-  'activity.action.income_rolled_back': 'khôi phục khoản thu quỹ', // REVIEW
-  'activity.ratingsEnabled': '{actor} đã bật đánh giá người chơi', // REVIEW
-  'activity.ratingsDisabled': '{actor} đã tắt đánh giá người chơi', // REVIEW
-  'activity.action.ratings_changed': 'đã thay đổi cài đặt đánh giá người chơi', // REVIEW
-  'activity.action.theme_changed': 'đã đổi màu của nhóm', // REVIEW
-  'error.ratingLimit': 'Bạn đã chạm giới hạn sao. Hãy thu hồi sao trước rồi thử lại.', // REVIEW
-  'ratings.title': 'Đánh giá người chơi', // REVIEW
-  'ratings.leaderboard': 'Bảng xếp hạng', // REVIEW
-  'ratings.quote': 'Đánh hết mình, chấm công tâm — mỗi sao đều quý', // REVIEW
-  'ratings.rateAction': 'Chấm sao', // REVIEW
-  'ratings.coldTitle': 'Chưa có đánh giá nào', // REVIEW
-  'ratings.coldBody': 'Hãy là người đầu tiên chấm sao ẩn danh cho đồng đội để lập bảng xếp hạng CLB.', // REVIEW
-  'ratings.coldCta': 'Nhấn vào đây để chấm sao', // REVIEW
-  'ratings.budgetTitle': 'Ví sao của bạn', // REVIEW
-  'ratings.budgetLeft': 'Còn {remaining} / {max} ★', // REVIEW
-  'ratings.budgetHint': 'Ẩn danh 100% · Chạm ★ để tặng (tối đa {maxPerPlayer}★) · Giữ ★ để hóa mặt trời và nổ về 0', // REVIEW
-  'ratings.overBudgetTitle': 'Vượt quỹ sao do giảm thành viên', // REVIEW
-  'ratings.overBudgetHint': 'Bạn đã phát {spent} ★ (giới hạn mới: {max} ★). Hãy thu hồi ít nhất {over} ★ trước khi tặng thêm.', // REVIEW
-  'ratings.totalStars': 'Tổng {count} ★', // REVIEW
-  'ratings.yours': 'Bạn tặng: {count}/{max} ★', // REVIEW
-  'ratings.youBadge': 'Bạn', // REVIEW
-  'ratings.giveStar': 'Tặng 1 sao cho {name}', // REVIEW
-  'ratings.takeStar': 'Thu hồi 1 sao từ {name}', // REVIEW
-  'ratings.searchPlaceholder': 'Tìm trong {count} người chơi...', // REVIEW
-  'ratings.searchLabel': 'Tìm người chơi', // REVIEW
-  'ratings.noSearchMatch': 'Không tìm thấy người chơi "{query}".', // REVIEW
-  'ratings.showAll': 'Hiện tất cả {count} người chơi', // REVIEW
-  'ratings.guestTitle': 'Đăng nhập để chấm sao', // REVIEW
-  'ratings.guestBody': 'Chỉ thành viên đã đăng nhập mới có quỹ sao để đánh giá ẩn danh.', // REVIEW
-  'ratings.switchTitle': 'Đánh giá người chơi', // REVIEW
-  'ratings.switchExplain': 'Cho phép thành viên ẩn danh tặng sao đánh giá kỹ năng và hiện bảng xếp hạng CLB.', // REVIEW
-  'ratings.collapse': 'Thu gọn bảng xếp hạng', // REVIEW
-  'ratings.expand': 'Mở rộng bảng xếp hạng', // REVIEW
-  'ratings.leaderboardBar': 'Tóm tắt bảng xếp hạng', // REVIEW
+  'updates.bannerTitle': 'Một số giao dịch liên quan đến bạn vừa được cập nhật',
+  'updates.viewAll': 'Xem các giao dịch đã cập nhật',
+  'updates.previous': 'Trước đó',
+  'updates.now': 'Hiện tại',
+  'updates.dismiss': 'Đã hiểu',
+  'auth.failed': 'Chưa đăng nhập được — hãy thử lại',
+  'auth.linked': 'Đã liên kết {provider}',
+  'auth.mergeRequested': 'Tài khoản {provider} này đã gắn với một tài khoản CoinCrew khác. Đăng nhập vào tài khoản đó để xác nhận gộp (hết hạn sau 7 ngày).',
+  'account.zaloAccount': 'Tài khoản Zalo',
+  'error.lastIdentity': 'Hãy liên kết thêm một cách đăng nhập khác trước.',
+  'error.mergeStale': 'Yêu cầu gộp này không còn hiệu lực.',
+  'account.methods': 'Cách đăng nhập',
+  'account.methodsHint': 'Quản lý các tài khoản bạn dùng để đăng nhập',
+  'account.whyLink': 'Vì sao nên liên kết?',
+  'account.notLinked': 'Chưa liên kết',
+  'account.linked': 'Đã liên kết',
+  'account.link': 'Liên kết',
+  'account.change': 'Đổi',
+  'account.unlink': 'Gỡ liên kết',
+  'account.unlinkConfirm': 'Gỡ liên kết {provider}? Bạn sẽ đăng nhập bằng cách còn lại.',
+  'account.backupNudgeZalo': 'Liên kết thêm Google để không mất tài khoản này nếu tài khoản Zalo của bạn thay đổi',
+  'account.backupNudgeGoogle': 'Liên kết thêm Zalo để đăng nhập ngay trong ứng dụng Zalo',
+  'account.manageOnWeb': 'Liên kết Google hoặc cách đăng nhập khác trên bản web:',
+  'merge.cancel': 'Hủy',
+  'merge.chipPending': 'Chờ xác nhận',
+  'merge.chipDeclined': 'Bị từ chối',
+  'merge.chipAccepted': 'Đã gộp',
+  'merge.rowLabel': '{provider}: {status}, {name}. Xem chi tiết',
+  'merge.incoming': '{name} ({who}) muốn gộp tài khoản này vào tài khoản của họ',
+  'merge.review': 'Xem & gộp',
+  'merge.decline': 'Từ chối',
+  'merge.moves': '{groups} nhóm, thông tin ngân hàng và lịch sử của bạn sẽ chuyển sang tài khoản của {name}.',
+  'merge.released': '{provider} {email} sẽ không đăng nhập vào tài khoản này được nữa',
+  'merge.dot': 'Có yêu cầu gộp tài khoản đang chờ',
+  'merge.sheetTitle': 'Gộp với tài khoản {name}',
+  'merge.sheetIntro': '{provider} này đã thuộc về tài khoản CoinCrew {name}. Khi gộp, các nhóm, thông tin ngân hàng và lịch sử của {name} sẽ chuyển sang tài khoản này.',
+  'merge.step1': 'Bạn đã xác minh {provider} {label}',
+  'merge.step2Pending': 'Xác nhận từ tài khoản {name}',
+  'merge.step2Help': 'Đăng nhập bằng {provider} đó rồi nhấn "Xem & gộp". Hết hạn {date}.',
+  'merge.step2Declined': '{name} đã từ chối gộp',
+  'merge.step2Accepted': '{name} đã đồng ý',
+  'merge.step3': 'Hai tài khoản gộp thành một',
+  'merge.declinedHelp': 'Bạn có thể liên kết {provider} khác, hoặc thử lại nếu {name} đổi ý.',
+  'merge.acceptedSummary': 'Các nhóm, thông tin ngân hàng và lịch sử của {name} đã chuyển sang tài khoản này.',
+  'merge.confirmHere': 'Đăng nhập bằng {provider} để xác nhận',
+  'merge.switchNote': 'Thiết bị này sẽ chuyển sang tài khoản {name}. Sau khi gộp, bạn quay lại tài khoản này với đầy đủ dữ liệu của cả hai.',
+  'merge.cancelRequest': 'Hủy yêu cầu',
+  'merge.linkAgain': 'Liên kết lại',
+  'merge.gotIt': 'Đã hiểu',
+  'merge.noRequestHere': 'Tài khoản này không có yêu cầu gộp nào đang chờ.',
+  'merge.pickTitle': 'Gộp {name} với…',
+  'merge.searchPlaceholder': 'Tìm tên, email hoặc nhóm',
+  'merge.suggested': 'Có vẻ giống {name}',
+  'merge.everyone': 'Những người khác',
+  'merge.noResults': 'Không có ai khớp',
+  'merge.tagOnlyYou': 'Chỉ mình bạn thấy',
+  'merge.tagGroup': 'Gộp trong {group} cho mọi người',
+  'merge.tagAskAdmin': 'Cần quản trị viên {group} đồng ý',
+  'merge.tagAskUser': 'Cần {name} và quản trị viên {group} đồng ý',
+  'merge.tagAskUserOnly': 'Cần {name} đồng ý',
+  'merge.tagClaimPending': '{name} đã xin nhận tên này. Đang chờ quản trị viên {group}.',
+  'merge.tagBusy': 'Đã có yêu cầu đang chờ trong {group}',
+  'merge.pickConfirmTitle': 'Gộp {a} và {b}?',
+  'merge.confirmTitle': 'Gộp tài khoản?',
+  'merge.stepLink': 'Chỉ mình bạn: bạn sẽ thấy họ là một người. Các nhóm không thay đổi.',
+  'merge.stepMerge': '{b} được gộp vào {a} trong {group}. Mọi người trong {group} sẽ thấy một người tên {a}.',
+  'merge.stepAskAdmin': 'Quản trị viên {group} sẽ được hỏi để gộp.',
+  'merge.stepAskUser': '{name} và quản trị viên {group} sẽ được hỏi ý kiến.',
+  'merge.stepAskUserOnly': '{name} sẽ được hỏi ý kiến.',
+  'merge.pickConfirm': 'Xác nhận',
+  'merge.confirm': 'Gộp tài khoản',
+  'merge.back': 'Quay lại',
+  'merge.sent': 'Đã gửi yêu cầu',
+  'entry.tabs': 'Bạn đang thêm gì?',
+  'entry.expense': 'Khoản chi',
+  'entry.income': 'Thu quỹ',
+  'fund.title': 'Quỹ nhóm',
+  'fund.pillLabel': 'Quỹ nhóm, {amount}',
+  'fund.addTitle': 'Thêm vào quỹ',
+  'fund.editTitle': 'Sửa khoản thu quỹ',
+  'fund.add': 'Thêm vào quỹ',
+  'fund.note': 'Ghi chú',
+  'fund.notePlaceholder': 'VD: Thu 2 khách vãng lai',
+  'fund.keepAtLeast': 'Phải giữ ít nhất {amount}: phần còn lại đã được chi.',
+  'fund.payerOption': 'Quỹ nhóm · {amount}',
+  'fund.paidTitle': 'Chi từ quỹ nhóm',
+  'fund.noShares': 'Không ai phải góp.',
+  'fund.after': 'Quỹ còn lại sau khoản này: {amount}',
+  'fund.overLimit': 'Quỹ chỉ còn {amount}. Hãy giảm số tiền hoặc chọn người trả khác.',
+  'fund.rowIncome': 'Thu quỹ · {name} thêm',
+  'fund.rowIncomeMe': 'Thu quỹ · bạn thêm',
+  'fund.rowPaid': 'Chi từ quỹ nhóm',
+  'fund.added': 'Đã thu',
+  'fund.spent': 'Đã chi',
+  'fund.keptBy': 'Quản trị viên giữ',
+  'fund.adminsOnly': 'Chỉ quản trị viên mới được thêm hoặc chi tiền quỹ.',
+  'fund.emptyTitle': 'Quỹ đang trống.',
+  'fund.emptyBody': 'Tiền khách vãng lai góp hoặc tiền tài trợ sẽ hiện ở đây.',
+  'fund.addedBy': 'Người thêm',
+  'fund.readOnly': 'Chỉ quản trị viên mới được sửa khoản thu quỹ.',
+  'fund.cantDisable': 'Không thể tắt: {amount} trong khoản này đã được chi.',
+  'fund.expenseNote': 'Không ai phải góp. Tiền được chi từ quỹ nhóm.',
+  'details.income': 'Khoản thu quỹ',
+  'error.fundShort': 'Quỹ nhóm không đủ cho khoản này. Kiểm tra quỹ rồi thử lại.',
+  'activity.incomeAdded': '{actor} đã thêm {amount} vào quỹ · {description}',
+  'activity.incomeEdited': '{actor} đã sửa khoản thu quỹ · {description} · {amount}',
+  'activity.incomeDisabled': '{actor} đã tắt khoản thu quỹ · {description}',
+  'activity.incomeEnabled': '{actor} đã bật lại khoản thu quỹ · {description}',
+  'activity.incomeRolledBack': '{actor} đã khôi phục khoản thu quỹ · {description}',
+  'activity.fundExpenseAdded': '{actor} đã chi {amount} từ quỹ · {description}',
+  'activity.action.income_added': 'đã thêm tiền vào quỹ',
+  'activity.action.income_edited': 'đã sửa một khoản thu quỹ',
+  'activity.action.income_disabled': 'đã tắt một khoản thu quỹ',
+  'activity.action.income_enabled': 'đã bật lại một khoản thu quỹ',
+  'activity.action.income_rolled_back': 'đã khôi phục một khoản thu quỹ',
+  'activity.ratingsEnabled': '{actor} đã bật đánh giá người chơi',
+  'activity.ratingsDisabled': '{actor} đã tắt đánh giá người chơi',
+  'activity.action.ratings_changed': 'đã đổi cài đặt đánh giá người chơi',
+  'activity.action.theme_changed': 'đã đổi màu của nhóm',
+  'error.ratingLimit': 'Bạn đã dùng hết sao. Hãy thu hồi một sao rồi thử lại.',
+  'ratings.title': 'Đánh giá người chơi',
+  'ratings.leaderboard': 'Bảng xếp hạng',
+  'ratings.quote': 'Đánh hết mình, chấm công tâm — mỗi sao đều quý',
+  'ratings.rateAction': 'Chấm sao',
+  'ratings.coldTitle': 'Chưa có đánh giá nào',
+  'ratings.coldBody': 'Hãy là người đầu tiên chấm sao ẩn danh cho đồng đội để lập bảng xếp hạng của CLB.',
+  'ratings.coldCta': 'Nhấn vào đây để chấm sao đồng đội',
+  'ratings.budgetTitle': 'Ví sao của bạn',
+  'ratings.budgetLeft': 'Còn {remaining} / {max} ★',
+  'ratings.budgetHint': 'Ẩn danh 100% · Nhấn ★ để tặng (tối đa {maxPerPlayer}★) · Giữ ★ để biến thành mặt trời và nổ về 0',
+  'ratings.overBudgetTitle': 'Vượt số sao vì nhóm bớt người',
+  'ratings.overBudgetHint': 'Bạn đã tặng {spent} ★ (giới hạn mới: {max} ★). Hãy thu hồi ít nhất {over} ★ trước khi tặng thêm.',
+  'ratings.totalStars': 'Tổng {count} ★',
+  'ratings.yours': 'Bạn tặng: {count}/{max} ★',
+  'ratings.youBadge': 'Bạn',
+  'ratings.giveStar': 'Tặng 1 sao cho {name}',
+  'ratings.takeStar': 'Thu hồi 1 sao từ {name}',
+  'ratings.searchPlaceholder': 'Tìm trong {count} người chơi…',
+  'ratings.searchLabel': 'Tìm người chơi',
+  'ratings.noSearchMatch': 'Không tìm thấy người chơi "{query}".',
+  'ratings.showAll': 'Hiện tất cả {count} người chơi',
+  'ratings.guestTitle': 'Đăng nhập để chấm sao',
+  'ratings.guestBody': 'Chỉ thành viên đã đăng nhập mới có ví sao để chấm điểm ẩn danh.',
+  'ratings.switchTitle': 'Đánh giá người chơi',
+  'ratings.switchExplain': 'Cho phép thành viên đã đăng nhập tặng sao ẩn danh để đánh giá người chơi và hiện bảng xếp hạng CLB.',
+  'ratings.collapse': 'Thu gọn bảng xếp hạng',
+  'ratings.expand': 'Mở rộng bảng xếp hạng',
+  'ratings.leaderboardBar': 'Tóm tắt bảng xếp hạng',
 
-  'nav.home': 'Khoản chi nhanh', // REVIEW
-  'nav.groups': 'Nhóm', // REVIEW
-  'nav.activity': 'Hoạt động', // REVIEW
-  'nav.add': 'Thêm giao dịch', // REVIEW
-  'nav.label': 'Menu chính', // REVIEW
+  'nav.home': 'Khoản chi nhanh',
+  'nav.groups': 'Nhóm',
+  'nav.activity': 'Hoạt động',
+  'nav.add': 'Thêm giao dịch',
+  'nav.label': 'Menu chính',
 
-  'feedback.menu': 'Gửi góp ý', // REVIEW
-  'feedback.title': 'Gửi góp ý', // REVIEW
-  'feedback.hint': 'Ẩn danh — chúng mình không biết bạn là ai.', // REVIEW
-  'feedback.bug': 'Lỗi', // REVIEW
-  'feedback.idea': 'Ý tưởng', // REVIEW
-  'feedback.other': 'Khác', // REVIEW
-  'feedback.placeholder': 'Có gì chưa ổn, hay điều gì giúp CoinCrew tốt hơn?', // REVIEW
-  'feedback.contactMe': 'Có thể liên hệ mình về việc này (chia sẻ tên của bạn)', // REVIEW
-  'feedback.contactField': 'Tên hoặc Zalo của bạn', // REVIEW
-  'feedback.send': 'Gửi', // REVIEW
-  'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.', // REVIEW
-  'feedback.error': 'Chưa gửi được. Vui lòng thử lại.', // REVIEW
-  'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.', // REVIEW
+  'feedback.menu': 'Gửi góp ý',
+  'feedback.title': 'Gửi góp ý',
+  'feedback.hint': 'Ẩn danh — chúng mình không biết bạn là ai.',
+  'feedback.bug': 'Lỗi',
+  'feedback.idea': 'Ý tưởng',
+  'feedback.other': 'Khác',
+  'feedback.placeholder': 'Có gì chưa ổn, hay điều gì giúp CoinCrew tốt hơn?',
+  'feedback.contactMe': 'Có thể liên hệ với tôi về việc này (sẽ chia sẻ tên của bạn)',
+  'feedback.contactField': 'Tên hoặc Zalo của bạn',
+  'feedback.send': 'Gửi',
+  'feedback.thanks': 'Cảm ơn bạn — chúng mình đọc mọi góp ý.',
+  'feedback.error': 'Chưa gửi được. Vui lòng thử lại.',
+  'feedback.rateLimited': 'Bạn vừa gửi nhiều quá — thử lại sau nhé.',
 
-  'epa.reported': '{n} người báo đã trả', // REVIEW
-  'epa.progress': '{got} / {total} đã về', // REVIEW
-  'epa.notReported': 'còn {n} người chưa trả', // REVIEW
-  'epa.confirmAll': 'Đã nhận tất cả · {sum}', // REVIEW
-  'epa.confirmed': 'Đã xác nhận {name} · {amount}', // REVIEW
-  'epa.undo': 'Hoàn tác', // REVIEW
-  'epa.received': 'Đã nhận {amount}', // REVIEW
-  'epa.other': 'Số khác', // REVIEW
-  'epa.notReceived': 'Chưa nhận', // REVIEW
-  'epa.friendOf': 'Bạn của {name}', // REVIEW
-  'epa.nameOrFriend': '{name} (hoặc bạn của {name})', // REVIEW
+  'epa.reported': '{n} người báo đã trả',
+  'epa.progress': '{got}/{total} đã nhận',
+  'epa.notReported': 'còn {n} người chưa trả',
+  'epa.confirmAll': 'Đã nhận tất cả · {sum}',
+  'epa.confirmed': 'Đã xác nhận {name} · {amount}',
+  'epa.undo': 'Hoàn tác',
+  'epa.received': 'Đã nhận {amount}',
+  'epa.other': 'Số khác',
+  'epa.notReceived': 'Chưa nhận được',
+  'epa.friendOf': 'Bạn của {name}',
+  'epa.nameOrFriend': '{name} (hoặc bạn của {name})',
 
-  'claim.title': 'Tiếp tục với tên {name}', // REVIEW
-  'claim.body': 'Google không hoạt động trong Zalo. Đăng nhập bằng Zalo để tiếp tục. Nếu {name} dùng Google, tài khoản Google của họ sẽ được yêu cầu phê duyệt.', // REVIEW
-  'claim.zalo': 'Đăng nhập bằng Zalo', // REVIEW
-  'claim.openBrowser': 'Mở trong trình duyệt', // REVIEW
-  'claim.browserSteps': 'Nhấn ⋯ → Mở trong trình duyệt', // REVIEW
-  'claim.zaloOff': 'Đăng nhập Zalo hiện không khả dụng. Mở trong trình duyệt để dùng Google.', // REVIEW
-  'claim.waiting': 'Đang chờ {name} phê duyệt trong trình duyệt', // REVIEW
-  'claim.nothingToPay': '{name} không cần trả gì cho khoản chi này.', // REVIEW
-  'claim.taken': '{name} đã đăng nhập bằng một tài khoản Zalo khác', // REVIEW
-  'claim.waitingWho': 'Bạn đã yêu cầu tham gia tài khoản của {name}. Đang chờ phê duyệt trong trình duyệt.', // REVIEW
-  'claim.paymentFlag': 'Được đánh dấu bởi tài khoản Zalo đang chờ tham gia {name}', // REVIEW
+  'claim.title': 'Tiếp tục với tên {name}',
+  'claim.body': 'Không đăng nhập Google được trong Zalo. Hãy đăng nhập bằng Zalo để tiếp tục. Nếu {name} dùng Google, tài khoản Google của {name} sẽ được hỏi để duyệt.',
+  'claim.zalo': 'Đăng nhập bằng Zalo',
+  'claim.openBrowser': 'Mở bằng trình duyệt',
+  'claim.browserSteps': 'Nhấn ⋯ → Mở bằng trình duyệt',
+  'claim.zaloOff': 'Hiện chưa đăng nhập bằng Zalo được. Mở bằng trình duyệt để dùng Google.',
+  'claim.waiting': 'Đang chờ {name} duyệt trên trình duyệt',
+  'claim.nothingToPay': '{name} không cần trả gì cho khoản chi này.',
+  'claim.taken': '{name} đã đăng nhập bằng một tài khoản Zalo khác',
+  'claim.waitingWho': 'Bạn đã xin liên kết với tài khoản của {name}. Đang chờ duyệt trên trình duyệt.',
+  'claim.paymentFlag': 'Do tài khoản Zalo đang chờ liên kết với {name} đánh dấu',
 
-  'join.banner': 'Tài khoản Zalo ({name}) muốn tham gia tài khoản của bạn', // REVIEW
-  'join.title': 'Yêu cầu tham gia', // REVIEW
-  'join.body': 'Tài khoản Zalo này sẽ trở thành một phương thức đăng nhập vào tài khoản của bạn.', // REVIEW
-  'join.groupsMove': 'Các nhóm này sẽ chuyển sang tài khoản của bạn:', // REVIEW
-  'join.collapse': 'Trong {group}, {zaloPersonName} và {yourPersonName} sẽ trở thành một người', // REVIEW
-  'join.autoConfirm': 'Các khoản tài khoản này đã đánh dấu sẽ được tính là đã trả:', // REVIEW
-  'join.autoConfirmRow': '{amount} cho {to} · {group}', // REVIEW
-  'join.accept': 'Chấp nhận', // REVIEW
-  'join.decline': 'Từ chối', // REVIEW
-  'join.accepted': 'Đã tham gia tài khoản Zalo', // REVIEW
+  'join.banner': 'Tài khoản Zalo ({name}) muốn liên kết với tài khoản của bạn',
+  'join.title': 'Yêu cầu liên kết',
+  'join.body': 'Tài khoản Zalo này sẽ thành một cách đăng nhập vào tài khoản của bạn.',
+  'join.groupsMove': 'Các nhóm này sẽ chuyển sang tài khoản của bạn:',
+  'join.collapse': 'Trong {group}, {zaloPersonName} và {yourPersonName} sẽ trở thành một người',
+  'join.autoConfirm': 'Các khoản mà tài khoản này đã đánh dấu sẽ được tính là đã trả:',
+  'join.autoConfirmRow': '{amount} cho {to} · {group}',
+  'join.accept': 'Đồng ý',
+  'join.decline': 'Từ chối',
+  'join.accepted': 'Đã liên kết tài khoản Zalo',
 
-  'theme.title': 'Màu giao diện', // REVIEW
-  'theme.personalExplain': 'Màu của bạn ở mọi nơi ngoài nhóm. Trong nhóm, màu do quản trị viên chọn sẽ được dùng.', // REVIEW
-  'theme.groupTitle': 'Màu của nhóm', // REVIEW
-  'theme.groupExplain': 'Mọi người trong nhóm, kể cả khách, đều thấy màu này.', // REVIEW
-  'theme.useOwn': 'Theo màu riêng của mỗi người', // REVIEW
-  'theme.useOwnShort': 'Theo từng người', // REVIEW
-  'theme.name.jade': 'Ngọc bích', // REVIEW
-  'theme.name.pink': 'Hồng', // REVIEW
-  'theme.name.orchid': 'Lan tím', // REVIEW
-  'theme.name.sky': 'Bầu trời', // REVIEW
-  'theme.name.indigo': 'Chàm', // REVIEW
+  'theme.title': 'Màu giao diện',
+  'theme.personalExplain': 'Màu của bạn ở mọi nơi ngoài nhóm. Trong nhóm, màu do quản trị viên chọn sẽ được ưu tiên.',
+  'theme.groupTitle': 'Màu của nhóm',
+  'theme.groupExplain': 'Mọi người trong nhóm, kể cả khách, đều thấy màu này.',
+  'theme.useOwn': 'Theo màu riêng của mỗi người',
+  'theme.useOwnShort': 'Theo từng người',
+  'theme.name.jade': 'Ngọc bích',
+  'theme.name.pink': 'Hồng',
+  'theme.name.orchid': 'Lan tím',
+  'theme.name.sky': 'Xanh trời',
+  'theme.name.indigo': 'Chàm',
 
-  'notifications.title': 'Thông báo qua email', // REVIEW
-  'notifications.transactionCrud': 'Biến động giao dịch', // REVIEW
-  'notifications.transactionCrudDesc': 'Nhận email khi có giao dịch mới, cập nhật hoặc xoá trong nhóm', // REVIEW
-  'notifications.loanReminders': 'Nhắc nhở số dư & khoản nợ', // REVIEW
-  'notifications.loanRemindersDesc': 'Nhận email định kỳ nhắc nhở về các khoản nợ cần thanh toán', // REVIEW
-  'notifications.monthlyNotice': 'Báo cáo thu chi hàng tháng', // REVIEW
-  'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư các nhóm vào đầu mỗi tháng', // REVIEW
-  'notifications.noEmailWarning': 'Bạn chưa liên kết email. Vui lòng liên kết tài khoản Google để nhận thông báo qua email.', // REVIEW
+  'notifications.title': 'Thông báo qua email',
+  'notifications.transactionCrud': 'Thay đổi giao dịch',
+  'notifications.transactionCrudDesc': 'Nhận email khi có giao dịch được tạo, sửa hoặc xóa trong nhóm',
+  'notifications.loanReminders': 'Nhắc khoản nợ & số dư',
+  'notifications.loanRemindersDesc': 'Email nhắc định kỳ về các khoản nợ chưa trả',
+  'notifications.monthlyNotice': 'Tổng kết hằng tháng',
+  'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư của các nhóm khi hết tháng',
+  'notifications.noEmailWarning': 'Bạn chưa liên kết email. Hãy liên kết tài khoản Google để nhận thông báo qua email.',
+
+  'install.title': 'Thêm CoinCrew vào màn hình chính',
+  'install.pill': 'Thêm CoinCrew vào màn hình chính',
+  'install.menuRow': 'Thêm vào màn hình chính',
+  'install.promptBody': 'Mở chỉ với một chạm, toàn màn hình, không có thanh trình duyệt.',
+  'install.installNow': 'Cài ngay',
+  'install.notNow': 'Để sau',
+  'install.gotIt': 'Đã hiểu',
+  'install.installed': 'Đã thêm vào màn hình chính',
+  'install.androidStep1': 'Nhấn ⋮ ở góc trên trình duyệt',
+  'install.androidStep2': 'Chọn "Thêm vào màn hình chính" hoặc "Cài đặt ứng dụng"',
+  'install.iosStepMore': 'Nhấn ⋯ trên thanh Safari',
+  'install.iosStepShare': 'Chọn Chia sẻ',
+  'install.iosStepShareOld': 'Nhấn Chia sẻ ở thanh dưới',
+  'install.iosStepAdd': 'Kéo xuống, chọn "Thêm vào MH chính"',
+  'install.iosChromeStep1': 'Nhấn Chia sẻ trên thanh địa chỉ',
+  'install.iosChromeStep2': 'Chọn "Thêm vào MH chính"',
+  'install.iosOtherStep': 'Mở menu của trình duyệt, chọn Chia sẻ → "Thêm vào MH chính"',
+  'install.iosSignInNote': 'Lần đầu mở từ màn hình chính, bạn cần đăng nhập lại một lần.',
+  'install.inAppTitle': 'Mở bằng trình duyệt để cài',
+  'install.inAppZalo': 'Không thể cài CoinCrew từ trong Zalo.',
+  'install.inAppOther': 'Không thể cài CoinCrew từ trong ứng dụng này.',
+  'install.inAppStep1': 'Nhấn ⋯ ở góc trên',
+  'install.inAppStep2': 'Chọn "Mở bằng trình duyệt", rồi nhấn lại "Thêm vào màn hình chính"',
+  'install.copyLink': 'Sao chép link',
+  'install.desktopStep': 'Nhấn biểu tượng cài đặt trên thanh địa chỉ',
 };
-

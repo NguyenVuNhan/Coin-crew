@@ -6,15 +6,21 @@
   "exports": {
     ".": "./src/index.tsx",
     "./browser": "./src/browser.ts",
-    "./session": "./src/session.ts"
+    "./session": "./src/session.ts",
+    "./install": "./src/install.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
-    "react": "^19.3.0"
+    "react": "^19.3.0",
+    "@cc/web-util": "*"
   },
   "nx": {
-    "tags": ["scope:web", "type:platform"]
+    "tags": [
+      "scope:web",
+      "type:platform"
+    ]
   }
 }

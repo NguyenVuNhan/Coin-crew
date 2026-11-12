@@ -81,7 +81,7 @@ Three things every screen protects (owner-confirmed); Splitwise or Tricount cann
 - What Vietnam's personal-data rules actually require. The privacy notice is a draft.
 - Transfer-note length and character limits at the major banks.
 - Whether Zalo will grant `openOutApp` (opening bank apps from the Mini App) or the friend-list lookup.
-- The Vietnamese copy is partly draft: lines marked `// REVIEW` in `libs/web/i18n/src/vi.ts`.
+- New Vietnamese copy starts as a draft: lines marked `// REVIEW` in `libs/web/i18n/src/vi.ts` (the existing copy was reviewed in issue #67; its house style is at the top of the file).
 
 ## Brand Commitments
 

@@ -16,6 +16,8 @@ import {
   Copy,
   Crown,
   Download,
+  Ellipsis,
+  EllipsisVertical,
   Headset,
   History,
   House,
@@ -37,8 +39,11 @@ import {
   RotateCcw,
   Search,
   Settings,
+  Share,
   Share2,
   Shield,
+  Smartphone,
+  SquarePlus,
   Star,
   Trash2,
   Trophy,
@@ -55,7 +60,8 @@ export type IconName =
   | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
-  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'palette' | 'calendar';
+  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'palette' | 'calendar'
+  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -105,6 +111,11 @@ const SHAPES: Record<IconName, LucideIcon> = {
   star: Star,
   crown: Crown,
   palette: Palette,
+  smartphone: Smartphone,
+  ellipsis: Ellipsis,
+  ellipsisVertical: EllipsisVertical,
+  squarePlus: SquarePlus,
+  shareIos: Share,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

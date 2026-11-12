@@ -60,8 +60,18 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const myName = myId ? nameOf(view, myId) : '?';
   const myPerson = view.people.find((p) => p.id === myId);
   const myBalance = view.myBalance;
+  // The server remembers a waiting claim, so the banner survives a reload.
+  const isMemberRequested = memberRequested || Boolean(view.me.hasPendingMembershipRequest);
 
   useEffect(() => {
+    if (becomeMemberParam && isMemberRequested && !requestedRef.current) {
+      // Already asked: drop the param without asking again.
+      requestedRef.current = true;
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('becomeMember');
+      setSearchParams(nextParams, { replace: true });
+      return;
+    }
     if (
       becomeMemberParam &&
       !archived &&
@@ -89,7 +99,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         }
       });
     }
-  }, [becomeMemberParam, archived, view.me.kind, myId, view.trip.id, searchParams, setSearchParams]);
+  }, [becomeMemberParam, isMemberRequested, archived, view.me.kind, myId, view.trip.id, searchParams, setSearchParams]);
 
   const addLink = (block: boolean) =>
     archived ? undefined : (
@@ -184,7 +194,7 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
           </Button>
           {proposalError !== null && <InlineError error={proposalError} />}
         </div>
-      ) : memberRequested ? (
+      ) : isMemberRequested ? (
         <div className="fsl-notice fsl-notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground">
           {t('guest.memberRequested')}
         </div>

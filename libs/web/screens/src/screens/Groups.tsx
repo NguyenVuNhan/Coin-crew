@@ -6,6 +6,7 @@ import { Screen } from '../components/Screen';
 import { AccountMenu } from '../components/AccountMenu';
 import { FeedbackButton } from '../components/FeedbackButton';
 import { ConsentSheet } from '../components/ConsentSheet';
+import { InstallPill } from '../components/InstallPill';
 import { MyTrips } from './MyTrips';
 
 export function Groups(): JSX.Element {
@@ -31,6 +32,7 @@ export function Groups(): JSX.Element {
       nav={user ? { section: 'groups', addHref } : undefined}
     >
       <ConsentSheet />
+      <InstallPill />
       <MyTrips embedded />
     </Screen>
   );
