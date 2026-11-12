@@ -760,6 +760,7 @@ export const vi: Record<MessageKey, string> = {
   'owe.signInToSee': 'Đăng nhập để xem nhóm',
   'owe.joinToSee': 'Tham gia để xem cả nhóm',
   'owe.joinGroup': 'Tham gia nhóm',
+  'owe.logIn': 'Đăng nhập',
 
   'bankFirst.title': 'Thêm thông tin ngân hàng trước?',
   'bankFirst.body': 'Bạn bè mở link này chỉ thấy mã QR để trả bạn khi bạn đã thêm thông tin ngân hàng.',

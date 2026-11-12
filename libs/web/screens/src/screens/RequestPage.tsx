@@ -262,7 +262,15 @@ export function RequestPage(): JSX.Element {
   const footer = isWaiting ? null : (
     <>
       {submitError !== null && <InlineError error={submitError} onRetry={handlePaid} />}
-      <Button variant="primary" block loading={isSending} disabled={isSending} onClick={handlePaid} data-testid="request-paid">
+      {/* Secondary next to the QR's "Open bank app", like the group pay page; the only action without a QR. */}
+      <Button
+        variant={hasQr ? 'secondary' : 'primary'}
+        block
+        loading={isSending}
+        disabled={isSending}
+        onClick={handlePaid}
+        data-testid="request-paid"
+      >
         {t('request.paid')}
       </Button>
       <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center">{t('pay.iPaidHint')}</p>

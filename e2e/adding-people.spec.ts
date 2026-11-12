@@ -143,7 +143,8 @@ test('signing out forgets who this phone was', async ({ browser }) => {
   await expect(page).toHaveURL(/\/who(\?.*)?$/);
   await page.getByRole('radio', { name: /Chi/ }).click();
   await page.getByRole('button', { name: 'Continue as Chi' }).click();
-  await expect(page.getByText('Viewing as Chi')).toBeVisible();
+  // A guest only reaches their pay pages (owner, 2026-11-12).
+  await expect(page).toHaveURL(/\/j\/[^/]+\/(owe|pay\/)/);
 
   await loginAndConsent(page, 'ap-t3-chi', 'Chi');
   await page.goto('/groups');

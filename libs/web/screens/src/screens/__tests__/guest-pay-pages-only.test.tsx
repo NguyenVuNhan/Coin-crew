@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { PIDS, guestChiView, tripView } from '../../test/fixtures';
 import { App } from '../../App';
@@ -72,6 +73,10 @@ describe('a guest only reaches their pay pages', () => {
     expect(screen.queryByRole('link', { name: 'See the group' })).toBeNull();
     expect(screen.getByText('Log in to see the group')).toBeInTheDocument();
     expect(document.querySelector('.fsl-guest-signin')).not.toBeNull();
+    // One quiet button in place of "See the group"; the sign-in choices open in a sheet (one primary per view).
+    expect(screen.queryByRole('link', { name: /Sign in with Google/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('a pay page: back goes to the name picker and sign-in replaces See the group', async () => {

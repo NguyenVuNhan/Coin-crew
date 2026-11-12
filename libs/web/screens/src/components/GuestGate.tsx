@@ -1,11 +1,12 @@
-import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
 import { linkTokens } from '@cc/web-util/linkTokens';
-import { SignInButtons } from './SignInButtons';
+import { SignInSheet } from './SignInSheet';
+import { Icon } from '@cc/web-ui/components/icons';
 import { useMe } from '@cc/web-data-access/hooks';
 import { Button } from '@cc/web-ui/components/Button';
 
@@ -54,6 +55,7 @@ export function GuestSignIn({ pending = false, className }: { pending?: boolean;
   const t = useT();
   const { href } = useTrip();
   const me = useMe();
+  const [signInOpen, setSignInOpen] = useState(false);
   const sectionClass = `fsl-guest-signin flex flex-col gap-3 pt-2${className ? ` ${className}` : ''}`;
   if (pending) {
     return (
@@ -74,10 +76,15 @@ export function GuestSignIn({ pending = false, className }: { pending?: boolean;
       </section>
     );
   }
+  // One quiet button where "See the group" was: the pay page's one primary stays "Open bank app".
   return (
     <section className={sectionClass}>
       <p className="fsl-guest-signin__note m-0 text-sm text-muted-foreground text-center">{t('owe.signInToSee')}</p>
-      <SignInButtons layout="stack" returnTo={href('/who')} />
+      <Button variant="secondary" block onClick={() => setSignInOpen(true)} className="fsl-guest-signin__open">
+        <Icon name="user" size={16} />
+        {t('owe.logIn')}
+      </Button>
+      <SignInSheet open={signInOpen} onClose={() => setSignInOpen(false)} returnTo={href('/who')} />
     </section>
   );
 }

@@ -55,7 +55,8 @@ test('a personal theme sticks, and a group’s colours win inside it, for guests
   await guest.goto(`/j/${view.links.group}`);
   await guest.getByRole('radio', { name: /Chi/ }).click();
   await guest.getByRole('button', { name: 'Continue as Chi' }).click();
-  await expect(guest.getByText('Viewing as Chi')).toBeVisible();
+  // A guest only reaches their pay pages (owner, 2026-11-12); the group's colours apply there.
+  await expect(guest).toHaveURL(/\/j\/[^/]+\/(owe|pay\/)/);
   await expect(themeOf(guest)).toHaveAttribute('data-theme', 'sky');
   await guest.goto('/');
   await expect(themeOf(guest)).toHaveAttribute('data-theme', 'jade');

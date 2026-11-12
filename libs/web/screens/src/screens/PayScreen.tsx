@@ -331,6 +331,8 @@ export function PayScreen() {
         wide={wide}
         footer={footer}
         extras={stoppedCheck}
+        // A guest's sign-in sits with the details (the right-hand column on a wide screen), after "I've paid".
+        after={guest ? <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} /> : undefined}
         hero={
           <div className="fsl-pay__hero flex flex-col items-center text-center gap-1 lg:col-start-2 lg:row-start-1 lg:items-start lg:text-left">
             <Amount value={payInfo.amount} size="xl" />
@@ -358,7 +360,7 @@ export function PayScreen() {
         {archived && <p className="fsl-pay__notice m-0 px-4 py-3 bg-muted rounded-xl text-muted-foreground">{t('settings.archived')}</p>}
         {content}
         {guest ? (
-          <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} />
+          !isLayout && <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} />
         ) : (
           searchParams.get('via') === 'owe' && (
             <Button variant="ghost" href={href()} className="fsl-pay__see-group">

@@ -54,6 +54,7 @@ export function PayDetails({
   hero,
   extras,
   footer,
+  after,
   wide,
 }: {
   info: PayInfo;
@@ -61,6 +62,8 @@ export function PayDetails({
   hero: ReactNode;
   extras?: ReactNode;
   footer?: ReactNode;
+  /** After the footer: a way out of the page that must never come before paying (a guest's sign-in). */
+  after?: ReactNode;
   wide: boolean;
 }) {
   const t = useT();
@@ -121,6 +124,7 @@ export function PayDetails({
         {!coarse && <p className="fsl-pay__scan-hint m-0 text-xs text-subtle-foreground">{t('pay.scanWithPhone')}</p>}
         {extras}
         {wide && footer}
+        {after}
       </div>
     </div>
   );
