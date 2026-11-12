@@ -143,6 +143,8 @@ export const vi: Record<MessageKey, string> = {
   'history.seeAll': 'Xem tất cả với {name}', // REVIEW
   'history.seeHistory': 'Xem lịch sử với {name}', // REVIEW
   'history.covers': '{names} và {count} khoản khác', // REVIEW
+  'history.total': 'Tổng', // REVIEW
+  'history.openGroup': 'Mở {group}', // REVIEW
   'person.samePerson': 'Cùng một người?', // REVIEW
   'person.samePersonHelp': 'Liên kết để cộng gộp số tiền. Chỉ mình bạn thấy.', // REVIEW
   'person.mergeWith': 'Gộp với…', // REVIEW
@@ -170,6 +172,7 @@ export const vi: Record<MessageKey, string> = {
   'request.cashHint': 'Trả tiền mặt? Báo {owner} để họ đánh dấu.', // REVIEW
   'request.waiting': 'Đang chờ {owner} xác nhận', // REVIEW
   'request.quickExpenses': 'Khoản chi với {owner}', // REVIEW
+  'request.covers': 'Gồm những khoản nào ({count})', // REVIEW
   'request.notFound': 'Liên kết này không còn hiệu lực. Hãy xin liên kết mới.', // REVIEW
   'trip.tabExpenses': 'Chi tiêu', // REVIEW
   'trip.tabPayments': 'Thanh toán', // REVIEW
