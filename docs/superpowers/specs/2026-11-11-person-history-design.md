@@ -119,3 +119,17 @@ Privacy: the lines list only transactions involving **both** the requester and t
 - How to show unapproved guest expenses (waiting-style or hidden; never counted).
 - The optional "Show settled history" link.
 - Whether incomes (group income entries) appear as lines. They must if they affect the two-way balance, so the sum stays right.
+
+## Part 2: owner feedback (2026-11-12)
+
+The owner tried Part 1 and asked for these changes. They replace the matching parts above.
+
+1. **Group "Your transfers"** (signed-in members). When the other person owes you, tapping the row opens their person page with that group's sheet open, like Home's "By person · all groups" list. The tick that marks "received" stays. When you owe them, the row still expands to the QR, with "See history" inside. Guests are unchanged.
+2. **The person page is one ledger.**
+   - One row per place: one merged "Quick expenses" row, then a row per group. Each row shows its amount, and a Total row equals the number at the top.
+   - Tapping a row opens a sheet with "What makes this up" for that place: "Between you two" when a gap exists, then the lines. Group sheets end with "Open <group>".
+   - The separate history list under the rows goes away.
+   - `/people/in/<group>/<person>` now redirects to `/people/<key>?open=<group>`.
+3. **`/r` uses the group pay page's layout** (`/j/<token>/pay/<id>`): "Pay <owner>", the amount, the QR or the no-bank card, then "I've paid". A secondary "What this covers (n)" button under it opens a sheet with the same ledger, in which a row expands its lines in place. This follows the pay screen's existing "View the bill" sheet pattern.
+
+The owner approved updating the back-navigation tests that clicked a group row on the person page. They now tap "Open <group>" in the sheet.
