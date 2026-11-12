@@ -1122,6 +1122,7 @@ export const en = {
   'bill.textFoot': 'QR & details: {link}',
   'share.requestTitle': 'Payment request · {trip}',
   'share.billTitle': 'Bill · {trip}',
+  'share.pcHint': 'Right-click the picture to copy or save it, then paste it into a message or group chat.',
 } as const;
 
 export type MessageKey = keyof typeof en;

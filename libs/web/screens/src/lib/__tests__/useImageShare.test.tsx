@@ -56,6 +56,22 @@ describe('useImageShare', () => {
     await waitFor(() => expect(document.querySelector('.fsl-save-image')).not.toBeNull());
   });
 
+  it('PC picture sheet uses neutral desktop copy and copies once', async () => {
+    mockMedia({ mouse: true });
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal('navigator', { ...navigator, userAgent: 'Chrome', clipboard: { writeText } });
+    mount();
+    await act(() => api.share(request(true)));
+    const sheet = await waitFor(() => {
+      const el = document.querySelector('.fsl-save-image');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    await waitFor(() => expect(sheet.textContent).toContain('Right-click the picture'));
+    expect(sheet.textContent).not.toMatch(/Zalo|Press and hold|Open in browser/);
+    expect(writeText).toHaveBeenCalledTimes(1);
+  });
+
   it('PC with pcPicture false only copies', async () => {
     mockMedia({ mouse: true });
     vi.stubGlobal('navigator', { ...navigator, userAgent: 'Chrome', clipboard: { writeText: vi.fn(async () => undefined) } });

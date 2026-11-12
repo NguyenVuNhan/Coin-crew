@@ -77,7 +77,8 @@ export function RequestTotalButton({ view }: { view: TripView }) {
       <Button
         variant="primary"
         block
-        loading={sharing}
+        // Wait for the QR, so a quick tap never sends the picture without it.
+        loading={sharing || !isFetched}
         onClick={() => guard(onShare)}
         className="fsl-balance__request mt-3 min-h-11"
         data-qr-ready={String(isFetched)}

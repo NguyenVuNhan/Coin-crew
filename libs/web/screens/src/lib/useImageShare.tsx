@@ -43,8 +43,9 @@ export function useImageShare(): {
 
       // Copy first, while the click still counts as a user gesture.
       if (mouse && !isZaloWebView()) {
-        setStatus((await copyText(req.text)) ? 'copied' : 'failed');
-        if (req.pcPicture) show(req.render, req.text);
+        const copied = await copyText(req.text);
+        setStatus(copied ? 'copied' : 'failed');
+        if (req.pcPicture) show(req.render, req.text, { pc: true, copied });
         return;
       }
 

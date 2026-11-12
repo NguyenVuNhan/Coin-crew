@@ -203,14 +203,15 @@ export function expenseBillText(
   lang: Lang,
   input: { description: string; total: number; shares: { name: string; amount: number }[]; link: string },
 ): string {
-  const first = input.shares[0];
-  const equal = first !== undefined && input.shares.every((s) => s.amount === first.amount);
+  const owing = input.shares.filter((s) => s.amount > 0);
+  const first = owing[0];
+  const equal = first !== undefined && owing.every((s) => s.amount === first.amount);
   const head = equal
     ? fill(lang, 'bill.textEqual', { description: input.description, total: formatVnd(input.total), amount: formatVnd(first.amount) })
     : fill(lang, 'bill.textUneven', {
         description: input.description,
         total: formatVnd(input.total),
-        list: input.shares.map((s) => `${s.name} ${formatVnd(s.amount)}`).join(', '),
+        list: owing.map((s) => `${s.name} ${formatVnd(s.amount)}`).join(', '),
       });
   return `${head}\n${fill(lang, 'bill.textFoot', { link: input.link })}`;
 }

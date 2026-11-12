@@ -93,6 +93,27 @@ describe('Share bill & QR on a normal expense', () => {
     }
   });
 
+  it('is hidden when nobody but the payer owes anything', async () => {
+    mockMedia({});
+    mockApi({});
+    const v = withExpense(tripView(), 'e-1', {
+      shares: [
+        { participantId: PIDS.M, amount: 3200000, inputValue: 1 },
+        { participantId: PIDS.A, amount: 0, inputValue: 0 },
+      ],
+    });
+    open(v, 'e-1');
+    await screen.findAllByText('Homestay Bloom · 2 nights');
+    expect(document.querySelector('.fsl-expense-share')).toBeNull();
+  });
+
+  it('waits for the QR before it can be tapped', async () => {
+    mockMedia({});
+    mockApi({ [`GET /api/trips/t-1/pay/${PIDS.M}`]: () => new Promise<Response>(() => {}) });
+    open(tripView(), 'e-1');
+    expect(await screen.findByRole('button', { name: /Share bill & QR/ })).toBeDisabled();
+  });
+
   it('equal split: picture hint asks for the amount, payer row is muted', async () => {
     mockMedia({});
     mockApi({ [`GET /api/trips/t-1/pay/${PIDS.M}`]: billInfo(800000) });
@@ -135,7 +156,7 @@ describe('Share bill & QR on a normal expense', () => {
     const user = userEvent.setup();
     open(tripView(), 'e-1');
     await user.click(await readyButton());
-    expect(await screen.findByText('Message copied. Paste it into a message or group chat.')).toBeInTheDocument();
+    expect((await screen.findAllByText('Message copied. Paste it into a message or group chat.')).length).toBeGreaterThan(0);
     expect(await navigator.clipboard.readText()).toContain('/j/gtok-1/e/e-1');
     await waitFor(() => expect(document.querySelector('.fsl-save-image')).not.toBeNull());
   });

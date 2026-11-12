@@ -65,6 +65,23 @@ describe('expenseBillText', () => {
   });
 });
 
+describe('expenseBillText with a zero share', () => {
+  it('leaves out people who owe nothing', () => {
+    expect(
+      expenseBillText('vi', {
+        description: 'Lẩu',
+        total: 900000,
+        shares: [
+          { name: 'A', amount: 0 },
+          { name: 'B', amount: 300000 },
+          { name: 'C', amount: 300000 },
+        ],
+        link: L,
+      }),
+    ).toBe('Lẩu: 900.000₫, mỗi người 300.000₫.\nMã QR & chi tiết: ' + L);
+  });
+});
+
 describe('requestTotalRows', () => {
   it('returns suggestions into me in view order', () => {
     expect(requestTotalRows(tripView()).map((r) => r.fromId)).toEqual([PIDS.C, PIDS.B, PIDS.A]);

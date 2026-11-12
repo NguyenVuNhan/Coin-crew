@@ -1126,4 +1126,5 @@ export const vi: Record<MessageKey, string> = {
   'bill.textFoot': 'Mã QR & chi tiết: {link}',
   'share.requestTitle': 'Yêu cầu thanh toán · {trip}',
   'share.billTitle': 'Hóa đơn · {trip}',
+  'share.pcHint': 'Nhấp chuột phải vào ảnh để sao chép hoặc lưu, rồi dán vào tin nhắn hoặc nhóm chat.',
 };

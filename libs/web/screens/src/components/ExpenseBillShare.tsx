@@ -13,7 +13,10 @@ import { expenseBillCard } from '../lib/shareCards';
 import { useImageShare } from '../lib/useImageShare';
 import { useBankFirst } from './BankFirstSheet';
 
-/** Only the payer shares a normal, approved expense's bill: not a sport bill (it has its own), a fund-paid one, or on an archived group. */
+/**
+ * Only the payer shares a normal, approved expense's bill, and only when someone else owes on it: not a sport bill (it
+ * has its own), a fund-paid one, or on an archived group.
+ */
 export function canShareExpenseBill(view: TripView, e: ExpenseView): boolean {
   return (
     view.me.participantId !== null &&
@@ -21,7 +24,8 @@ export function canShareExpenseBill(view: TripView, e: ExpenseView): boolean {
     e.status === 'approved' &&
     !isFundPaid(e) &&
     !view.trip.archived &&
-    !e.meta?.sport
+    !e.meta?.sport &&
+    e.shares.some((s) => s.participantId !== e.payerId && s.amount > 0)
   );
 }
 
@@ -93,7 +97,8 @@ export function ExpenseBillShare({ view, expense: e }: { view: TripView; expense
     <div className="fsl-expense-share flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
       <Button
         variant="primary"
-        loading={sharing}
+        // Wait for the QR, so a quick tap never sends the picture without it.
+        loading={sharing || !isFetched}
         onClick={() => guard(onShare)}
         className="rounded-full min-h-11"
         data-qr-ready={String(isFetched)}
