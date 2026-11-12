@@ -355,7 +355,7 @@ export function ExpensePaymentsApproval({
           aria-valuemax={100}
         >
           <div
-            className="h-full bg-success transition-all duration-300"
+            className="h-full bg-success transition-[width] duration-300 motion-reduce:transition-none"
             style={{ width: `${progressPct}%` }}
           />
         </div>
