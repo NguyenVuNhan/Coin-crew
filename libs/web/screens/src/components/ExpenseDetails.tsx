@@ -19,6 +19,7 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { usePayInfo } from '@cc/web-data-access/payInfo';
 import {
   useQrSvg,
+  shareSportBill,
   renderSportBillPng,
   shareSportPlanning,
   renderSportPlanningPng,
@@ -209,6 +210,7 @@ export function ExpenseDetails({
       fileName: `bill-${(refCode || 'sport').replace(/\s+/g, '-')}.png`,
       card: sportBillCard(view, e.rootId ?? e.id, msgText, platform.apiBase),
       pcPicture: false,
+      shareFile: () => shareSportBill(billInput, msgText, refCode),
     });
   };
 

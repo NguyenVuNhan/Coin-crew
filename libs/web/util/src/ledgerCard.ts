@@ -1,5 +1,5 @@
 import { formatVnd } from '@cc/core';
-import { qrSrc } from './qr';
+import { CARD_COLOURS as C, qrSrc } from './qr';
 
 export interface LedgerCardRow {
   name: string;
@@ -35,9 +35,6 @@ const HEADER_H = 140;
 const AMOUNT_COL = 260;
 const QR_SIZE = 240;
 const QR_SECTION = 400;
-const DEBT = '#be123c';
-const INK = '#111827';
-const MUTED = '#9ca3af';
 const FONT = 'system-ui, -apple-system, sans-serif';
 
 /** `text` cut with "…" so `measure(text)` fits in `max` pixels. */
@@ -61,20 +58,20 @@ export function renderLedgerPng(input: LedgerCardInput): Promise<Blob | null> {
   const tableW = WIDTH - PAD_X * 2;
   const nameW = tableW - AMOUNT_COL;
 
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = C.paper;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = INK;
+  ctx.fillStyle = C.ink;
   ctx.font = `bold 36px ${FONT}`;
   ctx.fillText(fit(input.title, tableW, (s) => ctx.measureText(s).width), PAD_X, 48);
-  ctx.fillStyle = '#6b7280';
+  ctx.fillStyle = C.meta;
   ctx.font = `22px ${FONT}`;
   ctx.fillText(fit(input.meta, tableW, (s) => ctx.measureText(s).width), PAD_X, 96);
 
   const border = (y: number) => {
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = C.line;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(PAD_X, y);
@@ -99,18 +96,18 @@ export function renderLedgerPng(input: LedgerCardInput): Promise<Blob | null> {
 
   let y = HEADER_H;
   border(y);
-  row(y, input.nameHeader, input.amountHeader, { bold: true, nameColor: '#374151', amountColor: '#374151', fill: '#f3f4f6' });
+  row(y, input.nameHeader, input.amountHeader, { bold: true, nameColor: C.headInk, amountColor: C.headInk, fill: C.head });
   y += ROW_H;
   for (const r of input.rows) {
-    const color = r.muted ? MUTED : INK;
+    const color = r.muted ? C.muted : C.ink;
     row(y, r.tag ? `${r.name} ${r.tag}` : r.name, formatVnd(r.amount), {
       bold: false,
       nameColor: color,
-      amountColor: r.muted ? MUTED : DEBT,
+      amountColor: r.muted ? C.muted : C.debt,
     });
     y += ROW_H;
   }
-  row(y, input.totalLabel, formatVnd(input.total), { bold: true, nameColor: INK, amountColor: INK, fill: '#e5e7eb' });
+  row(y, input.totalLabel, formatVnd(input.total), { bold: true, nameColor: C.ink, amountColor: C.ink, fill: C.line });
   y += ROW_H;
 
   const toBlob = () =>
@@ -135,13 +132,13 @@ export function renderLedgerPng(input: LedgerCardInput): Promise<Blob | null> {
         ctx.textBaseline = 'top';
         let lineY = qrY + QR_SIZE + 28;
         if (input.bankLine) {
-          ctx.fillStyle = '#1f2937';
+          ctx.fillStyle = C.bank;
           ctx.font = `bold 22px ${FONT}`;
           ctx.fillText(fit(input.bankLine, tableW, (s) => ctx.measureText(s).width), WIDTH / 2, lineY);
           lineY += 36;
         }
         if (input.hint) {
-          ctx.fillStyle = '#6b7280';
+          ctx.fillStyle = C.meta;
           ctx.font = `20px ${FONT}`;
           ctx.fillText(fit(input.hint, tableW, (s) => ctx.measureText(s).width), WIDTH / 2, lineY);
         }

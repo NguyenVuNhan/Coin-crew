@@ -16,6 +16,8 @@ export interface ImageShareRequest {
   card: ShareCard;
   /** On a PC, also open the picture sheet after copying the text (the link preview carries no QR). */
   pcPicture: boolean;
+  /** Phone browser: share through this instead of `shareImageFile(await render())` (the sport bill keeps its own). */
+  shareFile?: () => Promise<'shared' | 'saved' | 'failed'>;
 }
 
 /**
@@ -68,7 +70,7 @@ export function useImageShare(): {
 
       setSharing(true);
       try {
-        const res = await shareImageFile(await req.render(), req.fileName, req.text);
+        const res = req.shareFile ? await req.shareFile() : await shareImageFile(await req.render(), req.fileName, req.text);
         if (res !== 'shared') setStatus(res);
       } catch {
         setStatus('failed');
