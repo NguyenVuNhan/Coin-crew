@@ -208,30 +208,6 @@ export function RequestPage(): JSX.Element {
     );
   }
 
-  // The per-place rows: shown on the page (owner owes, netted), their lines live in the covers sheet.
-  const itemRows = (
-    <div className="fsl-request__items bg-card border border-border rounded-xl divide-y divide-border">
-      {view.items.map((item) => (
-        <div
-          key={item.tripId}
-          data-testid={`request-item-${item.tripId}`}
-          className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
-        >
-          <span className="font-medium text-foreground truncate mr-2">{getItemLabel(item, owner, t)}</span>
-          <span
-            className={cn(
-              'font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5',
-              item.amount < 0 ? 'text-success' : 'text-danger',
-            )}
-          >
-            {item.amount < 0 && '−'}
-            <Amount value={Math.abs(item.amount)} tone={item.amount > 0 ? 'danger' : 'success'} />
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-
   if (view.total < 0) {
     return (
       <Screen title={t('request.title')}>
@@ -242,7 +218,6 @@ export function RequestPage(): JSX.Element {
             </h2>
             <Amount value={-view.total} size="xl" tone="success" />
           </div>
-          {itemRows}
           <CoversButton places={places} owner={owner} />
         </div>
       </Screen>
@@ -283,7 +258,6 @@ export function RequestPage(): JSX.Element {
 
   const body = (
     <>
-      {view.items.length > 1 && itemRows}
       {isWaiting ? (
         <div
           className="fsl-request__waiting bg-card border border-border rounded-xl p-4 text-center"

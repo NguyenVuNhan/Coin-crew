@@ -35,6 +35,6 @@ Seeded by `npm run seed:local` (`scripts/seed-local.mjs`), once per signed-in us
 ## Request link
 
 - [ ] **S18 Request page.** Open `/r/seed-r-<o>-an00000000000000` in a private window (ledger An's seeded request token, padded to the 32 characters `/r/` accepts). Expect:
-  - **Layout:** like a group pay page: "Pay <you>", "You owe … 230.000₫", the QR or a "no bank details" card, "I've paid", then "What this covers (2)".
+  - **Layout:** like a group pay page: "Pay <you>", "You owe … 230.000₫", the QR or a "no bank details" card, "I've paid", then "What this covers (2)". The places are not listed on the page itself.
   - **The sheet:** "What this covers" opens a sheet with "Expenses with <you>" (−130.000₫) and "Hội An (seed)" (−100.000₫), Total −230.000₫. Tapping a row expands its lines in place, with the waiting payment and the crossed-out Boat.
   - **Privacy:** no third person is named anywhere.

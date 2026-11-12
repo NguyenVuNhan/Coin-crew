@@ -60,7 +60,7 @@ describe('RequestPage (/r/:token)', () => {
     ).toBeInTheDocument();
   });
 
-  it('2. Two items (direct 370000, group "Badminton" -100000), total 270000 -> request-netted, "You owe Nhan", request-item rows for both, "Badminton" visible', async () => {
+  it('2. Two items (direct 370000, group "Badminton" -100000), total 270000 -> request-netted, "You owe Nhan", both places in the covers sheet', async () => {
     const view: RequestView = {
       ownerName: 'Nhan',
       total: 270000,
@@ -93,10 +93,13 @@ describe('RequestPage (/r/:token)', () => {
 
     expect(await screen.findByTestId('request-netted')).toBeInTheDocument();
     expect(screen.getByText('You owe Nhan')).toBeInTheDocument();
-    expect(screen.getByTestId('request-item-t-direct')).toBeInTheDocument();
-    expect(screen.getByTestId('request-item-t-badminton')).toBeInTheDocument();
-    expect(screen.getByText('Badminton')).toBeInTheDocument();
     expect(screen.getByText(/270\.000/)).toBeInTheDocument();
+    // The places live in the "What this covers" sheet, not on the page (owner, #98).
+    expect(screen.queryByText('Badminton')).toBeNull();
+    await userEvent.click(screen.getByTestId('request-covers'));
+    const sheet = await screen.findByRole('dialog');
+    expect(sheet.querySelectorAll('.fsl-ledger__row')).toHaveLength(2);
+    expect(sheet).toHaveTextContent('Badminton');
   });
 
   it('3. settled: true, items [], total 0 -> "You’re all settled with Nhan" and no request-paid', async () => {
@@ -398,7 +401,8 @@ describe('RequestPage (/r/:token)', () => {
 
     expect(await screen.findByText('Nhan owes you')).toBeInTheDocument();
     expect(screen.getAllByText(/150\.000/).length).toBeGreaterThan(0);
-    expect(screen.getByTestId('request-item-t-direct')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('request-covers'));
+    expect((await screen.findByRole('dialog')).querySelectorAll('.fsl-ledger__row')).toHaveLength(1);
     expect(screen.queryByTestId('request-paid')).toBeNull();
   });
 
