@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { HistoryLine, RequestView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
@@ -59,41 +59,49 @@ const five = ['Lunch', 'Taxi', 'Coffee', 'Snack', 'Tea'].map((title, i) =>
   line(title, { title, createdAt: `2026-11-0${5 - i}T10:00:00Z` }),
 );
 
+async function openCovers() {
+  await userEvent.click(await screen.findByTestId('request-covers'));
+  return screen.getByRole('dialog', { name: 'What makes this up' });
+}
+
 describe('RequestPage history', () => {
-  it('shows "Lunch, Taxi and 3 more" under a row with 5 lines', async () => {
+  it('the covers sheet has one row per place, collapsed', async () => {
     mockApi({ 'GET /api/r/tok': view({ lines: five }) });
     renderAt(<RequestPage />, { route: '/r/tok', path: '/r/:token' });
-    const btn = await screen.findByTestId('request-covers-t-direct');
-    expect(btn).toHaveTextContent('Lunch, Taxi and 3 more');
-    expect(btn).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByTestId('request-covers-t-other')).toBeNull();
+    expect(await screen.findByTestId('request-covers')).toHaveTextContent('What this covers (2)');
+    const sheet = await openCovers();
+    expect(within(sheet).getByTestId('ledger-row-direct')).toHaveAttribute('aria-expanded', 'false');
+    expect(within(sheet).getByTestId('ledger-row-t-other')).toHaveTextContent('Badminton');
+    expect(within(sheet).queryByTestId('history-line-Coffee')).toBeNull();
   });
 
-  it('tapping it expands the compact list', async () => {
+  it('tapping a row expands the compact list, tapping again folds it', async () => {
     mockApi({ 'GET /api/r/tok': view({ lines: five }) });
     renderAt(<RequestPage />, { route: '/r/tok', path: '/r/:token' });
-    const btn = await screen.findByTestId('request-covers-t-direct');
-    expect(screen.queryByTestId('history-line-Coffee')).toBeNull();
-    await userEvent.click(btn);
-    expect(btn).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByTestId('history-line-Coffee')).toBeInTheDocument();
-    await userEvent.click(btn);
-    expect(screen.queryByTestId('history-line-Coffee')).toBeNull();
+    const sheet = await openCovers();
+    const row = within(sheet).getByTestId('ledger-row-direct');
+    await userEvent.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+    expect(within(sheet).getByTestId('history-line-Coffee')).toBeInTheDocument();
+    await userEvent.click(row);
+    expect(within(sheet).queryByTestId('history-line-Coffee')).toBeNull();
   });
 
   it('gap item shows the rerouted line', async () => {
-    mockApi({
-      'GET /api/r/tok': view({
-        amount: 150000,
-        lines: [line('Room', { effect: 300000 })],
-        gap: { kind: 'reroute', difference: -150000, viaPid: null },
-      }),
-    });
+    const v = view({});
+    v.items[1] = {
+      ...v.items[1]!,
+      amount: 150000,
+      lines: [line('Room', { tripId: 't-other', effect: 300000 })],
+      gap: { kind: 'reroute', difference: -150000, viaPid: null },
+    };
+    mockApi({ 'GET /api/r/tok': v });
     renderAt(<RequestPage />, { route: '/r/tok', path: '/r/:token' });
-    await userEvent.click(await screen.findByTestId('request-covers-t-direct'));
-    expect(screen.getByText('Between you two')).toBeInTheDocument();
+    const sheet = await openCovers();
+    await userEvent.click(within(sheet).getByTestId('ledger-row-t-other'));
+    expect(within(sheet).getByText('Between you two')).toBeInTheDocument();
     expect(
-      screen.getByText('To save transfers, the group changed this to 150.000₫.'),
+      within(sheet).getByText('To save transfers, the group changed this to 150.000₫.'),
     ).toBeInTheDocument();
   });
 });

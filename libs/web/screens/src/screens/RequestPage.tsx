@@ -1,7 +1,7 @@
 import { useState, type JSX } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import type { RequestView, PersonItem } from '@cc/core';
+import type { HistoryPlace, PersonItem, RequestItem, RequestView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError, apiFetch, apiSend } from '@cc/web-data-access/client';
 import { newIdempotencyKey } from '@cc/web-data-access/people';
@@ -11,12 +11,52 @@ import { Amount } from '@cc/web-ui/components/Amount';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { PayQr } from '../components/PayQr';
+import { PersonLedger, toLedgerPlaces, type LedgerPlace } from '../components/PersonLedger';
 import { cn } from '@cc/web-ui/lib/utils';
-import { RequestCovers } from '../components/RequestCovers';
 
 function getItemLabel(item: PersonItem, owner: string, t: ReturnType<typeof useT>): string {
   return item.kind === 'direct' ? t('request.quickExpenses', { owner }) : item.tripName;
+}
+
+/** A /r item as the ledger's input: same amount (owner's view), its lines and its gap. */
+function toHistoryPlace(item: RequestItem): HistoryPlace {
+  const lines = item.lines ?? [];
+  const twoWay = lines
+    .filter((l) => l.state === 'counted' || l.state === 'waiting')
+    .reduce((sum, l) => sum + l.effect, 0);
+  return {
+    tripId: item.tripId,
+    tripName: item.tripName,
+    kind: item.kind,
+    source: item.kind === 'direct' ? 'own' : 'group',
+    amount: item.amount,
+    history: { lines, twoWay, suggested: item.amount, gap: item.gap ?? null, trimmed: false },
+  };
+}
+
+/** Full-width "What this covers (n)" opening the ledger in a sheet, like the pay screen's "View the bill". */
+function CoversButton({ places, owner }: { places: LedgerPlace[]; owner: string }): JSX.Element | null {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  if (places.length === 0) return null;
+  return (
+    <>
+      <Button
+        variant="secondary"
+        block
+        className="fsl-request__covers"
+        onClick={() => setOpen(true)}
+        data-testid="request-covers"
+      >
+        {t('request.covers', { count: places.length })}
+      </Button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('history.title')}>
+        <PersonLedger places={places} otherName={owner} perspective="other" open="inline" />
+      </Sheet>
+    </>
+  );
 }
 
 export function RequestPage(): JSX.Element {
@@ -89,6 +129,9 @@ export function RequestPage(): JSX.Element {
 
   const owner = view.ownerName;
   const isWaiting = view.settlementWaiting || hasPaid;
+  const places = toLedgerPlaces(view.items.map(toHistoryPlace), {
+    quickExpenses: t('request.quickExpenses', { owner }),
+  });
 
   const handlePaid = async () => {
     if (!token || !view || isSending) return;
@@ -165,6 +208,30 @@ export function RequestPage(): JSX.Element {
     );
   }
 
+  // The per-place rows: shown on the page (owner owes, netted), their lines live in the covers sheet.
+  const itemRows = (
+    <div className="fsl-request__items bg-card border border-border rounded-xl divide-y divide-border">
+      {view.items.map((item) => (
+        <div
+          key={item.tripId}
+          data-testid={`request-item-${item.tripId}`}
+          className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
+        >
+          <span className="font-medium text-foreground truncate mr-2">{getItemLabel(item, owner, t)}</span>
+          <span
+            className={cn(
+              'font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5',
+              item.amount < 0 ? 'text-success' : 'text-danger',
+            )}
+          >
+            {item.amount < 0 && '−'}
+            <Amount value={Math.abs(item.amount)} tone={item.amount > 0 ? 'danger' : 'success'} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
   if (view.total < 0) {
     return (
       <Screen title={t('request.title')}>
@@ -175,119 +242,105 @@ export function RequestPage(): JSX.Element {
             </h2>
             <Amount value={-view.total} size="xl" tone="success" />
           </div>
-          <div className="fsl-request__items bg-card border border-border rounded-xl divide-y divide-border">
-            {view.items.map((item) => (
-              <div key={item.tripId}>
-                <div
-                  data-testid={`request-item-${item.tripId}`}
-                  className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
-                >
-                  <span className="font-medium text-foreground truncate mr-2">
-                    {getItemLabel(item, owner, t)}
-                  </span>
-                  <span className={cn('font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5', item.amount < 0 ? 'text-success' : 'text-danger')}>
-                    {item.amount < 0 && '−'}
-                    <Amount
-                      value={Math.abs(item.amount)}
-                      tone={item.amount > 0 ? 'danger' : 'success'}
-                    />
-                  </span>
-                </div>
-                <RequestCovers item={item} owner={owner} />
-              </div>
-            ))}
-          </div>
+          {itemRows}
+          <CoversButton places={places} owner={owner} />
         </div>
       </Screen>
     );
   }
 
-  return (
-    <Screen title={t('request.title')}>
-      <div className="fsl-request flex flex-col gap-4 py-4">
-        {view.items.length <= 1 ? (
-          <div
-            className="fsl-request__single flex flex-col items-center text-center gap-1"
-            data-testid="request-single"
-          >
-            <p className="m-0 text-base text-muted-foreground">
-              {t('request.askedYou', { owner })}
-            </p>
-            <Amount value={view.total} size="xl" />
-            {view.items[0] && (
-              <p className="m-0 text-sm text-muted-foreground">
-                {getItemLabel(view.items[0], owner, t)}
-              </p>
-            )}
-            {view.items[0] && <RequestCovers item={view.items[0]} owner={owner} />}
-          </div>
-        ) : (
-          <div className="fsl-request__netted flex flex-col gap-4" data-testid="request-netted">
-            <div className="flex flex-col items-center text-center gap-1">
-              <h2 className="m-0 text-base font-medium text-muted-foreground">
-                {t('request.youOwe', { owner })}
-              </h2>
-              <Amount value={view.total} size="xl" />
-            </div>
-            <div className="fsl-request__items bg-card border border-border rounded-xl divide-y divide-border">
-              {view.items.map((item) => (
-                <div key={item.tripId}>
-                  <div
-                    data-testid={`request-item-${item.tripId}`}
-                    className="flex items-center justify-between px-4 py-3 min-h-11 text-sm"
-                  >
-                    <span className="font-medium text-foreground truncate mr-2">
-                      {getItemLabel(item, owner, t)}
-                    </span>
-                    <span className={cn('font-semibold tabular-nums whitespace-nowrap shrink-0 flex items-center gap-0.5', item.amount < 0 ? 'text-success' : 'text-danger')}>
-                      {item.amount < 0 && '−'}
-                      <Amount
-                        value={Math.abs(item.amount)}
-                        tone={item.amount > 0 ? 'danger' : 'success'}
-                      />
-                    </span>
-                  </div>
-                  <RequestCovers item={item} owner={owner} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  // The group pay page's layout (PayScreen): the hero, the QR or the no-bank card, then "I've paid".
+  const hasQr = !isWaiting && Boolean(view.pay?.payload);
+  const bank = view.pay?.bank ?? null;
+  const toLine =
+    hasQr && bank ? (
+      <p className="fsl-pay__to m-0 text-sm leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+        {t('pay.toLine', { holder: bank.holderName, bank: bank.bankName })}
+      </p>
+    ) : null;
+  const heroClass = cn(
+    'fsl-pay__hero flex flex-col items-center text-center gap-1',
+    hasQr && 'lg:col-start-2 lg:row-start-1 lg:items-start lg:text-left',
+  );
 
-        {isWaiting ? (
-          <div
-            className="fsl-request__waiting bg-card border border-border rounded-xl p-4 text-center"
-            data-testid="request-waiting"
+  const hero =
+    view.items.length <= 1 ? (
+      <div className={cn('fsl-request__single', heroClass)} data-testid="request-single">
+        <p className="m-0 text-base text-muted-foreground">{t('request.askedYou', { owner })}</p>
+        <Amount value={view.total} size="xl" />
+        {view.items[0] && (
+          <p className="m-0 text-sm text-muted-foreground">{getItemLabel(view.items[0], owner, t)}</p>
+        )}
+        {toLine}
+      </div>
+    ) : (
+      <div className={cn('fsl-request__netted', heroClass)} data-testid="request-netted">
+        <h2 className="m-0 text-base font-medium text-muted-foreground">{t('request.youOwe', { owner })}</h2>
+        <Amount value={view.total} size="xl" />
+        {toLine}
+      </div>
+    );
+
+  const body = (
+    <>
+      {view.items.length > 1 && itemRows}
+      {isWaiting ? (
+        <div
+          className="fsl-request__waiting bg-card border border-border rounded-xl p-4 text-center"
+          data-testid="request-waiting"
+        >
+          <p className="m-0 text-base font-semibold text-foreground">{t('request.waiting', { owner })}</p>
+        </div>
+      ) : (
+        <>
+          {submitError !== null && <InlineError error={submitError} onRetry={handlePaid} />}
+          <Button
+            variant="primary"
+            block
+            loading={isSending}
+            disabled={isSending}
+            onClick={handlePaid}
+            data-testid="request-paid"
           >
-            <p className="m-0 text-base font-semibold text-foreground">
-              {t('request.waiting', { owner })}
-            </p>
+            {t('request.paid')}
+          </Button>
+          <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center">{t('pay.iPaidHint')}</p>
+        </>
+      )}
+      <CoversButton places={places} owner={owner} />
+      {!isWaiting && (
+        <p className="fsl-request__cash-hint m-0 text-sm text-muted-foreground text-center">
+          {t('request.cashHint', { owner })}
+        </p>
+      )}
+    </>
+  );
+
+  return (
+    <Screen title={t('pay.title', { name: owner })} wide={hasQr}>
+      <div
+        className={cn(
+          'fsl-request fsl-pay flex flex-col gap-4 w-full py-4',
+          // Only the QR view uses the two columns, like PayScreen.
+          !hasQr && 'fsl-pay--narrow max-w-[480px] mx-auto',
+        )}
+      >
+        {hasQr && view.pay ? (
+          <div className="fsl-pay__layout grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-8 lg:items-start">
+            {hero}
+            <div className="fsl-pay__qr lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:min-w-0">
+              <PayQr info={view.pay} variant="pay" summary={false} />
+            </div>
+            <div className="fsl-pay__body flex flex-col gap-3 min-w-0 lg:col-start-2 lg:row-start-2">{body}</div>
           </div>
         ) : (
           <>
-            {view.pay && view.pay.payload ? (
-              <PayQr info={view.pay} variant="pay" summary={false} />
-            ) : (
-              <p className="fsl-request__no-bank m-0 text-sm text-muted-foreground text-center">
-                {t('request.noBank', { owner })}
-              </p>
+            {hero}
+            {!isWaiting && (
+              // Mirrors PayScreen's no-bank card; a guest can't remind or add bank details, so no actions.
+              <EmptyState icon="bank" title={t('request.noBank', { owner })} className="fsl-request__no-bank" action={null} />
             )}
-            <Button
-              variant="primary"
-              block
-              loading={isSending}
-              disabled={isSending}
-              onClick={handlePaid}
-              data-testid="request-paid"
-            >
-              {t('request.paid')}
-            </Button>
-            <p className="fsl-request__cash-hint m-0 text-sm text-muted-foreground text-center">
-              {t('request.cashHint', { owner })}
-            </p>
-            {submitError !== null && (
-              <InlineError error={submitError} onRetry={handlePaid} />
-            )}
+            <div className="fsl-pay__body flex flex-col gap-3 min-w-0">{body}</div>
           </>
         )}
       </div>
