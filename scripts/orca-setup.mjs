@@ -71,7 +71,8 @@ export function syncEnvironments(sourceDir, targetDir, fileList = DEFAULT_ENV_FI
 export function runSetup(options = {}) {
   const cwd = options.cwd ?? process.cwd();
   const env = options.env ?? process.env;
-  const exec = options.exec ?? ((cmd) => execSync(cmd, { cwd, stdio: 'inherit', env }));
+  // exec(cmd, opts?): opts.env replaces the environment for that one command.
+  const exec = options.exec ?? ((cmd, opts = {}) => execSync(cmd, { cwd, stdio: 'inherit', env, ...opts }));
 
   console.log(`\n========================================`);
   console.log(`  CoinCrew Orca Setup`);
@@ -79,7 +80,8 @@ export function runSetup(options = {}) {
   console.log(`Target directory: ${cwd}`);
 
   const sourceDir = resolveSourceDir(env, cwd);
-  if (sourceDir && path.resolve(sourceDir).toLowerCase() !== path.resolve(cwd).toLowerCase()) {
+  const fromSource = !!sourceDir && path.resolve(sourceDir).toLowerCase() !== path.resolve(cwd).toLowerCase();
+  if (fromSource) {
     console.log(`Source repository: ${sourceDir}`);
     console.log(`Syncing environment files...`);
     const copied = syncEnvironments(sourceDir, cwd);
@@ -96,13 +98,21 @@ export function runSetup(options = {}) {
     console.warn(`Could not resolve source repository root; proceeding with build only.`);
   }
 
-  console.log(`\n[1/3] Installing dependencies...`);
+  console.log(`\n[1/4] Installing dependencies...`);
   exec('npm install');
 
-  console.log(`\n[2/3] Applying local D1 database migrations...`);
-  exec('npx -w @cc/api wrangler d1 migrations apply fsl --local');
+  console.log(`\n[2/4] Applying local D1 database migrations...`);
+  // CI=1 makes wrangler take the default "yes" at its "Ok to proceed?" prompt.
+  exec('npx -w @cc/api wrangler d1 migrations apply fsl --local', { env: { ...env, CI: '1' } });
 
-  console.log(`\n[3/3] Building web application (@cc/web)...`);
+  console.log(`\n[3/4] Seeding mock data...`);
+  try {
+    exec(fromSource ? `node scripts/seed-local.mjs --from "${path.resolve(sourceDir)}"` : 'node scripts/seed-local.mjs');
+  } catch (error) {
+    console.warn(`  ⚠ Seeding mock data failed (setup continues): ${error?.message || error}`);
+  }
+
+  console.log(`\n[4/4] Building web application (@cc/web)...`);
   exec('npm run build -w @cc/web');
 
   console.log(`\n✔ CoinCrew workspace setup complete!\n`);

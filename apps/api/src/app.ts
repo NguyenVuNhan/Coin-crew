@@ -20,6 +20,7 @@ import { ratingRoutes } from './ratings/routes';
 import { bankRoutes } from './bank/routes';
 import { paymentRoutes } from './payments/routes';
 import { balanceRoutes } from './me/balances';
+import { historyRoutes } from './me/history';
 import { peopleRoutes } from './me/people';
 import { ledgerRoutes } from './me/ledger';
 import { settleRoutes } from './me/settle';
@@ -61,6 +62,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', bankRoutes());
   app.route('/api', paymentRoutes());
   app.route('/api', balanceRoutes());
+  app.route('/api', historyRoutes());
   app.route('/api', peopleRoutes());
   app.route('/api', ledgerRoutes());
   app.route('/api', settleRoutes());

@@ -389,6 +389,10 @@ export interface PersonItems {
   ledger: { tripId: string; ownerPid: string; personPid: string } | null;
   /** An unlinked group guest: the participant a new ledger row should be linked from. */
   guestPid: string | null;
+  /** The snapshot of every trip in `items`' search (where the person has a participant), by trip id. */
+  snapshots: Map<string, TripSnapshot>;
+  /** The trip row of every trip in `snapshots`, by trip id. */
+  trips: Map<string, TripRow>;
   /** D1 statements this load prepared (counts toward the 50-per-invocation budget). */
   queries: number;
   /** Snapshot rebuilds this load did. */
@@ -492,6 +496,8 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
   let rebuilt = 0;
   const items: PersonTripItem[] = [];
   let ledger: PersonItems['ledger'] = null;
+  const snapshots = new Map<string, TripSnapshot>();
+  const tripsById = new Map<string, TripRow>();
   for (const row of mine) {
     const trip = row.trip;
     let snapshot = cachedSnapshot(trip, row.viewVersion, row.viewJson);
@@ -500,6 +506,8 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
       snapshot = await getSnapshot(db, trip, cache);
       rebuilt += 1;
     }
+    snapshots.set(trip.id, snapshot);
+    tripsById.set(trip.id, trip);
     const isDirect = trip.preset === 'direct';
     const ownLedger = isDirect && trip.organiserUserId === userId;
     for (const person of rows) {
@@ -530,6 +538,8 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
     items,
     ledger,
     guestPid: canonical.startsWith('p:') && ledger === null ? canonical.slice(2) : null,
+    snapshots,
+    trips: tripsById,
     queries,
     rebuilt,
   };

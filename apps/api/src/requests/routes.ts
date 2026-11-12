@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, type PayInfo, type PersonItem, type PersonKey, type RequestView } from '@cc/core';
+import { buildTransferNote, buildVietQrPayload, SETTLE_PURPOSE, findBank, maskAccountNumber, pairHistory, type HistoryGap, type PayInfo, type PersonKey, type RequestItem, type RequestView } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { bankDetails, deviceParticipants, participants, personLinks, trips, users } from '@cc/api-db/schema';
@@ -82,20 +82,47 @@ export async function findRequest(db: Db, token: string): Promise<RequestTarget 
   };
 }
 
-/** Open items for the pair, from the person's side (positive: they owe the owner). */
+/**
+ * Open items for the pair, from the person's side (positive: they owe the owner), each with the
+ * two-way lines behind it (owner's view). Public: no participant ids, and a reroute never names
+ * the third person.
+ */
 export async function requestItems(
   db: Db,
   target: RequestTarget,
-): Promise<{ items: PersonItem[]; total: number; rebuilt: number; person: PersonItems | null }> {
+): Promise<{ items: RequestItem[]; total: number; rebuilt: number; person: PersonItems | null }> {
   const person = await loadPersonItems(db, target.ownerUserId, target.key);
-  const items: PersonItem[] = (person?.items ?? []).map((i) => ({
-    tripId: i.tripId,
-    tripName: i.tripName,
-    kind: i.kind,
-    amount: i.amount,
-    oldestOpenAt: i.oldestOpenAt,
-  }));
+  const items: RequestItem[] = (person?.items ?? []).map((i) => {
+    const trip = person!.trips.get(i.tripId);
+    const snapshot = person!.snapshots.get(i.tripId);
+    const history =
+      trip && snapshot
+        ? pairHistory({
+            tripId: i.tripId,
+            ownerPid: i.ownerPid,
+            otherPid: i.personPid,
+            expenses: snapshot.expenses,
+            payments: snapshot.payments,
+            suggestions: snapshot.suggestions,
+            roundTransfers: trip.roundTransfers === 1,
+          })
+        : null;
+    return {
+      tripId: i.tripId,
+      tripName: i.tripName,
+      kind: i.kind,
+      amount: i.amount,
+      oldestOpenAt: i.oldestOpenAt,
+      lines: history?.lines ?? [],
+      gap: publicGap(history?.gap ?? null),
+    };
+  });
   return { items, total: items.reduce((sum, i) => sum + i.amount, 0), rebuilt: person?.rebuilt ?? 0, person };
+}
+
+/** The gap without the third person's id: the page is public. */
+function publicGap(gap: HistoryGap | null): HistoryGap | null {
+  return gap?.kind === 'reroute' ? { ...gap, viaPid: null } : gap;
 }
 
 /** True while a settlement the person recorded ("I've paid") still waits for the owner. */

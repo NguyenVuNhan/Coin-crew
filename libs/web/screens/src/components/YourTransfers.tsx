@@ -6,6 +6,7 @@ import { nameOf } from '@cc/web-util/tripText';
 import { canManageBankOf } from '../lib/rowActions';
 import { groupLink, payLink, remind, remindText } from '../lib/remind';
 import { usePayInfo } from '@cc/web-data-access/payInfo';
+import { useMe } from '@cc/web-data-access/hooks';
 import { useTrip } from '../lib/tripBase';
 import { useIsCoarsePointer } from '@cc/web-util/media';
 import { usePendingPayment, type PendingPayment } from '../lib/usePendingPayment';
@@ -24,8 +25,8 @@ import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { usePlatform } from '@cc/web-platform';
 import { remindCard } from '../lib/shareCards';
 
-/** In-place detail for an open transfer row, showing QR code or bank status. */
-function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.Element | null {
+/** The QR code or bank status of an open transfer row. */
+function TransferPay({ view, row }: { view: TripView; row: Transfer }): JSX.Element | null {
   const t = useT();
   const platform = usePlatform();
   const { tripId, href } = useTrip(view.trip.id);
@@ -139,6 +140,30 @@ function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.E
   return <PayQr info={info} variant="pay" />;
 }
 
+/** In-place detail for an open transfer row: QR code or bank status, then (members signed in) a way into the history. */
+function TransferDetail({ view, row }: { view: TripView; row: Transfer }): JSX.Element {
+  const t = useT();
+  const signedIn = useMe().data?.user != null;
+  const me = view.me.participantId;
+  const otherPid = row.toId === me ? row.fromId : row.toId;
+  return (
+    <>
+      <TransferPay view={view} row={row} />
+      {view.me.kind === 'member' && signedIn && (
+        <Button
+          href={`/people/in/${encodeURIComponent(view.trip.id)}/${encodeURIComponent(otherPid)}`}
+          variant="secondary"
+          block
+          className="mt-3"
+          data-testid="transfer-history"
+        >
+          {t('history.seeHistory', { name: nameOf(view, otherPid) })}
+        </Button>
+      )}
+    </>
+  );
+}
+
 /** What Your transfers keeps when the page switches layout: the open row and a tick waiting out its Undo. */
 export interface TransfersState {
   openKey: string | null;
@@ -213,6 +238,7 @@ function OwnTransfers({ view }: { view: TripView }): JSX.Element {
 function TransfersSection({ view, state }: { view: TripView; state: TransfersState }): JSX.Element {
   const t = useT();
   const me = view.me.participantId;
+  const signedIn = useMe().data?.user != null;
   const [mode, setMode] = useState<'mine' | 'all'>(() => {
     try {
       return localStorage.getItem('fsl.transfers.mode') === 'all' ? 'all' : 'mine';
@@ -297,6 +323,11 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
             {rows.map((s) => {
               const key = keyOf(s);
               const isOpen = openRow !== null && key === keyOf(openRow);
+              // A signed-in member's incoming debt opens that person's page (the history sheet) instead of the QR.
+              const personHref =
+                s.toId === me && view.me.kind === 'member' && signedIn
+                  ? `/people/in/${encodeURIComponent(view.trip.id)}/${encodeURIComponent(s.fromId)}`
+                  : undefined;
               const involves = involvesMe(s);
               const rowTitle = t('trip.pays', { from: label(s.fromId), to: label(s.toId) });
 
@@ -356,10 +387,12 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                       <ActionRow
                         label={rowTitle + ', ' + formatVnd(s.amount)}
                         actions={actions}
-                        expanded={isOpen}
-                        controls={isOpen ? detailId : undefined}
+                        expanded={personHref ? undefined : isOpen}
+                        controls={isOpen && !personHref ? detailId : undefined}
                         leading={leading}
                         onOpen={() => setOpenKey(isOpen ? null : key)}
+                        href={personHref}
+                        hrefTestId={personHref ? 'transfer-person-' + s.fromId : undefined}
                       >
                         <Avatar name={nameOf(view, s.fromId)} avatarUrl={view.people.find((person) => person.id === s.fromId)?.avatarUrl} size="sm" />
                         <span className={cn('fsl-transfers__text min-w-0 flex-1 truncate text-base font-semibold text-foreground', done && 'fsl-transfers__text--done text-muted-foreground')}>{rowTitle}</span>
@@ -370,12 +403,12 @@ function TransfersSection({ view, state }: { view: TripView; state: TransfersSta
                           className={s.toId === me ? 'text-success' : s.fromId === me ? 'text-danger' : 'text-foreground'}
                         />
                         <Icon
-                          name={isOpen ? 'chevronUp' : 'chevronDown'}
+                          name={personHref ? 'chevronRight' : isOpen ? 'chevronUp' : 'chevronDown'}
                           size={20}
                           className="fsl-transfers__chevron shrink-0 text-muted-foreground"
                         />
                       </ActionRow>
-                      {isOpen && (
+                      {isOpen && !personHref && (
                         <div className="fsl-transfers__detail border-t border-border px-4 pt-2 pb-4" id={detailId}>
                           <TransferDetail view={view} row={openRow} />
                         </div>

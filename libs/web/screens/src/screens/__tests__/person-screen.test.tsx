@@ -58,6 +58,17 @@ describe('PersonScreen', () => {
     mockApi({
       'GET /api/me': me(),
       'GET /api/me/people/summary': { incomplete: false, people: [minh] },
+      'GET /api/me/people/u%3Au-minh/history': {
+        key: 'u:u-minh',
+        name: 'Minh',
+        mode: 'all',
+        total: 270000,
+        places: [
+          { tripId: 't-led', tripName: 'Minh', kind: 'direct', source: 'own', amount: 370000, history: null },
+          { tripId: 't-bad', tripName: 'Badminton', kind: 'group', source: 'group', amount: -100000, history: null },
+          { tripId: 't-cafe', tripName: 'Coffee', kind: 'group', source: 'group', amount: 0, history: null },
+        ],
+      },
     });
 
     renderAt(<PersonScreen />, {
@@ -280,9 +291,23 @@ describe('PersonScreen', () => {
       ],
       total: 80000,
     };
-    mockApi({ 'GET /api/me': me(), 'GET /api/me/people/summary': { incomplete: false, people: [twice] } });
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/me/people/summary': { incomplete: false, people: [twice] },
+      'GET /api/me/people/u%3Au-minh/history': {
+        key: 'u:u-minh',
+        name: 'Minh',
+        mode: 'all',
+        total: 80000,
+        places: [
+          { tripId: 't-dl', tripName: 'Đà Lạt', kind: 'group', source: 'group', amount: 50000, history: null },
+          { tripId: 't-dl', tripName: 'Đà Lạt', kind: 'group', source: 'group', amount: 30000, history: null },
+        ],
+      },
+    });
     renderAt(<PersonScreen />, { route: '/people/u%3Au-minh', path: '/people/:key' });
     await screen.findByTestId('person-request');
+    await screen.findAllByTestId('person-item-t-dl');
     expect(screen.getAllByTestId('person-item-t-dl')).toHaveLength(2);
   });
 

@@ -14,3 +14,4 @@ export * from './api-types';
 export * from './mergePlan';
 export * from './expensePay';
 export * from './themes';
+export * from './history';

@@ -96,6 +96,7 @@ import type { IncomeStatus } from './fund';
 import type { PersonKey, PersonItem } from './people';
 import type { MergePlan } from './mergePlan';
 import type { ThemeId } from './themes';
+import type { HistoryGap, HistoryLine, PairHistory } from './history';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -500,6 +501,30 @@ export interface PersonSummary {
   linked: PersonLinkedEntry[];
 }
 
+export interface HistoryPlace {
+  tripId: string;
+  tripName: string;
+  kind: 'group' | 'direct';
+  /** 'own' = my ledger row for them; 'merged' = a ledger guest merged into them; 'theirs' = their ledger with me; 'group' otherwise. */
+  source: 'own' | 'merged' | 'theirs' | 'group';
+  /** The PersonItem amount (owner's view). */
+  amount: number;
+  /** The two-way lines with the person in this place; set for every place (groups too) in both modes. */
+  history: PairHistory | null;
+}
+
+/** `GET /api/me/people/:key/history` (mode 'all') and `GET /api/me/trips/:tripId/people/:pid/history` (mode 'group'). */
+export interface PersonHistoryView {
+  /** Canonical. */
+  key: PersonKey;
+  name: string;
+  mode: 'all' | 'group';
+  /** Mode 'all': the person total; mode 'group': that place's amount. */
+  total: number;
+  /** Mode 'group': exactly one. */
+  places: HistoryPlace[];
+}
+
 export interface PersonLinkedEntry {
   participantId: string;
   name: string;
@@ -542,10 +567,21 @@ export interface MergeOptionsResponse {
   candidates: MergeCandidate[];
 }
 
+/**
+ * One row of the public request page with the lines behind it, from the owner's view.
+ * Lines carry only the two people's shares; a reroute's `viaPid` is always null here.
+ */
+export interface RequestItem extends PersonItem {
+  /** Newest first. Left out by an older server: read it as []. */
+  lines?: HistoryLine[];
+  /** Left out by an older server: read it as null. */
+  gap?: HistoryGap | null;
+}
+
 export interface RequestView {
   ownerName: string;
   total: number;
-  items: PersonItem[];
+  items: RequestItem[];
   settled: boolean;
   pay: PayInfo | null;
   settlementWaiting: boolean;

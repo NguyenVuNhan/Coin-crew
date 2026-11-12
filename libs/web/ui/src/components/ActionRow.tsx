@@ -1,9 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useSwipeReveal } from '@cc/web-util/useSwipeReveal';
 import { useIsCoarsePointer, usePrefersReducedMotion } from '@cc/web-util/media';
 import { Icon, type IconName } from './icons';
 import { useT } from '@cc/web-i18n';
 import { cn } from '../lib/utils';
+
+const MAIN_CLASS =
+  'fsl-action-row__main flex-1 min-w-0 flex items-center gap-3 px-4 py-3 min-h-11 text-left appearance-none bg-transparent border-0 m-0 font-[inherit] text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
 
 /** Width of one revealed action button on a phone. */
 const ACTION_WIDTH = 80;
@@ -38,11 +42,16 @@ export function ActionRow({
   leading,
   trailing,
   hintable,
+  href,
+  hrefTestId,
   children,
 }: {
   label: string;
   actions: RowAction[];
   onOpen?: () => void;
+  /** For a row that goes to another page: the main area becomes an in-app link (`onOpen`, `expanded` and `controls` are ignored). */
+  href?: string;
+  hrefTestId?: string;
   selected?: boolean;
   /** For a row that opens its content in place instead of going elsewhere: sets `aria-expanded` on the row's button. */
   expanded?: boolean;
@@ -129,17 +138,36 @@ export function ActionRow({
         >
           {leading && <div className="fsl-action-row__leading shrink-0 pl-4 flex items-center">{leading}</div>}
           <div className="fsl-action-row__body relative flex-1 min-w-0 flex">
-            <button
-              type="button"
-              className="fsl-action-row__main flex-1 min-w-0 flex items-center gap-3 px-4 py-3 min-h-11 text-left appearance-none bg-transparent border-0 m-0 font-[inherit] text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-              aria-label={label}
-              aria-current={selected || undefined}
-              aria-expanded={expanded}
-              aria-controls={controls}
-              onClick={() => (swipe.open ? swipe.close() : onOpen?.())}
-            >
-              {children}
-            </button>
+            {href !== undefined ? (
+              <Link
+                to={href}
+                className={MAIN_CLASS + ' no-underline'}
+                aria-label={label}
+                aria-current={selected || undefined}
+                data-testid={hrefTestId}
+                onClick={(e) => {
+                  // A revealed swipe only closes; it never navigates.
+                  if (swipe.open) {
+                    e.preventDefault();
+                    swipe.close();
+                  }
+                }}
+              >
+                {children}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className={MAIN_CLASS}
+                aria-label={label}
+                aria-current={selected || undefined}
+                aria-expanded={expanded}
+                aria-controls={controls}
+                onClick={() => (swipe.open ? swipe.close() : onOpen?.())}
+              >
+                {children}
+              </button>
+            )}
             {!coarse && actions.length > 0 && (
               <div
                 className={cn(
