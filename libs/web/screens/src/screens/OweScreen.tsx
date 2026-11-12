@@ -6,6 +6,7 @@ import { nameOf } from '@cc/web-util/tripText';
 import { useTrip } from '../lib/tripBase';
 import { owedTransfers, waitingPayments } from '../lib/owe';
 import { Screen } from '../components/Screen';
+import { GuestSignIn } from '../components/GuestGate';
 import { LanguageButton } from '@cc/web-ui/components/LanguageButton';
 import { Button } from '@cc/web-ui/components/Button';
 import { Amount } from '@cc/web-ui/components/Amount';
@@ -97,11 +98,13 @@ export function OweScreen() {
 
   // 5. Otherwise a Screen holding the grouped list / empty state and "See the group" button
   const myName = view.me.participantId ? nameOf(view, view.me.participantId) : '';
+  const guest = view.me.kind === 'guest';
 
   return (
     <Screen
       title={transfers.length > 0 ? t('owe.title', { name: myName }) : view.trip.name}
-      back={href()}
+      // A guest only has their pay pages: back is the name picker.
+      back={guest ? href('/who') : href()}
       right={<LanguageButton />}
     >
       <div className="fsl-owe flex flex-col gap-4">
@@ -174,13 +177,13 @@ export function OweScreen() {
           />
         )}
 
-        <Button
-          variant="ghost"
-          href={href()}
-          className="fsl-owe__see-group"
-        >
-          {t('owe.seeGroup')}
-        </Button>
+        {guest ? (
+          <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} />
+        ) : (
+          <Button variant="ghost" href={href()} className="fsl-owe__see-group">
+            {t('owe.seeGroup')}
+          </Button>
+        )}
       </div>
     </Screen>
   );

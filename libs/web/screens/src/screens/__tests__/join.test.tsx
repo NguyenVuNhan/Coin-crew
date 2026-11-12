@@ -55,10 +55,11 @@ describe('Join', () => {
       'GET /api/trips/t-1/version': { version: 3 },
     });
     expect(linkTokens.get('t-1')).toBeNull();
-    renderAt(<App />, { route: '/j/gtok-1/settings' });
+    // Owner, 2026-11-12: a guest only reaches their pay pages, so this opens what they owe.
+    renderAt(<App />, { route: '/j/gtok-1/owe' });
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/trips/t-1'))).toBe(true));
     expect(screen.queryByText("You don't have access to this group")).not.toBeInTheDocument();
-    expect(screen.getByTestId('location')).toHaveTextContent('/j/gtok-1/settings');
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1\//);
   });
 
   it("a guest's links stay under the link", async () => {
@@ -68,8 +69,9 @@ describe('Join', () => {
       'GET /api/trips/t-1/version': { version: 3 },
     });
     renderAt(<App />, { route: '/j/gtok-1' });
-    const adds = await screen.findAllByRole('link', { name: /add/i });
-    for (const add of adds) expect(add.getAttribute('href')).toMatch(/^\/j\/gtok-1\//);
+    // Owner, 2026-11-12: a guest only reaches their pay pages; those links stay under the link.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1\/(owe|pay\/)/));
+    for (const a of document.querySelectorAll('a[href^="/"]')) expect(a.getAttribute('href')).toMatch(/^\/(j\/gtok-1\/|privacy)/);
   });
 
   it("a signed-in member who opens the link is moved to the trip's own address", async () => {
@@ -90,7 +92,8 @@ describe('Join', () => {
       'GET /api/trips/t-1/version': { version: 3 },
     });
     renderAt(<App />, { route: '/t/t-1' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1$/));
+    // Owner, 2026-11-12: under the link, a guest lands on what they owe.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1\/(owe|pay\/)/));
   });
 
   it('the old expense address of reminders and shared bills opens the expense under the link', async () => {

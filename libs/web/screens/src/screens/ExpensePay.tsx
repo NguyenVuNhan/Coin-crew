@@ -6,6 +6,7 @@ import { useTrip } from '../lib/tripBase';
 import { useTripView, useMe } from '@cc/web-data-access/hooks';
 import { useExpensePay, useReportExpensePayment } from '@cc/web-data-access/expensePay';
 import { Screen } from '../components/Screen';
+import { GuestSignIn } from '../components/GuestGate';
 import { Button } from '@cc/web-ui/components/Button';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Sheet } from '@cc/web-ui/components/Sheet';
@@ -169,7 +170,7 @@ export function ExpensePay() {
     }
     const name = nameOf(view, view.me.participantId);
     return (
-      <Screen title="" back={href('/')}>
+      <Screen title="" back={view.me.kind === 'guest' ? href('/who') : href('/')}>
         <div className="fsl-expense-pay fsl-expense-pay__nothing-here flex flex-col items-center gap-4 max-w-[480px] mx-auto w-full py-8 text-center">
           <p className="m-0 text-base font-medium text-foreground">
             {t('expensePay.nothingHere', { name })}
@@ -188,9 +189,13 @@ export function ExpensePay() {
               {t('guest.switch', { name })}
             </Link>
           )}
-          <Button variant="ghost" href={href()} className="fsl-expense-pay__see-group">
-            {t('owe.seeGroup')}
-          </Button>
+          {view.me.kind === 'guest' ? (
+            <GuestSignIn className="self-stretch" pending={Boolean(view.me.hasPendingMembershipRequest)} />
+          ) : (
+            <Button variant="ghost" href={href()} className="fsl-expense-pay__see-group">
+              {t('owe.seeGroup')}
+            </Button>
+          )}
         </div>
       </Screen>
     );
@@ -232,7 +237,7 @@ export function ExpensePay() {
   };
 
   return (
-    <Screen title={t('expensePay.title', { name: v.payer.name })} back={isLocked ? undefined : href('/')}>
+    <Screen title={t('expensePay.title', { name: v.payer.name })} back={isLocked ? undefined : view?.me.kind === 'guest' ? href('/who') : href('/')}>
       <div
         data-testid={isLocked ? 'pay-locked' : undefined}
         className="fsl-expense-pay flex flex-col gap-4 max-w-[480px] mx-auto w-full py-4"
@@ -366,6 +371,7 @@ export function ExpensePay() {
             })}
           </div>
         )}
+        {view?.me.kind === 'guest' && !isLocked && <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} />}
       </div>
       <WhoPaidSheet
         open={sheetOpen}

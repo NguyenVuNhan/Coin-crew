@@ -752,6 +752,9 @@ export const en = {
   'owe.allSetBody': "You don't owe anyone in {trip}.",
   'owe.waiting': 'Waiting for {name} to confirm',
   'owe.seeGroup': 'See the group',
+  'owe.signInToSee': 'Log in to see the group',
+  'owe.joinToSee': 'Join the group to see it',
+  'owe.joinGroup': 'Join the group',
 
   // Before sharing a "pay me" link without bank details (rewrite spec §4.6).
   'bankFirst.title': 'Add your bank details first?',

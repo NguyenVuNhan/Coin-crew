@@ -75,20 +75,6 @@ describe('transaction details', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-1/edit'));
   });
 
-  it('a guest can edit their own waiting expense but nothing else', async () => {
-    open(guestChiView(), '/t/t-1/expenses/e-5');
-    expect(await screen.findByRole('heading', { name: 'Bánh tráng nướng, chợ đêm' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Disable' })).toBeNull();
-  });
-
-  it("a guest gets no actions on someone else's expense", async () => {
-    open(guestChiView(), '/t/t-1/expenses/e-1');
-    expect(await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: ACTION_BUTTONS })).toBeNull();
-  });
-
   it('archived trips show no actions', async () => {
     const base = memberViewWithChiPending();
     open({ ...base, trip: { ...base.trip, archived: true } }, '/t/t-1/expenses/e-5');
@@ -242,23 +228,6 @@ describe('transaction details', () => {
     await userEvent.click(within(payments).getByRole('button', { name: /^Chi → You/ }));
     expect(await screen.findByRole('heading', { name: 'Chi → You' })).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-1');
-  });
-
-  it('a guest on a wide screen gets the details in the panel, like a member', async () => {
-    mockMedia({ wide: true });
-    const view = { ...guestChiView(), payments: [payment({ id: 'pay-3', fromId: PIDS.B, toId: PIDS.C, status: 'confirmed' })] };
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': view });
-    renderAt(<><NavigationKind /><App /></>, { route: '/t/t-1', path: '*' });
-    const payments = await screen.findByRole('region', { name: 'Your payments' });
-    await userEvent.click(within(payments).getByRole('button', { name: /^Bình → You/ }));
-    expect(await screen.findByRole('heading', { name: 'Bình → You' })).toBeInTheDocument();
-    // Still the trip page, with the details in the panel beside the lists.
-    expect(screen.getByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Payment' })).toBeInTheDocument();
-    // Opened from the guest's list, so × goes back in history.
-    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
-    expect(screen.getByTestId('navigation-kind')).toHaveTextContent('POP');
   });
 
   it('a payment shows who paid whom and its status', async () => {

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useT } from '@cc/web-i18n';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -84,6 +84,7 @@ export function Screen({
   const t = useT();
   const { depth } = useNavEntry();
   const platform = usePlatform();
+  const [barHeight, setBarHeight] = useState(0);
 
   const rootClass = cn(
     'fsl-screen',
@@ -165,16 +166,18 @@ export function Screen({
           'flex-1 w-full mx-auto p-4',
           wide ? 'max-w-[480px] lg:max-w-[1040px]' : 'max-w-[480px]',
           bottomBar
-            ? 'pb-[calc(72px+env(safe-area-inset-bottom,0px)+1.5rem)] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]'
+            ? // The bar's measured height (it grows with a hint or an error); 72px plus the safe area until it is known.
+              'pb-[calc(var(--bar-h,calc(72px+env(safe-area-inset-bottom,0px)))+1.5rem)] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]'
             : 'pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
           nav && 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]',
         )}
+        style={bottomBar && barHeight ? ({ '--bar-h': `${barHeight}px` } as CSSProperties) : undefined}
       >
         {children}
       </main>
 
       {bottomBar ? (
-        <BottomBar wide={wide} keyboardAware={barAboveKeyboard}>
+        <BottomBar wide={wide} keyboardAware={barAboveKeyboard} onHeight={setBarHeight}>
           {bottomBar}
         </BottomBar>
       ) : null}

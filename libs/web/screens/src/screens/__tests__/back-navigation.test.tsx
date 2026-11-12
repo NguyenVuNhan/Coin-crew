@@ -360,12 +360,8 @@ describe('screens with one hard-coded back', () => {
       'GET /api/trips/t-1/version': { version: 3 },
       'GET /api/me/bank': null,
     });
-    renderApp('/j/tok-1');
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-
-    const addBank = await screen.findByRole('link', { name: 'Add' });
-    await userEvent.click(addBank);
+    // Owner, 2026-11-12: a guest no longer sees the group page, so this starts on their bank details page.
+    renderApp('/j/tok-1/bank');
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/bank'));
     // #90: the notice opens in a sheet over the form (no route change), so typed details survive.
@@ -492,10 +488,8 @@ describe('screens with one hard-coded back', () => {
         ],
       },
     });
-    renderApp('/t/t-1');
-
-    const payBtn = await screen.findByRole('link', { name: 'Pay with VietQR' });
-    await userEvent.click(payBtn);
+    // Owner, 2026-11-12: a guest no longer sees the group page, so this starts on the pay page.
+    renderApp(`/t/t-1/pay/${PIDS.M}`);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.M}`));
     const backToTripBtn = await screen.findByRole('link', { name: 'Back to trip' });
@@ -520,10 +514,8 @@ describe('screens with one hard-coded back', () => {
         inFlight: [],
       },
     });
-    renderApp('/t/t-1');
-
-    const payBtn = await screen.findByRole('link', { name: 'Pay with VietQR' });
-    await userEvent.click(payBtn);
+    // Owner, 2026-11-12: a guest no longer sees the group page, so this starts on the pay page.
+    renderApp(`/t/t-1/pay/${PIDS.M}`);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(`/t/t-1/pay/${PIDS.M}`));
     const backBtn = screen.getAllByRole('link', { name: 'Back' }).find((el) => !el.classList.contains('fsl-screen__back'))!;
@@ -715,7 +707,7 @@ describe('finished steps', () => {
     confirm.mockRestore();
   });
 
-  it('Switch → pick a name → back on the group with no extra entry', async () => {
+  it('a signed-in guest opening the group from a person lands on what they owe, offered to join', async () => {
     mockMedia({ wide: false });
     const tuan: PersonSummary = {
       key: 'p:p-tuan',
@@ -756,6 +748,8 @@ describe('finished steps', () => {
       'GET /api/links/tok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' },
       'GET /api/trips/t-1': () => Response.json({
         ...guestChiView(),
+        suggestions: [],
+        payments: [],
         me: { kind: 'guest', participantId: currentParticipantId, participantPending: false, isOrganiser: false },
       }),
       'GET /api/trips/t-1/version': { version: 3 },
@@ -774,27 +768,9 @@ describe('finished steps', () => {
     await userEvent.click(groupLink);
     await userEvent.click(await within(await screen.findByRole('dialog')).findByTestId('ledger-open-group'));
 
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1'));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-
-    const switchLink = await screen.findByRole('link', { name: /Switch/ });
-    await userEvent.click(switchLink);
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/who'));
-
-    const binhRadio = await screen.findByRole('radio', { name: /^Bình/ });
-    await userEvent.click(binhRadio);
-
-    const continueBtn = await screen.findByRole('button', { name: 'Continue as Bình' });
-    await userEvent.click(continueBtn);
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1'));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-
-    const backBtn = await screen.findByRole('button', { name: 'Back' });
-    await userEvent.click(backBtn);
-
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-tuan'));
+    // Owner, 2026-11-12: a guest only reaches their pay pages; signed in, they are offered to join the group.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/tok-1\/(owe|pay\/)/));
+    expect(await screen.findByRole('link', { name: 'Join the group' })).toHaveAttribute('href', '/j/tok-1/who');
   });
 
   it('row 2: person → a group I only view → Back returns to the person', async () => {
@@ -853,20 +829,20 @@ describe('finished steps', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-tuan'));
   });
 
-  it('a guest group opened by link has no back arrow', async () => {
+  // Owner, 2026-11-12: a guest only reaches their pay pages, and back there is the name picker.
+  it('a guest opening the group link lands on what they owe, with Back to the name picker', async () => {
     mockMedia({ wide: false });
     mockApi({
       'GET /api/me': { user: null },
       'GET /api/links/tok-1': { tripId: 't-1', tripName: 'Đà Lạt · Oct 2026', access: 'group' },
-      'GET /api/trips/t-1': guestChiView(),
+      'GET /api/trips/t-1': { ...guestChiView(), suggestions: [], payments: [] },
       'GET /api/trips/t-1/version': { version: 3 },
       'GET /api/me/bank': null,
     });
     renderApp('/j/tok-1');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/j/tok-1/owe'));
+    expect(await screen.findByRole('link', { name: 'Back' })).toHaveAttribute('href', '/j/tok-1/who');
   });
 
   it('new sport expense → its details → Back returns to the group', async () => {

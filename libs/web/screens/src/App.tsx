@@ -24,6 +24,7 @@ import { AuthNotice } from './components/AuthNotice';
 import { UndoSnackbarHost } from './components/UndoSnackbarHost';
 import { ThemeController } from './components/ThemeController';
 import { GroupThemeScope } from './lib/groupTheme';
+import { GuestGate } from './components/GuestGate';
 
 function TripsRoute() {
   const { search } = useLocation();
@@ -79,7 +80,9 @@ export function App() {
         path="/t/:tripId"
         element={
           <GroupThemeScope>
-            <Outlet />
+            <GuestGate>
+              <Outlet />
+            </GuestGate>
           </GroupThemeScope>
         }
       >

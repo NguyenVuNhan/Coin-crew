@@ -757,6 +757,9 @@ export const vi: Record<MessageKey, string> = {
   'owe.allSetBody': 'Bạn không nợ ai trong {trip}.',
   'owe.waiting': 'Đang chờ {name} xác nhận',
   'owe.seeGroup': 'Xem nhóm',
+  'owe.signInToSee': 'Đăng nhập để xem nhóm',
+  'owe.joinToSee': 'Tham gia để xem cả nhóm',
+  'owe.joinGroup': 'Tham gia nhóm',
 
   'bankFirst.title': 'Thêm thông tin ngân hàng trước?',
   'bankFirst.body': 'Bạn bè mở link này chỉ thấy mã QR để trả bạn khi bạn đã thêm thông tin ngân hàng.',

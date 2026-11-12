@@ -61,8 +61,9 @@ describe('after joining from the trip page', () => {
     renderAt(<App />, { route: '/t/t-1' });
     await userEvent.click(await screen.findByRole('button', { name: 'Not on the list? Join as Binh' }));
     await userEvent.click(await screen.findByRole('button', { name: "Yes, I'm Bình" }));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+    // Owner, 2026-11-12: claiming a guest's name waits for a member's approval, so Bình lands on their pay pages.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1\/(owe|pay\/)/));
     await settle();
-    expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/);
+    expect(screen.getByTestId('location')).not.toHaveTextContent(/\/who/);
   });
 });
