@@ -11,7 +11,7 @@ import { bankDetails, participants } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor, type TripRow } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { commitTripWrite } from '@cc/api-db/commit';
+import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
@@ -389,7 +389,7 @@ export function bankRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const r = await db
+    const guard = db
       .update(bankDetails)
       .set({
         status: 'approved',
@@ -400,12 +400,7 @@ export function bankRoutes(): Hono<AppBindings> {
           eq(bankDetails.id, bid),
           eq(bankDetails.status, 'pending'),
         ),
-      )
-      .run();
-
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
+      );
 
     const replaceOthers = db
       .update(bankDetails)
@@ -418,7 +413,7 @@ export function bankRoutes(): Hono<AppBindings> {
         ),
       );
 
-    await commitTripWrite(db, tripId, [replaceOthers], {
+    await guardedTripWrite(db, tripId, guard, [replaceOthers], {
       action: 'bank_approved',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -457,7 +452,7 @@ export function bankRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404);
     }
 
-    const r = await db
+    const guard = db
       .update(bankDetails)
       .set({
         status: 'rejected',
@@ -467,14 +462,9 @@ export function bankRoutes(): Hono<AppBindings> {
           eq(bankDetails.id, bid),
           eq(bankDetails.status, 'pending'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'bank_rejected',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,

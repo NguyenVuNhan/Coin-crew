@@ -3,7 +3,8 @@ import { useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatVnd, type PayInfo, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { apiSend } from '@cc/web-data-access/client';
+import { apiSend, ApiClientError } from '@cc/web-data-access/client';
+import { newIdempotencyKey } from '@cc/web-data-access/people';
 import { useTripView } from '@cc/web-data-access/hooks';
 import { useTrip } from '../lib/tripBase';
 import { useBackLink } from '../lib/navHistory';
@@ -81,6 +82,8 @@ export function PayScreen() {
   const [remindCopied, setRemindCopied] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The idempotency key of the unfinished "I've paid" attempt, with the amount it was made for. */
+  const payKey = useRef<{ key: string; amount: number } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -136,12 +139,16 @@ export function PayScreen() {
     setSubmitError(null);
     try {
       const amount = payInfo.amount;
+      // Created on the first tap and kept across retries after an error, so the server records the payment once.
+      // A retry for a different amount is a different payment: the server would refuse the old key with it.
+      if (payKey.current?.amount !== amount) payKey.current = { key: newIdempotencyKey(), amount };
       const res = await apiSend<{ paymentId: string; status: string }>(
         `/api/trips/${tripId}/payments`,
         'POST',
-        { fromId: view.me.participantId, toId, amount },
+        { fromId: view.me.participantId, toId, amount, idempotencyKey: payKey.current.key },
         tripId,
       );
+      payKey.current = null;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
         queryClient.invalidateQueries({ queryKey: ['pay', tripId] }),
@@ -149,6 +156,8 @@ export function PayScreen() {
       setRecorded({ id: res.paymentId, amount, status: res.status });
       setRestOpen(false);
     } catch (err) {
+      // The key was already used for another body: retrying it can only fail again.
+      if (err instanceof ApiClientError && err.code === 'CONFLICT') payKey.current = null;
       setSubmitError(err);
     } finally {
       setIsSubmitting(false);

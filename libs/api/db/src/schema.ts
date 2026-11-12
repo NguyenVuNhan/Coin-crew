@@ -294,6 +294,7 @@ export const paymentRefs = sqliteTable(
   (t) => [
     index('payment_refs_trip_id_idx').on(t.tripId),
     uniqueIndex('payment_refs_trip_id_code_uidx').on(t.tripId, t.code),
+    uniqueIndex('payment_refs_trip_pair_uidx').on(t.tripId, t.fromId, t.toId),
   ],
 );
 
@@ -397,6 +398,18 @@ export const participantMergeRows = sqliteTable(
 export const settlementKeys = sqliteTable('settlement_keys', {
   key: text('key').primaryKey(),
   settlementId: text('settlement_id').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
+/**
+ * Idempotency keys for recorded payments, modelled on `settlement_keys`. A retried request with the
+ * same key hits the primary key and gets the payment that already exists. `paymentId` is the
+ * payment's first row; kept forever. See migration 0022.
+ */
+export const paymentKeys = sqliteTable('payment_keys', {
+  key: text('key').primaryKey(),
+  tripId: text('trip_id').notNull(),
+  paymentId: text('payment_id').notNull(),
   createdAt: text('created_at').notNull(),
 });
 

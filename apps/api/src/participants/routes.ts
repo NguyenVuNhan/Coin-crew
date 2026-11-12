@@ -20,7 +20,7 @@ import { deviceZaloSub } from '@cc/api-auth/zaloSlots';
 import type { ResolvedActor } from '@cc/api-auth/actor';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { commitTripWrite } from '@cc/api-db/commit';
+import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { pendingProposalFor } from '../proposals/store';
@@ -736,23 +736,22 @@ export function participantRoutes(): Hono<AppBindings> {
         throw new ApiError('NOT_FOUND', 404);
       }
 
-      const r = await db
-        .update(participants)
-        .set({ status: 'active' })
-        .where(and(eq(participants.id, pid), eq(participants.status, 'pending')))
-        .run();
-
-      if (r.meta.changes === 0) {
-        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-      }
-
-      await commitTripWrite(db, tripId, [], {
-        action: 'name_approved',
-        actorParticipantId: actor.participantId,
-        actorUserId: actor.userId,
-        actorDevice: actor.deviceHash,
-        details: { name: target.name },
-      });
+      await guardedTripWrite(
+        db,
+        tripId,
+        db
+          .update(participants)
+          .set({ status: 'active' })
+          .where(and(eq(participants.id, pid), eq(participants.status, 'pending'))),
+        [],
+        {
+          action: 'name_approved',
+          actorParticipantId: actor.participantId,
+          actorUserId: actor.userId,
+          actorDevice: actor.deviceHash,
+          details: { name: target.name },
+        },
+      );
 
       return c.body(null, 204);
     }
@@ -1194,34 +1193,40 @@ export function participantRoutes(): Hono<AppBindings> {
     }
 
     // Link only a name that is still active or pending and unlinked; otherwise the claim is void.
-    const linked = await db
-      .update(participants)
-      .set(updates)
-      .where(
-        and(
-          eq(participants.id, req.participantId),
-          eq(participants.tripId, tripId),
-          isNull(participants.userId),
-          or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
-        ),
-      )
-      .run();
-
-    if (linked.meta.changes === 0) {
-      await db
-        .update(membershipRequests)
-        .set({ status: 'rejected' })
-        .where(eq(membershipRequests.id, rid));
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
+    // The link, version bump and activity row land in one batch; a miss voids the claim.
+    try {
+      await guardedTripWrite(
+        db,
+        tripId,
+        db
+          .update(participants)
+          .set(updates)
+          .where(
+            and(
+              eq(participants.id, req.participantId),
+              eq(participants.tripId, tripId),
+              isNull(participants.userId),
+              or(eq(participants.status, 'active'), eq(participants.status, 'pending')),
+            ),
+          ),
+        [],
+        {
+          action: 'membership_approved',
+          actorParticipantId: actor.participantId,
+          actorUserId: actor.userId,
+          actorDevice: actor.deviceHash,
+          details: {},
+        },
+      );
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'ALREADY_HANDLED') {
+        await db
+          .update(membershipRequests)
+          .set({ status: 'rejected' })
+          .where(eq(membershipRequests.id, rid));
+      }
+      throw err;
     }
-
-    await commitTripWrite(db, tripId, [], {
-      action: 'membership_approved',
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-      details: {},
-    });
 
     return c.body(null, 204);
   });
@@ -1235,29 +1240,28 @@ export function participantRoutes(): Hono<AppBindings> {
     ensure(actor, 'approve');
 
     const db = getDb(c.env);
-    const r = await db
-      .update(membershipRequests)
-      .set({ status: 'rejected' })
-      .where(
-        and(
-          eq(membershipRequests.id, rid),
-          eq(membershipRequests.tripId, tripId),
-          eq(membershipRequests.status, 'pending'),
+    await guardedTripWrite(
+      db,
+      tripId,
+      db
+        .update(membershipRequests)
+        .set({ status: 'rejected' })
+        .where(
+          and(
+            eq(membershipRequests.id, rid),
+            eq(membershipRequests.tripId, tripId),
+            eq(membershipRequests.status, 'pending'),
+          ),
         ),
-      )
-      .run();
-
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
-      action: 'membership_rejected',
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-      details: {},
-    });
+      [],
+      {
+        action: 'membership_rejected',
+        actorParticipantId: actor.participantId,
+        actorUserId: actor.userId,
+        actorDevice: actor.deviceHash,
+        details: {},
+      },
+    );
 
     return c.body(null, 204);
   });

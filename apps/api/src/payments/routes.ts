@@ -12,11 +12,12 @@ import {
 } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
-import { participants, transactions, transactionShares } from '@cc/api-db/schema';
+import { participants, paymentKeys, transactions, transactionShares } from '@cc/api-db/schema';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { commitTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
+import { ApiError, isDbError } from '@cc/api-util/errors';
+import { parseIdempotencyKey } from '@cc/api-util/idempotency';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchPaymentNotification } from '../notifications/transactionDispatcher';
 import { getSnapshot } from '../trips/snapshot';
@@ -75,6 +76,48 @@ export interface InsertPaymentArgs {
   metaJson?: string | null;
   expenseId?: string;
   claimRequestId?: string | null;
+  /** Client key for this submit; written in the same batch so a repeat fails on `payment_keys.key`. */
+  idempotencyKey?: string | null;
+}
+
+/**
+ * The payment an idempotency key already recorded in this trip, with its current head's status,
+ * or null when the key is new. A key from another trip, or for a different from/to/amount, is a
+ * conflict (as `settlementForKey` treats a reused key).
+ */
+export async function paymentForKey(
+  db: Db,
+  key: string,
+  tripId: string,
+  expected: { fromId: string; toId: string; amount: number },
+): Promise<{ paymentId: string; status: PaymentStatus } | null> {
+  const rows = await db.all<{
+    trip_id: string;
+    payment_id: string;
+    payer_id: string | null;
+    to_id: string | null;
+    amount: number | null;
+    head_status: PaymentStatus | null;
+    first_status: PaymentStatus | null;
+  }>(sql`
+    SELECT k.trip_id AS trip_id, k.payment_id AS payment_id,
+      f.payer_id AS payer_id, f.to_id AS to_id, f.amount AS amount, f.status AS first_status,
+      (SELECT h.status FROM transactions h WHERE h.root_id = k.payment_id AND h.is_latest = 1 LIMIT 1) AS head_status
+    FROM payment_keys k
+    LEFT JOIN transactions f ON f.id = k.payment_id
+    WHERE k.key = ${key}
+  `);
+  const found = rows[0];
+  if (!found) return null;
+  if (
+    found.trip_id !== tripId ||
+    found.payer_id !== expected.fromId ||
+    found.to_id !== expected.toId ||
+    found.amount !== expected.amount
+  ) {
+    throw new ApiError('CONFLICT', 409, 'Invalid request');
+  }
+  return { paymentId: found.payment_id, status: (found.head_status ?? found.first_status)! };
 }
 
 export async function insertPayment(
@@ -94,6 +137,7 @@ export async function insertPayment(
     metaJson = null,
     expenseId,
     claimRequestId = null,
+    idempotencyKey = null,
   } = args;
   const paymentId = newId();
   const now = nowIso();
@@ -133,7 +177,11 @@ export async function insertPayment(
     amount: status === 'confirmed' ? amount : amount,
   });
 
-  await commitTripWrite(db, tripId, [paymentRow, shareRow], {
+  const keyRow = idempotencyKey
+    ? [db.insert(paymentKeys).values({ key: idempotencyKey, tripId, paymentId, createdAt: now })]
+    : [];
+
+  await commitTripWrite(db, tripId, [...keyRow, paymentRow, shareRow], {
     action: 'payment_recorded',
     actorParticipantId,
     actorUserId,
@@ -165,6 +213,8 @@ export function paymentRoutes(): Hono<AppBindings> {
       amount?: unknown;
       /** Sent by a transfer tick: record it only if this pair still owes at least `amount`. */
       settles?: unknown;
+      /** Client key for this submit; a repeat returns the first payment (200). */
+      idempotencyKey?: unknown;
     }>(c);
 
     if (
@@ -191,12 +241,21 @@ export function paymentRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Cannot pay oneself');
     }
 
+    const idempotencyKey = parseIdempotencyKey(body.idempotencyKey);
+
     ensure(actor, 'record_payment', {
       paymentFromId: fromId,
       paymentToId: toId,
     });
 
     const db = getDb(c.env);
+
+    // Before the `settles` check, so a retried tick gets its original payment, not ALREADY_HANDLED.
+    if (idempotencyKey) {
+      const existing = await paymentForKey(db, idempotencyKey, tripId, { fromId, toId, amount });
+      if (existing) return c.json(existing, 200);
+    }
+
     const tripParticipants = await db
       .select()
       .from(participants)
@@ -242,17 +301,28 @@ export function paymentRoutes(): Hono<AppBindings> {
       }
     }
 
-    const paymentId = await insertPayment(db, {
-      tripId,
-      fromId,
-      toId,
-      amount,
-      status,
-      createdByParticipantId: actor.participantId!,
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-    });
+    let paymentId: string;
+    try {
+      paymentId = await insertPayment(db, {
+        tripId,
+        fromId,
+        toId,
+        amount,
+        status,
+        createdByParticipantId: actor.participantId!,
+        actorParticipantId: actor.participantId,
+        actorUserId: actor.userId,
+        actorDevice: actor.deviceHash,
+        idempotencyKey,
+      });
+    } catch (err) {
+      if (idempotencyKey && isDbError(err, 'UNIQUE constraint failed: payment_keys.key')) {
+        // The same submit landed meanwhile (a double tap or a retry): answer with that payment.
+        const existing = await paymentForKey(db, idempotencyKey, tripId, { fromId, toId, amount });
+        if (existing) return c.json(existing, 200);
+      }
+      throw err;
+    }
 
     if (status === 'says_paid') {
       await dispatchPaymentNotification(c, 'says_paid', paymentId, {
@@ -307,7 +377,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({
         status: 'confirmed',
@@ -323,12 +393,7 @@ export function paymentRoutes(): Hono<AppBindings> {
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'says_paid'),
         ),
-      )
-      .run();
-
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
+      );
 
     const updateShare = db
       .update(transactionShares)
@@ -342,7 +407,7 @@ export function paymentRoutes(): Hono<AppBindings> {
         ),
       );
 
-    await commitTripWrite(db, tripId, [updateShare], {
+    await guardedTripWrite(db, tripId, guard, [updateShare], {
       action: 'payment_confirmed',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -441,7 +506,7 @@ export function paymentRoutes(): Hono<AppBindings> {
               updatedAt: now,
             };
 
-    const r = await db
+    const guard = db
       .update(transactions)
       .set(setValues)
       .where(
@@ -452,12 +517,7 @@ export function paymentRoutes(): Hono<AppBindings> {
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'confirmed'),
         ),
-      )
-      .run();
-
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
+      );
 
     const extraQueries = [];
     if (action === 'undo' || action === 'amount') {
@@ -475,7 +535,7 @@ export function paymentRoutes(): Hono<AppBindings> {
       );
     }
 
-    await commitTripWrite(db, tripId, extraQueries, {
+    await guardedTripWrite(db, tripId, guard, extraQueries, {
       action: 'payment_revised',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -523,52 +583,42 @@ export function paymentRoutes(): Hono<AppBindings> {
 
     const now = nowIso();
 
-    if (outcome === 'reject') {
-      const r = await db
-        .update(transactions)
-        .set({
-          status: 'rejected',
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(transactions.id, pid),
-            eq(transactions.tripId, tripId),
-            eq(transactions.type, 'payment'),
-            eq(transactions.isLatest, 1),
-            eq(transactions.status, 'says_paid'),
-          ),
-        )
-        .run();
+    // After the 'forbidden' check the outcome is 'reject' or 'flag'; each has its own guard.
+    const guard =
+      outcome === 'reject'
+        ? db
+            .update(transactions)
+            .set({
+              status: 'rejected',
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(transactions.id, pid),
+                eq(transactions.tripId, tripId),
+                eq(transactions.type, 'payment'),
+                eq(transactions.isLatest, 1),
+                eq(transactions.status, 'says_paid'),
+              ),
+            )
+        : db
+            .update(transactions)
+            .set({
+              notArrivedAt: now,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(transactions.id, pid),
+                eq(transactions.tripId, tripId),
+                eq(transactions.type, 'payment'),
+                eq(transactions.isLatest, 1),
+                eq(transactions.status, 'confirmed'),
+                isNull(transactions.notArrivedAt),
+              ),
+            );
 
-      if (r.meta.changes === 0) {
-        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-      }
-    } else if (outcome === 'flag') {
-      const r = await db
-        .update(transactions)
-        .set({
-          notArrivedAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(transactions.id, pid),
-            eq(transactions.tripId, tripId),
-            eq(transactions.type, 'payment'),
-            eq(transactions.isLatest, 1),
-            eq(transactions.status, 'confirmed'),
-            isNull(transactions.notArrivedAt),
-          ),
-        )
-        .run();
-
-      if (r.meta.changes === 0) {
-        throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-      }
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'payment_not_arrived',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -606,7 +656,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({
         status: 'disabled',
@@ -621,14 +671,9 @@ export function paymentRoutes(): Hono<AppBindings> {
           eq(transactions.isLatest, 1),
           inArray(transactions.status, ['confirmed', 'says_paid']),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'payment_disabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -666,7 +711,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const r = await db
+    const guard = db
       .update(transactions)
       // Back to what it was before disabling: a payment nobody confirmed yet waits for its receiver again (spec §9.4).
       .set({
@@ -684,14 +729,9 @@ export function paymentRoutes(): Hono<AppBindings> {
           eq(transactions.isLatest, 1),
           eq(transactions.status, 'disabled'),
         ),
-      )
-      .run();
+      );
 
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
-
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'payment_enabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -741,9 +781,9 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const r =
+    const guard =
       outcome === 'confirm'
-        ? await db
+        ? db
             .update(transactions)
             .set({
               status: 'confirmed',
@@ -760,8 +800,7 @@ export function paymentRoutes(): Hono<AppBindings> {
                 eq(transactions.status, 'rejected'),
               ),
             )
-            .run()
-        : await db
+        : db
             .update(transactions)
             .set({ notArrivedAt: null, updatedAt: now })
             .where(
@@ -773,12 +812,7 @@ export function paymentRoutes(): Hono<AppBindings> {
                 eq(transactions.status, 'confirmed'),
                 isNotNull(transactions.notArrivedAt),
               ),
-            )
-            .run();
-
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
+            );
 
     const extraQueries = [];
     if (outcome === 'confirm') {
@@ -795,7 +829,7 @@ export function paymentRoutes(): Hono<AppBindings> {
       );
     }
 
-    await commitTripWrite(db, tripId, extraQueries, {
+    await guardedTripWrite(db, tripId, guard, extraQueries, {
       action: 'payment_arrived',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -815,7 +849,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     ensure(actor, 'disable');
 
     const db = getDb(c.env);
-    const r = await db
+    const guard = db
       .update(transactions)
       .set({ notArrivedAt: null, updatedAt: nowIso() })
       .where(
@@ -827,13 +861,9 @@ export function paymentRoutes(): Hono<AppBindings> {
           eq(transactions.status, 'confirmed'),
           isNotNull(transactions.notArrivedAt),
         ),
-      )
-      .run();
-    if (r.meta.changes === 0) {
-      throw new ApiError('ALREADY_HANDLED', 409, 'Someone already handled this.');
-    }
+      );
 
-    await commitTripWrite(db, tripId, [], {
+    await guardedTripWrite(db, tripId, guard, [], {
       action: 'payment_enabled',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,

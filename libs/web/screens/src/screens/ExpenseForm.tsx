@@ -1063,8 +1063,9 @@ function ExpenseFormContent({
       }
     } catch (err) {
       setSubmitError(err);
-      // The trip changed under the form: fetch it again so whoever left drops off the split.
-      if (err instanceof ApiClientError && err.code === 'PERSON_LEFT') {
+      // The trip changed under the form: fetch it again so whoever left drops off the split, or so an
+      // expense someone approved or edited meanwhile shows as it is now.
+      if (err instanceof ApiClientError && (err.code === 'PERSON_LEFT' || err.code === 'ALREADY_HANDLED')) {
         void queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
       }
     } finally {

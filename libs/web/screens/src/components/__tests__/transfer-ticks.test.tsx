@@ -95,7 +95,7 @@ describe('Your transfers: tick to confirm', () => {
     await user().click(tick);
     expect(screen.getByRole('status')).toHaveTextContent('Bình paid 565.000₫');
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: PIDS.B, toId: PIDS.M, amount: 565000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: PIDS.B, toId: PIDS.M, amount: 565000, settles: true, idempotencyKey: expect.any(String) }]);
   });
 
   it('records a tick after 5 seconds', async () => {
@@ -116,7 +116,7 @@ describe('Your transfers: tick to confirm', () => {
     expect(snack).toHaveTextContent('An paid 385.000₫');
     expect(within(snack).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     await later(100);
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) }]);
     // Sent with keepalive like every tick: closing the tab while the request is out must not lose it.
     expect(keepalives(fetchMock)).toEqual([true]);
     expect(screen.queryByRole('status')).toBeNull();
@@ -185,7 +185,7 @@ describe('Your transfers: tick to confirm', () => {
     act(() => setView({ ...tripView(), suggestions: tripView().suggestions.filter((s) => s.fromId !== PIDS.B) }));
     expect(screen.getByRole('status')).toHaveTextContent('An paid 385.000₫');
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) }]);
   });
 
   it('flushes a pending tick when the component unmounts', async () => {
@@ -196,7 +196,7 @@ describe('Your transfers: tick to confirm', () => {
     expect(posted(calls)).toEqual([]);
 
     unmount();
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) }]);
     expect(keepalives(fetchMock)).toEqual([true]);
     await later(10_000);
     expect(posted(calls)).toHaveLength(1);
@@ -211,7 +211,7 @@ describe('Your transfers: tick to confirm', () => {
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) }]);
     visibility.mockReturnValue('visible');
 
     await user().click(screen.getByRole('button', { name: CHI }));
@@ -219,7 +219,7 @@ describe('Your transfers: tick to confirm', () => {
       window.dispatchEvent(new Event('pagehide'));
     });
     expect(posted(calls)).toHaveLength(2);
-    expect(posted(calls)[1]).toEqual({ fromId: 'p-chi', toId: 'p-minh', amount: 1245000, settles: true });
+    expect(posted(calls)[1]).toEqual({ fromId: 'p-chi', toId: 'p-minh', amount: 1245000, settles: true, idempotencyKey: expect.any(String) });
     expect(keepalives(fetchMock)).toEqual([true, true]);
     await later(10_000);
     expect(posted(calls)).toHaveLength(2);
@@ -232,12 +232,12 @@ describe('Your transfers: tick to confirm', () => {
     await later(1_000);
     await user().click(screen.getByRole('button', { name: CHI }));
 
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) }]);
     expect(screen.getByRole('status')).toHaveTextContent('Chi paid 1.245.000₫');
     await later(5_000);
     expect(posted(calls)).toEqual([
-      { fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true },
-      { fromId: 'p-chi', toId: 'p-minh', amount: 1245000, settles: true },
+      { fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) },
+      { fromId: 'p-chi', toId: 'p-minh', amount: 1245000, settles: true, idempotencyKey: expect.any(String) },
     ]);
     expect(keepalives(fetchMock)).toEqual([true, true]);
   });
@@ -360,7 +360,7 @@ describe('Your transfers: tick to confirm', () => {
     await later(5_000);
 
     const waiting = (await screen.findByText('Waiting for Minh')).closest('li')!;
-    expect(posted(calls)).toEqual([{ fromId: PIDS.C, toId: PIDS.M, amount: 1245000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: PIDS.C, toId: PIDS.M, amount: 1245000, settles: true, idempotencyKey: expect.any(String) }]);
     expect(waiting).toHaveTextContent('You → Minh');
     expect(waiting).toHaveTextContent('1.245.000₫');
     // Nothing left to tick or open: Minh confirms it.
@@ -402,7 +402,7 @@ describe('Your transfers: tick to confirm', () => {
     // Already ticked: the swipe action is gone, so it can't be recorded twice.
     expect(within(anRow).queryByRole('button', { name: 'Received' })).toBeNull();
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-an', toId: 'p-minh', amount: 385000, settles: true, idempotencyKey: expect.any(String) }]);
     phone.unmount();
 
     // On phones, a guest does not get a swipe action when a member pays them, but does when a guest pays them.
@@ -571,7 +571,7 @@ describe('Your transfers: multiple incoming transfers (member and guest payers)'
     expect(screen.getByRole('status')).toHaveTextContent('Nguyen Vu Nhan paid 1.000.000₫');
     expect(memberTick).toHaveAttribute('aria-pressed', 'true');
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-member-payer', toId: 'p-me', amount: 1000000, settles: true, idempotencyKey: expect.any(String) }]);
   });
 
   it('a guest sees ticks for guest debts to them, but not member debts to them', async () => {
@@ -590,6 +590,6 @@ describe('Your transfers: multiple incoming transfers (member and guest payers)'
     await user().click(screen.getByRole('button', { name: 'Mark 1.000.000₫ from Thủy as received' }));
     expect(screen.getByRole('status')).toHaveTextContent('Thủy paid 1.000.000₫');
     await later(5_000);
-    expect(posted(calls)).toEqual([{ fromId: 'p-guest-1', toId: 'p-me', amount: 1000000, settles: true }]);
+    expect(posted(calls)).toEqual([{ fromId: 'p-guest-1', toId: 'p-me', amount: 1000000, settles: true, idempotencyKey: expect.any(String) }]);
   });
 });
