@@ -46,6 +46,34 @@ describe('race-safe guest claims', () => {
     expect(await pendingRequests()).toHaveLength(1);
   });
 
+  it('one person claiming two names at once gets ALREADY_HAVE_PENDING_CLAIM, not ALREADY_CLAIMED (#79)', async () => {
+    const g = await signedInGuest(PID.B, 'u-binh');
+    expect((await post('/membership', g, { participantId: PID.B })).status).toBe(201);
+    // Simulate a concurrent claim by the same user slipping in between the supersede and the insert: when the
+    // supersede rejects the earlier claim, a second pending claim (on Chi) appears, so the insert collides on
+    // membership_requests_one_pending_user only.
+    await env.DB.prepare(
+      `CREATE TRIGGER sneak_claim AFTER UPDATE OF status ON membership_requests
+       WHEN NEW.status = 'rejected' AND NEW.user_id = 'u-binh'
+       BEGIN
+         INSERT INTO membership_requests (id, trip_id, participant_id, user_id, status, created_at)
+         VALUES ('r-sneak', NEW.trip_id, '${PID.C}', 'u-binh', 'pending', '2026-10-12T00:00:00.000Z');
+       END`,
+    ).run();
+    try {
+      const asAn = await signedInGuest(PID.A, 'u-binh');
+      const res = await post('/membership', asAn, { participantId: PID.A });
+      expect(res.status).toBe(409);
+      expect(await json(res)).toEqual({
+        error: { code: 'ALREADY_HAVE_PENDING_CLAIM', message: 'You already asked to be someone in this group, wait for it to be handled' },
+      });
+    } finally {
+      await env.DB.prepare('DROP TRIGGER sneak_claim').run();
+    }
+    // The whole batch rolled back: the earlier claim is still the only pending one.
+    expect(await pendingRequests()).toEqual([expect.objectContaining({ participant_id: PID.B, user_id: 'u-binh' })]);
+  });
+
   it('a claim on a merged name lands on the person it was merged into', async () => {
     const g = await signedInGuest(PID.B, 'u-binh');
     expect((await post('/people/merge', await minh(), { fromId: PID.B, intoId: PID.A })).status).toBe(204);
