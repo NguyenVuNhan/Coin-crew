@@ -28,6 +28,20 @@ export async function toTripView(
     isOrganiser: actor.isOrganiser,
     isAdmin,
   };
+  if (actor.userId && actor.kind !== 'member') {
+    const pendingClaim = await db
+      .select({ id: membershipRequests.id })
+      .from(membershipRequests)
+      .where(
+        and(
+          eq(membershipRequests.tripId, actor.trip.id),
+          eq(membershipRequests.userId, actor.userId),
+          eq(membershipRequests.status, 'pending'),
+        ),
+      )
+      .get();
+    if (pendingClaim) me.hasPendingMembershipRequest = true;
+  }
 
   let balances = snapshot.balances;
   if (snapshot.trip.roundTransfers) {
