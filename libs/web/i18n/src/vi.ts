@@ -16,7 +16,7 @@ export const vi: Record<MessageKey, string> = {
   'common.undo': 'Hoàn tác',
 
   'error.generic': 'Có lỗi xảy ra. Hãy thử lại.',
-  'error.dailyLimit': 'Hôm nay đã hết hạn mức miễn phí. Hãy thử lại sau 07:00.',
+  'error.dailyLimit': 'CoinCrew đang bảo trì. Hãy thử lại sau 07:00.',
   'error.linkDead': 'Link này không còn dùng được. Hãy xin trưởng nhóm link mới.',
   'error.rateLimited': 'Có quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.',
 

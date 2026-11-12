@@ -24,16 +24,37 @@ describe('worker scaffold', () => {
 
   it('D1 daily limit becomes 503 DAILY_LIMIT', async () => {
     const app = createApp();
-    app.get('/api/test/limit', () => { throw new Error('D1_ERROR: free tier daily rows read limit exceeded'); });
+    app.get('/api/test/limit', () => { throw new Error("D1_ERROR: Your account has exceeded D1's free tier daily row read limit."); });
     const res = await call(app, '/api/test/limit');
     expect(res.status).toBe(503);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('DAILY_LIMIT');
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('DAILY_LIMIT');
+    expect(body.error.message).not.toMatch(/limit|free/i);
+  });
+
+  it('the D1 daily row write limit is DAILY_LIMIT too', async () => {
+    const app = createApp();
+    app.get('/api/test/write-limit', () => { throw new Error("Your account has exceeded D1's free tier daily row write limit."); });
+    const res = await call(app, '/api/test/write-limit');
+    expect(res.status).toBe(503);
+  });
+
+  it('the D1 storage limit and SQL that mentions limit are not DAILY_LIMIT', async () => {
+    const app = createApp();
+    app.get('/api/test/storage', () => {
+      throw new Error("D1_ERROR: Your account has exceeded D1's maximum account storage limit, please contact Cloudflare to raise your limit");
+    });
+    app.get('/api/test/sql', () => {
+      throw new Error('Failed query: select "borrower_row" from "loans" limit ?', { cause: new Error('D1_ERROR: no such column: borrower_row') });
+    });
+    expect((await call(app, '/api/test/storage')).status).toBe(500);
+    expect((await call(app, '/api/test/sql')).status).toBe(500);
   });
 
   it('a D1 limit error wrapped by Drizzle (in err.cause) is still DAILY_LIMIT', async () => {
     const app = createApp();
     app.get('/api/test/wrapped', () => {
-      throw new Error('Failed query: select * from trips', { cause: new Error('D1_ERROR: free tier daily rows read limit exceeded') });
+      throw new Error('Failed query: select * from trips', { cause: new Error("D1_ERROR: Your account has exceeded D1's free tier daily row read limit.") });
     });
     const res = await call(app, '/api/test/wrapped');
     expect(res.status).toBe(503);

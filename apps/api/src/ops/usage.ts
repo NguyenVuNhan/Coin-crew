@@ -2,7 +2,8 @@ import type { Env } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { opsAlerts } from '@cc/api-db/schema';
 
-// Cloudflare free-plan daily limits. To be confirmed against current Cloudflare pricing (spec §14).
+// Cloudflare Workers Free daily limits, reset at 00:00 UTC. Confirmed 2026-11-12 (issue #65) against
+// https://developers.cloudflare.com/d1/platform/pricing/ and https://developers.cloudflare.com/workers/platform/limits/
 export const FREE_LIMITS = { workerRequests: 100_000, d1RowsRead: 5_000_000, d1RowsWritten: 100_000 } as const;
 export type UsageMetric = keyof typeof FREE_LIMITS;
 export interface UsageLine { metric: UsageMetric; used: number; ratio: number }

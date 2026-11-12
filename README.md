@@ -85,7 +85,7 @@ See the design's §14:
 
 1. Which bank apps open with the payment already filled in through `dl.vietqr.io`, and the exact parameters. Flip `PREFILL_VERIFIED` in `libs/shared/core/src/banks.ts` once confirmed.
 2. Transfer-note length and character limits at the major banks.
-3. The current D1 and Workers free-plan numbers. Update `FREE_LIMITS` and the `DAILY_LIMIT` error matcher in `libs/api/util/src/errors.ts`.
+3. ~~The current D1 and Workers free-plan numbers.~~ Confirmed 2026-11-12 (#65): `FREE_LIMITS` in `apps/api/src/ops/usage.ts`, the D1 matcher in `libs/api/util/src/errors.ts`, and Cloudflare's 1027 page in `libs/web/data-access/src/client.ts`. Users see a maintenance line, never the limit.
 4. What Vietnam's personal-data rules require. Replace the draft privacy notice in `libs/web/screens/src/screens/Privacy.tsx`.
 
 Also review any Vietnamese line in `libs/web/i18n/src/vi.ts` marked `// REVIEW`: it is a draft translation. Follow the house style at the top of that file.

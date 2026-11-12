@@ -108,7 +108,7 @@ describe('shared components', () => {
   it('InlineError shows the daily-limit copy', () => {
     setLang('en');
     render(<InlineError error={new ApiClientError('DAILY_LIMIT', 503, 'x')} onRetry={() => {}} />);
-    expect(screen.getByText("We're over today's free limit. Try again after 07:00.")).toBeInTheDocument();
+    expect(screen.getByText('CoinCrew is down for maintenance. Try again after 07:00.')).toBeInTheDocument();
   });
   it('InlineError offers a retry for other errors', async () => {
     setLang('en');

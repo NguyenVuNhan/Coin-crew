@@ -10,7 +10,8 @@ export const en = {
   'common.undo': 'Undo',
 
   'error.generic': 'Something went wrong. Try again.',
-  'error.dailyLimit': "We're over today's free limit. Try again after 07:00.", // SPEC
+  // Shown when Cloudflare's free daily limit is hit; users see maintenance, never the limit itself.
+  'error.dailyLimit': 'CoinCrew is down for maintenance. Try again after 07:00.',
   'error.linkDead': 'This link no longer works. Ask the organiser for a new one.', // SPEC
   'error.rateLimited': 'Too many items are waiting for approval. Ask a member to approve them first.',
 
