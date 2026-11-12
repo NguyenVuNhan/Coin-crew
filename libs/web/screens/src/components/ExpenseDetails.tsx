@@ -36,6 +36,7 @@ import { sportBillCard, sportPlanningCard } from '../lib/shareCards';
 import { sportBillCalc } from '../lib/sportBill';
 import { usePlatform } from '@cc/web-platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
+import { ExpenseBillShare, canShareExpenseBill } from './ExpenseBillShare';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -520,6 +521,7 @@ export function ExpenseDetails({
           })}
         </ul>
       )}
+      {!sportCalc && canShareExpenseBill(view, e) && <ExpenseBillShare view={view} expense={e} />}
       <ExpenseHistoryList view={view} expense={e} />
 
       {errorElement}
