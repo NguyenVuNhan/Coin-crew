@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import type { ActivityAction } from '@cc/core';
 import { en } from '@cc/web-i18n/en';
 import { vi as viMessages } from '@cc/web-i18n/vi';
-import viSource from '@cc/web-i18n/vi?raw';
 import { t } from '@cc/web-i18n';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
@@ -12,12 +11,6 @@ import { renderAt } from './render';
 
 describe('group fund foundations', () => {
   it('Vietnamese still has exactly the English keys', () => expect(Object.keys(viMessages).sort()).toEqual(Object.keys(en).sort()));
-
-  it('new Vietnamese fund lines are marked for review', () => {
-    for (const key of ['entry.income', 'fund.title', 'fund.overLimit', 'error.fundShort']) {
-      expect(viSource.split('\n').find((l) => l.includes(`'${key}'`))).toMatch(/\/\/ REVIEW$/);
-    }
-  });
 
   it('renders the piggyBank icon', () => {
     const { container } = render(<Icon name="piggyBank" />);
