@@ -19,6 +19,25 @@ export const vi: Record<MessageKey, string> = {
   'error.dailyLimit': 'CoinCrew đang bảo trì. Hãy thử lại sau 07:00.',
   'error.linkDead': 'Link này không còn dùng được. Hãy xin trưởng nhóm link mới.',
   'error.rateLimited': 'Có quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.',
+  'error.validation': 'Có chỗ chưa đúng. Hãy kiểm tra rồi thử lại.', // REVIEW
+  'validation.signInExpired': 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.', // REVIEW
+  'validation.nameLength': 'Hãy nhập tên, tối đa 40 ký tự.', // REVIEW
+  'validation.groupNameLength': 'Hãy nhập tên nhóm, tối đa 60 ký tự.', // REVIEW
+  'validation.descriptionLength': 'Hãy nhập nội dung, tối đa 80 ký tự.', // REVIEW
+  'validation.reasonLength': 'Hãy nhập lý do, tối đa 140 ký tự.', // REVIEW
+  'validation.amountInvalid': 'Hãy kiểm tra lại số tiền rồi thử lại.', // REVIEW
+  'validation.rateSelf': 'Bạn không thể tự chấm sao cho mình.', // REVIEW
+  'validation.pickDifferentPeople': 'Hãy chọn hai người khác nhau.', // REVIEW
+  'validation.mergeSelf': 'Bạn không thể gộp với chính mình.', // REVIEW
+  'validation.bothSignedIn': 'Cả hai người đều có tài khoản riêng nên không gộp được.', // REVIEW
+  'validation.payToSelf': 'Người trả và người nhận phải là hai người khác nhau.', // REVIEW
+  'validation.pendingFromFund': 'Khoản chi đang chờ duyệt chưa thể trả từ quỹ nhóm. Hãy duyệt trước.', // REVIEW
+  'validation.tooManyGroups': 'Có quá nhiều nhóm cùng lúc. Hãy thanh toán từng nhóm một.', // REVIEW
+  'validation.bankAccountNumber': 'Hãy nhập số tài khoản từ 6 đến 19 chữ số.', // REVIEW
+  'validation.bankHolderName': 'Hãy nhập tên chủ tài khoản.', // REVIEW
+  'validation.genderRequired': 'Hãy chọn nam hoặc nữ để vào nhóm này.', // REVIEW
+  'validation.mapUrl': 'Hãy nhập link bản đồ bắt đầu bằng http:// hoặc https://.', // REVIEW
+  'validation.imageTooLarge': 'Ảnh này quá lớn. Hãy thử ảnh nhỏ hơn.', // REVIEW
 
   'noAccess.title': 'Bạn chưa có quyền vào nhóm này',
   'noAccess.body': 'Đăng nhập nếu bạn là thành viên, hoặc mở link mời mà nhóm đã gửi cho bạn.',

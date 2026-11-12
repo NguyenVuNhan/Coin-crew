@@ -21,7 +21,7 @@ import type { ResolvedActor } from '@cc/api-auth/actor';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
-import { ApiError, isDbError } from '@cc/api-util/errors';
+import { ApiError, isDbError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { pendingProposalFor } from '../proposals/store';
 import { getSnapshot } from '../trips/snapshot';
@@ -112,7 +112,7 @@ export async function addPersonToTrip(db: Db, actor: ResolvedActor, input: unkno
 
   const name = body.name.trim();
   if (name.length < 1 || name.length > 40) {
-    throw new ApiError('VALIDATION', 422, 'Invalid request');
+    throw validationError('nameLength', 'Invalid request');
   }
 
   // Any status counts: the unique index covers left people too. (Look-alikes are added, never refused.)
@@ -535,7 +535,7 @@ export function participantRoutes(): Hono<AppBindings> {
       }
       const trimmed = body.name.trim();
       if (trimmed.length < 1 || trimmed.length > 40) {
-        throw new ApiError('VALIDATION', 422, 'Invalid name');
+        throw validationError('nameLength', 'Invalid name');
       }
       updates.name = trimmed;
       updates.normalizedName = normalizeName(trimmed);
@@ -952,7 +952,7 @@ export function participantRoutes(): Hono<AppBindings> {
       }
       const trimmed = body.name.trim();
       if (trimmed.length < 1 || trimmed.length > 40) {
-        throw new ApiError('VALIDATION', 422, 'Invalid name');
+        throw validationError('nameLength', 'Invalid name');
       }
       await db.update(users).set({ name: trimmed }).where(eq(users.id, user.id));
     }

@@ -115,11 +115,11 @@ describe('WhoAreYou: joining without approval', () => {
     mockApi({
       'GET /api/trips/t-1/people/picker': signedIn(),
       'POST /api/trips/t-1/people/check-name': { matches: [] },
-      'POST /api/trips/t-1/join': () => Response.json({ error: { code: 'VALIDATION', message: 'Gender required' } }, { status: 422 }),
+      'POST /api/trips/t-1/join': () => Response.json({ error: { code: 'VALIDATION', message: 'Gender required', reason: 'genderRequired' } }, { status: 422 }),
     });
     renderAt(<WhoAreYou />, route);
     await userEvent.click(await screen.findByRole('button', { name: 'Not on the list? Join as Dũng' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gender required');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Choose male or female to join this group.');
     expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/who');
   });
 });

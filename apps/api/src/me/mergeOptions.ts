@@ -19,7 +19,7 @@ import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { mergeParticipants } from '../participants/merge';
 import { insertProposal } from '../proposals/store';
 import { loadPeopleIndex, type OtherRow, type PeopleIndex, type PeoplePlace } from './balances';
@@ -163,7 +163,7 @@ function parseMergeKeys(raw: unknown): [PersonKey, PersonKey] {
   for (const k of raw) {
     if (typeof k !== 'string' || !/^[up]:.+$/.test(k)) throw new ApiError('VALIDATION', 422, 'Invalid person');
   }
-  if (raw[0] === raw[1]) throw new ApiError('VALIDATION', 422, 'Pick different people');
+  if (raw[0] === raw[1]) throw validationError('pickDifferentPeople', 'Pick different people');
   return [raw[0] as PersonKey, raw[1] as PersonKey];
 }
 

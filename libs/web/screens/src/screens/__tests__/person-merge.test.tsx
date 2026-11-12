@@ -226,7 +226,7 @@ describe('PersonScreen merge & unmerge feedback', () => {
     await userEvent.click(await screen.findByTestId('person-merge'));
     await userEvent.click(await screen.findByTestId('merge-pick-p:p-minhn'));
     await userEvent.click(await screen.findByTestId('merge-confirm'));
-    expect(await screen.findByText('Not a merge')).toBeInTheDocument();
+    expect(await screen.findByText("Something here isn't right. Check it and try again.")).toBeInTheDocument();
     expect(screen.getByTestId('merge-confirm')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/people/p%3Ap-minh');
   });
@@ -270,7 +270,7 @@ describe('PersonScreen merge & unmerge feedback', () => {
     });
     renderAt(<PersonScreen />, { route: '/people/p%3Ap-minh', path: '/people/:key' });
     await userEvent.click(await screen.findByTestId('unmerge-g-minh'));
-    expect(await screen.findByText('Not a merge')).toBeInTheDocument();
+    expect(await screen.findByText("Something here isn't right. Check it and try again.")).toBeInTheDocument();
     expect(screen.getByTestId('unmerge-g-minh')).not.toBeDisabled();
   });
 });

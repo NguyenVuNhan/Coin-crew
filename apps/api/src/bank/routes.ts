@@ -12,7 +12,7 @@ import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor, type TripRow } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
 
@@ -46,7 +46,7 @@ function validateBankInput(body: unknown): ValidatedBankInput {
   }
 
   if (typeof input.accountNumber !== 'string' || !/^\d{6,19}$/.test(input.accountNumber)) {
-    throw new ApiError('VALIDATION', 422, 'Invalid account number');
+    throw validationError('bankAccountNumber', 'Invalid account number');
   }
 
   if (typeof input.holderName !== 'string') {
@@ -55,7 +55,7 @@ function validateBankInput(body: unknown): ValidatedBankInput {
 
   const holderName = toTransferNote(input.holderName, 50);
   if (!holderName) {
-    throw new ApiError('VALIDATION', 422, 'Invalid holder name');
+    throw validationError('bankHolderName', 'Invalid holder name');
   }
 
   return {

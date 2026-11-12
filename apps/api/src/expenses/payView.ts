@@ -18,7 +18,7 @@ import { getDb, type Db } from '@cc/api-db/client';
 import { accountMergeRequests, participants } from '@cc/api-db/schema';
 import { assertWritable, resolveActor, type ResolvedActor } from '@cc/api-auth/actor';
 import { buildPayInfo } from '../bank/routes';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { insertPayment } from '../payments/routes';
 import { getSnapshot, toLedger } from '../trips/snapshot';
 import { getClaimGrant } from './claimGrant';
@@ -234,7 +234,7 @@ export function expensePayRoutes(): Hono<AppBindings> {
       body.amount < 1 ||
       body.amount > MAX_AMOUNT
     ) {
-      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      throw validationError('amountInvalid', 'Invalid amount');
     }
     const amount = body.amount;
 
@@ -257,7 +257,7 @@ export function expensePayRoutes(): Hono<AppBindings> {
     }
 
     if (amount > view.row.remaining) {
-      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      throw validationError('amountInvalid', 'Invalid amount');
     }
 
     const rowId = view.row.participantId;

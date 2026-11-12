@@ -39,7 +39,7 @@ import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Pill } from '@cc/web-ui/components/Pill';
-import { InlineError } from '@cc/web-ui/components/InlineError';
+import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
 import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -893,14 +893,10 @@ function ExpenseFormContent({
     if (typeof err === 'object' && err !== null && 'code' in err) {
       const apiErr = err as { code: string; message?: string };
       if (apiErr.code === 'PERSON_LEFT') {
-        // InlineError shows a form's own message for a validation error.
-        return { code: 'VALIDATION', message: t('expenseForm.personLeft') };
+        return ownError(t('expenseForm.personLeft'));
       }
       if (apiErr.code === 'VALIDATION' && apiErr.message && SPLIT_ERRORS.has(apiErr.message)) {
-        return {
-          ...apiErr,
-          message: t(`splitError.${apiErr.message as SplitError}` as MessageKey),
-        };
+        return ownError(t(`splitError.${apiErr.message as SplitError}` as MessageKey));
       }
     }
     return err;
