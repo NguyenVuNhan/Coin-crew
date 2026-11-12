@@ -88,4 +88,4 @@ See the design's §14:
 3. The current D1 and Workers free-plan numbers. Update `FREE_LIMITS` and the `DAILY_LIMIT` error matcher in `libs/api/util/src/errors.ts`.
 4. What Vietnam's personal-data rules require. Replace the draft privacy notice in `libs/web/screens/src/screens/Privacy.tsx`.
 
-Also review the Vietnamese copy in `libs/web/i18n/src/vi.ts`: every line marked `// REVIEW` is a draft translation.
+Also review any Vietnamese line in `libs/web/i18n/src/vi.ts` marked `// REVIEW`: it is a draft translation. Follow the house style at the top of that file.

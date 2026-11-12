@@ -162,7 +162,7 @@ describe('Sport Planning UI components', () => {
 
     const addButtons = screen.getAllByTestId('nav-add');
     fireEvent.click(addButtons[0]!);
-    expect(screen.getAllByText(/Plan session|Lên lịch buổi đánh/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Plan session|Lên lịch buổi chơi/i).length).toBeGreaterThan(0);
   });
 
   it('renders ExpenseDetails in planning mode with 3-column table, venue facts, share button, and completion action for admins', () => {
@@ -188,8 +188,8 @@ describe('Sport Planning UI components', () => {
     expect(screen.getByText(/Sân 6 \(5h-7h\)/)).toBeTruthy();
     expect(screen.queryByText(/AMOUNT|THÀNH TIỀN/i)).toBeNull();
     expect(screen.getByText(/Share schedule & headcount|Chia sẻ lịch & danh sách/i)).toBeTruthy();
-    expect(screen.getByText(/Include booking image|Ghép kèm ảnh đặt sân/i)).toBeTruthy();
-    expect(screen.getByText(/Complete & split bill|Hoàn tất & Tính tiền/i)).toBeTruthy();
+    expect(screen.getByText(/Include booking image|Gửi kèm ảnh đặt sân/i)).toBeTruthy();
+    expect(screen.getByText(/Complete & split bill|Hoàn tất & chia tiền/i)).toBeTruthy();
   });
 
   it('renders ExpenseForm in planning mode (?mode=planning) with venue/court fields and saves with amount 0 and planning: true', async () => {
@@ -220,7 +220,7 @@ describe('Sport Planning UI components', () => {
 
     await waitFor(() => expect(screen.getByLabelText(/What for|Khoản chi gì/i)).toBeTruthy());
     // Should hide shuttlecocks & extra fee in planning mode
-    expect(screen.queryByText(/Add shuttlecock|Thêm tiền cầu/i)).toBeNull();
+    expect(screen.queryByText(/Add shuttlecock|Thêm giá cầu/i)).toBeNull();
     // Should show AI extract trigger when view.aiBookingExtract is true
     expect(screen.getByText(/Auto-fill from booking image|Đọc từ ảnh đặt sân/i)).toBeTruthy();
 
@@ -272,7 +272,7 @@ describe('Sport Planning UI components', () => {
 
     await waitFor(() => expect(screen.getByLabelText(/^(Court|Tiền sân)$/i)).toBeTruthy());
     // Shuttlecock button should be visible now in complete mode
-    expect(screen.getByText(/\+ Add shuttlecock price|\+ Thêm tiền cầu/i)).toBeTruthy();
+    expect(screen.getByText(/\+ Add shuttlecock price|\+ Thêm giá cầu/i)).toBeTruthy();
 
     const saveBtn = screen.getByRole('button', { name: /Save|Lưu/i });
     expect(saveBtn).not.toBeDisabled();
