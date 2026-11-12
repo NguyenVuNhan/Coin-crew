@@ -59,6 +59,8 @@ function PersonPlaces({ personKey, name }: { personKey: PersonKey; name: string 
   const t = useT();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  // A tap opens a sheet without touching the URL, so Back from a group lands on the plain person page.
+  const [tapped, setTapped] = useState<string | null>(null);
   const history = usePersonHistory(personKey);
 
   const wrap = (children: JSX.Element) => <div className="fsl-person__items">{children}</div>;
@@ -96,20 +98,23 @@ function PersonPlaces({ personKey, name }: { personKey: PersonKey; name: string 
     };
   });
 
-  // ?open=<tripId>: a direct trip opens the merged row; an id with no row opens nothing.
+  // ?open=<tripId> (arriving from a group's transfer row): a direct trip opens the merged row; an id with
+  // no row opens nothing. A tap wins over it; closing drops the param so the sheet doesn't come back.
   const openParam = searchParams.get('open');
-  const openId = openParam === null ? null : directTripIds.includes(openParam) ? 'direct' : openParam;
+  const fromParam = openParam === null ? null : directTripIds.includes(openParam) ? 'direct' : openParam;
+  const openId = tapped ?? fromParam;
   const setOpen = (id: string | null) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        const tripId = id === null ? undefined : tripOf.get(id);
-        if (tripId) next.set('open', tripId);
-        else next.delete('open');
-        return next;
-      },
-      { replace: true },
-    );
+    setTapped(id);
+    if (id === null && openParam !== null) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('open');
+          return next;
+        },
+        { replace: true },
+      );
+    }
   };
 
   return wrap(

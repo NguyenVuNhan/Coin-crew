@@ -166,7 +166,8 @@ describe('Person page ledger', () => {
     const lines = within(sheet).getAllByTestId(/^history-line-/);
     expect(lines.map((l) => l.getAttribute('data-testid'))).toEqual(['history-line-e-new', 'history-line-e-old']);
     expect(within(screen.getByTestId('history-line-e-new')).getByText("In An's expenses")).toBeInTheDocument();
-    expect(screen.getByTestId('url')).toHaveTextContent('/people/u%3Au-an?open=t-led');
+    // A tap leaves the URL alone, so Back from a group returns to the plain person page.
+    expect(screen.getByTestId('url')).toHaveTextContent(/^\/people\/u%3Au-an$/);
   });
 
   it('?open=t-1 opens the group sheet with Between you two', async () => {

@@ -60,6 +60,8 @@ test('walks back navigation with history, scroll restoration, and fallback to pa
   const groupRow = page.locator('[data-testid^="person-item-"]').first();
   await expect(groupRow).toBeVisible();
   await groupRow.click();
+  // The row opens the group's sheet; "Open <group>" goes to the group (owner-approved, #98).
+  await page.getByRole('dialog').getByTestId('ledger-open-group').click();
   await expect(page).toHaveURL(/\/t\/[^/]+$/);
   const tripUrl = page.url();
 

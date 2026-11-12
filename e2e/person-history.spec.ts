@@ -38,37 +38,49 @@ test('the person screen and the request link show what makes up the total', asyn
   await page.getByRole('button', { name: 'Add expense' }).click();
   await expect(page).toHaveURL(/\/trips$/);
 
-  // The person screen: the Quick expenses row and, under it, the Taxi line adding 120.000.
+  // The person screen: one ledger row "Quick expenses +120.000" and a total; tapping it opens the Taxi line in a sheet.
   await page.getByRole('link', { name: /Tuan/ }).click();
-  await expect(page.getByTestId('person-item-' + (await firstItemTrip(page)))).toContainText('Quick expenses');
-  const history = page.getByTestId('person-history');
-  await expect(history).toContainText('What makes this up');
-  await expect(history.locator('.fsl-history__line')).toHaveCount(1);
-  await expect(history.locator('.fsl-history__line').first()).toContainText('Taxi');
-  await expect(history.locator('.fsl-history__line').first()).toContainText('+120.000');
+  const quick = page.getByTestId('person-item-' + (await firstItemTrip(page)));
+  await expect(quick).toContainText('Quick expenses');
+  await expect(quick).toContainText('+120.000');
+  await expect(page.locator('.fsl-ledger__total')).toContainText('120.000');
+  await quick.click();
+  let sheet = page.getByRole('dialog');
+  await expect(sheet.locator('.fsl-history__line')).toHaveCount(1);
+  await expect(sheet.locator('.fsl-history__line').first()).toContainText('Taxi');
+  await expect(sheet.locator('.fsl-history__line').first()).toContainText('+120.000');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  // Tuan hands over 20.000 in cash: a payment line appears and the lines still add up to the total.
+  // Tuan hands over 20.000 in cash: the row drops to 100.000 and the sheet gains the payment line.
   await page.getByTestId('person-cash').click();
   await page.getByLabel('Amount').fill('20.000');
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(history.locator('.fsl-history__line')).toHaveCount(2);
-  await expect(history.locator('.fsl-history__line').first()).toContainText('Tuan paid you');
-  await expect(history.locator('.fsl-history__line').first()).toContainText('−20.000');
+  await expect(quick).toContainText('+100.000');
   await expect(page.locator('.fsl-person__total')).toContainText('100.000');
+  await quick.click();
+  sheet = page.getByRole('dialog');
+  await expect(sheet.locator('.fsl-history__line')).toHaveCount(2);
+  await expect(sheet.locator('.fsl-history__line').first()).toContainText('Tuan paid you');
+  await expect(sheet.locator('.fsl-history__line').first()).toContainText('−20.000');
+  await page.keyboard.press('Escape');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 
-  // The request link: the row names the Taxi, and opens into the compact list.
+  // The request link: the pay layout, and "What this covers (1)" opens the ledger, whose row expands its lines.
   await page.getByTestId('person-request').click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __shared?: string }).__shared)).toMatch(/\/r\/[^/]+$/);
   const link = (await page.evaluate(() => (window as unknown as { __shared?: string }).__shared))!;
   const guestContext = await englishContext(browser);
   const guest = await guestContext.newPage();
   await guest.goto(new URL(link).pathname);
-  const covers = guest.locator('[data-testid^="request-covers-"]').first();
-  await expect(covers).toContainText('Taxi');
-  await covers.click();
-  await expect(covers).toHaveAttribute('aria-expanded', 'true');
-  await expect(guest.locator('.fsl-history__line')).toHaveCount(2);
+  await expect(guest.getByRole('heading', { name: 'Pay Lien' })).toBeVisible();
+  await expect(guest.getByTestId('request-paid')).toBeVisible();
+  await guest.getByTestId('request-covers').click();
+  const coversSheet = guest.getByRole('dialog');
+  await expect(coversSheet.locator('.fsl-ledger__row')).toHaveCount(1);
+  await coversSheet.locator('.fsl-ledger__row').first().click();
+  await expect(coversSheet.locator('.fsl-ledger__row').first()).toHaveAttribute('aria-expanded', 'true');
+  await expect(coversSheet.locator('.fsl-history__line')).toHaveCount(2);
   expect(await guest.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 
   await guestContext.close();
