@@ -392,7 +392,15 @@ export interface RatingsView {
 }
 export interface TripView {
   trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean; theme?: ThemeId | null };
-  me: { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean };
+  me: {
+    kind: ActorKind;
+    participantId: string | null;
+    participantPending: boolean;
+    isOrganiser: boolean;
+    isAdmin?: boolean;
+    /** True when the signed-in non-member has a membership claim waiting in this group. Left out otherwise. */
+    hasPendingMembershipRequest?: boolean;
+  };
   people: PersonView[];
   balances: Balances;
   suggestions: Transfer[];

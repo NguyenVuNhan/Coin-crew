@@ -67,3 +67,41 @@ describe('GuestTrip becomeMember parameter handling (#72)', () => {
     });
   });
 });
+
+describe('GuestTrip persistent pending claim (#80)', () => {
+  const pendingView = tripView({
+    me: {
+      kind: 'guest',
+      participantId: 'p-an',
+      participantPending: false,
+      isOrganiser: false,
+      hasPendingMembershipRequest: true,
+    },
+  });
+
+  it('shows the requested banner from the server flag with no URL params', () => {
+    mockApi({});
+    renderAt(<GuestTrip view={pendingView} />, { route: '/t/t-1', path: '/t/:id' });
+    expect(screen.getByText('You asked to become a member. A member will approve it.')).toBeInTheDocument();
+  });
+
+  it('strips ?becomeMember=1 without sending a claim when one is already pending', async () => {
+    const { calls } = mockApi({
+      'POST /api/trips/t-1/membership': { requestId: 'req-1' },
+    });
+
+    renderAt(
+      <>
+        <GuestTrip view={pendingView} />
+        <SearchProbe />
+      </>,
+      { route: '/t/t-1?becomeMember=1', path: '/t/:id' },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search').textContent).not.toContain('becomeMember=1');
+    });
+    expect(calls.filter((c) => c.method === 'POST' && c.path === '/api/trips/t-1/membership')).toHaveLength(0);
+    expect(screen.getByText('You asked to become a member. A member will approve it.')).toBeInTheDocument();
+  });
+});
