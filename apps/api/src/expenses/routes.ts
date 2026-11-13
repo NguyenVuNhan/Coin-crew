@@ -32,6 +32,8 @@ import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchExpenseNotification } from '../notifications/transactionDispatcher';
+import { countPendingSessions } from '../attendance/count';
+import { safeError } from '@cc/api-util/logSafe';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -762,6 +764,16 @@ export function expenseRoutes(): Hono<AppBindings> {
         ...(fundPaid ? { paidFromFund: true } : {}),
       },
     });
+
+    // A new plan counts every finished session not yet counted (the launch backfill falls out of
+    // this). Bookkeeping only: it must never fail the plan.
+    if (isPlanningExpense(validated)) {
+      try {
+        await countPendingSessions(db, tripId);
+      } catch (err) {
+        console.warn('Attendance counting failed', safeError(err));
+      }
+    }
 
     if (status === 'approved' && !isPlanningExpense(validated)) {
       await dispatchExpenseNotification(c, 'approved', expenseId, {

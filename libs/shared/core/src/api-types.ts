@@ -98,6 +98,7 @@ import type { PersonKey, PersonItem } from './people';
 import type { MergePlan } from './mergePlan';
 import type { ThemeId } from './themes';
 import type { HistoryGap, HistoryLine, PairHistory } from './history';
+import type { AttendanceLabel, AttendanceScore } from './attendance';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -633,3 +634,15 @@ export type UserNotificationSettings = {
 
 export type NotificationLogType = 'transaction_crud' | 'loan_reminder' | 'monthly_notice';
 
+export interface AttendancePerson {
+  participantId: string;
+  score: AttendanceScore;
+  labels: AttendanceLabel[];
+  wantedStamp: boolean;
+}
+
+export interface AttendanceView {
+  people: AttendancePerson[];
+  latestSession: { rootId: string; spentOn: string } | null;
+  pendingSessions: number;
+}
