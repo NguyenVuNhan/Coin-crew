@@ -127,6 +127,8 @@ describe('expense push', () => {
 
   it('completing a planned session pushes the bill', async () => {
     await env.DB.prepare("UPDATE trips SET preset = 'sport' WHERE id = ?").bind(T.tripId).run();
+    // This test is about the expense push: keep the new-session push (Task 5) out of it.
+    await env.DB.prepare('UPDATE push_subscriptions SET new_session = 0').run();
     const sport = {
       planning: true,
       courtSlots: [{ courtName: 'Sân 1', timeRange: '05:00 - 07:00' }],
