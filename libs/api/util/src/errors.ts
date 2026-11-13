@@ -1,4 +1,5 @@
 import type { ApiErrorCode } from '@cc/core';
+import { safeError } from './logSafe';
 
 export class ApiError extends Error {
   constructor(
@@ -26,7 +27,7 @@ export function errorResponse(err: unknown): Response {
     );
   }
 
-  console.error(err);
+  console.error(safeError(err));
   return Response.json(
     { error: { code: 'INTERNAL', message: 'Something went wrong.' } },
     { status: 500 },

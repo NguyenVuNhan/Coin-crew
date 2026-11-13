@@ -13,7 +13,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "react": "^19.3.0"
+    "react": "19.3.0"
   },
   "nx": {
     "tags": ["scope:web", "type:i18n"]

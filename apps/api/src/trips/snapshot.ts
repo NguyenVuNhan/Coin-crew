@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lte, ne, sql } from 'drizzle-orm';
 import type {
   ExpenseHistoryItem,
   ExpenseStatus,
@@ -14,6 +14,7 @@ import type {
   RatingsView,
   SplitMode,
   Transfer,
+  TripListItem,
   TripLocationView,
   TripView,
 } from '@cc/core';
@@ -36,6 +37,7 @@ import {
   transactionShares,
   transactions,
   tripLocations,
+  trips,
   tripViews,
   users,
 } from '@cc/api-db/schema';
@@ -43,7 +45,16 @@ import { nowIso } from '@cc/api-util/ids';
 
 export type TripSnapshot = Omit<TripView, 'me' | 'myBalance' | 'approvals' | 'links'>;
 
-export function toLedger(s: TripSnapshot): {
+/** What `toLedger` reads: a snapshot, or the money rows of one loaded without the rest. */
+export interface LedgerSource {
+  people: { id: string }[];
+  expenses: (Pick<ExpenseView, 'id' | 'payerId' | 'amount' | 'status' | 'createdById' | 'meta'> & {
+    shares: { participantId: string; amount: number }[];
+  })[];
+  payments: Pick<PaymentView, 'id' | 'fromId' | 'toId' | 'amountClaimed' | 'amountConfirmed' | 'status'>[];
+}
+
+export function toLedger(s: LedgerSource): {
   order: string[];
   expenses: LedgerExpense[];
   payments: LedgerPayment[];
@@ -68,6 +79,65 @@ export function toLedger(s: TripSnapshot): {
     status: p.status,
   }));
   return { order, expenses: ledgerExpenses, payments: ledgerPayments };
+}
+
+/**
+ * The group's balances and suggested transfers: the money rules shared by `buildSnapshot` and the
+ * group list. `previous` (the last saved suggestions) keeps fewest-transfers suggestions stable.
+ */
+export function settleLedger(
+  trip: Pick<TripRow, 'fewestTransfers' | 'roundTransfers'>,
+  source: LedgerSource,
+  previous?: Transfer[],
+): { balances: Record<string, number>; suggestions: Transfer[] } {
+  const ledger = toLedger(source);
+  const balances = computeBalances(ledger.order, ledger.expenses, ledger.payments);
+  const rawSuggestions =
+    trip.fewestTransfers === 1
+      ? suggestTransfers(
+          computeBalances(ledger.order, ledger.expenses, ledger.payments, { includeSaysPaid: true }),
+          ledger.order,
+          previous,
+        )
+      : pairwiseTransfers(ledger.order, ledger.expenses, ledger.payments);
+
+  const suggestions =
+    trip.roundTransfers === 1
+      ? rawSuggestions
+          .map((s) => ({
+            ...s,
+            amount: s.amount <= 500 ? 0 : Math.round(s.amount / 1000) * 1000,
+          }))
+          .filter((s) => s.amount > 0)
+      : rawSuggestions;
+
+  return { balances, suggestions };
+}
+
+/** One person's balance in a group: rounded groups count the (rounded) suggested transfers. */
+export function myBalanceIn(
+  trip: Pick<TripRow, 'roundTransfers'>,
+  s: Pick<TripSnapshot, 'balances' | 'suggestions'>,
+  participantId: string,
+): number {
+  if (trip.roundTransfers !== 1) return s.balances[participantId] ?? 0;
+  const owedToMe = s.suggestions
+    .filter((t) => t.toId === participantId)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const iOwe = s.suggestions
+    .filter((t) => t.fromId === participantId)
+    .reduce((sum, t) => sum + t.amount, 0);
+  return owedToMe - iOwe;
+}
+
+/** True when a saved view has every field the current snapshot has (older views get rebuilt once). */
+function hasCurrentFields(view: TripSnapshot): boolean {
+  // Views cached before the group fund, player ratings, or trip locations lack those fields.
+  return 'fund' in view && 'ratings' in view && 'locations' in view;
+}
+
+function expenseMeta(metaJson: string | null): ExpenseView['meta'] {
+  return metaJson ? (JSON.parse(metaJson) as ExpenseView['meta']) : null;
 }
 
 export async function buildSnapshot(
@@ -218,7 +288,7 @@ export async function buildSnapshot(
         createdById: tx.createdByParticipantId,
         createdAt: tx.createdAt,
         shares: sharesByTxId.get(tx.id) ?? [],
-        meta: tx.metaJson ? (JSON.parse(tx.metaJson) as ExpenseView['meta']) : null,
+        meta: expenseMeta(tx.metaJson),
       });
     }
   }
@@ -286,7 +356,7 @@ export async function buildSnapshot(
     createdById: e.createdByParticipantId,
     createdAt: e.createdAt,
     shares: sharesByTxId.get(e.id) ?? [],
-    meta: e.metaJson ? (JSON.parse(e.metaJson) as ExpenseView['meta']) : null,
+    meta: expenseMeta(e.metaJson),
     history: historyByRootId.get(e.rootId) ?? [],
   }));
 
@@ -332,48 +402,11 @@ export async function buildSnapshot(
     };
   });
 
-  const partialSnapshot: TripSnapshot = {
-    trip: {
-      id: trip.id,
-      name: trip.name,
-      preset: (trip.preset as 'trip' | 'sport') ?? 'trip',
-      currency: 'VND',
-      fewestTransfers: trip.fewestTransfers === 1,
-      roundTransfers: trip.roundTransfers === 1,
-      defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
-      archived: trip.archivedAt !== null,
-      version: trip.version,
-      total: 0,
-    },
-    people,
-    balances: {},
-    suggestions: [],
-    expenses: expenseViews,
-    payments: paymentViews,
-    fund: null,
-    ratings: null,
-  };
-
-  const ledger = toLedger(partialSnapshot);
-  const balances = computeBalances(ledger.order, ledger.expenses, ledger.payments);
-  const rawSuggestions =
-    trip.fewestTransfers === 1
-      ? suggestTransfers(
-          computeBalances(ledger.order, ledger.expenses, ledger.payments, { includeSaysPaid: true }),
-          ledger.order,
-          previous,
-        )
-      : pairwiseTransfers(ledger.order, ledger.expenses, ledger.payments);
-
-  const suggestions =
-    trip.roundTransfers === 1
-      ? rawSuggestions
-          .map((s) => ({
-            ...s,
-            amount: s.amount <= 500 ? 0 : Math.round(s.amount / 1000) * 1000,
-          }))
-          .filter((s) => s.amount > 0)
-      : rawSuggestions;
+  const { balances, suggestions } = settleLedger(
+    trip,
+    { people, expenses: expenseViews, payments: paymentViews },
+    previous,
+  );
 
   const total = expenseViews
     .filter((e) => e.status === 'approved')
@@ -475,8 +508,7 @@ export async function getSnapshot(
 
   if (row && row.version === trip.version) {
     const view = JSON.parse(row.json) as TripSnapshot;
-    // Views cached before the group fund, player ratings, or trip locations lack those fields: rebuild them once.
-    if ('fund' in view && 'ratings' in view && 'locations' in view) return view;
+    if (hasCurrentFields(view)) return view;
   }
 
   let previous: Transfer[] | undefined;
@@ -508,9 +540,201 @@ export async function getSnapshot(
         json,
         updatedAt,
       },
+      // A slow request still holding an older trip version must not replace a newer saved view.
+      setWhere: lte(tripViews.version, trip.version),
     });
 
   return snapshot;
+}
+
+/**
+ * SQL twin of the saved-view check in `getSnapshot`: the `trip_views` row (joined next to `trips`)
+ * has the trip's version and every field the current snapshot has.
+ */
+const viewIsCurrent = sql<number>`CASE WHEN ${tripViews.json} IS NOT NULL AND ${tripViews.version} = ${trips.version} AND json_valid(${tripViews.json}) THEN (json_type(${tripViews.json}, '$.fund') IS NOT NULL AND json_type(${tripViews.json}, '$.ratings') IS NOT NULL AND json_type(${tripViews.json}, '$.locations') IS NOT NULL) ELSE 0 END`;
+
+/** The caller's groups for the list: active, and never the personal ('direct') ledger. */
+function myGroupsWhere(userId: string) {
+  return and(
+    eq(participants.userId, userId),
+    eq(participants.status, 'active'),
+    ne(trips.preset, 'direct'),
+  );
+}
+
+/**
+ * The caller's group list with their balance in each group, in a fixed number of queries however
+ * many groups they have (D1 allows 50 per request): one for the groups and their saved views, then,
+ * only when some saved views are out of date, three that load the money rows of all those groups
+ * at once. Balances come from the same rules as the snapshot (`settleLedger`). Nothing is written:
+ * opening a group refreshes its saved view.
+ */
+export async function loadTripList(db: Db, userId: string): Promise<TripListItem[]> {
+  const rows = await db
+    .select({
+      participantId: participants.id,
+      trip: trips,
+      viewJson: tripViews.json,
+      viewCurrent: viewIsCurrent,
+    })
+    .from(participants)
+    .innerJoin(trips, eq(participants.tripId, trips.id))
+    .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
+    .where(myGroupsWhere(userId))
+    .orderBy(desc(trips.createdAt));
+
+  const fresh = new Map<string, TripSnapshot>();
+  for (const row of rows) {
+    if (row.viewCurrent !== 1 || row.viewJson === null) continue;
+    try {
+      const view = JSON.parse(row.viewJson) as TripSnapshot;
+      if (hasCurrentFields(view)) fresh.set(row.trip.id, view);
+    } catch {
+      // Rebuilt below like any other out-of-date view.
+    }
+  }
+
+  const sources = new Map<string, LedgerSource>();
+  if (rows.some((r) => !fresh.has(r.trip.id))) {
+    // Subqueries, not lists of ids: D1 allows only 100 bound parameters per query.
+    const staleTripIds = db
+      .select({ id: trips.id })
+      .from(participants)
+      .innerJoin(trips, eq(participants.tripId, trips.id))
+      .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
+      .where(and(myGroupsWhere(userId), sql`NOT (${viewIsCurrent})`));
+
+    const people = await db
+      .select({ id: participants.id, tripId: participants.tripId })
+      .from(participants)
+      .where(
+        and(
+          inArray(participants.tripId, staleTripIds),
+          // People who left stay in balances, as in the snapshot.
+          inArray(participants.status, ['active', 'pending', 'left']),
+        ),
+      )
+      .orderBy(asc(participants.sortOrder));
+
+    const txRows = await db
+      .select({
+        id: transactions.id,
+        tripId: transactions.tripId,
+        type: transactions.type,
+        amount: transactions.amount,
+        amountConfirmed: transactions.amountConfirmed,
+        payerId: transactions.payerId,
+        toId: transactions.toId,
+        status: transactions.status,
+        createdById: transactions.createdByParticipantId,
+        metaJson: transactions.metaJson,
+      })
+      .from(transactions)
+      .where(
+        and(
+          inArray(transactions.tripId, staleTripIds),
+          eq(transactions.isLatest, 1),
+          inArray(transactions.type, ['expense', 'payment']),
+        ),
+      )
+      .orderBy(desc(transactions.createdAt));
+
+    const shareRows = await db
+      .select({
+        transactionId: transactionShares.transactionId,
+        participantId: transactionShares.participantId,
+        amount: transactionShares.amount,
+      })
+      .from(transactionShares)
+      .where(
+        inArray(
+          transactionShares.transactionId,
+          db
+            .select({ id: transactions.id })
+            .from(transactions)
+            .where(
+              and(
+                inArray(transactions.tripId, staleTripIds),
+                eq(transactions.isLatest, 1),
+                eq(transactions.type, 'expense'),
+              ),
+            ),
+        ),
+      );
+
+    const sourceOf = (tripId: string): LedgerSource => {
+      let source = sources.get(tripId);
+      if (!source) {
+        source = { people: [], expenses: [], payments: [] };
+        sources.set(tripId, source);
+      }
+      return source;
+    };
+    for (const p of people) sourceOf(p.tripId).people.push({ id: p.id });
+
+    const sharesByTxId = new Map<string, { participantId: string; amount: number }[]>();
+    for (const s of shareRows) {
+      let list = sharesByTxId.get(s.transactionId);
+      if (!list) {
+        list = [];
+        sharesByTxId.set(s.transactionId, list);
+      }
+      list.push({ participantId: s.participantId, amount: s.amount });
+    }
+
+    for (const tx of txRows) {
+      if (tx.type === 'expense') {
+        sourceOf(tx.tripId).expenses.push({
+          id: tx.id,
+          payerId: tx.payerId,
+          amount: tx.amount,
+          status: tx.status as ExpenseStatus,
+          createdById: tx.createdById,
+          meta: expenseMeta(tx.metaJson),
+          shares: sharesByTxId.get(tx.id) ?? [],
+        });
+      } else {
+        sourceOf(tx.tripId).payments.push({
+          id: tx.id,
+          fromId: tx.payerId,
+          toId: tx.toId!,
+          amountClaimed: tx.amount,
+          amountConfirmed: tx.amountConfirmed,
+          status: tx.status as PaymentStatus,
+        });
+      }
+    }
+  }
+
+  const list: TripListItem[] = [];
+  for (const row of rows) {
+    let money: Pick<TripSnapshot, 'balances' | 'suggestions'> | undefined = fresh.get(row.trip.id);
+    if (!money) {
+      let previous: Transfer[] | undefined;
+      if (row.viewJson !== null) {
+        try {
+          previous = (JSON.parse(row.viewJson) as TripSnapshot).suggestions;
+        } catch {
+          previous = undefined;
+        }
+      }
+      const source = sources.get(row.trip.id);
+      // The caller is always one of the group's people, so a group with nobody loaded means the
+      // SQL and JS view checks disagreed: build that one group in full instead (still no write).
+      money =
+        source && source.people.length > 0
+          ? settleLedger(row.trip, source, previous)
+          : await buildSnapshot(db, row.trip, previous);
+    }
+    list.push({
+      id: row.trip.id,
+      name: row.trip.name,
+      preset: (row.trip.preset as 'trip' | 'sport') ?? 'trip',
+      archived: row.trip.archivedAt !== null,
+      myBalance: myBalanceIn(row.trip, money, row.participantId),
+    });
+  }
+  return list;
 }
 
 /** A settlement part marked `{"offset":true}` in metaJson (settled through the People total). */

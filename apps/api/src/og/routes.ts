@@ -14,6 +14,7 @@ import { injectMeta } from './html';
 import { findRequest, requestItems } from '../requests/routes';
 import { billQrPayload } from './billQr';
 import { qrCardPng } from './qrPng';
+import { safeError } from '@cc/api-util/logSafe';
 
 function decodeSegment(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
@@ -80,7 +81,7 @@ async function jMeta(c: Context<AppBindings>): Promise<PageMeta> {
 
     return pageMeta({ kind: 'group', snapshot, now });
   } catch (err) {
-    console.error(err);
+    console.error(safeError(err));
     return pageMeta({ kind: 'generic' });
   }
 }
@@ -103,7 +104,7 @@ async function rMeta(c: Context<AppBindings>): Promise<PageMeta> {
     if (total <= 0) return pageMeta({ kind: 'generic' });
     return pageMeta({ kind: 'request', lang: target.lang, ownerName: target.ownerName, total, itemCount: items.length });
   } catch (err) {
-    console.error(err);
+    console.error(safeError(err));
     return pageMeta({ kind: 'generic' });
   }
 }

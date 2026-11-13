@@ -101,7 +101,9 @@ export async function resolveActor(c: Context<AppBindings>, tripId: string): Pro
           current = next;
         }
 
-        if (current) {
+        // A name that now belongs to an account acts only for that account: a guest pick made before
+        // someone claimed (or was merged into) the name no longer speaks for them, so the device picks again.
+        if (current && (current.userId === null || current.userId === user?.id)) {
           participantId = current.id;
           participantPending = current.status === 'pending';
         }
