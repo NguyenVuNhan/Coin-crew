@@ -29,7 +29,7 @@ import { assertWritable, resolveActor, type ResolvedActor } from '@cc/api-auth/a
 import { ensure } from '@cc/api-auth/guard';
 import { assertFundCovers, assertSportGroup, currentFundBalance } from '../fund/check';
 import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchExpenseNotification } from '../notifications/transactionDispatcher';
 
@@ -101,7 +101,7 @@ function validateSportExtended(sport: Record<string, unknown>): {
         if (trimmed.length === 0) {
           mapUrlVal = null;
         } else if (trimmed.length > 500 || !/^https?:\/\/\S+$/i.test(trimmed)) {
-          throw new ApiError('VALIDATION', 422, 'Invalid location mapUrl');
+          throw validationError('mapUrl', 'Invalid location mapUrl');
         } else {
           mapUrlVal = trimmed;
         }
@@ -201,7 +201,7 @@ async function validateExpenseInput(
   }
   const description = input.description.trim();
   if (description.length < 1 || description.length > 80) {
-    throw new ApiError('VALIDATION', 422, 'Description must be 1 to 80 characters');
+    throw validationError('descriptionLength', 'Description must be 1 to 80 characters');
   }
 
   if (typeof input.amount !== 'number') {
@@ -260,7 +260,7 @@ async function validateExpenseInput(
     }
     // computeShares is skipped, so the amount gets its check here.
     if (!Number.isSafeInteger(amount) || amount < 1 || amount > MAX_AMOUNT) {
-      throw new ApiError('VALIDATION', 422, 'INVALID_AMOUNT');
+      throw validationError('amountInvalid', 'INVALID_AMOUNT');
     }
     // The request's payerId is ignored: the handler records the admin who wrote it.
     return { description, amount, spentOn, payerId, mode, shares: [], meta: { paidFromFund: true } };
@@ -821,7 +821,7 @@ export function expenseRoutes(): Hono<AppBindings> {
     }
     // The new version keeps the head's status, and fund-paid expenses are never pending (spec §3).
     if (fundPaid && head.status === 'pending') {
-      throw new ApiError('VALIDATION', 422, 'A pending expense cannot be paid from the group fund.');
+      throw validationError('pendingFromFund', 'A pending expense cannot be paid from the group fund.');
     }
 
     // The expense's own amount is available again, so editing it within that is fine (spec §9.2).
@@ -914,7 +914,7 @@ export function expenseRoutes(): Hono<AppBindings> {
     if (isPlanningExpense(targetItem)) ensure(actor, 'plan_session');
     if (isFundPaid(targetItem)) ensureFundWrite(actor);
     if (isFundPaid(targetItem) && head.status === 'pending') {
-      throw new ApiError('VALIDATION', 422, 'A pending expense cannot be paid from the group fund.');
+      throw validationError('pendingFromFund', 'A pending expense cannot be paid from the group fund.');
     }
     if (isFundPaid(headItem) || isFundPaid(targetItem)) {
       assertFundCovers(await currentFundBalance(db, tripId), headItem, targetItem);
@@ -1200,7 +1200,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
 
     const reason = body.reason.trim();
     if (reason.length < 1 || reason.length > 140) {
-      throw new ApiError('VALIDATION', 422, 'Reason must be 1 to 140 characters');
+      throw validationError('reasonLength', 'Reason must be 1 to 140 characters');
     }
 
     const now = nowIso();

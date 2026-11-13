@@ -9,7 +9,7 @@ import { getDb, type Db } from '@cc/api-db/client';
 import { nicknames, participants, personLinks } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { commitTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newToken, nowIso } from '@cc/api-util/ids';
 import { ensurePersonalLedger, importPerson, type PersonalLedger } from './ledger';
 import { mergeOptionsRoutes } from './mergeOptions';
@@ -112,7 +112,7 @@ function parseNickname(raw: unknown): string | null {
   if (raw === null) return null;
   if (typeof raw !== 'string') throw new ApiError('VALIDATION', 422, 'Invalid nickname');
   const nickname = raw.trim();
-  if (nickname.length < 1 || nickname.length > NICKNAME_MAX) throw new ApiError('VALIDATION', 422, 'Invalid nickname');
+  if (nickname.length < 1 || nickname.length > NICKNAME_MAX) throw validationError('nameLength', 'Invalid nickname');
   return nickname;
 }
 
@@ -134,10 +134,10 @@ export function parseLinkKeys(raw: unknown): LinkRequest {
     (k.startsWith('u:') ? users : pids).push(k.slice(2));
   }
   if (new Set(pids).size !== pids.length || new Set(users).size !== users.length) {
-    throw new ApiError('VALIDATION', 422, 'Pick different people');
+    throw validationError('pickDifferentPeople', 'Pick different people');
   }
   // Accounts are already one person each.
-  if (users.length > 1) throw new ApiError('VALIDATION', 422, "Two accounts can't be merged");
+  if (users.length > 1) throw validationError('bothSignedIn', "Two accounts can't be merged");
   return { pids, userId: users[0] ?? null };
 }
 
@@ -178,7 +178,7 @@ async function ensureLedgerUser(db: Db, ownerUserId: string, ledger: PersonalLed
  * survivor's key.
  */
 export async function linkGuests(db: Db, user: { id: string; name: string }, req: LinkRequest, device: string | null): Promise<PersonKey> {
-  if (req.userId === user.id) throw new ApiError('VALIDATION', 422, "You can't merge yourself");
+  if (req.userId === user.id) throw validationError('mergeSelf', "You can't merge yourself");
   const ledger = await ensurePersonalLedger(db, user);
   const target = alias(participants, 'link_target');
   const rows = await db
@@ -213,7 +213,7 @@ export async function linkGuests(db: Db, user: { id: string; name: string }, req
     // An account is picked by its u: key, never by one of its participants.
     if (row.userId) throw new ApiError('VALIDATION', 422, 'Only guests can be linked');
     if (row.personPid && row.targetUserId) {
-      if (accountId !== null && accountId !== row.targetUserId) throw new ApiError('VALIDATION', 422, "Two accounts can't be merged");
+      if (accountId !== null && accountId !== row.targetUserId) throw validationError('bothSignedIn', "Two accounts can't be merged");
       accountId = row.targetUserId;
       accountRoot = row.personPid;
       members.push({ id: row.id, oldKey: `u:${row.targetUserId}` });
@@ -225,7 +225,7 @@ export async function linkGuests(db: Db, user: { id: string; name: string }, req
       members.push({ id: row.id, oldKey: `p:${row.id}` });
     }
   }
-  if (accountId === user.id) throw new ApiError('VALIDATION', 422, "You can't merge yourself");
+  if (accountId === user.id) throw validationError('mergeSelf', "You can't merge yourself");
 
   let survivor: string;
   let survivorKey: PersonKey;

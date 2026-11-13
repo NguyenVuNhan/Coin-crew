@@ -7,7 +7,7 @@ import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { activity, bankDetails, participants, personLinks, settlementKeys, transactions, transactionShares, trips, users } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
-import { ApiError, isDbError } from '@cc/api-util/errors';
+import { ApiError, isDbError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { parseIdempotencyKey } from '@cc/api-util/idempotency';
 import { loadPersonItems, type PersonItems } from './balances';
@@ -92,7 +92,7 @@ function asBatch(queries: BatchItem<'sqlite'>[]): [BatchItem<'sqlite'>, ...Batch
  */
 export async function createSettlement(db: Db, args: CreateSettlementArgs): Promise<SettlementResult> {
   if (!Number.isSafeInteger(args.paid) || args.paid < 1 || args.paid > MAX_AMOUNT) {
-    throw new ApiError('VALIDATION', 422, 'Invalid amount');
+    throw validationError('amountInvalid', 'Invalid amount');
   }
   if (args.direction !== 'toOwner' && args.direction !== 'fromOwner') {
     throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -134,7 +134,7 @@ export async function createSettlement(db: Db, args: CreateSettlementArgs): Prom
     parts.length + Math.ceil(parts.length / SHARE_ROWS_PER_INSERT) + 1 + Math.ceil(parts.length / ACTIVITY_ROWS_PER_INSERT) + ledgerRowCost;
   if (spent + person.queries + ledgerLookupCost + writeCost > SETTLE_QUERY_BUDGET) {
     if (person.rebuilt > 0) throw new ApiError('TRY_AGAIN', 409, 'Still adding things up. Try again.');
-    throw new ApiError('VALIDATION', 422, 'Too many groups to settle at once.');
+    throw validationError('tooManyGroups', 'Too many groups to settle at once.');
   }
 
   const now = nowIso();

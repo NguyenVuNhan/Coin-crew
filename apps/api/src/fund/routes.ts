@@ -8,7 +8,7 @@ import { transactions } from '@cc/api-db/schema';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { assertFundCovers, assertSportGroup, currentFundBalance } from './check';
 
@@ -32,7 +32,7 @@ function validateIncome(body: unknown): { amount: number; spentOn: string; descr
   }
   const description = input.description.trim();
   if (description.length < 1 || description.length > 80) {
-    throw new ApiError('VALIDATION', 422, 'Description must be 1 to 80 characters');
+    throw validationError('descriptionLength', 'Description must be 1 to 80 characters');
   }
 
   if (
@@ -41,7 +41,7 @@ function validateIncome(body: unknown): { amount: number; spentOn: string; descr
     input.amount < 1 ||
     input.amount > MAX_AMOUNT
   ) {
-    throw new ApiError('VALIDATION', 422, 'Invalid amount');
+    throw validationError('amountInvalid', 'Invalid amount');
   }
   const amount = input.amount;
 

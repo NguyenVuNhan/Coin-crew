@@ -7,7 +7,7 @@ import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import { bankDetails, deviceParticipants, participants, personLinks, trips, users } from '@cc/api-db/schema';
 import { getSessionUser } from '@cc/api-auth/session';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import { loadPersonItems, type PersonItems } from '../me/balances';
 import { createSettlement, parseIdempotencyKey, settlementForKey } from '../me/settle';
@@ -235,7 +235,7 @@ export function requestRoutes(): Hono<AppBindings> {
     const body = await parseJson<{ amount?: unknown; idempotencyKey?: unknown } | null>(c);
     const amount = body && typeof body === 'object' ? body.amount : undefined;
     if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1) {
-      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      throw validationError('amountInvalid', 'Invalid amount');
     }
     const idempotencyKey = parseIdempotencyKey(body!.idempotencyKey);
     // A retry of a submit that already landed gets that settlement back, not "already waiting".
@@ -247,7 +247,7 @@ export function requestRoutes(): Hono<AppBindings> {
       throw new ApiError('ALREADY_WAITING', 409, 'Your payment is waiting for confirmation.');
     }
     const { total, person } = await requestItems(db, target);
-    if (!person || amount > total) throw new ApiError('VALIDATION', 422, 'Invalid amount');
+    if (!person || amount > total) throw validationError('amountInvalid', 'Invalid amount');
 
     // The pair loaded here goes straight into the settlement (no second load), and the budget
     // counts what this route already spent.

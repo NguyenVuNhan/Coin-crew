@@ -13,7 +13,7 @@ import {
 import { getSessionUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { commitTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -107,7 +107,7 @@ export function joinRoutes(): Hono<AppBindings> {
     const rawName = typeof body.name === 'string' ? body.name : user.name;
     const name = rawName.trim();
     if (name.length < 1 || name.length > 40) {
-      throw new ApiError('VALIDATION', 422, 'Invalid name');
+      throw validationError('nameLength', 'Invalid name');
     }
 
     let gender: 'M' | 'F' | null = null;
@@ -120,7 +120,7 @@ export function joinRoutes(): Hono<AppBindings> {
     }
 
     if (actor.trip.preset === 'sport' && gender === null) {
-      throw new ApiError('VALIDATION', 422, 'Gender required');
+      throw validationError('genderRequired', 'Gender required');
     }
 
     // A look-alike name never blocks joining: the person already chose "No, add me" (WhoAreYou asks first), and

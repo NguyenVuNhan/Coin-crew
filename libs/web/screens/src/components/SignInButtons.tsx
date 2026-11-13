@@ -37,6 +37,14 @@ export function signInHref(
   return base;
 }
 
+// Inline buttons sit in a wrapping row: let them shrink to the row and wrap a long label onto a second line
+// instead of forcing the page wider (the Vietnamese guest sign-in copy is ~420px on one line).
+// `text-balance` splits a two-line label evenly instead of leaving one word on the second line.
+const INLINE_BTN = 'h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal text-balance py-2 text-left';
+// Unfilled (ghost) inline links: their row is pulled out by the same 12px (`-mx-3` below), so the logos line up with
+// the text above and the hover fill bleeds into the gutter.
+const INLINE_GHOST = cn(INLINE_BTN, 'px-3');
+
 export function SignInButtons({
   returnTo,
   layout,
@@ -72,7 +80,7 @@ export function SignInButtons({
             variant={isStack ? 'primary' : 'secondary'}
             block={isStack}
             href={signInHref('zalo', returnTo, intent)}
-            className={cn(isStack && 'h-12 justify-start gap-3 px-4')}
+            className={cn(isStack ? 'h-12 justify-start gap-3 px-4' : INLINE_BTN)}
           >
             <ProviderLogo provider="zalo" size={24} />
             {t(zaloKey)}
@@ -89,14 +97,14 @@ export function SignInButtons({
         'fsl-signin',
         isStack
           ? 'fsl-signin--stack flex flex-col gap-3'
-          : 'fsl-signin--inline flex flex-row flex-wrap items-center gap-2',
+          : 'fsl-signin--inline flex flex-row flex-wrap items-center gap-2 -mx-3',
       )}
     >
       <Button
         variant={isStack ? 'primary' : 'ghost'}
         block={isStack}
         href={signInHref('google', returnTo, intent)}
-        className={cn(isStack && 'h-12 justify-start gap-3 px-4')}
+        className={cn(isStack ? 'h-12 justify-start gap-3 px-4' : INLINE_GHOST)}
       >
         <ProviderLogo provider="google" size={24} />
         {t(googleKey)}
@@ -106,7 +114,7 @@ export function SignInButtons({
           variant={isStack ? 'secondary' : 'ghost'}
           block={isStack}
           href={signInHref('zalo', returnTo, intent)}
-          className={cn(isStack && 'h-12 justify-start gap-3 px-4')}
+          className={cn(isStack ? 'h-12 justify-start gap-3 px-4' : INLINE_GHOST)}
         >
           <ProviderLogo provider="zalo" size={24} />
           {t(zaloKey)}

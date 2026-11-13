@@ -15,7 +15,7 @@ import { ActionRow } from '@cc/web-ui/components/ActionRow';
 import { ExpenseRow, rowAmount } from './ExpenseRow';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { IncomeRow } from './IncomeRow';
-import { InlineError } from '@cc/web-ui/components/InlineError';
+import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
 import { ListModeChip } from '@cc/web-ui/components/ListModeChip';
 
 const STATUS: Record<'pending' | 'rejected' | 'disabled', MessageKey> = {
@@ -91,11 +91,11 @@ function IncomeItem({
     .join(', ');
 
   // A Disable the fund can't cover says how much is already spent, as the details do (only Disable lowers the fund
-  // here). InlineError shows our own message for a validation error.
+  // here), in our own words.
   const spent = incomeMinimum(view, income);
   const shown =
     error instanceof ApiClientError && error.code === 'FUND_SHORT' && spent > 0
-      ? { code: 'VALIDATION', message: t('fund.cantDisable', { amount: formatVnd(spent) }) }
+      ? ownError(t('fund.cantDisable', { amount: formatVnd(spent) }))
       : error;
 
   return (

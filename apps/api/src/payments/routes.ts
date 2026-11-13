@@ -16,7 +16,7 @@ import { participants, paymentKeys, transactions, transactionShares } from '@cc/
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
-import { ApiError, isDbError } from '@cc/api-util/errors';
+import { ApiError, isDbError, validationError } from '@cc/api-util/errors';
 import { parseIdempotencyKey } from '@cc/api-util/idempotency';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchPaymentNotification } from '../notifications/transactionDispatcher';
@@ -229,7 +229,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     const { fromId, toId } = body;
 
     if (!isValidAmount(body.amount)) {
-      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      throw validationError('amountInvalid', 'Invalid amount');
     }
     const amount = body.amount;
 
@@ -238,7 +238,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     }
 
     if (fromId === toId) {
-      throw new ApiError('VALIDATION', 422, 'Cannot pay oneself');
+      throw validationError('payToSelf', 'Cannot pay oneself');
     }
 
     const idempotencyKey = parseIdempotencyKey(body.idempotencyKey);
@@ -373,7 +373,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     const confirmed = amount ?? payment.amount;
 
     if (!isValidAmount(confirmed)) {
-      throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      throw validationError('amountInvalid', 'Invalid amount');
     }
 
     const now = nowIso();
@@ -482,7 +482,7 @@ export function paymentRoutes(): Hono<AppBindings> {
     let newAmount: number | undefined;
     if (action === 'amount') {
       if (!isValidAmount(body.amount)) {
-        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+        throw validationError('amountInvalid', 'Invalid amount');
       }
       newAmount = body.amount;
     }

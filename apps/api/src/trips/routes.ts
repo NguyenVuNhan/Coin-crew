@@ -26,7 +26,7 @@ import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
 import { commitTripWrite } from '@cc/api-db/commit';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, newToken, nowIso } from '@cc/api-util/ids';
 import { loadRecentPeople } from '../me/people';
 import { actorName as actorNameOf, loadActivityNames } from '@cc/api-db/activityNames';
@@ -80,7 +80,7 @@ export function tripRoutes(): Hono<AppBindings> {
 
     const name = body.name.trim();
     if (name.length < 1 || name.length > 60) {
-      throw new ApiError('VALIDATION', 422, 'Invalid request');
+      throw validationError('groupNameLength', 'Invalid request');
     }
 
     const myName = (
@@ -89,7 +89,7 @@ export function tripRoutes(): Hono<AppBindings> {
         : user.name
     ) || user.name;
     if (myName.length < 1 || myName.length > 40) {
-      throw new ApiError('VALIDATION', 422, 'Invalid request');
+      throw validationError('nameLength', 'Invalid request');
     }
 
     if (!Array.isArray(body.people)) {
@@ -133,7 +133,7 @@ export function tripRoutes(): Hono<AppBindings> {
       }
       const trimmed = rawName.trim();
       if (trimmed.length < 1 || trimmed.length > 40) {
-        throw new ApiError('VALIDATION', 422, 'Invalid request');
+        throw validationError('nameLength', 'Invalid request');
       }
       people.push({ name: trimmed, userId, gender, zaloSub });
     }
@@ -191,11 +191,11 @@ export function tripRoutes(): Hono<AppBindings> {
         throw new ApiError('VALIDATION', 422, 'Invalid request');
       }
       if (!/^\d{6,19}$/.test(accountNumber)) {
-        throw new ApiError('VALIDATION', 422, 'Invalid request');
+        throw validationError('bankAccountNumber', 'Invalid request');
       }
       normalizedHolderName = toTransferNote(holderName, 50);
       if (!normalizedHolderName) {
-        throw new ApiError('VALIDATION', 422, 'Invalid request');
+        throw validationError('bankHolderName', 'Invalid request');
       }
     }
 

@@ -39,7 +39,7 @@ import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Pill } from '@cc/web-ui/components/Pill';
-import { InlineError } from '@cc/web-ui/components/InlineError';
+import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
 import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -893,14 +893,10 @@ function ExpenseFormContent({
     if (typeof err === 'object' && err !== null && 'code' in err) {
       const apiErr = err as { code: string; message?: string };
       if (apiErr.code === 'PERSON_LEFT') {
-        // InlineError shows a form's own message for a validation error.
-        return { code: 'VALIDATION', message: t('expenseForm.personLeft') };
+        return ownError(t('expenseForm.personLeft'));
       }
       if (apiErr.code === 'VALIDATION' && apiErr.message && SPLIT_ERRORS.has(apiErr.message)) {
-        return {
-          ...apiErr,
-          message: t(`splitError.${apiErr.message as SplitError}` as MessageKey),
-        };
+        return ownError(t(`splitError.${apiErr.message as SplitError}` as MessageKey));
       }
     }
     return err;
@@ -1871,14 +1867,16 @@ function ExpenseFormContent({
                               open={genderPopoverId === person.id}
                               onOpenChange={(open) => setGenderPopoverId(open ? person.id : null)}
                             >
+                              {/* Gender pill look (DESIGN.md); the label leads with the visible slots so a screen reader says them too. */}
                               <PopoverTrigger asChild>
                               <button
                                 type="button"
                                 className={cn(
-                                  'fsl-sport-badge fsl-sport-badge--interactive inline-flex items-center min-h-8 px-2.5 py-1 rounded-full border border-border bg-card text-foreground text-xs font-medium tabular-nums shrink-0 cursor-pointer hover:border-primary transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                  // The gender pill's look (DESIGN.md): a 28px Muted Fill pill whose invisible ::after makes the tap area 44px.
+                                  'fsl-sport-badge fsl-sport-badge--interactive relative inline-flex items-center h-7 px-2.5 rounded-full border-0 bg-muted text-foreground text-sm font-semibold tabular-nums shrink-0 cursor-pointer select-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[\'\'] outline-none focus-visible:ring-2 focus-visible:ring-ring',
                                 )}
                                 data-testid={`gender-badge-${person.id}`}
-                                aria-label={t('sport.editGender')}
+                                aria-label={`${badgeText} · ${t('sport.editGender')}`}
                               >
                                 {badgeText}
                               </button>

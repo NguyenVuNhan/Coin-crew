@@ -242,7 +242,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     {!isZmp && !isGoogleInZalo && (
                       <Button
                         variant="secondary"
-                        className="fsl-linked__icon-btn size-9 min-w-9 min-h-9 p-0 rounded-full"
+                        className="fsl-linked__icon-btn size-11 min-w-11 min-h-11 p-0 rounded-full"
                         href={signInHref(p, returnTo, 'link')}
                         aria-label={t('account.change')}
                         title={t('account.change')}
@@ -253,7 +253,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                     {userProviders.length > 1 && (
                       <Button
                         variant="danger"
-                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink size-9 min-w-9 min-h-9 p-0 rounded-full bg-card text-danger border-border hover:bg-danger-soft hover:text-danger"
+                        className="fsl-linked__icon-btn fsl-linked__icon-btn--unlink size-11 min-w-11 min-h-11 p-0 rounded-full bg-card text-danger border-border hover:bg-danger-soft hover:text-danger"
                         onClick={() => startUnlink(p)}
                         aria-label={t('account.unlink')}
                         title={t('account.unlink')}
@@ -266,7 +266,7 @@ export function LinkedAccounts({ me }: LinkedAccountsProps) {
                   !isZmp && !isGoogleInZalo && (
                     <Button
                       variant="primary"
-                      className="fsl-linked__icon-btn size-9 min-w-9 min-h-9 p-0 rounded-full"
+                      className="fsl-linked__icon-btn size-11 min-w-11 min-h-11 p-0 rounded-full"
                       href={signInHref(p, returnTo, 'link')}
                       aria-label={t('account.link')}
                       title={t('account.link')}

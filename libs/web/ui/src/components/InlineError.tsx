@@ -1,3 +1,4 @@
+import { isValidationReason } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { Button } from './Button';
@@ -25,20 +26,46 @@ function errorCode(error: unknown): string | undefined {
   return error && typeof error === 'object' && 'code' in error ? String((error as { code: unknown }).code) : undefined;
 }
 
+/** Marks a form's own, already translated words, so `InlineError` shows them as they are. */
+const OWN_TEXT = Symbol('ownErrorText');
+
 /**
- * The words for an error, as `InlineError` shows them: known codes get their own copy, a validation error keeps the
- * server's sentence, and anything else (a network failure, a server fault) gets the generic line, never a raw
- * "Failed to fetch". Use it where an error sits inside other text.
+ * An error a screen writes itself (already in the reader's language), shown like a validation error: no Retry.
+ * Server errors never show their text; only these do.
+ */
+export function ownError(message: string): { code: 'VALIDATION'; message: string } {
+  return { code: 'VALIDATION', message, [OWN_TEXT]: true } as { code: 'VALIDATION'; message: string };
+}
+
+function ownText(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !(OWN_TEXT in error)) return undefined;
+  const message = (error as { message?: unknown }).message;
+  return typeof message === 'string' && message ? message : undefined;
+}
+
+/** The `reason` a VALIDATION error body carries (`ApiClientError.details`), if it is one we have words for. */
+function validationReason(error: unknown) {
+  if (!error || typeof error !== 'object') return undefined;
+  const details = (error as { details?: unknown }).details;
+  const reason = details && typeof details === 'object' ? (details as { reason?: unknown }).reason : undefined;
+  return isValidationReason(reason) ? reason : undefined;
+}
+
+/**
+ * The words for an error, as `InlineError` shows them: known codes get their own copy, a validation error gets the
+ * words for its reason (or a generic "check it" line), a screen's `ownError` keeps its text, and anything else (a
+ * network failure, a server fault) gets the generic line. The server's English message is never shown. Use it where
+ * an error sits inside other text.
  */
 export function errorText(error: unknown, t: ReturnType<typeof useT>): string {
+  const own = ownText(error);
+  if (own) return own;
   const code = errorCode(error);
   const key = code === undefined ? undefined : CODE_COPY[code];
   if (key) return t(key);
   if (code === 'VALIDATION') {
-    if (error instanceof Error && error.message) return error.message;
-    if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
-      return (error as { message: string }).message;
-    }
+    const reason = validationReason(error);
+    return t(reason ? (`validation.${reason}` as MessageKey) : 'error.validation');
   }
   return t('error.generic');
 }

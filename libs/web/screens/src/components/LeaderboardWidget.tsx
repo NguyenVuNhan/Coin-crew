@@ -270,7 +270,7 @@ export function LeaderboardWidget({
           'fsl-leaderboard',
           `fsl-leaderboard--${stage}`,
           // Keeps the scrolled-to widget below the sticky 56px screen header (taller by Zalo's safe-area inset in the Mini App).
-          'scroll-mt-[calc(4rem+var(--zmp-safe-top))] overflow-hidden rounded-xl border transition-all duration-200 motion-reduce:transition-none',
+          'scroll-mt-[calc(4rem+var(--zmp-safe-top))] overflow-hidden rounded-xl border transition-[max-height,padding] duration-200 motion-reduce:transition-none',
           stage === 'full' && 'fsl-leaderboard--full max-h-[340px] border-border bg-card px-4 pt-3 pb-4 shadow-xs',
           stage === 'collapsed' && 'fsl-leaderboard--collapsed max-h-[60px] border-border bg-card px-3 py-1 shadow-xs',
         )}
@@ -280,7 +280,7 @@ export function LeaderboardWidget({
         {/* Full Radial Podium */}
         <div
           className={cn(
-            'fsl-leaderboard__full flex flex-col gap-2 transition-all duration-200 motion-reduce:transition-none',
+            'fsl-leaderboard__full flex flex-col gap-2 transition-[max-height,opacity,transform] duration-200 motion-reduce:transition-none',
             stage !== 'full' && 'pointer-events-none max-h-0 scale-95 overflow-hidden opacity-0',
           )}
         >

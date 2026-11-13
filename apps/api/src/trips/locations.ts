@@ -7,7 +7,7 @@ import { getDb } from '@cc/api-db/client';
 import { tripLocations, trips } from '@cc/api-db/schema';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -61,7 +61,7 @@ function validateMapUrl(val: unknown): string | null | undefined {
   const trimmed = val.trim();
   if (trimmed.length === 0) return null;
   if (trimmed.length > 500 || !/^https?:\/\/\S+$/i.test(trimmed)) {
-    throw new ApiError('VALIDATION', 422, 'Map URL must be a valid http or https URL <= 500 characters');
+    throw validationError('mapUrl', 'Map URL must be a valid http or https URL <= 500 characters');
   }
   return trimmed;
 }

@@ -17,7 +17,7 @@ import {
   transactionShares,
 } from '@cc/api-db/schema';
 import { commitTripWrite } from '@cc/api-db/commit';
-import { ApiError, isDbError } from '@cc/api-util/errors';
+import { ApiError, isDbError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 
 /** Rows per participant_merge_rows insert: 4 bound params each, D1 allows 100 per statement. */
@@ -62,7 +62,7 @@ export async function mergeParticipants(
   actor: Pick<ResolvedActor, 'userId' | 'participantId' | 'deviceHash'>,
 ): Promise<void> {
   if (fromId === intoId) {
-    throw new ApiError('VALIDATION', 422, 'Cannot merge person into themselves');
+    throw validationError('pickDifferentPeople', 'Cannot merge person into themselves');
   }
 
   const [from, into] = await Promise.all([
@@ -88,7 +88,7 @@ export async function mergeParticipants(
   }
 
   if (from.userId !== null && into.userId !== null && from.userId !== into.userId) {
-    throw new ApiError('VALIDATION', 422, 'Both names belong to signed-in people.');
+    throw validationError('bothSignedIn', 'Both names belong to signed-in people.');
   }
 
   const actorUserId = actor.userId;

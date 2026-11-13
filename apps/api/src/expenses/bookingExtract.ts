@@ -4,7 +4,7 @@ import type { ExtractedSportBooking, SportCourtSlot } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -114,7 +114,7 @@ export function bookingExtractRoutes(): Hono<AppBindings> {
     }
 
     if (body.imageDataUrl.length > 2_000_000) {
-      throw new ApiError('VALIDATION', 422, 'imageDataUrl exceeds maximum length of 2,000,000 characters');
+      throw validationError('imageTooLarge', 'imageDataUrl exceeds maximum length of 2,000,000 characters');
     }
 
     const match = /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(body.imageDataUrl.trim());

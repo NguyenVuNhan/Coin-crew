@@ -8,7 +8,7 @@ import { isThemeId, normalizeName } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { deviceExpenseGrants, deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { nowIso, sha256Hex } from '@cc/api-util/ids';
 import { GOOGLE_SCOPES, googleClient } from '@cc/api-auth/google';
 import { linkIdentity, requestClaim, upsertIdentity } from '@cc/api-auth/identity';
@@ -102,7 +102,7 @@ export function authRoutes(): Hono<AppBindings> {
           302,
         );
       }
-      throw new ApiError('VALIDATION', 400, 'Sign-in expired. Please try again.');
+      throw validationError('signInExpired', 'Sign-in expired. Please try again.', 400);
     }
 
     const tokens = await googleClient(c.env).validateAuthorizationCode(code, oauthVerifier);
@@ -336,7 +336,7 @@ export function authRoutes(): Hono<AppBindings> {
       }
       trimmedName = body.name.trim();
       if (trimmedName.length < 1 || trimmedName.length > 40) {
-        throw new ApiError('VALIDATION', 422, 'Name must be between 1 and 40 characters');
+        throw validationError('nameLength', 'Name must be between 1 and 40 characters');
       }
     }
 

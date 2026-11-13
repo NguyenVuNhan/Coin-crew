@@ -65,7 +65,7 @@ function ClaimWaitingStrip({ name }: { name: string }) {
 }
 
 export function ExpensePay() {
-  const { tripId, href } = useTrip();
+  const { tripId, href, viaLink } = useTrip();
   const { expenseId = '' } = useParams<{ expenseId: string }>();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -110,9 +110,13 @@ export function ExpensePay() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
 
+  // A guest only has their pay pages (a member on a link is moved to the trip's address), so while this page loads
+  // or fails, back goes where the loaded page sends a guest: the name picker.
+  const fallbackBack = viaLink || view?.me.kind === 'guest' ? href('/who') : tripId ? href('/') : undefined;
+
   if (viewError || payError) {
     return (
-      <Screen title="" back={tripId ? href('/') : undefined}>
+      <Screen title={t('pay.titleGeneric')} back={fallbackBack}>
         <InlineError
           error={viewError || payError}
           onRetry={() => {
@@ -126,7 +130,7 @@ export function ExpensePay() {
 
   if (isViewLoading || isPayLoading || !view || !payData) {
     return (
-      <Screen title="" back={tripId ? href('/') : undefined}>
+      <Screen title={t('pay.titleGeneric')} back={fallbackBack}>
         <div className="fsl-expense-pay flex flex-col gap-4 py-2">
           <Skeleton height={80} radius="lg" />
           <Skeleton width={240} height={240} radius="lg" className="mx-auto" />
@@ -143,7 +147,7 @@ export function ExpensePay() {
     if (waiting) {
       // A Zalo account waiting to join someone who owes nothing here: stay locked, never back to "Who are you?".
       return (
-        <Screen title="">
+        <Screen title={t('pay.titleGeneric')}>
           <div
             data-testid="pay-locked"
             className="fsl-expense-pay flex flex-col gap-4 max-w-[480px] mx-auto w-full py-4"
@@ -170,7 +174,12 @@ export function ExpensePay() {
     }
     const name = nameOf(view, view.me.participantId);
     return (
-      <Screen title="" back={view.me.kind === 'guest' ? href('/who') : href('/')}>
+      // The bill's name heads the page, so it says what it is about (a screen reader lands on it).
+      <Screen
+        title={billExpense?.description || t('pay.titleGeneric')}
+        titleLines={2}
+        back={view.me.kind === 'guest' ? href('/who') : href('/')}
+      >
         <div className="fsl-expense-pay fsl-expense-pay__nothing-here flex flex-col items-center gap-4 max-w-[480px] mx-auto w-full py-8 text-center">
           <p className="m-0 text-base font-medium text-foreground">
             {t('expensePay.nothingHere', { name })}

@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@cc/core';
+import type { ApiErrorCode, ValidationReason } from '@cc/core';
 import { safeError } from './logSafe';
 
 export class ApiError extends Error {
@@ -12,6 +12,14 @@ export class ApiError extends Error {
     super(message ?? code);
     this.name = 'ApiError';
   }
+}
+
+/**
+ * A VALIDATION error a person can cause with ordinary input. `reason` travels in the error body so the client shows
+ * its own words; `message` stays the English log text.
+ */
+export function validationError(reason: ValidationReason, message: string, status = 422): ApiError {
+  return new ApiError('VALIDATION', status, message, { reason });
 }
 
 export function errorResponse(err: unknown): Response {

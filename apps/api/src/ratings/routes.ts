@@ -7,7 +7,7 @@ import { getDb } from '@cc/api-db/client';
 import { participants, playerRatings, trips } from '@cc/api-db/schema';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, validationError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -68,7 +68,7 @@ export function ratingRoutes(): Hono<AppBindings> {
     const targetId = body.targetParticipantId;
 
     if (targetId === raterId) {
-      throw new ApiError('VALIDATION', 422, 'You cannot rate yourself.');
+      throw validationError('rateSelf', 'You cannot rate yourself.');
     }
 
     const db = getDb(c.env);
