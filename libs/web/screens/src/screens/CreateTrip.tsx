@@ -190,7 +190,7 @@ export function CreateTrip() {
             role="radio"
             aria-checked={preset === 'trip'}
             className={cn(
-              'fsl-create-trip__preset-btn inline-flex items-center justify-center gap-2 min-h-11 px-3 py-2 rounded-lg border text-base cursor-pointer select-none transition-all active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'fsl-create-trip__preset-btn inline-flex items-center justify-center gap-2 min-h-11 px-3 py-2 rounded-lg border text-base cursor-pointer select-none transition-[color,background-color,border-color,box-shadow,transform] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               preset === 'trip'
                 ? 'fsl-create-trip__preset-btn--selected bg-card text-foreground font-semibold border-border shadow-xs'
                 : 'border-transparent bg-transparent text-muted-foreground font-medium hover:text-foreground',
@@ -205,7 +205,7 @@ export function CreateTrip() {
             role="radio"
             aria-checked={preset === 'sport'}
             className={cn(
-              'fsl-create-trip__preset-btn inline-flex items-center justify-center gap-2 min-h-11 px-3 py-2 rounded-lg border text-base cursor-pointer select-none transition-all active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'fsl-create-trip__preset-btn inline-flex items-center justify-center gap-2 min-h-11 px-3 py-2 rounded-lg border text-base cursor-pointer select-none transition-[color,background-color,border-color,box-shadow,transform] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               preset === 'sport'
                 ? 'fsl-create-trip__preset-btn--selected bg-card text-foreground font-semibold border-border shadow-xs'
                 : 'border-transparent bg-transparent text-muted-foreground font-medium hover:text-foreground',
