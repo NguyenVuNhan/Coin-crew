@@ -342,6 +342,47 @@ describe('session push and reminders', () => {
     expect(pushedTo(spy)).toEqual([]);
     expect(await remindersForRoot(directRoot)).toEqual([]);
   });
+
+  it('rescheduling after a reminder was already sent replaces it with a new unsent row', async () => {
+    stubFetch();
+    const rootId = await createSession(plannedSessionInput({ timeRange: '05:00 - 07:00', participants: [PID.M, PID.A] }));
+    await env.DB.prepare("UPDATE push_reminders SET sent_at = '2026-11-13T18:30:00.000Z' WHERE transaction_root_id = ?")
+      .bind(rootId)
+      .run();
+
+    // Non-time edit keeps the sent row as sent
+    await patchSession(rootId, plannedSessionInput({ timeRange: '05:00 - 07:00', participants: [PID.M, PID.A, PID.B] }));
+    const afterSameTime = (await remindersForRoot(rootId)).find((r) => r.subscription_id === 's-an')!;
+    expect(afterSameTime.sent_at).toBe('2026-11-13T18:30:00.000Z');
+    expect(afterSameTime.due_at).toBe('2099-11-13T21:30:00.000Z');
+
+    // Moving the session to a later time resets sent_at to null with the new due_at
+    await patchSession(rootId, plannedSessionInput({ timeRange: '09:00 - 11:00', participants: [PID.M, PID.A, PID.B] }));
+    const afterMoved = (await remindersForRoot(rootId)).find((r) => r.subscription_id === 's-an')!;
+    expect(afterMoved.due_at).toBe('2099-11-14T01:30:00.000Z');
+    expect(afterMoved.sent_at).toBeNull();
+  });
+
+  it('back-fill ignores old planning sessions (spentOn last month) and schedules near-future ones', async () => {
+    stubFetch();
+    const oldRoot = await createSession(plannedSessionInput({ spentOn: '2026-10-10', timeRange: '19:00 - 21:00', participants: [PID.M, PID.A] }));
+    const nearRoot = await createSession(plannedSessionInput({ spentOn: '2099-11-14', timeRange: '19:00 - 21:00', participants: [PID.M, PID.A] }));
+
+    const newEp = 'https://fcm.googleapis.com/fcm/send/an-backfill-phone';
+    const putRes = await call('/api/push/subscription', {
+      method: 'PUT',
+      headers: await an(),
+      body: JSON.stringify({
+        endpoint: newEp,
+        keys: { p256dh: await rawPublicKey(), auth: b64url(crypto.getRandomValues(new Uint8Array(16))) },
+      }),
+    });
+    expect(putRes.status).toBe(200);
+    const subRow = await env.DB.prepare('SELECT id FROM push_subscriptions WHERE endpoint = ?').bind(newEp).first<{ id: string }>();
+
+    expect((await remindersForRoot(oldRoot)).some((r) => r.subscription_id === subRow!.id)).toBe(false);
+    expect((await remindersForRoot(nearRoot)).some((r) => r.subscription_id === subRow!.id)).toBe(true);
+  });
 });
 
 describe('session and reminder messages', () => {

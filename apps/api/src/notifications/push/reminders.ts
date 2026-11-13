@@ -1,10 +1,13 @@
-import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { isPlanningExpense, type ExpenseMeta } from '@cc/core';
 import type { Db } from '@cc/api-db/client';
 import { participants, pushReminders, pushSubscriptions, transactions, trips } from '@cc/api-db/schema';
 import { newId } from '@cc/api-util/ids';
 import { sessionStartUtc } from './sessionTime';
 import { subscriptionsForUsers } from './store';
+
+const ICT_OFFSET_MS = 7 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function parseMeta(json: string | null): ExpenseMeta | null {
   if (!json) return null;
@@ -13,6 +16,38 @@ function parseMeta(json: string | null): ExpenseMeta | null {
   } catch {
     return null;
   }
+}
+
+function yesterdayIctDate(now: Date): string {
+  return new Date(now.getTime() + ICT_OFFSET_MS - DAY_MS).toISOString().slice(0, 10);
+}
+
+async function upsertReminder(
+  db: Db,
+  subscriptionId: string,
+  transactionRootId: string,
+  tripId: string,
+  dueAt: string,
+): Promise<void> {
+  await db
+    .insert(pushReminders)
+    .values({
+      id: newId(),
+      subscriptionId,
+      transactionRootId,
+      tripId,
+      dueAt,
+      sentAt: null,
+    })
+    .onConflictDoUpdate({
+      target: [pushReminders.subscriptionId, pushReminders.transactionRootId],
+      set: {
+        dueAt,
+        sentAt: null,
+        tripId,
+      },
+      setWhere: sql`${pushReminders.dueAt} <> excluded.due_at`,
+    });
 }
 
 /** Rebuilds all unsent reminders for one planned session (`rootId`). */
@@ -49,17 +84,7 @@ export async function rebuildSessionReminders(db: Db, rootId: string, now: Date)
   for (const sub of subs) {
     const dueMs = start.getTime() - sub.reminderLeadMinutes * 60_000;
     if (dueMs <= now.getTime()) continue;
-    await db
-      .insert(pushReminders)
-      .values({
-        id: newId(),
-        subscriptionId: sub.id,
-        transactionRootId: rootId,
-        tripId: trip.id,
-        dueAt: new Date(dueMs).toISOString(),
-        sentAt: null,
-      })
-      .onConflictDoNothing();
+    await upsertReminder(db, sub.id, rootId, trip.id, new Date(dueMs).toISOString());
   }
 }
 
@@ -84,6 +109,7 @@ export async function rebuildRemindersForSubscription(db: Db, subscriptionId: st
     pidsByTrip.set(r.tripId, set);
   }
 
+  const minSpentOn = yesterdayIctDate(now);
   const txs = await db
     .select()
     .from(transactions)
@@ -93,6 +119,9 @@ export async function rebuildRemindersForSubscription(db: Db, subscriptionId: st
         eq(transactions.type, 'expense'),
         eq(transactions.isLatest, 1),
         eq(transactions.status, 'approved'),
+        eq(transactions.amount, 0),
+        gte(transactions.spentOn, minSpentOn),
+        sql`json_extract(${transactions.metaJson}, '$.sport.planning') = 1`,
       ),
     );
 
@@ -105,16 +134,6 @@ export async function rebuildRemindersForSubscription(db: Db, subscriptionId: st
     if (!start) continue;
     const dueMs = start.getTime() - sub.reminderLeadMinutes * 60_000;
     if (dueMs <= now.getTime()) continue;
-    await db
-      .insert(pushReminders)
-      .values({
-        id: newId(),
-        subscriptionId: sub.id,
-        transactionRootId: tx.rootId,
-        tripId: tx.tripId,
-        dueAt: new Date(dueMs).toISOString(),
-        sentAt: null,
-      })
-      .onConflictDoNothing();
+    await upsertReminder(db, sub.id, tx.rootId, tx.tripId, new Date(dueMs).toISOString());
   }
 }
