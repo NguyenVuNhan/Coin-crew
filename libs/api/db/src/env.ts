@@ -24,6 +24,12 @@ export type Env = {
   DEVICE_SECRET?: string;
   GEMINI_API_KEY?: string;
   GEMINI_MODEL?: string;
+  /** Web Push (docs/setup.md). With no public key the push feature is off. */
+  VAPID_PUBLIC_KEY?: string;
+  /** base64url raw P-256 private scalar `d` (a secret). */
+  VAPID_PRIVATE_KEY?: string;
+  /** `mailto:` address or the app origin. */
+  VAPID_SUBJECT?: string;
   TEST_MIGRATIONS?: D1Migration[];
 };
 

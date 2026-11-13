@@ -9,7 +9,7 @@ beforeEach(async () => {
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations'",
   ).all<{ name: string }>();
   // Delete referencing tables first to respect SQLite foreign key constraints
-  const deleteFirst = new Set(['notification_logs', 'user_notification_settings']);
+  const deleteFirst = new Set(['notification_logs', 'user_notification_settings', 'push_reminders', 'push_subscriptions']);
   const ordered = [
     ...tables.results.filter((t) => deleteFirst.has(t.name)),
     ...tables.results.filter((t) => !deleteFirst.has(t.name)),
