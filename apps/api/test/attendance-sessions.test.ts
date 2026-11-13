@@ -82,6 +82,35 @@ describe('loadSportSessions', () => {
     expect(s!.bill).toEqual([{ participantId: PID.M, slots: 1 }, { participantId: PID.C, slots: 1 }]);
   });
 
+  it('rollback to plan, re-plan, re-finish uses the latest plan', async () => {
+    // P1 → B1 → rollback to P1 (P1') → edit to P2 → finish B2.
+    await chain('r1', '2026-11-01', '2026-11-01T08:00:00.000Z', [
+      { meta: meta([[PID.M, 1, 0], [PID.A, 1, 0]], true) },
+      { meta: meta([[PID.M, 1, 0]]) },
+      { meta: meta([[PID.M, 1, 0], [PID.A, 1, 0]], true) },
+      { meta: meta([[PID.B, 1, 0], [PID.C, 0, 1]], true) },
+      { meta: meta([[PID.B, 1, 0]]) },
+    ]);
+    const [s] = await load();
+    expect(s!.planned).toBe(true);
+    expect(s!.planIds).toEqual([PID.B, PID.C]);
+    expect(s!.bill).toEqual([{ participantId: PID.B, slots: 1 }]);
+  });
+
+  it('disable then enable of a finished bill still loads it once', async () => {
+    await chain('r1', '2026-11-01', '2026-11-01T08:00:00.000Z', [
+      { meta: meta([[PID.M, 1, 0]], true) },
+      { meta: meta([[PID.M, 1, 0], [PID.A, 1, 0]]) },
+    ]);
+    // Disable / enable flip the head's status in place (expenses/routes.ts), no new version.
+    await sql("UPDATE transactions SET status = 'disabled' WHERE id = 'r1-v1'");
+    expect(await load()).toEqual([]);
+    await sql("UPDATE transactions SET status = 'approved' WHERE id = 'r1-v1'");
+    const got = await load();
+    expect(got).toHaveLength(1);
+    expect(got[0]).toMatchObject({ rootId: 'r1', planned: true, planIds: [PID.M] });
+  });
+
   it('a direct bill: planned = false, planIds = []', async () => {
     await chain('r1', '2026-11-01', '2026-11-01T08:00:00.000Z', [{ meta: meta([[PID.M, 1, 0]]) }]);
     const [s] = await load();
