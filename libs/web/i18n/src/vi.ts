@@ -711,6 +711,7 @@ export const vi: Record<MessageKey, string> = {
   'pay.bankAskThem': 'Nhờ họ thêm thông tin ngân hàng, rồi quay lại đây.',
   'pay.scanWithPhone': 'Quét mã QR bằng ứng dụng ngân hàng trên điện thoại của bạn.',
   'pay.account': 'Số tài khoản',
+  'pay.covers': 'Gồm những khoản nào',
   'pay.note': 'Nội dung chuyển khoản',
   'pay.copyAccount': 'Sao chép số tài khoản',
   'pay.copyNote': 'Sao chép nội dung',

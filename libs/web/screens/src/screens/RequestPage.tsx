@@ -11,7 +11,7 @@ import { Amount } from '@cc/web-ui/components/Amount';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
-import { Sheet } from '@cc/web-ui/components/Sheet';
+import { CoversButton } from '../components/CoversButton';
 import { PayDetails } from '../components/PayDetails';
 import { useIsWide } from '@cc/web-util/media';
 import { PersonLedger, toLedgerPlaces, type LedgerPlace } from '../components/PersonLedger';
@@ -37,26 +37,14 @@ function toHistoryPlace(item: RequestItem): HistoryPlace {
   };
 }
 
-/** Full-width "What this covers (n)" opening the ledger in a sheet, like the pay screen's "View the bill". */
-function CoversButton({ places, owner }: { places: LedgerPlace[]; owner: string }): JSX.Element | null {
+/** "What this covers (n)" with the ledger, like the pay screen's. */
+function RequestCovers({ places, owner }: { places: LedgerPlace[]; owner: string }): JSX.Element | null {
   const t = useT();
-  const [open, setOpen] = useState(false);
   if (places.length === 0) return null;
   return (
-    <>
-      <Button
-        variant="secondary"
-        block
-        className="fsl-request__covers"
-        onClick={() => setOpen(true)}
-        data-testid="request-covers"
-      >
-        {t('request.covers', { count: places.length })}
-      </Button>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('history.title')}>
-        <PersonLedger places={places} otherName={owner} perspective="other" open="inline" />
-      </Sheet>
-    </>
+    <CoversButton label={t('request.covers', { count: places.length })} title={t('history.title')} testId="request-covers">
+      <PersonLedger places={places} otherName={owner} perspective="other" open="inline" />
+    </CoversButton>
   );
 }
 
@@ -220,7 +208,7 @@ export function RequestPage(): JSX.Element {
             </h2>
             <Amount value={-view.total} size="xl" tone="success" />
           </div>
-          <CoversButton places={places} owner={owner} />
+          <RequestCovers places={places} owner={owner} />
         </div>
       </Screen>
     );
@@ -287,7 +275,7 @@ export function RequestPage(): JSX.Element {
           <p className="m-0 text-base font-semibold text-foreground">{t('request.waiting', { owner })}</p>
         </div>
       )}
-      <CoversButton places={places} owner={owner} />
+      <RequestCovers places={places} owner={owner} />
       {!isWaiting && (
         <p className="fsl-request__cash-hint m-0 text-sm text-muted-foreground text-center">
           {t('request.cashHint', { owner })}

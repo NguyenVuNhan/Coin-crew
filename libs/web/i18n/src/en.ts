@@ -705,6 +705,7 @@ export const en = {
   'pay.bankAskThem': 'Ask them to add them, then come back.',
   'pay.scanWithPhone': "Scan the QR with your phone's banking app.",
   'pay.account': 'Account',
+  'pay.covers': 'What this covers',
   'pay.note': 'Transfer note',
   'pay.copyAccount': 'Copy account number',
   'pay.copyNote': 'Copy note',

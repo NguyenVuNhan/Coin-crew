@@ -130,8 +130,12 @@ describe('WhoAreYou', () => {
     const line = screen.getByText("Joining as a guest: what you add waits for a member's approval.");
     expect(line).toHaveClass('text-muted-foreground');
     expect(list.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const signIn = screen.getByRole('link', { name: 'Sign in with Google for full access' });
-    expect(signIn.getAttribute('href')).toBe(`/api/auth/google/start?returnTo=${encodeURIComponent('/t/t-1')}`);
+    // The same one "Log in" as the pay pages (owner, 2026-11-13); Google and Zalo are in its sheet.
+    expect(screen.queryByRole('link', { name: 'Sign in with Google for full access' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    const sheet = await screen.findByRole('dialog');
+    const google = within(sheet).getByRole('link', { name: /Google/ });
+    expect(google.getAttribute('href')).toBe(`/api/auth/google/start?returnTo=${encodeURIComponent('/t/t-1')}`);
   });
 
   it('a member name sends you to Google sign-in', async () => {

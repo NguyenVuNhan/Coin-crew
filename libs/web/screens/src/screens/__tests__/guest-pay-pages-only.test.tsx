@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt, mockApi } from '../../test/render';
 import { PIDS, guestChiView, tripView } from '../../test/fixtures';
@@ -86,6 +86,29 @@ describe('a guest only reaches their pay pages', () => {
     expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/j/gtok-1/who');
     expect(screen.queryByRole('link', { name: 'See the group' })).toBeNull();
     expect(screen.getByText('Log in to see the group')).toBeInTheDocument();
+  });
+
+  it('a pay page: What this covers sits above the sign-in and lists only this debt in this group', async () => {
+    guestApi();
+    renderAt(<App />, { route: `/j/gtok-1/pay/${PIDS.M}?via=owe` });
+    const covers = await screen.findByTestId('pay-covers');
+    const note = screen.getByText('Log in to see the group');
+    expect(covers.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(covers);
+    const sheet = await screen.findByRole('dialog');
+    // Chi and Minh's two-way lines only: Minh paid the coffee and the homestay; Bình's motorbike is not theirs.
+    expect(within(sheet).getByText('Homestay Bloom · 2 nights')).toBeInTheDocument();
+    expect(within(sheet).getByText('Cà phê Túi Mơ To')).toBeInTheDocument();
+    expect(within(sheet).queryByText('Motorbike rental + fuel')).toBeNull();
+  });
+
+  it('the sign-in is one row: the note beside a Log in button', async () => {
+    guestApi(twoDebts);
+    renderAt(<App />, { route: '/j/gtok-1/owe' });
+    const button = await screen.findByRole('button', { name: 'Log in' });
+    const row = button.closest('.fsl-guest-signin')!;
+    expect(row).toHaveClass('flex-row');
+    expect(button).not.toHaveClass('w-full');
   });
 
   it('a signed-in guest is offered to join the group, not to sign in again', async () => {

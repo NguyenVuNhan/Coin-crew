@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatVnd, type PayInfo, type TripView } from '@cc/core';
+import { formatVnd, pairHistory, type PayInfo, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { apiSend, ApiClientError } from '@cc/web-data-access/client';
 import { newIdempotencyKey } from '@cc/web-data-access/people';
@@ -20,6 +20,8 @@ import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { PayDetails } from '../components/PayDetails';
+import { CoversButton } from '../components/CoversButton';
+import { HistoryList } from '../components/HistoryList';
 import { Icon } from '@cc/web-ui/components/icons';
 import { usePlatform } from '@cc/web-platform';
 import { remindCard } from '../lib/shareCards';
@@ -41,6 +43,38 @@ function statusCardFor(recorded: Recorded | null, view: TripView, payInfo: PayIn
     return { kind: 'sent', amount: payInfo.inFlight.reduce((sum, p) => sum + p.amountClaimed, 0) };
   }
   return null;
+}
+
+/**
+ * "What this covers" on the group pay page: the two-way lines between the viewer and the person they pay, in this group
+ * only (owner, 2026-11-13). Built from the trip view the page already has, like the request page's ledger.
+ */
+function PayCovers({ view, toId, name }: { view: TripView; toId: string; name: string }) {
+  const t = useT();
+  const me = view.me.participantId;
+  if (!me) return null;
+  const history = pairHistory({
+    tripId: view.trip.id,
+    ownerPid: toId,
+    otherPid: me,
+    expenses: view.expenses,
+    payments: view.payments,
+    suggestions: view.suggestions,
+    roundTransfers: Boolean(view.trip.roundTransfers),
+  });
+  if (history.lines.length === 0) return null;
+  const gap = history.gap;
+  const viaName = gap?.kind === 'reroute' && gap.viaPid ? (view.people.find((p) => p.id === gap.viaPid)?.name ?? null) : null;
+  return (
+    <CoversButton label={t('pay.covers')} title={view.trip.name} testId="pay-covers">
+      <HistoryList
+        lines={history.lines}
+        otherName={name}
+        perspective="other"
+        summary={gap ? { twoWay: history.twoWay, suggested: history.suggested, gap, viaName } : undefined}
+      />
+    </CoversButton>
+  );
 }
 
 export function PayScreen() {
@@ -330,7 +364,12 @@ export function PayScreen() {
         bank={bank}
         wide={wide}
         footer={footer}
-        extras={stoppedCheck}
+        extras={
+          <>
+            <PayCovers view={view} toId={toId} name={name} />
+            {stoppedCheck}
+          </>
+        }
         // A guest's sign-in sits with the details (the right-hand column on a wide screen), after "I've paid".
         after={guest ? <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} /> : undefined}
         hero={

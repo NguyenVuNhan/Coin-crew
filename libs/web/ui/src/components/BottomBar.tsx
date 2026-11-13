@@ -34,7 +34,8 @@ export function BottomBar({ children, className, wide, keyboardAware, onHeight }
       className={cn(
         'fsl-bottom-bar',
         'fixed inset-x-0 bottom-0 z-15 bg-card border-t border-border flex items-center min-h-[72px] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]',
-        'lg:static lg:z-auto lg:min-h-0 lg:bg-transparent lg:border-t lg:border-border lg:p-4',
+        // Wide screens: sticky in the page's flow, so it stays in view on a long page yet never covers its last lines.
+        'lg:sticky lg:min-h-0 lg:bg-background lg:border-t lg:border-border lg:p-4',
         '[&_[aria-current]]:text-primary [&_[data-active=true]]:text-primary',
         className,
       )}

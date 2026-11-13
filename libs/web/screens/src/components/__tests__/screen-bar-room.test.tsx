@@ -43,4 +43,16 @@ describe('a screen with a bottom bar', () => {
     expect(main.style.getPropertyValue('--bar-h')).toBe('131px');
     expect(main.className).toContain('var(--bar-h');
   });
+
+  it('stays in view on a wide screen too: sticky at the bottom, in the flow so it never covers the last lines', () => {
+    renderAt(
+      <Screen title="Who are you?" bottomBar={<button type="button">Continue</button>}>
+        <p>Last line</p>
+      </Screen>,
+    );
+    const bar = document.querySelector('.fsl-bottom-bar')!;
+    expect(bar).toHaveClass('lg:sticky');
+    expect(bar).not.toHaveClass('lg:static');
+    expect(bar).toHaveClass('lg:bg-background');
+  });
 });
