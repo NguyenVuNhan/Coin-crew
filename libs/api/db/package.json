@@ -12,10 +12,10 @@
   "dependencies": {
     "@cc/api-util": "*",
     "@cc/core": "*",
-    "drizzle-orm": "^0.45.4"
+    "drizzle-orm": "0.45.4"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.0"
+    "@cloudflare/vitest-plugin": "1.4.0"
   },
   "nx": {
     "tags": ["scope:api", "type:data-access"]

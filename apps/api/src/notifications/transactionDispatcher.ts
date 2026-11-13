@@ -16,6 +16,7 @@ import { renderTransactionEmail } from './templates/transactionEmail';
 import { renderPaymentEmail } from './templates/paymentEmail';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { getSessionUser } from '@cc/api-auth/session';
+import { safeError } from '@cc/api-util/logSafe';
 
 export interface DispatchActor {
   actorUserId?: string | null;
@@ -307,7 +308,7 @@ export async function dispatchExpenseNotification(
   actor?: DispatchActor,
 ): Promise<void> {
   const promise = runExpenseDispatch(c, event, expenseRootId, actor).catch((err) => {
-    console.error('[dispatchExpenseNotification] failed:', err);
+    console.error('[dispatchExpenseNotification] failed:', safeError(err));
   });
 
   try {
@@ -324,7 +325,7 @@ export async function dispatchPaymentNotification(
   actor?: DispatchActor,
 ): Promise<void> {
   const promise = runPaymentDispatch(c, event, paymentId, actor).catch((err) => {
-    console.error('[dispatchPaymentNotification] failed:', err);
+    console.error('[dispatchPaymentNotification] failed:', safeError(err));
   });
 
   try {

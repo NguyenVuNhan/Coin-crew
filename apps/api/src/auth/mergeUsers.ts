@@ -29,6 +29,7 @@ import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import { mergeParticipants } from '../participants/merge';
 import type { UserRow } from '@cc/api-auth/session';
+import { safeError } from '@cc/api-util/logSafe';
 
 export type MergeRequestRow = typeof accountMergeRequests.$inferSelect;
 
@@ -351,7 +352,7 @@ export async function mergeUsers(
       };
       await deps.mergeParticipants(db, group.trip.id, group.fromId, group.intoId, actor);
     } catch (err) {
-      console.error('mergeUsers: group merge failed', { tripId: group.trip.id, fromId: group.fromId, intoId: group.intoId }, err);
+      console.error('mergeUsers: group merge failed', { tripId: group.trip.id, fromId: group.fromId, intoId: group.intoId }, safeError(err));
     }
   }
 
