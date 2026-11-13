@@ -1,12 +1,20 @@
 import type { AttendanceScore } from '@cc/core';
-import type { BatchItem } from 'drizzle-orm/batch';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, getTableColumns } from 'drizzle-orm';
 import type { Db } from './client';
 import { attendanceCounted, attendanceScores, attendanceState } from './schema';
 import { nowIso } from '@cc/api-util/ids';
 import { isDbError } from '@cc/api-util/errors';
 
 type ScoreRow = typeof attendanceScores.$inferSelect;
+
+/** `{ key, name }` for every attendance_scores column: key is the row property, name the SQL column. */
+const SCORE_COLS = Object.entries(getTableColumns(attendanceScores)).map(([key, col]) => ({ key, name: col.name }));
+/** Upserts every row of a JSON array of `scoreToRow` objects (bound as ?1). `WHERE true` lets SQLite parse ON CONFLICT after a SELECT. */
+const SCORE_UPSERT = `INSERT INTO attendance_scores (${SCORE_COLS.map((c) => `"${c.name}"`).join(', ')})
+  SELECT ${SCORE_COLS.map((c) => `json_extract(value, '$.${c.key}')`).join(', ')} FROM json_each(?1) WHERE true
+  ON CONFLICT (trip_id, participant_id) DO UPDATE SET ${SCORE_COLS.filter((c) => c.name !== 'trip_id' && c.name !== 'participant_id')
+    .map((c) => `"${c.name}" = excluded."${c.name}"`)
+    .join(', ')}`;
 
 /** The insert values for one score row; `lastBack` is stored as 0/1. */
 export function scoreToRow(tripId: string, score: AttendanceScore, now: string): ScoreRow {
@@ -72,7 +80,8 @@ export async function readAttendance(
 }
 
 /**
- * One batch: version guard, upsert every score, insert every counted root. On a version miss nothing
+ * One batch of at most four statements: version guard, its check, one upsert of every score (a JSON array
+ * through json_each), one insert of every counted root. On a version miss nothing
  * lands. Same `changes()` trick as `guardedTripWrite` (commit.ts), but on `attendance_state`: the
  * second UPDATE sets `version` to NULL when the guarded bump missed, the NOT NULL constraint fails,
  * and D1 rolls the batch back. Does not touch `trips.version` or activity: counting is invisible
@@ -87,32 +96,31 @@ export async function commitAttendance(
 ): Promise<'written' | 'raced'> {
   await db.insert(attendanceState).values({ tripId, version: 0 }).onConflictDoNothing();
 
+  // Raw D1 statements: drizzle's db.run(sql) can't be put in db.batch, and the json_each upserts
+  // have no query-builder form. One statement for every score and one for every counted root,
+  // whatever the group's size: D1 counts each batch statement against the per-invocation query
+  // limit (50 on the free plan).
+  const d1 = db.$client;
   const now = nowIso();
-  const guard = db
-    .update(attendanceState)
-    .set({ version: sql`${attendanceState.version} + 1` })
-    .where(and(eq(attendanceState.tripId, tripId), eq(attendanceState.version, expectedVersion)));
-  const failIfMissed = db
-    .update(attendanceState)
-    .set({ version: sql`CASE WHEN changes() > 0 THEN ${attendanceState.version} ELSE NULL END` })
-    .where(eq(attendanceState.tripId, tripId));
-
-  const upserts = scores.map((s) => {
-    const row = scoreToRow(tripId, s, now);
-    return db
-      .insert(attendanceScores)
-      .values(row)
-      .onConflictDoUpdate({ target: [attendanceScores.tripId, attendanceScores.participantId], set: row });
-  });
-  const inserts = countedRoots.map((rootId) =>
-    db.insert(attendanceCounted).values({ rootId, tripId, countedAt: now }),
-  );
+  const items: D1PreparedStatement[] = [
+    d1.prepare('UPDATE attendance_state SET version = version + 1 WHERE trip_id = ?1 AND version = ?2').bind(tripId, expectedVersion),
+    d1
+      .prepare('UPDATE attendance_state SET version = CASE WHEN changes() > 0 THEN version ELSE NULL END WHERE trip_id = ?1')
+      .bind(tripId),
+  ];
+  if (scores.length > 0) {
+    items.push(d1.prepare(SCORE_UPSERT).bind(JSON.stringify(scores.map((s) => scoreToRow(tripId, s, now)))));
+  }
+  if (countedRoots.length > 0) {
+    items.push(
+      d1
+        .prepare('INSERT INTO attendance_counted (root_id, trip_id, counted_at) SELECT value, ?1, ?2 FROM json_each(?3)')
+        .bind(tripId, now, JSON.stringify(countedRoots)),
+    );
+  }
 
   try {
-    await db.batch([guard, failIfMissed, ...upserts, ...inserts] as unknown as [
-      BatchItem<'sqlite'>,
-      ...BatchItem<'sqlite'>[],
-    ]);
+    await d1.batch(items);
     return 'written';
   } catch (err) {
     if (isDbError(err, 'NOT NULL constraint failed: attendance_state.version')) return 'raced';

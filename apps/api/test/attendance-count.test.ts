@@ -4,7 +4,7 @@ import { applySession, newScore, type AttendanceScore, type AttendanceSession, t
 import { getDb } from '@cc/api-db/client';
 import { commitAttendance, readAttendance } from '@cc/api-db/attendance';
 import { countPendingSessions } from '../src/attendance/count';
-import { call, json, seedTrip, seedUser, memberSid, guestHeaders, T, U, PID } from './helpers';
+import { app, call, json, seedTrip, seedUser, memberSid, guestHeaders, T, U, PID } from './helpers';
 
 const base = `/api/trips/${T.tripId}`;
 const minh = async () => ({ Cookie: `sid=${await memberSid(U.minh, 'Minh')}` });
@@ -281,5 +281,85 @@ describe('GET attendance', () => {
     const binh = view.people.find((p) => p.participantId === PID.B);
     expect(binh?.score.lastSessionRoot).toBe('r3');
     expect(binh?.wantedStamp).toBe(false);
+  });
+});
+
+/** env with a DB that counts every prepared statement (same proxy as people-summary.test.ts). */
+function countingEnv() {
+  const counter = { queries: 0 };
+  const DB = new Proxy(env.DB, {
+    get(target, prop) {
+      if (prop === 'prepare') {
+        return (q: string) => {
+          counter.queries += 1;
+          return target.prepare(q);
+        };
+      }
+      const value = Reflect.get(target, prop) as unknown;
+      return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
+    },
+  });
+  return { env: { ...env, DB }, counter };
+}
+
+describe('counting at scale and the latest session', () => {
+  it('creating a plan in a group with 40 sessions and 30 people stays under 50 queries', async () => {
+    const people = [PID.M, PID.A, PID.B, PID.C, ...Array.from({ length: 26 }, (_, i) => `p-x${i}`)];
+    const stmts: D1PreparedStatement[] = [];
+    for (const [i, id] of people.slice(4).entries()) {
+      stmts.push(
+        env.DB.prepare("INSERT INTO participants (id, trip_id, name, normalized_name, user_id, status, sort_order, created_at) VALUES (?, ?, ?, ?, NULL, 'active', ?, '2026-10-12T00:00:00.000Z')")
+          .bind(id, T.tripId, `X${i}`, `x${i}`, 10 + i),
+      );
+    }
+    const insert = env.DB.prepare(
+      "INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, meta_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'expense', 'Cầu lông', 100000, 'VND', ?, ?, 'sport', ?, ?, ?, ?, ?)",
+    );
+    for (let n = 0; n < 40; n++) {
+      const root = `big-${String(n).padStart(2, '0')}`;
+      const day = new Date(Date.UTC(2026, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
+      const plan = people.filter((_, i) => (i + n) % 3 !== 0);
+      const bill = people.filter((_, i) => (i + n) % 4 !== 0);
+      const at = `${day}T08:00:00.000Z`;
+      const at2 = `${day}T09:00:00.000Z`;
+      stmts.push(
+        insert.bind(root, root, null, 0, T.tripId, day, PID.M, 'superseded', PID.M, meta(plan.map((p) => [p, 1] as Entry), true), at, at),
+        insert.bind(`${root}-v1`, root, root, 1, T.tripId, day, PID.M, 'approved', PID.M, meta(bill.map((p) => [p, 1] as Entry)), at2, at2),
+      );
+    }
+    await env.DB.batch(stmts);
+
+    const counting = countingEnv();
+    const res = await app.request(
+      `${base}/expenses`,
+      { method: 'POST', headers: { ...(await minh()), 'Content-Type': 'application/json' }, body: JSON.stringify(planningInput) },
+      counting.env,
+    );
+    expect(res.status).toBe(201);
+    expect(counting.counter.queries).toBeLessThan(50);
+
+    const got = await readAttendance(db(), T.tripId);
+    expect(got.counted.size).toBe(40);
+    expect(got.scores.size).toBe(30);
+    // Tracked from first appearance: people on neither list of the first session (i % 12 === 0) start at the second.
+    for (const [i, id] of people.entries()) expect(got.scores.get(id)?.sessionsSeen).toBe(i % 12 === 0 ? 39 : 40);
+  }, 30_000);
+
+  it('a stored last session rolled back to a plan, or no longer approved, is not the latest', async () => {
+    await session('r1', '2026-11-01', [[PID.M, 1], [PID.B, 1]]);
+    await session('r2', '2026-11-02', [[PID.M, 1]]);
+    // Bình leaves before r2 is counted, so their stored last session stays r1.
+    await sql("UPDATE participants SET status = 'left' WHERE id = ?", PID.B);
+    expect((await createPlan()).status).toBe(201);
+    await sql("UPDATE participants SET status = 'active' WHERE id = ?", PID.B);
+    expect((await preview()).latestSession).toEqual({ rootId: 'r2', spentOn: '2026-11-02' });
+
+    // r2's head becomes a plan again (a rollback): r1 is now the latest finished session.
+    await sql('UPDATE transactions SET meta_json = ? WHERE id = ?', meta([[PID.M, 1]], true), 'r2');
+    expect((await preview()).latestSession).toEqual({ rootId: 'r1', spentOn: '2026-11-01' });
+
+    // r1 disabled: nothing finished is left.
+    await sql("UPDATE transactions SET status = 'disabled' WHERE id = 'r1'");
+    expect((await preview()).latestSession).toBeNull();
   });
 });

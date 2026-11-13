@@ -13,7 +13,7 @@ function parseMeta(json: string | null): ExpenseMeta | null {
 }
 
 /** D1 caps bound parameters per statement; chunk the IN list well below it. */
-const IN_CHUNK = 90;
+export const IN_CHUNK = 90;
 
 /**
  * Finished sport sessions oldest first (spentOn, then root created_at); skips roots in `exclude`.

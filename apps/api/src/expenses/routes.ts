@@ -767,7 +767,7 @@ export function expenseRoutes(): Hono<AppBindings> {
 
     // A new plan counts every finished session not yet counted (the launch backfill falls out of
     // this). Bookkeeping only: it must never fail the plan.
-    if (isPlanningExpense(validated)) {
+    if (actor.trip.preset === 'sport' && isPlanningExpense(validated)) {
       try {
         await countPendingSessions(db, tripId);
       } catch (err) {
