@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useParams } from 'react-router';
+import { GuestGate } from '../components/GuestGate';
 import { useQuery } from '@tanstack/react-query';
 import { useT } from '@cc/web-i18n';
 import { apiFetch } from '@cc/web-data-access/client';
@@ -59,7 +60,9 @@ export function Join() {
   return (
     <TripBaseProvider tripId={data.tripId} token={token}>
       <GroupThemeScope>
-        <Outlet />
+        <GuestGate>
+          <Outlet />
+        </GuestGate>
       </GroupThemeScope>
     </TripBaseProvider>
   );

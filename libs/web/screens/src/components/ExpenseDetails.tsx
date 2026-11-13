@@ -27,9 +27,8 @@ import {
   type SportPlanningCardInput,
 } from '@cc/web-util/qr';
 import { isZaloWebView } from '@cc/web-util/zaloEnv';
-import { useIsMousePointer } from '@cc/web-util/media';
-import { copyText } from '@cc/web-util/clipboard';
 import { useImageSheet } from './SaveImageSheet';
+import { useImageShare } from '../lib/useImageShare';
 import { useBankFirst } from './BankFirstSheet';
 import { SportBillTable } from './SportBillTable';
 import { sportShareText, sportPlanningShareText, expenseLink } from '../lib/remind';
@@ -37,6 +36,7 @@ import { sportBillCard, sportPlanningCard } from '../lib/shareCards';
 import { sportBillCalc } from '../lib/sportBill';
 import { usePlatform } from '@cc/web-platform';
 import { ExpenseHistoryList } from './ExpenseHistoryList';
+import { ExpenseBillShare, canShareExpenseBill } from './ExpenseBillShare';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -71,7 +71,7 @@ export function ExpenseDetails({
   const [sharing, setSharing] = useState(false);
   const [includeProofImage, setIncludeProofImage] = useState(false);
   const { sheet: imageSheet, show: showImage } = useImageSheet();
-  const mouse = useIsMousePointer();
+  const billShare = useImageShare();
   const [shareStatus, setShareStatus] = useState<'saved' | 'copied' | 'failed' | null>(null);
   const reasonId = useId();
   const proofCheckboxId = useId();
@@ -178,15 +178,6 @@ export function ExpenseDetails({
 
   const handleShareSportBill = async () => {
     if (!sportCalc) return;
-    setShareStatus(null);
-
-    // On a PC the message goes into a group chat by pasting: copy it (its link previews the payer's QR).
-    // Copy first, while the click still counts as a user gesture.
-    if (mouse && !isZaloWebView()) {
-      setShareStatus((await copyText(msgText)) ? 'copied' : 'failed');
-      return;
-    }
-
     const billInput: SportBillCardInput = {
       description: e.description,
       spentOn: formatDay(e.spentOn),
@@ -212,45 +203,16 @@ export function ExpenseDetails({
       roundTransfers: Boolean(view.trip.roundTransfers),
     };
 
-    if (platform.kind === 'zmp') {
-      setSharing(true);
-      try {
-        const blob = await renderSportBillPng(billInput);
-        let saved = false;
-        if (blob) {
-          const refCode = payInfo?.refCode ?? e.description;
-          const fileName = `bill-${(refCode || 'sport').replace(/\s+/g, '-')}.png`;
-          const saveRes = await platform.saveImage(blob, fileName);
-          saved = saveRes === 'saved';
-        }
-        await platform.share(sportBillCard(view, e.rootId ?? e.id, msgText, platform.apiBase));
-        setShareStatus(saved ? 'saved' : 'failed');
-      } catch {
-        setShareStatus('failed');
-      } finally {
-        setSharing(false);
-      }
-      return;
-    }
-
-    if (isZaloWebView()) {
-      showImage(() => renderSportBillPng(billInput), msgText);
-      return;
-    }
-
-    setSharing(true);
-    try {
-      const res = await shareSportBill(billInput, msgText, payInfo?.refCode ?? e.description);
-      if (res === 'saved') {
-        setShareStatus('saved');
-      } else if (res === 'failed') {
-        setShareStatus('failed');
-      }
-    } catch {
-      setShareStatus('failed');
-    } finally {
-      setSharing(false);
-    }
+    const refCode = payInfo?.refCode ?? e.description;
+    // On a PC the message goes into a group chat by pasting: copy it only (its link previews the payer's QR).
+    await billShare.share({
+      render: () => renderSportBillPng(billInput),
+      text: msgText,
+      fileName: `bill-${(refCode || 'sport').replace(/\s+/g, '-')}.png`,
+      card: sportBillCard(view, e.rootId ?? e.id, msgText, platform.apiBase),
+      pcPicture: false,
+      shareFile: () => shareSportBill(billInput, msgText, refCode),
+    });
   };
 
   const canPlanSession = !view.trip.archived && can(actorOf(view), 'plan_session');
@@ -322,6 +284,7 @@ export function ExpenseDetails({
   return (
     <article className="fsl-details flex flex-col gap-4 min-w-0">
       {imageSheet}
+      {billShare.sheet}
       {sheet}
       <div className="fsl-details__head flex flex-row items-start justify-between gap-3">
         <h2 className="fsl-details__title text-lg font-semibold text-foreground m-0 break-words focus:outline-none" tabIndex={-1}>
@@ -506,24 +469,24 @@ export function ExpenseDetails({
             <div className="fsl-sport-preview-card flex flex-col gap-3 bg-card border border-border rounded-xl p-4">
               <Button
                 variant="primary"
-                loading={sharing}
+                loading={billShare.sharing}
                 onClick={() => (e.payerId === view.me.participantId ? guard(handleShareSportBill) : void handleShareSportBill())}
                 className="rounded-full"
               >
                 <Icon name="share" size={18} />
                 {t('sport.shareBillQr')}
               </Button>
-              {shareStatus === 'saved' && (
+              {billShare.status === 'saved' && (
                 <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
                   {t('pay.shareSaved')}
                 </p>
               )}
-              {shareStatus === 'copied' && (
+              {billShare.status === 'copied' && (
                 <p className="fsl-sport-share-status text-sm text-primary m-0" role="status">
                   {t('sport.shareCopied')}
                 </p>
               )}
-              {shareStatus === 'failed' && (
+              {billShare.status === 'failed' && (
                 <p className="fsl-sport-share-status fsl-sport-share-status--danger text-sm text-danger m-0" role="alert">
                   {t('pay.shareFailed')}
                 </p>
@@ -558,6 +521,7 @@ export function ExpenseDetails({
           })}
         </ul>
       )}
+      {!sportCalc && canShareExpenseBill(view, e) && <ExpenseBillShare view={view} expense={e} />}
       <ExpenseHistoryList view={view} expense={e} />
 
       {errorElement}

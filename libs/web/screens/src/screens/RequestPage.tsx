@@ -11,8 +11,9 @@ import { Amount } from '@cc/web-ui/components/Amount';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
-import { Sheet } from '@cc/web-ui/components/Sheet';
-import { PayQr } from '../components/PayQr';
+import { CoversButton } from '../components/CoversButton';
+import { PayDetails } from '../components/PayDetails';
+import { useIsWide } from '@cc/web-util/media';
 import { PersonLedger, toLedgerPlaces, type LedgerPlace } from '../components/PersonLedger';
 import { cn } from '@cc/web-ui/lib/utils';
 
@@ -36,31 +37,20 @@ function toHistoryPlace(item: RequestItem): HistoryPlace {
   };
 }
 
-/** Full-width "What this covers (n)" opening the ledger in a sheet, like the pay screen's "View the bill". */
-function CoversButton({ places, owner }: { places: LedgerPlace[]; owner: string }): JSX.Element | null {
+/** "What this covers (n)" with the ledger, like the pay screen's. */
+function RequestCovers({ places, owner }: { places: LedgerPlace[]; owner: string }): JSX.Element | null {
   const t = useT();
-  const [open, setOpen] = useState(false);
   if (places.length === 0) return null;
   return (
-    <>
-      <Button
-        variant="secondary"
-        block
-        className="fsl-request__covers"
-        onClick={() => setOpen(true)}
-        data-testid="request-covers"
-      >
-        {t('request.covers', { count: places.length })}
-      </Button>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('history.title')}>
-        <PersonLedger places={places} otherName={owner} perspective="other" open="inline" />
-      </Sheet>
-    </>
+    <CoversButton label={t('request.covers', { count: places.length })} title={t('history.title')} testId="request-covers">
+      <PersonLedger places={places} otherName={owner} perspective="other" open="inline" />
+    </CoversButton>
   );
 }
 
 export function RequestPage(): JSX.Element {
   const { token = '' } = useParams<{ token: string }>();
+  const wide = useIsWide();
   const t = useT();
 
   const {
@@ -218,7 +208,7 @@ export function RequestPage(): JSX.Element {
             </h2>
             <Amount value={-view.total} size="xl" tone="success" />
           </div>
-          <CoversButton places={places} owner={owner} />
+          <RequestCovers places={places} owner={owner} />
         </div>
       </Screen>
     );
@@ -256,32 +246,36 @@ export function RequestPage(): JSX.Element {
       </div>
     );
 
-  const body = (
+  // "I've paid" and its hint: on a phone the Screen's sticky bar, on a wide screen inline under the details.
+  const footer = isWaiting ? null : (
     <>
-      {isWaiting ? (
+      {submitError !== null && <InlineError error={submitError} onRetry={handlePaid} />}
+      {/* Secondary next to the QR's "Open bank app", like the group pay page; the only action without a QR. */}
+      <Button
+        variant={hasQr ? 'secondary' : 'primary'}
+        block
+        loading={isSending}
+        disabled={isSending}
+        onClick={handlePaid}
+        data-testid="request-paid"
+      >
+        {t('request.paid')}
+      </Button>
+      <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center">{t('pay.iPaidHint')}</p>
+    </>
+  );
+
+  const extras = (
+    <>
+      {isWaiting && (
         <div
           className="fsl-request__waiting bg-card border border-border rounded-xl p-4 text-center"
           data-testid="request-waiting"
         >
           <p className="m-0 text-base font-semibold text-foreground">{t('request.waiting', { owner })}</p>
         </div>
-      ) : (
-        <>
-          {submitError !== null && <InlineError error={submitError} onRetry={handlePaid} />}
-          <Button
-            variant="primary"
-            block
-            loading={isSending}
-            disabled={isSending}
-            onClick={handlePaid}
-            data-testid="request-paid"
-          >
-            {t('request.paid')}
-          </Button>
-          <p className="fsl-pay__hint m-0 text-sm text-muted-foreground text-center">{t('pay.iPaidHint')}</p>
-        </>
       )}
-      <CoversButton places={places} owner={owner} />
+      <RequestCovers places={places} owner={owner} />
       {!isWaiting && (
         <p className="fsl-request__cash-hint m-0 text-sm text-muted-foreground text-center">
           {t('request.cashHint', { owner })}
@@ -291,7 +285,7 @@ export function RequestPage(): JSX.Element {
   );
 
   return (
-    <Screen title={t('pay.title', { name: owner })} wide={hasQr}>
+    <Screen title={t('pay.title', { name: owner })} wide={hasQr} bottomBar={wide ? undefined : (footer ?? undefined)}>
       <div
         className={cn(
           'fsl-request fsl-pay flex flex-col gap-4 w-full py-4',
@@ -299,14 +293,8 @@ export function RequestPage(): JSX.Element {
           !hasQr && 'fsl-pay--narrow max-w-[480px] mx-auto',
         )}
       >
-        {hasQr && view.pay ? (
-          <div className="fsl-pay__layout grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-8 lg:items-start">
-            {hero}
-            <div className="fsl-pay__qr lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:min-w-0">
-              <PayQr info={view.pay} variant="pay" summary={false} />
-            </div>
-            <div className="fsl-pay__body flex flex-col gap-3 min-w-0 lg:col-start-2 lg:row-start-2">{body}</div>
-          </div>
+        {hasQr && view.pay && bank ? (
+          <PayDetails info={view.pay} bank={bank} wide={wide} hero={hero} extras={extras} footer={footer} />
         ) : (
           <>
             {hero}
@@ -314,7 +302,10 @@ export function RequestPage(): JSX.Element {
               // Mirrors PayScreen's no-bank card; a guest can't remind or add bank details, so no actions.
               <EmptyState icon="bank" title={t('request.noBank', { owner })} className="fsl-request__no-bank" action={null} />
             )}
-            <div className="fsl-pay__body flex flex-col gap-3 min-w-0">{body}</div>
+            <div className="fsl-pay__body flex flex-col gap-3 min-w-0">
+              {extras}
+              {wide && footer}
+            </div>
           </>
         )}
       </div>

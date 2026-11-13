@@ -768,7 +768,8 @@ describe('approvals queue', () => {
       mockMedia({ wide: false });
       mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
       renderAt(<App />, { route: '/t/t-1/approvals' });
-      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
+      // Owner, 2026-11-12: a guest only reaches their pay pages.
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1\/(owe|pay\/)/));
     });
   });
 });

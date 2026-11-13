@@ -36,8 +36,9 @@ describe('OweScreen', () => {
     const payBinh = screen.getByRole('link', { name: 'Pay Bình' });
     expect(payBinh).toHaveAttribute('href', `/j/gtok-1/pay/${PIDS.B}`);
 
-    const seeGroup = screen.getByRole('link', { name: 'See the group' });
-    expect(seeGroup).toHaveAttribute('href', '/j/gtok-1');
+    // Owner, 2026-11-12: a guest sees 'Log in to see the group' instead of 'See the group'.
+    expect(screen.queryByRole('link', { name: 'See the group' })).toBeNull();
+    expect(screen.getByText('Log in to see the group')).toBeInTheDocument();
   });
 
   it('owes exactly one person: opens that pay screen', async () => {
@@ -68,7 +69,8 @@ describe('OweScreen', () => {
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent(`/j/gtok-1/pay/${PIDS.M}`),
     );
-    expect(await screen.findByRole('link', { name: 'See the group' })).toBeInTheDocument();
+    // Owner, 2026-11-12: a guest sees 'Log in to see the group' instead of 'See the group'.
+    expect(await screen.findByText('Log in to see the group')).toBeInTheDocument();
   });
 
   it("owes nothing: says you're all set", async () => {
@@ -84,10 +86,9 @@ describe('OweScreen', () => {
     // The title names the group, never "…, you owe" above "you don't owe anyone".
     expect(screen.queryByText(/, you owe$/)).toBeNull();
     expect(screen.getByRole('heading', { name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'See the group' })).toHaveAttribute(
-      'href',
-      '/j/gtok-1',
-    );
+    // Owner, 2026-11-12: a guest sees 'Log in to see the group' instead of 'See the group'.
+    expect(screen.queryByRole('link', { name: 'See the group' })).toBeNull();
+    expect(screen.getByText('Log in to see the group')).toBeInTheDocument();
   });
 
   it('a payment waits for confirmation: says so instead of all set', async () => {

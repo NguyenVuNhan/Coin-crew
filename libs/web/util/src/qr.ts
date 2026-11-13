@@ -9,6 +9,19 @@ import {
 
 const PNG_SIZE = 1024;
 
+/** The fixed colours of the share pictures drawn on canvas (theme tokens don't reach a PNG). */
+export const CARD_COLOURS = {
+  paper: '#ffffff',
+  ink: '#111827',
+  meta: '#6b7280',
+  head: '#f3f4f6',
+  headInk: '#374151',
+  line: '#e5e7eb',
+  bank: '#1f2937',
+  muted: '#9ca3af',
+  debt: '#be123c',
+} as const;
+
 /** The site mark from public/icon.svg (512 units square), drawn in the middle of every payment QR. */
 const LOGO_MARK =
   '<rect width="512" height="512" rx="112.64" fill="#0f766e"/>' +
@@ -356,7 +369,18 @@ export async function shareSportBill(
 ): Promise<'shared' | 'saved' | 'failed'> {
   const blob = await renderSportBillPng(input);
   const billFileName = `bill-${(refCode || 'sport').replace(/\s+/g, '-')}.png`;
+  return shareImageFile(blob, billFileName, text);
+}
 
+/**
+ * Share a picture with its message: the system share sheet with the file when it takes files, else download the
+ * picture and copy the message. 'shared' also covers a share sheet the person cancelled.
+ */
+export async function shareImageFile(
+  blob: Blob | null,
+  billFileName: string,
+  text: string,
+): Promise<'shared' | 'saved' | 'failed'> {
   if (blob && typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof File !== 'undefined') {
     const files = [new File([blob], billFileName, { type: 'image/png' })];
     if (navigator.canShare?.({ files })) {

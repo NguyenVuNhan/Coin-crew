@@ -55,10 +55,11 @@ describe('Join', () => {
       'GET /api/trips/t-1/version': { version: 3 },
     });
     expect(linkTokens.get('t-1')).toBeNull();
-    renderAt(<App />, { route: '/j/gtok-1/settings' });
+    // Owner, 2026-11-12: a guest only reaches their pay pages, so this opens what they owe.
+    renderAt(<App />, { route: '/j/gtok-1/owe' });
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/trips/t-1'))).toBe(true));
     expect(screen.queryByText("You don't have access to this group")).not.toBeInTheDocument();
-    expect(screen.getByTestId('location')).toHaveTextContent('/j/gtok-1/settings');
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1\//);
   });
 
   it("a guest's links stay under the link", async () => {
@@ -68,8 +69,9 @@ describe('Join', () => {
       'GET /api/trips/t-1/version': { version: 3 },
     });
     renderAt(<App />, { route: '/j/gtok-1' });
-    const adds = await screen.findAllByRole('link', { name: /add/i });
-    for (const add of adds) expect(add.getAttribute('href')).toMatch(/^\/j\/gtok-1\//);
+    // Owner, 2026-11-12: a guest only reaches their pay pages; those links stay under the link.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1\/(owe|pay\/)/));
+    for (const a of document.querySelectorAll('a[href^="/"]')) expect(a.getAttribute('href')).toMatch(/^\/(j\/gtok-1\/|privacy)/);
   });
 
   it("a signed-in member who opens the link is moved to the trip's own address", async () => {
@@ -90,7 +92,8 @@ describe('Join', () => {
       'GET /api/trips/t-1/version': { version: 3 },
     });
     renderAt(<App />, { route: '/t/t-1' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1$/));
+    // Owner, 2026-11-12: under the link, a guest lands on what they owe.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/gtok-1\/(owe|pay\/)/));
   });
 
   it('the old expense address of reminders and shared bills opens the expense under the link', async () => {
@@ -127,8 +130,12 @@ describe('WhoAreYou', () => {
     const line = screen.getByText("Joining as a guest: what you add waits for a member's approval.");
     expect(line).toHaveClass('text-muted-foreground');
     expect(list.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const signIn = screen.getByRole('link', { name: 'Sign in with Google for full access' });
-    expect(signIn.getAttribute('href')).toBe(`/api/auth/google/start?returnTo=${encodeURIComponent('/t/t-1')}`);
+    // The same one "Log in" as the pay pages (owner, 2026-11-13); Google and Zalo are in its sheet.
+    expect(screen.queryByRole('link', { name: 'Sign in with Google for full access' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    const sheet = await screen.findByRole('dialog');
+    const google = within(sheet).getByRole('link', { name: /Google/ });
+    expect(google.getAttribute('href')).toBe(`/api/auth/google/start?returnTo=${encodeURIComponent('/t/t-1')}`);
   });
 
   it('a member name sends you to Google sign-in', async () => {

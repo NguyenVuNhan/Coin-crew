@@ -83,7 +83,7 @@ describe('Zalo inline button', () => {
     expect(zalo).toHaveClass('fsl-button--secondary');
   });
 
-  it('inside Zalo the WhoAreYou Zalo link is a secondary button', async () => {
+  it('inside Zalo the WhoAreYou Log in is a secondary button', async () => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Linux; Android 13) Zalo/22.1 Chrome/110');
     mockApi({
       'GET /api/trips/t-1/people/picker': picker(),
@@ -92,7 +92,7 @@ describe('Zalo inline button', () => {
     renderAt(<WhoAreYou />, { route: '/t/t-1/who', path: '/t/:tripId/who' });
     await screen.findByRole('radiogroup');
     const guest = document.querySelector('.fsl-who__guest') as HTMLElement;
-    expect(within(guest).getByRole('link')).toHaveClass('fsl-button--secondary');
+    expect(within(guest).getByRole('button', { name: 'Log in' })).toHaveClass('fsl-button--secondary');
   });
 });
 

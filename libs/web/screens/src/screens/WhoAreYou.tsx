@@ -19,7 +19,8 @@ import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { NoAccess } from '../components/NoAccess';
 import { Icon } from '@cc/web-ui/components/icons';
-import { SignInButtons, signInHref } from '../components/SignInButtons';
+import { signInHref } from '../components/SignInButtons';
+import { LogInRow } from '../components/GuestGate';
 import { SignInSheet } from '../components/SignInSheet';
 import { ClaimSheet } from '../components/ClaimSheet';
 import { ZaloSignIn } from '../components/ZaloSignIn';
@@ -713,16 +714,12 @@ export function WhoAreYou() {
         </div>
 
         {!signedIn && account === null && (
+          // The same one "Log in" as the pay pages (owner, 2026-11-13): Google and Zalo wait in its sheet.
           <div className="fsl-who__guest flex flex-col gap-3">
-            {!isExpenseMode && (
-              <p className="fsl-who__guest-note m-0 text-sm text-muted-foreground">{t('who.guestLine')}</p>
-            )}
-            {!isZmp && (
-              <SignInButtons
-                returnTo={target}
-                layout="inline"
-                labels={{ google: 'who.guestSignIn', zalo: 'who.guestSignInZalo' }}
-              />
+            {isZmp ? (
+              !isExpenseMode && <p className="fsl-who__guest-note m-0 text-sm text-muted-foreground">{t('who.guestLine')}</p>
+            ) : (
+              <LogInRow note={isExpenseMode ? null : t('who.guestLine')} returnTo={target} />
             )}
           </div>
         )}
