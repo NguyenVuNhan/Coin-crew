@@ -56,7 +56,8 @@ describe('WhoAreYou bill link and guest behavior', () => {
     expect(guestLine).toBeInTheDocument();
     expect(screen.queryByRole('note')).toBeNull();
     expect(radioGroup.compareDocumentPosition(guestLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Google/i })).toBeInTheDocument();
+    // One "Log in" like the pay pages (owner, 2026-11-13); Google and Zalo are in its sheet.
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
   });
 
   it('bill link: a signed-in newcomer can join', async () => {

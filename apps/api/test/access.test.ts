@@ -69,6 +69,17 @@ describe('device identity', () => {
     expect(await count('devices')).toBe(before + 1);
   });
 
+  it('a mutation on a route that does not exist inserts no device row (#79)', async () => {
+    const before = await count('devices');
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const res = await call('/api/no-such-route', { method, headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      expect(res.status).toBe(404);
+    }
+    const withCookie = await call('/api/trips/t-x/no-such-thing', { method: 'POST', headers: { Cookie: 'did=d-unknown-route' } });
+    expect(withCookie.status).toBe(404);
+    expect(await count('devices')).toBe(before);
+  });
+
   it('X-Device-Restore brings back a lost cookie without a new device', async () => {
     const { deviceId } = await newDevice();
     const before = await count('devices');

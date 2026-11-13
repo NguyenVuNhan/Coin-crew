@@ -107,7 +107,8 @@ describe('the theme in view', () => {
     });
     const { unmount } = renderApp('/j/tok-1');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
+    // Owner, 2026-11-12: a guest only reaches their pay pages; the group's colours still apply there.
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/j\/tok-1\/(owe|pay\/)/));
     await waitFor(() => expect(themeInView()).toBe('indigo'));
     unmount();
 

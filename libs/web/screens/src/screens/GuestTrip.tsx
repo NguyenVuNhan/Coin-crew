@@ -50,6 +50,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const becomeMemberParam = searchParams.get('becomeMember') === '1';
   const [memberRequested, setMemberRequested] = useState(false);
   const requestedRef = useRef(false);
+  // The join request failed (offline, a server fault): the banner shows the error with Try again.
+  const [requestError, setRequestError] = useState<unknown>(null);
   // Someone already said this guest is the caller (a merge request): accepting it is the claim.
   const [proposal, setProposal] = useState<{ id: string; by: string } | null>(null);
   const [proposalBusy, setProposalBusy] = useState(false);
@@ -62,6 +64,26 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
   const myBalance = view.myBalance;
   // The server remembers a waiting claim, so the banner survives a reload.
   const isMemberRequested = memberRequested || Boolean(view.me.hasPendingMembershipRequest);
+
+  // Shows the banner straight away and asks in the background; a failure takes the banner back down.
+  const requestMembership = (participantId: string) => {
+    requestedRef.current = true;
+    setMemberRequested(true);
+    setRequestError(null);
+    apiSend(`/api/trips/${view.trip.id}/membership`, 'POST', { participantId }, view.trip.id).catch((err: unknown) => {
+      if (err instanceof ApiClientError && err.code === 'PROPOSAL_PENDING' && typeof err.details.proposalId === 'string') {
+        setMemberRequested(false);
+        setProposal({ id: err.details.proposalId, by: typeof err.details.requestedByName === 'string' ? err.details.requestedByName : '' });
+      } else if (err instanceof ApiClientError && err.code === 'ALREADY_CLAIMED') {
+        setMemberRequested(true);
+      } else {
+        // Nothing was saved: let Try again, or opening the same link again, ask once more.
+        requestedRef.current = false;
+        setMemberRequested(false);
+        setRequestError(err);
+      }
+    });
+  };
 
   useEffect(() => {
     if (becomeMemberParam && isMemberRequested && !requestedRef.current) {
@@ -79,25 +101,10 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       myId &&
       !requestedRef.current
     ) {
-      requestedRef.current = true;
-      setMemberRequested(true);
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete('becomeMember');
       setSearchParams(nextParams, { replace: true });
-
-      apiSend(
-        `/api/trips/${view.trip.id}/membership`,
-        'POST',
-        { participantId: myId },
-        view.trip.id,
-      ).catch((err: unknown) => {
-        if (err instanceof ApiClientError && err.code === 'PROPOSAL_PENDING' && typeof err.details.proposalId === 'string') {
-          setMemberRequested(false);
-          setProposal({ id: err.details.proposalId, by: typeof err.details.requestedByName === 'string' ? err.details.requestedByName : '' });
-        } else if (err instanceof ApiClientError && err.code === 'ALREADY_CLAIMED') {
-          setMemberRequested(true);
-        }
-      });
+      requestMembership(myId);
     }
   }, [becomeMemberParam, isMemberRequested, archived, view.me.kind, myId, view.trip.id, searchParams, setSearchParams]);
 
@@ -198,6 +205,8 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
         <div className="fsl-notice fsl-notice--accent px-4 py-3 rounded-xl text-sm text-center bg-secondary text-secondary-foreground">
           {t('guest.memberRequested')}
         </div>
+      ) : requestError !== null && myId && !archived ? (
+        <InlineError error={requestError} onRetry={() => requestMembership(myId)} className="fsl-member-request-error" />
       ) : (
         view.me.kind === 'guest' &&
         !archived && (

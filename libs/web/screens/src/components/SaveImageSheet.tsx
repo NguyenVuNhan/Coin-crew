@@ -15,6 +15,8 @@ export interface SaveImageSheetProps {
   message?: string;
   copied: boolean | null;
   onCopy: () => void;
+  /** A desktop browser: right-click wording, neutral chat copy, no open-in-browser hint (the default is Zalo's in-app browser). */
+  pc?: boolean;
 }
 
 export function SaveImageSheet({
@@ -25,6 +27,7 @@ export function SaveImageSheet({
   message,
   copied,
   onCopy,
+  pc = false,
 }: SaveImageSheetProps) {
   const t = useT();
 
@@ -50,14 +53,14 @@ export function SaveImageSheet({
 
         {(loading || Boolean(dataUrl)) && (
           <p className={cn('fsl-save-image__instruction', 'm-0 text-base leading-normal font-semibold text-foreground')}>
-            {t('share.longPress')}
+            {t(pc ? 'share.pcHint' : 'share.longPress')}
           </p>
         )}
 
         {message !== undefined && (
           <>
             <p className={cn('fsl-save-image__status', 'm-0 min-h-5 text-sm leading-5 text-success')} aria-live="polite">
-              {copied === true ? t('share.messageCopied') : ''}
+              {copied === true ? t(pc ? 'request.copied' : 'share.messageCopied') : ''}
             </p>
             <Button
               variant="secondary"
@@ -70,9 +73,11 @@ export function SaveImageSheet({
           </>
         )}
 
-        <p className={cn('fsl-save-image__hint', 'm-0 text-xs leading-4 text-muted-foreground')}>
-          {t('share.openInBrowser')}
-        </p>
+        {!pc && (
+          <p className={cn('fsl-save-image__hint', 'm-0 text-xs leading-4 text-muted-foreground')}>
+            {t('share.openInBrowser')}
+          </p>
+        )}
       </div>
     </Sheet>
   );
@@ -80,13 +85,14 @@ export function SaveImageSheet({
 
 export function useImageSheet(): {
   sheet: JSX.Element;
-  show(render: () => Promise<Blob | null>, message?: string): void;
+  show(render: () => Promise<Blob | null>, message?: string, opts?: { pc: boolean; copied: boolean }): void;
 } {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | undefined>(undefined);
   const [copied, setCopied] = useState<boolean | null>(null);
+  const [pc, setPc] = useState(false);
 
   const requestIdRef = useRef(0);
   const messageRef = useRef<string | undefined>(undefined);
@@ -118,7 +124,7 @@ export function useImageSheet(): {
   }, []);
 
   const show = useCallback(
-    (render: () => Promise<Blob | null>, messageText?: string) => {
+    (render: () => Promise<Blob | null>, messageText?: string, opts?: { pc: boolean; copied: boolean }) => {
       requestIdRef.current += 1;
       const id = requestIdRef.current;
       messageRef.current = messageText;
@@ -127,9 +133,11 @@ export function useImageSheet(): {
       setLoading(true);
       setDataUrl(null);
       setMessage(messageText);
-      setCopied(null);
+      setCopied(opts ? opts.copied : null);
+      setPc(opts?.pc ?? false);
 
-      if (messageText !== undefined) {
+      // A caller that already copied the message (inside its click) passes the result instead of copying again.
+      if (messageText !== undefined && !opts) {
         try {
           copyText(messageText)
             .then((res) => {
@@ -182,6 +190,7 @@ export function useImageSheet(): {
       message={message}
       copied={copied}
       onCopy={handleCopy}
+      pc={pc}
     />
   );
 

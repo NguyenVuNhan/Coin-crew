@@ -70,7 +70,8 @@ test('pay link: a guest who owes one person lands on the QR', async ({ browser }
 
   await expect(guest.getByRole('img', { name: /VietQR code to pay Minh/ })).toBeVisible();
   await expect(guest).toHaveURL(/\/pay\//);
-  await expect(guest.getByRole('link', { name: 'See the group' })).toBeVisible();
+  // Owner, 2026-11-12: a guest signs in to see the group.
+  await expect(guest.getByText('Log in to see the group')).toBeVisible();
 
   await minhContext.close();
   await guestContext.close();
@@ -153,7 +154,7 @@ test('pay link: a guest who owes two people sees both and pays one', async ({ br
   await guestContext.close();
 });
 
-test('the ordinary invite link still opens the group page', async ({ browser }) => {
+test('the ordinary invite link opens what the guest owes, with sign-in to see the group', async ({ browser }) => {
   const minhContext = await englishContext(browser);
   const minh = await minhContext.newPage();
   await loginAndConsent(minh, 'ps-t3-minh', 'Minh');
@@ -183,7 +184,10 @@ test('the ordinary invite link still opens the group page', async ({ browser }) 
   await guest.getByRole('radio', { name: /Chi/ }).click();
   await guest.getByRole('button', { name: 'Continue as Chi' }).click();
 
-  await expect(guest.getByText('Viewing as Chi')).toBeVisible();
+  // Owner, 2026-11-12: a guest only reaches their pay pages; the invite link works like the owe link.
+  await expect(guest).toHaveURL(/\/j\/[^/]+\/(owe|pay\/)/);
+  await expect(guest.getByText("You're all set")).toBeVisible();
+  await expect(guest.getByText('Log in to see the group')).toBeVisible();
 
   await minhContext.close();
   await guestContext.close();

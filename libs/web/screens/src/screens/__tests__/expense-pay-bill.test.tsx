@@ -191,8 +191,9 @@ describe('ExpensePay - bill sheet and nothing-here state', () => {
     expect(await screen.findByText('Nothing for Chi in this bill')).toBeInTheDocument();
     const switchLink = screen.getByRole('link', { name: 'Not Chi? Switch' });
     expect(switchLink.getAttribute('href')).toMatch(/^\/t\/t-1\/who\?expense=e-1&next=/);
-    const seeGroupLink = screen.getByRole('link', { name: 'See the group' });
-    expect(seeGroupLink.getAttribute('href')).toBe('/t/t-1');
+    // Owner, 2026-11-12: a guest sees 'Log in to see the group' instead of 'See the group'.
+    expect(screen.queryByRole('link', { name: 'See the group' })).toBeNull();
+    expect(screen.getByText('Log in to see the group')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-1/pay');
   });
 

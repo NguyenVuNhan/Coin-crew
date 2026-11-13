@@ -241,18 +241,6 @@ describe('guest page on a phone', () => {
     expect(screen.getAllByText('Swipe left or tap a row for options')).toHaveLength(1);
   });
 
-  it('opening an expense shows it as a page of its own, with Edit only on their own pending one', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
-    renderAt(<App />, { route: '/t/t-1' });
-    await userEvent.click(await screen.findByRole('button', { name: /^Bánh tráng nướng, chợ đêm/ }));
-    expect(await screen.findByRole('heading', { name: 'Bánh tráng nướng, chợ đêm' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Expense' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
-    await userEvent.click(await screen.findByRole('button', { name: /^Homestay Bloom/ }));
-    expect(await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
-  });
 });
 
 describe('guest page on an archived trip', () => {
@@ -336,49 +324,6 @@ describe('guest page on a wide screen', () => {
     expect(add.closest('.fsl-bottom-bar')).toBeNull();
   });
 
-  it('an expense opens in the right panel, and × brings the balance back', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
-    renderAt(<App />, { route: '/t/t-1' });
-    await userEvent.click(await screen.findByRole('button', { name: /^Bánh tráng nướng, chợ đêm/ }));
-    const heading = await screen.findByRole('heading', { name: 'Bánh tráng nướng, chợ đêm' });
-    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/expenses/e-5');
-    // Still the trip page: the list is beside the panel and the panel replaced the balance.
-    expect(screen.getByRole('heading', { level: 1, name: 'Đà Lạt · Oct 2026' })).toBeInTheDocument();
-    expect(screen.queryByText('You owe Minh')).toBeNull();
-    await waitFor(() => expect(heading).toHaveFocus());
-    const panel = screen.getByRole('region', { name: 'Expense' });
-    expect(within(panel).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Pay with VietQR' })).toBeNull();
-
-    await userEvent.click(within(panel).getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
-    expect(await screen.findByText('You owe Minh')).toBeInTheDocument();
-  });
-
-  it('with the panel open, + Add expense is the teal button again (Pay is not on screen)', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
-    renderAt(<App />, { route: '/t/t-1/expenses/e-1' });
-    await screen.findByRole('heading', { name: 'Homestay Bloom · 2 nights' });
-    expect(screen.getByRole('link', { name: '+ Add expense' })).toHaveClass('fsl-button--primary');
-  });
-
-  it('a payment opens in the panel too', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': withPayment() });
-    renderAt(<App />, { route: '/t/t-1' });
-    const payments = await screen.findByRole('region', { name: 'Your payments' });
-    await userEvent.click(within(payments).getByRole('button', { name: /^Bình → You/ }));
-    expect(await screen.findByRole('heading', { name: 'Bình → You' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Payment' })).toBeInTheDocument();
-    expect(screen.getByTestId('location')).toHaveTextContent('/t/t-1/payments/pay-3');
-  });
-
-  it('a missing expense says so and offers the way back', async () => {
-    mockApi({ ...TRIP_API, 'GET /api/trips/t-1': guestChiView() });
-    renderAt(<App />, { route: '/t/t-1/expenses/nope' });
-    expect(await screen.findByText("This isn't in the trip any more.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Back to trip' }));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/t\/t-1$/));
-  });
 });
 
 describe('view-only page', () => {

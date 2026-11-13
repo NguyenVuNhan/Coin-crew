@@ -2,6 +2,8 @@ import { Link } from 'react-router';
 import { formatVnd, type Transfer, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useTrip } from '../lib/tripBase';
+import { requestTotalRows } from '../lib/owe';
+import { RequestTotalButton } from './RequestTotalButton';
 import { nameOf } from '@cc/web-util/tripText';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Button } from '@cc/web-ui/components/Button';
@@ -100,6 +102,7 @@ export function BalanceCard({ view }: { view: TripView }) {
           ))}
         </ul>
       )}
+      {requestTotalRows(view).length > 0 && <RequestTotalButton view={view} />}
       {showBankPrompt && (
         <p className="fsl-balance__bank self-stretch mt-3 px-4 py-3 rounded-lg bg-secondary text-secondary-foreground text-sm leading-snug">
           {t('bankForm.addPrompt')}{' '}

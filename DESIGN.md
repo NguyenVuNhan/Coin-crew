@@ -396,7 +396,8 @@ What a friend sees after tapping a "pay me" link: what to pay comes first, every
   - A payment waiting for confirmation is a row with a Turmeric clock tile and "Waiting for {name} to confirm".
   - Nothing owed shows the "You're all set" empty state.
   - Owing exactly one person skips the list and opens that pay screen.
-  - A ghost "See the group" button always ends the page.
+  - Members get a ghost "See the group" button at the end of the page. A guest (not a member) only reaches their pay pages: back goes to the name picker, and the page ends with "Log in to see the group" and one secondary "Log in" button that opens the sign-in sheet ("Join the group" when already signed in, or the waiting-for-approval note).
+- **One pay layout:** the group pay page and the request page (`/r/<code>`) share `PayDetails`: amount and payee, the QR with Open bank app and Download QR, the account number and transfer note with copy buttons, the keep-note line, the page's own extras, then "I've paid" (secondary next to the QR) in the sticky bottom bar on phones. The bar's measured height is kept free under the content, so it never covers text.
 - **Bill sheet:** on a bill's pay screen, a full-width secondary "View the bill" button under "I've paid" opens the bill in a `Sheet`, so the QR stays underneath.
 - **Session table:** fixed columns sized to fit 320px. Names wrap, amounts never clip, the cost breakdown sits under "Costs", and both per-slot rates share one cell. No sideways scrolling.
 - **No share in this bill:** one line, "Nothing for {name} in this bill", then "Not {name}? Switch" (guests only) and "See the group". The bill is never shown in its place.

@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
+import { matchedRoutes } from 'hono/route';
 import { eq } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
@@ -35,7 +36,10 @@ export const deviceMiddleware: MiddlewareHandler<AppBindings> = async (c, next) 
         .get();
 
   const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(c.req.method);
-  const shouldPersist = Boolean(cookieDid || c.req.header('X-Device-Restore') || isMutation);
+  // Middleware is registered with app.use (method ALL); a request that matches no real route will 404, so it
+  // must not write a device row (a bot POSTing to bad URLs would otherwise fill the table).
+  const hasRoute = matchedRoutes(c).some((r) => r.method !== 'ALL');
+  const shouldPersist = hasRoute && Boolean(cookieDid || c.req.header('X-Device-Restore') || isMutation);
 
   if (!existing && shouldPersist) {
     try {

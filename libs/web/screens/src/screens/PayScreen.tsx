@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatVnd, type PayInfo, type TripView } from '@cc/core';
+import { formatVnd, pairHistory, type PayInfo, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { apiSend, ApiClientError } from '@cc/web-data-access/client';
 import { newIdempotencyKey } from '@cc/web-data-access/people';
@@ -11,14 +11,17 @@ import { useBackLink } from '../lib/navHistory';
 import { canManageBankOf } from '../lib/rowActions';
 import { usePayInfo } from '@cc/web-data-access/payInfo';
 import { groupLink, remind } from '../lib/remind';
-import { useIsWide, useIsCoarsePointer } from '@cc/web-util/media';
+import { useIsWide } from '@cc/web-util/media';
 import { Screen } from '../components/Screen';
+import { GuestSignIn } from '../components/GuestGate';
 import { Button } from '@cc/web-ui/components/Button';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
-import { PayQr } from '../components/PayQr';
+import { PayDetails } from '../components/PayDetails';
+import { CoversButton } from '../components/CoversButton';
+import { HistoryList } from '../components/HistoryList';
 import { Icon } from '@cc/web-ui/components/icons';
 import { usePlatform } from '@cc/web-platform';
 import { remindCard } from '../lib/shareCards';
@@ -40,6 +43,38 @@ function statusCardFor(recorded: Recorded | null, view: TripView, payInfo: PayIn
     return { kind: 'sent', amount: payInfo.inFlight.reduce((sum, p) => sum + p.amountClaimed, 0) };
   }
   return null;
+}
+
+/**
+ * "What this covers" on the group pay page: the two-way lines between the viewer and the person they pay, in this group
+ * only (owner, 2026-11-13). Built from the trip view the page already has, like the request page's ledger.
+ */
+function PayCovers({ view, toId, name }: { view: TripView; toId: string; name: string }) {
+  const t = useT();
+  const me = view.me.participantId;
+  if (!me) return null;
+  const history = pairHistory({
+    tripId: view.trip.id,
+    ownerPid: toId,
+    otherPid: me,
+    expenses: view.expenses,
+    payments: view.payments,
+    suggestions: view.suggestions,
+    roundTransfers: Boolean(view.trip.roundTransfers),
+  });
+  if (history.lines.length === 0) return null;
+  const gap = history.gap;
+  const viaName = gap?.kind === 'reroute' && gap.viaPid ? (view.people.find((p) => p.id === gap.viaPid)?.name ?? null) : null;
+  return (
+    <CoversButton label={t('pay.covers')} title={view.trip.name} testId="pay-covers">
+      <HistoryList
+        lines={history.lines}
+        otherName={name}
+        perspective="other"
+        summary={gap ? { twoWay: history.twoWay, suggested: history.suggested, gap, viaName } : undefined}
+      />
+    </CoversButton>
+  );
 }
 
 export function PayScreen() {
@@ -73,39 +108,14 @@ export function PayScreen() {
   });
 
   const wide = useIsWide();
-  const coarse = useIsCoarsePointer();
   const [recorded, setRecorded] = useState<Recorded | null>(null);
   const [restOpen, setRestOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
-  const [copiedField, setCopiedField] = useState<'account' | 'note' | null>(null);
   const [remindCopied, setRemindCopied] = useState(false);
   const [announcement, setAnnouncement] = useState('');
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** The idempotency key of the unfinished "I've paid" attempt, with the amount it was made for. */
   const payKey = useRef<{ key: string; amount: number } | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-    };
-  }, []);
-
-  const copy = (field: 'account' | 'note', text: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard
-        .writeText(text)
-        .then(() => {
-          if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-          setCopiedField(field);
-          copyTimerRef.current = setTimeout(() => {
-            setCopiedField(null);
-            copyTimerRef.current = null;
-          }, 2000);
-        })
-        .catch(() => {});
-    }
-  };
 
   const name = payInfo?.to.name ?? '';
   const card = view && payInfo ? statusCardFor(recorded, view, payInfo) : null;
@@ -218,6 +228,7 @@ export function PayScreen() {
   }
 
   const archived = view.trip.archived;
+  const guest = view.me.kind === 'guest';
   const bank = payInfo.bank;
   const stoppedCheck = stopped ? (
     <div className="fsl-pay__stopped flex justify-center">
@@ -348,82 +359,53 @@ export function PayScreen() {
       );
     }
     content = (
-      <div className="fsl-pay__layout grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-8 lg:items-start">
-        <div className="fsl-pay__hero flex flex-col items-center text-center gap-1 lg:col-start-2 lg:row-start-1 lg:items-start lg:text-left">
-          <Amount value={payInfo.amount} size="xl" />
-          <p className="fsl-pay__to m-0 text-sm leading-snug text-muted-foreground [overflow-wrap:anywhere]">{t('pay.toLine', { holder: bank.holderName, bank: bank.bankName })}</p>
-        </div>
-        <div className="fsl-pay__qr lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:min-w-0">
-          <PayQr info={payInfo} variant="pay" summary={false} />
-        </div>
-        <div className="fsl-pay__body flex flex-col gap-3 min-w-0 lg:col-start-2 lg:row-start-2">
-          <div className="fsl-pay__rows bg-card border border-border rounded-xl px-4 py-2 flex flex-col">
-            <div className="fsl-pay__row flex justify-between items-center gap-3 min-h-11 text-sm">
-              <span className="fsl-pay__row-label text-muted-foreground">{t('pay.account')}</span>
-              <span className="fsl-pay__row-value text-foreground font-medium text-right flex items-center gap-1 min-w-0">
-                <span className="fsl-pay__account-number tabular-nums">{bank.accountNumberMasked}</span>
-                <button
-                  type="button"
-                  className="fsl-pay__icon-btn inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-9 lg:min-h-9 p-0 bg-transparent border-0 text-muted-foreground cursor-pointer rounded-md transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-                  aria-label={t('pay.copyAccount')}
-                  title={t('pay.copyAccount')}
-                  onClick={() => copy('account', bank.accountNumber)}
-                >
-                  <Icon name={copiedField === 'account' ? 'check' : 'copy'} size={16} />
-                </button>
-              </span>
-            </div>
-            <div className="fsl-pay__row flex justify-between items-center gap-3 min-h-11 text-sm border-t border-border">
-              <span className="fsl-pay__row-label text-muted-foreground">{t('pay.note')}</span>
-              <span className="fsl-pay__row-value text-foreground font-medium text-right flex items-center gap-1 min-w-0">
-                <span className="fsl-pay__memo font-mono font-bold text-sm bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md [overflow-wrap:anywhere]">{payInfo.refCode}</span>
-                <button
-                  type="button"
-                  className="fsl-pay__icon-btn inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-9 lg:min-h-9 p-0 bg-transparent border-0 text-muted-foreground cursor-pointer rounded-md transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-                  aria-label={t('pay.copyNote')}
-                  title={t('pay.copyNote')}
-                  onClick={() => copy('note', payInfo.refCode)}
-                >
-                  <Icon name={copiedField === 'note' ? 'check' : 'copy'} size={16} />
-                </button>
-              </span>
-            </div>
-            <span className="fsl-pay__sr sr-only" role="status">
-              {copiedField ? t('pay.copied') : ''}
-            </span>
+      <PayDetails
+        info={payInfo}
+        bank={bank}
+        wide={wide}
+        footer={footer}
+        extras={
+          <>
+            <PayCovers view={view} toId={toId} name={name} />
+            {stoppedCheck}
+          </>
+        }
+        // A guest's sign-in sits with the details (the right-hand column on a wide screen), after "I've paid".
+        after={guest ? <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} /> : undefined}
+        hero={
+          <div className="fsl-pay__hero flex flex-col items-center text-center gap-1 lg:col-start-2 lg:row-start-1 lg:items-start lg:text-left">
+            <Amount value={payInfo.amount} size="xl" />
+            <p className="fsl-pay__to m-0 text-sm leading-snug text-muted-foreground [overflow-wrap:anywhere]">{t('pay.toLine', { holder: bank.holderName, bank: bank.bankName })}</p>
           </div>
-          <p className="fsl-pay__keep-note m-0 text-sm text-muted-foreground">{t('pay.keepNote')}</p>
-          {!coarse && <p className="fsl-pay__scan-hint m-0 text-xs text-subtle-foreground">{t('pay.scanWithPhone')}</p>}
-          {stoppedCheck}
-          {wide && footer}
-        </div>
-      </div>
+        }
+      />
     );
   }
 
-  // A failed "I've paid" grows the fixed bottom bar on a phone: leave room so the content can scroll clear of it.
-  const barGrown = !wide && submitError !== null && footer !== null;
   const pageClass = cn(
     'fsl-pay flex flex-col gap-4 w-full',
     !isLayout && 'fsl-pay--narrow max-w-[480px] mx-auto',
-    barGrown && 'fsl-pay--bar-error max-lg:pb-24',
   );
 
   return withStatus(
     <Screen
       title={t('pay.title', { name })}
-      back={href()}
+      // A guest only has their pay pages: back is the name picker.
+      back={guest ? href('/who') : href()}
       wide
       bottomBar={wide ? undefined : (footer ?? undefined)}
     >
       <div className={pageClass}>
         {archived && <p className="fsl-pay__notice m-0 px-4 py-3 bg-muted rounded-xl text-muted-foreground">{t('settings.archived')}</p>}
         {content}
-        {searchParams.get('via') === 'owe' && (
-          // On phones the two-line "I've paid" bar is taller than the space Screen keeps for it: clear it.
-          <Button variant="ghost" href={href()} className="fsl-pay__see-group max-lg:mb-10">
-            {t('owe.seeGroup')}
-          </Button>
+        {guest ? (
+          !isLayout && <GuestSignIn pending={Boolean(view.me.hasPendingMembershipRequest)} />
+        ) : (
+          searchParams.get('via') === 'owe' && (
+            <Button variant="ghost" href={href()} className="fsl-pay__see-group">
+              {t('owe.seeGroup')}
+            </Button>
+          )
         )}
       </div>
     </Screen>,

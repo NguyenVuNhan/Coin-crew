@@ -78,48 +78,27 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await minh.getByRole('link', { name: 'Back' }).click();
   await expect(minh).toHaveURL(tripUrl);
 
-  // Chi opens the group link, picks their name and adds an expense that waits for approval.
+  // Chi opens the group link and picks their name. A guest only reaches their pay pages (owner, 2026-11-12):
+  // owing one person, Chi lands straight on the QR to pay Minh (800.000₫ homestay ÷ 4 = 200.000₫).
   await chi.goto(groupLink);
   await expect(chi).toHaveURL(/\/who(\?.*)?$/);
   await chi.getByRole('radio', { name: /Chi/ }).click();
   await chi.getByRole('button', { name: 'Continue as Chi' }).click();
-  await expect(chi.getByText('Viewing as Chi')).toBeVisible();
-  await noSidewaysScroll(chi);
-  await chi.getByRole('link', { name: '+ Add expense' }).click();
-  await chi.getByLabel('What for').fill('Bánh tráng nướng');
-  await chi.getByLabel('Amount', { exact: true }).fill('180.000');
-  await chi.getByRole('button', { name: 'Send for approval' }).click();
-  await expect(chi.getByText('Viewing as Chi')).toBeVisible();
-  await expect(chi.getByText('Waiting').first()).toBeVisible();
-
-  // Minh approves it from the queue, which shows one card at a time.
-  await minh.reload();
-  const approvals = minh.getByRole('region', { name: 'Needs approval' });
-  await expect(approvals.getByText('1 of 1 waiting')).toBeVisible();
-  await expect(approvals.getByText('Bánh tráng nướng')).toBeVisible();
-  await expect(approvals.getByText('Chi added · 180.000₫ · split equally, 4')).toBeVisible();
-  await noSidewaysScroll(minh);
-  await approvals.getByRole('button', { name: 'Approve' }).click();
-  await expect(approvals).toHaveCount(0);
-
-  // Chi pays Minh with VietQR (pairwise net: 200.000₫ homestay share − 45.000₫ bánh tráng share = 155.000₫).
-  await chi.reload();
-  await expect(chi.getByText('You owe Minh')).toBeVisible();
-  await chi.getByRole('link', { name: 'Pay with VietQR' }).click();
-  await expect(chi.getByRole('img', { name: /VietQR code to pay Minh 155\.000₫/ })).toBeVisible();
+  await expect(chi.getByRole('img', { name: /VietQR code to pay Minh 200\.000₫/ })).toBeVisible();
+  await expect(chi.getByText('Log in to see the group')).toBeVisible();
   await expect(chi.getByText('CHI DA LAT SETTLE')).toBeVisible();
   await expect(chi.getByText('Keep this note unchanged so the payment can be matched.')).toBeVisible();
   await noSidewaysScroll(chi);
   await chi.getByRole('button', { name: "I've paid" }).click();
   // Exact: the status live region repeats both lines in one sentence for screen readers.
-  await expect(chi.getByText('Payment sent · 155.000₫', { exact: true })).toBeVisible();
+  await expect(chi.getByText('Payment sent · 200.000₫', { exact: true })).toBeVisible();
   await expect(chi.getByText('Waiting for Minh to confirm it arrived. This page updates by itself.', { exact: true })).toBeVisible();
   await noSidewaysScroll(chi);
 
   // Minh confirms the money arrived.
   await minh.reload();
   const confirmCard = minh.getByRole('region', { name: 'Needs approval' });
-  await expect(confirmCard.getByText('Chi says they paid you 155.000₫')).toBeVisible();
+  await expect(confirmCard.getByText('Chi says they paid you 200.000₫')).toBeVisible();
   await expect(confirmCard.getByText('Did it arrive?')).toBeVisible();
   await noSidewaysScroll(minh);
   await confirmCard.getByRole('button', { name: 'Confirm' }).click();
@@ -128,10 +107,9 @@ test('split a trip and settle up with VietQR', async ({ browser }) => {
   await expect(minh.getByText('Paid ✓')).toBeVisible();
   await noSidewaysScroll(minh);
 
-  // Chi is settled with Minh (while An and Bình still owe Chi 45.000₫ each from bánh tráng).
+  // Chi is settled with Minh: the group's address opens what Chi owes, which is nothing now.
   await chi.goto(tripUrl);
-  await expect(chi.getByText('You owe Minh')).toHaveCount(0);
-  await expect(chi.getByText("You're owed")).toBeVisible();
+  await expect(chi.getByText("You're all set")).toBeVisible();
   await noSidewaysScroll(chi);
 
   await minhContext.close();
