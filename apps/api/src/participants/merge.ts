@@ -3,7 +3,11 @@ import { and, eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db } from '@cc/api-db/client';
 import type { ResolvedActor } from '@cc/api-auth/actor';
+import { mergeScores } from '@cc/core';
+import { rowToScore, scoreToRow } from '@cc/api-db/attendance';
 import {
+  attendanceScores,
+  attendanceState,
   bankDetails,
   deviceParticipants,
   membershipRequests,
@@ -452,11 +456,15 @@ export async function mergeParticipants(
   // link. Otherwise a link or a settlement could land on the merged, invisible row.
   const fromKey = `p:${fromId}`;
   const intoKey = `p:${intoId}`;
-  const [linksToFrom, linksOfFrom, linksOfInto, nicks] = await Promise.all([
+  const [linksToFrom, linksOfFrom, linksOfInto, nicks, scoreRows] = await Promise.all([
     db.select().from(personLinks).where(eq(personLinks.personPid, fromId)),
     db.select().from(personLinks).where(eq(personLinks.participantId, fromId)),
     db.select().from(personLinks).where(eq(personLinks.participantId, intoId)),
     db.select().from(nicknames).where(inArray(nicknames.personKey, [fromKey, intoKey])),
+    db
+      .select()
+      .from(attendanceScores)
+      .where(and(eq(attendanceScores.tripId, tripId), inArray(attendanceScores.participantId, [fromId, intoId]))),
   ]);
   const logLink = (row: Record<string, unknown>) => log.add(personLinks, 'person_links', ['owner_user_id', 'participant_id'], row);
 
@@ -482,6 +490,34 @@ export async function mergeParticipants(
       nicks.some((x) => x.personKey === intoKey && x.ownerUserId === n.ownerUserId)
         ? db.delete(nicknames).where(where)
         : db.update(nicknames).set({ personKey: intoKey }).where(where),
+    );
+  }
+
+  // Attendance: the survivor keeps the higher of each score (spec: every merge). Only from's row
+  // needs work: none means nothing to carry over; into's alone stays as it is.
+  const fromScore = scoreRows.find((r) => r.participantId === fromId);
+  if (fromScore) {
+    const intoScore = scoreRows.find((r) => r.participantId === intoId);
+    const merged = intoScore
+      ? mergeScores(rowToScore(intoScore), rowToScore(fromScore))
+      : { ...rowToScore(fromScore), participantId: intoId };
+    const row = scoreToRow(tripId, merged, nowIso());
+    const { tripId: _t, participantId: _p, ...set } = row;
+    for (const r of scoreRows) log.add(attendanceScores, 'attendance_scores', ['trip_id', 'participant_id'], r);
+    queries.push(
+      db
+        .insert(attendanceScores)
+        .values(row)
+        .onConflictDoUpdate({ target: [attendanceScores.tripId, attendanceScores.participantId], set }),
+      db
+        .delete(attendanceScores)
+        .where(and(eq(attendanceScores.tripId, tripId), eq(attendanceScores.participantId, fromId))),
+      // A count that read the scores before this merge must not write them back over it: bumping
+      // the version makes its guarded commit miss ('raced'); its sessions stay uncounted until the next count.
+      db
+        .update(attendanceState)
+        .set({ version: sql`${attendanceState.version} + 1` })
+        .where(eq(attendanceState.tripId, tripId)),
     );
   }
 
