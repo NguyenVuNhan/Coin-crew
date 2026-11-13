@@ -32,6 +32,7 @@ import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchExpenseNotification } from '../notifications/transactionDispatcher';
+import { dispatchExpensePush } from '../notifications/push/dispatch';
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -768,6 +769,10 @@ export function expenseRoutes(): Hono<AppBindings> {
         actorUserId: actor.userId,
         actorParticipantId: actor.participantId,
       });
+      await dispatchExpensePush(c, expenseId, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
     }
 
     return c.json({ expenseId }, 201);
@@ -837,6 +842,10 @@ export function expenseRoutes(): Hono<AppBindings> {
     } else if (isPlanningExpense(headItem)) {
       if (head.status === 'approved') {
         await dispatchExpenseNotification(c, 'approved', head.rootId, {
+          actorUserId: actor.userId,
+          actorParticipantId: actor.participantId,
+        });
+        await dispatchExpensePush(c, head.rootId, {
           actorUserId: actor.userId,
           actorParticipantId: actor.participantId,
         });
@@ -1154,6 +1163,10 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     });
 
     await dispatchExpenseNotification(c, 'approved', head.rootId, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
+    });
+    await dispatchExpensePush(c, head.rootId, {
       actorUserId: actor.userId,
       actorParticipantId: actor.participantId,
     });
