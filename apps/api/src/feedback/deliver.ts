@@ -4,6 +4,7 @@ import { getDb } from '@cc/api-db/client';
 import { feedback, feedbackRate } from '@cc/api-db/schema';
 import { nowIso } from '@cc/api-util/ids';
 import { hourBucket } from './time';
+import { safeError } from '@cc/api-util/logSafe';
 
 const RETRY_BATCH = 50;
 const RATE_BUCKET_TTL_MS = 24 * 60 * 60 * 1000;
@@ -41,7 +42,7 @@ export async function deliverFeedback(env: Env, ids: string[]): Promise<void> {
     }
     await db.update(feedback).set({ deliveredAt: nowIso() }).where(inArray(feedback.id, rows.map((r) => r.id)));
   } catch (err) {
-    console.warn('Feedback delivery failed', err);
+    console.warn('Feedback delivery failed', safeError(err));
   }
 }
 

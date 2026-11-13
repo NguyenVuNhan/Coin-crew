@@ -13,9 +13,9 @@
     "@cc/api-db": "*",
     "@cc/api-util": "*",
     "@cc/core": "*",
-    "arctic": "^3.7.0",
-    "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.13"
+    "arctic": "3.7.0",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.13"
   },
   "nx": {
     "tags": ["scope:api", "type:auth"]

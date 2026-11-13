@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "react": "^19.3.0",
+    "react": "19.3.0",
     "@cc/web-util": "*"
   },
   "nx": {

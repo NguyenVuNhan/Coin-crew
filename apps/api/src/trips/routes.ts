@@ -1,12 +1,11 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, desc, eq, inArray, lt, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type {
   ActivityAction,
   ActivityItem,
   CreateTripInput,
-  TripListItem,
 } from '@cc/core';
 import {
   findBank,
@@ -31,7 +30,7 @@ import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, newToken, nowIso } from '@cc/api-util/ids';
 import { loadRecentPeople } from '../me/people';
 import { actorName as actorNameOf, loadActivityNames } from '@cc/api-db/activityNames';
-import { getSnapshot } from './snapshot';
+import { getSnapshot, loadTripList } from './snapshot';
 import { toTripView } from './view';
 
 async function parseJson<T>(c: Context): Promise<T> {
@@ -342,47 +341,7 @@ export function tripRoutes(): Hono<AppBindings> {
   app.get('/trips', requireUser, async (c) => {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
-
-    const rows = await db
-      .select({
-        participantId: participants.id,
-        trip: trips,
-      })
-      .from(participants)
-      .innerJoin(trips, eq(participants.tripId, trips.id))
-      .where(
-        and(
-          eq(participants.userId, user.id),
-          eq(participants.status, 'active'),
-          // The personal ledger is a 'direct' trip that never shows as a group.
-          ne(trips.preset, 'direct'),
-        ),
-      )
-      .orderBy(desc(trips.createdAt));
-
-    const list: TripListItem[] = [];
-    for (const row of rows) {
-      const snapshot = await getSnapshot(db, row.trip);
-      let myBalance = snapshot.balances[row.participantId] ?? 0;
-      if (row.trip.roundTransfers === 1) {
-        const owedToMe = snapshot.suggestions
-          .filter((s) => s.toId === row.participantId)
-          .reduce((sum, s) => sum + s.amount, 0);
-        const iOwe = snapshot.suggestions
-          .filter((s) => s.fromId === row.participantId)
-          .reduce((sum, s) => sum + s.amount, 0);
-        myBalance = owedToMe - iOwe;
-      }
-      list.push({
-        id: row.trip.id,
-        name: row.trip.name,
-        preset: (row.trip.preset as 'trip' | 'sport') ?? 'trip',
-        archived: row.trip.archivedAt !== null,
-        myBalance,
-      });
-    }
-
-    return c.json(list);
+    return c.json(await loadTripList(db, user.id));
   });
 
   // GET /trips/:id/version
@@ -405,14 +364,28 @@ export function tripRoutes(): Hono<AppBindings> {
 
     const conditions = [eq(activityTable.tripId, tripId)];
     if (before) {
-      conditions.push(lt(activityTable.createdAt, before));
+      // `<createdAt>~<id>` pages past rows sharing a timestamp; a bare `<createdAt>` (older clients) still works.
+      const i = before.indexOf('~');
+      if (i === 0 || i === before.length - 1) throw new ApiError('VALIDATION', 422, 'Invalid cursor');
+      if (i > 0) {
+        const createdAt = before.slice(0, i);
+        const id = before.slice(i + 1);
+        conditions.push(
+          or(
+            lt(activityTable.createdAt, createdAt),
+            and(eq(activityTable.createdAt, createdAt), lt(activityTable.id, id)),
+          )!,
+        );
+      } else {
+        conditions.push(lt(activityTable.createdAt, before));
+      }
     }
 
     const rows = await db
       .select()
       .from(activityTable)
       .where(and(...conditions))
-      .orderBy(desc(activityTable.createdAt))
+      .orderBy(desc(activityTable.createdAt), desc(activityTable.id))
       .limit(50);
 
     const names = await loadActivityNames(

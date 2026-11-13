@@ -209,10 +209,11 @@ describe('"it arrived" undoes "didn\'t arrive"', () => {
     await send(`/payments/${id}/not-arrived`, await minh());
     expect((await send(`/payments/${id}/arrived`, await guestHeaders(PID.C))).status).toBe(403);
     expect((await send(`/payments/${id}/arrived`, await guestHeaders(PID.A))).status).toBe(403);
+    // Recorded while An is still a guest: once An has an account, a guest pick no longer acts as them.
+    const paymentId = await anPaysChi();
     const an = { Cookie: `sid=${await linkMember(PID.A, U.an, 'An')}` };
     expect((await send(`/payments/${id}/arrived`, an)).status).toBe(403);
 
-    const paymentId = await anPaysChi();
     await send(`/payments/${paymentId}/not-arrived`, await guestHeaders(PID.C));
     expect((await send(`/payments/${paymentId}/arrived`, await minh())).status).toBe(403);
   });

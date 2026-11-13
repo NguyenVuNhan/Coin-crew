@@ -13,8 +13,8 @@
   "dependencies": {
     "@cc/core": "*",
     "@cc/web-i18n": "*",
-    "qrcode": "^1.5.4",
-    "react": "^19.3.0"
+    "qrcode": "1.5.4",
+    "react": "19.3.0"
   },
   "nx": {
     "tags": ["scope:web", "type:util"]
