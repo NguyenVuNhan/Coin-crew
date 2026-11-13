@@ -1152,4 +1152,18 @@ export const vi: Record<MessageKey, string> = {
   'share.requestTitle': 'Yêu cầu thanh toán · {trip}',
   'share.billTitle': 'Hóa đơn · {trip}',
   'share.pcHint': 'Nhấp chuột phải vào ảnh để sao chép hoặc lưu, rồi dán vào tin nhắn hoặc nhóm chat.',
+  'turnout.title': 'Khả năng đến thật', // REVIEW
+  'turnout.estimate': 'khoảng {likely}/{total}', // REVIEW
+  'turnout.counts': '{sure} chắc đến · {unsure} chưa chắc · {flaky} hay bùng', // REVIEW
+  'turnout.seeWho': 'Xem ai ›', // REVIEW
+  'turnout.back': 'Đã trở lại!', // REVIEW
+  'turnout.presence': 'Hay đến', // REVIEW
+  'turnout.reliability': 'Giữ lời', // REVIEW
+  'turnout.guest': 'Dắt khách', // REVIEW
+  'attendance.label.new': 'Mới', // REVIEW
+  'attendance.label.regular': 'Hay đến', // REVIEW
+  'attendance.label.rare': 'Ít đến', // REVIEW
+  'attendance.label.flaky': 'Hay bùng', // REVIEW
+  'attendance.label.topGuest': 'Dắt nhiều khách', // REVIEW
+  'attendance.label.back': 'Trở lại', // REVIEW
 };

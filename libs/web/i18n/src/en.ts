@@ -1151,6 +1151,20 @@ export const en = {
   'share.requestTitle': 'Payment request · {trip}',
   'share.billTitle': 'Bill · {trip}',
   'share.pcHint': 'Right-click the picture to copy or save it, then paste it into a message or group chat.',
+  'turnout.title': 'Likely to actually come',
+  'turnout.estimate': 'about {likely} of {total}',
+  'turnout.counts': '{sure} sure · {unsure} unsure · {flaky} often no-show',
+  'turnout.seeWho': 'See who ›',
+  'turnout.back': "Look who's back!",
+  'turnout.presence': 'Shows up',
+  'turnout.reliability': 'Keeps word',
+  'turnout.guest': 'Guests',
+  'attendance.label.new': 'New',
+  'attendance.label.regular': 'Regular',
+  'attendance.label.rare': 'Rare',
+  'attendance.label.flaky': 'Often no-show',
+  'attendance.label.topGuest': 'Top guest-bringer',
+  'attendance.label.back': 'Back',
 } as const;
 
 export type MessageKey = keyof typeof en;

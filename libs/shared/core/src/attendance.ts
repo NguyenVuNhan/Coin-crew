@@ -204,7 +204,7 @@ export function turnoutEstimate(
     }
     likely += e.slots * (s.reliability / 100);
     if (s.reliability >= ATTENDANCE.regularAt) sure += e.slots;
-    else if (s.reliability <= ATTENDANCE.flakyAt) flaky += e.slots;
+    else if (s.reliability <= ATTENDANCE.flakyAt && s.sessionsPlanned >= ATTENDANCE.minSessions) flaky += e.slots;
     else unsure += e.slots;
   }
   return { likely: Math.round(likely), total, sure, unsure, flaky };

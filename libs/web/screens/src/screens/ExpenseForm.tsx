@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, type ReactNode } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import type {
   TripView,
@@ -23,10 +23,12 @@ import { useTripView } from '@cc/web-data-access/hooks';
 import { useTrip } from '../lib/tripBase';
 import { apiSend, ApiClientError } from '@cc/web-data-access/client';
 import { useGroupPeople, importPerson } from '@cc/web-data-access/people';
+import { useAttendance } from '@cc/web-data-access/attendance';
 import { readSplitInput, fromEntryValue } from '@cc/web-util/splitInput';
 import { compressBookingImage } from '@cc/web-util/qr';
 import { recentGroups } from '@cc/web-util/recentGroups';
 import { SplitBetween } from '../components/SplitBetween';
+import { TurnoutCard } from '../components/TurnoutCard';
 import { SplitPeopleSheet } from '../components/SplitPeopleSheet';
 import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
@@ -741,6 +743,17 @@ function ExpenseFormContent({
   const fromFund = payer === FUND_PAYER;
   // Paid from the fund there is nothing to split: the sport cost card gives way to the plain Amount field.
   const sportShown = sportSelected && !fromFund;
+  // Admin-only scores (403 for others → no data, no pill); the turnout card reads the same cached query.
+  const attendance = useAttendance(tripId, { enabled: isPlanningMode && sportShown });
+  const backIds = useMemo(
+    () =>
+      new Set(
+        (Array.isArray(attendance.data?.people) ? attendance.data.people : [])
+          .filter((p) => p?.labels?.includes('rare') || p?.labels?.includes('back'))
+          .map((p) => p.participantId),
+      ),
+    [attendance.data],
+  );
   const isPayerValid = payer !== '';
   const isAmountValid = parsedAmount !== null;
   const isSplitValid = Boolean(splitResult?.ok && !hasInvalidInput);
@@ -1431,6 +1444,8 @@ function ExpenseFormContent({
           </div>
         )}
 
+        {isPlanningMode && sportShown && <TurnoutCard tripId={tripId} entries={sportEntries} people={formPeople} />}
+
         {sportShown ? (
           <div className={cn('fsl-sport-costs-card rounded-xl border border-border bg-card p-3 flex flex-col gap-3')}>
             <h3 className={cn('fsl-sport-costs-title m-0 text-base font-semibold text-foreground')}>{t('sport.costsTitle')}</h3>
@@ -1861,6 +1876,15 @@ function ExpenseFormContent({
                               : person.name}
                           </span>
                           {person.status === 'left' && <Pill tone="neutral">{t('people.leftBadge')}</Pill>}
+                          {isPlanningMode && backIds.has(person.id) && (
+                            <Link
+                              to={href('/awards')}
+                              className="fsl-back-pill shrink-0 motion-reduce:animate-none"
+                              data-testid={`back-pill-${person.id}`}
+                            >
+                              <Pill tone="success">{t('turnout.back')}</Pill>
+                            </Link>
+                          )}
 
                           {isAdminOrOrganiser ? (
                             <Popover

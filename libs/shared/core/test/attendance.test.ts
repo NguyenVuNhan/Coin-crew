@@ -187,7 +187,7 @@ describe('attendance formulas', () => {
   it('turnout buckets by reliability: ≥75 sure, 50–75 unsure, ≤50 flaky, weighted by slots', () => {
     const s = (id: string, reliability: number): [string, AttendanceScore] => [
       id,
-      { ...newScore(id), reliability, sessionsSeen: 10 },
+      { ...newScore(id), reliability, sessionsSeen: 10, sessionsPlanned: 10 },
     ];
     const scores = new Map([s('a', 90), s('b', 75), s('c', 60), s('d', 50), s('e', 30)]);
     expect(
