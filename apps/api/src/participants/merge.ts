@@ -3,8 +3,6 @@ import { and, eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db } from '@cc/api-db/client';
 import type { ResolvedActor } from '@cc/api-auth/actor';
-import { mergeScores } from '@cc/core';
-import { rowToScore, scoreToRow } from '@cc/api-db/attendance';
 import {
   attendanceScores,
   attendanceState,
@@ -493,33 +491,55 @@ export async function mergeParticipants(
     );
   }
 
-  // Attendance: the survivor keeps the higher of each score (spec: every merge). Only from's row
-  // needs work: none means nothing to carry over; into's alone stays as it is.
-  const fromScore = scoreRows.find((r) => r.participantId === fromId);
-  if (fromScore) {
-    const intoScore = scoreRows.find((r) => r.participantId === intoId);
-    const merged = intoScore
-      ? mergeScores(rowToScore(intoScore), rowToScore(fromScore))
-      : { ...rowToScore(fromScore), participantId: intoId };
-    const row = scoreToRow(tripId, merged, nowIso());
-    const { tripId: _t, participantId: _p, ...set } = row;
-    for (const r of scoreRows) log.add(attendanceScores, 'attendance_scores', ['trip_id', 'participant_id'], r);
-    queries.push(
-      db
-        .insert(attendanceScores)
-        .values(row)
-        .onConflictDoUpdate({ target: [attendanceScores.tripId, attendanceScores.participantId], set }),
-      db
-        .delete(attendanceScores)
-        .where(and(eq(attendanceScores.tripId, tripId), eq(attendanceScores.participantId, fromId))),
-      // A count that read the scores before this merge must not write them back over it: bumping
-      // the version makes its guarded commit miss ('raced'); its sessions stay uncounted until the next count.
-      db
-        .update(attendanceState)
-        .set({ version: sql`${attendanceState.version} + 1` })
-        .where(eq(attendanceState.tripId, tripId)),
-    );
-  }
+  // Attendance: the survivor keeps the higher of each score (spec: every merge), computed in SQL at
+  // write time so a count landing between our read and this batch can't be undone by stale values.
+  // Same rule as mergeScores (@cc/core): MAX of every number; last_* from the row with the later
+  // last_played_on (NULL last, tie -> into). HAVING: nothing is written unless from has a row.
+  // The read above only feeds the merge log's before-images.
+  for (const r of scoreRows) log.add(attendanceScores, 'attendance_scores', ['trip_id', 'participant_id'], r);
+  const pair = sql`${attendanceScores.tripId} = ${tripId} AND ${attendanceScores.participantId} IN (${fromId}, ${intoId})`;
+  const fromLater = (col: string) =>
+    sql`(SELECT ${sql.raw(col)} FROM attendance_scores WHERE ${pair}
+      ORDER BY last_played_on IS NULL, last_played_on DESC, participant_id = ${intoId} DESC LIMIT 1)`;
+  const maxCols = [
+    'presence', 'reliability', 'guest',
+    'presence_join_streak', 'presence_skip_streak', 'reliability_join_streak', 'reliability_skip_streak',
+    'sessions_seen', 'sessions_planned', 'times_played', 'guests_total',
+  ] as const;
+  const lastCols = ['last_played_on', 'last_session_root', 'last_back', 'last_return_gap', 'last_ended_no_show_streak'] as const;
+  const byName = new Map(Object.values(getTableColumns(attendanceScores)).map((c) => [c.name, c]));
+  // Columns in table order: drizzle's INSERT … SELECT lists every column of the table in that order.
+  const selectCols = [...byName.keys()].map((name) => {
+    if (name === 'trip_id') return sql`${tripId}`;
+    if (name === 'participant_id') return sql`${intoId}`;
+    if (name === 'updated_at') return sql`${nowIso()}`;
+    if ((maxCols as readonly string[]).includes(name)) return sql`MAX(${sql.raw(name)})`;
+    if ((lastCols as readonly string[]).includes(name)) return fromLater(name);
+    throw new Error(`attendance_scores.${name} has no merge rule`);
+  });
+  const conflictSet = Object.fromEntries(
+    Object.entries(getTableColumns(attendanceScores))
+      .filter(([, c]) => c.name !== 'trip_id' && c.name !== 'participant_id')
+      .map(([key, c]) => [key, sql.raw(`excluded."${c.name}"`)]),
+  );
+  queries.push(
+    db
+      .insert(attendanceScores)
+      .select(
+        sql`SELECT ${sql.join(selectCols, sql`, `)} FROM attendance_scores WHERE ${pair}
+          HAVING SUM(participant_id = ${fromId}) > 0`,
+      )
+      .onConflictDoUpdate({ target: [attendanceScores.tripId, attendanceScores.participantId], set: conflictSet }),
+    db
+      .delete(attendanceScores)
+      .where(and(eq(attendanceScores.tripId, tripId), eq(attendanceScores.participantId, fromId))),
+    // Always: any count that read scores before this merge must miss its version guard ('raced')
+    // rather than write pre-merge rows back. Its sessions stay uncounted until the next count.
+    db
+      .insert(attendanceState)
+      .values({ tripId, version: 1 })
+      .onConflictDoUpdate({ target: attendanceState.tripId, set: { version: sql`${attendanceState.version} + 1` } }),
+  );
 
   // The request link keeps working on the survivor; the survivor's own link wins.
   if (from.requestToken !== null && into.requestToken === null) {
