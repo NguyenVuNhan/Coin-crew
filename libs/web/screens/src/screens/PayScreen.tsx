@@ -193,7 +193,7 @@ export function PayScreen() {
 
   if (viewError || payError) {
     return withStatus(
-      <Screen title="" back={tripId ? href() : undefined}>
+      <Screen title={t('pay.titleGeneric')} back={tripId ? href() : undefined}>
         <InlineError
           error={viewError || payError}
           onRetry={() => {
@@ -207,7 +207,7 @@ export function PayScreen() {
 
   if (isViewLoading || (isPayLoading && !payInfo) || !payInfo || !view) {
     return withStatus(
-      <Screen title="" back={tripId ? href() : undefined}>
+      <Screen title={t('pay.titleGeneric')} back={tripId ? href() : undefined}>
         <div className="fsl-pay__loading flex flex-col gap-4 py-2">
           <Skeleton height={80} radius="lg" />
           <Skeleton

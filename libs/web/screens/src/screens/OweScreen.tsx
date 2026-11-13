@@ -35,7 +35,7 @@ export function OweScreen() {
 
   if (error) {
     return (
-      <Screen title="" back={tripId ? href() : undefined} right={<LanguageButton />}>
+      <Screen title={t('pay.titleGeneric')} back={tripId ? href() : undefined} right={<LanguageButton />}>
         <InlineError error={error} onRetry={refetch} />
       </Screen>
     );
@@ -43,7 +43,7 @@ export function OweScreen() {
 
   if (isLoading || !view) {
     return (
-      <Screen title="" back={tripId ? href() : undefined} right={<LanguageButton />}>
+      <Screen title={t('pay.titleGeneric')} back={tripId ? href() : undefined} right={<LanguageButton />}>
         <div className="fsl-owe__loading flex flex-col gap-4 py-2">
           <Skeleton height={80} radius="lg" />
           <Skeleton

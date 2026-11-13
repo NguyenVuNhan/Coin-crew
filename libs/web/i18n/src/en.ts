@@ -713,6 +713,8 @@ export const en = {
   'activity.action.merge_proposal_declined': 'declined a merge request',
 
   'pay.title': 'Pay {name}',
+  // The pay pages' header while loading, on an error, or when there is nothing to pay: never a blank title.
+  'pay.titleGeneric': 'Pay',
   'pay.toLine': 'to {holder} · {bank}',
   'pay.iPaid': "I've paid",
   'pay.iPaidHint': 'Tap after the money has left your account.',

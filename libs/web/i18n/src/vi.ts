@@ -717,6 +717,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.merge_proposal_declined': 'đã từ chối một yêu cầu gộp tên',
 
   'pay.title': 'Trả cho {name}',
+  'pay.titleGeneric': 'Trả tiền', // REVIEW
   'pay.toLine': 'cho {holder} · {bank}',
   'pay.iPaid': 'Tôi đã trả',
   'pay.iPaidHint': 'Nhấn sau khi bạn đã chuyển tiền xong.',
