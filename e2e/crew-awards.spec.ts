@@ -15,28 +15,6 @@ async function loginAndConsent(page: Page, sub: string, name: string) {
   expect(consentRes.ok()).toBe(true);
 }
 
-function newScore(participantId: string) {
-  return {
-    participantId,
-    presence: 30,
-    reliability: 80,
-    guest: 0,
-    presenceJoinStreak: 0,
-    presenceSkipStreak: 0,
-    reliabilityJoinStreak: 0,
-    reliabilitySkipStreak: 0,
-    sessionsSeen: 10,
-    sessionsPlanned: 10,
-    timesPlayed: 5,
-    guestsTotal: 0,
-    lastPlayedOn: '2026-11-14',
-    lastSessionRoot: 'r-1',
-    lastBack: false,
-    lastReturnGap: 0,
-    lastEndedNoShowStreak: 0,
-  };
-}
-
 test('crew meme awards and turnout card in sport group', async ({ browser }) => {
   const context = await englishContext(browser);
   const page = await context.newPage();
@@ -83,102 +61,127 @@ test('crew meme awards and turnout card in sport group', async ({ browser }) => 
   await page.goto(`/t/${tripId}/awards`);
   await expect(page.getByTestId('awards-empty')).toBeVisible();
 
-  // 5. Seed a finished sport bill
-  const billRes = await page.request.post(`/api/trips/${tripId}/expenses`, {
-    data: {
-      description: 'Court rental & shuttles',
-      amount: 400000,
-      spentOn: '2026-11-14',
-      payerId: adminPid,
-      mode: 'amounts',
-      entries: [
-        { participantId: adminPid, value: 100000 },
-        { participantId: anPid, value: 100000 },
-        { participantId: binhPid, value: 100000 },
-        { participantId: chiPid, value: 100000 },
-      ],
-      meta: {
-        sport: {
-          planning: false,
-          court: 400000,
-          shuttlecocks: [],
-          extra: 0,
-          rule: { kind: 'equal' },
-          entries: [
-            { participantId: adminPid, maleSlots: 1, femaleSlots: 0 },
-            { participantId: anPid, maleSlots: 1, femaleSlots: 0 },
-            { participantId: binhPid, maleSlots: 1, femaleSlots: 0 },
-            { participantId: chiPid, maleSlots: 1, femaleSlots: 0 },
-          ],
-          maleSlotRate: 100000,
-          femaleSlotRate: 0,
+  // 5. Seed real finished sport sessions through API (no mocking /attendance)
+  // Minh always plays (sessions 1-6 -> regular); An is planned in 1-5 but left off 4 and 5 (-> flaky)
+  const seedSession = async (spentOn: string, billPids: string[], planPids?: string[]) => {
+    if (planPids) {
+      const planRes = await page.request.post(`/api/trips/${tripId}/expenses`, {
+        data: {
+          description: `Plan ${spentOn}`,
+          amount: 0,
+          spentOn,
+          payerId: adminPid,
+          mode: 'amounts',
+          entries: planPids.map((id) => ({ participantId: id, value: 0 })),
+          meta: {
+            sport: {
+              planning: true,
+              court: 100000 * planPids.length,
+              shuttlecocks: [],
+              extra: 0,
+              rule: { kind: 'equal' },
+              entries: planPids.map((id) => ({ participantId: id, maleSlots: 1, femaleSlots: 0 })),
+              maleSlotRate: 0,
+              femaleSlotRate: 0,
+            },
+          },
         },
-      },
-    },
-  });
-  expect(billRes.ok()).toBe(true);
+      });
+      expect(planRes.ok()).toBe(true);
+      const { expenseId } = await planRes.json();
 
-  // Provide attendance scores so all four award styles trigger
-  await page.route(`**/api/trips/${tripId}/attendance`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        people: [
-          {
-            participantId: adminPid,
-            score: { ...newScore(adminPid), presence: 92, presenceJoinStreak: 12, timesPlayed: 10 },
-            labels: ['regular'],
-            wantedStamp: false,
+      const patchRes = await page.request.patch(`/api/trips/${tripId}/expenses/${expenseId}`, {
+        data: {
+          description: `Session ${spentOn}`,
+          amount: 100000 * billPids.length,
+          spentOn,
+          payerId: adminPid,
+          mode: 'amounts',
+          entries: billPids.map((id) => ({ participantId: id, value: 100000 })),
+          meta: {
+            sport: {
+              planning: false,
+              court: 100000 * billPids.length,
+              shuttlecocks: [],
+              extra: 0,
+              rule: { kind: 'equal' },
+              entries: billPids.map((id) => ({ participantId: id, maleSlots: 1, femaleSlots: 0 })),
+              maleSlotRate: 100000,
+              femaleSlotRate: 0,
+            },
           },
-          {
-            participantId: anPid,
-            score: { ...newScore(anPid), presence: 30, lastBack: true, lastReturnGap: 6, timesPlayed: 4 },
-            labels: ['back'],
-            wantedStamp: false,
+        },
+      });
+      expect(patchRes.ok()).toBe(true);
+    } else {
+      const billRes = await page.request.post(`/api/trips/${tripId}/expenses`, {
+        data: {
+          description: `Session ${spentOn}`,
+          amount: 100000 * billPids.length,
+          spentOn,
+          payerId: adminPid,
+          mode: 'amounts',
+          entries: billPids.map((id) => ({ participantId: id, value: 100000 })),
+          meta: {
+            sport: {
+              planning: false,
+              court: 100000 * billPids.length,
+              shuttlecocks: [],
+              extra: 0,
+              rule: { kind: 'equal' },
+              entries: billPids.map((id) => ({ participantId: id, maleSlots: 1, femaleSlots: 0 })),
+              maleSlotRate: 100000,
+              femaleSlotRate: 0,
+            },
           },
-          {
-            participantId: binhPid,
-            score: { ...newScore(binhPid), guest: 4, guestsTotal: 9, timesPlayed: 6 },
-            labels: ['topGuest'],
-            wantedStamp: false,
-          },
-          {
-            participantId: chiPid,
-            score: { ...newScore(chiPid), reliability: 35, reliabilitySkipStreak: 3, lastPlayedOn: '2026-10-18', timesPlayed: 2 },
-            labels: ['flaky'],
-            wantedStamp: true,
-          },
-        ],
-        latestSession: { rootId: 'r-1', spentOn: '2026-11-14' },
-        pendingSessions: 0,
-      }),
-    });
-  });
+        },
+      });
+      expect(billRes.ok()).toBe(true);
+    }
+  };
 
-  // 6. Open /t/<id>/awards: the four card titles show
+  // Sessions 1-3: Minh & An planned and attended
+  await seedSession('2026-11-01', [adminPid, anPid], [adminPid, anPid]);
+  await seedSession('2026-11-02', [adminPid, anPid], [adminPid, anPid]);
+  await seedSession('2026-11-03', [adminPid, anPid], [adminPid, anPid]);
+  // Sessions 4-5: Minh & An planned, but An left off bill twice
+  await seedSession('2026-11-04', [adminPid], [adminPid, anPid]);
+  await seedSession('2026-11-05', [adminPid], [adminPid, anPid]);
+  // Session 6: direct sport bill (Minh attended all 6 sessions)
+  await seedSession('2026-11-06', [adminPid]);
+
+  // 6. Open /t/<id>/awards: cards rendered from real attendance calculations
   await page.goto(`/t/${tripId}/awards`);
   await expect(page.getByTestId('crew-awards-screen')).toBeVisible();
 
+  // All 4 card titles show
   await expect(page.getByRole('heading', { name: 'Award night' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Wanted poster' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Folk verse' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Stadium board' })).toBeVisible();
 
-  await expect(page.getByTestId('meme-card-awards')).toBeVisible();
-  await expect(page.getByTestId('meme-card-wanted')).toBeVisible();
+  // Award night card displays regular winner Minh
+  const awardsCard = page.getByTestId('meme-card-awards');
+  await expect(awardsCard).toBeVisible();
+  await expect(awardsCard).toContainText('Minh');
+
+  // Wanted picker lists the flaky person An
+  const wantedPicker = page.getByTestId(`wanted-pick-${anPid}`);
+  await expect(wantedPicker).toBeVisible();
+  await expect(wantedPicker).toContainText('An');
+
+  const wantedCard = page.getByTestId('meme-card-wanted');
+  await expect(wantedCard).toBeVisible();
+  await expect(wantedCard).toContainText('An');
+
   await expect(page.getByTestId('meme-card-verse')).toBeVisible();
   await expect(page.getByTestId('meme-card-board')).toBeVisible();
 
-  // 7. Save triggers a download event or the saved status message
-  const downloadPromise = page.waitForEvent('download').catch(() => null);
+  // 7. Save triggers a download event on Chromium with expected filename
+  const downloadPromise = page.waitForEvent('download');
   await page.getByTestId('save-awards').click();
-
-  await expect(page.getByRole('status')).toContainText(/Picture saved|Đã lưu ảnh/i);
   const download = await downloadPromise;
-  if (download) {
-    expect(download.suggestedFilename()).toBe('crew-awards-awards.png');
-  }
+  expect(download.suggestedFilename()).toBe('crew-awards-awards.png');
 
   await context.close();
 });

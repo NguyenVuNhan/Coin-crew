@@ -769,7 +769,7 @@
       "refersTo": "meme-card",
       "description": "Sanctioned own world inside CoinCrew: 1080×1920 shareable cards celebrating group attendance in four styles (Award night, Wanted poster, Folk verse, Stadium board). Award accents are Jade, never Turmeric; display fonts are loaded only on demand; motion animates once with Replay and respects reduced motion.",
       "html": "<div class=\"ds-meme-card\"><div class=\"ds-meme-card__inner\"><span class=\"ds-meme-card__title\">Attendance Awards</span><button class=\"ds-btn-secondary\">Save</button></div></div>",
-      "css": ".ds-meme-card{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,sans-serif;width:270px;height:480px;border-radius:16px;background:var(--meme-awards-bg,#0b4f4a);color:var(--meme-awards-ink,#f6f7f4);box-shadow:0 10px 15px -3px rgb(0 0 0/.1)}"
+      "css": ".ds-meme-card{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,sans-serif;width:270px;height:480px;border-radius:16px;background:var(--meme-awards-bg);color:var(--meme-awards-ink);box-shadow:0 10px 15px -3px rgb(0 0 0/.1)}"
     },
     {
       "name": "Turnout Card",

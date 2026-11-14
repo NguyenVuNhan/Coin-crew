@@ -414,13 +414,13 @@ What a friend sees after tapping a "pay me" link: what to pay comes first, every
 ### Crew meme cards
 A sanctioned own world inside CoinCrew: shareable 1080×1920 group chat trophy images celebrating sports session attendance, records, and comebacks.
 - **Four distinct styles:**
-  - **Award night:** gala ceremony celebration with a radial spotlight glow, falling shuttlecock particles, and tiered winner rows (Most Regular, Grand Comeback, Guest Ambassador, No-Show Legend).
-  - **Wanted poster:** western-style weathered parchment border, pin bounce animation, sepia initials photo frame, and a bold rotated "BACK ON COURT!" redemption stamp for broken no-show streaks.
+  - **Award night:** gala ceremony celebration with a radial spotlight glow, falling shuttlecock SVGs, and tiered winner rows (Most Regular, Grand Comeback, Guest Ambassador, No-Show Legend).
+  - **Wanted poster:** western-style weathered parchment border, pin-in photo animation (dropping in with slight rotation and scale), sepia initials photo frame, and a bold rotated "BACK ON COURT!" redemption stamp for broken no-show streaks.
   - **Folk verse:** traditional Vietnamese six-eight (lục bát) framed couplets with calligraphy inking animation, winner name highlight, and cinnabar "Tiền Đâu" square seal.
   - **Stadium board:** mechanical split-flap scoreboard with glowing teal accents, animated flipping flap digits, and an infinite marquee ticker.
 - **Display typography:** Display typefaces (Alfa Slab One, Playfair Display, Bungee, plus Be Vietnam Pro 800/900) are loaded dynamically on demand only on the Crew awards screen (`loadMemeFonts()`), never bloating the main application bundle.
 - **Colour & token rules:** Award accents are always Jade, never Turmeric (preserving "The Money Means Something Rule"). In the DOM, cards consume dedicated `--meme-*` CSS tokens (`--meme-awards-*`, `--meme-wanted-*`, `--meme-verse-*`, `--meme-board-*`). In the canvas painters (`libs/web/util/src/memeCards.ts`), colours are rendered as literal hex values defined in `MEME_COLOURS` (exempted from style guard as canvas pixels in `IMAGE_PAINTERS`).
-- **Motion & export:** Each card animates once on open with a dedicated "Replay" button. Reduced motion (`motion-reduce:`) bypasses animation and renders the final frame immediately. Canvas painters render pixel-for-pixel the exact final frame into a 1080×1920 PNG for saving or sharing to group chats.
+- **Motion & export:** Card entrance animations play once on open with a dedicated "Replay" button, while the Stadium board ticker keeps scrolling infinitely while on screen. Reduced motion (`motion-reduce:`) bypasses animation and renders the final frame immediately. Canvas painters render pixel-for-pixel the exact final frame into a 1080×1920 PNG for saving or sharing to group chats.
 - **Turnout card in the plan form:** An admin-only summary card displayed during sport session planning (`?mode=planning`). Provides a turnout estimate ("Likely to actually come") with a segmented progress bar using `bg-primary`, `bg-primary/40`, and `bg-muted-foreground/40` (never Leaf, Lychee, or Turmeric money colours). A ghost "See who" button opens a sheet breaking down individual reliability scores and attendance labels.
 
 ### Avatars
