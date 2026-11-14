@@ -292,4 +292,54 @@ describe('Push reminder cron (sendDueReminders)', () => {
     expect(loanSpy).toHaveBeenCalled();
     expect(monthlySpy).toHaveBeenCalled();
   });
+
+  it('processes backlogs above 90 in batches without exceeding D1 param limits', async () => {
+    await linkMember(PID.A, U.an, 'An');
+
+    await seedPlannedSession('sess-batch', {
+      spentOn: '2026-11-14',
+      timeRange: '19:00 - 21:00',
+      description: 'Cầu lông T5',
+    });
+
+    const now = new Date('2026-11-14T11:30:00.000Z');
+    const dueAt = new Date('2026-11-14T11:29:00.000Z').toISOString();
+    const pubKey = await rawPublicKey();
+    const authKey = b64url(crypto.getRandomValues(new Uint8Array(16)));
+
+    // Seed 95 due reminders with distinct subscriptions
+    for (let i = 0; i < 95; i++) {
+      const subId = `sub-batch-${i}`;
+      const endpoint = `https://fcm.googleapis.com/fcm/send/batch-${i}`;
+      await env.DB.prepare(
+        'INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, new_session, session_reminder, reminder_lead_minutes, expense_new, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 1, 30, 1, ?, ?)',
+      )
+        .bind(subId, U.an, endpoint, pubKey, authKey, '2026-11-13T00:00:00.000Z', '2026-11-13T00:00:00.000Z')
+        .run();
+
+      await seedReminder(`rem-batch-${i}`, subId, 'sess-batch', dueAt, null);
+    }
+
+    const fetchSpy = stubFetch();
+
+    // Run sendDueReminders twice: first batch takes 90, second batch takes remaining 5
+    await sendDueReminders(env, now);
+    await sendDueReminders(env, now);
+
+    const unsent = await env.DB.prepare(
+      'SELECT count(*) as count FROM push_reminders WHERE transaction_root_id = ? AND sent_at IS NULL',
+    )
+      .bind('sess-batch')
+      .first<{ count: number }>();
+    expect(unsent?.count).toBe(0);
+
+    const sent = await env.DB.prepare(
+      'SELECT count(*) as count FROM push_reminders WHERE transaction_root_id = ? AND sent_at IS NOT NULL',
+    )
+      .bind('sess-batch')
+      .first<{ count: number }>();
+    expect(sent?.count).toBe(95);
+
+    expect(pushedTo(fetchSpy)).toHaveLength(95);
+  });
 });

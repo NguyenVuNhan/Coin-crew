@@ -3,10 +3,14 @@ import type { Env } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { pushReminders, pushSubscriptions, transactions } from '@cc/api-db/schema';
 import type { ExpenseMeta, PushLeadMinutes } from '@cc/core';
+import { safeError } from '@cc/api-util/logSafe';
 import { sendToSubscriptions, sessionSnapshotOf, type TransactionRow } from './dispatch';
 import { reminderMessage } from './messages';
 import { vapidFromEnv } from './webPush';
 import type { PushSubscriptionRow } from './store';
+
+/** Maximum rows to process in one cron run to keep all `inArray` bindings under D1's 100-parameter limit. */
+export const BATCH_LIMIT = 90;
 
 function parseMeta(json: string | null): ExpenseMeta | null {
   if (!json) return null;
@@ -27,7 +31,7 @@ export async function sendDueReminders(env: Env, now: Date = new Date()): Promis
     .select()
     .from(pushReminders)
     .where(and(isNull(pushReminders.sentAt), lte(pushReminders.dueAt, nowIso)))
-    .limit(200);
+    .limit(BATCH_LIMIT);
 
   if (dueRows.length === 0) return;
 
@@ -98,30 +102,34 @@ export async function sendDueReminders(env: Env, now: Date = new Date()): Promis
     }
   }
 
-  await Promise.all(
+  await Promise.allSettled(
     Array.from(sendGroups.values()).map(async (group) => {
-      const meta = parseMeta(group.head.metaJson);
-      const courtSlots = meta?.sport?.courtSlots ?? [];
-      const courtNames = courtSlots.map((c) => c.courtName.trim()).filter(Boolean);
-      const courts = courtNames.length > 0 ? [...new Set(courtNames)].join(', ') : null;
-      const slotTimes = courtSlots.map((c) => c.timeRange.trim()).filter(Boolean);
-      const timeRange = slotTimes.length > 0 ? [...new Set(slotTimes)].join(', ') : null;
-      const locationName = meta?.sport?.location?.name?.trim() || null;
+      try {
+        const meta = parseMeta(group.head.metaJson);
+        const courtSlots = meta?.sport?.courtSlots ?? [];
+        const courtNames = courtSlots.map((c) => c.courtName.trim()).filter(Boolean);
+        const courts = courtNames.length > 0 ? [...new Set(courtNames)].join(', ') : null;
+        const slotTimes = courtSlots.map((c) => c.timeRange.trim()).filter(Boolean);
+        const timeRange = slotTimes.length > 0 ? [...new Set(slotTimes)].join(', ') : null;
+        const locationName = meta?.sport?.location?.name?.trim() || null;
 
-      const payload = reminderMessage({
-        description: group.head.description,
-        leadMinutes: group.leadMinutes,
-        locationName,
-        courts,
-        timeRange,
-        tripId: group.head.tripId,
-        rootId: group.head.rootId,
-      });
+        const payload = reminderMessage({
+          description: group.head.description,
+          leadMinutes: group.leadMinutes,
+          locationName,
+          courts,
+          timeRange,
+          tripId: group.head.tripId,
+          rootId: group.head.rootId,
+        });
 
-      await sendToSubscriptions(env, db, group.subs, payload, {
-        ttlSeconds: group.ttlSeconds,
-        urgency: 'high',
-      });
+        await sendToSubscriptions(env, db, group.subs, payload, {
+          ttlSeconds: group.ttlSeconds,
+          urgency: 'high',
+        });
+      } catch (err) {
+        console.error('[sendDueReminders] group send failed:', safeError(err));
+      }
     }),
   );
 
