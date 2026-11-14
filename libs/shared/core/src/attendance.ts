@@ -136,7 +136,11 @@ export function applySession(
       next.timesPlayed = prev.timesPlayed + 1;
       next.lastPlayedOn = session.spentOn;
     }
-    next.lastBack = onBill && prev.presence <= ATTENDANCE.rareAt && prev.sessionsSeen >= ATTENDANCE.minSessions;
+    next.lastBack =
+      onBill &&
+      prev.presence <= ATTENDANCE.rareAt &&
+      prev.presenceSkipStreak >= 1 &&
+      prev.sessionsSeen >= ATTENDANCE.minSessions;
     next.lastReturnGap = onBill ? prev.presenceSkipStreak : 0;
     next.lastEndedNoShowStreak = onPlan && onBill ? prev.reliabilitySkipStreak : 0;
     next.lastSessionRoot = session.rootId;

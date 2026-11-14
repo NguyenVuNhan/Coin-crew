@@ -1184,12 +1184,18 @@ export const vi: Record<MessageKey, string> = {
   'awards.title.guest': 'Đại sứ kéo khách', // REVIEW
   'awards.title.noShow': 'Thánh bùng kèo', // REVIEW
   'awards.stat.regular': '{n} trận liền, chưa vắng buổi nào', // REVIEW
+  'awards.stat.regular_one': '{n} trận liền, chưa vắng buổi nào', // REVIEW
   'awards.stat.regularPlayed': '{n} buổi đã chơi', // REVIEW
+  'awards.stat.regularPlayed_one': '{n} buổi đã chơi', // REVIEW
   'awards.stat.back': 'Vắng {n} buổi, nay đã về sân', // REVIEW
+  'awards.stat.back_one': 'Vắng {n} buổi, nay đã về sân', // REVIEW
   'awards.stat.guest': 'Dẫn {n} khách ra sân', // REVIEW
+  'awards.stat.guest_one': 'Dẫn {n} khách ra sân', // REVIEW
   'awards.stat.noShow': 'Bùng kèo {n} trận liên tiếp', // REVIEW
+  'awards.stat.noShow_one': 'Bùng kèo {n} trận', // REVIEW
   'awards.wanted.heading': 'TRUY NÃ', // REVIEW
   'awards.wanted.crime': 'Tội danh: bùng kèo {n} trận liên tiếp', // REVIEW
+  'awards.wanted.crime_one': 'Tội danh: bùng kèo {n} trận', // REVIEW
   'awards.wanted.lastSeen': 'Lần cuối thấy ra sân: {date}', // REVIEW
   'awards.wanted.neverSeen': 'Lần cuối thấy ra sân: chưa rõ', // REVIEW
   'awards.wanted.reward': 'TIỀN THƯỞNG: 1 QUẢ CẦU', // REVIEW
@@ -1218,7 +1224,9 @@ export const vi: Record<MessageKey, string> = {
   'awards.board.noShowStreak': 'CHUỖI BÙNG KÈO', // REVIEW
   'awards.board.tickerRegular': '{name} GIỮ CHUỖI {n} TRẬN', // REVIEW
   'awards.board.tickerBack': '{name} ĐÃ TRỞ LẠI SÂN SAU {n} BUỔI', // REVIEW
+  'awards.board.tickerBack_one': '{name} ĐÃ TRỞ LẠI SÂN SAU {n} BUỔI', // REVIEW
   'awards.board.tickerGuest': '{name} DẪN THEO {n} KHÁCH', // REVIEW
+  'awards.board.tickerGuest_one': '{name} DẪN THEO {n} KHÁCH', // REVIEW
   'awards.board.tickerNoShow': '{name}: HẸN GẶP TRẬN TỚI NHÉ?', // REVIEW
   'awards.cardTitle.awards': 'Lễ trao giải', // REVIEW
   'awards.cardTitle.wanted': 'Truy nã', // REVIEW

@@ -10,7 +10,6 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
-import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { AwardNightCard } from '../components/meme/AwardNightCard';
 import { WantedCard } from '../components/meme/WantedCard';
@@ -116,8 +115,11 @@ export function CrewAwards() {
     );
   }
 
+  const nameMap = new Map(activePeople.filter((p) => p.name).map((p) => [p.id, p.name]));
+  const wantedCandidates = content ? content.wantedCandidates.filter((cid) => nameMap.has(cid)) : [];
+
   const hasAnyCard = Boolean(
-    content && (content.awards || content.wantedCandidates.length > 0 || content.verse || content.board),
+    content && (content.awards || wantedCandidates.length > 0 || content.verse || content.board),
   );
 
   if (!content || !hasAnyCard) {
@@ -136,9 +138,9 @@ export function CrewAwards() {
   }
 
   const wantedId =
-    pickedWantedId && content.wantedCandidates.includes(pickedWantedId)
+    pickedWantedId && wantedCandidates.includes(pickedWantedId)
       ? pickedWantedId
-      : (content.wantedCandidates[0] ?? null);
+      : (wantedCandidates[0] ?? null);
   const wantedInput = wantedId ? content.wanted(wantedId) : null;
 
   const handleSave = async (input: MemeInput) => {
@@ -207,7 +209,6 @@ export function CrewAwards() {
     );
   };
 
-  const nameMap = new Map(activePeople.map((p) => [p.id, p.name]));
   let primaryAssigned = false;
   const takePrimary = () => {
     if (primaryAssigned) return false;
@@ -252,24 +253,21 @@ export function CrewAwards() {
               {t('awards.cardTitle.wanted')}
             </h2>
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('awards.cardTitle.wanted')}>
-              {content.wantedCandidates.map((cid) => {
+              {wantedCandidates.map((cid) => {
+                const name = nameMap.get(cid);
+                if (!name) return null;
                 const selected = cid === wantedId;
                 return (
-                  <button
+                  <Button
                     key={cid}
-                    type="button"
+                    variant={selected ? 'primary' : 'secondary'}
                     data-testid={`wanted-pick-${cid}`}
                     aria-pressed={selected}
                     onClick={() => setPickedWantedId(cid)}
-                    className={cn(
-                      'inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full px-4 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                      selected
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground hover:bg-accent',
-                    )}
+                    className="min-h-11 rounded-full px-4"
                   >
-                    {nameMap.get(cid) ?? cid}
-                  </button>
+                    {name}
+                  </Button>
                 );
               })}
             </div>

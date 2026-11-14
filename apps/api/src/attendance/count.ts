@@ -23,9 +23,11 @@ function resolveSession(s: AttendanceSession, resolve: (id: string) => string): 
 }
 
 /** Stored scores and the finished sessions not yet counted (oldest first). */
-async function pending(db: Db, tripId: string) {
+async function pending(db: Db, tripId: string, exclude: Iterable<string> = []) {
   const { version, scores: stored, counted } = await readAttendance(db, tripId);
-  const sessions = await loadSportSessions(db, tripId, counted);
+  const skip = new Set(counted);
+  for (const id of exclude) skip.add(id);
+  const sessions = await loadSportSessions(db, tripId, skip);
   return { version, stored, sessions };
 }
 
@@ -48,8 +50,12 @@ function fold(
 }
 
 /** Counts every finished sport session not yet counted and stores the scores. Never re-counts a root. */
-export async function countPendingSessions(db: Db, tripId: string): Promise<'counted' | 'nothing' | 'raced'> {
-  const { version, stored, sessions } = await pending(db, tripId);
+export async function countPendingSessions(
+  db: Db,
+  tripId: string,
+  exclude?: string[],
+): Promise<'counted' | 'nothing' | 'raced'> {
+  const { version, stored, sessions } = await pending(db, tripId, exclude);
   if (sessions.length === 0) return 'nothing';
   const scores = fold(stored, sessions, await loadPeople(db, tripId));
   // applySession only replaces the rows it steps, so an unchanged object means an unchanged row.

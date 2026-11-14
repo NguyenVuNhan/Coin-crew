@@ -72,14 +72,18 @@ export function buildAwards(
   t: Translate,
   tripName = '',
 ): AwardsContent {
-  const nameMap = new Map(people.map((p) => [p.id, p.name]));
-  const nameOf = (id: string) => nameMap.get(id) ?? id;
-  const scored = Array.isArray(view.people) ? view.people.filter((p) => p?.score && Array.isArray(p.labels)) : [];
+  const nameMap = new Map(people.filter((p) => p.name).map((p) => [p.id, p.name]));
+  const nameOf = (id: string) => nameMap.get(id) ?? '';
+  const scored = Array.isArray(view.people)
+    ? view.people.filter((p) => p?.score && Array.isArray(p.labels) && nameMap.has(p.participantId))
+    : [];
 
   const regulars = scored.filter((p) => p.labels.includes('regular')).sort(cmpRegular);
   const backs = scored.filter((p) => p.labels.includes('back')).sort(cmpBack);
   const guests = scored.filter((p) => p.labels.includes('topGuest')).sort(cmpGuest);
-  const flakies = scored.filter((p) => p.labels.includes('flaky')).sort(cmpNoShow);
+  const flakies = scored
+    .filter((p) => p.labels.includes('flaky') && p.score.reliabilitySkipStreak >= 1)
+    .sort(cmpNoShow);
 
   const regularWinner = regulars[0] ?? null;
   const backWinner = backs[0] ?? null;
@@ -89,47 +93,51 @@ export function buildAwards(
   const awardItems: MemeAward[] = [];
   if (regularWinner) {
     const streak = regularWinner.score.presenceJoinStreak;
+    const played = regularWinner.score.timesPlayed;
     awardItems.push({
       kind: 'regular',
       title: t('awards.title.regular'),
       name: nameOf(regularWinner.participantId),
       stat:
         streak > 0
-          ? t('awards.stat.regular', { n: streak })
-          : t('awards.stat.regularPlayed', { n: regularWinner.score.timesPlayed }),
+          ? t(streak === 1 ? 'awards.stat.regular_one' : 'awards.stat.regular', { n: streak })
+          : t(played === 1 ? 'awards.stat.regularPlayed_one' : 'awards.stat.regularPlayed', { n: played }),
     });
   }
   if (backWinner) {
+    const gap = backWinner.score.lastReturnGap;
     awardItems.push({
       kind: 'back',
       title: t('awards.title.back'),
       name: nameOf(backWinner.participantId),
-      stat: t('awards.stat.back', { n: backWinner.score.lastReturnGap }),
+      stat: t(gap === 1 ? 'awards.stat.back_one' : 'awards.stat.back', { n: gap }),
     });
   }
   if (guestWinner) {
+    const total = guestWinner.score.guestsTotal;
     awardItems.push({
       kind: 'guest',
       title: t('awards.title.guest'),
       name: nameOf(guestWinner.participantId),
-      stat: t('awards.stat.guest', { n: guestWinner.score.guestsTotal }),
+      stat: t(total === 1 ? 'awards.stat.guest_one' : 'awards.stat.guest', { n: total }),
     });
   }
   if (noShowWinner) {
-    const streak = noShowWinner.score.reliabilitySkipStreak || noShowWinner.score.lastEndedNoShowStreak || 1;
+    const streak = noShowWinner.score.reliabilitySkipStreak;
     awardItems.push({
       kind: 'noShow',
       title: t('awards.title.noShow'),
       name: nameOf(noShowWinner.participantId),
-      stat: t('awards.stat.noShow', { n: streak }),
+      stat: t(streak === 1 ? 'awards.stat.noShow_one' : 'awards.stat.noShow', { n: streak }),
     });
   }
 
   const footer = t('awards.footer');
   const sessionDate = view.latestSession?.spentOn ? formatDay(view.latestSession.spentOn) : null;
+  const hasPraise = Boolean(regularWinner || backWinner || guestWinner);
 
   const awards: (MemeInput & { kind: 'awards' }) | null =
-    awardItems.length > 0
+    hasPraise && awardItems.length > 0
       ? {
           kind: 'awards',
           heading: t('awards.heading'),
@@ -142,13 +150,15 @@ export function buildAwards(
       : null;
 
   const wantedCandidates = scored
-    .filter((p) => p.labels.includes('flaky') || p.wantedStamp)
+    .filter((p) => (p.labels.includes('flaky') && p.score.reliabilitySkipStreak >= 1) || p.wantedStamp)
     .map((p) => p.participantId);
 
   const wanted = (participantId: string): MemeInput & { kind: 'wanted' } => {
     const person = scored.find((p) => p.participantId === participantId);
     const name = nameOf(participantId);
-    const streak = person?.score.reliabilitySkipStreak || person?.score.lastEndedNoShowStreak || 1;
+    const streak = person?.wantedStamp
+      ? person.score.lastEndedNoShowStreak
+      : (person?.score.reliabilitySkipStreak ?? 0);
     const lastSeen = person?.score.lastPlayedOn
       ? t('awards.wanted.lastSeen', { date: formatDay(person.score.lastPlayedOn) })
       : t('awards.wanted.neverSeen');
@@ -159,7 +169,7 @@ export function buildAwards(
       group: tripName || t('awards.subheading'),
       name,
       initials: initialsOf(name),
-      crime: t('awards.wanted.crime', { n: streak }),
+      crime: t(streak === 1 ? 'awards.wanted.crime_one' : 'awards.wanted.crime', { n: streak }),
       lastSeen,
       reward: t('awards.wanted.reward'),
       stamp: person?.wantedStamp ? t('awards.wanted.stamp') : null,
@@ -185,8 +195,9 @@ export function buildAwards(
   addVerse('back', backWinner);
   addVerse('noShow', noShowWinner);
 
+  const hasPraiseVerse = Boolean(regularWinner || backWinner);
   const verse: (MemeInput & { kind: 'verse' }) | null =
-    verseItems.length > 0
+    hasPraise && hasPraiseVerse && verseItems.length > 0
       ? {
           kind: 'verse',
           heading: t('awards.verse.heading'),
@@ -226,17 +237,18 @@ export function buildAwards(
     boardRows.push({
       label: t('awards.board.noShowStreak'),
       name: nameOf(noShowWinner.participantId),
-      value: noShowWinner.score.reliabilitySkipStreak || noShowWinner.score.lastEndedNoShowStreak || 1,
+      value: noShowWinner.score.reliabilitySkipStreak,
       tone: 'cold',
     });
   }
 
   const tickerParts: string[] = [];
   if (backWinner) {
+    const gap = backWinner.score.lastReturnGap;
     tickerParts.push(
-      t('awards.board.tickerBack', {
+      t(gap === 1 ? 'awards.board.tickerBack_one' : 'awards.board.tickerBack', {
         name: nameOf(backWinner.participantId).toUpperCase(),
-        n: backWinner.score.lastReturnGap,
+        n: gap,
       }),
     );
   }
@@ -249,10 +261,11 @@ export function buildAwards(
     );
   }
   if (guestWinner) {
+    const total = guestWinner.score.guestsTotal;
     tickerParts.push(
-      t('awards.board.tickerGuest', {
+      t(total === 1 ? 'awards.board.tickerGuest_one' : 'awards.board.tickerGuest', {
         name: nameOf(guestWinner.participantId).toUpperCase(),
-        n: guestWinner.score.guestsTotal,
+        n: total,
       }),
     );
   }
@@ -264,8 +277,9 @@ export function buildAwards(
     );
   }
 
+  const hasPraiseRow = boardRows.some((r) => r.tone !== 'cold');
   const board: (MemeInput & { kind: 'board' }) | null =
-    boardRows.length > 0
+    hasPraise && hasPraiseRow
       ? {
           kind: 'board',
           heading: t('awards.board.heading'),
