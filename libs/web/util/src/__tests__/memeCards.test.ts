@@ -23,6 +23,7 @@ function mockCanvas() {
     lineJoin: 'miter',
     globalAlpha: 1,
     font: '',
+    filter: 'none',
     letterSpacing: '0px',
     textAlign: 'left',
     textBaseline: 'top',
@@ -31,6 +32,9 @@ function mockCanvas() {
     scale: vi.fn(),
     translate: vi.fn(),
     rotate: vi.fn(),
+    rect: vi.fn(),
+    clip: vi.fn(),
+    drawImage: vi.fn(),
     fillRect: vi.fn(),
     beginPath: vi.fn(),
     closePath: vi.fn(),
@@ -216,5 +220,42 @@ describe('renderMemePng', () => {
     } finally {
       delete (document as { fonts?: unknown }).fonts;
     }
+  });
+
+  it('wanted draws profile photo when avatarUrl loads and falls back to initials on error', async () => {
+    class MockImage {
+      crossOrigin: string | null = null;
+      naturalWidth = 200;
+      naturalHeight = 100;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+    vi.stubGlobal('Image', MockImage);
+    const ok = mockCanvas();
+    const okBlob = await renderMemePng({ ...wanted, avatarUrl: 'https://cdn.example/binh.jpg' });
+    expect(okBlob).not.toBeNull();
+    expect(ok.ctx.drawImage).toHaveBeenCalledTimes(1);
+    expect(ok.drawn.map((d) => d.text)).not.toContain('Bì');
+    vi.restoreAllMocks();
+
+    class FailingImage {
+      crossOrigin: string | null = null;
+      naturalWidth = 0;
+      naturalHeight = 0;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        queueMicrotask(() => this.onerror?.());
+      }
+    }
+    vi.stubGlobal('Image', FailingImage);
+    const fallback = mockCanvas();
+    const fallbackBlob = await renderMemePng({ ...wanted, avatarUrl: 'https://cdn.example/blocked.jpg' });
+    expect(fallbackBlob).not.toBeNull();
+    expect(fallback.ctx.drawImage).not.toHaveBeenCalled();
+    expect(fallback.drawn.map((d) => d.text)).toContain('Bì');
   });
 });

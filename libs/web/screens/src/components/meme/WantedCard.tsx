@@ -17,6 +17,8 @@ export function WantedCard({
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
   const [playKey, setPlayKey] = useState(0);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const showAvatar = Boolean(input.avatarUrl) && failedAvatarUrl !== input.avatarUrl;
 
   const cut = input.crime.indexOf(': ');
   const crimePrefix = cut >= 0 ? input.crime.slice(0, cut + 2) : '';
@@ -45,12 +47,21 @@ export function WantedCard({
         </div>
         <div
           className={cn(
-            'mx-auto mt-3.5 mb-2.5 grid size-[132px] place-items-center border-[3px] border-meme-wanted-ink bg-avatar-3 font-meme-slab text-[44px] text-avatar-3-fg sepia-[.35]',
+            'mx-auto mt-3.5 mb-2.5 grid size-[132px] place-items-center overflow-hidden border-[3px] border-meme-wanted-ink bg-avatar-3 font-meme-slab text-[44px] text-avatar-3-fg sepia-[.35]',
             !reducedMotion &&
               'animate-[fsl-meme-pin_450ms_cubic-bezier(0.16,1,0.3,1)_150ms_both] motion-reduce:animate-none',
           )}
         >
-          {input.initials}
+          {showAvatar ? (
+            <img
+              src={input.avatarUrl!}
+              alt=""
+              onError={() => setFailedAvatarUrl(input.avatarUrl ?? null)}
+              className="size-full object-cover"
+            />
+          ) : (
+            input.initials
+          )}
         </div>
         <div className="truncate text-center font-meme-slab text-[28px] uppercase">{input.name}</div>
         <div className="mt-1.5 text-center text-[13px] leading-[1.4] tabular-nums">

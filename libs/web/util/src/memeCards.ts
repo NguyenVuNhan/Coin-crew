@@ -19,6 +19,7 @@ export type MemeInput =
       group: string;
       name: string;
       initials: string;
+      avatarUrl?: string | null;
       crime: string;
       lastSeen: string;
       reward: string;
@@ -312,7 +313,7 @@ function paintAwards(ctx: Ctx, input: Extract<MemeInput, { kind: 'awards' }>) {
   footer(ctx, input.footer, C.foot);
 }
 
-function paintWanted(ctx: Ctx, input: Extract<MemeInput, { kind: 'wanted' }>) {
+function paintWanted(ctx: Ctx, input: Extract<MemeInput, { kind: 'wanted' }>, avatarImg?: HTMLImageElement | null) {
   const C = MEME_COLOURS.wanted;
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
@@ -337,7 +338,25 @@ function paintWanted(ctx: Ctx, input: Extract<MemeInput, { kind: 'wanted' }>) {
   ctx.fillRect(px, py, 132, 132);
   ctx.fillStyle = C.photo;
   ctx.fillRect(px + 3, py + 3, 126, 126);
-  line(ctx, input.initials, W / 2, py + 66, 120, `44px ${SLAB}`, C.photoInk);
+  if (avatarImg && avatarImg.naturalWidth > 0 && avatarImg.naturalHeight > 0) {
+    const boxX = px + 3;
+    const boxY = py + 3;
+    const boxSize = 126;
+    const iw = avatarImg.naturalWidth;
+    const ih = avatarImg.naturalHeight;
+    const side = Math.min(iw, ih);
+    const sx = (iw - side) / 2;
+    const sy = (ih - side) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(boxX, boxY, boxSize, boxSize);
+    ctx.clip();
+    if ('filter' in ctx) ctx.filter = 'sepia(0.35)';
+    ctx.drawImage(avatarImg, sx, sy, side, side, boxX, boxY, boxSize, boxSize);
+    ctx.restore();
+  } else {
+    line(ctx, input.initials, W / 2, py + 66, 120, `44px ${SLAB}`, C.photoInk);
+  }
 
   line(ctx, input.name, W / 2, 271, inner, `28px ${SLAB}`, C.ink);
 
@@ -527,7 +546,9 @@ function facesFor(kind: MemeKind): string[] {
 
 /** Every string a card shows, so `fonts.load` fetches the unicode-range subsets (Vietnamese) it needs. */
 function textOf(input: MemeInput): string {
-  const strings: string[] = Object.values(input).filter((v): v is string => typeof v === 'string');
+  const strings: string[] = Object.entries(input)
+    .filter(([k, v]) => k !== 'avatarUrl' && typeof v === 'string')
+    .map(([, v]) => v as string);
   if (input.kind === 'awards') for (const a of input.awards) strings.push(a.title, a.name, a.stat);
   if (input.kind === 'verse') for (const v of input.verses) strings.push(v.line6, v.line8, v.tag);
   if (input.kind === 'board') for (const r of input.rows) strings.push(r.label, r.name);
@@ -541,10 +562,32 @@ async function loadFaces(input: MemeInput) {
   await Promise.all(facesFor(input.kind).map((f) => fonts.load(f, text).catch(() => [])));
 }
 
+function loadAvatarImage(url: string, timeoutMs = 2000): Promise<HTMLImageElement | null> {
+  if (typeof Image === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    const finish = (res: HTMLImageElement | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(res);
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    img.crossOrigin = 'anonymous';
+    img.onload = () => finish(img);
+    img.onerror = () => finish(null);
+    img.src = url;
+  });
+}
+
 /** 1080×1920 PNG of the card's final frame. Waits for `document.fonts.load` of the card's faces first. */
 export async function renderMemePng(input: MemeInput): Promise<Blob | null> {
   if (typeof document === 'undefined') return null;
-  await loadFaces(input);
+  const [, avatarImg] = await Promise.all([
+    loadFaces(input),
+    input.kind === 'wanted' && input.avatarUrl ? loadAvatarImage(input.avatarUrl) : Promise.resolve(null),
+  ]);
   const canvas = document.createElement('canvas');
   canvas.width = W * SCALE;
   canvas.height = H * SCALE;
@@ -558,7 +601,7 @@ export async function renderMemePng(input: MemeInput): Promise<Blob | null> {
       paintAwards(ctx, input);
       break;
     case 'wanted':
-      paintWanted(ctx, input);
+      paintWanted(ctx, input, avatarImg);
       break;
     case 'verse':
       paintVerse(ctx, input);
@@ -568,11 +611,26 @@ export async function renderMemePng(input: MemeInput): Promise<Blob | null> {
       break;
   }
 
-  return new Promise<Blob | null>((resolve) => {
-    try {
-      canvas.toBlob((blob) => resolve(blob), 'image/png');
-    } catch {
-      resolve(null);
+  const toPng = () =>
+    new Promise<Blob | null>((resolve, reject) => {
+      try {
+        canvas.toBlob((blob) => resolve(blob), 'image/png');
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+  try {
+    return await toPng();
+  } catch {
+    if (input.kind === 'wanted' && avatarImg) {
+      paintWanted(ctx, input, null);
+      try {
+        return await toPng();
+      } catch {
+        return null;
+      }
     }
-  });
+    return null;
+  }
 }

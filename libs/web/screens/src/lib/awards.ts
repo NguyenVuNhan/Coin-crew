@@ -68,11 +68,12 @@ function cmpNoShow(a: AttendancePerson, b: AttendancePerson): number {
 
 export function buildAwards(
   view: AttendanceView,
-  people: { id: string; name: string }[],
+  people: { id: string; name: string; avatarUrl?: string | null }[],
   t: Translate,
   tripName = '',
 ): AwardsContent {
   const nameMap = new Map(people.filter((p) => p.name).map((p) => [p.id, p.name]));
+  const avatarMap = new Map(people.map((p) => [p.id, p.avatarUrl ?? null]));
   const nameOf = (id: string) => nameMap.get(id) ?? '';
   const scored = Array.isArray(view.people)
     ? view.people.filter((p) => p?.score && Array.isArray(p.labels) && nameMap.has(p.participantId))
@@ -169,6 +170,7 @@ export function buildAwards(
       group: tripName || t('awards.subheading'),
       name,
       initials: initialsOf(name),
+      avatarUrl: avatarMap.get(participantId) ?? null,
       crime: t(streak === 1 ? 'awards.wanted.crime_one' : 'awards.wanted.crime', { n: streak }),
       lastSeen,
       reward: t('awards.wanted.reward'),

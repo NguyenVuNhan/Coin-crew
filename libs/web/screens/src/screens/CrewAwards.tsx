@@ -53,7 +53,10 @@ export function CrewAwards() {
   const attendance = useAttendance(tripId ?? '', { enabled: isAdmin });
 
   const activePeople = useMemo(
-    () => (view?.people ?? []).filter((p) => p.status !== 'left').map((p) => ({ id: p.id, name: p.name })),
+    () =>
+      (view?.people ?? [])
+        .filter((p) => p.status !== 'left')
+        .map((p) => ({ id: p.id, name: p.name, avatarUrl: p.avatarUrl ?? null })),
     [view?.people],
   );
 

@@ -138,4 +138,22 @@ describe('buildAwards and pickVerse', () => {
     const next = pickVerse('regular', 'root-2', 3);
     expect(next).not.toBe(first);
   });
+
+  it('forwards optional avatarUrl on wanted cards and defaults to null', () => {
+    const view: AttendanceView = {
+      people: [
+        person('p-flaky-1', { reliability: 40, reliabilitySkipStreak: 2 }, ['flaky'], false),
+        person('p-flaky-2', { reliability: 45, reliabilitySkipStreak: 1 }, ['flaky'], false),
+      ],
+      latestSession: { rootId: 'r-14', spentOn: '2026-11-15' },
+      pendingSessions: 0,
+    };
+    const withAvatars = [
+      { id: 'p-flaky-1', name: 'Bình', avatarUrl: 'https://cdn.example/binh.png' },
+      { id: 'p-flaky-2', name: 'Hải' },
+    ];
+    const content = buildAwards(view, withAvatars, t);
+    expect(content.wanted('p-flaky-1').avatarUrl).toBe('https://cdn.example/binh.png');
+    expect(content.wanted('p-flaky-2').avatarUrl).toBeNull();
+  });
 });
