@@ -25,6 +25,8 @@ function Harness() {
   return (
     <>
       <p data-testid="status">{String(s.status)}</p>
+      <p data-testid="sheet-open">{String(s.sheetOpen)}</p>
+      <p data-testid="sharing">{String(s.sharing)}</p>
       {s.sheet}
     </>
   );
@@ -111,5 +113,24 @@ describe('useImageShare', () => {
     mount();
     await act(() => api.share(request(true)));
     expect(screen.getByTestId('status').textContent).toBe('null');
+  });
+
+  it('exposes sheetOpen as true when PC or Zalo sheet opens and false when closed', async () => {
+    mockMedia({ mouse: true });
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal('navigator', { ...navigator, userAgent: 'Chrome', clipboard: { writeText } });
+    mount();
+    expect(screen.getByTestId('sheet-open').textContent).toBe('false');
+
+    await act(() => api.share(request(true)));
+    await waitFor(() => expect(document.querySelector('.fsl-save-image')).not.toBeNull());
+    expect(screen.getByTestId('sheet-open').textContent).toBe('true');
+    expect(screen.getByTestId('sharing').textContent).toBe('false');
+
+    // Close the Radix Dialog sheet via Escape
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    await waitFor(() => expect(screen.getByTestId('sheet-open').textContent).toBe('false'));
   });
 });

@@ -79,6 +79,25 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
       {t('settings.archived')}
     </p>
   ) : null;
+  const awardsEntry =
+    view.trip.preset === 'sport' && can(actorOf(view), 'plan_session') ? (
+      <Link
+        to={href('/awards')}
+        data-testid="crew-awards-entry"
+        className="fsl-member__awards flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 text-foreground no-underline transition-colors duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+      >
+        <span
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary"
+          aria-hidden="true"
+        >
+          <Icon name="trophy" size={18} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
+          {t('awards.entry')}
+        </span>
+        <Icon name="chevronRight" size={20} className="shrink-0 text-muted-foreground" />
+      </Link>
+    ) : null;
   // A brand-new trip leads with the invite card; the balance appears with the first expense.
   const balance = hasExpenses ? <BalanceCard view={view} /> : canInvite ? <InviteCard view={view} /> : null;
   // Under the balance (or invite) card; with no card on a fund-only trip it still shows, since the income counts as history.
@@ -136,6 +155,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
                 <PeopleEntry view={view} />
                 {notice}
                 <LeaderboardWidget view={view} switching={selection !== null} />
+                {awardsEntry}
                 <ApprovalQueue view={view} switching={selection !== null} />
                 {fund}
                 {expenses(true, true)}
@@ -151,6 +171,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
           {notice}
           <UpdatedTransactionsBanner view={view} />
           <LeaderboardWidget view={view} />
+          {awardsEntry}
           <ApprovalQueue view={view} />
           {balance}
           {fund}

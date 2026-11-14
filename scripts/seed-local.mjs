@@ -126,6 +126,7 @@ export function seedRefs(ownerId) {
     giangPid: `seed-${o}-hoian-giang`,
     dalatGroupToken: `seed-${o}-dalat-g`,
     requestToken: `seed-r-${o}-an`.padEnd(32, '0'),
+    attClubTripId: `seed-${o}-att-club`,
   };
 }
 
@@ -264,8 +265,124 @@ export function buildSeedSql(owners, now) {
   return out;
 }
 
+/**
+ * Pure: builds SQL for "Cầu lông CN (seed)" with 7 planned->billed sessions per real owner,
+ * covering regular, rare, flaky, topGuest, back, new, and wantedStamp.
+ */
+export function buildAttendanceSeedSql(owners, now) {
+  const end = Date.parse(now);
+  const setup = new Date(end - 50 * DAY).toISOString();
+  const out = [];
+
+  for (const owner of owners) {
+    const o = ownerTag(owner.id);
+    const id = (s) => `seed-${o}-att-${s}`;
+    const ownerName = (owner.name || 'Me').trim().slice(0, 40) || 'Me';
+    const tripId = id('club');
+
+    out.push(insert('trips', {
+      id: tripId, name: 'Cầu lông CN (seed)', preset: 'sport', currency: 'VND',
+      fewest_transfers: 0, round_transfers: 1, default_lang: 'vi', organiser_user_id: owner.id,
+      group_token: id('g'), view_token: id('v'), version: 1, created_at: setup,
+    }));
+
+    let order = 0;
+    const person = (slug, name, extra = {}) => {
+      const pid = id(slug);
+      out.push(insert('participants', {
+        id: pid, trip_id: tripId, name, normalized_name: normalizeName(name), user_id: null,
+        is_admin: 0, status: 'active', sort_order: order++, created_at: setup, ...extra,
+      }));
+      return pid;
+    };
+
+    const me = person('me', ownerName, { user_id: owner.id, is_admin: 1 });
+    const an = person('an', 'An');
+    const binh = person('binh', 'Bình');
+    const chi = person('chi', 'Chi');
+    const dung = person('dung', 'Dũng');
+    const ha = person('ha', 'Hà');
+    const giang = person('giang', 'Giang');
+
+    const sessions = [
+      [[me, an, binh, chi, ha], [[me, 1], [an, 1], [binh, 1], [chi, 1], [dung, 1], [ha, 1]]],
+      [[me, an, binh, chi, ha], [[me, 1], [an, 1], [binh, 1], [chi, 1]]],
+      [[me, an, binh, chi, ha], [[me, 1], [an, 1], [chi, 1], [ha, 1]]],
+      [[me, an, binh, chi, ha], [[me, 1], [an, 1], [chi, 1]]],
+      [[me, an, binh, chi, ha], [[me, 1], [an, 2], [ha, 1]]],
+      [[me, an, binh, chi, ha, giang], [[me, 1], [an, 3], [giang, 1]]],
+      [[me, an, binh, chi, ha, giang], [[me, 1], [an, 2], [chi, 1], [dung, 1], [ha, 1], [giang, 1]]],
+    ];
+
+    const slotRate = 100000;
+    sessions.forEach(([planIds, billEntries], idx) => {
+      const n = idx + 1;
+      const daysAgo = (sessions.length - idx) * 7 - 6;
+      const planAt = new Date(end - (daysAgo + 2) * DAY).toISOString();
+      const billAt = new Date(end - daysAgo * DAY).toISOString();
+      const spentOn = billAt.slice(0, 10);
+      const rootId = id(`s${n}-p`);
+      const billId = id(`s${n}-b`);
+
+      const planMeta = JSON.stringify({
+        sport: {
+          planning: true,
+          court: slotRate * planIds.length,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'equal' },
+          entries: planIds.map((pid) => ({ participantId: pid, maleSlots: 1, femaleSlots: 0 })),
+          maleSlotRate: 0,
+          femaleSlotRate: 0,
+        },
+      });
+
+      out.push(insert('transactions', {
+        id: rootId, root_id: rootId, parent_id: null, is_latest: 0, trip_id: tripId, type: 'expense',
+        description: `Buổi ${n} (Chủ nhật)`, amount: 0, amount_confirmed: null, currency: 'VND',
+        payer_id: me, to_id: null, split_mode: 'amounts', status: 'approved', spent_on: spentOn,
+        meta_json: planMeta, created_by_participant_id: me, created_at: planAt, updated_at: planAt,
+      }));
+
+      const totalSlots = billEntries.reduce((sum, [, slots]) => sum + slots, 0);
+      const totalAmount = slotRate * totalSlots;
+      const billMeta = JSON.stringify({
+        sport: {
+          planning: false,
+          court: totalAmount,
+          shuttlecocks: [],
+          extra: 0,
+          rule: { kind: 'equal' },
+          entries: billEntries.map(([pid, slots]) => ({ participantId: pid, maleSlots: slots, femaleSlots: 0 })),
+          maleSlotRate: slotRate,
+          femaleSlotRate: 0,
+        },
+      });
+
+      out.push(insert('transactions', {
+        id: billId, root_id: rootId, parent_id: rootId, is_latest: 1, trip_id: tripId, type: 'expense',
+        description: `Buổi ${n} (Chủ nhật)`, amount: totalAmount, amount_confirmed: null, currency: 'VND',
+        payer_id: me, to_id: null, split_mode: 'amounts', status: 'approved', spent_on: spentOn,
+        meta_json: billMeta, created_by_participant_id: me, created_at: billAt, updated_at: billAt,
+      }));
+
+      for (const [pid, slots] of billEntries) {
+        const share = slotRate * slots;
+        out.push(insert('transaction_shares', {
+          transaction_id: billId, participant_id: pid, input_value: share, input_auto: 0, amount: share,
+        }));
+      }
+    });
+  }
+
+  return out;
+}
+
 // Rows that hang off seeded trips or mock users; deleted by --reset when the table exists.
 const RESET_SQL = [
+  ['attendance_scores', "DELETE FROM attendance_scores WHERE trip_id LIKE 'seed-%';"],
+  ['attendance_counted', "DELETE FROM attendance_counted WHERE trip_id LIKE 'seed-%';"],
+  ['attendance_state', "DELETE FROM attendance_state WHERE trip_id LIKE 'seed-%';"],
   ['transaction_shares', "DELETE FROM transaction_shares WHERE transaction_id LIKE 'seed-%' OR participant_id LIKE 'seed-%';"],
   ['transactions', "DELETE FROM transactions WHERE id LIKE 'seed-%' OR trip_id LIKE 'seed-%';"],
   ['person_links', "DELETE FROM person_links WHERE participant_id LIKE 'seed-%' OR person_pid LIKE 'seed-%';"],
@@ -335,8 +452,9 @@ function main() {
     owners = owners.map((u) => (String(u.ledgerTripId ?? '').startsWith('seed-') ? { ...u, ledgerTripId: undefined, ledgerOwnerPid: undefined } : u));
   }
 
+  const now = new Date().toISOString();
   const resetSql = args.reset ? RESET_SQL.filter(([t]) => tables.has(t)).map(([, s]) => s) : [];
-  const seedSql = buildSeedSql(owners, new Date().toISOString());
+  const seedSql = [...buildSeedSql(owners, now), ...buildAttendanceSeedSql(owners, now)];
 
   if (args.dryRun) {
     // Copied rows and owner names are real account data: never print them.
@@ -375,10 +493,11 @@ function main() {
   console.log(`Seed rows before: ${fmt(before)}`);
   console.log(`Seed rows after:  ${fmt(after)}`);
   console.log(`Seeded ${owners.length} owner(s): ${owners.map((u) => short(u.id)).join(', ')}`);
-  console.log(`Checklist: ${CHECKLIST}`);
+  console.log(`Checklist: ${CHECKLIST}   Cheat sheet: docs/manual-testing/seed-cheat-sheet.md`);
   for (const u of owners) {
     const r = seedRefs(u.id);
     console.log(`  ${short(u.id)}: S16 /people/in/${r.hoianTripId}/${r.giangPid}   S17 /j/${r.dalatGroupToken}   S18 /r/${r.requestToken}`);
+    console.log(`  ${short(u.id)}: Attendance /t/${r.attClubTripId}/expenses/new?mode=planning   Awards /t/${r.attClubTripId}/awards`);
   }
 }
 

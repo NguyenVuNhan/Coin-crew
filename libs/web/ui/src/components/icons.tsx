@@ -9,6 +9,7 @@ import {
   Camera,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   CircleCheck,
@@ -30,9 +31,11 @@ import {
   Mars,
   Merge,
   Palette,
+  Pause,
   Pencil,
   PieChart,
   PiggyBank,
+  Play,
   Plus,
   QrCode,
   Receipt,
@@ -57,11 +60,11 @@ import {
 
 export type IconName =
   | 'back' | 'settings' | 'userPlus' | 'userCheck' | 'share' | 'copy' | 'download' | 'check' | 'circleCheck'
-  | 'x' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
+  | 'x' | 'chevronLeft' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'palette' | 'calendar'
-  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos';
+  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -79,6 +82,7 @@ const SHAPES: Record<IconName, LucideIcon> = {
   check: Check,
   circleCheck: CircleCheck,
   x: X,
+  chevronLeft: ChevronLeft,
   chevronRight: ChevronRight,
   chevronDown: ChevronDown,
   chevronUp: ChevronUp,
@@ -116,6 +120,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   ellipsisVertical: EllipsisVertical,
   squarePlus: SquarePlus,
   shareIos: Share,
+  pause: Pause,
+  play: Play,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */
