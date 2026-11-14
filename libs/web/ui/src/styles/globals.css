@@ -245,8 +245,8 @@
   to { opacity: 1; transform: none; }
 }
 @keyframes fsl-meme-stamp {
-  from { opacity: 0; transform: translate(-50%, -50%) rotate(-14deg) scale(2.6); }
-  to { opacity: 1; transform: translate(-50%, -50%) rotate(-14deg) scale(1); }
+  from { opacity: 0; transform: scale(2.6); }
+  to { opacity: 1; transform: scale(1); }
 }
 @keyframes fsl-meme-shake {
   25% { transform: translateX(-3px); }
@@ -257,8 +257,8 @@
   to { clip-path: inset(0 0 0 0); filter: none; }
 }
 @keyframes fsl-meme-seal {
-  from { opacity: 0; transform: rotate(-6deg) scale(1.8); }
-  to { opacity: 1; transform: rotate(-6deg) scale(1); }
+  from { opacity: 0; transform: scale(1.8); }
+  to { opacity: 1; transform: scale(1); }
 }
 @keyframes fsl-meme-flap {
   0% { transform: scaleY(1); }

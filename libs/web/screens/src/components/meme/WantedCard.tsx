@@ -30,7 +30,7 @@ export function WantedCard({
           'fsl-meme-card fsl-meme-card--wanted relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-wanted-bg px-[18px] py-[22px] font-sans text-meme-wanted-ink shadow-lg',
           !reducedMotion &&
             input.stamp !== null &&
-            'animate-[fsl-meme-shake_250ms_linear_550ms] motion-reduce:animate-none',
+            'animate-[fsl-meme-shake_250ms_linear_1620ms] motion-reduce:animate-none',
         )}
       >
         <div
@@ -69,7 +69,7 @@ export function WantedCard({
             className={cn(
               'absolute top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] rounded-[10px] border-4 border-meme-wanted-stamp bg-meme-wanted-bg/75 px-3 py-1 font-meme-slab text-[27px] whitespace-nowrap text-meme-wanted-stamp',
               !reducedMotion &&
-                'animate-[fsl-meme-stamp_450ms_cubic-bezier(0.2,1.6,0.4,1)_450ms_both] motion-reduce:animate-none',
+                'animate-[fsl-meme-stamp_450ms_cubic-bezier(0.2,1.6,0.4,1)_1400ms_both] motion-reduce:animate-none',
             )}
           >
             {input.stamp}

@@ -21,6 +21,11 @@ export function initialsOf(name: string): string {
     .join('');
 }
 
+function givenNameOf(name: string): string {
+  const words = name.trim().split(/\s+/);
+  return words[words.length - 1] || name;
+}
+
 /** Stable index in `0..poolSize - 1`, rotating as `seed` (latest rootId) changes. */
 export function pickVerse(kind: 'regular' | 'back' | 'noShow', seed: string, poolSize: number): number {
   if (poolSize <= 1) return 0;
@@ -65,6 +70,7 @@ export function buildAwards(
   view: AttendanceView,
   people: { id: string; name: string }[],
   t: Translate,
+  tripName = '',
 ): AwardsContent {
   const nameMap = new Map(people.map((p) => [p.id, p.name]));
   const nameOf = (id: string) => nameMap.get(id) ?? id;
@@ -82,13 +88,15 @@ export function buildAwards(
 
   const awardItems: MemeAward[] = [];
   if (regularWinner) {
+    const streak = regularWinner.score.presenceJoinStreak;
     awardItems.push({
       kind: 'regular',
       title: t('awards.title.regular'),
       name: nameOf(regularWinner.participantId),
-      stat: t('awards.stat.regular', {
-        n: Math.max(1, regularWinner.score.presenceJoinStreak || regularWinner.score.timesPlayed),
-      }),
+      stat:
+        streak > 0
+          ? t('awards.stat.regular', { n: streak })
+          : t('awards.stat.regularPlayed', { n: regularWinner.score.timesPlayed }),
     });
   }
   if (backWinner) {
@@ -148,7 +156,7 @@ export function buildAwards(
     return {
       kind: 'wanted',
       heading: t('awards.wanted.heading'),
-      group: t('awards.wanted.group'),
+      group: tripName || t('awards.subheading'),
       name,
       initials: initialsOf(name),
       crime: t('awards.wanted.crime', { n: streak }),
@@ -161,14 +169,17 @@ export function buildAwards(
 
   const seed = view.latestSession?.rootId ?? 'default';
   const verseItems: { line6: string; line8: string; name: string; tag: string }[] = [];
+  const verseKey = (kind: 'regular' | 'back' | 'noShow', idx: 1 | 2 | 3): MessageKey =>
+    `awards.verse.${kind}.${idx}`;
+  const verseTagKey = (kind: 'regular' | 'back' | 'noShow'): MessageKey => `awards.verse.tag.${kind}`;
   const addVerse = (kind: 'regular' | 'back' | 'noShow', winner: AttendancePerson | null) => {
     if (!winner) return;
-    const name = nameOf(winner.participantId);
-    const idx = pickVerse(kind, seed, 3) + 1;
-    const raw = t(`awards.verse.${kind}.${idx as 1 | 2 | 3}` as MessageKey, { name });
+    const given = givenNameOf(nameOf(winner.participantId));
+    const idx = ((pickVerse(kind, seed, 3) % 3) + 1) as 1 | 2 | 3;
+    const raw = t(verseKey(kind, idx), { name: given });
     const [line6 = '', line8 = ''] = raw.split('\n');
-    const tag = t(`awards.verse.tag.${kind}` as MessageKey);
-    verseItems.push({ line6, line8, name, tag });
+    const tag = t(verseTagKey(kind));
+    verseItems.push({ line6, line8, name: given, tag });
   };
   addVerse('regular', regularWinner);
   addVerse('back', backWinner);
@@ -191,7 +202,7 @@ export function buildAwards(
     boardRows.push({
       label: t('awards.board.joinStreak'),
       name: nameOf(r.participantId),
-      value: Math.max(1, r.score.presenceJoinStreak || r.score.timesPlayed),
+      value: r.score.presenceJoinStreak,
       tone: 'hot',
     });
   }
@@ -229,11 +240,11 @@ export function buildAwards(
       }),
     );
   }
-  if (regularWinner) {
+  if (regularWinner && regularWinner.score.presenceJoinStreak > 0) {
     tickerParts.push(
       t('awards.board.tickerRegular', {
         name: nameOf(regularWinner.participantId).toUpperCase(),
-        n: Math.max(1, regularWinner.score.presenceJoinStreak || regularWinner.score.timesPlayed),
+        n: regularWinner.score.presenceJoinStreak,
       }),
     );
   }

@@ -147,6 +147,29 @@ describe('CrewAwards screen', () => {
     await waitFor(() => {
       expect(saveImage).toHaveBeenCalledWith(fakeBlob, 'crew-awards-awards.png');
     });
+    expect(await screen.findByRole('status')).toBeTruthy();
+  });
+
+  it('saveImage resolving failed shows the failure alert message and renderMemePng null bails out', async () => {
+    const fakeBlob = new Blob(['png-bytes'], { type: 'image/png' });
+    const renderSpy = vi.spyOn(memeCards, 'renderMemePng').mockResolvedValue(fakeBlob);
+    const saveImage = vi.fn<PlatformBridge['saveImage']>(async () => 'failed');
+    const platform: PlatformBridge = { ...browserPlatform, saveImage };
+
+    renderAwards({ platform });
+    const saveBtn = await screen.findByTestId('save-awards');
+    fireEvent.click(saveBtn);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/Không chia sẻ được|Couldn't share/i);
+    expect(saveImage).toHaveBeenCalledTimes(1);
+
+    // When renderMemePng returns null, saveImage is never called with an empty Blob.
+    saveImage.mockClear();
+    renderSpy.mockResolvedValueOnce(null);
+    fireEvent.click(saveBtn);
+    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    expect(saveImage).not.toHaveBeenCalled();
   });
 
   it('Share on zmp calls platform.share', async () => {

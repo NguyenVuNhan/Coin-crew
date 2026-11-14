@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { useT } from '@cc/web-i18n';
 import type { MemeAward, MemeInput } from '@cc/web-util/memeCards';
 import { usePrefersReducedMotion } from '@cc/web-util/media';
@@ -8,9 +8,9 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { initialsOf } from '../../lib/awards';
 
 /** Authored shuttlecock SVG matching the mockup's `#shuttle` symbol (`viewBox="0 0 24 32"`). */
-export function ShuttlecockSvg({ className }: { className?: string }) {
+export function ShuttlecockSvg({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 32" className={className} aria-hidden="true">
+    <svg viewBox="0 0 24 32" className={className} style={style} aria-hidden="true">
       <path d="M4 2 L12 20 L20 2 Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
       <path d="M8 2 L12 20 M16 2 L12 20 M12 2 L12 20" stroke="currentColor" strokeWidth="1.1" />
       <path d="M6.5 8 H17.5 M8.2 13 H15.8" stroke="currentColor" strokeWidth="1.1" />
@@ -59,6 +59,7 @@ export function AwardNightCard({
           SHUTTLES.map((s, idx) => (
             <ShuttlecockSvg
               key={idx}
+              style={{ left: s.left, animationDelay: s.delay }}
               className="pointer-events-none absolute -top-[30px] h-[22px] w-4 text-meme-awards-shuttle animate-[fsl-meme-fall_2.4s_cubic-bezier(0.3,0.1,0.3,1)_both] motion-reduce:animate-none"
             />
           ))}
@@ -108,7 +109,7 @@ export function AwardNightCard({
             </div>
           ))}
         </div>
-        <div className=" absolute inset-x-0 bottom-3 text-center text-[11px] font-semibold tracking-[0.04em] text-meme-awards-foot">
+        <div className="absolute inset-x-0 bottom-3 text-center text-[11px] font-semibold tracking-[0.04em] text-meme-awards-foot">
           {input.footer}
         </div>
       </div>

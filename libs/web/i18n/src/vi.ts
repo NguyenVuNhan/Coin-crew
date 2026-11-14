@@ -1181,11 +1181,11 @@ export const vi: Record<MessageKey, string> = {
   'awards.title.guest': 'Đại sứ kéo khách', // REVIEW
   'awards.title.noShow': 'Thánh bùng kèo', // REVIEW
   'awards.stat.regular': '{n} trận liền, chưa vắng buổi nào', // REVIEW
-  'awards.stat.back': 'Vắng {n} tuần, nay đã về sân', // REVIEW
-  'awards.stat.guest': 'Dẫn {n} khách trong tháng', // REVIEW
+  'awards.stat.regularPlayed': '{n} buổi đã chơi', // REVIEW
+  'awards.stat.back': 'Vắng {n} buổi, nay đã về sân', // REVIEW
+  'awards.stat.guest': 'Dẫn {n} khách ra sân', // REVIEW
   'awards.stat.noShow': 'Bùng kèo {n} trận liên tiếp', // REVIEW
   'awards.wanted.heading': 'TRUY NÃ', // REVIEW
-  'awards.wanted.group': 'HỘI CẦU LÔNG THỨ BẢY', // REVIEW
   'awards.wanted.crime': 'Tội danh: bùng kèo {n} trận liên tiếp', // REVIEW
   'awards.wanted.lastSeen': 'Lần cuối thấy ra sân: {date}', // REVIEW
   'awards.wanted.neverSeen': 'Lần cuối thấy ra sân: chưa rõ', // REVIEW
@@ -1210,13 +1210,13 @@ export const vi: Record<MessageKey, string> = {
   'awards.board.subheading': 'BẢNG PHONG ĐỘ', // REVIEW
   'awards.board.subheadingDate': 'SAU TRẬN {date}', // REVIEW
   'awards.board.joinStreak': 'CHUỖI RA SÂN', // REVIEW
-  'awards.board.comeback': 'TRỞ LẠI SAU (TUẦN)', // REVIEW
+  'awards.board.comeback': 'TRỞ LẠI SAU (BUỔI)', // REVIEW
   'awards.board.guests': 'KHÁCH DẪN THEO', // REVIEW
   'awards.board.noShowStreak': 'CHUỖI BÙNG KÈO', // REVIEW
   'awards.board.tickerRegular': '{name} GIỮ CHUỖI {n} TRẬN', // REVIEW
-  'awards.board.tickerBack': '{name} ĐÃ TRỞ LẠI SÂN SAU {n} TUẦN', // REVIEW
+  'awards.board.tickerBack': '{name} ĐÃ TRỞ LẠI SÂN SAU {n} BUỔI', // REVIEW
   'awards.board.tickerGuest': '{name} DẪN THEO {n} KHÁCH', // REVIEW
-  'awards.board.tickerNoShow': '{name}: HẸN GẶP THỨ BẢY NHÉ?', // REVIEW
+  'awards.board.tickerNoShow': '{name}: HẸN GẶP TRẬN TỚI NHÉ?', // REVIEW
   'awards.cardTitle.awards': 'Lễ trao giải', // REVIEW
   'awards.cardTitle.wanted': 'Truy nã', // REVIEW
   'awards.cardTitle.verse': 'Ca dao sân cầu', // REVIEW

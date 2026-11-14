@@ -1,6 +1,5 @@
 import type { AttendancePerson } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import type { MessageKey } from '@cc/web-i18n/en';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Avatar } from '@cc/web-ui/components/Avatar';
@@ -35,7 +34,7 @@ export function TurnoutSheet({ open, onClose, rows }: { open: boolean; onClose: 
                 <div className="flex flex-wrap items-center gap-1.5 pl-11">
                   {person.labels.map((l) => (
                     <Pill key={l} tone={l === 'flaky' || l === 'new' ? 'neutral' : 'accent'}>
-                      {t(`attendance.label.${l}` as MessageKey)}
+                      {t(`attendance.label.${l}`)}
                     </Pill>
                   ))}
                   <span className="text-xs text-muted-foreground tabular-nums">

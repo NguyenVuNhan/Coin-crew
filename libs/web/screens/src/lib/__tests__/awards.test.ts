@@ -81,11 +81,12 @@ describe('buildAwards and pickVerse', () => {
       pendingSessions: 0,
     };
 
-    const content = buildAwards(view, people, t);
+    const content = buildAwards(view, people, t, 'Cầu lông Thứ Bảy');
     expect(content.wantedCandidates).toEqual(['p-flaky-1', 'p-flaky-2']);
 
     const unstamped = content.wanted('p-flaky-1');
     expect(unstamped.name).toBe('Bình');
+    expect(unstamped.group).toBe('Cầu lông Thứ Bảy');
     expect(unstamped.stamp).toBeNull();
     expect(unstamped.crime).toContain('3');
 
@@ -93,6 +94,22 @@ describe('buildAwards and pickVerse', () => {
     expect(stamped.name).toBe('Hải');
     expect(stamped.stamp).not.toBeNull();
     expect(stamped.stamp).toMatch(/ĐÃ RA SÂN|BACK ON COURT/i);
+  });
+
+  it('uses regularPlayed stat when presenceJoinStreak is 0 and given name in verses', () => {
+    const view: AttendanceView = {
+      people: [
+        person('p-reg-1', { presence: 85, presenceJoinStreak: 0, timesPlayed: 7 }, ['regular']),
+      ],
+      latestSession: { rootId: 'r-12', spentOn: '2026-11-15' },
+      pendingSessions: 0,
+    };
+    const fullNamePeople = [{ id: 'p-reg-1', name: 'Nguyễn Văn Minh' }];
+    const content = buildAwards(view, fullNamePeople, t, 'Sân Cầu Lông');
+    expect(content.awards!.awards[0]!.stat).toMatch(/7 buổi đã chơi|7 sessions played/);
+    expect(content.verse!.verses[0]!.name).toBe('Minh');
+    expect(content.verse!.verses[0]!.line8).toContain('Minh');
+    expect(content.verse!.verses[0]!.line8).not.toContain('Nguyễn');
   });
 
   it('pickVerse is stable for a seed and changes with it', () => {

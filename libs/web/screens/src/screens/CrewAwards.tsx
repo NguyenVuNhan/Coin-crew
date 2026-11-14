@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
-import { can, type TripView } from '@cc/core';
+import { can } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import type { MessageKey } from '@cc/web-i18n/en';
 import { useAttendance } from '@cc/web-data-access/attendance';
 import { useTripView } from '@cc/web-data-access/hooks';
-import { usePlatform, type ShareCard } from '@cc/web-platform';
+import { usePlatform } from '@cc/web-platform';
 import { renderMemePng, type MemeInput, type MemeKind } from '@cc/web-util/memeCards';
-import { shareImageFile } from '@cc/web-util/qr';
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
@@ -21,8 +19,9 @@ import { BoardCard } from '../components/meme/BoardCard';
 import { buildAwards } from '../lib/awards';
 import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
-import { clip, groupToken, thumbnailFor } from '../lib/shareCards';
+import { awardShareCard } from '../lib/shareCards';
 import { useTrip } from '../lib/tripBase';
+import { useImageShare } from '../lib/useImageShare';
 
 function loadMemeFonts(): void {
   void import('@fontsource/alfa-slab-one/vietnamese-400.css');
@@ -39,23 +38,10 @@ function loadMemeFonts(): void {
   void import('@fontsource/be-vietnam-pro/latin-900.css');
 }
 
-function awardShareCard(view: TripView, input: MemeInput, origin: string): ShareCard {
-  const token = encodeURIComponent(groupToken(view));
-  const path = token ? `j/${token}` : `t/${encodeURIComponent(view.trip.id)}`;
-  const url = `${origin}/${path}`;
-  return {
-    title: clip(`${view.trip.name} · ${input.heading}`, 100),
-    description: clip(input.footer, 400),
-    path,
-    thumbnailUrl: thumbnailFor(view, origin),
-    text: `${view.trip.name} · ${input.heading}`,
-    url,
-  };
-}
-
 export function CrewAwards() {
   const t = useT();
   const platform = usePlatform();
+  const { share, status: shareStatus, sharing, sheet } = useImageShare();
   const { tripId, base, href } = useTrip();
   const goBack = useBack(base).goBack;
 
@@ -72,13 +58,17 @@ export function CrewAwards() {
     [view?.people],
   );
 
+  const tripName = view?.trip.name ?? '';
   const content = useMemo(
-    () => (attendance.data ? buildAwards(attendance.data, activePeople, t) : null),
-    [attendance.data, activePeople, t],
+    () => (attendance.data ? buildAwards(attendance.data, activePeople, t, tripName) : null),
+    [attendance.data, activePeople, t, tripName],
   );
 
   const [pickedWantedId, setPickedWantedId] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'failed' | null>(null);
+  const [activeSource, setActiveSource] = useState<'save' | 'share' | null>(null);
+  const status = activeSource === 'save' ? saveStatus : shareStatus;
 
   if (tripLoading) {
     return (
@@ -153,34 +143,40 @@ export function CrewAwards() {
 
   const handleSave = async (input: MemeInput) => {
     const fileName = `crew-awards-${input.kind}.png`;
+    setActiveSource('save');
+    setSaveStatus(null);
     setBusyKey(`save-${input.kind}`);
     try {
-      const blob = (await renderMemePng(input)) ?? new Blob([''], { type: 'image/png' });
-      await platform.saveImage(blob, fileName);
+      const blob = await renderMemePng(input);
+      if (!blob) {
+        setSaveStatus('failed');
+        return;
+      }
+      const res = await platform.saveImage(blob, fileName);
+      setSaveStatus(res === 'saved' ? 'saved' : 'failed');
+    } catch {
+      setSaveStatus('failed');
     } finally {
       setBusyKey(null);
     }
   };
 
-  const handleShare = async (input: MemeInput) => {
+  const handleShare = (input: MemeInput) => {
     const fileName = `crew-awards-${input.kind}.png`;
-    const card = awardShareCard(view, input, platform.apiBase || (typeof window !== 'undefined' ? window.location.origin : ''));
+    const origin = platform.apiBase || (typeof window !== 'undefined' ? window.location.origin : '');
+    const card = awardShareCard(view, input, origin);
+    setActiveSource('share');
+    setSaveStatus(null);
     setBusyKey(`share-${input.kind}`);
-    try {
-      const blob = await renderMemePng(input);
-      if (platform.kind === 'zmp') {
-        if (blob) await platform.saveImage(blob, fileName);
-        await platform.share(card);
-        return;
-      }
-      if (blob) {
-        const res = await shareImageFile(blob, fileName, card.text);
-        if (res === 'shared' || res === 'saved') return;
-      }
-      await platform.share(card);
-    } finally {
+    void share({
+      render: () => renderMemePng(input),
+      text: card.text,
+      fileName,
+      card,
+      pcPicture: true,
+    }).finally(() => {
       setBusyKey(null);
-    }
+    });
   };
 
   const renderActions = (input: MemeInput, primaryShare: boolean) => {
@@ -200,8 +196,8 @@ export function CrewAwards() {
         <Button
           variant={primaryShare ? 'primary' : 'secondary'}
           data-testid={`share-${kind}`}
-          loading={busyKey === `share-${kind}`}
-          onClick={() => void handleShare(input)}
+          loading={sharing && busyKey === `share-${kind}`}
+          onClick={() => handleShare(input)}
           className="min-h-11"
         >
           <Icon name="share" size={16} />
@@ -222,10 +218,23 @@ export function CrewAwards() {
   return (
     <Screen title={t('awards.title')} onBack={goBack}>
       <div className="fsl-awards flex flex-col gap-6 py-4" data-testid="crew-awards-screen">
+        {status !== null && (
+          <p
+            className={
+              status === 'failed'
+                ? 'fsl-awards__status m-0 text-sm text-danger'
+                : 'fsl-awards__status m-0 text-sm text-primary'
+            }
+            role={status === 'failed' ? 'alert' : 'status'}
+          >
+            {t(status === 'copied' ? 'request.copied' : status === 'saved' ? 'pay.shareSaved' : 'pay.shareFailed')}
+          </p>
+        )}
+
         {content.awards && (
           <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.awards' as MessageKey)}
+              {t('awards.cardTitle.awards')}
             </h2>
             <AwardNightCard input={content.awards} actions={renderActions(content.awards, takePrimary())} />
           </section>
@@ -234,7 +243,7 @@ export function CrewAwards() {
         {wantedInput && (
           <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.wanted' as MessageKey)}
+              {t('awards.cardTitle.wanted')}
             </h2>
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('awards.cardTitle.wanted')}>
               {content.wantedCandidates.map((cid) => {
@@ -265,7 +274,7 @@ export function CrewAwards() {
         {content.verse && (
           <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.verse' as MessageKey)}
+              {t('awards.cardTitle.verse')}
             </h2>
             <VerseCard input={content.verse} actions={renderActions(content.verse, takePrimary())} />
           </section>
@@ -274,11 +283,13 @@ export function CrewAwards() {
         {content.board && (
           <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.board' as MessageKey)}
+              {t('awards.cardTitle.board')}
             </h2>
             <BoardCard input={content.board} actions={renderActions(content.board, takePrimary())} />
           </section>
         )}
+
+        {sheet}
       </div>
     </Screen>
   );
