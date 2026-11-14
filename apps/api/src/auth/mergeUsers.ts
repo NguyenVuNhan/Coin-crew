@@ -18,6 +18,7 @@ import {
   paymentRefs,
   personLinks,
   playerRatings,
+  pushSubscriptions,
   sessions,
   transactions,
   tripViews,
@@ -184,6 +185,8 @@ export async function mergeUsers(
   const aNick = alias(nicknames, 'a_nick');
 
   const phase1: BatchItem<'sqlite'>[] = [
+    // 0. B's push devices first: their foreign key to `users` would block B's delete.
+    db.update(pushSubscriptions).set({ userId: aId }).where(eq(pushSubscriptions.userId, bId)),
     // 1. B first, so its identities free the unique indexes A takes next.
     db.delete(users).where(eq(users.id, bId)),
     // 2. A: identities, profile and consent.

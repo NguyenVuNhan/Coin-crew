@@ -14,6 +14,7 @@ The live deployment's own values (database ID, public address, Google credential
 | `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `OPS_ALERT_WEBHOOK_URL` | Optional usage alerts | Cloudflare secrets |
 | `FEEDBACK_SHEET_WEBHOOK_URL`, `FEEDBACK_SHEET_TOKEN` | Optional user feedback to Google Sheet | Cloudflare secrets |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Optional transaction & loan email notifications | Cloudflare secrets; `apps/api/.dev.vars` locally |
+| `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `VAPID_PRIVATE_KEY` | Optional push notifications to the installed app (§4.10) | Public key and subject: Cloudflare runtime variables (Text); private key: Cloudflare secret; all three in `apps/api/.dev.vars` locally |
 
 ## 1. Prerequisites
 
@@ -261,6 +262,29 @@ Coin Crew sends automated email notifications for transaction CRUD events, weekl
 3. For local development, add `RESEND_API_KEY=re_...` to `apps/api/.dev.vars`.
 4. (Optional) Set `EMAIL_FROM` variable if using a verified custom domain on Resend (e.g. `Coin Crew <notifications@yourdomain.com>`). If omitted, it defaults to `Coin Crew <notifications@coincrew.io>` (or `onboarding@resend.dev` in development).
 5. If `RESEND_API_KEY` is not set, the app gracefully falls back to `ConsoleEmailService`, logging email payloads to the console without interrupting user flows or throwing errors.
+
+### 4.10 Optional: push notifications to the installed app (Web Push)
+
+Members who install the app can turn on push for new sessions, session reminders and new expenses. Push uses a VAPID key pair. When either `VAPID_PUBLIC_KEY` or `VAPID_PRIVATE_KEY` is unset, the feature is off: the app hides every push control.
+
+1. Generate a key pair once, on any machine (nothing to install in the repo):
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+   It prints a **Public Key** (base64url, 65-byte uncompressed P-256 point) and a **Private Key** (base64url, the raw 32-byte P-256 private scalar `d`). Keep the pair together: changing either one invalidates every existing subscription.
+2. Add the public key and the subject as runtime variables (Cloudflare dashboard → the Worker → **Settings → Variables and Secrets**, type Text):
+   - `VAPID_PUBLIC_KEY`: the Public Key.
+   - `VAPID_SUBJECT`: `mailto:you@example.com` or the app origin (e.g. `https://coincrew.nvnlab.workers.dev`).
+3. Add the private key as a secret:
+   ```bash
+   npx -w @cc/api wrangler secret put VAPID_PRIVATE_KEY
+   ```
+4. For local development, add all three to `apps/api/.dev.vars` (a separate dev key pair is fine):
+   ```
+   VAPID_PUBLIC_KEY=BPx...the public key
+   VAPID_PRIVATE_KEY=abc...the private key
+   VAPID_SUBJECT=mailto:you@example.com
+   ```
 
 ## 5. Day to day
 

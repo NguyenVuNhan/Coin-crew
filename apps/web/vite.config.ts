@@ -20,7 +20,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'icons/*.png', 'apple-touch-icon.png', 'brand/google-signin-icon.png', 'brand/zalo-app-icon.png'],
+      includeAssets: [
+        'icon.svg',
+        'icons/*.png',
+        'apple-touch-icon.png',
+        'brand/google-signin-icon.png',
+        'brand/zalo-app-icon.png',
+        'push-sw.js',
+      ],
       manifest: {
         name: 'CoinCrew (Tiền Đâu)',
         short_name: 'CoinCrew',
@@ -39,7 +46,13 @@ export default defineConfig({
         ],
       },
       // Offline use is not required; never serve the API from the service worker.
-      workbox: { skipWaiting: true, clientsClaim: true, cleanupOutdatedCaches: true, navigateFallbackDenylist: [/^\/api\//] },
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        navigateFallbackDenylist: [/^\/api\//],
+        importScripts: ['push-sw.js'],
+      },
     }),
   ],
   // The Worker in apps/api serves the built app as static assets.

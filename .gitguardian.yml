@@ -1,0 +1,6 @@
+version: 2
+
+secret:
+  ignored_paths:
+    # Public IETF RFC 8291 Appendix A Web Push encryption test vectors.
+    - 'apps/api/test/web-push.test.ts'

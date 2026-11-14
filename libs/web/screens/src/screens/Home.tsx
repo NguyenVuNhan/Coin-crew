@@ -13,6 +13,7 @@ import { AccountMenu } from '../components/AccountMenu';
 import { FeedbackButton } from '../components/FeedbackButton';
 import { ConsentSheet } from '../components/ConsentSheet';
 import { InstallPill } from '../components/InstallPill';
+import { PushPill } from '../components/PushPill';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -263,6 +264,7 @@ export function Home(): JSX.Element {
       {wide ? (
         <div className="fsl-home flex flex-col gap-4 py-4">
           <InstallPill />
+          <PushPill />
           <TripLayout
             left={
               ledgerLoading || ledgerViewLoading ? (
@@ -300,6 +302,7 @@ export function Home(): JSX.Element {
       ) : (
         <div className="fsl-home flex flex-col gap-4 py-4">
           <InstallPill />
+          <PushPill />
           {totalCard}
           {byPersonSection}
           <TripTabs activeTab={activeTab} onChange={setActiveTab} />

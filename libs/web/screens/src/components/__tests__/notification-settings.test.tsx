@@ -38,7 +38,7 @@ describe('NotificationSettingsModal', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: /Email notifications/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Notifications$/i })).toBeInTheDocument();
 
     const txSwitch = await screen.findByRole('switch', { name: /Transaction activity/i });
     const loanSwitch = screen.getByRole('switch', { name: /Loan & balance reminders/i });
@@ -155,9 +155,9 @@ describe('NotificationSettingsModal', () => {
     renderAt(<AccountMenu />);
 
     await user.click(await screen.findByRole('button', { name: 'Account' }));
-    const notifBtn = await screen.findByRole('button', { name: /Email notifications/i });
+    const notifBtn = await screen.findByRole('button', { name: /^Notifications$/i });
     await user.click(notifBtn);
 
-    expect(await screen.findByRole('heading', { name: /Email notifications/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /^Notifications$/i })).toBeInTheDocument();
   });
 });

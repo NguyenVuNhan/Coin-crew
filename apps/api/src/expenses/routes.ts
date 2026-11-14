@@ -32,6 +32,7 @@ import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { dispatchExpenseNotification } from '../notifications/transactionDispatcher';
+import { dispatchExpensePush, dispatchSessionPush, sessionSnapshotOf } from '../notifications/push/dispatch';
 import { countPendingSessions } from '../attendance/count';
 import { safeError } from '@cc/api-util/logSafe';
 
@@ -779,8 +780,17 @@ export function expenseRoutes(): Hono<AppBindings> {
       }
     }
 
-    if (status === 'approved' && !isPlanningExpense(validated)) {
+    if (isPlanningExpense(validated)) {
+      await dispatchSessionPush(c, expenseId, null, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    } else if (status === 'approved') {
       await dispatchExpenseNotification(c, 'approved', expenseId, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+      await dispatchExpensePush(c, expenseId, {
         actorUserId: actor.userId,
         actorParticipantId: actor.participantId,
       });
@@ -846,22 +856,26 @@ export function expenseRoutes(): Hono<AppBindings> {
       assertFundCovers(await currentFundBalance(db, tripId), headItem, after);
     }
 
+    const before = sessionSnapshotOf(head);
     const newHeadId = await writeExpenseEdit(db, tripId, head, validated, actor, fundPaid);
+    const actorArgs = {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
+    };
+
+    if (before.live || isPlanningExpense(validated)) {
+      await dispatchSessionPush(c, head.rootId, before, actorArgs);
+    }
 
     if (isPlanningExpense(validated)) {
       // Skip notification while in planning mode
     } else if (isPlanningExpense(headItem)) {
       if (head.status === 'approved') {
-        await dispatchExpenseNotification(c, 'approved', head.rootId, {
-          actorUserId: actor.userId,
-          actorParticipantId: actor.participantId,
-        });
+        await dispatchExpenseNotification(c, 'approved', head.rootId, actorArgs);
+        await dispatchExpensePush(c, head.rootId, actorArgs);
       }
     } else {
-      await dispatchExpenseNotification(c, 'updated', head.rootId, {
-        actorUserId: actor.userId,
-        actorParticipantId: actor.participantId,
-      });
+      await dispatchExpenseNotification(c, 'updated', head.rootId, actorArgs);
     }
 
     return c.json({ expenseId: newHeadId, rootId: head.rootId }, 200);
@@ -997,6 +1011,8 @@ export function expenseRoutes(): Hono<AppBindings> {
       }),
     );
 
+    const before = sessionSnapshotOf(head);
+
     await guardedTripWrite(db, tripId, supersedeOld, [insertNewHead, ...insertNewShares], {
       action: 'expense_rolled_back',
       actorParticipantId: actor.participantId,
@@ -1008,6 +1024,13 @@ export function expenseRoutes(): Hono<AppBindings> {
         targetHistoryId,
       },
     });
+
+    if (before.live || isPlanningExpense(targetItem)) {
+      await dispatchSessionPush(c, head.rootId, before, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
 
     return c.json({ expenseId: newHeadId, rootId: head.rootId }, 200);
   });
@@ -1074,6 +1097,8 @@ export function expenseRoutes(): Hono<AppBindings> {
       .delete(transactions)
       .where(and(eq(transactions.tripId, tripId), eq(transactions.rootId, head.rootId)));
 
+    const before = sessionSnapshotOf(head);
+
     await guardedTripWrite(db, tripId, headUnchanged, [deleteShares, deleteTransactions], {
       action: 'expense_deleted',
       actorParticipantId: actor.participantId,
@@ -1087,6 +1112,13 @@ export function expenseRoutes(): Hono<AppBindings> {
         status: head.status,
       },
     });
+
+    if (before.live) {
+      await dispatchSessionPush(c, head.rootId, before, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
 
     return c.body(null, 204);
   });
@@ -1170,6 +1202,10 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     });
 
     await dispatchExpenseNotification(c, 'approved', head.rootId, {
+      actorUserId: actor.userId,
+      actorParticipantId: actor.participantId,
+    });
+    await dispatchExpensePush(c, head.rootId, {
       actorUserId: actor.userId,
       actorParticipantId: actor.participantId,
     });
@@ -1279,6 +1315,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
     const expenseInvolved = await isExpenseInvolved(db, head.id, head.payerId, actor.participantId);
     ensure(actor, 'disable', { expenseInvolved });
 
+    const before = sessionSnapshotOf(head);
     const now = nowIso();
     const guard = db
       .update(transactions)
@@ -1308,6 +1345,12 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       actorUserId: actor.userId,
       actorParticipantId: actor.participantId,
     });
+    if (before.live || isPlanningExpense(fundItemOf(head))) {
+      await dispatchSessionPush(c, head.rootId, before, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
 
     return c.body(null, 204);
   });
@@ -1349,6 +1392,7 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       assertFundCovers(await currentFundBalance(db, tripId), null, fundItemOf(head, 'approved'));
     }
 
+    const before = sessionSnapshotOf(head);
     const now = nowIso();
     const guard = db
       .update(transactions)
@@ -1373,6 +1417,13 @@ async function isExpenseInvolved(db: Db, eid: string, payerId: string, participa
       actorDevice: actor.deviceHash,
       details: {},
     });
+
+    if (before.live || isPlanningExpense(headItem)) {
+      await dispatchSessionPush(c, head.rootId, before, {
+        actorUserId: actor.userId,
+        actorParticipantId: actor.participantId,
+      });
+    }
 
     return c.body(null, 204);
   });

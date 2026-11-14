@@ -469,6 +469,46 @@ export const notificationLogs = sqliteTable(
   ],
 );
 
+/** One installed-app device subscribed to Web Push, with its own per-event switches. */
+export const pushSubscriptions = sqliteTable(
+  'push_subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id),
+    endpoint: text('endpoint').notNull().unique(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    newSession: integer('new_session').notNull().default(1),
+    sessionReminder: integer('session_reminder').notNull().default(1),
+    reminderLeadMinutes: integer('reminder_lead_minutes').notNull().default(30),
+    expenseNew: integer('expense_new').notNull().default(1),
+    userAgent: text('user_agent'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    lastSuccessAt: text('last_success_at'),
+  },
+  (t) => [index('push_subscriptions_user_idx').on(t.userId)],
+);
+
+/** Precomputed session reminders per device, so the cron reads only what is due. */
+export const pushReminders = sqliteTable(
+  'push_reminders',
+  {
+    id: text('id').primaryKey(),
+    subscriptionId: text('subscription_id')
+      .notNull()
+      .references(() => pushSubscriptions.id, { onDelete: 'cascade' }),
+    transactionRootId: text('transaction_root_id').notNull(),
+    tripId: text('trip_id').notNull(),
+    dueAt: text('due_at').notNull(),
+    sentAt: text('sent_at'),
+  },
+  (t) => [
+    uniqueIndex('push_reminders_sub_root_uq').on(t.subscriptionId, t.transactionRootId),
+    index('push_reminders_due_idx').on(t.sentAt, t.dueAt),
+  ],
+);
+
 export const tripLocations = sqliteTable(
   'trip_locations',
   {

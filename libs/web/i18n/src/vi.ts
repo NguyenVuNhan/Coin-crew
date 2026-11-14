@@ -1093,7 +1093,8 @@ export const vi: Record<MessageKey, string> = {
   'theme.name.sky': 'Xanh trời',
   'theme.name.indigo': 'Chàm',
 
-  'notifications.title': 'Thông báo qua email',
+  'notifications.title': 'Thông báo', // REVIEW
+  'notifications.emailSection': 'Qua email', // REVIEW
   'notifications.transactionCrud': 'Thay đổi giao dịch',
   'notifications.transactionCrudDesc': 'Nhận email khi có giao dịch được tạo, sửa hoặc xóa trong nhóm',
   'notifications.loanReminders': 'Nhắc khoản nợ & số dư',
@@ -1101,6 +1102,36 @@ export const vi: Record<MessageKey, string> = {
   'notifications.monthlyNotice': 'Tổng kết hằng tháng',
   'notifications.monthlyNoticeDesc': 'Tổng kết chi tiêu và số dư của các nhóm khi hết tháng',
   'notifications.noEmailWarning': 'Bạn chưa liên kết email. Hãy liên kết tài khoản Google để nhận thông báo qua email.',
+
+  'push.sectionLabel': 'Trên điện thoại này', // REVIEW
+  'push.sectionHint': 'Chỉ áp dụng cho điện thoại này.', // REVIEW
+  'push.unsupported': 'Trình duyệt này không gửi được thông báo. Mở CoinCrew bằng Chrome hoặc Safari để bật.', // REVIEW
+  'push.iosInstallTitle': 'Thêm vào màn hình chính trước', // REVIEW
+  'push.iosInstallDesc': 'iPhone chỉ gửi thông báo khi mở CoinCrew từ màn hình chính', // REVIEW
+  'push.enableTitle': 'Bật thông báo trên điện thoại này', // REVIEW
+  'push.enableDesc': 'Buổi chơi, lời nhắc và khoản chi có bạn', // REVIEW
+  'push.enableButton': 'Bật thông báo', // REVIEW
+  'push.blockedTitle': 'Điện thoại đang chặn thông báo của CoinCrew', // REVIEW
+  'push.blockedStep1': 'Mở Cài đặt của điện thoại', // REVIEW
+  'push.blockedStep2': 'Chọn Thông báo → CoinCrew', // REVIEW
+  'push.blockedStep3': 'Bật Cho phép thông báo, rồi quay lại đây', // REVIEW
+  'push.newSession': 'Buổi chơi mới có tên bạn', // REVIEW
+  'push.newSessionDesc': 'Khi admin thêm bạn vào buổi chơi', // REVIEW
+  'push.reminder': 'Nhắc trước buổi chơi', // REVIEW
+  'push.reminderDesc': '{lead} trước giờ bắt đầu', // REVIEW
+  'push.leadLabel': 'Nhắc trước bao lâu', // REVIEW
+  'push.lead15': '15 phút', // REVIEW
+  'push.lead30': '30 phút', // REVIEW
+  'push.lead60': '1 giờ', // REVIEW
+  'push.lead120': '2 giờ', // REVIEW
+  'push.expense': 'Thay đổi giao dịch', // REVIEW
+  'push.expenseDesc': 'Khoản chi mới tính phần của bạn', // REVIEW
+  'push.pill': 'Nhận thông báo trên điện thoại', // REVIEW
+  'push.askTitle': 'Nhận thông báo trên điện thoại', // REVIEW
+  'push.askNewSessionDesc': 'Khi admin lên lịch buổi chơi và thêm bạn vào danh sách', // REVIEW
+  'push.askExpenseDesc': 'Khi có khoản chi mới tính phần của bạn', // REVIEW
+  'push.notNow': 'Để sau', // REVIEW
+  'push.enabled': 'Đã bật thông báo', // REVIEW
 
   'install.title': 'Thêm CoinCrew vào màn hình chính',
   'install.pill': 'Thêm CoinCrew vào màn hình chính',

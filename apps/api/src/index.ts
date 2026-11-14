@@ -4,13 +4,18 @@ import { checkUsage } from './ops/usage';
 import { retryUndeliveredFeedback } from './feedback/deliver';
 import { sendWeeklyLoanReminders } from './notifications/cron/loanReminders';
 import { sendMonthlyNotices } from './notifications/cron/monthlyNotice';
+import { sendDueReminders } from './notifications/push/cron';
 
 const app = createApp();
 
 export default {
   fetch: app.fetch,
-  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     const now = new Date();
+    if (controller.cron === '*/5 * * * *') {
+      ctx.waitUntil(sendDueReminders(env, now));
+      return;
+    }
     ctx.waitUntil(checkUsage(env, now));
     ctx.waitUntil(retryUndeliveredFeedback(env, now));
     ctx.waitUntil(sendWeeklyLoanReminders(env, now));

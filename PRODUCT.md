@@ -71,7 +71,7 @@ Three things every screen protects (owner-confirmed); Splitwise or Tricount cann
 **Constraints**
 - **Free hosting:** Cloudflare Workers + D1 on the free plan. Database reads are a budget, and queries fail for the rest of the day once the limit is passed. The paid plan is the escape hatch, not the plan.
 - **The app never moves money.** Every payment happens in the user's own bank app.
-- **Never in the product, permanently:** push, email or SMS from the app. No Gmail or Drive permissions; Google sign-in uses `openid email profile` only.
+- **Notifications are opt-in only:** push to the installed app and email, each switchable per event. Never SMS, never marketing or "come back" messages. No Gmail or Drive permissions; Google sign-in uses `openid email profile` only.
 - **Not yet:** native apps, currencies other than VND, receipt photos, categories.
 - **No limit on the number of expenses**, and no jargon wording (owner's phase-1 anti-goals).
 - **Personal data:** names and bank account numbers of strangers, under Vietnam's Decree 13/2023/ND-CP and the Personal Data Protection Law (2026). There is a privacy notice and consent on first bank details or sign-in.

@@ -632,6 +632,20 @@ export type UserNotificationSettings = {
   monthlyNotice: boolean;
 };
 
+export type PushLeadMinutes = 15 | 30 | 60 | 120;
+
+export interface PushDeviceSettings {
+  newSession: boolean;
+  sessionReminder: boolean;
+  reminderLeadMinutes: PushLeadMinutes;
+  expenseNew: boolean;
+}
+
+export interface PushSubscriptionInput {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 export type NotificationLogType = 'transaction_crud' | 'loan_reminder' | 'monthly_notice';
 
 export interface AttendancePerson {

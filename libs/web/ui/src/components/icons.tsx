@@ -1,11 +1,14 @@
 // Icon shapes are from Lucide (https://lucide.dev), ISC licence.
 import type { LucideIcon } from 'lucide-react';
 import {
+  AlarmClock,
   ArrowLeft,
   ArrowLeftRight,
   Ban,
   Bell,
+  BellOff,
   Calendar,
+  CalendarCheck,
   Camera,
   Check,
   ChevronDown,
@@ -63,13 +66,17 @@ export type IconName =
   | 'x' | 'chevronLeft' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
-  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'palette' | 'calendar'
-  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play';
+  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
+  | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
   bell: Bell,
+  bellOff: BellOff,
+  'bell-off': BellOff,
   calendar: Calendar,
+  'calendar-check': CalendarCheck,
+  'alarm-clock': AlarmClock,
   swap: ArrowLeftRight,
   back: ArrowLeft,
   settings: Settings,
