@@ -79,7 +79,7 @@ export function VerseCard({
           className={cn(
             'absolute right-[22px] bottom-10 grid size-[46px] -rotate-6 place-items-center rounded-sm bg-meme-verse-seal text-center font-meme-serif text-[13px] leading-[1.05] font-bold text-meme-verse-bg',
             !reducedMotion &&
-              'animate-[fsl-meme-seal_400ms_cubic-bezier(0.2,1.5,0.4,1)_1200ms_both] motion-reduce:animate-none',
+              'animate-[fsl-meme-seal_400ms_cubic-bezier(0.2,1.5,0.4,1)_2000ms_both] motion-reduce:animate-none',
           )}
         >
           {input.seal}

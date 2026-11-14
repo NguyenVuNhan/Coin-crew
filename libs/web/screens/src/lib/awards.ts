@@ -198,7 +198,7 @@ export function buildAwards(
       : null;
 
   const boardRows: { label: string; name: string; value: number; tone: 'hot' | 'plain' | 'cold' }[] = [];
-  for (const r of regulars.slice(0, 2)) {
+  for (const r of regulars.filter((p) => p.score.presenceJoinStreak > 0).slice(0, 2)) {
     boardRows.push({
       label: t('awards.board.joinStreak'),
       name: nameOf(r.participantId),

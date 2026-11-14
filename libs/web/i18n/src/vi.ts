@@ -1172,6 +1172,9 @@ export const vi: Record<MessageKey, string> = {
   'awards.replay': 'Xem lại', // REVIEW
   'awards.save': 'Lưu ảnh', // REVIEW
   'awards.share': 'Chia sẻ', // REVIEW
+  'awards.saved': 'Đã lưu ảnh', // REVIEW
+  'awards.saveFailed': 'Chưa lưu được ảnh. Hãy thử lại.', // REVIEW
+  'awards.shareFailed': 'Chưa chia sẻ được ảnh. Hãy thử lại.', // REVIEW
   'awards.footer': 'CoinCrew · Tiền Đâu', // REVIEW
   'awards.heading': 'Lễ trao giải chuyên cần', // REVIEW
   'awards.subheading': 'ĐỘI CẦU CỦA CHÚNG TA', // REVIEW

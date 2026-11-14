@@ -147,7 +147,8 @@ describe('CrewAwards screen', () => {
     await waitFor(() => {
       expect(saveImage).toHaveBeenCalledWith(fakeBlob, 'crew-awards-awards.png');
     });
-    expect(await screen.findByRole('status')).toBeTruthy();
+    const statusEl = await screen.findByRole('status');
+    expect(statusEl.textContent).toMatch(/Đã lưu ảnh|Picture saved/i);
   });
 
   it('saveImage resolving failed shows the failure alert message and renderMemePng null bails out', async () => {
@@ -161,15 +162,16 @@ describe('CrewAwards screen', () => {
     fireEvent.click(saveBtn);
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toMatch(/Không chia sẻ được|Couldn't share/i);
+    expect(alert.textContent).toMatch(/Chưa lưu được ảnh|Couldn't save the picture/i);
     expect(saveImage).toHaveBeenCalledTimes(1);
 
     // When renderMemePng returns null, saveImage is never called with an empty Blob.
     saveImage.mockClear();
     renderSpy.mockResolvedValueOnce(null);
     fireEvent.click(saveBtn);
-    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    await waitFor(() => expect(renderSpy).toHaveBeenCalledTimes(2));
     expect(saveImage).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toMatch(/Chưa lưu được ảnh|Couldn't save the picture/i);
   });
 
   it('Share on zmp calls platform.share', async () => {

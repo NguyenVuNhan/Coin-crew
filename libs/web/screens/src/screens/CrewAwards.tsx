@@ -227,7 +227,13 @@ export function CrewAwards() {
             }
             role={status === 'failed' ? 'alert' : 'status'}
           >
-            {t(status === 'copied' ? 'request.copied' : status === 'saved' ? 'pay.shareSaved' : 'pay.shareFailed')}
+            {status === 'copied'
+              ? t('request.copied')
+              : status === 'saved'
+                ? t('awards.saved')
+                : activeSource === 'save'
+                  ? t('awards.saveFailed')
+                  : t('awards.shareFailed')}
           </p>
         )}
 

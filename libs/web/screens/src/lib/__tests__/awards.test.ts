@@ -110,6 +110,22 @@ describe('buildAwards and pickVerse', () => {
     expect(content.verse!.verses[0]!.name).toBe('Minh');
     expect(content.verse!.verses[0]!.line8).toContain('Minh');
     expect(content.verse!.verses[0]!.line8).not.toContain('Nguyễn');
+    expect(content.board).toBeNull();
+  });
+
+  it('board skips regulars whose presenceJoinStreak is 0', () => {
+    const view: AttendanceView = {
+      people: [
+        person('p-reg-1', { presence: 85, presenceJoinStreak: 0 }, ['regular']),
+        person('p-back', { presence: 30, lastBack: true, lastReturnGap: 5 }, ['back']),
+      ],
+      latestSession: { rootId: 'r-13', spentOn: '2026-11-15' },
+      pendingSessions: 0,
+    };
+    const content = buildAwards(view, people, t);
+    expect(content.board).not.toBeNull();
+    expect(content.board!.rows.some((r) => r.label === t('awards.board.joinStreak'))).toBe(false);
+    expect(content.board!.rows.some((r) => r.label === t('awards.board.comeback'))).toBe(true);
   });
 
   it('pickVerse is stable for a seed and changes with it', () => {
