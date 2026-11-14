@@ -25,7 +25,7 @@ export function BoardCard({
     <div className="fsl-meme-item flex flex-col items-center gap-3" data-testid="meme-card-board">
       <div
         key={`${playKey}-${replayKey}`}
-        className="fsl-meme-card fsl-meme-card--board relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-board-bg px-3.5 py-[18px] font-sans text-meme-board-ink shadow-lg"
+        className="fsl-meme-card fsl-meme-card--board relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-board-bg px-3.5 py-[18px] font-sans text-meme-board-ink shadow-lg ring-1 ring-meme-story-border"
       >
         <div className="text-center font-meme-board text-[21px] leading-[1.05] text-meme-board-accent">
           {input.heading}
@@ -70,15 +70,16 @@ export function BoardCard({
           })}
         </div>
         <div className="absolute inset-x-0 bottom-[34px] flex h-[26px] items-center overflow-hidden bg-meme-board-accent px-2.5 text-xs font-extrabold whitespace-nowrap text-meme-board-flap">
-          <span
-            className={cn(
-              'inline-block',
-              !reducedMotion &&
-                'pl-[100%] animate-[fsl-meme-tick_9s_linear_500ms_infinite] motion-reduce:animate-none',
-            )}
-          >
-            {input.ticker}
-          </span>
+          {reducedMotion ? (
+            <span className="truncate">{input.ticker}</span>
+          ) : (
+            <span className="inline-flex shrink-0 animate-[fsl-meme-tick_10s_linear_800ms_infinite] motion-reduce:animate-none">
+              <span className="pr-8">{input.ticker}</span>
+              <span className="pr-8" aria-hidden="true">
+                {input.ticker}
+              </span>
+            </span>
+          )}
         </div>
         <div className="absolute inset-x-0 bottom-3 text-center text-[11px] font-semibold tracking-[0.04em] text-meme-board-sub">
           {input.footer}

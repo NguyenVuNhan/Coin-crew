@@ -395,7 +395,7 @@ function paintWanted(ctx: Ctx, input: Extract<MemeInput, { kind: 'wanted' }>, av
 
   if (input.stamp !== null) {
     ctx.save();
-    ctx.translate(W / 2, H * 0.44);
+    ctx.translate(W / 2, H * 0.51);
     ctx.rotate((-14 * Math.PI) / 180);
     setFont(ctx, `27px ${SLAB}`);
     const stamp = fit(input.stamp, W - 60, (s) => width(ctx, s));
@@ -441,10 +441,10 @@ function paintVerse(ctx: Ctx, input: Extract<MemeInput, { kind: 'verse' }>) {
     let size = 15;
     for (; size > 13; size--) {
       setFont(ctx, verseFont(size, SERIF));
-      if (width(ctx, v.line6) <= inner - 22 && width(ctx, v.line8) <= inner) break;
+      if (width(ctx, v.line6) <= inner && width(ctx, v.line8) <= inner) break;
     }
     ctx.textAlign = 'left';
-    line(ctx, v.line6, 22 + 22, y + 10.9, inner - 22, verseFont(size, SERIF), C.ink);
+    line(ctx, v.line6, 22, y + 10.9, inner, verseFont(size, SERIF), C.ink);
     const at = v.name ? v.line8.indexOf(v.name) : -1;
     const plain = verseFont(size, SERIF);
     const parts: Run[] =
@@ -456,7 +456,7 @@ function paintVerse(ctx: Ctx, input: Extract<MemeInput, { kind: 'verse' }>) {
           ]
         : [{ text: v.line8, font: plain, color: C.ink }];
     runs(ctx, parts, 22, y + 32.6, inner, false);
-    line(ctx, `— ${v.tag}`, 22 + 22, y + 54.2, inner - 22, `400 12px ${BODY}`, C.tag, 0.06, 12);
+    line(ctx, `— ${v.tag}`, 22, y + 54.2, inner, `400 12px ${BODY}`, C.tag, 0.06, 12);
     y += 62.9 + 14;
   }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '../test/setup';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { newScore, type AttendancePerson, type AttendanceView, type TripView } from '@cc/core';
@@ -10,8 +10,10 @@ import * as memeCards from '@cc/web-util/memeCards';
 import { CrewAwards } from '../screens/CrewAwards';
 import { MemberTrip } from '../screens/MemberTrip';
 import { TurnoutSheet } from '../components/TurnoutSheet';
+import { AwardsStory } from '../components/meme/AwardsStory';
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -220,7 +222,9 @@ describe('CrewAwards screen', () => {
     // Selecting Hải (wantedStamp = true) shows the stamp
     fireEvent.click(pickHai);
     await waitFor(() => expect(screen.getByTestId('wanted-stamp')).toBeTruthy());
-    expect(screen.getByTestId('wanted-stamp').textContent).toMatch(/ĐÃ RA SÂN|BACK ON COURT/i);
+    const stamp = screen.getByTestId('wanted-stamp');
+    expect(stamp.textContent).toMatch(/ĐÃ RA SÂN|BACK ON COURT/i);
+    expect(stamp.className).toContain('top-[51%]');
   });
 
   it('reduced motion: cards render with no animation classes active and fade transition', async () => {
@@ -410,5 +414,177 @@ describe('CrewAwards screen', () => {
     // Stays on verse and cube wrapper animates spring-back with transition-transform
     expect(screen.getByTestId('meme-card-verse')).toBeTruthy();
     expect(viewport.firstElementChild?.className).toContain('transition-transform');
+  });
+
+  it('progress bar segments jump between slides, footer stays single-row, and verse lines share left alignment', async () => {
+    renderAwards();
+    await screen.findByTestId('meme-card-awards');
+
+    const replayBtn = screen.getByTestId('replay-awards');
+    expect(replayBtn.closest('footer')?.className).toContain('flex-nowrap');
+    expect(replayBtn.getAttribute('aria-label')).toBeTruthy();
+
+    // Wanted picker height is reserved on non-wanted slides to prevent stage resize jump
+    expect(screen.getByTestId('wanted-pick-spacer')).toBeTruthy();
+
+    // Pause/resume button toggles aria-pressed cleanly
+    const pauseBtn = screen.getByTestId('story-pause');
+    expect(pauseBtn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(pauseBtn);
+    expect(pauseBtn.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByTestId('story-progress-verse'));
+    const verseCard = await screen.findByTestId('meme-card-verse');
+    const stanzas = verseCard.querySelectorAll('[data-testid="verse-stanza"]');
+    expect(stanzas.length).toBeGreaterThan(0);
+    for (const stanza of stanzas) {
+      expect(stanza.className).toMatch(/text-\[1[345]px\]/);
+      for (const child of stanza.children) {
+        expect(child.className).toContain('pl-0');
+        expect(child.className).toContain('truncate');
+        expect(child.className).not.toContain('pl-[22px]');
+      }
+    }
+
+    // BoardCard renders dark-stage ring and immediate marquee ticker without pl-[100%] dead air
+    fireEvent.click(screen.getByTestId('story-progress-board'));
+    const boardCard = await screen.findByTestId('meme-card-board');
+    const cardInner = boardCard.querySelector('.fsl-meme-card--board')!;
+    expect(cardInner.className).toContain('ring-meme-story-border');
+    expect(boardCard.innerHTML).not.toContain('pl-[100%]');
+
+    // Clicking the first progress segment jumps back to awards
+    fireEvent.click(screen.getByTestId('story-progress-awards'));
+    expect(await screen.findByTestId('meme-card-awards')).toBeTruthy();
+  });
+
+  it('VerseCard scales down long names to 13px single-line stanzas', async () => {
+    const longNameTrip: TripView = {
+      ...baseTrip,
+      people: baseTrip.people.map((p) => (p.id === 'p-1' ? { ...p, name: 'NguyenVuNhanLongName' } : p)),
+    };
+    renderAwards({ trip: longNameTrip });
+    await screen.findByTestId('meme-card-awards');
+
+    fireEvent.click(screen.getByTestId('story-progress-verse'));
+    const verseCard = await screen.findByTestId('meme-card-verse');
+    const stanzas = verseCard.querySelectorAll('[data-testid="verse-stanza"]');
+    expect(stanzas[0]?.className).toContain('text-[13px]');
+  });
+
+  it('PC share sheet pauses story auto-advance and blocks Escape/ArrowRight while open', async () => {
+    let now = 0;
+    let rafId = 0;
+    const rafCallbacks = new Map<number, FrameRequestCallback>();
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = ++rafId;
+      rafCallbacks.set(id, cb);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafCallbacks.delete(id);
+    });
+    const flushFrame = (ms: number) => {
+      now += ms;
+      const pending = Array.from(rafCallbacks.values());
+      rafCallbacks.clear();
+      for (const cb of pending) cb(now);
+    };
+
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query.includes('pointer: fine'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      userAgent: 'Chrome',
+      clipboard: { writeText: vi.fn(async () => undefined) },
+    });
+    vi.spyOn(memeCards, 'renderMemePng').mockResolvedValue(new Blob(['png'], { type: 'image/png' }));
+
+    renderAwards();
+    await screen.findByTestId('meme-card-awards');
+
+    fireEvent.click(screen.getByTestId('share-awards'));
+    await waitFor(() => expect(document.querySelector('.fsl-save-image')).not.toBeNull());
+
+    // Story auto-advance is paused while the sheet is open
+    flushFrame(7500);
+    expect(screen.getByTestId('meme-card-awards')).toBeTruthy();
+
+    // ArrowRight and Escape on window do not step or close the story while sheetOpen is true
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByTestId('meme-card-awards')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByTestId('trip-home')).toBeNull();
+  });
+
+  it('statusBanner renders inside stage overlay and auto-clears after 3500ms', async () => {
+    const fakeBlob = new Blob(['png-bytes'], { type: 'image/png' });
+    vi.spyOn(memeCards, 'renderMemePng').mockResolvedValue(fakeBlob);
+    const saveImage = vi.fn<PlatformBridge['saveImage']>(async () => 'saved');
+    const platform: PlatformBridge = { ...browserPlatform, saveImage };
+
+    renderAwards({ platform });
+    const saveBtn = await screen.findByTestId('save-awards');
+
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(saveBtn);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const statusEl = screen.getByRole('status');
+    expect(statusEl.parentElement?.className).toContain('absolute');
+    expect(statusEl.parentElement?.className).toContain('pointer-events-none');
+
+    await act(async () => {
+      vi.advanceTimersByTime(3500);
+    });
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('omits story-prev and story-next for single-slide stories and adapts long AwardNightCard stat text', () => {
+    const singleSlide = {
+      kind: 'awards' as const,
+      heading: 'Night Awards',
+      subheading: 'Cầu lông Thứ Bảy',
+      footer: 'Coin Crew',
+      awards: [
+        { kind: 'regular' as const, title: 'Chăm chỉ', name: 'An', stat: '12 trận liền, chưa vắng buổi nào' },
+        { kind: 'back' as const, title: 'Tái xuất', name: 'Chi', stat: 'Nghỉ 6 buổi' },
+      ],
+    };
+
+    render(
+      <PlatformProvider platform={browserPlatform}>
+        <AwardsStory
+          slides={[singleSlide]}
+          groupName="Cầu lông Thứ Bảy"
+          nameMap={new Map()}
+          wantedCandidates={[]}
+          wantedId={null}
+          onPickWanted={() => undefined}
+          onClose={() => undefined}
+          renderActions={() => null}
+          pausedExternal={false}
+        />
+      </PlatformProvider>,
+    );
+
+    expect(screen.queryByTestId('story-prev')).toBeNull();
+    expect(screen.queryByTestId('story-next')).toBeNull();
+
+    const longStat = screen.getByText('12 trận liền, chưa vắng buổi nào');
+    expect(longStat.className).toContain('text-[11px]');
+    const shortStat = screen.getByText('Nghỉ 6 buổi');
+    expect(shortStat.className).toContain('text-xs');
   });
 });

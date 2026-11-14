@@ -37,7 +37,7 @@ function loadMemeFonts(): void {
 export function CrewAwards() {
   const t = useT();
   const platform = usePlatform();
-  const { share, status: shareStatus, sharing, sheet } = useImageShare();
+  const { share, status: shareStatus, sharing, sheetOpen, sheet } = useImageShare();
   const { tripId, base, href } = useTrip();
   const goBack = useBack(base).goBack;
 
@@ -67,7 +67,16 @@ export function CrewAwards() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'failed' | null>(null);
   const [activeSource, setActiveSource] = useState<'save' | 'share' | null>(null);
-  const status = activeSource === 'save' ? saveStatus : shareStatus;
+  const status = activeSource === 'save' ? saveStatus : activeSource === 'share' ? shareStatus : null;
+
+  useEffect(() => {
+    if (status === null || busyKey !== null) return;
+    const timer = setTimeout(() => {
+      setSaveStatus(null);
+      setActiveSource(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [status, activeSource, busyKey]);
 
   if (tripLoading) {
     return (
@@ -190,7 +199,7 @@ export function CrewAwards() {
           data-testid={`save-${kind}`}
           loading={busyKey === `save-${kind}`}
           onClick={() => void handleSave(input)}
-          className="min-h-11"
+          className="min-h-11 shrink-0 px-3.5 sm:px-5"
         >
           <Icon name="download" size={16} />
           <span>{t('awards.save')}</span>
@@ -200,7 +209,7 @@ export function CrewAwards() {
           data-testid={`share-${kind}`}
           loading={sharing && busyKey === `share-${kind}`}
           onClick={() => handleShare(input)}
-          className="min-h-11"
+          className="min-h-11 shrink-0 px-3.5 sm:px-5"
         >
           <Icon name="share" size={16} />
           <span>{t('awards.share')}</span>
@@ -246,7 +255,7 @@ export function CrewAwards() {
       onClose={goBack}
       renderActions={renderActions}
       statusBanner={statusBanner}
-      pausedExternal={busyKey !== null || sharing}
+      pausedExternal={busyKey !== null || sharing || sheetOpen}
       sheet={sheet}
     />
   );

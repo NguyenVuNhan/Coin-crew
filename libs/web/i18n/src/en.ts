@@ -1233,6 +1233,8 @@ export const en = {
   'awards.cardTitle.board': 'Stadium board',
   'awards.story.prev': 'Previous story',
   'awards.story.next': 'Next story',
+  'awards.story.pause': 'Pause story',
+  'awards.story.resume': 'Resume story',
 } as const;
 
 export type MessageKey = keyof typeof en;

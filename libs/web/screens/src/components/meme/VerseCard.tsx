@@ -6,6 +6,13 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
 
+function verseSizeClass(line6: string, line8: string): string {
+  const longest = Math.max(Array.from(line6).length, Array.from(line8).length);
+  if (longest <= 28) return 'text-[15px]';
+  if (longest <= 33) return 'text-[14px]';
+  return 'text-[13px]';
+}
+
 function renderLine8(line8: string, name: string) {
   if (!name) return line8;
   const at = line8.indexOf(name);
@@ -52,11 +59,15 @@ export function VerseCard({
         </div>
         <div className="relative mt-[18px] flex flex-col gap-3.5">
           {input.verses.slice(0, 3).map((v, idx) => (
-            <div key={idx} className="font-meme-serif text-[15px] leading-[1.45] italic">
+            <div
+              key={idx}
+              data-testid="verse-stanza"
+              className={cn('font-meme-serif leading-[1.45] italic', verseSizeClass(v.line6, v.line8))}
+            >
               <span
                 style={!reducedMotion ? { animationDelay: `${150 + idx * 350}ms` } : undefined}
                 className={cn(
-                  'block pl-[22px]',
+                  'block truncate pl-0',
                   !reducedMotion &&
                     'animate-[fsl-meme-ink_550ms_cubic-bezier(0.16,1,0.3,1)_both] motion-reduce:animate-none',
                 )}
@@ -66,14 +77,14 @@ export function VerseCard({
               <span
                 style={!reducedMotion ? { animationDelay: `${320 + idx * 350}ms` } : undefined}
                 className={cn(
-                  'block pl-0',
+                  'block truncate pl-0',
                   !reducedMotion &&
                     'animate-[fsl-meme-ink_550ms_cubic-bezier(0.16,1,0.3,1)_both] motion-reduce:animate-none',
                 )}
               >
                 {renderLine8(v.line8, v.name)}
               </span>
-              <small className="mt-0.5 block pl-[22px] font-sans text-xs tracking-[0.06em] not-italic text-meme-verse-tag">
+              <small className="mt-0.5 block truncate pl-0 font-sans text-xs tracking-[0.06em] not-italic text-meme-verse-tag">
                 — {v.tag}
               </small>
             </div>

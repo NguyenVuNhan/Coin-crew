@@ -82,7 +82,7 @@ export function WantedCard({
           <div
             data-testid="wanted-stamp"
             className={cn(
-              'absolute top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] rounded-[10px] border-4 border-meme-wanted-stamp bg-meme-wanted-bg/75 px-3 py-1 font-meme-slab text-[27px] whitespace-nowrap text-meme-wanted-stamp',
+              'absolute top-[51%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] rounded-[10px] border-4 border-meme-wanted-stamp bg-meme-wanted-bg/75 px-3 py-1 font-meme-slab text-[27px] whitespace-nowrap text-meme-wanted-stamp',
               !reducedMotion &&
                 'animate-[fsl-meme-stamp_450ms_cubic-bezier(0.2,1.6,0.4,1)_1400ms_both] motion-reduce:animate-none',
             )}

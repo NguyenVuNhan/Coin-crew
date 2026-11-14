@@ -31,9 +31,11 @@ import {
   Mars,
   Merge,
   Palette,
+  Pause,
   Pencil,
   PieChart,
   PiggyBank,
+  Play,
   Plus,
   QrCode,
   Receipt,
@@ -62,7 +64,7 @@ export type IconName =
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'palette' | 'calendar'
-  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos';
+  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -118,6 +120,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   ellipsisVertical: EllipsisVertical,
   squarePlus: SquarePlus,
   shareIos: Share,
+  pause: Pause,
+  play: Play,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

@@ -24,11 +24,12 @@ function Harness({
   renderSecond,
   messageSecond,
 }: HarnessProps) {
-  const { sheet, show } = useImageSheet();
+  const { sheet, show, open } = useImageSheet();
   const primaryRender = renderFn ?? render;
 
   return (
     <div>
+      <span data-testid="sheet-open">{String(open)}</span>
       <button
         type="button"
         onClick={() => {
@@ -189,6 +190,25 @@ describe('useImageSheet', () => {
 
     await waitFor(() => {
       expect(img).toHaveAttribute('src', expectedSecondUrl);
+    });
+  });
+
+  it('caps preview image height with max-h-[55dvh] and exposes open state from useImageSheet', async () => {
+    const render = () => Promise.resolve(new Blob(['x'], { type: 'image/png' }));
+
+    renderAt(<Harness render={render} />);
+    expect(screen.getByTestId('sheet-open')).toHaveTextContent('false');
+
+    await userEvent.click(screen.getByRole('button', { name: 'open' }));
+    expect(screen.getByTestId('sheet-open')).toHaveTextContent('true');
+
+    const img = await screen.findByRole('img');
+    expect(img.className).toContain('max-h-[55dvh]');
+    expect(img.className).toContain('object-contain');
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.getByTestId('sheet-open')).toHaveTextContent('false');
     });
   });
 });

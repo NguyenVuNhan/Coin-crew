@@ -108,7 +108,14 @@ export function AwardNightCard({
                 <div className="truncate text-[15px] leading-[1.15] font-extrabold text-meme-awards-name">
                   {award.name}
                 </div>
-                <div className="truncate text-xs text-meme-awards-stat tabular-nums">{award.stat}</div>
+                <div
+                  className={cn(
+                    'truncate text-meme-awards-stat tabular-nums',
+                    award.stat.length > 26 ? 'text-[11px] leading-tight' : 'text-xs',
+                  )}
+                >
+                  {award.stat}
+                </div>
               </div>
             </div>
           ))}

@@ -40,7 +40,7 @@ export function SaveImageSheet({
           <img
             className={cn(
               'fsl-save-image__img',
-              'block w-full h-auto rounded-lg border border-border bg-card select-auto touch-manipulation',
+              'block max-h-[55dvh] w-auto max-w-full mx-auto object-contain rounded-lg border border-border bg-card select-auto touch-manipulation',
             )}
             src={dataUrl}
             alt={t('share.imageTitle')}
@@ -86,6 +86,7 @@ export function SaveImageSheet({
 export function useImageSheet(): {
   sheet: JSX.Element;
   show(render: () => Promise<Blob | null>, message?: string, opts?: { pc: boolean; copied: boolean }): void;
+  open: boolean;
 } {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -194,5 +195,5 @@ export function useImageSheet(): {
     />
   );
 
-  return { sheet, show };
+  return { sheet, show, open };
 }

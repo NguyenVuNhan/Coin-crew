@@ -281,7 +281,7 @@
   50% { transform: scaleY(0.1); color: transparent; }
 }
 @keyframes fsl-meme-tick {
-  to { transform: translateX(-100%); }
+  to { transform: translateX(-50%); }
 }
 
 @layer base {

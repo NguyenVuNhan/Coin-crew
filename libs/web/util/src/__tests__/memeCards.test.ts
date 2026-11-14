@@ -333,4 +333,15 @@ describe('renderMemePng', () => {
     expect(canvases[1]!.tainted).toBe(false);
     expect(canvases[1]!.drawn.map((d) => d.text)).toContain('Bì');
   });
+
+  it('verse aligns line6, line8, and tag along the same left edge', async () => {
+    const { drawn } = mockCanvas();
+    await renderMemePng(verse);
+    const line6 = drawn.find((d) => d.text === 'Mưa rơi gió thổi')!;
+    const line8First = drawn.find((d) => d.text.startsWith('An'))!;
+    const tag = drawn.find((d) => d.text === '— vua chuyên cần')!;
+    expect(line6.x).toBe(22);
+    expect(line8First.x).toBe(22);
+    expect(tag.x).toBe(22);
+  });
 });

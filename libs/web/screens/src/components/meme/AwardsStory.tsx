@@ -20,6 +20,8 @@ const RESTART_THRESHOLD_MS = 1500;
 const HOLD_DELAY_MS = 180;
 const DRAG_START_PX = 10;
 const CUBE_TRANSITION_MS = 360;
+const HEADER_ICON_BTN =
+  'inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-meme-story-chrome text-meme-story-ink transition-colors hover:bg-meme-story-track focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none';
 
 const CARD_TITLE_KEYS: Record<MemeKind, MessageKey> = {
   awards: 'awards.cardTitle.awards',
@@ -97,6 +99,7 @@ export function AwardsStory({
   const elapsedRef = useRef(0);
   const activeIndexRef = useRef(0);
   const heldRef = useRef(false);
+  const dragPxRef = useRef(0);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerRef = useRef<{
     id: number;
@@ -109,6 +112,8 @@ export function AwardsStory({
   const activeSlide = slides[safeIndex] ?? slides[0]!;
   const isAtFinalEnd = safeIndex === slides.length - 1 && elapsedMs >= STORY_DURATION_MS;
   const isPaused = held || dragging || manualPaused || pausedExternal || docHidden || isAtFinalEnd;
+  const showPlayIcon = manualPaused || held || isAtFinalEnd;
+  const hasMultiWanted = wantedCandidates.length > 1 && slides.some((s) => s.kind === 'wanted');
 
   elapsedRef.current = elapsedMs;
   activeIndexRef.current = safeIndex;
@@ -212,7 +217,9 @@ export function AwardsStory({
   }, [isPaused, safeIndex, slides.length, stepTo]);
 
   useEffect(() => {
+    if (pausedExternal) return;
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -233,7 +240,7 @@ export function AwardsStory({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose, restartSlide, slides.length, stepTo]);
+  }, [onClose, pausedExternal, restartSlide, slides.length, stepTo]);
 
   const clearHoldTimer = () => {
     if (holdTimerRef.current !== null) {
@@ -253,6 +260,7 @@ export function AwardsStory({
     }
     clearHoldTimer();
     heldRef.current = false;
+    dragPxRef.current = 0;
     pointerRef.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, dragging: false };
     holdTimerRef.current = setTimeout(() => {
       heldRef.current = true;
@@ -277,6 +285,7 @@ export function AwardsStory({
       const atStart = safeIndex === 0 && dx > 0;
       const atEnd = safeIndex === slides.length - 1 && dx < 0;
       const clamped = Math.max(-frameW, Math.min(frameW, atStart || atEnd ? dx * 0.25 : dx));
+      dragPxRef.current = clamped;
       setDragPx(clamped);
     }
   };
@@ -293,14 +302,16 @@ export function AwardsStory({
     }
 
     if (ptr.dragging) {
+      const finalDragPx = dragPxRef.current;
+      dragPxRef.current = 0;
       const threshold = Math.min(72, frameW * 0.22);
-      const currentAngle = (dragPx / Math.max(1, frameW)) * 90;
+      const currentAngle = (finalDragPx / Math.max(1, frameW)) * 90;
       setDragging(false);
       setDragPx(0);
       if (!cancelled) {
-        if (dragPx < -threshold && safeIndex < slides.length - 1) {
+        if (finalDragPx < -threshold && safeIndex < slides.length - 1) {
           stepTo(safeIndex + 1, currentAngle);
-        } else if (dragPx > threshold && safeIndex > 0) {
+        } else if (finalDragPx > threshold && safeIndex > 0) {
           stepTo(safeIndex - 1, currentAngle);
         }
       }
@@ -357,10 +368,8 @@ export function AwardsStory({
         <div
           className="flex items-center gap-1.5"
           data-testid="story-progress"
-          role="progressbar"
-          aria-valuenow={safeIndex + 1}
-          aria-valuemin={1}
-          aria-valuemax={slides.length}
+          role="group"
+          aria-label={t('awards.title')}
         >
           {slides.map((slide, idx) => {
             const pct =
@@ -370,15 +379,22 @@ export function AwardsStory({
                   ? 0
                   : Math.min(100, (elapsedMs / STORY_DURATION_MS) * 100);
             return (
-              <div
+              <button
                 key={slide.kind}
-                className="h-[3px] flex-1 overflow-hidden rounded-full bg-meme-story-track"
+                type="button"
+                data-testid={`story-progress-${slide.kind}`}
+                aria-label={t(CARD_TITLE_KEYS[slide.kind])}
+                aria-current={idx === safeIndex ? 'step' : undefined}
+                onClick={() => (idx === safeIndex ? restartSlide() : stepTo(idx))}
+                className="group -my-2 flex flex-1 cursor-pointer items-center py-2 focus-visible:outline-none"
               >
-                <div
-                  className="h-full rounded-full bg-meme-story-bar"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+                <span className="block h-[3px] w-full overflow-hidden rounded-full bg-meme-story-track transition-[height] group-hover:h-[5px] group-focus-visible:ring-2 group-focus-visible:ring-ring motion-reduce:transition-none">
+                  <span
+                    className="block h-full rounded-full bg-meme-story-bar"
+                    style={{ width: `${pct}%` }}
+                  />
+                </span>
+              </button>
             );
           })}
         </div>
@@ -398,37 +414,54 @@ export function AwardsStory({
             </div>
           </div>
 
-          <button
-            type="button"
-            data-testid="story-close"
-            aria-label={t('common.back')}
-            title={t('common.back')}
-            onClick={onClose}
-            className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-meme-story-chrome text-meme-story-ink transition-colors hover:bg-meme-story-track focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
-          >
-            <Icon name="x" size={20} />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              data-testid="story-pause"
+              aria-label={showPlayIcon ? t('awards.story.resume') : t('awards.story.pause')}
+              title={showPlayIcon ? t('awards.story.resume') : t('awards.story.pause')}
+              aria-pressed={manualPaused}
+              onClick={() => (isAtFinalEnd ? restartSlide() : setManualPaused((p) => !p))}
+              className={HEADER_ICON_BTN}
+            >
+              <Icon name={showPlayIcon ? 'play' : 'pause'} size={18} />
+            </button>
+            <button
+              type="button"
+              data-testid="story-close"
+              aria-label={t('common.close')}
+              title={t('common.close')}
+              onClick={onClose}
+              className={HEADER_ICON_BTN}
+            >
+              <Icon name="x" size={20} />
+            </button>
+          </div>
         </div>
       </header>
-
-      {statusBanner && (
-        <div className="w-full max-w-[440px] shrink-0 px-3 pb-1 text-center">{statusBanner}</div>
-      )}
 
       <div
         ref={stageRef}
         className="relative flex min-h-0 w-full max-w-[600px] flex-1 items-center justify-center px-3"
       >
-        <button
-          type="button"
-          data-testid="story-prev"
-          aria-label={t('awards.story.prev')}
-          disabled={safeIndex === 0}
-          onClick={() => stepTo(safeIndex - 1)}
-          className="mr-3 hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-meme-story-border bg-meme-story-chrome text-meme-story-ink transition-colors hover:bg-meme-story-track disabled:pointer-events-none disabled:opacity-30 sm:inline-flex motion-reduce:transition-none"
-        >
-          <Icon name="chevronLeft" size={20} />
-        </button>
+        {statusBanner && (
+          <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-3">
+            {statusBanner}
+          </div>
+        )}
+
+        {slides.length > 1 && (
+          <button
+            type="button"
+            data-testid="story-prev"
+            aria-label={t('awards.story.prev')}
+            disabled={safeIndex === 0}
+            onClick={() => stepTo(safeIndex - 1)}
+            className="mr-3 hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-meme-story-border bg-meme-story-chrome text-meme-story-ink transition-colors hover:bg-meme-story-track disabled:pointer-events-none disabled:opacity-30 sm:inline-flex motion-reduce:transition-none"
+          >
+            <Icon name="chevronLeft" size={20} />
+          </button>
+        )}
 
         <div
           ref={viewportRef}
@@ -540,56 +573,65 @@ export function AwardsStory({
           )}
         </div>
 
-        <button
-          type="button"
-          data-testid="story-next"
-          aria-label={t('awards.story.next')}
-          disabled={safeIndex >= slides.length - 1}
-          onClick={() => stepTo(safeIndex + 1)}
-          className="ml-3 hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-meme-story-border bg-meme-story-chrome text-meme-story-ink transition-colors hover:bg-meme-story-track disabled:pointer-events-none disabled:opacity-30 sm:inline-flex motion-reduce:transition-none"
-        >
-          <Icon name="chevronRight" size={20} />
-        </button>
+        {slides.length > 1 && (
+          <button
+            type="button"
+            data-testid="story-next"
+            aria-label={t('awards.story.next')}
+            disabled={safeIndex >= slides.length - 1}
+            onClick={() => stepTo(safeIndex + 1)}
+            className="ml-3 hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-meme-story-border bg-meme-story-chrome text-meme-story-ink transition-colors hover:bg-meme-story-track disabled:pointer-events-none disabled:opacity-30 sm:inline-flex motion-reduce:transition-none"
+          >
+            <Icon name="chevronRight" size={20} />
+          </button>
+        )}
       </div>
 
-      {activeSlide.kind === 'wanted' && wantedCandidates.length > 1 && (
-        <div
-          className="flex w-full max-w-[440px] shrink-0 flex-wrap items-center justify-center gap-2 px-3 pt-2"
-          role="group"
-          aria-label={t('awards.cardTitle.wanted')}
-        >
-          {wantedCandidates.map((cid) => {
-            const name = nameMap.get(cid);
-            if (!name) return null;
-            const selected = cid === wantedId;
-            return (
-              <Button
-                key={cid}
-                variant={selected ? 'primary' : 'secondary'}
-                data-testid={`wanted-pick-${cid}`}
-                aria-pressed={selected}
-                onClick={() => {
-                  onPickWanted(cid);
-                  restartSlide();
-                }}
-                className="min-h-11 rounded-full px-4"
-              >
-                {name}
-              </Button>
-            );
-          })}
-        </div>
-      )}
+      {hasMultiWanted &&
+        (activeSlide.kind === 'wanted' ? (
+          <div
+            className="h-[52px] w-full max-w-[440px] shrink-0 overflow-x-auto px-3 pt-2"
+            role="group"
+            aria-label={t('awards.cardTitle.wanted')}
+          >
+            <div className="mx-auto flex w-max min-w-full items-center justify-center gap-2">
+              {wantedCandidates.map((cid) => {
+                const name = nameMap.get(cid);
+                if (!name) return null;
+                const selected = cid === wantedId;
+                return (
+                  <Button
+                    key={cid}
+                    variant={selected ? 'primary' : 'secondary'}
+                    data-testid={`wanted-pick-${cid}`}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onPickWanted(cid);
+                      restartSlide();
+                    }}
+                    className="min-h-11 shrink-0 rounded-full px-4"
+                  >
+                    {name}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div aria-hidden="true" data-testid="wanted-pick-spacer" className="h-[52px] w-full shrink-0" />
+        ))}
 
-      <footer className="mt-2 flex w-full max-w-[440px] shrink-0 flex-wrap items-center justify-center gap-2 border-t border-meme-story-border px-3 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+      <footer className="mt-2 flex w-full max-w-[440px] shrink-0 flex-nowrap items-center justify-center gap-2 border-t border-meme-story-border px-3 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
         <Button
           variant="ghost"
           data-testid={`replay-${activeSlide.kind}`}
+          aria-label={t('awards.replay')}
+          title={t('awards.replay')}
           onClick={restartSlide}
-          className="min-h-11 text-meme-story-ink hover:bg-meme-story-chrome"
+          className="size-11 shrink-0 px-0 text-meme-story-ink hover:bg-meme-story-chrome sm:w-auto sm:px-4"
         >
           <Icon name="rotateCcw" size={16} />
-          <span>{t('awards.replay')}</span>
+          <span className="hidden sm:inline">{t('awards.replay')}</span>
         </Button>
         {renderActions(activeSlide, true)}
       </footer>

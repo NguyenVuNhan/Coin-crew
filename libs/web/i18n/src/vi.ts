@@ -1234,4 +1234,6 @@ export const vi: Record<MessageKey, string> = {
   'awards.cardTitle.board': 'Bảng vàng sân cầu', // REVIEW
   'awards.story.prev': 'Thẻ trước', // REVIEW
   'awards.story.next': 'Thẻ tiếp theo', // REVIEW
+  'awards.story.pause': 'Tạm dừng', // REVIEW
+  'awards.story.resume': 'Tiếp tục', // REVIEW
 };
