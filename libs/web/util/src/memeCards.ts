@@ -581,18 +581,12 @@ function loadAvatarImage(url: string, timeoutMs = 2000): Promise<HTMLImageElemen
   });
 }
 
-/** 1080×1920 PNG of the card's final frame. Waits for `document.fonts.load` of the card's faces first. */
-export async function renderMemePng(input: MemeInput): Promise<Blob | null> {
-  if (typeof document === 'undefined') return null;
-  const [, avatarImg] = await Promise.all([
-    loadFaces(input),
-    input.kind === 'wanted' && input.avatarUrl ? loadAvatarImage(input.avatarUrl) : Promise.resolve(null),
-  ]);
+function exportCardPng(input: MemeInput, avatarImg: HTMLImageElement | null): Promise<Blob | null> {
   const canvas = document.createElement('canvas');
   canvas.width = W * SCALE;
   canvas.height = H * SCALE;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
+  if (!ctx) return Promise.resolve(null);
   ctx.scale(SCALE, SCALE);
   ctx.textBaseline = 'middle';
 
@@ -611,26 +605,23 @@ export async function renderMemePng(input: MemeInput): Promise<Blob | null> {
       break;
   }
 
-  const toPng = () =>
-    new Promise<Blob | null>((resolve, reject) => {
-      try {
-        canvas.toBlob((blob) => resolve(blob), 'image/png');
-      } catch (err) {
-        reject(err);
-      }
-    });
-
-  try {
-    return await toPng();
-  } catch {
-    if (input.kind === 'wanted' && avatarImg) {
-      paintWanted(ctx, input, null);
-      try {
-        return await toPng();
-      } catch {
-        return null;
-      }
+  return new Promise<Blob | null>((resolve) => {
+    try {
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
+    } catch {
+      resolve(null);
     }
-    return null;
-  }
+  });
+}
+
+/** 1080×1920 PNG of the card's final frame. Waits for `document.fonts.load` of the card's faces first. */
+export async function renderMemePng(input: MemeInput): Promise<Blob | null> {
+  if (typeof document === 'undefined') return null;
+  const [, avatarImg] = await Promise.all([
+    loadFaces(input),
+    input.kind === 'wanted' && input.avatarUrl ? loadAvatarImage(input.avatarUrl) : Promise.resolve(null),
+  ]);
+  const blob = await exportCardPng(input, avatarImg);
+  if (blob || input.kind !== 'wanted' || !avatarImg) return blob;
+  return exportCardPng(input, null);
 }

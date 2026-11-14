@@ -385,4 +385,30 @@ describe('CrewAwards screen', () => {
     const row = screen.getByTestId('turnout-row-p-4');
     expect(row.innerHTML).not.toContain('warning');
   });
+
+  it('captures pointer during gestures, springs back sub-threshold swipes, and handles rapid double key steps', async () => {
+    renderAwards();
+    await screen.findByTestId('meme-card-awards');
+
+    // Rapid double ArrowRight before re-render advances 2 slides (awards -> wanted -> verse)
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(await screen.findByTestId('meme-card-verse')).toBeTruthy();
+
+    // Pointer capture & spring-back on sub-threshold drag
+    const viewport = screen.getByTestId('story-viewport');
+    const setPointerCapture = vi.fn();
+    const releasePointerCapture = vi.fn();
+    viewport.setPointerCapture = setPointerCapture;
+    viewport.releasePointerCapture = releasePointerCapture;
+
+    fireEvent.pointerDown(viewport, { pointerId: 7, clientX: 150, clientY: 200 });
+    expect(setPointerCapture).toHaveBeenCalledWith(7);
+    fireEvent.pointerMove(viewport, { pointerId: 7, clientX: 120, clientY: 200 });
+    fireEvent.pointerUp(viewport, { pointerId: 7, clientX: 120, clientY: 200 });
+    expect(releasePointerCapture).toHaveBeenCalledWith(7);
+    // Stays on verse and cube wrapper animates spring-back with transition-transform
+    expect(screen.getByTestId('meme-card-verse')).toBeTruthy();
+    expect(viewport.firstElementChild?.className).toContain('transition-transform');
+  });
 });

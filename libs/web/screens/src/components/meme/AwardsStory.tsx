@@ -147,6 +147,7 @@ export function AwardsStory({
       if (bounded === current) return;
       const outgoing = slides[current];
       const dir: 1 | -1 = bounded > current ? 1 : -1;
+      activeIndexRef.current = bounded;
       setActiveIndex(bounded);
       setElapsedMs(0);
       elapsedRef.current = 0;
@@ -245,6 +246,11 @@ export function AwardsStory({
 
   const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* synthetic or unsupported pointer id */
+    }
     clearHoldTimer();
     heldRef.current = false;
     pointerRef.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, dragging: false };
@@ -264,6 +270,7 @@ export function AwardsStory({
       clearHoldTimer();
       heldRef.current = false;
       setHeld(false);
+      setCubeAnim(null);
       setDragging(true);
     }
     if (ptr.dragging) {
@@ -279,6 +286,11 @@ export function AwardsStory({
     if (!ptr || ptr.id !== e.pointerId) return;
     pointerRef.current = null;
     clearHoldTimer();
+    try {
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    } catch {
+      /* pointer already released */
+    }
 
     if (ptr.dragging) {
       const threshold = Math.min(72, frameW * 0.22);
@@ -453,7 +465,9 @@ export function AwardsStory({
             <div
               className={cn(
                 'relative size-full',
-                !dragging && cubeAnim?.settled && 'transition-transform duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                !dragging &&
+                  (!cubeAnim || cubeAnim.settled) &&
+                  'transition-transform duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
               )}
               style={{
                 transformStyle: 'preserve-3d',

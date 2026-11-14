@@ -258,4 +258,79 @@ describe('renderMemePng', () => {
     expect(fallback.ctx.drawImage).not.toHaveBeenCalled();
     expect(fallback.drawn.map((d) => d.text)).toContain('Bì');
   });
+
+  it('wanted retries on a fresh canvas with initials if the first canvas is tainted', async () => {
+    class MockImage {
+      crossOrigin: string | null = null;
+      naturalWidth = 100;
+      naturalHeight = 100;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+    vi.stubGlobal('Image', MockImage);
+
+    const canvases: { drawn: Drawn[]; tainted: boolean }[] = [];
+    vi.spyOn(document, 'createElement').mockImplementation(() => {
+      const drawn: Drawn[] = [];
+      let isTainted = false;
+      const entry = { drawn, tainted: false };
+      canvases.push(entry);
+      const ctx = {
+        fillStyle: '' as unknown,
+        strokeStyle: '',
+        lineWidth: 1,
+        lineJoin: 'miter',
+        globalAlpha: 1,
+        font: '',
+        filter: 'none',
+        letterSpacing: '0px',
+        textAlign: 'left',
+        textBaseline: 'top',
+        save: vi.fn(),
+        restore: vi.fn(),
+        scale: vi.fn(),
+        translate: vi.fn(),
+        rotate: vi.fn(),
+        rect: vi.fn(),
+        clip: vi.fn(),
+        drawImage: vi.fn(() => {
+          isTainted = true;
+          entry.tainted = true;
+        }),
+        fillRect: vi.fn(),
+        beginPath: vi.fn(),
+        closePath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        arc: vi.fn(),
+        arcTo: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        createRadialGradient: () => ({ addColorStop: () => undefined }),
+        measureText: (text: string) => ({ width: measure(text) }),
+        fillText: vi.fn((text: string, x: number, y: number) => {
+          drawn.push({ text, x, y, fillStyle: String(ctx.fillStyle) });
+        }),
+      };
+      return {
+        width: 0,
+        height: 0,
+        getContext: () => ctx,
+        toBlob: (cb: (b: Blob | null) => void) => {
+          if (isTainted) throw new DOMException('Tainted canvases may not be exported.', 'SecurityError');
+          cb(new Blob(['png'], { type: 'image/png' }));
+        },
+      } as unknown as HTMLCanvasElement;
+    });
+
+    const blob = await renderMemePng({ ...wanted, avatarUrl: 'https://cdn.example/tainted.jpg' });
+    expect(blob).not.toBeNull();
+    expect(canvases).toHaveLength(2);
+    expect(canvases[0]!.tainted).toBe(true);
+    expect(canvases[1]!.tainted).toBe(false);
+    expect(canvases[1]!.drawn.map((d) => d.text)).toContain('Bì');
+  });
 });
