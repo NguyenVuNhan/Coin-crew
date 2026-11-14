@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { PlatformBridge } from '@cc/web-platform';
+import { unsubscribeBrowser } from '@cc/web-platform/push';
 import { sessionStore } from '@cc/web-platform/session';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { cacheTheme } from '@cc/web-util/themeCache';
@@ -34,6 +35,16 @@ function forgetPerGroupChoices(): void {
  * the person can try again.
  */
 export async function signOut(platform: PlatformBridge, queryClient: QueryClient): Promise<void> {
+  if (platform.kind === 'web') {
+    try {
+      const endpoint = await unsubscribeBrowser();
+      if (endpoint) {
+        await apiSend<void>('/api/push/subscription', 'DELETE', { endpoint });
+      }
+    } catch {
+      // Best-effort: sign-out must still succeed when push cleanup fails.
+    }
+  }
   await apiSend<void>('/api/auth/logout', 'POST');
   try {
     if (platform.kind === 'zmp') {
