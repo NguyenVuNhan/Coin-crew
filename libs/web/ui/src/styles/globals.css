@@ -10,6 +10,9 @@
 @theme inline {
   --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-heading: var(--font-sans);
+  --font-meme-slab: "Alfa Slab One", Georgia, serif;
+  --font-meme-serif: "Playfair Display", Georgia, serif;
+  --font-meme-board: "Bungee", Impact, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -53,6 +56,37 @@
   --color-avatar-6: var(--avatar-6);
   --color-avatar-6-fg: var(--avatar-6-fg);
 
+  --color-meme-awards-bg: var(--meme-awards-bg);
+  --color-meme-awards-glow: var(--meme-awards-glow);
+  --color-meme-awards-ink: var(--meme-awards-ink);
+  --color-meme-awards-title: var(--meme-awards-title);
+  --color-meme-awards-name: var(--meme-awards-name);
+  --color-meme-awards-stat: var(--meme-awards-stat);
+  --color-meme-awards-shuttle: var(--meme-awards-shuttle);
+  --color-meme-awards-foot: var(--meme-awards-foot);
+
+  --color-meme-wanted-bg: var(--meme-wanted-bg);
+  --color-meme-wanted-ink: var(--meme-wanted-ink);
+  --color-meme-wanted-border: var(--meme-wanted-border);
+  --color-meme-wanted-stamp: var(--meme-wanted-stamp);
+
+  --color-meme-verse-bg: var(--meme-verse-bg);
+  --color-meme-verse-ink: var(--meme-verse-ink);
+  --color-meme-verse-frame: var(--meme-verse-frame);
+  --color-meme-verse-frame-inner: var(--meme-verse-frame-inner);
+  --color-meme-verse-month: var(--meme-verse-month);
+  --color-meme-verse-name: var(--meme-verse-name);
+  --color-meme-verse-tag: var(--meme-verse-tag);
+  --color-meme-verse-seal: var(--meme-verse-seal);
+
+  --color-meme-board-bg: var(--meme-board-bg);
+  --color-meme-board-ink: var(--meme-board-ink);
+  --color-meme-board-accent: var(--meme-board-accent);
+  --color-meme-board-sub: var(--meme-board-sub);
+  --color-meme-board-row: var(--meme-board-row);
+  --color-meme-board-flap: var(--meme-board-flap);
+  --color-meme-board-cold: var(--meme-board-cold);
+
   --radius-sm: calc(var(--radius) * 0.4);
   --radius-md: calc(var(--radius) * 0.6);
   --radius-lg: calc(var(--radius) * 0.8);
@@ -91,6 +125,38 @@
   --avatar-4: #bbf7d0; --avatar-4-fg: #14532d;
   --avatar-5: #99f6e4; --avatar-5-fg: #134e4a;
   --avatar-6: #ddd6fe; --avatar-6-fg: #4c1d95;
+
+  /* Crew meme card world tokens (spec 2026-11-13-attendance-reliability). */
+  --meme-awards-bg: #0b4f4a;
+  --meme-awards-glow: #14b8a6;
+  --meme-awards-ink: #f6f7f4;
+  --meme-awards-title: #0f766e;
+  --meme-awards-name: #1c1917;
+  --meme-awards-stat: #57534e;
+  --meme-awards-shuttle: #99f6e4;
+  --meme-awards-foot: #ccfbf1;
+
+  --meme-wanted-bg: #efe1c3;
+  --meme-wanted-ink: #3b2a1a;
+  --meme-wanted-border: #6b4a2b;
+  --meme-wanted-stamp: #047857;
+
+  --meme-verse-bg: #fbf6ee;
+  --meme-verse-ink: #2a2420;
+  --meme-verse-frame: #c9b79c;
+  --meme-verse-frame-inner: #e3d6c2;
+  --meme-verse-month: #7a6a58;
+  --meme-verse-name: #0f766e;
+  --meme-verse-tag: #6b5b49;
+  --meme-verse-seal: #b91c1c;
+
+  --meme-board-bg: #111a19;
+  --meme-board-ink: #e6fffb;
+  --meme-board-accent: #5eead4;
+  --meme-board-sub: #a7c4c0;
+  --meme-board-row: #1b2726;
+  --meme-board-flap: #0a1110;
+  --meme-board-cold: #fda4af;
 
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
 
@@ -159,6 +225,47 @@
 @keyframes fsl-spark-fly {
   0% { transform: rotate(var(--spark-angle)) translate(0px) scale(1); opacity: 1; }
   100% { transform: rotate(var(--spark-angle)) translate(18px) scale(0); opacity: 0; }
+}
+
+/* Crew meme card animations (spec 2026-11-13-attendance-reliability). */
+@keyframes fsl-meme-aw-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.94) rotateX(30deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fsl-meme-aw-title {
+  from { opacity: 0; letter-spacing: 0.2em; filter: blur(6px); }
+  to { opacity: 1; letter-spacing: 0; filter: none; }
+}
+@keyframes fsl-meme-fall {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(540px) rotate(540deg); }
+}
+@keyframes fsl-meme-pin {
+  from { opacity: 0; transform: rotate(-8deg) scale(1.15); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fsl-meme-stamp {
+  from { opacity: 0; transform: translate(-50%, -50%) rotate(-14deg) scale(2.6); }
+  to { opacity: 1; transform: translate(-50%, -50%) rotate(-14deg) scale(1); }
+}
+@keyframes fsl-meme-shake {
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+@keyframes fsl-meme-ink {
+  from { clip-path: inset(0 100% 0 0); filter: blur(2px); }
+  to { clip-path: inset(0 0 0 0); filter: none; }
+}
+@keyframes fsl-meme-seal {
+  from { opacity: 0; transform: rotate(-6deg) scale(1.8); }
+  to { opacity: 1; transform: rotate(-6deg) scale(1); }
+}
+@keyframes fsl-meme-flap {
+  0% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); color: transparent; }
+}
+@keyframes fsl-meme-tick {
+  to { transform: translateX(-100%); }
 }
 
 @layer base {

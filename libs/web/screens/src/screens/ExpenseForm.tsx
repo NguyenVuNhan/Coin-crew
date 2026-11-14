@@ -1879,7 +1879,7 @@ function ExpenseFormContent({
                           {isPlanningMode && backIds.has(person.id) && (
                             <Link
                               to={href('/awards')}
-                              className="fsl-back-pill shrink-0 motion-reduce:animate-none"
+                              className="fsl-back-pill inline-flex min-h-11 items-center shrink-0 animate-[fsl-tap-pop_260ms_ease-out] motion-reduce:animate-none"
                               data-testid={`back-pill-${person.id}`}
                             >
                               <Pill tone="success">{t('turnout.back')}</Pill>
