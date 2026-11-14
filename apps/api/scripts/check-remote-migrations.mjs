@@ -6,7 +6,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findMigrationProblems } from './migration-guard.mjs';
+import { findMigrationProblems, findMigrationSequenceProblems } from './migration-guard.mjs';
 
 if (process.env.ALLOW_REMOTE_MIGRATE === '1') {
   console.warn('ALLOW_REMOTE_MIGRATE=1: skipping the remote migration checks.');
@@ -49,7 +49,10 @@ const files = readdirSync(new URL('../migrations', import.meta.url)).filter((nam
 const hasTable = query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'd1_migrations'").length > 0;
 const applied = hasTable ? query('SELECT name FROM d1_migrations ORDER BY id').map((row) => row.name) : [];
 
-const problems = findMigrationProblems({ applied, files, branch: currentBranch() });
+const problems = [
+  ...findMigrationSequenceProblems(files),
+  ...findMigrationProblems({ applied, files, branch: currentBranch() }),
+];
 if (problems.length > 0) {
   console.error('Remote migrations stopped:');
   for (const problem of problems) console.error(`- ${problem}`);
