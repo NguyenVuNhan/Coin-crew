@@ -1,12 +1,21 @@
 // Service worker push and notification click handlers for Web Push notifications.
 
+function resolvePayloadUrl(rawUrl) {
+  try {
+    const target = new URL(String(rawUrl || '/'), self.location.origin);
+    return target.origin === self.location.origin ? target.href : '/';
+  } catch {
+    return '/';
+  }
+}
+
 self.addEventListener('push', (event) => {
   let title = 'CoinCrew';
   /** @type {NotificationOptions} */
   const options = {
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    data: { url: '/' },
+    data: { url: resolvePayloadUrl('/') },
   };
 
   if (event.data) {
@@ -22,9 +31,7 @@ self.addEventListener('push', (event) => {
         if (payload.tag !== undefined && payload.tag !== null) {
           options.tag = payload.tag;
         }
-        if (payload.url) {
-          options.data = { url: payload.url };
-        }
+        options.data = { url: resolvePayloadUrl(payload.url) };
       }
     } catch {
       // On unparseable payload show title 'CoinCrew' with no body (iOS requires every push to show).
@@ -37,7 +44,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const url = (event.notification.data && event.notification.data.url) || '/';
+  const url = resolvePayloadUrl(event.notification.data && event.notification.data.url);
 
   event.waitUntil(
     (async () => {
@@ -66,22 +73,19 @@ self.addEventListener('notificationclick', (event) => {
               await client.navigate(url);
               return;
             } catch {
-              client.postMessage({ type: 'NAVIGATE', url });
-              return;
+              // client.navigate threw; fallback to openWindow
             }
-          } else {
-            client.postMessage({ type: 'NAVIGATE', url });
-            return;
           }
+
+          if (self.clients.openWindow) {
+            await self.clients.openWindow(url);
+          }
+          return;
         }
       }
 
       if (self.clients.openWindow) {
-        try {
-          await self.clients.openWindow(url);
-        } catch {
-          // openWindow might fail if popup blocking or permissions restrict it.
-        }
+        await self.clients.openWindow(url);
       }
     })()
   );
