@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import { isPlanningExpense, type ExpenseMeta } from '@cc/core';
 import type { AppBindings, Env } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
@@ -15,6 +15,7 @@ import { sessionStartUtc } from './sessionTime';
 import { rebuildSessionReminders } from './reminders';
 
 const EXPENSE_TTL_SECONDS = 86400;
+const MAX_PUSH_SUBREQUESTS = 40;
 
 export type TransactionRow = typeof transactions.$inferSelect;
 
@@ -25,7 +26,7 @@ export interface SessionSnapshot {
   live: boolean;
 }
 
-/** Sends to every device at once: `gone` devices are removed, `ok` ones get `last_success_at`. */
+/** Sends to every device at once (capped at 40 per call for Workers' 50-subrequest limit): `gone` devices are removed, `ok` ones get `last_success_at`. */
 export async function sendToSubscriptions(
   env: Env,
   db: Db,
@@ -35,8 +36,13 @@ export async function sendToSubscriptions(
 ): Promise<void> {
   const keys = vapidFromEnv(env);
   if (!keys || subs.length === 0) return;
+  const batch = subs.slice(0, MAX_PUSH_SUBREQUESTS);
+  const skipped = subs.length - batch.length;
+  if (skipped > 0) {
+    console.warn(`[sendToSubscriptions] skipped ${skipped} subscriptions due to subrequest limit`);
+  }
   await Promise.allSettled(
-    subs.map(async (sub) => {
+    batch.map(async (sub) => {
       const result = await sendPush(sub, payload, keys, opts);
       if (result === 'gone') {
         await deleteSubscription(db, sub.id);
@@ -215,7 +221,7 @@ async function runSessionPush(
   const people = await db
     .select()
     .from(participants)
-    .where(and(eq(participants.tripId, trip.id), inArray(participants.id, after.participantIds)));
+    .where(and(eq(participants.tripId, trip.id), ne(participants.status, 'left'), inArray(participants.id, after.participantIds)));
   const userByPid = new Map<string, string>();
   for (const p of people) {
     if (!p.userId || p.id === actorParticipantId || excludedUsers.has(p.userId)) continue;

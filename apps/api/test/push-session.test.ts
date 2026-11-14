@@ -449,4 +449,21 @@ describe('session and reminder messages', () => {
       tag: 'session:r-1',
     });
   });
+
+  it('leaving a trip deletes unsent reminders and later session edits neither push nor recreate reminders for the left member', async () => {
+    const spy = stubFetch();
+    const rootId = await createSession(plannedSessionInput({ participants: [PID.M, PID.A] }));
+    expect(pushedTo(spy)).toEqual([AN_PHONE]);
+    expect((await remindersForRoot(rootId)).map((r) => r.subscription_id)).toEqual(['s-an', 's-minh']);
+
+    const leaveRes = await call(`${base}/leave`, { method: 'POST', headers: await an() });
+    expect(leaveRes.status).toBe(204);
+
+    expect((await remindersForRoot(rootId)).map((r) => r.subscription_id)).toEqual(['s-minh']);
+
+    spy.mockClear();
+    await patchSession(rootId, plannedSessionInput({ participants: [PID.M, PID.A], timeRange: '06:00 - 08:00' }));
+    expect(pushedTo(spy)).toEqual([]);
+    expect((await remindersForRoot(rootId)).map((r) => r.subscription_id)).toEqual(['s-minh']);
+  });
 });

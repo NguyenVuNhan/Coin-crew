@@ -9,8 +9,8 @@ import { reminderMessage } from './messages';
 import { vapidFromEnv } from './webPush';
 import type { PushSubscriptionRow } from './store';
 
-/** Maximum rows to process in one cron run to keep all `inArray` bindings under D1's 100-parameter limit. */
-export const BATCH_LIMIT = 90;
+/** Maximum rows to process in one cron run (under D1's 100-param limit and Workers' 50-subrequest limit). */
+export const BATCH_LIMIT = 40;
 
 function parseMeta(json: string | null): ExpenseMeta | null {
   if (!json) return null;

@@ -265,7 +265,7 @@ Coin Crew sends automated email notifications for transaction CRUD events, weekl
 
 ### 4.10 Optional: push notifications to the installed app (Web Push)
 
-Members who install the app can turn on push for new sessions, session reminders and new expenses. Push uses a VAPID key pair. Without `VAPID_PUBLIC_KEY` the feature is off: the app hides every push control.
+Members who install the app can turn on push for new sessions, session reminders and new expenses. Push uses a VAPID key pair. When either `VAPID_PUBLIC_KEY` or `VAPID_PRIVATE_KEY` is unset, the feature is off: the app hides every push control.
 
 1. Generate a key pair once, on any machine (nothing to install in the repo):
    ```bash

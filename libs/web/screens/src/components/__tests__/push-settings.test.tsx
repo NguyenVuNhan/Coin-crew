@@ -399,4 +399,54 @@ describe('PushSettingsGroup in NotificationSettingsModal', () => {
     expect(warning).not.toBeNull();
     expect(emailList?.contains(warning)).toBe(true);
   });
+
+  it('lead-time select has its own Nhắc trước bao lâu label', async () => {
+    pushMocks.usePushState.mockReturnValue('granted');
+    mockApi({
+      'GET /api/push/key': { publicKey: 'AQAB' },
+      'GET /api/push/subscription': { settings: DEFAULT_DEVICE },
+      'GET /api/me/notifications': {
+        settings: { transactionCrud: true, loanReminders: true, monthlyNotice: true },
+      },
+    });
+
+    renderModal();
+
+    const combobox = await screen.findByRole('combobox', { name: /Nhắc trước bao lâu/i });
+    expect(combobox).toBeInTheDocument();
+  });
+
+  it('clicking Turn on notifications calls Notification.requestPermission synchronously before any fetch', async () => {
+    const user = userEvent.setup();
+    pushMocks.usePushState.mockReturnValue('not-asked');
+    const order: string[] = [];
+    const requestPermission = vi.fn(async () => {
+      order.push('requestPermission');
+      return 'granted' as NotificationPermission;
+    });
+    vi.stubGlobal('Notification', {
+      permission: 'default',
+      requestPermission,
+    });
+
+    mockApi({
+      'GET /api/push/key': { publicKey: 'AQAB' },
+      'GET /api/me/notifications': {
+        settings: { transactionCrud: true, loanReminders: true, monthlyNotice: true },
+      },
+      'PUT /api/push/subscription': () => {
+        order.push('fetch:PUT');
+        return Response.json({ settings: DEFAULT_DEVICE });
+      },
+    });
+
+    renderModal();
+
+    const enableBtn = await screen.findByRole('button', { name: 'Bật thông báo' });
+    await waitFor(() => expect(enableBtn).not.toBeDisabled());
+    await user.click(enableBtn);
+
+    await waitFor(() => expect(order).toEqual(['requestPermission', 'fetch:PUT']));
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+  });
 });

@@ -51,8 +51,9 @@ export function expenseMessage(i: {
   tripId: string;
   rootId: string;
 }): PushPayload {
+  const actor = i.actorName.trim() || 'Có người';
   return {
-    title: clip(`${i.actorName} thêm ${i.description} · ${i.groupName}`, MAX_TITLE),
+    title: clip(`${actor} thêm ${i.description} · ${i.groupName}`, MAX_TITLE),
     body: clip(`Phần của bạn ${formatVnd(i.share)}`, MAX_BODY),
     url: `/t/${i.tripId}/expenses/${i.rootId}`,
     tag: `expense:${i.rootId}`,

@@ -88,6 +88,17 @@ export function PushSettingsGroup(): JSX.Element | null {
   const device = deviceQuery.data ?? null;
   const error = enableMutation.error || updateMutation.error || deviceQuery.error;
 
+  async function handleEnable() {
+    const permPromise =
+      typeof Notification !== 'undefined' && typeof Notification.requestPermission === 'function'
+        ? Notification.requestPermission()
+        : null;
+    if (permPromise) {
+      await permPromise;
+    }
+    enableMutation.mutate();
+  }
+
   let body: JSX.Element;
   if (state === 'unsupported') {
     body = (
@@ -192,7 +203,7 @@ export function PushSettingsGroup(): JSX.Element | null {
             >
               <SelectTrigger
                 data-testid="push-lead"
-                aria-label={t('push.reminder')}
+                aria-label={t('push.leadLabel')}
                 className="fsl-push-settings__lead min-h-11 h-11 rounded-xl bg-card px-3 text-base text-foreground"
               >
                 <SelectValue />
@@ -250,7 +261,7 @@ export function PushSettingsGroup(): JSX.Element | null {
           variant="secondary"
           disabled={!hasServerKey || enableMutation.isPending}
           loading={enableMutation.isPending}
-          onClick={() => enableMutation.mutate()}
+          onClick={handleEnable}
           className="fsl-push-settings__enable-btn min-h-11 self-start"
         >
           <Icon name="bell" size={16} />

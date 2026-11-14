@@ -4,6 +4,9 @@ import { seedTrip, linkMember, T, U, PID } from './helpers';
 import worker from '../src/index';
 import * as pushCron from '../src/notifications/push/cron';
 import { sendDueReminders } from '../src/notifications/push/cron';
+import { sendToSubscriptions } from '../src/notifications/push/dispatch';
+import { getDb } from '@cc/api-db/client';
+import { pushSubscriptions } from '@cc/api-db/schema';
 import * as usage from '../src/ops/usage';
 import * as feedback from '../src/feedback/deliver';
 import * as loanReminders from '../src/notifications/cron/loanReminders';
@@ -322,7 +325,8 @@ describe('Push reminder cron (sendDueReminders)', () => {
 
     const fetchSpy = stubFetch();
 
-    // Run sendDueReminders twice: first batch takes 90, second batch takes remaining 5
+    // Run sendDueReminders three times: 40 + 40 + 15 = 95
+    await sendDueReminders(env, now);
     await sendDueReminders(env, now);
     await sendDueReminders(env, now);
 
@@ -341,5 +345,84 @@ describe('Push reminder cron (sendDueReminders)', () => {
     expect(sent?.count).toBe(95);
 
     expect(pushedTo(fetchSpy)).toHaveLength(95);
+  });
+
+  it('one cron run processes at most 40 rows and the rest go in the next run', async () => {
+    await linkMember(PID.A, U.an, 'An');
+    await seedPlannedSession('sess-cap-40', {
+      spentOn: '2026-11-14',
+      timeRange: '19:00 - 21:00',
+      description: 'Cầu lông T5',
+    });
+
+    const now = new Date('2026-11-14T11:30:00.000Z');
+    const dueAt = new Date('2026-11-14T11:29:00.000Z').toISOString();
+    const pubKey = await rawPublicKey();
+    const authKey = b64url(crypto.getRandomValues(new Uint8Array(16)));
+
+    for (let i = 0; i < 45; i++) {
+      const subId = `sub-cap-${i}`;
+      const endpoint = `https://fcm.googleapis.com/fcm/send/cap-${i}`;
+      await env.DB.prepare(
+        'INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, new_session, session_reminder, reminder_lead_minutes, expense_new, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 1, 30, 1, ?, ?)',
+      )
+        .bind(subId, U.an, endpoint, pubKey, authKey, '2026-11-13T00:00:00.000Z', '2026-11-13T00:00:00.000Z')
+        .run();
+      await seedReminder(`rem-cap-${i}`, subId, 'sess-cap-40', dueAt, null);
+    }
+
+    const fetchSpy = stubFetch();
+
+    await sendDueReminders(env, now);
+    expect(pushedTo(fetchSpy)).toHaveLength(40);
+    const afterFirst = await env.DB.prepare(
+      'SELECT count(*) as count FROM push_reminders WHERE transaction_root_id = ? AND sent_at IS NULL',
+    )
+      .bind('sess-cap-40')
+      .first<{ count: number }>();
+    expect(afterFirst?.count).toBe(5);
+
+    await sendDueReminders(env, now);
+    expect(pushedTo(fetchSpy)).toHaveLength(45);
+    const afterSecond = await env.DB.prepare(
+      'SELECT count(*) as count FROM push_reminders WHERE transaction_root_id = ? AND sent_at IS NULL',
+    )
+      .bind('sess-cap-40')
+      .first<{ count: number }>();
+    expect(afterSecond?.count).toBe(0);
+  });
+
+  it('sendToSubscriptions caps at 40 fetches per call and warns with skipped count without logging endpoints', async () => {
+    await linkMember(PID.A, U.an, 'An');
+    const pubKey = await rawPublicKey();
+    const authKey = b64url(crypto.getRandomValues(new Uint8Array(16)));
+    for (let i = 0; i < 45; i++) {
+      await env.DB.prepare(
+        'INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, new_session, session_reminder, reminder_lead_minutes, expense_new, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 1, 30, 1, ?, ?)',
+      )
+        .bind(`sub-disp-${i}`, U.an, `https://fcm.googleapis.com/fcm/send/disp-${i}`, pubKey, authKey, '2026-11-13T00:00:00.000Z', '2026-11-13T00:00:00.000Z')
+        .run();
+    }
+
+    const db = getDb(env);
+    const subs = await db.select().from(pushSubscriptions);
+    expect(subs.length).toBe(45);
+
+    const fetchSpy = stubFetch();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await sendToSubscriptions(
+      env,
+      db,
+      subs,
+      { title: 'Test', body: 'Body', url: '/', tag: 'test' },
+      { ttlSeconds: 60, urgency: 'normal' },
+    );
+
+    expect(pushedTo(fetchSpy)).toHaveLength(40);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const warnMsg = String(warnSpy.mock.calls[0]?.[0] ?? '');
+    expect(warnMsg).toContain('5');
+    expect(warnMsg).not.toContain('fcm.googleapis.com');
   });
 });

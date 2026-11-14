@@ -1118,6 +1118,7 @@ export const en = {
   'push.newSessionDesc': 'When an admin adds you to a session',
   'push.reminder': 'Session reminder',
   'push.reminderDesc': '{lead} before the start time',
+  'push.leadLabel': 'How long before',
   'push.lead15': '15 min',
   'push.lead30': '30 min',
   'push.lead60': '1 hour',

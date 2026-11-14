@@ -1,5 +1,5 @@
 import type { BatchItem } from 'drizzle-orm/batch';
-import { and, eq, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { Db } from '@cc/api-db/client';
 import { nowIso } from '@cc/api-util/ids';
 import {
@@ -8,6 +8,8 @@ import {
   membershipRequests,
   participants,
   playerRatings,
+  pushReminders,
+  pushSubscriptions,
   transactions,
   transactionShares,
 } from '@cc/api-db/schema';
@@ -65,6 +67,30 @@ export async function takeOutOfTrip(
       ),
     );
 
+  const person = await db
+    .select({ userId: participants.userId })
+    .from(participants)
+    .where(and(eq(participants.id, participantId), eq(participants.tripId, tripId)))
+    .get();
+
+  const deleteRemindersQuery = person?.userId
+    ? db
+        .delete(pushReminders)
+        .where(
+          and(
+            eq(pushReminders.tripId, tripId),
+            isNull(pushReminders.sentAt),
+            inArray(
+              pushReminders.subscriptionId,
+              db
+                .select({ id: pushSubscriptions.id })
+                .from(pushSubscriptions)
+                .where(eq(pushSubscriptions.userId, person.userId)),
+            ),
+          ),
+        )
+    : null;
+
   if (!hasHistory) {
     return {
       outcome: 'deleted',
@@ -81,6 +107,7 @@ export async function takeOutOfTrip(
             ),
           ),
         deleteRatingsQuery,
+        ...(deleteRemindersQuery ? [deleteRemindersQuery] : []),
       ],
     };
   }
@@ -138,6 +165,7 @@ export async function takeOutOfTrip(
             eq(transactions.status, 'says_paid'),
           ),
         ),
+      ...(deleteRemindersQuery ? [deleteRemindersQuery] : []),
     ],
   };
 }

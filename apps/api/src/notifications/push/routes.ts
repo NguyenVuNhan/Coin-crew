@@ -183,7 +183,9 @@ export function pushRoutes(): Hono<AppBindings> {
 
     const updatedAt = nowIso();
     await db.update(pushSubscriptions).set({ ...patch, updatedAt }).where(eq(pushSubscriptions.id, existing.id));
-    await rebuildRemindersForSubscription(db, existing.id, new Date());
+    if (body.sessionReminder !== undefined || body.reminderLeadMinutes !== undefined) {
+      await rebuildRemindersForSubscription(db, existing.id, new Date());
+    }
 
     const row = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.id, existing.id)).get();
     return c.json({ settings: toSettings(row!) }, 200);

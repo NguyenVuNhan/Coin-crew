@@ -76,7 +76,7 @@ export async function rebuildSessionReminders(db: Db, rootId: string, now: Date)
   const people = await db
     .select({ userId: participants.userId })
     .from(participants)
-    .where(and(eq(participants.tripId, trip.id), inArray(participants.id, participantIds)));
+    .where(and(eq(participants.tripId, trip.id), ne(participants.status, 'left'), inArray(participants.id, participantIds)));
   const userIds = [...new Set(people.map((p) => p.userId).filter((u): u is string => Boolean(u)))];
   if (userIds.length === 0) return;
 
@@ -99,7 +99,7 @@ export async function rebuildRemindersForSubscription(db: Db, subscriptionId: st
     .select({ participantId: participants.id, tripId: participants.tripId })
     .from(participants)
     .innerJoin(trips, eq(trips.id, participants.tripId))
-    .where(and(eq(participants.userId, sub.userId), ne(trips.preset, 'direct')));
+    .where(and(eq(participants.userId, sub.userId), ne(participants.status, 'left'), ne(trips.preset, 'direct')));
   if (memberRows.length === 0) return;
 
   const pidsByTrip = new Map<string, Set<string>>();

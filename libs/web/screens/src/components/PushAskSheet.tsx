@@ -4,6 +4,7 @@ import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { usePlatform } from '@cc/web-platform';
 import { usePushState } from '@cc/web-platform/push';
+import { useMe } from '@cc/web-data-access/hooks';
 import { useEnablePush, usePushDevice, usePushKey } from '@cc/web-data-access/push';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Button } from '@cc/web-ui/components/Button';
@@ -28,11 +29,13 @@ function leadMessageKey(minutes: PushLeadMinutes): MessageKey {
 export function PushAskSheet({ open, onClose }: { open: boolean; onClose: () => void }): JSX.Element {
   const t = useT();
   const platform = usePlatform();
+  const me = useMe();
+  const signedIn = me.isSuccess && !!me.data.user;
   const pushState = usePushState();
   const keyQuery = usePushKey();
   const hasServerKey = typeof keyQuery.data === 'string';
   const deviceQuery = usePushDevice(
-    platform.kind === 'web' && pushState === 'granted' && hasServerKey,
+    platform.kind === 'web' && signedIn && pushState === 'granted' && hasServerKey,
   );
   const enableMutation = useEnablePush();
   const { reset: resetEnableMutation } = enableMutation;
@@ -80,7 +83,14 @@ export function PushAskSheet({ open, onClose }: { open: boolean; onClose: () => 
 
   async function handleEnable() {
     setShowError(false);
+    const permPromise =
+      typeof Notification !== 'undefined' && typeof Notification.requestPermission === 'function'
+        ? Notification.requestPermission()
+        : null;
     try {
+      if (permPromise) {
+        await permPromise;
+      }
       await enableMutation.mutateAsync();
       setShowSnackbar(true);
       onClose();

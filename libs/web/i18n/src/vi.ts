@@ -1119,6 +1119,7 @@ export const vi: Record<MessageKey, string> = {
   'push.newSessionDesc': 'Khi admin thêm bạn vào buổi chơi', // REVIEW
   'push.reminder': 'Nhắc trước buổi chơi', // REVIEW
   'push.reminderDesc': '{lead} trước giờ bắt đầu', // REVIEW
+  'push.leadLabel': 'Nhắc trước bao lâu', // REVIEW
   'push.lead15': '15 phút', // REVIEW
   'push.lead30': '30 phút', // REVIEW
   'push.lead60': '1 giờ', // REVIEW

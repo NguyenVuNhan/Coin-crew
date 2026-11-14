@@ -130,6 +130,25 @@ describe('push subscription routes', () => {
     expect((await get(minh)).status).toBe(200);
   });
 
+  it('PATCH expenseNew false leaves an existing reminder row id untouched', async () => {
+    const sid = await memberSid(U.minh, 'Minh');
+    await put(sid);
+    const sub = await env.DB.prepare('SELECT id FROM push_subscriptions WHERE endpoint = ?').bind(EP).first<{ id: string }>();
+    await env.DB.prepare(
+      "INSERT INTO push_reminders (id, subscription_id, transaction_root_id, trip_id, due_at) VALUES ('rem-keep-id', ?, 'root-1', 't-1', '2099-11-20T00:00:00.000Z')",
+    )
+      .bind(sub!.id)
+      .run();
+
+    const res = await req('PATCH', sid, { endpoint: EP, expenseNew: false });
+    expect(res.status).toBe(200);
+
+    const row = await env.DB.prepare('SELECT id FROM push_reminders WHERE subscription_id = ?')
+      .bind(sub!.id)
+      .first<{ id: string }>();
+    expect(row?.id).toBe('rem-keep-id');
+  });
+
   describe('PUT validation', () => {
     const bad: [string, unknown][] = [
       ['http endpoint', { endpoint: 'http://example.com/x', keys: KEYS }],

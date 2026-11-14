@@ -333,4 +333,47 @@ describe('PushPill & PushAskSheet', () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
+
+  it('PushAskSheet does not fetch device subscription when not signed in', async () => {
+    pushMock.state = 'granted';
+    const { calls } = mockApi({
+      'GET /api/push/key': { publicKey: 'AQAB' },
+    });
+
+    renderVi(<PushAskSheet open={true} onClose={vi.fn()} />);
+
+    await screen.findByTestId('push-ask-sheet');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls.some((c) => c.path === '/api/push/subscription')).toBe(false);
+  });
+
+  it('PushAskSheet enable button calls Notification.requestPermission before any fetch', async () => {
+    const order: string[] = [];
+    const requestPermission = vi.fn(async () => {
+      order.push('requestPermission');
+      return 'granted' as NotificationPermission;
+    });
+    vi.stubGlobal('Notification', {
+      permission: 'default',
+      requestPermission,
+    });
+
+    mockApi({
+      'GET /api/me': USER,
+      'GET /api/push/key': { publicKey: 'AQAB' },
+      'PUT /api/push/subscription': () => {
+        order.push('fetch:PUT');
+        return Response.json({ settings: DEVICE });
+      },
+    });
+
+    renderVi(<PushAskSheet open={true} onClose={vi.fn()} />);
+
+    const enableBtn = await screen.findByRole('button', { name: 'Bật thông báo' });
+    await waitFor(() => expect(enableBtn).not.toBeDisabled());
+    await userEvent.click(enableBtn);
+
+    await waitFor(() => expect(order).toEqual(['requestPermission', 'fetch:PUT']));
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+  });
 });
