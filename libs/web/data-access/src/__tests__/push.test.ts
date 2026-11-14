@@ -46,6 +46,7 @@ function stubPushBrowser(opts: {
   auth?: string;
   hasExistingSub?: boolean;
   unsubscribeThrows?: boolean;
+  noRegistration?: boolean;
 } = {}) {
   const endpoint = opts.endpoint ?? 'https://fcm.googleapis.com/fcm/send/dev-1';
   const p256dh = opts.p256dh ?? 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
@@ -83,15 +84,20 @@ function stubPushBrowser(opts: {
 
   const getSubscription = vi.fn(async () => currentSub);
 
-  Object.defineProperty(navigator, 'serviceWorker', {
-    configurable: true,
-    value: {
-      ready: Promise.resolve({
+  const reg = opts.noRegistration
+    ? undefined
+    : {
         pushManager: {
           subscribe,
           getSubscription,
         },
-      }),
+      };
+
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: {
+      getRegistration: vi.fn(async () => reg),
+      ready: Promise.resolve(reg),
     },
   });
 
@@ -126,24 +132,48 @@ describe('push data-access hooks', () => {
     expect(result.current.data).toBe('AQAB');
   });
 
-  it('useEnablePush PUTs the browser subscription and invalidates ["push","device"]', async () => {
+  it('useEnablePush rejects when no key is cached and does not call requestPermission', async () => {
+    const { requestPermission } = stubPushBrowser();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    // Ensure no key is in cache
+    const { result } = renderHook(() => useEnablePush(), { wrapper: makeWrapper(queryClient) });
+    await expect(result.current.mutateAsync()).rejects.toThrow('push key not loaded');
+    expect(requestPermission).not.toHaveBeenCalled();
+  });
+
+  it('useEnablePush with a cached key invokes requestPermission as the first await and PUTs the subscription', async () => {
     const { subscribe, requestPermission, endpoint, p256dh, auth } = stubPushBrowser();
+    const order: string[] = [];
     const { calls } = mockFetch({
-      'GET /api/push/key': { publicKey: 'AQAB' },
-      'PUT /api/push/subscription': { settings: DEFAULT_SETTINGS },
+      'PUT /api/push/subscription': () => {
+        order.push('fetch:PUT');
+        return Response.json({ settings: DEFAULT_SETTINGS });
+      },
     });
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
+    queryClient.setQueryData(['push', 'key'], 'AQAB');
     queryClient.setQueryData(['push', 'device'], null);
 
+    requestPermission.mockImplementation(async () => {
+      order.push('requestPermission');
+      // Verify no network call has been made before requestPermission
+      expect(calls).toHaveLength(0);
+      return 'granted';
+    });
+
     const { result } = renderHook(() => useEnablePush(), { wrapper: makeWrapper(queryClient) });
+
     let returned: PushDeviceSettings | undefined;
     await act(async () => {
       returned = await result.current.mutateAsync();
     });
 
+    expect(order).toEqual(['requestPermission', 'fetch:PUT']);
     expect(requestPermission).toHaveBeenCalledTimes(1);
     expect(subscribe).toHaveBeenCalledTimes(1);
     expect(returned).toEqual(DEFAULT_SETTINGS);
@@ -250,14 +280,32 @@ describe('signOut push cleanup', () => {
 
     await expect(signOut(browserPlatform, new QueryClient())).resolves.toBeUndefined();
     expect(failingDelete.calls.some((c) => c.method === 'POST' && c.path === '/api/auth/logout')).toBe(true);
+  });
 
-    // And when browser unsubscribe() itself throws: signOut must still succeed
-    stubPushBrowser({ hasExistingSub: true, unsubscribeThrows: true });
-    const failingUnsub = mockFetch({
+  it('no registration -> getBrowserSubscription resolves null and signOut still calls /api/auth/logout', async () => {
+    stubPushBrowser({ noRegistration: true });
+    const { calls } = mockFetch({
+      'POST /api/auth/logout': null,
+    });
+
+    await signOut(browserPlatform, new QueryClient());
+
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(['POST /api/auth/logout']);
+  });
+
+  it('when browser unsubscribe() throws, signOut still sends DELETE to server with captured endpoint and logs out', async () => {
+    const { unsubscribe, endpoint } = stubPushBrowser({ hasExistingSub: true, unsubscribeThrows: true });
+    const { calls } = mockFetch({
+      'DELETE /api/push/subscription': null,
       'POST /api/auth/logout': null,
     });
 
     await expect(signOut(browserPlatform, new QueryClient())).resolves.toBeUndefined();
-    expect(failingUnsub.calls.some((c) => c.method === 'POST' && c.path === '/api/auth/logout')).toBe(true);
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+      'DELETE /api/push/subscription',
+      'POST /api/auth/logout',
+    ]);
+    expect(calls[0]!.body).toEqual({ endpoint });
   });
 });

@@ -58,13 +58,9 @@ export function useEnablePush(): UseMutationResult<PushDeviceSettings, Error, vo
   const queryClient = useQueryClient();
   return useMutation<PushDeviceSettings, Error, void>({
     mutationFn: async () => {
-      const key = await queryClient.fetchQuery({
-        queryKey: PUSH_KEY_QUERY_KEY,
-        queryFn: fetchPushKey,
-        staleTime: Infinity,
-      });
-      if (!key) {
-        throw new Error('Push notifications are not configured');
+      const key = queryClient.getQueryData<string | null>(PUSH_KEY_QUERY_KEY);
+      if (typeof key !== 'string') {
+        throw new Error('push key not loaded');
       }
       const sub = await subscribeBrowser(key);
       const body: PushSubscriptionInput = {

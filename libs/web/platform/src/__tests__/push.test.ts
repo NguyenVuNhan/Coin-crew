@@ -137,6 +137,12 @@ describe('subscribeBrowser, unsubscribeBrowser, and usePushState', () => {
     Object.defineProperty(navigator, 'serviceWorker', {
       configurable: true,
       value: {
+        getRegistration: vi.fn(async () => ({
+          pushManager: {
+            subscribe: subscribeMock,
+            getSubscription: vi.fn(async () => activeSub),
+          },
+        })),
         ready: Promise.resolve({
           pushManager: {
             subscribe: subscribeMock,
@@ -192,6 +198,12 @@ describe('subscribeBrowser, unsubscribeBrowser, and usePushState', () => {
     Object.defineProperty(navigator, 'serviceWorker', {
       configurable: true,
       value: {
+        getRegistration: vi.fn(async () => ({
+          pushManager: {
+            subscribe: vi.fn(),
+            getSubscription: vi.fn(async () => null),
+          },
+        })),
         ready: Promise.resolve({
           pushManager: {
             subscribe: vi.fn(),
@@ -209,5 +221,37 @@ describe('subscribeBrowser, unsubscribeBrowser, and usePushState', () => {
     });
     expect(result.current).toBe('blocked');
     expect(await unsubscribeBrowser()).toBeNull();
+  });
+
+  it('no registration -> getBrowserSubscription resolves null', async () => {
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        getRegistration: vi.fn(async () => undefined),
+      },
+    });
+    expect(await getBrowserSubscription()).toBeNull();
+  });
+
+  it('unsubscribeBrowser returns the endpoint even if sub.unsubscribe throws', async () => {
+    const sub = {
+      endpoint: 'https://fcm.googleapis.com/fcm/send/err-1',
+      toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/err-1' }),
+      unsubscribe: vi.fn(async () => {
+        throw new Error('browser unsubscribe failed');
+      }),
+    };
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        getRegistration: vi.fn(async () => ({
+          pushManager: {
+            getSubscription: vi.fn(async () => sub),
+          },
+        })),
+      },
+    });
+    expect(await unsubscribeBrowser()).toBe('https://fcm.googleapis.com/fcm/send/err-1');
+    expect(sub.unsubscribe).toHaveBeenCalledTimes(1);
   });
 });

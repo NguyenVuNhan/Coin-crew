@@ -102,11 +102,16 @@ function b64urlToBytes(base64Url: string): Uint8Array<ArrayBuffer> {
 }
 
 export async function getBrowserSubscription(): Promise<PushSubscription | null> {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !navigator.serviceWorker) {
+  if (
+    typeof navigator === 'undefined' ||
+    !('serviceWorker' in navigator) ||
+    !navigator.serviceWorker ||
+    typeof navigator.serviceWorker.getRegistration !== 'function'
+  ) {
     return null;
   }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await navigator.serviceWorker.getRegistration();
     if (!reg?.pushManager) return null;
     return (await reg.pushManager.getSubscription()) ?? null;
   } catch {
@@ -144,6 +149,8 @@ export async function unsubscribeBrowser(): Promise<string | null> {
   const endpoint = sub.endpoint;
   try {
     await sub.unsubscribe();
+  } catch {
+    // Best-effort: return endpoint even if browser unsubscribe throws
   } finally {
     notify();
   }
