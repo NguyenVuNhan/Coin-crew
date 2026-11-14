@@ -11,10 +11,7 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { Screen } from '../components/Screen';
-import { AwardNightCard } from '../components/meme/AwardNightCard';
-import { WantedCard } from '../components/meme/WantedCard';
-import { VerseCard } from '../components/meme/VerseCard';
-import { BoardCard } from '../components/meme/BoardCard';
+import { AwardsStory } from '../components/meme/AwardsStory';
 import { buildAwards } from '../lib/awards';
 import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
@@ -212,92 +209,45 @@ export function CrewAwards() {
     );
   };
 
-  let primaryAssigned = false;
-  const takePrimary = () => {
-    if (primaryAssigned) return false;
-    primaryAssigned = true;
-    return true;
-  };
+  const slides: MemeInput[] = [];
+  if (content.awards) slides.push(content.awards);
+  if (wantedInput) slides.push(wantedInput);
+  if (content.verse) slides.push(content.verse);
+  if (content.board) slides.push(content.board);
+
+  const statusBanner =
+    status !== null ? (
+      <p
+        className={
+          status === 'failed'
+            ? 'fsl-awards__status m-0 inline-block rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger'
+            : 'fsl-awards__status m-0 inline-block rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground'
+        }
+        role={status === 'failed' ? 'alert' : 'status'}
+      >
+        {status === 'copied'
+          ? t('request.copied')
+          : status === 'saved'
+            ? t('awards.saved')
+            : activeSource === 'save'
+              ? t('awards.saveFailed')
+              : t('awards.shareFailed')}
+      </p>
+    ) : undefined;
 
   return (
-    <Screen title={t('awards.title')} onBack={goBack}>
-      <div className="fsl-awards flex flex-col gap-6 py-4" data-testid="crew-awards-screen">
-        {status !== null && (
-          <p
-            className={
-              status === 'failed'
-                ? 'fsl-awards__status m-0 text-sm text-danger'
-                : 'fsl-awards__status m-0 text-sm text-primary'
-            }
-            role={status === 'failed' ? 'alert' : 'status'}
-          >
-            {status === 'copied'
-              ? t('request.copied')
-              : status === 'saved'
-                ? t('awards.saved')
-                : activeSource === 'save'
-                  ? t('awards.saveFailed')
-                  : t('awards.shareFailed')}
-          </p>
-        )}
-
-        {content.awards && (
-          <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-            <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.awards')}
-            </h2>
-            <AwardNightCard input={content.awards} actions={renderActions(content.awards, takePrimary())} />
-          </section>
-        )}
-
-        {wantedInput && (
-          <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-            <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.wanted')}
-            </h2>
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('awards.cardTitle.wanted')}>
-              {wantedCandidates.map((cid) => {
-                const name = nameMap.get(cid);
-                if (!name) return null;
-                const selected = cid === wantedId;
-                return (
-                  <Button
-                    key={cid}
-                    variant={selected ? 'primary' : 'secondary'}
-                    data-testid={`wanted-pick-${cid}`}
-                    aria-pressed={selected}
-                    onClick={() => setPickedWantedId(cid)}
-                    className="min-h-11 rounded-full px-4"
-                  >
-                    {name}
-                  </Button>
-                );
-              })}
-            </div>
-            <WantedCard input={wantedInput} actions={renderActions(wantedInput, takePrimary())} />
-          </section>
-        )}
-
-        {content.verse && (
-          <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-            <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.verse')}
-            </h2>
-            <VerseCard input={content.verse} actions={renderActions(content.verse, takePrimary())} />
-          </section>
-        )}
-
-        {content.board && (
-          <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-            <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('awards.cardTitle.board')}
-            </h2>
-            <BoardCard input={content.board} actions={renderActions(content.board, takePrimary())} />
-          </section>
-        )}
-
-        {sheet}
-      </div>
-    </Screen>
+    <AwardsStory
+      slides={slides}
+      groupName={tripName}
+      wantedCandidates={wantedCandidates}
+      wantedId={wantedId}
+      onPickWanted={setPickedWantedId}
+      nameMap={nameMap}
+      onClose={goBack}
+      renderActions={renderActions}
+      statusBanner={statusBanner}
+      pausedExternal={busyKey !== null || sharing}
+      sheet={sheet}
+    />
   );
 }

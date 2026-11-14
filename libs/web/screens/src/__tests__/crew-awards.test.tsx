@@ -190,15 +190,32 @@ describe('CrewAwards screen', () => {
     });
   });
 
-  it('wanted picker lists flaky people and shows the stamp variant when wantedStamp', async () => {
-    renderAwards();
+  it('wanted picker lists flaky people, shows stamp variant, and renders profile photo with fallback', async () => {
+    const tripWithAvatar: TripView = {
+      ...baseTrip,
+      people: baseTrip.people.map((p) =>
+        p.id === 'p-4' ? { ...p, avatarUrl: 'https://cdn.example/binh.jpg' } : p,
+      ),
+    };
+    renderAwards({ trip: tripWithAvatar });
+    const nextBtn = await screen.findByTestId('story-next');
+    fireEvent.click(nextBtn);
+
     const pickBinh = await screen.findByTestId('wanted-pick-p-4');
     const pickHai = await screen.findByTestId('wanted-pick-p-5');
     expect(pickBinh.textContent).toContain('Bình');
     expect(pickHai.textContent).toContain('Hải');
 
-    // First candidate (Bình) has wantedStamp = false
+    // First candidate (Bình) has avatarUrl and wantedStamp = false
+    const wantedCard = screen.getByTestId('meme-card-wanted');
+    const img = wantedCard.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('https://cdn.example/binh.jpg');
     expect(screen.queryByTestId('wanted-stamp')).toBeNull();
+
+    // Broken avatar falls back to initials
+    fireEvent.error(img!);
+    expect(wantedCard.querySelector('img')).toBeNull();
+    expect(wantedCard.textContent).toContain('Bì');
 
     // Selecting Hải (wantedStamp = true) shows the stamp
     fireEvent.click(pickHai);
@@ -206,7 +223,7 @@ describe('CrewAwards screen', () => {
     expect(screen.getByTestId('wanted-stamp').textContent).toMatch(/ĐÃ RA SÂN|BACK ON COURT/i);
   });
 
-  it('reduced motion: cards render with no animation classes active', async () => {
+  it('reduced motion: cards render with no animation classes active and fade transition', async () => {
     vi.stubGlobal(
       'matchMedia',
       vi.fn((query: string) => ({
@@ -222,18 +239,97 @@ describe('CrewAwards screen', () => {
 
     const animated = container.querySelectorAll('[class*="animate-["]');
     expect(animated.length).toBe(0);
+    expect(screen.getByTestId('story-viewport').getAttribute('data-transition')).toBe('fade');
   });
 
-  it('shows Replay button per card and renders shuttlecock as SVG', async () => {
+  it('shows Replay button per slide across story navigation and renders shuttlecock as SVG', async () => {
     const { container } = renderAwards();
     await screen.findByTestId('meme-card-awards');
+    expect(screen.getByTestId('story-progress').children.length).toBe(4);
     expect(screen.getByTestId('replay-awards')).toBeTruthy();
-    expect(screen.getByTestId('replay-wanted')).toBeTruthy();
-    expect(screen.getByTestId('replay-verse')).toBeTruthy();
-    expect(screen.getByTestId('replay-board')).toBeTruthy();
     expect(container.querySelectorAll('svg[viewBox="0 0 24 32"]').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByTestId('replay-awards'));
     expect(screen.getByTestId('meme-card-awards')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('story-next'));
+    expect(await screen.findByTestId('replay-wanted')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('story-next'));
+    expect(await screen.findByTestId('replay-verse')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('story-next'));
+    expect(await screen.findByTestId('replay-board')).toBeTruthy();
+
+    // Close returns to trip home
+    fireEvent.click(screen.getByTestId('story-close'));
+    await waitFor(() => expect(screen.getByTestId('trip-home')).toBeTruthy());
+  });
+
+  it('story navigation supports keyboard, left-tap restart vs prev, hold-to-pause, and stops on final slide', async () => {
+    let now = 0;
+    let rafId = 0;
+    const rafCallbacks = new Map<number, FrameRequestCallback>();
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = ++rafId;
+      rafCallbacks.set(id, cb);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafCallbacks.delete(id);
+    });
+    const flushFrame = (ms: number) => {
+      now += ms;
+      const pending = Array.from(rafCallbacks.values());
+      rafCallbacks.clear();
+      for (const cb of pending) cb(now);
+    };
+
+    renderAwards();
+    await screen.findByTestId('meme-card-awards');
+
+    // Auto-advance after 7000ms
+    flushFrame(7100);
+    expect(await screen.findByTestId('meme-card-wanted')).toBeTruthy();
+
+    // Left tap after >= 1500ms restarts wanted slide instead of going back
+    flushFrame(2000);
+    const viewport = screen.getByTestId('story-viewport');
+    Object.defineProperty(viewport, 'getBoundingClientRect', {
+      value: () => ({ left: 0, width: 300, top: 0, height: 500, right: 300, bottom: 500 }),
+    });
+    fireEvent.pointerDown(viewport, { pointerId: 1, clientX: 40, clientY: 200 });
+    fireEvent.pointerUp(viewport, { pointerId: 1, clientX: 40, clientY: 200 });
+    expect(screen.getByTestId('meme-card-wanted')).toBeTruthy();
+
+    // Left tap before 1500ms steps back to awards
+    flushFrame(300);
+    fireEvent.pointerDown(viewport, { pointerId: 2, clientX: 40, clientY: 200 });
+    fireEvent.pointerUp(viewport, { pointerId: 2, clientX: 40, clientY: 200 });
+    expect(await screen.findByTestId('meme-card-awards')).toBeTruthy();
+
+    // Hold >= 180ms pauses progress and release does not tap-skip
+    vi.useFakeTimers();
+    fireEvent.pointerDown(viewport, { pointerId: 3, clientX: 250, clientY: 200 });
+    vi.advanceTimersByTime(220);
+    flushFrame(7500);
+    expect(screen.getByTestId('meme-card-awards')).toBeTruthy();
+    fireEvent.pointerUp(viewport, { pointerId: 3, clientX: 250, clientY: 200 });
+    expect(screen.getByTestId('meme-card-awards')).toBeTruthy();
+    vi.useRealTimers();
+
+    // Keyboard ArrowRight to final slide, timer stops cleanly on final slide without closing
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(await screen.findByTestId('meme-card-board')).toBeTruthy();
+    flushFrame(10000);
+    expect(screen.getByTestId('meme-card-board')).toBeTruthy();
+    expect(screen.queryByTestId('trip-home')).toBeNull();
+
+    // Escape closes story
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.getByTestId('trip-home')).toBeTruthy());
   });
 
   it('MemberTrip shows Crew awards entry for sport admins only, and TurnoutSheet links to awards with neutral flaky pill', () => {

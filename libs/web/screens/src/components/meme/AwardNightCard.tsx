@@ -37,9 +37,13 @@ const ROW_DELAYS = ['150ms', '300ms', '450ms', '600ms'] as const;
 export function AwardNightCard({
   input,
   actions,
+  replayKey = 0,
+  hideActions = false,
 }: {
   input: Extract<MemeInput, { kind: 'awards' }>;
   actions?: ReactNode;
+  replayKey?: number;
+  hideActions?: boolean;
 }) {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
@@ -48,7 +52,7 @@ export function AwardNightCard({
   return (
     <div className="fsl-meme-item flex flex-col items-center gap-3" data-testid="meme-card-awards">
       <div
-        key={playKey}
+        key={`${playKey}-${replayKey}`}
         className="fsl-meme-card fsl-meme-card--awards relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-awards-bg px-4 py-5 font-sans text-meme-awards-ink shadow-lg"
       >
         <div
@@ -113,18 +117,20 @@ export function AwardNightCard({
           {input.footer}
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button
-          variant="ghost"
-          data-testid="replay-awards"
-          onClick={() => setPlayKey((k) => k + 1)}
-          className="min-h-11"
-        >
-          <Icon name="rotateCcw" size={16} />
-          <span>{t('awards.replay')}</span>
-        </Button>
-        {actions}
-      </div>
+      {!hideActions && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            data-testid="replay-awards"
+            onClick={() => setPlayKey((k) => k + 1)}
+            className="min-h-11"
+          >
+            <Icon name="rotateCcw" size={16} />
+            <span>{t('awards.replay')}</span>
+          </Button>
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

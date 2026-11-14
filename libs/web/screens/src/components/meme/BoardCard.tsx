@@ -9,9 +9,13 @@ import { cn } from '@cc/web-ui/lib/utils';
 export function BoardCard({
   input,
   actions,
+  replayKey = 0,
+  hideActions = false,
 }: {
   input: Extract<MemeInput, { kind: 'board' }>;
   actions?: ReactNode;
+  replayKey?: number;
+  hideActions?: boolean;
 }) {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
@@ -20,7 +24,7 @@ export function BoardCard({
   return (
     <div className="fsl-meme-item flex flex-col items-center gap-3" data-testid="meme-card-board">
       <div
-        key={playKey}
+        key={`${playKey}-${replayKey}`}
         className="fsl-meme-card fsl-meme-card--board relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-board-bg px-3.5 py-[18px] font-sans text-meme-board-ink shadow-lg"
       >
         <div className="text-center font-meme-board text-[21px] leading-[1.05] text-meme-board-accent">
@@ -80,18 +84,20 @@ export function BoardCard({
           {input.footer}
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button
-          variant="ghost"
-          data-testid="replay-board"
-          onClick={() => setPlayKey((k) => k + 1)}
-          className="min-h-11"
-        >
-          <Icon name="rotateCcw" size={16} />
-          <span>{t('awards.replay')}</span>
-        </Button>
-        {actions}
-      </div>
+      {!hideActions && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            data-testid="replay-board"
+            onClick={() => setPlayKey((k) => k + 1)}
+            className="min-h-11"
+          >
+            <Icon name="rotateCcw" size={16} />
+            <span>{t('awards.replay')}</span>
+          </Button>
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

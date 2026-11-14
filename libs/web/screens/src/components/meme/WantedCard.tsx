@@ -10,9 +10,13 @@ import { ShuttlecockSvg } from './AwardNightCard';
 export function WantedCard({
   input,
   actions,
+  replayKey = 0,
+  hideActions = false,
 }: {
   input: Extract<MemeInput, { kind: 'wanted' }>;
   actions?: ReactNode;
+  replayKey?: number;
+  hideActions?: boolean;
 }) {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
@@ -27,7 +31,7 @@ export function WantedCard({
   return (
     <div className="fsl-meme-item flex flex-col items-center gap-3" data-testid="meme-card-wanted">
       <div
-        key={`${playKey}-${input.name}-${String(input.stamp)}`}
+        key={`${playKey}-${replayKey}-${input.name}-${String(input.stamp)}`}
         className={cn(
           'fsl-meme-card fsl-meme-card--wanted relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-wanted-bg px-[18px] py-[22px] font-sans text-meme-wanted-ink shadow-lg',
           !reducedMotion &&
@@ -90,18 +94,20 @@ export function WantedCard({
           {input.footer}
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button
-          variant="ghost"
-          data-testid="replay-wanted"
-          onClick={() => setPlayKey((k) => k + 1)}
-          className="min-h-11"
-        >
-          <Icon name="rotateCcw" size={16} />
-          <span>{t('awards.replay')}</span>
-        </Button>
-        {actions}
-      </div>
+      {!hideActions && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            data-testid="replay-wanted"
+            onClick={() => setPlayKey((k) => k + 1)}
+            className="min-h-11"
+          >
+            <Icon name="rotateCcw" size={16} />
+            <span>{t('awards.replay')}</span>
+          </Button>
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

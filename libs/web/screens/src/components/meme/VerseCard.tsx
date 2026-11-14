@@ -22,9 +22,13 @@ function renderLine8(line8: string, name: string) {
 export function VerseCard({
   input,
   actions,
+  replayKey = 0,
+  hideActions = false,
 }: {
   input: Extract<MemeInput, { kind: 'verse' }>;
   actions?: ReactNode;
+  replayKey?: number;
+  hideActions?: boolean;
 }) {
   const t = useT();
   const reducedMotion = usePrefersReducedMotion();
@@ -33,7 +37,7 @@ export function VerseCard({
   return (
     <div className="fsl-meme-item flex flex-col items-center gap-3" data-testid="meme-card-verse">
       <div
-        key={playKey}
+        key={`${playKey}-${replayKey}`}
         className="fsl-meme-card fsl-meme-card--verse relative mx-auto h-[480px] w-[270px] overflow-hidden rounded-xl bg-meme-verse-bg px-[22px] py-[26px] font-sans text-meme-verse-ink shadow-lg"
       >
         <div
@@ -88,18 +92,20 @@ export function VerseCard({
           {input.footer}
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button
-          variant="ghost"
-          data-testid="replay-verse"
-          onClick={() => setPlayKey((k) => k + 1)}
-          className="min-h-11"
-        >
-          <Icon name="rotateCcw" size={16} />
-          <span>{t('awards.replay')}</span>
-        </Button>
-        {actions}
-      </div>
+      {!hideActions && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            data-testid="replay-verse"
+            onClick={() => setPlayKey((k) => k + 1)}
+            className="min-h-11"
+          >
+            <Icon name="rotateCcw" size={16} />
+            <span>{t('awards.replay')}</span>
+          </Button>
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
