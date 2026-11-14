@@ -1124,6 +1124,12 @@ export const en = {
   'push.lead120': '2 hours',
   'push.expense': 'Transaction activity',
   'push.expenseDesc': 'New expenses that include your share',
+  'push.pill': 'Get notifications on your phone',
+  'push.askTitle': 'Get notifications on your phone',
+  'push.askNewSessionDesc': 'When an admin schedules a session and adds you to the list',
+  'push.askExpenseDesc': 'When a new expense includes your share',
+  'push.notNow': 'Not now',
+  'push.enabled': 'Notifications enabled',
 
   'install.title': 'Add CoinCrew to your home screen',
   'install.pill': 'Add CoinCrew to your home screen',

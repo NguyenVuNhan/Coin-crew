@@ -1125,6 +1125,12 @@ export const vi: Record<MessageKey, string> = {
   'push.lead120': '2 giờ', // REVIEW
   'push.expense': 'Thay đổi giao dịch', // REVIEW
   'push.expenseDesc': 'Khoản chi mới tính phần của bạn', // REVIEW
+  'push.pill': 'Nhận thông báo trên điện thoại', // REVIEW
+  'push.askTitle': 'Nhận thông báo trên điện thoại', // REVIEW
+  'push.askNewSessionDesc': 'Khi admin lên lịch buổi chơi và thêm bạn vào danh sách', // REVIEW
+  'push.askExpenseDesc': 'Khi có khoản chi mới tính phần của bạn', // REVIEW
+  'push.notNow': 'Để sau', // REVIEW
+  'push.enabled': 'Đã bật thông báo', // REVIEW
 
   'install.title': 'Thêm CoinCrew vào màn hình chính',
   'install.pill': 'Thêm CoinCrew vào màn hình chính',

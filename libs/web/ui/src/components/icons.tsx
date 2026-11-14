@@ -1,12 +1,14 @@
 // Icon shapes are from Lucide (https://lucide.dev), ISC licence.
 import type { LucideIcon } from 'lucide-react';
 import {
+  AlarmClock,
   ArrowLeft,
   ArrowLeftRight,
   Ban,
   Bell,
   BellOff,
   Calendar,
+  CalendarCheck,
   Camera,
   Check,
   ChevronDown,
@@ -62,7 +64,7 @@ export type IconName =
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
-  | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos';
+  | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -70,6 +72,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   bellOff: BellOff,
   'bell-off': BellOff,
   calendar: Calendar,
+  'calendar-check': CalendarCheck,
+  'alarm-clock': AlarmClock,
   swap: ArrowLeftRight,
   back: ArrowLeft,
   settings: Settings,
