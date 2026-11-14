@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { check } from 'drizzle-orm/sqlite-core/checks';
 
 export const users = sqliteTable(
@@ -526,3 +526,46 @@ export const tripLocations = sqliteTable(
 );
 
 
+/** Attendance reliability scores per group member (#87). Columns mirror `AttendanceScore` from `@cc/core`. */
+export const attendanceScores = sqliteTable(
+  'attendance_scores',
+  {
+    tripId: text('trip_id').notNull(),
+    participantId: text('participant_id').notNull(),
+    presence: real('presence').notNull(),
+    reliability: real('reliability').notNull(),
+    guest: real('guest').notNull(),
+    presenceJoinStreak: integer('presence_join_streak').notNull().default(0),
+    presenceSkipStreak: integer('presence_skip_streak').notNull().default(0),
+    reliabilityJoinStreak: integer('reliability_join_streak').notNull().default(0),
+    reliabilitySkipStreak: integer('reliability_skip_streak').notNull().default(0),
+    sessionsSeen: integer('sessions_seen').notNull().default(0),
+    sessionsPlanned: integer('sessions_planned').notNull().default(0),
+    timesPlayed: integer('times_played').notNull().default(0),
+    guestsTotal: integer('guests_total').notNull().default(0),
+    lastPlayedOn: text('last_played_on'),
+    lastSessionRoot: text('last_session_root'),
+    lastBack: integer('last_back').notNull().default(0),
+    lastReturnGap: integer('last_return_gap').notNull().default(0),
+    lastEndedNoShowStreak: integer('last_ended_no_show_streak').notNull().default(0),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.tripId, t.participantId] })],
+);
+
+/** Session roots already folded into `attendance_scores`; a root is counted once. */
+export const attendanceCounted = sqliteTable(
+  'attendance_counted',
+  {
+    rootId: text('root_id').primaryKey(),
+    tripId: text('trip_id').notNull(),
+    countedAt: text('counted_at').notNull(),
+  },
+  (t) => [index('attendance_counted_trip_idx').on(t.tripId)],
+);
+
+/** Optimistic-lock version for a group's attendance bookkeeping (separate from `trips.version`). */
+export const attendanceState = sqliteTable('attendance_state', {
+  tripId: text('trip_id').primaryKey(),
+  version: integer('version').notNull().default(0),
+});

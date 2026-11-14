@@ -17,6 +17,7 @@ import { expensePayRoutes } from './expenses/payView';
 import { bookingExtractRoutes } from './expenses/bookingExtract';
 import { fundRoutes } from './fund/routes';
 import { ratingRoutes } from './ratings/routes';
+import { attendanceRoutes } from './attendance/routes';
 import { bankRoutes } from './bank/routes';
 import { paymentRoutes } from './payments/routes';
 import { balanceRoutes } from './me/balances';
@@ -60,6 +61,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', bookingExtractRoutes());
   app.route('/api', fundRoutes());
   app.route('/api', ratingRoutes());
+  app.route('/api', attendanceRoutes());
   app.route('/api', bankRoutes());
   app.route('/api', paymentRoutes());
   app.route('/api', balanceRoutes());

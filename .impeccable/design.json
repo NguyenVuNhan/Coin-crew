@@ -762,6 +762,22 @@
       "description": "A sheet of theme swatches, two per row. Each swatch is a mini screen in its own theme (wash, header strip, accent pill, mist chip) above the theme's name. The chosen one shows a check and a 2px accent ring. A tap saves straight away. The group version starts with \"Each person's own theme\".",
       "html": "<div class=\"ds-theme-picker\" role=\"radiogroup\" aria-label=\"Theme\"><button class=\"ds-theme-picker__opt ds-theme-picker__opt--on\" role=\"radio\" aria-checked=\"true\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__row\"><span class=\"ds-theme-picker__pill\"></span><span class=\"ds-theme-picker__chip\"></span></span></span><span class=\"ds-theme-picker__name\">Jade ✓</span></button><button class=\"ds-theme-picker__opt\" role=\"radio\" aria-checked=\"false\"><span class=\"ds-theme-picker__mini\" aria-hidden=\"true\"><span class=\"ds-theme-picker__bar\"></span><span class=\"ds-theme-picker__row\"><span class=\"ds-theme-picker__pill\"></span><span class=\"ds-theme-picker__chip\"></span></span></span><span class=\"ds-theme-picker__name\">Orchid</span></button></div>",
       "css": ".ds-theme-picker{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:360px}.ds-theme-picker__opt{display:flex;flex-direction:column;gap:8px;min-height:44px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);text-align:left;cursor:pointer}.ds-theme-picker__opt--on{box-shadow:0 0 0 2px var(--primary)}.ds-theme-picker__mini{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--background)}.ds-theme-picker__bar{height:6px;border-radius:9999px;background:var(--border)}.ds-theme-picker__pill{width:40px;height:16px;border-radius:9999px;background:var(--primary)}.ds-theme-picker__name{font-size:14px;font-weight:600;color:var(--foreground)}.ds-theme-picker__row{display:flex;gap:6px}.ds-theme-picker__chip{width:32px;height:16px;border-radius:9999px;background:var(--secondary)}"
+    },
+    {
+      "name": "Crew Meme Cards",
+      "kind": "custom",
+      "refersTo": "meme-card",
+      "description": "Sanctioned own world inside CoinCrew: 1080×1920 shareable cards celebrating group attendance in four styles (Award night, Wanted poster, Folk verse, Stadium board). Award accents are Jade, never Turmeric; display fonts are loaded only on demand; motion animates once with Replay and respects reduced motion.",
+      "html": "<div class=\"ds-meme-card\"><div class=\"ds-meme-card__inner\"><span class=\"ds-meme-card__title\">Attendance Awards</span><button class=\"ds-btn-secondary\">Save</button></div></div>",
+      "css": ".ds-meme-card{font-family:\"Be Vietnam Pro\",system-ui,-apple-system,sans-serif;width:270px;height:480px;border-radius:16px;background:var(--meme-awards-bg);color:var(--meme-awards-ink);box-shadow:0 10px 15px -3px rgb(0 0 0/.1)}"
+    },
+    {
+      "name": "Turnout Card",
+      "kind": "card",
+      "refersTo": "turnout-card",
+      "description": "Admin-only summary card in the plan form showing estimated session turnout with a segmented probability bar (sure: bg-primary, unsure: bg-primary/40, flaky: bg-muted-foreground/40, never money colours) and a 'See who' sheet trigger.",
+      "html": "<div class=\"ds-turnout-card\"><div class=\"ds-turnout-card__header\"><span>Likely to actually come</span><span class=\"tabular-nums\">7 of 9</span></div><div class=\"ds-turnout-bar\"><div class=\"ds-turnout-bar__sure\"></div><div class=\"ds-turnout-bar__unsure\"></div><div class=\"ds-turnout-bar__flaky\"></div></div></div>",
+      "css": ".ds-turnout-card{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--card)}.ds-turnout-bar{display:flex;height:8px;width:100%;border-radius:9999px;overflow:hidden;background:var(--muted)}.ds-turnout-bar__sure{background:var(--primary);width:60%}.ds-turnout-bar__unsure{background:color-mix(in srgb,var(--primary) 40%,transparent);width:25%}.ds-turnout-bar__flaky{background:color-mix(in srgb,var(--muted-foreground) 40%,transparent);width:15%}"
     }
   ],
   "narrative": {
@@ -774,7 +790,8 @@
       "Money always in `tabular-nums`; the balance is the loudest thing on screen",
       "Pastel initial avatars, picked by name",
       "Flat surfaces; shadows only on things that float",
-      "Fast, small motion (100–200ms, ease-out) that respects reduced motion"
+      "Fast, small motion (100–200ms, ease-out) that respects reduced motion",
+      "Crew meme cards are a sanctioned own world: shared group chat images in four styles, loaded-on-demand display faces, final-frame motion, and Jade accents"
     ],
     "rules": [
       {

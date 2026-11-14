@@ -226,6 +226,7 @@ There are five light themes: Jade (the default, everything above), Pink, Orchid,
 - Pastel initial avatars, picked by name
 - Flat surfaces; shadows only on things that float
 - Fast, small motion (100–200ms, ease-out) that respects reduced motion
+- Crew meme cards are a sanctioned own world: shared group chat images in four styles, loaded-on-demand display faces, final-frame motion, and Jade accents
 
 ## Colors
 
@@ -409,6 +410,20 @@ What a friend sees after tapping a "pay me" link: what to pay comes first, every
 - **In the page:** the sport group's ratings widget is a white card holding the podium, or a one-line bar ("#1 Minh 18★ · #2 …") once the person taps collapse. Scrolling never changes its height, so the page never jumps under the finger.
 - **Floating bar:** once the widget has scrolled above the screen, a copy of the one-line bar fades in under the header (white, hairline border, `shadow-lg`, up to 480px; below the taller Mini App header too). Phones and tablets only: from 1024px there is room enough without it. Its expand button scrolls back to the widget and opens the podium. Old WebViews without IntersectionObserver get no floating bar.
 - **Colour:** the trophy, the crown and the #1 avatar ring are Jade on Jade Mist. Turmeric stays for waiting.
+
+### Crew meme cards
+A sanctioned own world inside CoinCrew: shareable 1080×1920 group chat trophy images celebrating sports session attendance, records, and comebacks, presented in a fullscreen story viewer on `/awards`.
+- **Fullscreen story player:** `100dvh` dark stage (`--meme-story-bg`) with top segmented progress bars, group name + active card label + `×` close button (clearing Zalo Mini App safe-area and capsule insets), a scaled 9:16 card framed in the center, and a dedicated bottom bar (`Replay`, `Save`, `Share`) so controls never overlap poster artwork.
+- **Story motion & controls:** Switching between cards (`awards` → `wanted` → `verse` → `board`) uses a 3D perspective cube transition with horizontal swipe scrubbing, left/right tap zones (left tap restarts after 1.5s or steps back), desktop side arrows and `←`/`→`/`Space`/`Esc` keyboard navigation, 7-second auto-advance with press-and-hold pause, automatic pause during Save/Share actions, and a crossfade fallback under reduced motion.
+- **Four distinct styles:**
+  - **Award night:** gala ceremony celebration with a radial spotlight glow, falling shuttlecock SVGs, and tiered winner rows (Most Regular, Grand Comeback, Guest Ambassador, No-Show Legend).
+  - **Wanted poster:** western-style weathered parchment border, pin-in photo animation (dropping in with slight rotation and scale), sepia profile photo (falling back to initials when absent or blocked), and a bold rotated "BACK ON COURT!" redemption stamp for broken no-show streaks. When multiple candidates qualify, compact name pills sit above the bottom bar to swap the poster in place.
+  - **Folk verse:** traditional Vietnamese six-eight (lục bát) framed couplets with calligraphy inking animation, winner name highlight, and cinnabar "Tiền Đâu" square seal.
+  - **Stadium board:** mechanical split-flap scoreboard with glowing teal accents, animated flipping flap digits, and an infinite marquee ticker.
+- **Display typography:** Display typefaces (Alfa Slab One, Playfair Display, Bungee, plus Be Vietnam Pro 800/900) are loaded dynamically on demand only on the Crew awards screen (`loadMemeFonts()`), never bloating the main application bundle.
+- **Colour & token rules:** Award accents are always Jade, never Turmeric (preserving "The Money Means Something Rule"). In the DOM, cards and the story stage consume dedicated `--meme-*` CSS tokens (`--meme-awards-*`, `--meme-wanted-*`, `--meme-verse-*`, `--meme-board-*`, `--meme-story-*`). In the canvas painters (`libs/web/util/src/memeCards.ts`), colours are rendered as literal hex values defined in `MEME_COLOURS` (exempted from style guard as canvas pixels in `IMAGE_PAINTERS`).
+- **Motion & export:** Card entrance animations play once on slide entry with a dedicated "Replay" button, while the Stadium board ticker keeps scrolling infinitely while on screen. Reduced motion (`motion-reduce:`) bypasses animation and renders the final frame immediately. Canvas painters render pixel-for-pixel the exact final frame into a 1080×1920 PNG for saving or sharing to group chats.
+- **Turnout card in the plan form:** An admin-only summary card displayed during sport session planning (`?mode=planning`). Provides a turnout estimate ("Likely to actually come") with a segmented progress bar using `bg-primary`, `bg-primary/40`, and `bg-muted-foreground/40` (never Leaf, Lychee, or Turmeric money colours). A ghost "See who" button opens a sheet breaking down individual reliability scores and attendance labels.
 
 ### Avatars
 Round initial avatars, 28 / 36 / 96px, in a soft pastel fill with dark text of the same hue. The tone comes from a hash (FNV-1a) of the normalised name, so accents, capitals and spacing don't change it and a group spreads over all six tones. A profile photo replaces them when there is one. Groups show overlapping stacks.

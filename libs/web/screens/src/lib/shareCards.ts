@@ -2,6 +2,7 @@ import type { TripView } from '@cc/core';
 import { t } from '@cc/web-i18n';
 import type { ShareCard } from '@cc/web-platform';
 import { linkTokens } from '@cc/web-util/linkTokens';
+import type { MemeInput } from '@cc/web-util/memeCards';
 
 export function clip(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max - 1) + '…';
@@ -24,6 +25,20 @@ export function inviteCard(view: TripView, origin: string): ShareCard {
     thumbnailUrl: thumbnailFor(view, origin),
     text: t('invite.shareText', { trip: view.trip.name }),
     url: `${origin}/j/${token}`,
+  };
+}
+
+export function awardShareCard(view: TripView, input: MemeInput, origin: string): ShareCard {
+  const token = encodeURIComponent(groupToken(view));
+  const path = token ? `j/${token}` : `t/${encodeURIComponent(view.trip.id)}`;
+  const url = `${origin}/${path}`;
+  return {
+    title: clip(`${view.trip.name} · ${input.heading}`, 100),
+    description: clip(input.footer, 400),
+    path,
+    thumbnailUrl: thumbnailFor(view, origin),
+    text: `${view.trip.name} · ${input.heading}`,
+    url,
   };
 }
 

@@ -1183,4 +1183,88 @@ export const vi: Record<MessageKey, string> = {
   'share.requestTitle': 'Yêu cầu thanh toán · {trip}',
   'share.billTitle': 'Hóa đơn · {trip}',
   'share.pcHint': 'Nhấp chuột phải vào ảnh để sao chép hoặc lưu, rồi dán vào tin nhắn hoặc nhóm chat.',
+  'turnout.title': 'Khả năng đến thật', // REVIEW
+  'turnout.estimate': 'khoảng {likely}/{total}', // REVIEW
+  'turnout.counts': '{sure} chắc đến · {unsure} chưa chắc · {flaky} hay bùng', // REVIEW
+  'turnout.seeWho': 'Xem ai ›', // REVIEW
+  'turnout.back': 'Đã trở lại!', // REVIEW
+  'turnout.presence': 'Hay đến', // REVIEW
+  'turnout.reliability': 'Giữ lời', // REVIEW
+  'turnout.guest': 'Dắt khách', // REVIEW
+  'attendance.label.new': 'Mới', // REVIEW
+  'attendance.label.regular': 'Hay đến', // REVIEW
+  'attendance.label.rare': 'Ít đến', // REVIEW
+  'attendance.label.flaky': 'Hay bùng', // REVIEW
+  'attendance.label.topGuest': 'Dắt nhiều khách', // REVIEW
+  'attendance.label.back': 'Trở lại', // REVIEW
+  'awards.title': 'Giải thưởng sân cầu', // REVIEW
+  'awards.entry': 'Giải thưởng sân cầu', // REVIEW
+  'awards.empty': 'Chưa có buổi tập nào được tính điểm. Hoàn tất một buổi tập để mở bảng trao giải.', // REVIEW
+  'awards.replay': 'Xem lại', // REVIEW
+  'awards.save': 'Lưu ảnh', // REVIEW
+  'awards.share': 'Chia sẻ', // REVIEW
+  'awards.saved': 'Đã lưu ảnh', // REVIEW
+  'awards.saveFailed': 'Chưa lưu được ảnh. Hãy thử lại.', // REVIEW
+  'awards.shareFailed': 'Chưa chia sẻ được ảnh. Hãy thử lại.', // REVIEW
+  'awards.footer': 'CoinCrew · Tiền Đâu', // REVIEW
+  'awards.heading': 'Lễ trao giải chuyên cần', // REVIEW
+  'awards.subheading': 'ĐỘI CẦU CỦA CHÚNG TA', // REVIEW
+  'awards.subheadingDate': 'BUỔI TẬP · {date}', // REVIEW
+  'awards.title.regular': 'Vua chuyên cần', // REVIEW
+  'awards.title.back': 'Sự trở lại ngoạn mục', // REVIEW
+  'awards.title.guest': 'Đại sứ kéo khách', // REVIEW
+  'awards.title.noShow': 'Thánh bùng kèo', // REVIEW
+  'awards.stat.regular': '{n} trận liền, chưa vắng buổi nào', // REVIEW
+  'awards.stat.regular_one': '{n} trận liền, chưa vắng buổi nào', // REVIEW
+  'awards.stat.regularPlayed': '{n} buổi đã chơi', // REVIEW
+  'awards.stat.regularPlayed_one': '{n} buổi đã chơi', // REVIEW
+  'awards.stat.back': 'Vắng {n} buổi, nay đã về sân', // REVIEW
+  'awards.stat.back_one': 'Vắng {n} buổi, nay đã về sân', // REVIEW
+  'awards.stat.guest': 'Dẫn {n} khách ra sân', // REVIEW
+  'awards.stat.guest_one': 'Dẫn {n} khách ra sân', // REVIEW
+  'awards.stat.noShow': 'Bùng kèo {n} trận liên tiếp', // REVIEW
+  'awards.stat.noShow_one': 'Bùng kèo {n} trận', // REVIEW
+  'awards.wanted.heading': 'TRUY NÃ', // REVIEW
+  'awards.wanted.crime': 'Tội danh: bùng kèo {n} trận liên tiếp', // REVIEW
+  'awards.wanted.crime_one': 'Tội danh: bùng kèo {n} trận', // REVIEW
+  'awards.wanted.lastSeen': 'Lần cuối thấy ra sân: {date}', // REVIEW
+  'awards.wanted.neverSeen': 'Lần cuối thấy ra sân: chưa rõ', // REVIEW
+  'awards.wanted.reward': 'TIỀN THƯỞNG: 1 QUẢ CẦU', // REVIEW
+  'awards.wanted.stamp': 'ĐÃ RA SÂN!', // REVIEW
+  'awards.verse.heading': 'Ca dao sân cầu', // REVIEW
+  'awards.verse.month': 'mùa giải này', // REVIEW
+  'awards.verse.seal': 'Tiền Đâu', // REVIEW
+  'awards.verse.tag.regular': 'vua chuyên cần', // REVIEW
+  'awards.verse.tag.back': 'người cũ trở về', // REVIEW
+  'awards.verse.tag.noShow': 'thánh bùng kèo', // REVIEW
+  'awards.verse.regular.1': 'Mưa rơi gió thổi mặc trời,\n{name} vẫn ra sân chẳng rời trận nào.', // REVIEW
+  'awards.verse.regular.2': 'Tuần nào sân sáng đèn lên,\nThấy {name} có mặt vững bền đầu tiên.', // REVIEW
+  'awards.verse.regular.3': 'Đường xa nắng sớm mưa chiều,\n{name} mê cầu tới đủ điều chẳng sai.', // REVIEW
+  'awards.verse.back.1': 'Bao lâu vắng bóng sân nhà,\nHôm nay {name} lại ghé qua sân này.', // REVIEW
+  'awards.verse.back.2': 'Vợt treo góc tủ bấy lâu,\nNay {name} tái xuất đánh cầu cực hăng.', // REVIEW
+  'awards.verse.back.3': 'Tưởng đâu giải nghệ mất rồi,\nAi ngờ {name} lại sánh đôi vào kèo.', // REVIEW
+  'awards.verse.noShow.1': 'Hẹn hò ra sân đánh cầu,\nĐến giờ chẳng thấy {name} đâu bóng hình.', // REVIEW
+  'awards.verse.noShow.2': 'Lên kèo chốt chắc như đinh,\nTới giờ sân sáng một mình {name} quên.', // REVIEW
+  'awards.verse.noShow.3': 'Trên nhóm đăng ký rõ nhanh,\nSân chờ mỏi mắt {name} đành ngủ quên.', // REVIEW
+  'awards.board.heading': 'BẢNG VÀNG SÂN CẦU', // REVIEW
+  'awards.board.subheading': 'BẢNG PHONG ĐỘ', // REVIEW
+  'awards.board.subheadingDate': 'SAU TRẬN {date}', // REVIEW
+  'awards.board.joinStreak': 'CHUỖI RA SÂN', // REVIEW
+  'awards.board.comeback': 'TRỞ LẠI SAU (BUỔI)', // REVIEW
+  'awards.board.guests': 'KHÁCH DẪN THEO', // REVIEW
+  'awards.board.noShowStreak': 'CHUỖI BÙNG KÈO', // REVIEW
+  'awards.board.tickerRegular': '{name} GIỮ CHUỖI {n} TRẬN', // REVIEW
+  'awards.board.tickerBack': '{name} ĐÃ TRỞ LẠI SÂN SAU {n} BUỔI', // REVIEW
+  'awards.board.tickerBack_one': '{name} ĐÃ TRỞ LẠI SÂN SAU {n} BUỔI', // REVIEW
+  'awards.board.tickerGuest': '{name} DẪN THEO {n} KHÁCH', // REVIEW
+  'awards.board.tickerGuest_one': '{name} DẪN THEO {n} KHÁCH', // REVIEW
+  'awards.board.tickerNoShow': '{name}: HẸN GẶP TRẬN TỚI NHÉ?', // REVIEW
+  'awards.cardTitle.awards': 'Lễ trao giải', // REVIEW
+  'awards.cardTitle.wanted': 'Truy nã', // REVIEW
+  'awards.cardTitle.verse': 'Ca dao sân cầu', // REVIEW
+  'awards.cardTitle.board': 'Bảng vàng sân cầu', // REVIEW
+  'awards.story.prev': 'Thẻ trước', // REVIEW
+  'awards.story.next': 'Thẻ tiếp theo', // REVIEW
+  'awards.story.pause': 'Tạm dừng', // REVIEW
+  'awards.story.resume': 'Tiếp tục', // REVIEW
 };

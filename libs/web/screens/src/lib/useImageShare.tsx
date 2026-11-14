@@ -30,10 +30,11 @@ export function useImageShare(): {
   status: ImageShareStatus;
   sharing: boolean;
   sheet: JSX.Element;
+  sheetOpen: boolean;
 } {
   const platform = usePlatform();
   const mouse = useIsMousePointer();
-  const { sheet, show } = useImageSheet();
+  const { sheet, show, open: sheetOpen } = useImageSheet();
   const [status, setStatus] = useState<ImageShareStatus>(null);
   const [sharing, setSharing] = useState(false);
 
@@ -82,5 +83,5 @@ export function useImageShare(): {
     [mouse, platform, show],
   );
 
-  return { share, status, sharing, sheet };
+  return { share, status, sharing: sharing && !sheetOpen, sheet, sheetOpen };
 }

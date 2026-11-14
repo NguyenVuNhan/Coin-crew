@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
-import { buildSeedSql, buildUserCopySql, localD1File, readUsers } from './seed-local.mjs';
+import { buildAttendanceSeedSql, buildSeedSql, buildUserCopySql, localD1File, readUsers } from './seed-local.mjs';
 
 const NOW = '2026-11-12T10:00:00.000Z';
 const owner = (id, extra = {}) => ({ id, name: 'Owner', google_sub: `g-${id}`, ...extra });
@@ -220,5 +220,25 @@ test('localD1File and readUsers: finds the non-metadata sqlite and reads users w
     assert.equal(users.find((u) => u.id === 'u2').ledgerTripId, undefined);
   } finally {
     fs.rmSync(apiDir, { recursive: true, force: true });
+  }
+});
+
+test('buildAttendanceSeedSql: seeds Cầu lông CN (seed) with 7 planned->billed sessions and 7 members', () => {
+  const sql = buildAttendanceSeedSql([owner('abcdef1234')], NOW);
+  const trips = rows(sql, 'trips');
+  const parts = rows(sql, 'participants');
+  const txs = rows(sql, 'transactions');
+  const shares = rows(sql, 'transaction_shares');
+
+  assert.equal(trips.length, 1);
+  assert.equal(trips[0].name, 'Cầu lông CN (seed)');
+  assert.equal(trips[0].preset, 'sport');
+  assert.equal(parts.length, 7);
+  assert.equal(txs.length, 14);
+  assert.equal(txs.filter((t) => t.is_latest === 0).length, 7);
+  assert.equal(txs.filter((t) => t.is_latest === 1).length, 7);
+  for (const head of txs.filter((t) => t.is_latest === 1)) {
+    const headShares = shares.filter((s) => s.transaction_id === head.id);
+    assert.equal(headShares.reduce((a, s) => a + s.amount, 0), head.amount);
   }
 });

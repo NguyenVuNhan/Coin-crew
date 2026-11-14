@@ -20,8 +20,8 @@ const code = files.filter((f) => /\.tsx?$/.test(f) && !isTest(f));
 
 /** Hex colours that are not styling: pixels painted onto a canvas for a saved picture. */
 const CANVAS_PAINT = /(fillStyle|strokeStyle|shadowColor)\s*=\s*['"]#/;
-/** Files that draw pictures (the QR code and the shareable cost image), where colours are pixels, not page styling. */
-const IMAGE_PAINTERS = ['util/src/qr.ts'];
+/** Files that draw pictures (the QR code, the shareable cost image, the crew meme cards), where colours are pixels, not page styling. */
+const IMAGE_PAINTERS = ['util/src/qr.ts', 'util/src/memeCards.ts'];
 
 describe('style guard', () => {
   it('globals.css is the only stylesheet', () => {
