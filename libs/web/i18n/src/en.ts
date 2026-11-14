@@ -1231,6 +1231,8 @@ export const en = {
   'awards.cardTitle.wanted': 'Wanted poster',
   'awards.cardTitle.verse': 'Folk verse',
   'awards.cardTitle.board': 'Stadium board',
+  'awards.story.prev': 'Previous story',
+  'awards.story.next': 'Next story',
 } as const;
 
 export type MessageKey = keyof typeof en;

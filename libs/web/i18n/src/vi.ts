@@ -1232,4 +1232,6 @@ export const vi: Record<MessageKey, string> = {
   'awards.cardTitle.wanted': 'Truy nã', // REVIEW
   'awards.cardTitle.verse': 'Ca dao sân cầu', // REVIEW
   'awards.cardTitle.board': 'Bảng vàng sân cầu', // REVIEW
+  'awards.story.prev': 'Thẻ trước', // REVIEW
+  'awards.story.next': 'Thẻ tiếp theo', // REVIEW
 };

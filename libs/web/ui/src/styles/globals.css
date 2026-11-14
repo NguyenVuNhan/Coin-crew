@@ -87,6 +87,14 @@
   --color-meme-board-flap: var(--meme-board-flap);
   --color-meme-board-cold: var(--meme-board-cold);
 
+  --color-meme-story-bg: var(--meme-story-bg);
+  --color-meme-story-ink: var(--meme-story-ink);
+  --color-meme-story-muted: var(--meme-story-muted);
+  --color-meme-story-track: var(--meme-story-track);
+  --color-meme-story-bar: var(--meme-story-bar);
+  --color-meme-story-chrome: var(--meme-story-chrome);
+  --color-meme-story-border: var(--meme-story-border);
+
   --radius-sm: calc(var(--radius) * 0.4);
   --radius-md: calc(var(--radius) * 0.6);
   --radius-lg: calc(var(--radius) * 0.8);
@@ -157,6 +165,14 @@
   --meme-board-row: #1b2726;
   --meme-board-flap: #0a1110;
   --meme-board-cold: #fda4af;
+
+  --meme-story-bg: #0b1110;
+  --meme-story-ink: #f6f7f4;
+  --meme-story-muted: rgba(246, 247, 244, 0.68);
+  --meme-story-track: rgba(246, 247, 244, 0.28);
+  --meme-story-bar: #ffffff;
+  --meme-story-chrome: rgba(246, 247, 244, 0.12);
+  --meme-story-border: rgba(246, 247, 244, 0.16);
 
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
 
