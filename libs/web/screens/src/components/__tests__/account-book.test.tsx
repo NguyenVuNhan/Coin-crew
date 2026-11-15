@@ -50,7 +50,7 @@ describe('AccountMenu - spending book setting', () => {
           ...meFixture,
           ...(on ? { personalArea: true } : {}),
         }),
-      'PATCH /api/me/personal': async (init) => {
+      'PATCH /api/me/personal': async (init?: RequestInit) => {
         const body = init?.body ? JSON.parse(String(init.body)) : {};
         on = Boolean(body.enabled);
         return Response.json({ enabled: on });
