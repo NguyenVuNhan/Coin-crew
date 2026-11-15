@@ -31,7 +31,7 @@ function BookSummary(): JSX.Element {
   return (
     <>
       <div data-testid="book-empty" className="fsl-book__empty">
-        {/* No action yet: wallets, and the button that creates the first one, arrive with #113. */}
+        {/* No action yet: wallets, and the button that creates the first one, arrive with the next sub-task. */}
         <EmptyState
           icon="wallet"
           title={t('book.emptyTitle')}
