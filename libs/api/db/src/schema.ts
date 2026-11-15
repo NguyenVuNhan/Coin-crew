@@ -454,6 +454,12 @@ export const userNotificationSettings = sqliteTable('user_notification_settings'
   updatedAt: text('updated_at').notNull(),
 });
 
+export const userPersonalSettings = sqliteTable('user_personal_settings', {
+  userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  enabled: integer('enabled').notNull().default(0),
+  updatedAt: text('updated_at').notNull(),
+});
+
 export const notificationLogs = sqliteTable(
   'notification_logs',
   {
