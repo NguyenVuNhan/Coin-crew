@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v7 · Sổ chi tiêu (issue #112)</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens copied from libs/web/ui/src/styles/globals.css (Jade theme). Mockup only. */
+  :root {
+    --background: #f6f7f4; --card: #ffffff; --foreground: #1c1917;
+    --muted: #efefeb; --muted-foreground: #57534e; --border: #e7e5e4;
+    --primary: #0f766e; --secondary: #ccfbf1; --secondary-foreground: #134e4a;
+    --success: #047857; --danger: #be123c;
+    --warning: #b45309; --warning-soft: #fef3c7; --warning-foreground: #78350f;
+    --avatar-1: #fde68a; --avatar-2: #bfdbfe; --avatar-3: #fecdd3;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e7e5e4; font-family: "Be Vietnam Pro", system-ui, sans-serif;
+    color: var(--foreground); font-size: 14px; line-height: 1.429; display: flex; justify-content: center; padding: 24px 0; }
+  .phone { width: 375px; background: var(--background); position: relative; padding-bottom: 96px; }
+
+  .screen-header { height: 56px; display: flex; align-items: center; justify-content: center; position: sticky; top: 0;
+    background: var(--background); border-bottom: 1px solid var(--border); font-size: 18px; font-weight: 600; z-index: 2; }
+  .icon-button { position: absolute; right: 8px; width: 44px; height: 44px; border-radius: 9999px; border: 0;
+    background: transparent; display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); }
+
+  .content { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+  .summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; }
+  .summary-label { font-weight: 500; color: var(--muted-foreground); }
+  .summary-total { font-size: 30px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; margin: 4px 0 12px; }
+  .summary-month { display: flex; gap: 24px; }
+  .summary-month dt { color: var(--muted-foreground); }
+  .summary-month dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  dl { margin: 0; }
+
+  .widget { display: flex; flex-direction: column; gap: 8px; }
+  .widget-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; min-height: 24px; }
+  .widget-title { font-weight: 600; color: var(--muted-foreground); margin: 0; font-size: 14px; }
+  .widget-more { font-weight: 600; color: var(--primary); text-decoration: none; }
+
+  .grouped-list { background: var(--card); border-radius: 20px; overflow: hidden; margin: 0; padding: 0; list-style: none; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 56px; border-top: 1px solid var(--border); }
+  .row:first-child { border-top: 0; }
+  .row-main { flex: 1; min-width: 0; }
+  .row-title { font-weight: 600; display: block; }
+  .row-meta { color: var(--muted-foreground); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .amount { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .amount.in { color: var(--success); }
+  .chevron { color: var(--muted-foreground); }
+  .tile { width: 36px; height: 36px; border-radius: 12px; background: var(--muted); flex: none;
+    display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--muted-foreground); }
+  .tile.accent { background: var(--secondary); color: var(--secondary-foreground); }
+  .avatars { display: flex; }
+  .avatar { width: 28px; height: 28px; border-radius: 9999px; border: 2px solid var(--card); margin-left: -10px; }
+  .avatar:first-child { margin-left: 0; }
+  .pill-warning { background: var(--warning-soft); color: var(--warning-foreground); font-weight: 600; border-radius: 9999px; padding: 2px 10px; }
+
+  .chart-card { background: var(--card); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .column-chart { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 16px; height: 148px; }
+  .column-chart li { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; }
+  .column { display: block; width: 100%; max-width: 56px; min-height: 6px; border-radius: 12px 12px 4px 4px; background: var(--primary); }
+  .column-name { font-weight: 600; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pie-card { flex-direction: row; align-items: center; gap: 20px; }
+  .pie { --share-1: var(--primary); --share-2: color-mix(in srgb, var(--primary) 50%, var(--card)); --share-3: color-mix(in srgb, var(--primary) 22%, var(--card));
+    width: 112px; height: 112px; border-radius: 9999px; flex: none;
+    background: conic-gradient(var(--share-1) 0 64.2%, var(--share-2) 0 95.2%, var(--share-3) 0 100%); }
+  .pie-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; font-weight: 600; min-width: 0; }
+  .pie-legend li { display: flex; align-items: center; gap: 8px; }
+  .pie-dot { width: 12px; height: 12px; border-radius: 9999px; flex: none; }
+  .share-1 { background: var(--primary); }
+  .share-2 { background: color-mix(in srgb, var(--primary) 50%, var(--card)); }
+  .share-3 { background: color-mix(in srgb, var(--primary) 22%, var(--card)); }
+  .chart-title { font-weight: 600; }
+  .budget { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .budget:first-child { border-top: 0; }
+  .budget-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .budget-words { color: var(--muted-foreground); text-align: right; }
+  .budget-near .bar > span { background: var(--warning); }
+  .budget-near .budget-words { color: var(--warning-foreground); font-weight: 600; }
+  .budget-over .bar > span { background: var(--danger); }
+  .budget-over .budget-words { color: var(--danger); font-weight: 600; }
+  .pie-card { flex-direction: row; align-items: center; gap: 20px; }
+  .pie { --share-1: var(--primary); --share-2: color-mix(in srgb, var(--primary) 50%, var(--card)); --share-3: color-mix(in srgb, var(--primary) 22%, var(--card));
+    width: 112px; height: 112px; border-radius: 9999px; flex: none;
+    background: conic-gradient(var(--share-1) 0 64.2%, var(--share-2) 0 95.2%, var(--share-3) 0 100%); }
+  .pie-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; font-weight: 600; min-width: 0; }
+  .pie-legend li { display: flex; align-items: center; gap: 8px; }
+  .pie-dot { width: 12px; height: 12px; border-radius: 9999px; flex: none; }
+  .share-1 { background: var(--primary); }
+  .share-2 { background: color-mix(in srgb, var(--primary) 50%, var(--card)); }
+  .share-3 { background: color-mix(in srgb, var(--primary) 22%, var(--card)); }
+  .chart-title { font-weight: 600; }
+  .budget-near .bar > span { background: var(--warning); }
+  .budget-near .chart-words { color: var(--warning-foreground); font-weight: 600; }
+  .budget-over .bar > span { background: var(--danger); }
+  .budget-over .chart-words { color: var(--danger); font-weight: 600; }
+  .chart-words { color: var(--muted-foreground); margin: 0; }
+  .bar { display: block; height: 8px; border-radius: 9999px; background: var(--muted); overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 9999px; background: var(--primary); }
+
+  .app-nav { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); width: 375px; padding: 0 16px;
+    display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+  .nav-pill { pointer-events: auto; background: var(--card); border: 1px solid var(--border); border-radius: 9999px; padding: 6px;
+    display: flex; box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1); }
+  .nav-item { width: 44px; height: 44px; border-radius: 9999px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted-foreground); font-size: 12px; font-weight: 600; }
+  .nav-item.current { background: var(--secondary); color: var(--foreground); }
+  .nav-add { pointer-events: auto; width: 56px; height: 56px; border-radius: 9999px; background: var(--foreground); color: var(--background);
+    display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 300; border: 0;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1); }
+</style>
+</head>
+<body>
+<main class="phone">
+  <header class="screen-header">
+    Sổ chi tiêu
+    <button class="icon-button" aria-label="Cài đặt">⚙</button>
+  </header>
+
+  <div class="content">
+
+    <section class="summary-card" id="summary">
+      <div class="summary-label">Tổng tiền</div>
+      <div class="summary-total">48.320.000₫</div>
+      <dl class="summary-month">
+        <div><dt>Tháng này chi</dt><dd>6.150.000₫</dd></div>
+        <div><dt>Thu</dt><dd>22.000.000₫</dd></div>
+      </dl>
+    </section>
+
+    <section class="widget" id="needs-you">
+      <ul class="grouped-list">
+        <li class="row"><span class="tile accent">4</span><span class="row-main"><span class="row-title">Chờ xem lại</span></span><span class="pill-warning">4</span><span class="chevron">›</span></li>
+        <li class="row"><span class="avatars"><span class="avatar" style="background:var(--avatar-1)"></span><span class="avatar" style="background:var(--avatar-2)"></span><span class="avatar" style="background:var(--avatar-3)"></span></span><span class="row-main"><span class="row-title">Mọi người nợ bạn</span></span><span class="amount in">1.245.000₫</span><span class="chevron">›</span></li>
+        <li class="row"><span class="tile accent">B</span><span class="row-main"><span class="row-title">Báo cáo</span></span><span class="chevron">›</span></li>
+        <li class="row"><span class="tile accent">K</span><span class="row-main"><span class="row-title">Kế hoạch</span></span><span class="chevron">›</span></li>
+      </ul>
+    </section>
+
+    <section class="widget" id="wallets">
+      <div class="widget-head"><h2 class="widget-title">Tiền đang ở đâu</h2><a class="widget-more" href="#">Ví ›</a></div>
+      <div class="chart-card pie-card">
+        <div class="pie" role="img" aria-label="Vietcombank nhiều nhất, rồi Quỹ ETF, rồi Tiền mặt"></div>
+        <ul class="pie-legend">
+          <li><span class="pie-dot share-1"></span>Vietcombank</li>
+          <li><span class="pie-dot share-2"></span>Quỹ ETF</li>
+          <li><span class="pie-dot share-3"></span>Tiền mặt</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="widget" id="budgets">
+      <div class="widget-head"><h2 class="widget-title">Ngân sách</h2><a class="widget-more" href="#">Tất cả ›</a></div>
+      <ul class="grouped-list budget-list">
+        <li class="budget"><span class="budget-line"><span class="row-title">Ăn uống</span><span class="budget-words">Còn gần một phần ba</span></span><span class="bar"><span style="width:71%"></span></span></li>
+        <li class="budget budget-near"><span class="budget-line"><span class="row-title">Đi lại</span><span class="budget-words">Sắp chạm mức</span></span><span class="bar"><span style="width:92%"></span></span></li>
+        <li class="budget budget-over"><span class="budget-line"><span class="row-title">Mua sắm</span><span class="budget-words">Đã vượt mức</span></span><span class="bar"><span style="width:100%"></span></span></li>
+      </ul>
+    </section>
+
+    <section class="widget" id="recent">
+      <div class="widget-head"><h2 class="widget-title">Giao dịch gần đây</h2><a class="widget-more" href="#">Tất cả ›</a></div>
+      <ul class="grouped-list">
+        <li class="row"><span class="tile">Ă</span><span class="row-main"><span class="row-title">Ăn trưa</span><span class="row-meta">Ăn uống · Tiền mặt</span></span><span class="amount">−85.000₫</span></li>
+        <li class="row"><span class="tile">M</span><span class="row-main"><span class="row-title">Cà phê với Minh</span><span class="row-meta">Với người khác · Tiền mặt</span></span><span class="amount">−60.000₫</span></li>
+        <li class="row"><span class="tile">C</span><span class="row-main"><span class="row-title">Sân cầu lông</span><span class="row-meta">Nhóm Cầu lông T7 · phần của bạn</span></span><span class="amount">−45.000₫</span></li>
+      </ul>
+    </section>
+
+  </div>
+
+  <nav class="app-nav" aria-label="Menu chính">
+    <div class="nav-pill"><span class="nav-item current">Sổ</span><span class="nav-item">Nhóm</span><span class="nav-item">HĐ</span></div>
+    <button class="nav-add" aria-label="Thêm giao dịch">+</button>
+  </nav>
+</main>
+</body>
+</html>
