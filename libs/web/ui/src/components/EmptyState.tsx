@@ -8,7 +8,8 @@ export interface EmptyStateProps {
   title: string;
   /** One line under the title. */
   body?: string;
-  action: ReactNode;
+  /** Leave out when there is nothing to do yet; the card then ends after the text. */
+  action?: ReactNode;
   className?: string;
 }
 
@@ -37,7 +38,9 @@ export function EmptyState({
           {body && <p className="fsl-empty-state__body m-0 text-sm text-muted-foreground">{body}</p>}
         </div>
       </div>
-      <div className="fsl-empty-state__action self-stretch flex flex-col gap-2">{action}</div>
+      {action != null && (
+        <div className="fsl-empty-state__action self-stretch flex flex-col gap-2">{action}</div>
+      )}
     </Card>
   );
 }

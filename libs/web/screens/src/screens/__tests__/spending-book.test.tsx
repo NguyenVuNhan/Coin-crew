@@ -177,6 +177,9 @@ describe('Spending book (Sổ chi tiêu)', () => {
       expect(row).toHaveAttribute('href', '/people');
       await waitFor(() => expect(row).toHaveTextContent('620.000')); // Linh 350.000 + Minh 270.000
       expect(row).toHaveTextContent('You owe 80.000₫');
+      // Read out with each amount next to its label.
+      expect(row).toHaveAccessibleName('People owe you: 620.000₫. You owe 80.000₫');
+      expect(row.querySelector('.fsl-amount')).toHaveClass('text-success');
 
       await userEvent.click(row);
 
@@ -184,6 +187,21 @@ describe('Spending book (Sổ chi tiêu)', () => {
       expect(await screen.findByTestId('person-row-u:u-linh')).toBeInTheDocument();
       expect(screen.getByTestId('person-row-p:p-tuan')).toBeInTheDocument();
       expect(screen.getByTestId('location')).toHaveTextContent(/^\/people$/);
+    });
+
+    it('with nobody owing, the zero is not in a money colour', async () => {
+      mockApi({
+        'GET /api/me': meOn,
+        'GET /api/me/ledger': ledger,
+        'GET /api/me/people/summary': { people: [], incomplete: false },
+        'GET /api/trips/t-led': ledgerView(),
+        'GET /api/trips/t-led/version': { version: 1 },
+      });
+      renderApp('/trips');
+
+      const row = await screen.findByTestId('book-people-row');
+      expect(row).toHaveAccessibleName('People owe you: 0₫');
+      expect(row.querySelector('.fsl-amount')).not.toHaveClass('text-success');
     });
 
     it("on a phone, /trips?expense=<id> still opens that expense's own page", async () => {

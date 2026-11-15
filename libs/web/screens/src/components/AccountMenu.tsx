@@ -66,6 +66,9 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const setPersonalArea = useSetPersonalArea();
   const bookSwitchId = useId();
   const bookDescId = useId();
+  const bookBetaId = useId();
+  // While a save is on its way the switch already shows what was asked for; a failed save puts it back.
+  const bookChecked = setPersonalArea.isPending ? setPersonalArea.variables === true : personalArea;
 
   const [open, setOpen] = useState(false);
   const [acceptedJoin, setAcceptedJoin] = useState(false);
@@ -454,17 +457,17 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
             'fsl-account-menu__row fsl-account-menu__book flex items-center justify-between gap-3 min-h-11 rounded-lg px-3 py-2 text-base text-foreground',
           )}
         >
-          <div className="fsl-account-menu__row-left flex items-center gap-2 min-w-0">
-            <Icon name="wallet" size={20} className="shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
+          <div className="fsl-account-menu__row-left flex items-start gap-2 min-w-0">
+            <Icon name="wallet" size={20} className="shrink-0 mt-0.5" />
+            <div className="flex flex-col min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <Label
                   htmlFor={bookSwitchId}
                   className="font-normal text-foreground text-base leading-snug cursor-pointer"
                 >
                   {t('account.book')}
                 </Label>
-                <Pill tone="neutral">{t('account.bookBeta')}</Pill>
+                <Pill id={bookBetaId} tone="neutral">{t('account.bookBeta')}</Pill>
               </div>
               <p id={bookDescId} className="m-0 text-sm text-muted-foreground leading-normal">
                 {t('account.bookHint')}
@@ -474,10 +477,10 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           <Switch
             id={bookSwitchId}
             data-testid="account-book"
-            checked={personalArea}
+            checked={bookChecked}
             onCheckedChange={(checked) => setPersonalArea.mutate(checked)}
             disabled={setPersonalArea.isPending}
-            aria-describedby={bookDescId}
+            aria-describedby={`${bookBetaId} ${bookDescId}`}
           />
         </div>
         {setPersonalArea.error ? (

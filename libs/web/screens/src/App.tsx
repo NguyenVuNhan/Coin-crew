@@ -2,8 +2,7 @@ import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router';
 import { useMe, usePersonalArea } from '@cc/web-data-access/hooks';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
-import { Home } from './screens/Home';
-import { SpendingBook } from './screens/SpendingBook';
+import { MainScreen } from './screens/SpendingBook';
 import { PeopleOwed } from './screens/PeopleOwed';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
@@ -37,7 +36,7 @@ function TripsRoute() {
   if (params.has('mergeReview') || params.get('tab') === 'groups') {
     return <Navigate to={{ pathname: '/groups', search }} replace />;
   }
-  return personalArea ? <SpendingBook /> : <Home />;
+  return <MainScreen book={personalArea} />;
 }
 
 function PeopleRoute() {

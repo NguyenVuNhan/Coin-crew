@@ -72,6 +72,35 @@ describe('AccountMenu - spending book setting', () => {
     );
   });
 
+  it('shows what was asked for while the save is on its way, and names the trial', async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let on = false;
+    mockApi({
+      'GET /api/me': () => Response.json({ ...meFixture, ...(on ? { personalArea: true } : {}) }),
+      'PATCH /api/me/personal': async () => {
+        await held;
+        on = true;
+        return Response.json({ enabled: true });
+      },
+    });
+    renderAt(<AccountMenu />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Account' }));
+
+    const sw = await screen.findByTestId('account-book');
+    expect(sw).toHaveAccessibleDescription(/Beta/);
+    await userEvent.click(sw);
+
+    await waitFor(() => expect(sw).toHaveAttribute('aria-checked', 'true'));
+    expect(sw).toBeDisabled();
+
+    release();
+    await waitFor(() => expect(sw).not.toBeDisabled());
+    expect(sw).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('a failed save flips it back and says so', async () => {
     // PATCH /api/me/personal → 500
     mockApi({
