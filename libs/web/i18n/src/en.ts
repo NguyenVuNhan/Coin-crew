@@ -110,6 +110,9 @@ export const en = {
   'account.saveProfile': 'Save profile',
   'account.displayName': 'Display name',
   'account.gender': 'Gender',
+  'account.book': 'Spending book',
+  'account.bookHint': 'Keep track of your own money, next to your groups.',
+  'account.bookBeta': 'Beta',
   'trips.accountAria': 'Account',
   'trips.signOut': 'Sign out',
 
@@ -127,6 +130,13 @@ export const en = {
   'home.peopleEmptyBody': 'Add an expense and pick who shares it.',
   'home.stillCounting': 'Still adding up a few groups…',
   'home.waiting': 'Waiting for you to confirm',
+
+  'book.title': 'Spending book',
+  'book.emptyTitle': 'Start with a wallet',
+  'book.emptyBody': 'A wallet is where your money sits: cash, a bank account, a fund. You will soon be able to create your first one here.',
+  'book.peopleOwe': 'People owe you',
+  'book.peopleTitle': 'People',
+
   'person.title': 'Person',
   'person.owesYou': 'Owes you',
   'person.youOwe': 'You owe',
@@ -1026,6 +1036,7 @@ export const en = {
   'ratings.leaderboardBar': 'Leaderboard summary',
 
   'nav.home': 'Quick expenses',
+  'nav.book': 'Spending book',
   'nav.groups': 'Groups',
   'nav.activity': 'Activity',
   'nav.add': 'Add transaction',

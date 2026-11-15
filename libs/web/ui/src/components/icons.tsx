@@ -58,6 +58,7 @@ import {
   UserPlus,
   Users,
   Venus,
+  Wallet,
   X,
 } from 'lucide-react';
 
@@ -67,10 +68,12 @@ export type IconName =
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
-  | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play';
+  | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play'
+  | 'wallet';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
+  wallet: Wallet,
   bell: Bell,
   bellOff: BellOff,
   'bell-off': BellOff,

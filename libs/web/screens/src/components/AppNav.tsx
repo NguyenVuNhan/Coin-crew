@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useT } from '@cc/web-i18n';
+import { usePersonalArea } from '@cc/web-data-access/hooks';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { Button } from '@cc/web-ui/components/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
@@ -17,23 +18,29 @@ export interface AppNavProps {
 
 interface NavItem {
   id: NavSection;
-  labelKey: 'nav.home' | 'nav.groups' | 'nav.activity';
+  labelKey: 'nav.home' | 'nav.book' | 'nav.groups' | 'nav.activity';
   href: string;
   icon: IconName;
 }
 
 const TAB_ROOTS: readonly string[] = ['/trips', '/groups', '/activity'];
 
-const NAV_ITEMS: readonly NavItem[] = [
-  { id: 'home', labelKey: 'nav.home', href: '/trips', icon: 'home' },
-  { id: 'groups', labelKey: 'nav.groups', href: '/groups', icon: 'users' },
-  { id: 'activity', labelKey: 'nav.activity', href: '/activity', icon: 'clock' },
-] as const;
-
 export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element {
   const t = useT();
   const location = useLocation();
+  const personalArea = usePersonalArea();
   const shouldReplace = TAB_ROOTS.includes(location.pathname);
+
+  const navItems: readonly NavItem[] = [
+    {
+      id: 'home',
+      labelKey: personalArea ? 'nav.book' : 'nav.home',
+      href: '/trips',
+      icon: personalArea ? 'wallet' : 'home',
+    },
+    { id: 'groups', labelKey: 'nav.groups', href: '/groups', icon: 'users' },
+    { id: 'activity', labelKey: 'nav.activity', href: '/activity', icon: 'clock' },
+  ];
 
   const renderPlanMenu = (align: 'start' | 'end', side: 'top' | 'bottom') => (
     <PopoverContent align={align} side={side} sideOffset={8} className="w-56 p-1.5 gap-1 rounded-2xl">
@@ -68,7 +75,7 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
         className="fsl-app-nav__bar lg:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] inset-x-0 mx-auto w-full max-w-[480px] px-4 z-20 flex items-center justify-between pointer-events-none"
       >
         <div className="pointer-events-auto flex items-center rounded-full bg-card shadow-lg p-1.5 border border-border">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isCurrent = section === item.id;
             return (
               <Link
@@ -153,7 +160,7 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
         )}
 
         <div className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isCurrent = section === item.id;
             return (
               <Link
