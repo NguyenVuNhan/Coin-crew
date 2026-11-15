@@ -13,6 +13,7 @@ Trips and sport groups weigh equally; neither is the "main" use (owner, 2026-11-
 - **Organisers and members** sign in (Google or Zalo) and run a group: a **trip** (friends travelling together, one-off) or a **weekly sport group** (badminton, pickleball, tennis, football) with a stable roster. They enter people and expenses (or a session's court and shuttlecock costs), approve what guests add, and share the group's link or bill to the group chat.
 - **Guests** are friends who tap one link in the group chat, usually a Zalo chat, usually on a phone. Where it opens depends on their Zalo setting: Zalo's in-app browser, or their own browser (Chrome on Android and PC, Safari on iPhone). They pick their name, see what they owe, and pay in their own bank app. They have no account and install nothing.
 - **Viewers** open a separate view-only link and can only look.
+- **The owner, for their own money** (Phase 2, turned on per account in the account menu): records what they spend, earn and move between wallets, on a phone just after paying and on a computer for a weekly look-over. Built for the owner first; friends can turn it on too, and it is marked as a trial until it replaces Money Lover's core.
 
 ## Product Purpose
 
@@ -23,8 +24,8 @@ Success: friends run a whole trip or a season of sessions on it without anyone i
 **Direction (owner-confirmed):** CoinCrew grows into one app that replaces both Money Lover and Splitwise, Vietnam first. Future design should leave room for it without building it early:
 
 1. Group split + VietQR settle-up (built, live)
-2. Google Sheets export and Gemini: automatic payment matching by transfer note through the user's own Gemini flow, spending questions. The app never asks for Gmail access.
-3. Personal money records replacing Money Lover (group shares flow in automatically), QR pay gateway, Apple Pay capture, bank-email capture
+2. Personal money records replacing Money Lover (group shares flow in automatically), Apple Pay capture, spreadsheet import with review. In progress: the first piece is the "Sổ chi tiêu" screen, which each signed-in person turns on in the account menu. The QR pay gateway is parked.
+3. Google Sheets export and Gemini: automatic payment matching by transfer note through the user's own Gemini flow, spending questions. The app never asks for Gmail access.
 4. Investment tracking; imports from Money Lover and Splitwise
 
 Source: owner's notes in the Obsidian vault `30_Projects/Coin Crew/` (`2026-10-13-idea-discussion-next-steps.md`, `2026-10-12-group-split-vietqr-design.md`).
@@ -72,7 +73,7 @@ Three things every screen protects (owner-confirmed); Splitwise or Tricount cann
 - **Free hosting:** Cloudflare Workers + D1 on the free plan. Database reads are a budget, and queries fail for the rest of the day once the limit is passed. The paid plan is the escape hatch, not the plan.
 - **The app never moves money.** Every payment happens in the user's own bank app.
 - **Notifications are opt-in only:** push to the installed app and email, each switchable per event. Never SMS, never marketing or "come back" messages. No Gmail or Drive permissions; Google sign-in uses `openid email profile` only.
-- **Not yet:** native apps, currencies other than VND, receipt photos, categories.
+- **Not yet:** native apps, receipt photos. Categories and currencies other than VND are coming to the personal side only (Phase 2, not built yet); group money stays whole VND with no categories.
 - **No limit on the number of expenses**, and no jargon wording (owner's phase-1 anti-goals).
 - **Personal data:** names and bank account numbers of strangers, under Vietnam's Decree 13/2023/ND-CP and the Personal Data Protection Law (2026). There is a privacy notice and consent on first bank details or sign-in.
 - **Zalo's profile API** refuses callers outside Vietnam, so profile requests go through a small relay server in Vietnam (`apps/zalo-relay`).

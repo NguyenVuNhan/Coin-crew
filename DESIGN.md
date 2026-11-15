@@ -275,7 +275,7 @@ Each theme is a `[data-theme='<id>']` block in `globals.css` that sets six token
 ### Named Rules
 **The One Source Rule.** Every colour comes from a theme token in `globals.css`; a component never carries a raw hex. The five themes (Jade, Pink, Orchid, Sky, Indigo) are token swaps in `[data-theme]` blocks, and any new theme must be one too, never a rewrite. `libs/web/screens/src/test/style-guard.test.ts` enforces this.
 
-**The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look.
+**The Money Means Something Rule.** Leaf, Lychee and Turmeric mean money in, money out, and waiting. Never use them for decoration, and never let the accent of a future theme be mistaken for one of them. Turmeric is only for waiting or needs action. A tip, a transfer memo, a table total or a trophy is never Turmeric. Plain notes use Jade Mist (`bg-secondary text-secondary-foreground`), totals use Muted Fill, and a destructive action is a Lychee-text ghost button with a faint Lychee outline, never red on Jade Mist. The one exception is rating stars: the vote stars and their sparks are Turmeric gold, as people expect stars to look. A budget bar is a named use, not an exception: Turmeric when the budget is near its limit (it needs action), Lychee when it is over (money out), always with the words that say so.
 
 **The Fixed Money Rule.** Themes never touch the money colours (Leaf, Lychee, Turmeric) or the avatar pastels. A theme block that sets `--success*`, `--danger*`, `--warning*` or `--avatar-*` fails the token test. "You owe", "paid" and "waiting" must read the same in every theme. The other half: money never wears the theme's accent. Amounts, the "owed to you" balance and the settled tick use Leaf, Lychee or Turmeric, so a Pink button never sits beside a Pink amount that could pass for Lychee.
 
@@ -326,6 +326,8 @@ The system is flat by default. Depth comes from tone: white surfaces on Rice Pap
 
 ### Named Rules
 **The Float Only Rule.** A shadow means "this floats over the page". Lists, cards and forms sit flat on Rice Paper.
+
+**The Quiet Overview Rule.** On the Sổ chi tiêu overview, only the summary card and recent transactions show amounts. Every other widget shows shape and words (a pie, a bar, "Còn gần một phần ba"), and the figures live on the page the widget opens. An overview with an amount on every row reads like a receipt.
 
 ## Shapes
 
@@ -451,7 +453,17 @@ On phones a sheet is a bottom drawer: white, 32px top corners, at most 85% of th
 - **Desktop (from 1024px):** a 240px white side nav with the app name and text links.
 - **Header:** sticky on Rice Paper, with the back arrow in a 44px round button.
 - **Group page header:** the back arrow, the group name on up to two lines (it wraps, never scrolls sideways), and the 44px gear. Nothing else: Invite lives at the top of People (in the Mini App, Zalo's share plus a "Group links" button for the Invite sheet), and the account menu stays on the groups list and Home.
+- **The first section follows the personal-area setting:** "Khoản chi nhanh" with the home icon when it is off, "Sổ chi tiêu" with the wallet icon when it is on. Always three sections and "+".
 - **People entry:** the first thing under the header on a member's group page. A white `rounded-xl` row: an overlapping stack of up to four small avatars, "4 people" and a chevron. It opens People.
+
+### Overview (Sổ chi tiêu)
+The main screen once a person turns the personal area on. Design: `docs/superpowers/specs/2026-11-15-spending-book-shape-and-navigation-design.md`; mockup `docs/superpowers/mockups/v7-spending-book.html`.
+- **Order, top to bottom:** the summary card (total across wallets, this month's spending and income), a top list of rows that open their own pages ("Chờ xem lại", "Mọi người nợ bạn", "Báo cáo", "Kế hoạch"), then widgets: wallets, budgets, recent transactions.
+- **A widget** is a section label with a "see all" link on the right, over one white `rounded-xl` block. It appears only when its feature ships and hides when it has nothing to show. Tapping it opens its own page.
+- **Wallet pie:** a pie beside a legend of wallet names, no amounts. Segments are tints of the theme accent, never a money colour. At most four segments; further wallets are grouped as "Khác". The pie carries a text alternative that names the order.
+- **Budget bar:** one card, a row per budget: the name, the status in words on the right, the bar underneath. The bar is the theme accent when healthy, Turmeric from 85% of the limit ("Sắp chạm mức"), Lychee when over ("Đã vượt mức"). The words change with the colour, so the state never depends on colour alone.
+- **Empty state:** two plain lines on what a wallet is, under a wallet icon tile. Everything the person already has (people who owe them, quick expenses) stays visible below it.
+- **The setting:** a row in the account menu after Notifications: "Sổ chi tiêu", a neutral "Thử nghiệm" pill, one muted line, and a switch. It saves on tap, like the theme picker; a failed save shows the error under the row and the switch goes back.
 
 ### Snackbar
 A dark Ink pill-card (24px corners) floating above the nav, with the message in tabular figures and a Jade Mist text action ("Undo"). It slides up with a short fade. When the on-screen keyboard is up it rides above it, so a confirmation is seen while typing (the People add bar does the same).
