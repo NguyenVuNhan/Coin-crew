@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, useId, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { DEFAULT_THEME, isThemeId, type MeUserView, type Gender, type ThemeId } from '@cc/core';
@@ -7,7 +7,8 @@ import { readCachedTheme } from '@cc/web-ui/lib/theme';
 import { useT } from '@cc/web-i18n';
 import { useIsWide } from '@cc/web-util/media';
 import { apiSend } from '@cc/web-data-access/client';
-import { useMe } from '@cc/web-data-access/hooks';
+import { useMe, usePersonalArea } from '@cc/web-data-access/hooks';
+import { useSetPersonalArea } from '@cc/web-data-access/personal';
 import { useSetMyTheme } from '@cc/web-data-access/theme';
 import { signOut as signOutHere } from '@cc/web-data-access/signOut';
 import { usePlatform } from '@cc/web-platform';
@@ -18,6 +19,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { AvatarCropModal } from '@cc/web-ui/components/AvatarCropModal';
+import { Pill } from '@cc/web-ui/components/Pill';
 import { LinkedAccounts } from './LinkedAccounts';
 import { MergeRequestBanner } from './MergeRequestBanner';
 import { ThemePicker } from './ThemePicker';
@@ -27,6 +29,7 @@ import { useInstallVisibility } from './InstallPill';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
+import { Switch } from '@cc/web-ui/components/ui/switch';
 
 export type AccountMenuUser = {
   name: string;
@@ -58,6 +61,11 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const incomingMerge = meQuery.data?.mergeRequests.incoming[0];
   const joiningRequests = meQuery.data?.mergeRequests.joining ?? [];
   const hasMerge = Boolean(incomingMerge || joiningRequests.length > 0);
+
+  const personalArea = usePersonalArea();
+  const setPersonalArea = useSetPersonalArea();
+  const bookSwitchId = useId();
+  const bookDescId = useId();
 
   const [open, setOpen] = useState(false);
   const [acceptedJoin, setAcceptedJoin] = useState(false);
@@ -440,6 +448,41 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           </span>
           <Icon name="chevronRight" size={20} className="fsl-account-menu__chevron text-muted-foreground shrink-0" />
         </button>
+
+        <div
+          className={cn(
+            'fsl-account-menu__row fsl-account-menu__book flex items-center justify-between gap-3 min-h-11 rounded-lg px-3 py-2 text-base text-foreground',
+          )}
+        >
+          <div className="fsl-account-menu__row-left flex items-center gap-2 min-w-0">
+            <Icon name="wallet" size={20} className="shrink-0" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor={bookSwitchId}
+                  className="font-normal text-foreground text-base leading-snug cursor-pointer"
+                >
+                  {t('account.book')}
+                </Label>
+                <Pill tone="neutral">{t('account.bookBeta')}</Pill>
+              </div>
+              <p id={bookDescId} className="m-0 text-sm text-muted-foreground leading-normal">
+                {t('account.bookHint')}
+              </p>
+            </div>
+          </div>
+          <Switch
+            id={bookSwitchId}
+            data-testid="account-book"
+            checked={personalArea}
+            onCheckedChange={(checked) => setPersonalArea.mutate(checked)}
+            disabled={setPersonalArea.isPending}
+            aria-describedby={bookDescId}
+          />
+        </div>
+        {setPersonalArea.error ? (
+          <InlineError error={setPersonalArea.error} className="fsl-account-menu__book-error m-1" />
+        ) : null}
 
         {menuRow && (
           <button
