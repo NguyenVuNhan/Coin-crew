@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TripView, MeResponse } from '@cc/core';
 import { apiFetch, ApiClientError } from './client';
+import { readPersonalHint, writePersonalHint } from './personalHint';
 
 function useIsDocumentVisible(): boolean {
   const [isVisible, setIsVisible] = useState(() =>
@@ -141,7 +142,23 @@ export function useMe(opts?: { enabled?: boolean }) {
           joining: p.mergeRequests?.joining ?? [],
           claim: p.mergeRequests?.claim ?? null,
         },
+        ...(p.personalArea === true ? { personalArea: true } : {}),
       };
     },
   });
+}
+
+export function usePersonalArea(): boolean {
+  const { data } = useMe({ enabled: false });
+
+  const hasData = data !== undefined;
+  const isOn = hasData ? data.user != null && data.personalArea === true : readPersonalHint();
+
+  useEffect(() => {
+    if (hasData) {
+      writePersonalHint(isOn);
+    }
+  }, [hasData, isOn]);
+
+  return isOn;
 }
