@@ -167,6 +167,8 @@ export interface MeResponse {
     joining?: JoiningMergeRequest[];
     claim?: ClaimStatus | null;
   };
+  /** Present and true only when the personal area is switched on for this user. */
+  personalArea?: boolean;
 }
 
 export interface UpdateProfileInput {

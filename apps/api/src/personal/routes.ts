@@ -1,0 +1,61 @@
+import type { Context } from 'hono';
+import { Hono } from 'hono';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb } from '@cc/api-db/client';
+import { userPersonalSettings } from '@cc/api-db/schema';
+import { getSessionUser, requireUser } from '@cc/api-auth/session';
+import { requirePersonal } from '@cc/api-auth/personal';
+import { ApiError } from '@cc/api-util/errors';
+import { nowIso } from '@cc/api-util/ids';
+
+async function parseJson<T>(c: Context): Promise<T> {
+  try {
+    return await c.req.json<T>();
+  } catch {
+    throw new ApiError('VALIDATION', 422, 'Invalid request');
+  }
+}
+
+export function personalRoutes(): Hono<AppBindings> {
+  const app = new Hono<AppBindings>();
+
+  app.get('/me/personal', requirePersonal, async (c) => {
+    return c.json({ ok: true }, 200);
+  });
+
+  app.patch('/me/personal', requireUser, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const body = await parseJson<Record<string, unknown>>(c);
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    if (typeof body.enabled !== 'boolean') {
+      throw new ApiError('VALIDATION', 422, 'enabled must be a boolean');
+    }
+
+    const db = getDb(c.env);
+    const now = nowIso();
+    const enabledInt = body.enabled ? 1 : 0;
+
+    await db
+      .insert(userPersonalSettings)
+      .values({
+        userId: user.id,
+        enabled: enabledInt,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: userPersonalSettings.userId,
+        set: {
+          enabled: enabledInt,
+          updatedAt: now,
+        },
+      });
+
+    return c.json({ enabled: body.enabled }, 200);
+  });
+
+  return app;
+}
