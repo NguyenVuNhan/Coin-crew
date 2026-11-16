@@ -201,3 +201,31 @@ The wallet is the default wallet unless the owner changes it on that transaction
 - **#114:** building the rule in section 6.
 - **#116:** the "near the limit" threshold and how many budgets the card shows.
 - **Not asked for, not included:** reordering or hiding widgets.
+
+## 10. Addendum, 2026-11-16: the first wallet moves into this sub-task
+
+The owner tested the build and found a dead end: after turning the setting on there was no popup and nowhere to create a wallet. They decided to build a minimal first wallet here instead of waiting for #113. This overrules S19 and the "no data model beyond the per-user switch" line in issue #112.
+
+| # | Decision | Source |
+|---|---|---|
+| S31 | **The first wallet is built in this sub-task, minimal.** A wallet has a name and "how much you hold today". Editing, deleting, more wallets, the wallet list and the pie stay in #113. | owner |
+| S32 | **VND only for now.** The table stores a currency per wallet, so #113 adds the choice without a data change. | owner |
+| S33 | **Turning the setting on leads straight to the popup:** the account menu closes, the app goes to Sổ chi tiêu, and the popup opens. It also opens on any later visit while the person has no wallet (S28). Closing it leaves the empty state, whose button "Tạo ví đầu tiên" reopens it. | owner asked for the popup; the flow is my call |
+| S34 | One wallet per person until #113; a second create is refused. The first wallet is the default wallet. | my call |
+| S35 | With a wallet, the summary card replaces the empty state: "Tổng tiền", the amount in Ink, and the wallet's name. | my call |
+| S36 | "Earlier expenses go to this wallet" is true by rule, not by copying: the default wallet is the wallet of every quick expense and group share once #113 and #114 show them. Nothing is written per expense now. | my call |
+
+### Data and API
+
+- **Table** `personal_wallets` (migration `0026_personal_wallets.sql`): `id` text primary key; `user_id` text not null, references `users(id)` on delete cascade; `name` text not null; `currency` text not null default `'VND'`; `start_amount` integer not null (whole units of the currency's smallest unit); `start_date` text not null (`YYYY-MM-DD`, the day it was created); `is_default` integer not null default 0; `created_at`, `updated_at` text not null. Index on `user_id`; unique index on `user_id` where `is_default = 1`, which also stops two first wallets from a double tap.
+- **`GET /me/personal/wallets`** → `{ wallets: WalletView[] }`, oldest first. `WalletView` is `{ id, name, currency: 'VND', balance, isDefault }`; with no transactions yet, `balance` is `start_amount`.
+- **`POST /me/personal/wallets`** with `{ name, startAmount }` → `201 { wallet }`. Name: 1 to 40 characters after trimming. Amount: a whole number from 0 to 1.000.000.000.000. A person who already has a wallet gets `409 ALREADY_HANDLED`.
+- Both sit behind `requirePersonal`. No other account can read or create another person's wallet.
+
+### Cost
+
+| Action | Queries | Rows read | Rows written |
+|---|---|---|---|
+| `GET /me/personal/wallets` | 2 (guard, list) | 1 + wallets | 0 |
+| `POST /me/personal/wallets` | 3 (guard, existing check, insert) | 2 | 1 |
+| Opening Sổ chi tiêu | Home's queries + the wallet list | | 0 |
