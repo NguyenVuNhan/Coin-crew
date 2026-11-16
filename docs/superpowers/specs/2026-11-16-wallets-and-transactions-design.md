@@ -89,9 +89,11 @@ The owner keeps every money movement of the day in Money Lover: daily spending, 
 
 ## 7. Data
 
-New migration `0027_personal_money.sql`, hand-written; `schema.ts` kept in step. `personal_wallets` is a Phase 2 table (from `0026`), so adding columns to it is allowed; no Phase 1 table is touched.
+New migration `0027_personal_money.sql`, hand-written; `schema.ts` kept in step. No Phase 1 table is touched.
 
-- **`personal_wallets`** gains: `kind` text not null default `'everyday'`; `start_cost_vnd` integer null (W13); `icon` text null; `sort_order` integer not null default 0; `archived_at` text null.
+**Kept as #112 left them (added while planning, my call):** #112's tests, which may not be edited, pin `personal_wallets` to exactly nine columns, pin `POST /me/personal/wallets` to "one wallet only, starting amount ≥ 0, a second create gets 409", and pin `GET /me/personal/wallets` to the body `{ wallets }` with nothing beside it. So `personal_wallets` keeps its columns, the extra wallet fields live in a new table keyed by the wallet, further wallets are made by a new route (`POST /me/personal/wallets/add`), and the totals come from a new route (`GET /me/personal/summary`). New fields inside each wallet object are allowed, because those tests compare a wallet only with what the server itself returned.
+
+- **`personal_wallet_settings`** (one row per wallet, absent means the defaults): `wallet_id` text primary key, references `personal_wallets(id)` on delete cascade; `user_id`; `kind` text not null default `'everyday'`; `start_cost_vnd` integer null (W13); `icon` text null; `sort_order` integer not null default 0; `archived_at` text null; `updated_at`.
 - **`personal_categories`**: id, user_id (cascade), parent_id null, type (`expense`|`income`), name, icon, hidden (0/1), sort_order, created_at, updated_at. Index on user_id.
 - **`personal_tags`**: id, user_id, name; unique (user_id, lower(name)).
 - **`personal_transactions`**: id, user_id, wallet_id, type (`expense`|`income`|`transfer_out`|`transfer_in`|`buy`|`sell`), amount (integer, > 0, wallet currency's smallest unit), category_id null, transfer_id null (shared by both sides), asset_id null, quantity integer null, date (`YYYY-MM-DD`), time null (`HH:MM`), note null, exclude_from_reports (0/1), source (default `manual`), external_ref null, created_at, updated_at. Indexes: (user_id, date), (wallet_id, date), transfer_id; unique (user_id, source, external_ref) where external_ref is not null.
