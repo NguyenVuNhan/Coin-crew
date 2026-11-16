@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { Db } from '@cc/api-db/client';
 import { participants, transactionShares, transactions } from '@cc/api-db/schema';
 import type { PersonRow } from '@cc/core';
@@ -55,7 +55,6 @@ export async function loadPersonRows(db: Db, params: LoadPersonRowsParams): Prom
 
   if (txRows.length === 0) return [];
 
-  const txIds = txRows.map((t) => t.id);
   const shareRows = await db
     .select({
       transactionId: transactionShares.transactionId,
@@ -64,8 +63,9 @@ export async function loadPersonRows(db: Db, params: LoadPersonRowsParams): Prom
       name: participants.name,
     })
     .from(transactionShares)
+    .innerJoin(transactions, eq(transactions.id, transactionShares.transactionId))
     .innerJoin(participants, eq(participants.id, transactionShares.participantId))
-    .where(inArray(transactionShares.transactionId, txIds))
+    .where(and(...conditions))
     .orderBy(asc(participants.sortOrder))
     .all();
 

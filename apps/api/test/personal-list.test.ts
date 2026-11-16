@@ -604,4 +604,156 @@ describe('personal transaction list, quick expenses, and summary', () => {
     expect((await getList(sid, '?month=2026-11')).status).toBe(403);
     expect((await getSummary(sid, '?month=2026-11')).status).toBe(403);
   });
+
+  it('a month with 150 entries and 120 quick expenses lists them all', async () => {
+    const userId = 'u-list-11';
+    const sid = await memberSid(userId, 'List11');
+    await switchOn(userId);
+
+    const wallet = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Main', startAmount: 10_000_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+    const cats = (await json<CategoriesResponse>(await getCategories(sid))).categories;
+    const food = cats.find((c) => c.type === 'expense')!;
+
+    const ledger = await json<{ tripId: string; ownerPid: string }>(
+      await call('/api/me/ledger', as(sid)),
+    );
+    const { participantId: lanPid } = await json<{ participantId: string }>(
+      await postJson('/api/me/ledger/people', sid, { name: 'Lan' }),
+    );
+
+    const now = '2026-11-15T10:00:00.000Z';
+    const tagId = 'tag-bulk-1';
+    const stmts: D1PreparedStatement[] = [
+      env.DB.prepare(
+        'INSERT INTO personal_tags (id, user_id, name, created_at) VALUES (?, ?, ?, ?)',
+      ).bind(tagId, userId, 'BulkTag', now),
+    ];
+
+    for (let i = 0; i < 150; i++) {
+      const txId = `ptx-bulk-${i}`;
+      const day = String((i % 28) + 1).padStart(2, '0');
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO personal_transactions
+           (id, user_id, wallet_id, type, amount, category_id, date, note, exclude_from_reports, source, created_at, updated_at)
+           VALUES (?, ?, ?, 'expense', 10000, ?, ?, ?, 0, 'manual', ?, ?)`,
+        ).bind(txId, userId, wallet.id, food.id, `2026-11-${day}`, `Entry ${i}`, now, now),
+      );
+      if (i % 2 === 0) {
+        stmts.push(
+          env.DB.prepare(
+            'INSERT INTO personal_transaction_tags (transaction_id, tag_id) VALUES (?, ?)',
+          ).bind(txId, tagId),
+        );
+      }
+    }
+
+    for (let i = 0; i < 120; i++) {
+      const qId = `qtx-bulk-${i}`;
+      const day = String((i % 28) + 1).padStart(2, '0');
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO transactions
+           (id, root_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at)
+           VALUES (?, ?, 1, ?, 'expense', ?, 20000, 'VND', ?, ?, 'equal', 'approved', ?, ?, ?)`,
+        ).bind(
+          qId,
+          qId,
+          ledger.tripId,
+          `Quick ${i}`,
+          `2026-11-${day}`,
+          ledger.ownerPid,
+          ledger.ownerPid,
+          now,
+          now,
+        ),
+        env.DB.prepare(
+          'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, input_auto, amount) VALUES (?, ?, 1, 0, 10000)',
+        ).bind(qId, ledger.ownerPid),
+        env.DB.prepare(
+          'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, input_auto, amount) VALUES (?, ?, 1, 0, 10000)',
+        ).bind(qId, lanPid),
+      );
+    }
+
+    await env.DB.batch(stmts);
+
+    const res = await getList(sid, '?month=2026-11');
+    expect(res.status).toBe(200);
+    const body = await json<ListResponse>(res);
+    expect(body.rows).toHaveLength(270);
+
+    const entries = body.rows.filter((r) => r.kind === 'entry');
+    const personRows = body.rows.filter((r) => r.kind === 'person');
+    expect(entries).toHaveLength(150);
+    expect(personRows).toHaveLength(120);
+    expect(entries.filter((r) => r.entry.tags.includes('BulkTag'))).toHaveLength(75);
+    expect(personRows.every((r) => r.share === 10_000 && r.people[0] === 'Lan')).toBe(true);
+    expect(body.totals).toEqual([
+      { currency: 'VND', spent: 150 * 10_000 + 120 * 10_000, income: 0 },
+    ]);
+  });
+
+  it('summary month totals equal the list totals when an archived wallet had activity', async () => {
+    const userId = 'u-list-12';
+    const sid = await memberSid(userId, 'List12');
+    await switchOn(userId);
+
+    const mainWallet = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Main', startAmount: 5_000_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+    const archivedWallet = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Archived', startAmount: 2_000_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+
+    const cats = (await json<CategoriesResponse>(await getCategories(sid))).categories;
+    const food = cats.find((c) => c.type === 'expense')!;
+    const salary = cats.find((c) => c.type === 'income')!;
+
+    await createEntry(sid, {
+      type: 'expense',
+      walletId: mainWallet.id,
+      amount: 100_000,
+      categoryId: food.id,
+      date: '2026-11-05',
+      note: 'Main expense',
+    });
+    await createEntry(sid, {
+      type: 'expense',
+      walletId: archivedWallet.id,
+      amount: 250_000,
+      categoryId: food.id,
+      date: '2026-11-06',
+      note: 'Archived expense',
+    });
+    await createEntry(sid, {
+      type: 'income',
+      walletId: archivedWallet.id,
+      amount: 600_000,
+      categoryId: salary.id,
+      date: '2026-11-07',
+      note: 'Archived income',
+    });
+
+    // Archive the second wallet after activity
+    const patchRes = await patchWallet(archivedWallet.id, sid, { archived: true });
+    expect(patchRes.status).toBe(200);
+
+    const listBody = await json<ListResponse>(await getList(sid, '?month=2026-11'));
+    const summaryBody = await json<PersonalSummary>(await getSummary(sid, '?month=2026-11'));
+
+    expect(listBody.totals).toEqual([{ currency: 'VND', spent: 350_000, income: 600_000 }]);
+    expect(summaryBody.spent).toEqual([{ currency: 'VND', amount: 350_000 }]);
+    expect(summaryBody.income).toEqual([{ currency: 'VND', amount: 600_000 }]);
+    // Archived wallet's balance is still excluded from totalVnd
+    expect(summaryBody.totalVnd).toBe(4_900_000);
+  });
 });

@@ -225,19 +225,24 @@ export function listRoutes(): Hono<AppBindings> {
 
         const tagsByTx = new Map<string, string[]>();
         if (entryRows.length > 0) {
-          const entryIds = entryRows.map((e) => e.id);
+          const entryIdSet = new Set(entryRows.map((e) => e.id));
           const tagRows = await db
             .select({
               transactionId: personalTransactionTags.transactionId,
               name: personalTags.name,
             })
             .from(personalTransactionTags)
+            .innerJoin(
+              personalTransactions,
+              eq(personalTransactions.id, personalTransactionTags.transactionId),
+            )
             .innerJoin(personalTags, eq(personalTags.id, personalTransactionTags.tagId))
-            .where(inArray(personalTransactionTags.transactionId, entryIds))
+            .where(and(...conditions))
             .orderBy(sql`${personalTransactionTags}.rowid asc`)
             .all();
 
           for (const tr of tagRows) {
+            if (!entryIdSet.has(tr.transactionId)) continue;
             const list = tagsByTx.get(tr.transactionId) ?? [];
             list.push(tr.name);
             tagsByTx.set(tr.transactionId, list);
