@@ -483,6 +483,110 @@ export const personalWallets = sqliteTable(
   ],
 );
 
+export const personalWalletSettings = sqliteTable('personal_wallet_settings', {
+  walletId: text('wallet_id')
+    .primaryKey()
+    .references(() => personalWallets.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull().default('everyday'),
+  startCostVnd: integer('start_cost_vnd'),
+  icon: text('icon'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  archivedAt: text('archived_at'),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const personalCategories = sqliteTable(
+  'personal_categories',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    parentId: text('parent_id').references(
+      (): import('drizzle-orm/sqlite-core').AnySQLiteColumn => personalCategories.id,
+    ),
+    type: text('type').notNull(),
+    name: text('name').notNull(),
+    icon: text('icon').notNull(),
+    hidden: integer('hidden').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('personal_categories_user_idx').on(t.userId)],
+);
+
+export const personalTags = sqliteTable(
+  'personal_tags',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [uniqueIndex('personal_tags_user_name_uq').on(t.userId, sql`lower(${t.name})`)],
+);
+
+export const personalTransactions = sqliteTable(
+  'personal_transactions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id),
+    type: text('type').notNull(),
+    amount: integer('amount').notNull(),
+    categoryId: text('category_id').references(() => personalCategories.id),
+    transferId: text('transfer_id'),
+    assetId: text('asset_id'),
+    quantity: integer('quantity'),
+    date: text('date').notNull(),
+    time: text('time'),
+    note: text('note'),
+    excludeFromReports: integer('exclude_from_reports').notNull().default(0),
+    source: text('source').notNull().default('manual'),
+    externalRef: text('external_ref'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    index('personal_tx_user_date_idx').on(t.userId, t.date),
+    index('personal_tx_wallet_date_idx').on(t.walletId, t.date),
+    index('personal_tx_transfer_idx').on(t.transferId),
+    uniqueIndex('personal_tx_external_uq')
+      .on(t.userId, t.source, t.externalRef)
+      .where(sql`${t.externalRef} IS NOT NULL`),
+    check(
+      'personal_transactions_type_check',
+      sql`${t.type} IN ('expense', 'income', 'transfer_out', 'transfer_in', 'buy', 'sell')`,
+    ),
+  ],
+);
+
+export const personalTransactionTags = sqliteTable(
+  'personal_transaction_tags',
+  {
+    transactionId: text('transaction_id')
+      .notNull()
+      .references(() => personalTransactions.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => personalTags.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.transactionId, t.tagId] }),
+    index('personal_tx_tags_tag_idx').on(t.tagId),
+  ],
+);
+
 export const notificationLogs = sqliteTable(
   'notification_logs',
   {
