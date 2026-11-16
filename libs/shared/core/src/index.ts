@@ -18,3 +18,4 @@ export * from './themes';
 export * from './history';
 export * from './validation';
 export * from './attendance';
+export * from './wallets';
