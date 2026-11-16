@@ -22,6 +22,8 @@ export type ApiErrorCode =
   | 'PROPOSAL_PENDING'
   | 'CONFLICT'
   | 'ZALO_TOKEN_INVALID'
+  | 'IN_USE'
+  | 'DEFAULT_WALLET'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
@@ -99,6 +101,7 @@ import type { MergePlan } from './mergePlan';
 import type { ThemeId } from './themes';
 import type { HistoryGap, HistoryLine, PairHistory } from './history';
 import type { AttendanceLabel, AttendanceScore } from './attendance';
+import type { CurrencyCode } from './currency';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -663,23 +666,72 @@ export interface AttendanceView {
   pendingSessions: number;
 }
 
+export type WalletKind = 'everyday' | 'investment';
+
 export interface WalletView {
   id: string;
   name: string;
-  currency: 'VND';
+  currency: CurrencyCode;
   balance: number;
   isDefault: boolean;
+}
+
+export interface WalletDetailView extends WalletView {
+  kind: WalletKind;
+  startAmount: number;
+  startDate: string;
+  startCostVnd: number | null;
+  vndValue: number | null;
+  icon: string | null;
+  sortOrder: number;
+  archived: boolean;
+  entryCount: number;
 }
 
 export interface WalletsResponse {
   wallets: WalletView[];
 }
 
+export interface WalletDetailsResponse {
+  wallets: WalletDetailView[];
+}
+
 export interface CreateWalletInput {
   name: string;
   startAmount: number;
+  currency?: CurrencyCode;
+  kind?: WalletKind;
+  startDate?: string;
+  startCostVnd?: number | null;
+  icon?: string | null;
+}
+
+export interface UpdateWalletInput {
+  name?: string;
+  startAmount?: number;
+  startDate?: string;
+  startCostVnd?: number | null;
+  icon?: string | null;
+  archived?: boolean;
+  isDefault?: true;
+  kind?: WalletKind;
+  currency?: CurrencyCode;
 }
 
 export interface CreateWalletResponse {
   wallet: WalletView;
+}
+
+export interface WalletDetailResponse {
+  wallet: WalletDetailView;
+}
+
+export interface PersonalSummary {
+  totalVnd: number;
+  approximate: boolean;
+  perCurrency: { currency: CurrencyCode; balance: number }[];
+  unratedWalletIds: string[];
+  month: string;
+  spent: { currency: CurrencyCode; amount: number }[];
+  income: { currency: CurrencyCode; amount: number }[];
 }
