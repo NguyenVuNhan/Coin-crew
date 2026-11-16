@@ -317,6 +317,9 @@ Design: `docs/superpowers/specs/2026-11-15-spending-book-shape-and-navigation-de
     and the `?expense|payment|income=` handling are Home's own and behave as described above.
   - The per-person list moves to `/people` (`PeopleOwed`), opened from the "Mọi người nợ bạn" row. Person pages are one
     tap further than with the setting off.
+  - Turning the setting on closes the account menu and goes to `/trips`, where the first-wallet popup
+    (`FirstWalletSheet`) opens. It opens on any visit while the person has no wallet; closing it leaves the empty
+    state, whose button reopens it. One wallet per person for now (`POST /api/me/personal/wallets`).
 - **Guests** never see any of it.
 
 ### Places for later sub-tasks
@@ -328,7 +331,6 @@ A row or widget appears only when its sub-task ships.
 | #113 wallets | Wallets page | the wallet pie's "Ví ›" |
 | #113 transactions | Transactions page | "Giao dịch gần đây" → "Tất cả ›" |
 | #113 forms | expense, income, transfer, with a person | the "+" menu |
-| #113 first wallet | a popup when the area is on and no wallet exists | automatic |
 | #114 group shares | rows in the transaction stream | same stream |
 | #115 reports | Report view | "Báo cáo" row |
 | #116 budgets | Budgets page | budgets card → "Tất cả ›" |

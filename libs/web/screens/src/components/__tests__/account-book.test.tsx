@@ -41,8 +41,7 @@ describe('AccountMenu - spending book setting', () => {
     expect(screen.getByText('Beta')).toBeInTheDocument();
   });
 
-  it('turning it on saves, and the switch follows the server', async () => {
-    // PATCH /api/me/personal → { enabled: true }; GET /api/me then returns personalArea: true
+  it('turning it on saves, closes the menu and goes to the main screen', async () => {
     let on = false;
     const { calls } = mockApi({
       'GET /api/me': () =>
@@ -56,7 +55,7 @@ describe('AccountMenu - spending book setting', () => {
         return Response.json({ enabled: on });
       },
     });
-    renderAt(<AccountMenu />);
+    renderAt(<AccountMenu />, { route: '/groups' });
     await userEvent.click(await screen.findByRole('button', { name: 'Account' }));
 
     await userEvent.click(await screen.findByTestId('account-book'));
@@ -67,9 +66,31 @@ describe('AccountMenu - spending book setting', () => {
         body: { enabled: true },
       }),
     );
-    await waitFor(() =>
-      expect(screen.getByTestId('account-book')).toHaveAttribute('aria-checked', 'true'),
-    );
+    await waitFor(() => expect(screen.queryByTestId('account-book')).not.toBeInTheDocument());
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/trips$/);
+    expect(localStorage.getItem('personalArea')).toBe('1');
+  });
+
+  it('turning it off saves and the menu stays open', async () => {
+    let on = true;
+    mockApi({
+      'GET /api/me': () => Response.json({ ...meFixture, ...(on ? { personalArea: true } : {}) }),
+      'PATCH /api/me/personal': async () => {
+        on = false;
+        return Response.json({ enabled: false });
+      },
+    });
+    renderAt(<AccountMenu />, { route: '/groups' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Account' }));
+
+    const sw = await screen.findByTestId('account-book');
+    await waitFor(() => expect(sw).toHaveAttribute('aria-checked', 'true'));
+    await userEvent.click(sw);
+
+    await waitFor(() => expect(sw).toHaveAttribute('aria-checked', 'false'));
+    await waitFor(() => expect(sw).not.toBeDisabled());
+    expect(screen.getByTestId('account-book')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/groups$/);
   });
 
   it('shows what was asked for while the save is on its way, and names the trial', async () => {
@@ -97,8 +118,7 @@ describe('AccountMenu - spending book setting', () => {
     expect(sw).toBeDisabled();
 
     release();
-    await waitFor(() => expect(sw).not.toBeDisabled());
-    expect(sw).toHaveAttribute('aria-checked', 'true');
+    await waitFor(() => expect(screen.queryByTestId('account-book')).not.toBeInTheDocument());
   });
 
   it('a failed save flips it back and says so', async () => {

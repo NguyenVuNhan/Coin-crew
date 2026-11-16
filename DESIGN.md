@@ -204,6 +204,17 @@ components:
   add-bar:
     backgroundColor: "{colors.card}"
     height: "72px"
+  empty-state:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.xl}"
+    padding: "20px"
+  list-mode-chip:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.full}"
+    height: "28px"
+    size: "44px"
 ---
 
 # Design System: CoinCrew (Tiền Đâu)
@@ -341,7 +352,7 @@ Everything is round and soft; there are no sharp corners in the app's own surfac
 
 ## Components
 
-Two app layers exist: shadcn parts in `libs/web/ui/src/components/ui/`, and app wrappers in `libs/web/ui/src/components/` (`Button`, `Sheet`, `Modal`, `Pill`, `Avatar`, `Amount`, `Skeleton`, `InlineError`, `Snackbar`, `Icon`). Screens use the wrappers first.
+Two app layers exist: shadcn parts in `libs/web/ui/src/components/ui/`, and app wrappers in `libs/web/ui/src/components/` (`Button`, `Sheet`, `Modal`, `ActionSheet`, `Pill`, `ListModeChip`, `Avatar`, `Amount`, `ActionRow`, `EmptyState`, `BottomBar`, `Skeleton`, `InlineError`, `Snackbar`, `Icon`). Screens use the wrappers first.
 
 ### Buttons
 Calm, confident pills that are easy to hit.
@@ -381,8 +392,21 @@ The signature ledger pattern.
 - **Row:** at least 44px tall, 12px × 16px padding.
   - Content runs left to right: a leading avatar or icon tile, a title (14px semibold), a muted meta line, and on the right the amount (semibold, tabular).
   - Status pills sit under the amount.
-  - Rows can reveal swipe actions on phones; on desktop, tools show on hover.
-- **Section label:** a 14px semibold Stone Muted heading just above the list.
+- **Section label:** a 14px semibold Stone Muted heading just above the list, with an optional list mode chip on its right (below).
+- **Row actions** (`ActionRow`):
+  - On phones, swiping a row left reveals 80px action buttons, each an icon over a 12px semibold label: Muted Fill for ordinary actions, solid Lychee for removing, solid Leaf for confirming a payment. A first-time hint line under the row teaches the swipe. Tapping a revealed row only closes it; it never navigates.
+  - With a mouse, the same actions show as small icon tools on hover, tinted by tone.
+  - A row that opens another page is an in-app link; a row that opens content in place sets `aria-expanded`. The row surface is white, and Hover Fill on hover and when selected.
+- **Action sheet** (`ActionSheet`): the same actions as a list in a `Sheet`: one white `rounded-xl` block of 48px rows with a 20px icon and a 16px medium label, Lychee text for removing and Leaf for confirming. Choosing an action closes the sheet first.
+
+### List mode chip
+- **Style:** a small white outlined pill (28px tall, hairline border, 14px medium Ink label) beside a section label: "Show all" / "Show mine". Muted Fill on hover. The pill stays small; the tap area around it is 44px.
+- **Use:** switching a list between everyone's items and the person's own. It is a toggle, not a filter bar.
+
+### Empty states
+- **Shape** (`EmptyState`): a white card, 20px corners, 20px padding, hairline border, no shadow. Content is left-aligned.
+- **Content:** an optional 48px Jade Mist icon tile (24px corners, 24px icon) beside a 16px semibold title and one muted 14px line. Then, full width, the action (usually one button).
+- **No action yet:** the action is optional. When there is nothing to do yet, the card ends after the text; never fill the slot with a second paragraph.
 
 ### Summary cards and the balance hero
 - **Summary card:** white, 20px corners, 20px padding, a hairline border, no shadow. It holds one headline figure (the group balance, the home total), with the label above it.
@@ -462,8 +486,12 @@ The main screen once a person turns the personal area on. Design: `docs/superpow
 - **A widget** is a section label with a "see all" link on the right, over one white `rounded-xl` block. It appears only when its feature ships and hides when it has nothing to show. Tapping it opens its own page.
 - **Wallet pie:** a pie beside a legend of wallet names, no amounts. Segments are tints of the theme accent, never a money colour. At most four segments; further wallets are grouped as "Khác". The pie carries a text alternative that names the order.
 - **Budget bar:** one card, a row per budget: the name, the status in words on the right, the bar underneath. The bar is the theme accent when healthy, Turmeric from 85% of the limit ("Sắp chạm mức"), Lychee when over ("Đã vượt mức"). The words change with the colour, so the state never depends on colour alone.
-- **Empty state:** two plain lines on what a wallet is, under a wallet icon tile. Everything the person already has (people who owe them, quick expenses) stays visible below it.
-- **The setting:** a row in the account menu after Notifications: "Sổ chi tiêu", a neutral "Thử nghiệm" pill, one muted line, and a switch. It saves on tap, like the theme picker; a failed save shows the error under the row and the switch goes back.
+- **First wallet popup:** a `Sheet` that opens by itself while the person has no wallet: one line on what the wallet is for, a name field (prefilled "Tiền mặt"), "Bạn đang có bao nhiêu?" with the usual amount entry (`180.000`, `50k`, `1,5tr`; empty means 0₫), and one primary button. Closing it never blocks the screen.
+- **Empty state:** shown when that popup is closed: an `EmptyState` with a wallet icon tile, a title, one line on what a wallet is, and one primary button, "Tạo ví đầu tiên", that reopens the popup. Everything the person already has (people who owe them, quick expenses) stays visible below it.
+- **Total:** with a wallet, the summary card shows "Tổng tiền", the amount in Ink (what you hold is neither money in nor money out, so it takes no money colour), and the wallet's name.
+- **"Mọi người nợ bạn" row:** the amount owed to the person is Leaf only when it is above zero; at zero it is plain Ink. What the person owes others sits on the meta line. Screen readers hear the row as one sentence, each amount next to what it means.
+- **The setting:** a row in the account menu after Notifications: a wallet icon, "Sổ chi tiêu" with a neutral "Thử nghiệm" pill (it wraps under the name on narrow phones), one muted line, and a switch. The switch's description includes the pill, so the trial is announced. It saves on tap, like the theme picker: while the save is on its way the switch already shows the new choice and is disabled; a failed save shows the error under the row and the switch goes back.
+- **One screen for both:** the main screen is today's Home with the setting off and the spending book with it on, so flipping the switch changes the screen in place and focus is never dropped. Turning it off leaves the account menu open. Turning it on closes the menu and goes to the main screen, where the first wallet popup takes the focus.
 
 ### Snackbar
 A dark Ink pill-card (24px corners) floating above the nav, with the message in tabular figures and a Jade Mist text action ("Undo"). It slides up with a short fade. When the on-screen keyboard is up it rides above it, so a confirmation is seen while typing (the People add bar does the same).

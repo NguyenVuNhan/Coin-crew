@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId, type ChangeEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { DEFAULT_THEME, isThemeId, type MeUserView, type Gender, type ThemeId } from '@cc/core';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -52,6 +52,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
   const isWide = useIsWide();
   const wide = isWide && variant !== 'sheet';
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const queryClient = useQueryClient();
   const platform = usePlatform();
 
@@ -478,7 +479,17 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
             id={bookSwitchId}
             data-testid="account-book"
             checked={bookChecked}
-            onCheckedChange={(checked) => setPersonalArea.mutate(checked)}
+            onCheckedChange={(checked) =>
+              setPersonalArea.mutate(checked, {
+                onSuccess: () => {
+                  if (checked) {
+                    // On to the spending book, where the first-wallet popup opens.
+                    close();
+                    if (pathname !== '/trips') navigate('/trips');
+                  }
+                },
+              })
+            }
             disabled={setPersonalArea.isPending}
             aria-describedby={`${bookBetaId} ${bookDescId}`}
           />

@@ -137,7 +137,16 @@ export const vi: Record<MessageKey, string> = {
 
   'book.title': 'Sổ chi tiêu', // REVIEW
   'book.emptyTitle': 'Bắt đầu bằng một chiếc ví', // REVIEW
-  'book.emptyBody': 'Ví là nơi bạn giữ tiền: tiền mặt, tài khoản ngân hàng, quỹ đầu tư. Bạn sẽ sớm tạo được ví đầu tiên ở đây.', // REVIEW
+  'book.emptyBody': 'Ví là nơi bạn giữ tiền: tiền mặt, tài khoản ngân hàng, quỹ đầu tư. Tạo ví đầu tiên để bắt đầu.', // REVIEW
+  'book.createWallet': 'Tạo ví đầu tiên', // REVIEW
+  'book.walletSheetTitle': 'Ví đầu tiên của bạn', // REVIEW
+  'book.walletSheetBody': 'Ví này sẽ là ví mặc định. Các khoản chi nhanh và phần của bạn trong nhóm sẽ được ghi vào đây.', // REVIEW
+  'book.walletName': 'Tên ví', // REVIEW
+  'book.walletNameDefault': 'Tiền mặt', // REVIEW
+  'book.walletAmount': 'Bạn đang có bao nhiêu?', // REVIEW
+  'book.walletAmountHint': 'Để trống nếu muốn bắt đầu từ 0₫.', // REVIEW
+  'book.walletCreate': 'Tạo ví', // REVIEW
+  'book.total': 'Tổng tiền', // REVIEW
   'book.peopleOwe': 'Mọi người nợ bạn', // REVIEW
   'book.peopleTitle': 'Mọi người', // REVIEW
 

@@ -24,7 +24,7 @@ Success: friends run a whole trip or a season of sessions on it without anyone i
 **Direction (owner-confirmed):** CoinCrew grows into one app that replaces both Money Lover and Splitwise, Vietnam first. Future design should leave room for it without building it early:
 
 1. Group split + VietQR settle-up (built, live)
-2. Personal money records replacing Money Lover (group shares flow in automatically), Apple Pay capture, spreadsheet import with review. In progress: the first piece is the "Sổ chi tiêu" screen, which each signed-in person turns on in the account menu. The QR pay gateway is parked.
+2. Personal money records replacing Money Lover (group shares flow in automatically), Apple Pay capture, spreadsheet import with review. In progress: the first piece is the "Sổ chi tiêu" screen, which each signed-in person turns on in the account menu and starts by creating one wallet (VND only so far). The QR pay gateway is parked.
 3. Google Sheets export and Gemini: automatic payment matching by transfer note through the user's own Gemini flow, spending questions. The app never asks for Gmail access.
 4. Investment tracking; imports from Money Lover and Splitwise
 

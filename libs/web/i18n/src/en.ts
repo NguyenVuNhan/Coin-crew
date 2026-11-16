@@ -133,7 +133,16 @@ export const en = {
 
   'book.title': 'Spending book',
   'book.emptyTitle': 'Start with a wallet',
-  'book.emptyBody': 'A wallet is where your money sits: cash, a bank account, a fund. You will soon be able to create your first one here.',
+  'book.emptyBody': 'A wallet is where your money sits: cash, a bank account, a fund. Create your first one to start.',
+  'book.createWallet': 'Create your first wallet',
+  'book.walletSheetTitle': 'Your first wallet',
+  'book.walletSheetBody': 'This will be your default wallet. Quick expenses and your shares in groups will be recorded here.',
+  'book.walletName': 'Wallet name',
+  'book.walletNameDefault': 'Cash',
+  'book.walletAmount': 'How much do you have now?',
+  'book.walletAmountHint': 'Leave it empty to start from 0₫.',
+  'book.walletCreate': 'Create wallet',
+  'book.total': 'Total',
   'book.peopleOwe': 'People owe you',
   'book.peopleTitle': 'People',
 

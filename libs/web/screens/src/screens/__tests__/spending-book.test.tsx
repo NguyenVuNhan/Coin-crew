@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { TripView } from '@cc/core';
+import type { TripView, WalletView } from '@cc/core';
 import { renderAt, mockApi } from '../../test/render';
 import { mockMedia } from '../../test/media';
 import { tripView } from '../../test/fixtures';
@@ -49,6 +49,8 @@ const peopleSummary = {
   incomplete: false,
 };
 
+const cash: WalletView = { id: 'w-1', name: 'Tiền mặt', currency: 'VND', balance: 2320000, isDefault: true };
+
 function ledgerView(): TripView {
   return tripView({
     trip: {
@@ -87,15 +89,22 @@ function ledgerView(): TripView {
   });
 }
 
-function mockApp(me: unknown | (() => unknown)) {
+type Routes = Parameters<typeof mockApi>[0];
+
+/** The app's API with one wallet already made, unless `routes` says otherwise. */
+function mockApp(me: unknown | (() => unknown), routes: Routes = {}) {
   return mockApi({
     'GET /api/me': typeof me === 'function' ? () => Response.json((me as () => unknown)()) : me,
     'GET /api/me/ledger': ledger,
     'GET /api/me/people/summary': peopleSummary,
     'GET /api/trips/t-led': ledgerView(),
     'GET /api/trips/t-led/version': { version: 1 },
+    'GET /api/me/personal/wallets': { wallets: [cash] },
+    ...routes,
   });
 }
+
+const noWallet: Routes = { 'GET /api/me/personal/wallets': { wallets: [] } };
 
 /** Hands the test the app's query client, so it can make the app re-ask who is signed in. */
 let client: QueryClient | null = null;
@@ -115,17 +124,20 @@ const renderApp = (route: string, options: Omit<NonNullable<Parameters<typeof re
 
 describe('Spending book (Sổ chi tiêu)', () => {
   describe('setting off', () => {
-    it("/trips is today's Home and nothing new is on screen", async () => {
-      mockApp(meOff);
+    it("/trips is today's Home and nothing new is on screen or asked of the server", async () => {
+      const { calls } = mockApp(meOff);
       renderApp('/trips');
 
       expect(await screen.findByTestId('home-total')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Quick expenses' })).toBeInTheDocument();
       expect(screen.queryByTestId('book-empty')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('book-total')).not.toBeInTheDocument();
       expect(screen.queryByTestId('book-people-row')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument();
       expect(within(screen.getByTestId('app-nav-bar')).getByTestId('nav-home')).toHaveAccessibleName(
         'Quick expenses',
       );
+      expect(calls.some((c) => c.path.startsWith('/api/me/personal'))).toBe(false);
     });
 
     it('/people goes back to the main screen', async () => {
@@ -142,7 +154,7 @@ describe('Spending book (Sổ chi tiêu)', () => {
       renderApp('/trips');
 
       expect(await screen.findByTestId('home-total')).toBeInTheDocument();
-      expect(screen.queryByTestId('book-empty')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('book-total')).not.toBeInTheDocument();
       expect(localStorage.getItem('personalArea')).toBeNull();
     });
   });
@@ -152,18 +164,23 @@ describe('Spending book (Sổ chi tiêu)', () => {
     renderApp('/people');
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/));
-    expect(screen.queryByTestId('book-empty')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('book-total')).not.toBeInTheDocument();
   });
 
-  describe('setting on', () => {
-    it('/trips is the spending book with its empty state and no button in it', async () => {
+  describe('setting on, with a wallet', () => {
+    it('/trips is the spending book: the total, the wallet, and no popup', async () => {
       mockApp(meOn);
       renderApp('/trips');
 
-      const empty = await screen.findByTestId('book-empty');
-      expect(empty).toHaveTextContent('Start with a wallet');
-      expect(within(empty).queryByRole('button')).not.toBeInTheDocument();
+      const total = await screen.findByTestId('book-total');
+      expect(total).toHaveTextContent('Total');
+      expect(total).toHaveTextContent('2.320.000₫');
+      expect(total).toHaveTextContent('Tiền mặt');
+      // The total is what you have, not what someone owes: it is not in a money colour.
+      expect(total.querySelector('.fsl-amount')).not.toHaveClass('text-success');
       expect(screen.getByRole('heading', { name: 'Spending book' })).toBeInTheDocument();
+      expect(screen.queryByTestId('book-empty')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument();
       expect(screen.queryByTestId('home-total')).not.toBeInTheDocument();
       // Today's quick expenses are still there.
       expect(await screen.findByText('Taxi')).toBeInTheDocument();
@@ -190,13 +207,7 @@ describe('Spending book (Sổ chi tiêu)', () => {
     });
 
     it('with nobody owing, the zero is not in a money colour', async () => {
-      mockApi({
-        'GET /api/me': meOn,
-        'GET /api/me/ledger': ledger,
-        'GET /api/me/people/summary': { people: [], incomplete: false },
-        'GET /api/trips/t-led': ledgerView(),
-        'GET /api/trips/t-led/version': { version: 1 },
-      });
+      mockApp(meOn, { 'GET /api/me/people/summary': { people: [], incomplete: false } });
       renderApp('/trips');
 
       const row = await screen.findByTestId('book-people-row');
@@ -218,7 +229,7 @@ describe('Spending book (Sổ chi tiêu)', () => {
       mockApp(meOn);
       renderApp('/trips');
 
-      await screen.findByTestId('book-empty');
+      await screen.findByTestId('book-total');
       expect(within(screen.getByTestId('app-nav-side')).getByTestId('nav-home')).toHaveTextContent(
         'Spending book',
       );
@@ -229,7 +240,7 @@ describe('Spending book (Sổ chi tiêu)', () => {
       mockApp(meOn);
       renderApp('/trips', { platform: fakePlatform({ kind: 'zmp' }) });
 
-      expect(await screen.findByTestId('book-empty')).toBeInTheDocument();
+      expect(await screen.findByTestId('book-total')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Spending book' })).toBeInTheDocument();
     });
 
@@ -246,6 +257,126 @@ describe('Spending book (Sổ chi tiêu)', () => {
 
       await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/trips$/));
       expect(await screen.findByTestId('home-total')).toBeInTheDocument();
+    });
+
+    it('a wallet list that fails to load says so and still shows the rest', async () => {
+      mockApp(meOn, {
+        'GET /api/me/personal/wallets': () =>
+          Response.json({ error: { code: 'INTERNAL', message: 'Something went wrong.' } }, { status: 500 }),
+      });
+      renderApp('/trips');
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument();
+      expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument();
+      expect(await screen.findByTestId('book-people-row')).toBeInTheDocument();
+    });
+  });
+
+  describe('setting on, no wallet yet', () => {
+    it('the popup opens by itself and creating the wallet shows the total', async () => {
+      const { calls } = mockApp(meOn, {
+        ...noWallet,
+        'POST /api/me/personal/wallets': () => Response.json({ wallet: cash }, { status: 201 }),
+      });
+      renderApp('/trips');
+
+      const form = await screen.findByTestId('first-wallet-form');
+      expect(screen.getByRole('dialog', { name: 'Your first wallet' })).toBeInTheDocument();
+      const name = within(form).getByLabelText('Wallet name');
+      expect(name).toHaveValue('Cash');
+      const amount = within(form).getByLabelText('How much do you have now?');
+
+      await userEvent.clear(name);
+      await userEvent.type(name, '  Tiền mặt ');
+      await userEvent.type(amount, '2.320.000');
+      expect(form).toHaveTextContent('2.320.000₫');
+      await userEvent.click(within(form).getByTestId('first-wallet-create'));
+
+      await waitFor(() =>
+        expect(calls).toContainEqual({
+          method: 'POST',
+          path: '/api/me/personal/wallets',
+          body: { name: 'Tiền mặt', startAmount: 2320000 },
+        }),
+      );
+      await waitFor(() => expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument());
+      expect(await screen.findByTestId('book-total')).toHaveTextContent('2.320.000₫');
+      expect(screen.queryByTestId('book-empty')).not.toBeInTheDocument();
+    });
+
+    it('an empty amount means zero', async () => {
+      const { calls } = mockApp(meOn, {
+        ...noWallet,
+        'POST /api/me/personal/wallets': () =>
+          Response.json({ wallet: { ...cash, name: 'Cash', balance: 0 } }, { status: 201 }),
+      });
+      renderApp('/trips');
+
+      const form = await screen.findByTestId('first-wallet-form');
+      await userEvent.click(within(form).getByTestId('first-wallet-create'));
+
+      await waitFor(() =>
+        expect(calls).toContainEqual({
+          method: 'POST',
+          path: '/api/me/personal/wallets',
+          body: { name: 'Cash', startAmount: 0 },
+        }),
+      );
+      expect(await screen.findByTestId('book-total')).toHaveTextContent('0₫');
+    });
+
+    it('an amount that is not a number, or no name, cannot be sent', async () => {
+      const { calls } = mockApp(meOn, noWallet);
+      renderApp('/trips');
+
+      const form = await screen.findByTestId('first-wallet-form');
+      const create = within(form).getByTestId('first-wallet-create');
+      await userEvent.type(within(form).getByLabelText('How much do you have now?'), 'abc');
+      expect(within(form).getByRole('alert')).toHaveTextContent('Enter an amount like');
+      expect(create).toBeDisabled();
+
+      await userEvent.clear(within(form).getByLabelText('How much do you have now?'));
+      expect(create).toBeEnabled();
+      await userEvent.clear(within(form).getByLabelText('Wallet name'));
+      expect(create).toBeDisabled();
+      expect(calls.some((c) => c.method === 'POST')).toBe(false);
+    });
+
+    it('closing the popup leaves the empty state, whose button opens it again', async () => {
+      mockApp(meOn, noWallet);
+      renderApp('/trips');
+
+      await screen.findByTestId('first-wallet-form');
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument());
+
+      const empty = screen.getByTestId('book-empty');
+      expect(empty).toHaveTextContent('Start with a wallet');
+      // It does not come back by itself while the person stays on the screen.
+      expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument();
+      // What the person already has is still there.
+      expect(await screen.findByTestId('book-people-row')).toBeInTheDocument();
+      expect(await screen.findByText('Taxi')).toBeInTheDocument();
+
+      await userEvent.click(within(empty).getByRole('button', { name: 'Create your first wallet' }));
+      expect(await screen.findByTestId('first-wallet-form')).toBeInTheDocument();
+    });
+
+    it('a create the server refuses says so and keeps what was typed', async () => {
+      mockApp(meOn, {
+        ...noWallet,
+        'POST /api/me/personal/wallets': () =>
+          Response.json({ error: { code: 'INTERNAL', message: 'Something went wrong.' } }, { status: 500 }),
+      });
+      renderApp('/trips');
+
+      const form = await screen.findByTestId('first-wallet-form');
+      await userEvent.type(within(form).getByLabelText('How much do you have now?'), '500k');
+      await userEvent.click(within(form).getByTestId('first-wallet-create'));
+
+      expect(await within(form).findByRole('alert')).toBeInTheDocument();
+      expect(within(form).getByLabelText('How much do you have now?')).toHaveValue('500k');
+      expect(screen.queryByTestId('book-total')).not.toBeInTheDocument();
     });
   });
 });

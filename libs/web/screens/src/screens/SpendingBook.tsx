@@ -1,8 +1,11 @@
-import type { JSX } from 'react';
+import { useState, useEffect, type JSX } from 'react';
 import { Link } from 'react-router';
 import { formatVnd } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { useWallets } from '@cc/web-data-access/personal';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Button } from '@cc/web-ui/components/Button';
+import { Card } from '@cc/web-ui/components/ui/card';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -10,6 +13,7 @@ import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Home } from './Home';
 import { usePeopleTotals } from '../components/PeopleSummary';
+import { FirstWalletSheet } from '../components/FirstWalletSheet';
 
 function BookSummary(): JSX.Element {
   const t = useT();
@@ -23,6 +27,27 @@ function BookSummary(): JSX.Element {
     refetch,
   } = usePeopleTotals();
 
+  const wallets = useWallets();
+  const list = wallets.data?.wallets;
+  const hasWallet = (list?.length ?? 0) > 0;
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (wallets.isSuccess && !hasWallet && !dismissed) {
+      setSheetOpen(true);
+    }
+  }, [wallets.isSuccess, hasWallet, dismissed]);
+
+  const closeSheet = () => {
+    setSheetOpen(false);
+    setDismissed(true);
+  };
+
+  const total = list ? list.reduce((sum, w) => sum + w.balance, 0) : 0;
+  const walletNames = list ? list.map((w) => w.name).join(', ') : '';
+
   // Read out as one sentence, with each amount next to what it means.
   const owedLine = `${t('book.peopleOwe')}: ${formatVnd(sumPositive)}`;
   const peopleRowName =
@@ -30,14 +55,42 @@ function BookSummary(): JSX.Element {
 
   return (
     <>
-      <div data-testid="book-empty" className="fsl-book__empty">
-        {/* No action yet: wallets, and the button that creates the first one, arrive with the next sub-task. */}
-        <EmptyState
-          icon="wallet"
-          title={t('book.emptyTitle')}
-          body={t('book.emptyBody')}
-        />
-      </div>
+      {wallets.isPending ? (
+        <SkeletonList rows={1} />
+      ) : wallets.error ? (
+        <InlineError error={wallets.error} onRetry={() => wallets.refetch()} />
+      ) : hasWallet ? (
+        <Card
+          data-testid="book-total"
+          className="fsl-book__total rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-1 w-full text-card-foreground"
+        >
+          <p className="fsl-book__total-label m-0 text-sm font-medium text-muted-foreground">
+            {t('book.total')}
+          </p>
+          <Amount value={total} tone="neutral" size="xl" />
+          <p className="fsl-book__total-wallets m-0 text-sm text-muted-foreground">
+            {walletNames}
+          </p>
+        </Card>
+      ) : (
+        <div data-testid="book-empty" className="fsl-book__empty">
+          <EmptyState
+            icon="wallet"
+            title={t('book.emptyTitle')}
+            body={t('book.emptyBody')}
+            action={
+              <Button
+                variant="primary"
+                block
+                data-testid="book-create-wallet"
+                onClick={() => setSheetOpen(true)}
+              >
+                {t('book.createWallet')}
+              </Button>
+            }
+          />
+        </div>
+      )}
 
       {isLoading || !hasData ? (
         <SkeletonList rows={1} />
@@ -78,6 +131,8 @@ function BookSummary(): JSX.Element {
           </Link>
         </div>
       )}
+
+      <FirstWalletSheet open={sheetOpen} onClose={closeSheet} />
     </>
   );
 }
