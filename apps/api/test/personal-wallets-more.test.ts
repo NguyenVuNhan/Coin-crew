@@ -96,6 +96,23 @@ describe('personal wallets — more wallets, kinds, currencies, archive, reorder
     expect(list.wallets[0]?.vndValue).toBe(2_540_000);
   });
 
+  it('/wallets/add USDT with startAmount 0 returns the same object GET lists', async () => {
+    const sid = await memberSid('u-usdt-zero', 'UsdtZero');
+    await switchOn('u-usdt-zero');
+
+    const postRes = await addWallet(sid, {
+      name: 'USDT Zero',
+      currency: 'USDT',
+      kind: 'investment',
+      startAmount: 0,
+    });
+    expect(postRes.status).toBe(201);
+    const { wallet } = await json<WalletDetailResponse>(postRes);
+
+    const list = await json<WalletDetailsResponse>(await getWallets(sid));
+    expect(list.wallets).toEqual([wallet]);
+  });
+
   it('two parallel /wallets/add for a user with no wallet make one default wallet', async () => {
     const sid = await memberSid('u-parallel', 'Parallel');
     await switchOn('u-parallel');

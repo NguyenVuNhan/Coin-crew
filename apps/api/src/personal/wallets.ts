@@ -264,17 +264,29 @@ export function walletRoutes(): Hono<AppBindings> {
     const walletId = newId();
 
     try {
-      await db.insert(personalWallets).values({
-        id: walletId,
-        userId: user.id,
-        name: validated.name,
-        currency: validated.currency,
-        startAmount: validated.startAmount,
-        startDate: validated.startDate,
-        isDefault: 1,
-        createdAt: now,
-        updatedAt: now,
-      });
+      await db.batch([
+        db.insert(personalWallets).values({
+          id: walletId,
+          userId: user.id,
+          name: validated.name,
+          currency: validated.currency,
+          startAmount: validated.startAmount,
+          startDate: validated.startDate,
+          isDefault: 1,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        db.insert(personalWalletSettings).values({
+          walletId,
+          userId: user.id,
+          kind: validated.kind,
+          startCostVnd: validated.startCostVnd,
+          icon: validated.icon,
+          sortOrder: 0,
+          archivedAt: null,
+          updatedAt: now,
+        }),
+      ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
         throw new ApiError('ALREADY_HANDLED', 409, 'You already have a wallet.');
@@ -282,33 +294,25 @@ export function walletRoutes(): Hono<AppBindings> {
       throw err;
     }
 
-    await db.insert(personalWalletSettings).values({
-      walletId,
-      userId: user.id,
-      kind: validated.kind,
-      startCostVnd: validated.startCostVnd,
-      icon: validated.icon,
-      sortOrder: 0,
-      archivedAt: null,
-      updatedAt: now,
-    });
-
-    const wallet: WalletDetailView = {
+    const created: LoadedCalcWallet = {
       id: walletId,
+      userId: user.id,
       name: validated.name,
       currency: validated.currency,
-      balance: validated.startAmount,
-      isDefault: true,
-      kind: validated.kind,
       startAmount: validated.startAmount,
       startDate: validated.startDate,
+      isDefault: true,
+      kind: validated.kind,
       startCostVnd: validated.startCostVnd,
-      vndValue: validated.currency === 'VND' ? validated.startAmount : validated.startCostVnd,
       icon: validated.icon,
       sortOrder: 0,
       archived: false,
-      entryCount: 0,
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now,
     };
+    const vndValues = walletVndValues([created], []);
+    const wallet = toWalletView(created, [], vndValues, 0);
 
     return c.json({ wallet }, 201);
   });
@@ -341,17 +345,29 @@ export function walletRoutes(): Hono<AppBindings> {
     const walletId = newId();
 
     try {
-      await db.insert(personalWallets).values({
-        id: walletId,
-        userId: user.id,
-        name: validated.name,
-        currency: validated.currency,
-        startAmount: validated.startAmount,
-        startDate: validated.startDate,
-        isDefault: isDefault ? 1 : 0,
-        createdAt: now,
-        updatedAt: now,
-      });
+      await db.batch([
+        db.insert(personalWallets).values({
+          id: walletId,
+          userId: user.id,
+          name: validated.name,
+          currency: validated.currency,
+          startAmount: validated.startAmount,
+          startDate: validated.startDate,
+          isDefault: isDefault ? 1 : 0,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        db.insert(personalWalletSettings).values({
+          walletId,
+          userId: user.id,
+          kind: validated.kind,
+          startCostVnd: validated.startCostVnd,
+          icon: validated.icon,
+          sortOrder,
+          archivedAt: null,
+          updatedAt: now,
+        }),
+      ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
         throw new ApiError('ALREADY_HANDLED', 409, 'You already have a default wallet.');
@@ -359,33 +375,25 @@ export function walletRoutes(): Hono<AppBindings> {
       throw err;
     }
 
-    await db.insert(personalWalletSettings).values({
-      walletId,
-      userId: user.id,
-      kind: validated.kind,
-      startCostVnd: validated.startCostVnd,
-      icon: validated.icon,
-      sortOrder,
-      archivedAt: null,
-      updatedAt: now,
-    });
-
-    const wallet: WalletDetailView = {
+    const created: LoadedCalcWallet = {
       id: walletId,
+      userId: user.id,
       name: validated.name,
       currency: validated.currency,
-      balance: validated.startAmount,
-      isDefault,
-      kind: validated.kind,
       startAmount: validated.startAmount,
       startDate: validated.startDate,
+      isDefault,
+      kind: validated.kind,
       startCostVnd: validated.startCostVnd,
-      vndValue: validated.currency === 'VND' ? validated.startAmount : validated.startCostVnd,
       icon: validated.icon,
       sortOrder,
       archived: false,
-      entryCount: 0,
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now,
     };
+    const vndValues = walletVndValues([created], []);
+    const wallet = toWalletView(created, [], vndValues, 0);
 
     return c.json({ wallet }, 201);
   });
@@ -445,7 +453,14 @@ export function walletRoutes(): Hono<AppBindings> {
             },
           }),
       );
+      try {
       await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    } catch (err) {
+      if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'You already have a default wallet.');
+      }
+      throw err;
+    }
     }
 
     return c.json({ ok: true }, 200);
@@ -620,7 +635,14 @@ export function walletRoutes(): Hono<AppBindings> {
         }),
     );
 
-    await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    try {
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    } catch (err) {
+      if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'You already have a default wallet.');
+      }
+      throw err;
+    }
 
     const { wallets: calcWallets, entries } = await loadCalc(db, user.id);
     const vndValues = walletVndValues(calcWallets, entries);
