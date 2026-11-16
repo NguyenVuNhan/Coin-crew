@@ -15,6 +15,7 @@ import { accountMergeRequests, participants, transactions, trips, users } from '
 import type { Env } from '@cc/api-db/env';
 import { nowIso } from '@cc/api-util/ids';
 import type { UserRow } from './session';
+import { isPersonalAreaOn } from './personal';
 
 export function zaloConfigured(env: Env): boolean {
   return Boolean(env.ZALO_APP_ID && env.ZALO_APP_SECRET);
@@ -62,7 +63,7 @@ export async function buildMeResponse(
 
   const now = nowIso();
 
-  const [incomingRows, outgoingRows, joiningRows, claimRows] = await Promise.all([
+  const [incomingRows, outgoingRows, joiningRows, claimRows, personalAreaOn] = await Promise.all([
     db
       .select({
         id: accountMergeRequests.id,
@@ -152,6 +153,8 @@ export async function buildMeResponse(
       )
       .orderBy(desc(accountMergeRequests.createdAt))
       .limit(1),
+
+    isPersonalAreaOn(db, user.id),
   ]);
 
   const seenProviders = new Set<AuthProvider>();
@@ -370,5 +373,6 @@ export async function buildMeResponse(
       joining,
       claim,
     },
+    ...(personalAreaOn ? { personalArea: true } : {}),
   };
 }

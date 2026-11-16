@@ -61,6 +61,8 @@ Built for the owner first. Friends get it once it is stable. **(owner)**
 | D8 | **The personal area is off for everyone except the owner** until the owner says it is stable: a per-user switch (its own new table), default off, with no visible way to turn it on, enforced on the server by one shared guard that every new route uses. It applies to the web app and the Zalo Mini App alike, since both render the same screens. | my call |
 | D9 | **Outside tools sign in with a personal capture key**, not the user's session: stored hashed, revocable, able to do one thing only (add to that user's review inbox). | my call |
 
+**D8, changed.** Changed 2026-11-15 (owner): every signed-in user can turn the personal area on or off in the account menu; see S25 in `2026-11-15-spending-book-shape-and-navigation-design.md`. The server guard and the default of off stand.
+
 ## 6. Rules for every sub-task (the Phase 1 guard)
 
 1. **Additive only.** New tables, new routes, new screens. Migrations only create new tables and indexes; they never alter or drop a Phase 1 table or column, and never add a column to one.
@@ -68,6 +70,7 @@ Built for the owner first. Friends get it once it is stable. **(owner)**
 3. **Never edit or delete an existing test.** `npm test`, `npm run typecheck`, `npm run lint` and the Playwright specs `golden-path` and `walkthrough` pass before every merge.
 4. **Stay inside the Cloudflare free plan:** at most 50 database queries per request, 100,000 rows written and 5,000,000 rows read per day. Each sub-task states its cost per action.
 5. **Group-only users and guests see no change** while D8's switch is off for them. Each sub-task tests this.
+   - Changed 2026-11-15 (owner): every signed-in user can turn the personal area on or off in the account menu; see S25 in `2026-11-15-spending-book-shape-and-navigation-design.md`. The server guard and the default of off stand. Group-only users now see one new row there and nothing else.
 6. **Migrations are hand-written SQL** in `apps/api/migrations/`, with `libs/api/db/src/schema.ts` kept in step by hand.
 7. **Money is never a float.** Personal amounts follow D3.
 8. **No push, SMS or email about personal money.** Phase 1's group emails are not a precedent.

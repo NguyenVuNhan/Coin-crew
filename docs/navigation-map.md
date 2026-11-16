@@ -26,12 +26,13 @@ There is **no catch-all `*` route**: an unknown path renders only `<AuthNotice /
 | Route | Component | Shows | Tab (AppNav) |
 |---|---|---|---|
 | `/` | `Landing` | Sign-in start page; a signed-in user is replaced to `/trips` (`Landing.tsx:27-31`) | no |
-| `/trips` | `TripsRoute` -> `Home` (`App.tsx:23-30`) | Home: totals, "by person" list, the ledger's expenses/payments. Wide: ledger details in the right column via `?expense=` / `?payment=` / `?income=` | **home** |
+| `/trips` | `TripsRoute` -> `Home`, or `SpendingBook` when the personal area is on (`App.tsx`) | Home: totals, "by person" list, the ledger's expenses/payments. Wide: ledger details in the right column via `?expense=` / `?payment=` / `?income=` | **home** |
 | `/trips?mergeReview=…` or `?tab=groups` | `TripsRoute` -> `<Navigate to="/groups" + search replace>` (`App.tsx:26-27`) | redirect | - |
 | `/groups` | `Groups` -> `MyTrips embedded` | Group list, "New group", merge-request banner (`?mergeReview=` is consumed and dropped, `MyTrips.tsx:44-52`) | **groups** |
 | `/activity` | `MyActivity` | The user's activity across groups and the ledger | **activity** |
 | `/trips/new` | `CreateTrip` | Create-group form | no |
 | `/people/:key` | `PersonScreen` | One person across groups: total, per-group rows, merge, settle, request | no (nav shown, section `home`) |
+| `/people` | `PeopleRoute` -> `PeopleOwed` when the personal area is on; otherwise `<Navigate to="/trips" replace>` | The per-person list on its own page (added 2026-11-15, #112) | no (nav shown, section `home`) |
 | `/r/:token` | `RequestPage` | Public payment-request page (sent to the debtor) | no |
 | `/privacy` | `Privacy` | Privacy policy | no |
 | `/me/bank` | `BankDetails` (no trip) | The user's own bank details | no |
@@ -99,6 +100,7 @@ load / external.)
 | `/activity` | L: AppNav activity `AppNav.tsx:26` only |
 | `/trips/new` | B: MyTrips "New group" `MyTrips.tsx:79` and empty state `MyTrips.tsx:98` |
 | `/people/:key` | L: Home person row `Home.tsx:113-115`. N: after merge `PersonScreen.tsx:164` (replace) |
+| `/people` | L: `SpendingBook` "People owe you" row (`screens/SpendingBook.tsx`), personal area on only |
 | `/r/:token` | X only: URL from `requestLink()` shared/copied in `PersonScreen.tsx` (`handleRequestLink`, ~l.222-238) |
 | `/privacy` | L: AccountMenu `AccountMenu.tsx:336`; ConsentSheet `ConsentSheet.tsx:40` (on Home, Groups, CreateTrip); Landing `Landing.tsx:86`; BankDetails `BankDetails.tsx:211`; GuestBank `GuestBank.tsx:221` |
 | `/me/bank` | L: AccountMenu `AccountMenu.tsx:317`; BalanceCard "add bank" prompt on a member trip `BalanceCard.tsx:106-107` |
@@ -135,6 +137,7 @@ page with its **natural parent** below. "Arrow" = the header back on `<Screen ba
 | `/groups`, `/activity` | none (tabs; switching tabs replaces, `AppNav.tsx`) | - | - |
 | `/trips/new` | arrow | `/groups` | create -> trip, **replace** (`CreateTrip.tsx:59`) |
 | `/people/:key` | arrow | `/trips` | merge -> replace to the merged key |
+| `/people` | arrow | `/trips` | - |
 | `/r/:token` | none | - | - |
 | `/privacy` | arrow | `/` | - |
 | `/me/bank` | arrow; success "Back" in-page | `/trips` | save -> success state in place |
@@ -212,6 +215,9 @@ flowchart LR
   end
   LAND["/ Landing"] -- signed in --> HOME
   HOME -- person row --> PERSON["/people/:key"]
+  HOME -- "people row (personal area on)" --> PEOPLEOWED["/people"]
+  PEOPLEOWED -- person row --> PERSON
+  PEOPLEOWED -. "back: /trips" .-> HOME
   HOME -- "row (phone)" --> LDET["/t/ledger/expenses/:id"]
   HOME -- "row (wide)" --> HOMEP["/trips?expense=:id panel"]
   HOME & GROUPS & ACT & PERSON -- "+" --> LFORM["/t/ledger/expenses/new"]
@@ -293,3 +299,43 @@ Removed: `useBackToTrip`, `useLeaveForm`, router-state `fromList`, `useListScrol
   `fromList`, so they fall back to "replace with trip" even when an app page is behind them.
 - `?from=` is a one-hop fix: it is not forwarded to pages opened from People (GuestBank), so the chain breaks one
   level down.
+
+---
+
+## 7. Personal area (Sổ chi tiêu), added 2026-11-15 for #112
+
+Design: `docs/superpowers/specs/2026-11-15-spending-book-shape-and-navigation-design.md`.
+
+- **The setting.** Each signed-in user turns the personal area on or off in the account menu ("Sổ chi tiêu", off by
+  default). `GET /api/me` says `personalArea: true` when it is on; `usePersonalArea()` reads it, with a hint remembered
+  on the phone (`localStorage` key `personalArea`) so the first paint is right.
+- **Off:** everything above this section is unchanged.
+- **On:**
+  - AppNav's first item reads "Sổ chi tiêu" with the wallet icon. Its address (`/trips`), section id (`home`) and test
+    id (`nav-home`) do not change, and there are still three sections and "+".
+  - `/trips` renders `SpendingBook`: Home with a different title and summary. Quick expenses, the wide details panel
+    and the `?expense|payment|income=` handling are Home's own and behave as described above.
+  - The per-person list moves to `/people` (`PeopleOwed`), opened from the "Mọi người nợ bạn" row. Person pages are one
+    tap further than with the setting off.
+  - Turning the setting on closes the account menu and goes to `/trips`, where the first-wallet popup
+    (`FirstWalletSheet`) opens. It opens on any visit while the person has no wallet; closing it leaves the empty
+    state, whose button reopens it. One wallet per person for now (`POST /api/me/personal/wallets`).
+- **Guests** never see any of it.
+
+### Places for later sub-tasks
+
+A row or widget appears only when its sub-task ships.
+
+| Sub-task | Where it lives | Reached from |
+|---|---|---|
+| #113 wallets | Wallets page | the wallet pie's "Ví ›" |
+| #113 transactions | Transactions page | "Giao dịch gần đây" → "Tất cả ›" |
+| #113 forms | expense, income, transfer, with a person | the "+" menu |
+| #114 group shares | rows in the transaction stream | same stream |
+| #115 reports | Report view | "Báo cáo" row |
+| #116 budgets | Budgets page | budgets card → "Tất cả ›" |
+| #117 recurring rules | personal settings; planned items join "Chờ xem lại" | gear; top list |
+| #118 review inbox | Review page, with a count | "Chờ xem lại" row |
+| #119 import | an action on the Review page | "Chờ xem lại" |
+| #120, #121 capture guides | personal settings → capture | gear |
+| #122 distribution and funds, #123 loan planner | Planning page | "Kế hoạch" row |

@@ -114,6 +114,9 @@ export const vi: Record<MessageKey, string> = {
   'account.saveProfile': 'Lưu hồ sơ',
   'account.displayName': 'Tên hiển thị',
   'account.gender': 'Giới tính',
+  'account.book': 'Sổ chi tiêu', // REVIEW
+  'account.bookHint': 'Ghi lại tiền của riêng bạn, cùng chỗ với các nhóm.', // REVIEW
+  'account.bookBeta': 'Thử nghiệm', // REVIEW
   'trips.accountAria': 'Tài khoản',
   'trips.signOut': 'Đăng xuất',
 
@@ -131,6 +134,22 @@ export const vi: Record<MessageKey, string> = {
   'home.peopleEmptyBody': 'Thêm một khoản chi và chọn người cùng chia.',
   'home.stillCounting': 'Vẫn đang tính thêm vài nhóm…',
   'home.waiting': 'Đang chờ bạn xác nhận',
+
+  'book.title': 'Sổ chi tiêu', // REVIEW
+  'book.emptyTitle': 'Bắt đầu bằng một chiếc ví', // REVIEW
+  'book.emptyBody': 'Ví là nơi bạn giữ tiền: tiền mặt, tài khoản ngân hàng, quỹ đầu tư. Tạo ví đầu tiên để bắt đầu.', // REVIEW
+  'book.createWallet': 'Tạo ví đầu tiên', // REVIEW
+  'book.walletSheetTitle': 'Ví đầu tiên của bạn', // REVIEW
+  'book.walletSheetBody': 'Ví này sẽ là ví mặc định. Các khoản chi nhanh và phần của bạn trong nhóm sẽ được ghi vào đây.', // REVIEW
+  'book.walletName': 'Tên ví', // REVIEW
+  'book.walletNameDefault': 'Tiền mặt', // REVIEW
+  'book.walletAmount': 'Bạn đang có bao nhiêu?', // REVIEW
+  'book.walletAmountHint': 'Để trống nếu muốn bắt đầu từ 0₫.', // REVIEW
+  'book.walletCreate': 'Tạo ví', // REVIEW
+  'book.total': 'Tổng tiền', // REVIEW
+  'book.peopleOwe': 'Mọi người nợ bạn', // REVIEW
+  'book.peopleTitle': 'Mọi người', // REVIEW
+
   'person.title': 'Chi tiết',
   'person.owesYou': 'Nợ bạn',
   'person.youOwe': 'Bạn nợ',
@@ -1027,6 +1046,7 @@ export const vi: Record<MessageKey, string> = {
   'ratings.leaderboardBar': 'Tóm tắt bảng xếp hạng',
 
   'nav.home': 'Khoản chi nhanh',
+  'nav.book': 'Sổ chi tiêu', // REVIEW
   'nav.groups': 'Nhóm',
   'nav.activity': 'Hoạt động',
   'nav.add': 'Thêm giao dịch',

@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router';
+import { useMe, usePersonalArea } from '@cc/web-data-access/hooks';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
-import { Home } from './screens/Home';
+import { MainScreen } from './screens/SpendingBook';
+import { PeopleOwed } from './screens/PeopleOwed';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
 import { PersonScreen } from './screens/PersonScreen';
@@ -29,11 +31,20 @@ import { GuestGate } from './components/GuestGate';
 
 function TripsRoute() {
   const { search } = useLocation();
+  const personalArea = usePersonalArea();
   const params = new URLSearchParams(search);
   if (params.has('mergeReview') || params.get('tab') === 'groups') {
     return <Navigate to={{ pathname: '/groups', search }} replace />;
   }
-  return <Home />;
+  return <MainScreen book={personalArea} />;
+}
+
+function PeopleRoute() {
+  const personalArea = usePersonalArea();
+  const me = useMe();
+  // On a phone with no remembered setting, wait for the server's answer before sending anyone away.
+  if (!personalArea && me.isPending) return null;
+  return personalArea ? <PeopleOwed /> : <Navigate to="/trips" replace />;
 }
 
 /** A trip's pages, mounted under `/t/:tripId` (members) and `/j/:token` (guests and view-only links). */
@@ -73,6 +84,7 @@ export function App() {
       <Route path="/groups" element={<Groups />} />
       <Route path="/activity" element={<MyActivity />} />
       <Route path="/trips/new" element={<CreateTrip />} />
+      <Route path="/people" element={<PeopleRoute />} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />

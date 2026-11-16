@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-05T13:00:39Z",
+  "generatedAt": "2026-11-16T01:25:35Z",
   "title": "Design System: CoinCrew (Tiền Đâu)",
   "extensions": {
     "colorMeta": {
@@ -778,6 +778,30 @@
       "description": "Admin-only summary card in the plan form showing estimated session turnout with a segmented probability bar (sure: bg-primary, unsure: bg-primary/40, flaky: bg-muted-foreground/40, never money colours) and a 'See who' sheet trigger.",
       "html": "<div class=\"ds-turnout-card\"><div class=\"ds-turnout-card__header\"><span>Likely to actually come</span><span class=\"tabular-nums\">7 of 9</span></div><div class=\"ds-turnout-bar\"><div class=\"ds-turnout-bar__sure\"></div><div class=\"ds-turnout-bar__unsure\"></div><div class=\"ds-turnout-bar__flaky\"></div></div></div>",
       "css": ".ds-turnout-card{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--card)}.ds-turnout-bar{display:flex;height:8px;width:100%;border-radius:9999px;overflow:hidden;background:var(--muted)}.ds-turnout-bar__sure{background:var(--primary);width:60%}.ds-turnout-bar__unsure{background:color-mix(in srgb,var(--primary) 40%,transparent);width:25%}.ds-turnout-bar__flaky{background:color-mix(in srgb,var(--muted-foreground) 40%,transparent);width:15%}"
+    },
+    {
+      "name": "Empty State",
+      "kind": "card",
+      "refersTo": "empty-state",
+      "description": "Left-aligned white card with a Jade Mist icon tile, a title, one muted line, and an optional full-width action.",
+      "html": "<div class=\"ds-empty\"><div class=\"ds-empty-head\"><span class=\"ds-empty-tile\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg></span><div class=\"ds-empty-text\"><p class=\"ds-empty-title\">Chưa có ví nào</p><p class=\"ds-empty-body\">Ví là nơi bạn giữ tiền: tiền mặt, tài khoản ngân hàng, ví điện tử.</p></div></div><button class=\"ds-empty-btn\">Thêm ví</button></div>",
+      "css": ".ds-empty{background:var(--card,#fff);color:var(--foreground,#1c1917);border:1px solid var(--border,#e7e5e4);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:16px;font-family:\"Be Vietnam Pro\",system-ui,sans-serif;max-width:420px}.ds-empty-head{display:flex;gap:12px;align-items:flex-start}.ds-empty-tile{width:48px;height:48px;border-radius:24px;background:var(--secondary,#ccfbf1);color:var(--secondary-foreground,#134e4a);display:flex;align-items:center;justify-content:center;flex-shrink:0}.ds-empty-text{display:flex;flex-direction:column;gap:4px}.ds-empty-title{margin:0;font-size:16px;font-weight:600}.ds-empty-body{margin:0;font-size:14px;color:var(--muted-foreground,#57534e)}.ds-empty-btn{height:44px;border:none;border-radius:9999px;background:var(--primary,#0f766e);color:var(--primary-foreground,#fff);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s ease-out}.ds-empty-btn:hover{opacity:.9}.ds-empty-btn:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--ring,#0f766e) 50%,transparent)}.ds-empty-btn:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "List Mode Chip",
+      "kind": "chip",
+      "refersTo": "list-mode-chip",
+      "description": "Small outlined white pill beside a section label that switches a list between everyone's items and your own.",
+      "html": "<div class=\"ds-chiprow\"><span class=\"ds-chiplabel\">Chuyển khoản</span><button class=\"ds-listchip\"><span class=\"ds-listchip-pill\">Chỉ của tôi</span></button></div>",
+      "css": ".ds-chiprow{display:flex;align-items:center;justify-content:space-between;font-family:\"Be Vietnam Pro\",system-ui,sans-serif;max-width:420px}.ds-chiplabel{font-size:14px;font-weight:600;color:var(--muted-foreground,#57534e)}.ds-listchip{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:flex-end;padding:0 0 0 8px;border:0;background:transparent;cursor:pointer;font-family:inherit}.ds-listchip-pill{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:9999px;border:1px solid var(--border,#e7e5e4);background:var(--card,#fff);color:var(--foreground,#1c1917);font-size:14px;font-weight:500;transition:background .15s ease-out}.ds-listchip:hover .ds-listchip-pill{background:var(--muted,#efefeb)}.ds-listchip:focus-visible{outline:none}.ds-listchip:focus-visible .ds-listchip-pill{box-shadow:0 0 0 2px var(--ring,#0f766e)}"
+    },
+    {
+      "name": "Swipe Action Row",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "A grouped-list row swiped left to reveal 80px action buttons: Muted for ordinary, Lychee for remove, Leaf for confirm.",
+      "html": "<div class=\"ds-swipe\"><div class=\"ds-swipe-actions\"><button class=\"ds-swipe-act ds-swipe-ok\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg>Đã nhận</button><button class=\"ds-swipe-act ds-swipe-del\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 6h18\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg>Xoá</button></div><div class=\"ds-swipe-surface\"><span class=\"ds-swipe-av\">MA</span><span class=\"ds-swipe-main\"><span class=\"ds-swipe-title\">Minh Anh</span><span class=\"ds-swipe-meta\">Cầu lông · 12/11</span></span><span class=\"ds-swipe-amt\">120.000₫</span></div></div>",
+      "css": ".ds-swipe{position:relative;overflow:hidden;border-radius:20px;background:var(--card,#fff);font-family:\"Be Vietnam Pro\",system-ui,sans-serif;max-width:420px}.ds-swipe-actions{position:absolute;top:0;bottom:0;right:0;display:flex}.ds-swipe-act{width:80px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--primary-foreground,#fff)}.ds-swipe-act:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--ring,#0f766e)}.ds-swipe-ok{background:var(--success,#047857)}.ds-swipe-del{background:var(--danger,#be123c)}.ds-swipe-surface{position:relative;display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:44px;background:var(--card,#fff);transform:translateX(-160px);transition:transform .2s ease-out,background .15s ease-out}.ds-swipe:hover .ds-swipe-surface{background:var(--accent,#f5f5f4)}.ds-swipe-av{width:36px;height:36px;border-radius:9999px;background:var(--avatar-2,#bfdbfe);color:var(--avatar-2-fg,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}.ds-swipe-main{flex:1;min-width:0;display:flex;flex-direction:column}.ds-swipe-title{font-size:14px;font-weight:600;color:var(--foreground,#1c1917)}.ds-swipe-meta{font-size:14px;color:var(--muted-foreground,#57534e)}.ds-swipe-amt{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--success,#047857)}"
     }
   ],
   "narrative": {
@@ -827,6 +851,11 @@
       {
         "name": "The Float Only Rule",
         "body": "A shadow means \"this floats over the page\". Lists, cards and forms sit flat on Rice Paper.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Quiet Overview Rule",
+        "body": "On the Sổ chi tiêu overview, only the summary card and recent transactions show amounts. Every other widget shows shape and words (a pie, a bar, \"Còn gần một phần ba\"), and the figures live on the page the widget opens. An overview with an amount on every row reads like a receipt.",
         "section": "elevation"
       }
     ],

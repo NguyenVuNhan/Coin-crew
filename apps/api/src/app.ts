@@ -27,6 +27,7 @@ import { ledgerRoutes } from './me/ledger';
 import { settleRoutes } from './me/settle';
 import { personRoutes } from './me/personRoutes';
 import { myActivityRoutes } from './me/activity';
+import { personalRoutes } from './personal/routes';
 import { requestRoutes } from './requests/routes';
 import { proposalRoutes } from './proposals/routes';
 import { zaloChatRoutes } from './zalo/chatRoutes';
@@ -71,6 +72,7 @@ export function createApp(): Hono<AppBindings> {
   app.route('/api', settleRoutes());
   app.route('/api', personRoutes());
   app.route('/api', myActivityRoutes());
+  app.route('/api', personalRoutes());
   app.route('/api', requestRoutes());
   app.route('/api', proposalRoutes());
   app.route('/api', zaloChatRoutes());

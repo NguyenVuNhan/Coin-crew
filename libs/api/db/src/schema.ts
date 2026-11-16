@@ -454,6 +454,35 @@ export const userNotificationSettings = sqliteTable('user_notification_settings'
   updatedAt: text('updated_at').notNull(),
 });
 
+export const userPersonalSettings = sqliteTable('user_personal_settings', {
+  userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  enabled: integer('enabled').notNull().default(0),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const personalWallets = sqliteTable(
+  'personal_wallets',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    currency: text('currency').notNull().default('VND'),
+    startAmount: integer('start_amount').notNull(),
+    startDate: text('start_date').notNull(),
+    isDefault: integer('is_default').notNull().default(0),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    index('personal_wallets_user_idx').on(t.userId),
+    uniqueIndex('personal_wallets_default_uq')
+      .on(t.userId)
+      .where(sql`${t.isDefault} = 1`),
+  ],
+);
+
 export const notificationLogs = sqliteTable(
   'notification_logs',
   {

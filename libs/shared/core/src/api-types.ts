@@ -167,6 +167,8 @@ export interface MeResponse {
     joining?: JoiningMergeRequest[];
     claim?: ClaimStatus | null;
   };
+  /** Present and true only when the personal area is switched on for this user. */
+  personalArea?: boolean;
 }
 
 export interface UpdateProfileInput {
@@ -659,4 +661,25 @@ export interface AttendanceView {
   people: AttendancePerson[];
   latestSession: { rootId: string; spentOn: string } | null;
   pendingSessions: number;
+}
+
+export interface WalletView {
+  id: string;
+  name: string;
+  currency: 'VND';
+  balance: number;
+  isDefault: boolean;
+}
+
+export interface WalletsResponse {
+  wallets: WalletView[];
+}
+
+export interface CreateWalletInput {
+  name: string;
+  startAmount: number;
+}
+
+export interface CreateWalletResponse {
+  wallet: WalletView;
 }
