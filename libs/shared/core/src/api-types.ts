@@ -662,3 +662,24 @@ export interface AttendanceView {
   latestSession: { rootId: string; spentOn: string } | null;
   pendingSessions: number;
 }
+
+export interface WalletView {
+  id: string;
+  name: string;
+  currency: 'VND';
+  balance: number;
+  isDefault: boolean;
+}
+
+export interface WalletsResponse {
+  wallets: WalletView[];
+}
+
+export interface CreateWalletInput {
+  name: string;
+  startAmount: number;
+}
+
+export interface CreateWalletResponse {
+  wallet: WalletView;
+}

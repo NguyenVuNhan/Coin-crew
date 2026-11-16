@@ -1,4 +1,5 @@
 export const MAX_AMOUNT = 10_000_000_000;
+export const MAX_WALLET_AMOUNT = 1_000_000_000_000;
 
 export function formatVnd(amount: number): string {
   const sign = amount < 0 ? '-' : '';
