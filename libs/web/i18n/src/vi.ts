@@ -1332,4 +1332,38 @@ export const vi: Record<MessageKey, string> = {
   'walletForm.icon': 'Màu biểu tượng', // REVIEW
   'walletForm.save': 'Lưu', // REVIEW
   'walletForm.lockedHint': 'Không thể đổi loại ví và tiền tệ khi đã có giao dịch.', // REVIEW
+  'addMenu.expense': 'Khoản chi', // REVIEW
+  'addMenu.income': 'Khoản thu', // REVIEW
+  'addMenu.transfer': 'Chuyển tiền', // REVIEW
+  'addMenu.withPeople': 'Với người khác', // REVIEW
+  'personalEntry.newTitle': 'Thêm giao dịch', // REVIEW
+  'personalEntry.editTitle': 'Sửa giao dịch', // REVIEW
+  'personalEntry.tabs': 'Loại giao dịch', // REVIEW
+  'personalEntry.expense': 'Chi', // REVIEW
+  'personalEntry.income': 'Thu', // REVIEW
+  'personalEntry.transfer': 'Chuyển tiền', // REVIEW
+  'personalEntry.wallet': 'Ví', // REVIEW
+  'personalEntry.fromWallet': 'Từ ví', // REVIEW
+  'personalEntry.toWallet': 'Đến ví', // REVIEW
+  'personalEntry.pickWallet': 'Chọn ví', // REVIEW
+  'personalEntry.amountSent': 'Số gửi', // REVIEW
+  'personalEntry.amountReceived': 'Số nhận được', // REVIEW
+  'personalEntry.date': 'Ngày', // REVIEW
+  'personalEntry.note': 'Ghi chú', // REVIEW
+  'personalEntry.notePlaceholder': 'Thêm ghi chú', // REVIEW
+  'personalEntry.moreDetails': 'Thêm chi tiết', // REVIEW
+  'personalEntry.time': 'Giờ', // REVIEW
+  'personalEntry.tags': 'Thẻ', // REVIEW
+  'personalEntry.tagsPlaceholder': 'Thêm thẻ...', // REVIEW
+  'personalEntry.removeTag': 'Xóa thẻ {name}', // REVIEW
+  'personalEntry.excludeFromReports': 'Không tính vào báo cáo', // REVIEW
+  'personalEntry.moreCategories': 'Khác', // REVIEW
+  'personalEntry.pickCategory': 'Tất cả danh mục', // REVIEW
+  'personalEntry.pickCategoryError': 'Hãy chọn một danh mục.', // REVIEW
+  'personalEntry.amountReceivedError': 'Hãy nhập số tiền nhận được.', // REVIEW
+  'personalEntry.differentWalletsError': 'Hãy chọn hai ví khác nhau.', // REVIEW
+  'personalEntry.save': 'Lưu', // REVIEW
+  'personalEntry.deleteDigit': 'Xóa', // REVIEW
+  'personalEntry.saved': 'Đã lưu', // REVIEW
+  'personalEntry.notFound': 'Không tìm thấy giao dịch', // REVIEW
 };

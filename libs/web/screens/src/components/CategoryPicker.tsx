@@ -1,0 +1,245 @@
+import { useMemo, useState, type JSX } from 'react';
+import type { CategoryView } from '@cc/core';
+import { useT } from '@cc/web-i18n';
+import { Icon, type IconName } from '@cc/web-ui/components/icons';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { cn } from '@cc/web-ui/lib/utils';
+
+export interface CategoryPickerProps {
+  type: 'expense' | 'income';
+  categories: CategoryView[];
+  recentIds: string[];
+  value: string | null;
+  onChange(categoryId: string): void;
+}
+
+const KNOWN_ICON_MAP: Record<string, IconName> = {
+  home: 'home',
+  wallet: 'wallet',
+  receipt: 'receipt',
+  bank: 'bank',
+  landmark: 'bank',
+  pie: 'pie',
+  'pie-chart': 'pie',
+  piggyBank: 'piggyBank',
+  'piggy-bank': 'piggyBank',
+  users: 'users',
+  user: 'user',
+  calendar: 'calendar',
+  clock: 'clock',
+  star: 'star',
+  crown: 'crown',
+  trophy: 'trophy',
+  shield: 'shield',
+  swap: 'swap',
+  camera: 'camera',
+  smartphone: 'smartphone',
+  settings: 'settings',
+  map: 'map',
+  suitcase: 'suitcase',
+  bell: 'bell',
+  palette: 'palette',
+};
+
+function resolveCategoryIcon(icon: string, type: 'expense' | 'income'): IconName {
+  return KNOWN_ICON_MAP[icon] ?? (type === 'income' ? 'wallet' : 'receipt');
+}
+
+export function CategoryPicker({
+  type,
+  categories,
+  recentIds,
+  value,
+  onChange,
+}: CategoryPickerProps): JSX.Element {
+  const t = useT();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const visible = useMemo(
+    () => categories.filter((c) => c.type === type && !c.hidden),
+    [categories, type],
+  );
+
+  const tiles = useMemo(() => {
+    const byId = new Map(visible.map((c) => [c.id, c]));
+    const picked: CategoryView[] = [];
+    const seen = new Set<string>();
+
+    for (const id of recentIds) {
+      if (picked.length >= 6) break;
+      const cat = byId.get(id);
+      if (cat && !seen.has(cat.id)) {
+        seen.add(cat.id);
+        picked.push(cat);
+      }
+    }
+
+    for (const cat of visible) {
+      if (picked.length >= 6) break;
+      if (!seen.has(cat.id)) {
+        seen.add(cat.id);
+        picked.push(cat);
+      }
+    }
+
+    if (value && !seen.has(value)) {
+      const selectedCat = byId.get(value) ?? categories.find((c) => c.id === value && c.type === type);
+      if (selectedCat) {
+        if (picked.length >= 6) {
+          picked[5] = selectedCat;
+        } else {
+          picked.push(selectedCat);
+        }
+      }
+    }
+
+    return picked;
+  }, [visible, recentIds, value, categories, type]);
+
+  const tree = useMemo(() => {
+    const parents = visible
+      .filter((c) => c.parentId === null)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const childrenByParent = new Map<string, CategoryView[]>();
+    for (const cat of visible) {
+      if (cat.parentId !== null) {
+        const arr = childrenByParent.get(cat.parentId) ?? [];
+        arr.push(cat);
+        childrenByParent.set(cat.parentId, arr);
+      }
+    }
+    for (const arr of childrenByParent.values()) {
+      arr.sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    const orphanSubs = visible.filter(
+      (c) => c.parentId !== null && !parents.some((p) => p.id === c.parentId),
+    );
+    return { parents, childrenByParent, orphanSubs };
+  }, [visible]);
+
+  const handleSelect = (id: string) => {
+    onChange(id);
+    setSheetOpen(false);
+  };
+
+  return (
+    <div data-testid="category-picker" className="fsl-category-picker">
+      <div className="grid grid-cols-4 gap-2">
+        {tiles.map((cat) => {
+          const selected = value === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              data-testid={`category-tile-${cat.id}`}
+              aria-pressed={selected}
+              onClick={() => onChange(cat.id)}
+              className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span
+                className={cn(
+                  'size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center transition-shadow',
+                  selected && 'ring-2 ring-primary',
+                )}
+              >
+                <Icon name={resolveCategoryIcon(cat.icon, type)} size={20} />
+              </span>
+              <span className="text-xs font-medium text-foreground leading-tight line-clamp-2 w-full">
+                {cat.name}
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          key="more"
+          type="button"
+          data-testid="category-more"
+          onClick={() => setSheetOpen(true)}
+          className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center">
+            <Icon name="ellipsis" size={20} />
+          </span>
+          <span className="text-xs font-medium text-muted-foreground leading-tight line-clamp-2 w-full">
+            {t('personalEntry.moreCategories')}
+          </span>
+        </button>
+      </div>
+
+      <Sheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={t('personalEntry.pickCategory')}
+      >
+        <div data-testid="category-sheet-list" className="flex flex-col divide-y divide-border">
+          {tree.parents.map((parent) => {
+            const subs = tree.childrenByParent.get(parent.id) ?? [];
+            const parentSelected = value === parent.id;
+            return (
+              <div key={parent.id} className="flex flex-col">
+                <button
+                  type="button"
+                  data-testid={`category-option-${parent.id}`}
+                  onClick={() => handleSelect(parent.id)}
+                  className={cn(
+                    'min-h-11 flex items-center gap-3 px-2 py-2 text-left text-base font-medium text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+                    parentSelected && 'text-primary font-semibold',
+                  )}
+                >
+                  <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                    <Icon name={resolveCategoryIcon(parent.icon, type)} size={18} />
+                  </span>
+                  <span className="flex-1 truncate">{parent.name}</span>
+                  {parentSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
+                </button>
+                {subs.map((sub) => {
+                  const subSelected = value === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      data-testid={`category-option-${sub.id}`}
+                      onClick={() => handleSelect(sub.id)}
+                      className={cn(
+                        'min-h-11 flex items-center gap-3 pl-10 pr-2 py-2 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+                        subSelected && 'text-primary font-semibold',
+                      )}
+                    >
+                      <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                        <Icon name={resolveCategoryIcon(sub.icon, type)} size={16} />
+                      </span>
+                      <span className="flex-1 truncate">{sub.name}</span>
+                      {subSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+          {tree.orphanSubs.map((sub) => {
+            const subSelected = value === sub.id;
+            return (
+              <button
+                key={sub.id}
+                type="button"
+                data-testid={`category-option-${sub.id}`}
+                onClick={() => handleSelect(sub.id)}
+                className={cn(
+                  'min-h-11 flex items-center gap-3 px-2 py-2 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+                  subSelected && 'text-primary font-semibold',
+                )}
+              >
+                <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                  <Icon name={resolveCategoryIcon(sub.icon, type)} size={16} />
+                </span>
+                <span className="flex-1 truncate">{sub.name}</span>
+                {subSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
+    </div>
+  );
+}
