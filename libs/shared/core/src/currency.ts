@@ -79,14 +79,14 @@ function parseDecimalAmount(input: string, max: number): number | null {
 
   const simple = /^(\d+)(?:[.,](\d{1,2}))?$/.exec(s);
   if (simple) {
-    wholeStr = simple[1];
+    wholeStr = simple[1] ?? null;
     fracStr = simple[2] ?? '';
   } else {
     // Either 2+ dot-separated thousands groups (optional comma decimals) or 1 dot group with comma decimals.
     // A single dot group with 3 digits and no comma (e.g. "1.234") is ambiguous and rejected.
     const grouped = /^(\d{1,3}(?:\.\d{3}){2,})(?:,(\d{1,2}))?$/.exec(s) ?? /^(\d{1,3}\.\d{3}),(\d{1,2})$/.exec(s);
     if (grouped) {
-      wholeStr = grouped[1].replace(/\./g, '');
+      wholeStr = grouped[1]?.replace(/\./g, '') ?? null;
       fracStr = grouped[2] ?? '';
     }
   }
