@@ -756,3 +756,54 @@ export interface TagView {
   name: string;
   useCount: number;
 }
+
+import type { PersonalEntryType } from './wallets';
+
+export type EntryInput =
+  | {
+      type: 'expense' | 'income';
+      walletId: string;
+      amount: number;
+      categoryId: string;
+      date: string;
+      time?: string | null;
+      note?: string | null;
+      tags?: string[];
+      excludeFromReports?: boolean;
+    }
+  | {
+      type: 'transfer';
+      fromWalletId: string;
+      toWalletId: string;
+      amountSent: number;
+      amountReceived?: number;
+      date: string;
+      time?: string | null;
+      note?: string | null;
+      tags?: string[];
+      excludeFromReports?: boolean;
+    };
+
+export interface EntryView {
+  id: string;
+  walletId: string;
+  type: PersonalEntryType;
+  amount: number;
+  currency: CurrencyCode;
+  categoryId: string | null;
+  transferId: string | null;
+  counterpartWalletId: string | null;
+  date: string;
+  time: string | null;
+  note: string | null;
+  tags: string[];
+  excludeFromReports: boolean;
+  source: 'manual';
+  beforeStart: boolean;
+  createdAt: string;
+}
+
+export interface EntriesResponse {
+  entries: EntryView[];
+}
+

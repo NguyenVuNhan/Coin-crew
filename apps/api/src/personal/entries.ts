@@ -1,0 +1,939 @@
+import { Hono } from 'hono';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
+import type { AppBindings } from '@cc/api-db/env';
+import { getDb, type Db } from '@cc/api-db/client';
+import {
+  personalCategories,
+  personalTags,
+  personalTransactions,
+  personalTransactionTags,
+  personalWallets,
+  personalWalletSettings,
+} from '@cc/api-db/schema';
+import { getSessionUser } from '@cc/api-auth/session';
+import { requirePersonal } from '@cc/api-auth/personal';
+import { ApiError, isDbError } from '@cc/api-util/errors';
+import { newId, nowIso } from '@cc/api-util/ids';
+import {
+  isBeforeStart,
+  isValidAmount,
+  type CurrencyCode,
+  type EntryView,
+  type PersonalEntryType,
+} from '@cc/core';
+import { parseEntryInput, parseNote, parseTags } from './entryInput';
+import { optionalTime, parseJson, requireDate } from './validate';
+
+interface WalletInfo {
+  id: string;
+  currency: CurrencyCode;
+  startDate: string;
+  archived: boolean;
+}
+
+async function loadWalletsMap(
+  db: Db,
+  userId: string,
+  walletIds: string[],
+): Promise<Map<string, WalletInfo>> {
+  const uniqueIds = [...new Set(walletIds)];
+  const rows = await db
+    .select({
+      id: personalWallets.id,
+      currency: personalWallets.currency,
+      startDate: personalWallets.startDate,
+      archivedAt: personalWalletSettings.archivedAt,
+    })
+    .from(personalWallets)
+    .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+    .where(and(eq(personalWallets.userId, userId), inArray(personalWallets.id, uniqueIds)))
+    .all();
+
+  const map = new Map<string, WalletInfo>();
+  for (const r of rows) {
+    map.set(r.id, {
+      id: r.id,
+      currency: r.currency as CurrencyCode,
+      startDate: r.startDate,
+      archived: r.archivedAt !== null && r.archivedAt !== undefined,
+    });
+  }
+
+  for (const wid of uniqueIds) {
+    if (!map.has(wid)) {
+      throw new ApiError('NOT_FOUND', 404, 'Wallet not found');
+    }
+  }
+  for (const wid of uniqueIds) {
+    if (map.get(wid)!.archived) {
+      throw new ApiError('VALIDATION', 422, 'Wallet is archived');
+    }
+  }
+
+  return map;
+}
+
+async function requireCategory(
+  db: Db,
+  userId: string,
+  categoryId: string,
+  expectedType: 'expense' | 'income',
+  allowHidden = false,
+): Promise<void> {
+  const cat = await db
+    .select({
+      id: personalCategories.id,
+      type: personalCategories.type,
+      hidden: personalCategories.hidden,
+    })
+    .from(personalCategories)
+    .where(and(eq(personalCategories.id, categoryId), eq(personalCategories.userId, userId)))
+    .get();
+
+  if (!cat) {
+    throw new ApiError('NOT_FOUND', 404, 'Category not found');
+  }
+  if (cat.type !== expectedType || (!allowHidden && Boolean(cat.hidden))) {
+    throw new ApiError('VALIDATION', 422, 'Invalid category');
+  }
+}
+
+async function resolveTags(
+  db: Db,
+  userId: string,
+  names: string[],
+  now: string,
+): Promise<{ id: string; name: string }[]> {
+  if (names.length === 0) return [];
+
+  await db
+    .insert(personalTags)
+    .values(
+      names.map((name) => ({
+        id: newId(),
+        userId,
+        name,
+        createdAt: now,
+      })),
+    )
+    .onConflictDoNothing();
+
+  const lowerNames = names.map((n) => n.toLowerCase());
+  const rows = await db
+    .select({
+      id: personalTags.id,
+      name: personalTags.name,
+    })
+    .from(personalTags)
+    .where(
+      and(
+        eq(personalTags.userId, userId),
+        inArray(sql`lower(${personalTags.name})`, lowerNames),
+      ),
+    )
+    .all();
+
+  const byLower = new Map<string, { id: string; name: string }>();
+  for (const r of rows) {
+    byLower.set(r.name.toLowerCase(), r);
+  }
+
+  return names.map((n) => byLower.get(n.toLowerCase())!);
+}
+
+function resolveTransferAmounts(
+  amountSent: number,
+  amountReceived: number | undefined,
+  fromCurrency: CurrencyCode,
+  toCurrency: CurrencyCode,
+): number {
+  if (!isValidAmount(amountSent, fromCurrency)) {
+    throw new ApiError('VALIDATION', 422, 'Invalid amountSent');
+  }
+  if (fromCurrency === toCurrency) {
+    if (amountReceived !== undefined && amountReceived !== amountSent) {
+      throw new ApiError('VALIDATION', 422, 'Invalid amountReceived for same-currency transfer');
+    }
+    return amountSent;
+  }
+  if (amountReceived === undefined || !isValidAmount(amountReceived, toCurrency)) {
+    throw new ApiError('VALIDATION', 422, 'Invalid amountReceived');
+  }
+  return amountReceived;
+}
+
+function buildEntryView(params: {
+  id: string;
+  wallet: WalletInfo;
+  type: PersonalEntryType;
+  amount: number;
+  categoryId: string | null;
+  transferId: string | null;
+  counterpartWalletId: string | null;
+  date: string;
+  time: string | null;
+  note: string | null;
+  tags: string[];
+  excludeFromReports: boolean;
+  createdAt: string;
+}): EntryView {
+  return {
+    id: params.id,
+    walletId: params.wallet.id,
+    type: params.type,
+    amount: params.amount,
+    currency: params.wallet.currency,
+    categoryId: params.categoryId,
+    transferId: params.transferId,
+    counterpartWalletId: params.counterpartWalletId,
+    date: params.date,
+    time: params.time,
+    note: params.note,
+    tags: params.tags,
+    excludeFromReports: params.excludeFromReports,
+    source: 'manual',
+    beforeStart: isBeforeStart({ date: params.date }, { startDate: params.wallet.startDate }),
+    createdAt: params.createdAt,
+  };
+}
+
+interface ParsedRestoreItem {
+  id: string;
+  walletId: string;
+  type: PersonalEntryType;
+  amount: number;
+  categoryId: string | null;
+  transferId: string | null;
+  date: string;
+  time: string | null;
+  note: string | null;
+  tags: string[];
+  excludeFromReports: boolean;
+  createdAt: string;
+}
+
+function parseRestoreItem(raw: unknown, fallbackNow: string): ParsedRestoreItem {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ApiError('VALIDATION', 422, 'Invalid entry');
+  }
+  const e = raw as Record<string, unknown>;
+  if (typeof e.id !== 'string' || e.id.trim().length === 0) {
+    throw new ApiError('VALIDATION', 422, 'Invalid id');
+  }
+  if (typeof e.walletId !== 'string' || e.walletId.trim().length === 0) {
+    throw new ApiError('VALIDATION', 422, 'Invalid walletId');
+  }
+  if (
+    e.type !== 'expense' &&
+    e.type !== 'income' &&
+    e.type !== 'transfer_out' &&
+    e.type !== 'transfer_in'
+  ) {
+    throw new ApiError('VALIDATION', 422, 'Invalid type');
+  }
+  if (typeof e.amount !== 'number' || !Number.isSafeInteger(e.amount) || e.amount <= 0) {
+    throw new ApiError('VALIDATION', 422, 'Invalid amount');
+  }
+
+  let categoryId: string | null = null;
+  if (e.type === 'expense' || e.type === 'income') {
+    if (typeof e.categoryId !== 'string' || e.categoryId.trim().length === 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid categoryId');
+    }
+    categoryId = e.categoryId;
+  } else if (e.categoryId !== undefined && e.categoryId !== null) {
+    throw new ApiError('VALIDATION', 422, 'Transfer cannot have categoryId');
+  }
+
+  let transferId: string | null = null;
+  if (e.type === 'transfer_out' || e.type === 'transfer_in') {
+    if (typeof e.transferId !== 'string' || e.transferId.trim().length === 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid transferId');
+    }
+    transferId = e.transferId;
+  } else if (e.transferId !== undefined && e.transferId !== null) {
+    throw new ApiError('VALIDATION', 422, 'Non-transfer cannot have transferId');
+  }
+
+  const date = requireDate(e.date);
+  const time = optionalTime(e.time);
+  const note = parseNote(e.note);
+  const tags = parseTags(e.tags);
+
+  if (e.excludeFromReports !== undefined && typeof e.excludeFromReports !== 'boolean') {
+    throw new ApiError('VALIDATION', 422, 'Invalid excludeFromReports');
+  }
+  const excludeFromReports =
+    e.excludeFromReports ?? (e.type === 'transfer_out' || e.type === 'transfer_in');
+
+  let createdAt = fallbackNow;
+  if (e.createdAt !== undefined) {
+    if (typeof e.createdAt !== 'string' || e.createdAt.trim().length === 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid createdAt');
+    }
+    createdAt = e.createdAt;
+  }
+
+  return {
+    id: e.id,
+    walletId: e.walletId,
+    type: e.type,
+    amount: e.amount,
+    categoryId,
+    transferId,
+    date,
+    time,
+    note,
+    tags,
+    excludeFromReports,
+    createdAt,
+  };
+}
+
+export function entryRoutes(): Hono<AppBindings> {
+  const app = new Hono<AppBindings>();
+
+  app.post('/me/personal/transactions', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const rawBody = await parseJson(c);
+    const input = parseEntryInput(rawBody);
+    const db = getDb(c.env);
+    const now = nowIso();
+
+    if (input.type !== 'transfer') {
+      const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
+      const wallet = wallets.get(input.walletId)!;
+
+      if (!isValidAmount(input.amount, wallet.currency)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+
+      await requireCategory(db, user.id, input.categoryId, input.type, false);
+
+      const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+      const txId = newId();
+
+      const stmts: BatchItem<'sqlite'>[] = [
+        db.insert(personalTransactions).values({
+          id: txId,
+          userId: user.id,
+          walletId: wallet.id,
+          type: input.type,
+          amount: input.amount,
+          categoryId: input.categoryId,
+          transferId: null,
+          date: input.date,
+          time: input.time ?? null,
+          note: input.note ?? null,
+          excludeFromReports: input.excludeFromReports ? 1 : 0,
+          source: 'manual',
+          createdAt: now,
+          updatedAt: now,
+        }),
+        ...resolvedTags.map((t) =>
+          db.insert(personalTransactionTags).values({
+            transactionId: txId,
+            tagId: t.id,
+          }),
+        ),
+      ];
+
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+
+      const entry = buildEntryView({
+        id: txId,
+        wallet,
+        type: input.type,
+        amount: input.amount,
+        categoryId: input.categoryId,
+        transferId: null,
+        counterpartWalletId: null,
+        date: input.date,
+        time: input.time ?? null,
+        note: input.note ?? null,
+        tags: resolvedTags.map((t) => t.name),
+        excludeFromReports: Boolean(input.excludeFromReports),
+        createdAt: now,
+      });
+
+      return c.json({ entries: [entry] }, 201);
+    }
+
+    const wallets = await loadWalletsMap(db, user.id, [input.fromWalletId, input.toWalletId]);
+    const fromWallet = wallets.get(input.fromWalletId)!;
+    const toWallet = wallets.get(input.toWalletId)!;
+
+    const amountReceived = resolveTransferAmounts(
+      input.amountSent,
+      input.amountReceived,
+      fromWallet.currency,
+      toWallet.currency,
+    );
+
+    const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+    const transferId = newId();
+    const outId = newId();
+    const inId = newId();
+    const excludeInt = input.excludeFromReports ? 1 : 0;
+
+    const stmts: BatchItem<'sqlite'>[] = [
+      db.insert(personalTransactions).values({
+        id: outId,
+        userId: user.id,
+        walletId: fromWallet.id,
+        type: 'transfer_out',
+        amount: input.amountSent,
+        categoryId: null,
+        transferId,
+        date: input.date,
+        time: input.time ?? null,
+        note: input.note ?? null,
+        excludeFromReports: excludeInt,
+        source: 'manual',
+        createdAt: now,
+        updatedAt: now,
+      }),
+      db.insert(personalTransactions).values({
+        id: inId,
+        userId: user.id,
+        walletId: toWallet.id,
+        type: 'transfer_in',
+        amount: amountReceived,
+        categoryId: null,
+        transferId,
+        date: input.date,
+        time: input.time ?? null,
+        note: input.note ?? null,
+        excludeFromReports: excludeInt,
+        source: 'manual',
+        createdAt: now,
+        updatedAt: now,
+      }),
+      ...resolvedTags.map((t) =>
+        db.insert(personalTransactionTags).values({
+          transactionId: outId,
+          tagId: t.id,
+        }),
+      ),
+      ...resolvedTags.map((t) =>
+        db.insert(personalTransactionTags).values({
+          transactionId: inId,
+          tagId: t.id,
+        }),
+      ),
+    ];
+
+    await db.batch([stmts[0]!, ...stmts.slice(1)]);
+
+    const tagNames = resolvedTags.map((t) => t.name);
+    const outEntry = buildEntryView({
+      id: outId,
+      wallet: fromWallet,
+      type: 'transfer_out',
+      amount: input.amountSent,
+      categoryId: null,
+      transferId,
+      counterpartWalletId: toWallet.id,
+      date: input.date,
+      time: input.time ?? null,
+      note: input.note ?? null,
+      tags: tagNames,
+      excludeFromReports: Boolean(input.excludeFromReports),
+      createdAt: now,
+    });
+    const inEntry = buildEntryView({
+      id: inId,
+      wallet: toWallet,
+      type: 'transfer_in',
+      amount: amountReceived,
+      categoryId: null,
+      transferId,
+      counterpartWalletId: fromWallet.id,
+      date: input.date,
+      time: input.time ?? null,
+      note: input.note ?? null,
+      tags: tagNames,
+      excludeFromReports: Boolean(input.excludeFromReports),
+      createdAt: now,
+    });
+
+    return c.json({ entries: [outEntry, inEntry] }, 201);
+  });
+
+  app.patch('/me/personal/transactions/:id', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const id = c.req.param('id');
+    const rawBody = await parseJson(c);
+    const input = parseEntryInput(rawBody);
+    const db = getDb(c.env);
+    const now = nowIso();
+
+    const target = await db
+      .select({
+        id: personalTransactions.id,
+        type: personalTransactions.type,
+        transferId: personalTransactions.transferId,
+        createdAt: personalTransactions.createdAt,
+      })
+      .from(personalTransactions)
+      .where(and(eq(personalTransactions.id, id), eq(personalTransactions.userId, user.id)))
+      .get();
+
+    if (!target) {
+      throw new ApiError('NOT_FOUND', 404, 'Transaction not found');
+    }
+
+    const targetIsTransfer = target.type === 'transfer_out' || target.type === 'transfer_in';
+    const inputIsTransfer = input.type === 'transfer';
+    if (targetIsTransfer !== inputIsTransfer) {
+      throw new ApiError('VALIDATION', 422, 'Cannot change between transfer and non-transfer');
+    }
+
+    if (input.type !== 'transfer') {
+      const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
+      const wallet = wallets.get(input.walletId)!;
+
+      if (!isValidAmount(input.amount, wallet.currency)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+
+      await requireCategory(db, user.id, input.categoryId, input.type, false);
+
+      const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+
+      const stmts: BatchItem<'sqlite'>[] = [
+        db
+          .update(personalTransactions)
+          .set({
+            walletId: wallet.id,
+            type: input.type,
+            amount: input.amount,
+            categoryId: input.categoryId,
+            date: input.date,
+            time: input.time ?? null,
+            note: input.note ?? null,
+            excludeFromReports: input.excludeFromReports ? 1 : 0,
+            updatedAt: now,
+          })
+          .where(and(eq(personalTransactions.id, target.id), eq(personalTransactions.userId, user.id))),
+        db
+          .delete(personalTransactionTags)
+          .where(eq(personalTransactionTags.transactionId, target.id)),
+        ...resolvedTags.map((t) =>
+          db.insert(personalTransactionTags).values({
+            transactionId: target.id,
+            tagId: t.id,
+          }),
+        ),
+      ];
+
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+
+      const entry = buildEntryView({
+        id: target.id,
+        wallet,
+        type: input.type,
+        amount: input.amount,
+        categoryId: input.categoryId,
+        transferId: null,
+        counterpartWalletId: null,
+        date: input.date,
+        time: input.time ?? null,
+        note: input.note ?? null,
+        tags: resolvedTags.map((t) => t.name),
+        excludeFromReports: Boolean(input.excludeFromReports),
+        createdAt: target.createdAt,
+      });
+
+      return c.json({ entries: [entry] }, 200);
+    }
+
+    if (!target.transferId) {
+      throw new ApiError('VALIDATION', 422, 'Missing transferId');
+    }
+
+    const pairRows = await db
+      .select({
+        id: personalTransactions.id,
+        type: personalTransactions.type,
+        createdAt: personalTransactions.createdAt,
+      })
+      .from(personalTransactions)
+      .where(
+        and(
+          eq(personalTransactions.userId, user.id),
+          eq(personalTransactions.transferId, target.transferId),
+        ),
+      )
+      .all();
+
+    const outRow = pairRows.find((r) => r.type === 'transfer_out');
+    const inRow = pairRows.find((r) => r.type === 'transfer_in');
+    if (!outRow || !inRow) {
+      throw new ApiError('NOT_FOUND', 404, 'Transfer pair not found');
+    }
+
+    const wallets = await loadWalletsMap(db, user.id, [input.fromWalletId, input.toWalletId]);
+    const fromWallet = wallets.get(input.fromWalletId)!;
+    const toWallet = wallets.get(input.toWalletId)!;
+
+    const amountReceived = resolveTransferAmounts(
+      input.amountSent,
+      input.amountReceived,
+      fromWallet.currency,
+      toWallet.currency,
+    );
+
+    const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+    const excludeInt = input.excludeFromReports ? 1 : 0;
+
+    const stmts: BatchItem<'sqlite'>[] = [
+      db
+        .update(personalTransactions)
+        .set({
+          walletId: fromWallet.id,
+          amount: input.amountSent,
+          date: input.date,
+          time: input.time ?? null,
+          note: input.note ?? null,
+          excludeFromReports: excludeInt,
+          updatedAt: now,
+        })
+        .where(and(eq(personalTransactions.id, outRow.id), eq(personalTransactions.userId, user.id))),
+      db
+        .update(personalTransactions)
+        .set({
+          walletId: toWallet.id,
+          amount: amountReceived,
+          date: input.date,
+          time: input.time ?? null,
+          note: input.note ?? null,
+          excludeFromReports: excludeInt,
+          updatedAt: now,
+        })
+        .where(and(eq(personalTransactions.id, inRow.id), eq(personalTransactions.userId, user.id))),
+      db
+        .delete(personalTransactionTags)
+        .where(inArray(personalTransactionTags.transactionId, [outRow.id, inRow.id])),
+      ...resolvedTags.map((t) =>
+        db.insert(personalTransactionTags).values({
+          transactionId: outRow.id,
+          tagId: t.id,
+        }),
+      ),
+      ...resolvedTags.map((t) =>
+        db.insert(personalTransactionTags).values({
+          transactionId: inRow.id,
+          tagId: t.id,
+        }),
+      ),
+    ];
+
+    await db.batch([stmts[0]!, ...stmts.slice(1)]);
+
+    const tagNames = resolvedTags.map((t) => t.name);
+    const outEntry = buildEntryView({
+      id: outRow.id,
+      wallet: fromWallet,
+      type: 'transfer_out',
+      amount: input.amountSent,
+      categoryId: null,
+      transferId: target.transferId,
+      counterpartWalletId: toWallet.id,
+      date: input.date,
+      time: input.time ?? null,
+      note: input.note ?? null,
+      tags: tagNames,
+      excludeFromReports: Boolean(input.excludeFromReports),
+      createdAt: outRow.createdAt,
+    });
+    const inEntry = buildEntryView({
+      id: inRow.id,
+      wallet: toWallet,
+      type: 'transfer_in',
+      amount: amountReceived,
+      categoryId: null,
+      transferId: target.transferId,
+      counterpartWalletId: fromWallet.id,
+      date: input.date,
+      time: input.time ?? null,
+      note: input.note ?? null,
+      tags: tagNames,
+      excludeFromReports: Boolean(input.excludeFromReports),
+      createdAt: inRow.createdAt,
+    });
+
+    return c.json({ entries: [outEntry, inEntry] }, 200);
+  });
+
+  app.delete('/me/personal/transactions/:id', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const id = c.req.param('id');
+    const db = getDb(c.env);
+
+    const rows = await db
+      .select({
+        id: personalTransactions.id,
+        walletId: personalTransactions.walletId,
+        type: personalTransactions.type,
+        amount: personalTransactions.amount,
+        categoryId: personalTransactions.categoryId,
+        transferId: personalTransactions.transferId,
+        date: personalTransactions.date,
+        time: personalTransactions.time,
+        note: personalTransactions.note,
+        excludeFromReports: personalTransactions.excludeFromReports,
+        createdAt: personalTransactions.createdAt,
+        currency: personalWallets.currency,
+        startDate: personalWallets.startDate,
+      })
+      .from(personalTransactions)
+      .innerJoin(personalWallets, eq(personalWallets.id, personalTransactions.walletId))
+      .where(
+        and(
+          eq(personalTransactions.userId, user.id),
+          or(
+            eq(personalTransactions.id, id),
+            sql`${personalTransactions.transferId} IS NOT NULL AND ${personalTransactions.transferId} = (SELECT ${personalTransactions.transferId} FROM ${personalTransactions} WHERE ${personalTransactions.id} = ${id} AND ${personalTransactions.userId} = ${user.id})`,
+          ),
+        ),
+      )
+      .all();
+
+    if (rows.length === 0) {
+      throw new ApiError('NOT_FOUND', 404, 'Transaction not found');
+    }
+
+    const sortedRows = [...rows].sort((a, b) => {
+      if (a.type === 'transfer_out' && b.type === 'transfer_in') return -1;
+      if (a.type === 'transfer_in' && b.type === 'transfer_out') return 1;
+      return 0;
+    });
+
+    const txIds = sortedRows.map((r) => r.id);
+
+    const tagRows = await db
+      .select({
+        transactionId: personalTransactionTags.transactionId,
+        name: personalTags.name,
+      })
+      .from(personalTransactionTags)
+      .innerJoin(personalTags, eq(personalTags.id, personalTransactionTags.tagId))
+      .where(inArray(personalTransactionTags.transactionId, txIds))
+      .orderBy(sql`${personalTransactionTags}.rowid asc`)
+      .all();
+
+    const tagsByTx = new Map<string, string[]>();
+    for (const tr of tagRows) {
+      const list = tagsByTx.get(tr.transactionId) ?? [];
+      list.push(tr.name);
+      tagsByTx.set(tr.transactionId, list);
+    }
+
+    await db.batch([
+      db
+        .delete(personalTransactionTags)
+        .where(inArray(personalTransactionTags.transactionId, txIds)),
+      db
+        .delete(personalTransactions)
+        .where(
+          and(
+            eq(personalTransactions.userId, user.id),
+            inArray(personalTransactions.id, txIds),
+          ),
+        ),
+    ]);
+
+    const entries: EntryView[] = sortedRows.map((r) => {
+      const other =
+        sortedRows.length === 2 ? sortedRows.find((o) => o.id !== r.id) ?? null : null;
+      return buildEntryView({
+        id: r.id,
+        wallet: {
+          id: r.walletId,
+          currency: r.currency as CurrencyCode,
+          startDate: r.startDate,
+          archived: false,
+        },
+        type: r.type as PersonalEntryType,
+        amount: r.amount,
+        categoryId: r.categoryId ?? null,
+        transferId: r.transferId ?? null,
+        counterpartWalletId: other ? other.walletId : null,
+        date: r.date,
+        time: r.time ?? null,
+        note: r.note ?? null,
+        tags: tagsByTx.get(r.id) ?? [],
+        excludeFromReports: Boolean(r.excludeFromReports),
+        createdAt: r.createdAt,
+      });
+    });
+
+    return c.json({ entries }, 200);
+  });
+
+  app.post('/me/personal/transactions/restore', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const rawBody = await parseJson<Record<string, unknown>>(c);
+
+    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    if (
+      !Array.isArray(rawBody.entries) ||
+      rawBody.entries.length < 1 ||
+      rawBody.entries.length > 2
+    ) {
+      throw new ApiError('VALIDATION', 422, 'Invalid entries');
+    }
+
+    const now = nowIso();
+    const items = rawBody.entries.map((item) => parseRestoreItem(item, now));
+
+    if (items.length === 1) {
+      const item = items[0]!;
+      if (item.type !== 'expense' && item.type !== 'income') {
+        throw new ApiError('VALIDATION', 422, 'Single restored entry must be expense or income');
+      }
+    } else {
+      const [outItem, inItem] = items as [ParsedRestoreItem, ParsedRestoreItem];
+      if (outItem.type !== 'transfer_out' || inItem.type !== 'transfer_in') {
+        throw new ApiError('VALIDATION', 422, 'Two restored entries must be a transfer pair');
+      }
+      if (
+        !outItem.transferId ||
+        outItem.transferId !== inItem.transferId ||
+        outItem.id === inItem.id ||
+        outItem.walletId === inItem.walletId
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Invalid transfer pair');
+      }
+    }
+
+    const db = getDb(c.env);
+    const itemIds = items.map((i) => i.id);
+
+    const existingRows = await db
+      .select({
+        id: personalTransactions.id,
+        userId: personalTransactions.userId,
+      })
+      .from(personalTransactions)
+      .where(inArray(personalTransactions.id, itemIds))
+      .all();
+
+    if (existingRows.some((r) => r.userId !== user.id)) {
+      throw new ApiError('NOT_FOUND', 404, 'Transaction not found');
+    }
+    if (existingRows.length > 0) {
+      throw new ApiError('ALREADY_HANDLED', 409, 'Transaction already exists.');
+    }
+
+    const wallets = await loadWalletsMap(
+      db,
+      user.id,
+      items.map((i) => i.walletId),
+    );
+
+    if (items.length === 1) {
+      const item = items[0]!;
+      const wallet = wallets.get(item.walletId)!;
+      if (!isValidAmount(item.amount, wallet.currency)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+      await requireCategory(db, user.id, item.categoryId!, item.type as 'expense' | 'income', true);
+    } else {
+      const [outItem, inItem] = items as [ParsedRestoreItem, ParsedRestoreItem];
+      const fromWallet = wallets.get(outItem.walletId)!;
+      const toWallet = wallets.get(inItem.walletId)!;
+      resolveTransferAmounts(
+        outItem.amount,
+        inItem.amount,
+        fromWallet.currency,
+        toWallet.currency,
+      );
+    }
+
+    // Collect all unique tag names across items
+    const allTagNames: string[] = [];
+    const seenLower = new Set<string>();
+    for (const item of items) {
+      for (const t of item.tags) {
+        const lower = t.toLowerCase();
+        if (!seenLower.has(lower)) {
+          seenLower.add(lower);
+          allTagNames.push(t);
+        }
+      }
+    }
+
+    const resolvedAll = await resolveTags(db, user.id, allTagNames, now);
+    const resolvedByLower = new Map(resolvedAll.map((t) => [t.name.toLowerCase(), t]));
+
+    const stmts: BatchItem<'sqlite'>[] = [];
+    for (const item of items) {
+      stmts.push(
+        db.insert(personalTransactions).values({
+          id: item.id,
+          userId: user.id,
+          walletId: item.walletId,
+          type: item.type,
+          amount: item.amount,
+          categoryId: item.categoryId,
+          transferId: item.transferId,
+          date: item.date,
+          time: item.time,
+          note: item.note,
+          excludeFromReports: item.excludeFromReports ? 1 : 0,
+          source: 'manual',
+          createdAt: item.createdAt,
+          updatedAt: now,
+        }),
+      );
+      for (const rawTag of item.tags) {
+        const tag = resolvedByLower.get(rawTag.toLowerCase())!;
+        stmts.push(
+          db.insert(personalTransactionTags).values({
+            transactionId: item.id,
+            tagId: tag.id,
+          }),
+        );
+      }
+    }
+
+    try {
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    } catch (err) {
+      if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
+        throw new ApiError('ALREADY_HANDLED', 409, 'Transaction already exists.');
+      }
+      throw err;
+    }
+
+    const entries: EntryView[] = items.map((item) => {
+      const other = items.length === 2 ? items.find((o) => o.id !== item.id) ?? null : null;
+      const wallet = wallets.get(item.walletId)!;
+      const canonicalTags = item.tags.map((t) => resolvedByLower.get(t.toLowerCase())!.name);
+      return buildEntryView({
+        id: item.id,
+        wallet,
+        type: item.type,
+        amount: item.amount,
+        categoryId: item.categoryId,
+        transferId: item.transferId,
+        counterpartWalletId: other ? other.walletId : null,
+        date: item.date,
+        time: item.time,
+        note: item.note,
+        tags: canonicalTags,
+        excludeFromReports: item.excludeFromReports,
+        createdAt: item.createdAt,
+      });
+    });
+
+    return c.json({ entries }, 200);
+  });
+
+  return app;
+}

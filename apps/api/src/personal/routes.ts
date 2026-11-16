@@ -9,6 +9,7 @@ import { nowIso } from '@cc/api-util/ids';
 import { parseJson } from './validate';
 import { walletRoutes } from './wallets';
 import { categoryAndTagRoutes } from './categories';
+import { entryRoutes } from './entries';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -53,6 +54,7 @@ export function personalRoutes(): Hono<AppBindings> {
 
   app.route('/', walletRoutes());
   app.route('/', categoryAndTagRoutes());
+  app.route('/', entryRoutes());
 
   return app;
 }
