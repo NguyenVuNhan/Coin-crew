@@ -5,6 +5,7 @@ dist/
 .worktrees/
 .agents/
 .dev.vars
+.env.*.local
 playwright-report/
 test-results/
 
