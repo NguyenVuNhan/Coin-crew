@@ -213,7 +213,13 @@ interface ParsedRestoreItem {
   createdAt: string;
 }
 
-function parseRestoreItem(raw: unknown, fallbackNow: string): ParsedRestoreItem {
+function sameTagSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const setB = new Set(b.map((t) => t.toLowerCase()));
+  return a.every((t) => setB.has(t.toLowerCase()));
+}
+
+function parseRestoreItem(raw: unknown): ParsedRestoreItem {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ApiError('VALIDATION', 422, 'Invalid entry');
   }
@@ -267,13 +273,14 @@ function parseRestoreItem(raw: unknown, fallbackNow: string): ParsedRestoreItem 
   const excludeFromReports =
     e.excludeFromReports ?? (e.type === 'transfer_out' || e.type === 'transfer_in');
 
-  let createdAt = fallbackNow;
-  if (e.createdAt !== undefined) {
-    if (typeof e.createdAt !== 'string' || e.createdAt.trim().length === 0) {
-      throw new ApiError('VALIDATION', 422, 'Invalid createdAt');
-    }
-    createdAt = e.createdAt;
+  if (typeof e.createdAt !== 'string') {
+    throw new ApiError('VALIDATION', 422, 'Invalid createdAt');
   }
+  const parsedMs = Date.parse(e.createdAt);
+  if (Number.isNaN(parsedMs) || new Date(parsedMs).toISOString() !== e.createdAt) {
+    throw new ApiError('VALIDATION', 422, 'Invalid createdAt');
+  }
+  const createdAt = e.createdAt;
 
   return {
     id: e.id,
@@ -789,7 +796,7 @@ export function entryRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const items = rawBody.entries.map((item) => parseRestoreItem(item, now));
+    const items = rawBody.entries.map((item) => parseRestoreItem(item));
 
     if (items.length === 1) {
       const item = items[0]!;
@@ -805,7 +812,13 @@ export function entryRoutes(): Hono<AppBindings> {
         !outItem.transferId ||
         outItem.transferId !== inItem.transferId ||
         outItem.id === inItem.id ||
-        outItem.walletId === inItem.walletId
+        outItem.walletId === inItem.walletId ||
+        outItem.date !== inItem.date ||
+        outItem.time !== inItem.time ||
+        outItem.note !== inItem.note ||
+        outItem.excludeFromReports !== inItem.excludeFromReports ||
+        outItem.createdAt !== inItem.createdAt ||
+        !sameTagSet(outItem.tags, inItem.tags)
       ) {
         throw new ApiError('VALIDATION', 422, 'Invalid transfer pair');
       }
@@ -813,6 +826,7 @@ export function entryRoutes(): Hono<AppBindings> {
 
     const db = getDb(c.env);
     const itemIds = items.map((i) => i.id);
+    const transferId = items.length === 2 ? items[0]!.transferId : null;
 
     const existingRows = await db
       .select({
@@ -820,7 +834,17 @@ export function entryRoutes(): Hono<AppBindings> {
         userId: personalTransactions.userId,
       })
       .from(personalTransactions)
-      .where(inArray(personalTransactions.id, itemIds))
+      .where(
+        transferId
+          ? or(
+              inArray(personalTransactions.id, itemIds),
+              and(
+                eq(personalTransactions.userId, user.id),
+                eq(personalTransactions.transferId, transferId),
+              ),
+            )
+          : inArray(personalTransactions.id, itemIds),
+      )
       .all();
 
     if (existingRows.some((r) => r.userId !== user.id)) {

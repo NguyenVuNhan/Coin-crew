@@ -589,6 +589,143 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
     expect(await json<EntriesResponse>(restoreExpRes)).toEqual(createdExp);
   });
 
+  it('restore refuses a transferId still in use', async () => {
+    const sid = await memberSid('u-ent-restore-tid', 'EntRestoreTid');
+    await switchOn('u-ent-restore-tid');
+
+    const w1 = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Ví 1', startAmount: 1_000_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+    const w2 = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Ví 2', startAmount: 500_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+
+    const createdTr = await json<EntriesResponse>(
+      await createEntry(sid, {
+        type: 'transfer',
+        fromWalletId: w1.id,
+        toWalletId: w2.id,
+        amountSent: 200_000,
+        date: '2026-11-16',
+      }),
+    );
+    const [outSide, inSide] = createdTr.entries;
+
+    // Fresh row ids, but the transferId is still in use by this user's existing transfer
+    const conflictRes = await restoreEntries(sid, {
+      entries: [
+        { ...outSide!, id: 'fresh-out-id' },
+        { ...inSide!, id: 'fresh-in-id' },
+      ],
+    });
+    expect(conflictRes.status).toBe(409);
+    expect((await json<{ error: { code: string } }>(conflictRes)).error.code).toBe('ALREADY_HANDLED');
+  });
+
+  it('restore refuses a pair whose sides disagree', async () => {
+    const sid = await memberSid('u-ent-restore-disagree', 'EntRestoreDisagree');
+    await switchOn('u-ent-restore-disagree');
+
+    const w1 = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Ví 1', startAmount: 1_000_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+    const w2 = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Ví 2', startAmount: 500_000, startDate: '2026-11-01' }),
+      )
+    ).wallet;
+
+    const createdTr = await json<EntriesResponse>(
+      await createEntry(sid, {
+        type: 'transfer',
+        fromWalletId: w1.id,
+        toWalletId: w2.id,
+        amountSent: 200_000,
+        date: '2026-11-16',
+        time: '10:00',
+        note: 'Same note',
+        tags: ['TagA'],
+      }),
+    );
+    const deletedTr = await json<EntriesResponse>(await deleteEntry(createdTr.entries[0]!.id, sid));
+    const [outSide, inSide] = deletedTr.entries as [
+      (typeof deletedTr.entries)[0],
+      (typeof deletedTr.entries)[0],
+    ];
+
+    // Disagree on date
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [outSide, { ...inSide, date: '2026-11-15' }],
+        })
+      ).status,
+    ).toBe(422);
+
+    // Disagree on time
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [outSide, { ...inSide, time: '11:00' }],
+        })
+      ).status,
+    ).toBe(422);
+
+    // Disagree on note
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [outSide, { ...inSide, note: 'Other note' }],
+        })
+      ).status,
+    ).toBe(422);
+
+    // Disagree on tags
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [outSide, { ...inSide, tags: ['TagB'] }],
+        })
+      ).status,
+    ).toBe(422);
+
+    // Disagree on excludeFromReports
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [outSide, { ...inSide, excludeFromReports: false }],
+        })
+      ).status,
+    ).toBe(422);
+
+    // Disagree on createdAt
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [outSide, { ...inSide, createdAt: '2026-11-16T00:00:00.000Z' }],
+        })
+      ).status,
+    ).toBe(422);
+
+    // Invalid ISO createdAt
+    expect(
+      (
+        await restoreEntries(sid, {
+          entries: [
+            { ...outSide, createdAt: 'not-an-iso-timestamp' },
+            { ...inSide, createdAt: 'not-an-iso-timestamp' },
+          ],
+        })
+      ).status,
+    ).toBe(422);
+  });
+
   it('restore refuses when the wallet is gone', async () => {
     const sid = await memberSid('u-ent-restore-gone', 'EntRestoreGone');
     await switchOn('u-ent-restore-gone');

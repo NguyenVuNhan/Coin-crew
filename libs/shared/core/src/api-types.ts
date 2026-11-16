@@ -102,6 +102,7 @@ import type { ThemeId } from './themes';
 import type { HistoryGap, HistoryLine, PairHistory } from './history';
 import type { AttendanceLabel, AttendanceScore } from './attendance';
 import type { CurrencyCode } from './currency';
+import type { PersonalEntryType } from './wallets';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -756,8 +757,6 @@ export interface TagView {
   name: string;
   useCount: number;
 }
-
-import type { PersonalEntryType } from './wallets';
 
 export type EntryInput =
   | {
