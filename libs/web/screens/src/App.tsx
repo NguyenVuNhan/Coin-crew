@@ -8,6 +8,8 @@ import { PeopleOwed } from './screens/PeopleOwed';
 import { WalletsScreen } from './screens/WalletsScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { EntryPage } from './screens/EntryPage';
+import { TransactionsScreen } from './screens/TransactionsScreen';
+import { TransactionDetail } from './screens/TransactionDetail';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
 import { PersonScreen } from './screens/PersonScreen';
@@ -91,7 +93,9 @@ export function App() {
       <Route path="/people" element={<PersonalRoute><PeopleOwed /></PersonalRoute>} />
       <Route path="/wallets" element={<PersonalRoute><WalletsScreen /></PersonalRoute>} />
       <Route path="/wallets/:id" element={<PersonalRoute><WalletScreen /></PersonalRoute>} />
+      <Route path="/transactions" element={<PersonalRoute><TransactionsScreen /></PersonalRoute>} />
       <Route path="/entries/new" element={<PersonalRoute><EntryPage /></PersonalRoute>} />
+      <Route path="/entries/:id" element={<PersonalRoute><TransactionDetail /></PersonalRoute>} />
       <Route path="/entries/:id/edit" element={<PersonalRoute><EntryPage /></PersonalRoute>} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />

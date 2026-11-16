@@ -1,10 +1,11 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { formatMoney, type ListRow } from '@cc/core';
+import { formatMoney } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import {
+  useCategories,
   useDeleteWallet,
   usePersonalList,
   useUpdateWallet,
@@ -23,42 +24,8 @@ import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
+import { TransactionRow } from '../components/TransactionRow';
 import { WalletForm, walletIconClass } from '../components/WalletForm';
-
-function WalletEntryRow({ row }: { row: ListRow }): JSX.Element {
-  const t = useT();
-
-  if (row.kind === 'person') {
-    return (
-      <div className="fsl-wallet__entry flex items-center justify-between gap-3 min-h-14 px-4 py-3">
-        <div className="min-w-0 flex-1 flex flex-col">
-          <span className="text-sm font-medium text-foreground truncate">{row.note}</span>
-          <span className="text-xs text-muted-foreground">{row.date}</span>
-        </div>
-        <Amount value={-Math.abs(row.share)} currency={row.currency} tone="danger" />
-      </div>
-    );
-  }
-
-  const e = row.entry;
-  const isTransfer = e.type === 'transfer_in' || e.type === 'transfer_out';
-  const isOut = e.type === 'expense' || e.type === 'transfer_out';
-  const tone = isTransfer ? 'neutral' : isOut ? 'danger' : 'success';
-  const signed = isOut ? -Math.abs(e.amount) : Math.abs(e.amount);
-
-  return (
-    <div className="fsl-wallet__entry flex items-center justify-between gap-3 min-h-14 px-4 py-3">
-      <div className="min-w-0 flex-1 flex flex-col">
-        <span className="text-sm font-medium text-foreground truncate">{e.note || e.type}</span>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{e.date}</span>
-          {e.beforeStart && <span>· {t('wallet.beforeStart')}</span>}
-        </div>
-      </div>
-      <Amount value={signed} currency={e.currency} tone={tone} />
-    </div>
-  );
-}
 
 export function WalletScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +36,7 @@ export function WalletScreen(): JSX.Element {
   const { ledger } = useLedger();
 
   const walletsQuery = useWalletDetails();
+  const categoriesQuery = useCategories();
   const wallet = walletsQuery.data?.wallets.find((w) => w.id === id);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -228,9 +196,11 @@ export function WalletScreen(): JSX.Element {
                   className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden"
                 >
                   {rows.map((row) => (
-                    <WalletEntryRow
+                    <TransactionRow
                       key={row.kind === 'entry' ? row.entry.id : row.id}
                       row={row}
+                      wallets={walletsQuery.data?.wallets ?? []}
+                      categories={categoriesQuery.data?.categories ?? []}
                     />
                   ))}
                 </div>

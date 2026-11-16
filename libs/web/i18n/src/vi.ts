@@ -1366,4 +1366,43 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.deleteDigit': 'Xóa', // REVIEW
   'personalEntry.saved': 'Đã lưu', // REVIEW
   'personalEntry.notFound': 'Không tìm thấy giao dịch', // REVIEW
+  'transactions.title': 'Giao dịch', // REVIEW
+  'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
+  'transactions.allLink': 'Tất cả', // REVIEW
+  'transactions.byDay': 'Theo ngày', // REVIEW
+  'transactions.byCategory': 'Theo nhóm', // REVIEW
+  'transactions.withPeople': 'Với {names}', // REVIEW
+  'transactions.yourShare': 'phần của bạn', // REVIEW
+  'transactions.filters': 'Bộ lọc', // REVIEW
+  'transactions.filterTitle': 'Lọc giao dịch', // REVIEW
+  'transactions.searchLabel': 'Tìm kiếm', // REVIEW
+  'transactions.searchPlaceholder': 'Tìm theo ghi chú...', // REVIEW
+  'transactions.typeAll': 'Tất cả', // REVIEW
+  'transactions.typePerson': 'Với người khác', // REVIEW
+  'transactions.allWallets': 'Tất cả ví', // REVIEW
+  'transactions.allCategories': 'Tất cả danh mục', // REVIEW
+  'transactions.allTags': 'Tất cả thẻ', // REVIEW
+  'transactions.fromDate': 'Từ ngày', // REVIEW
+  'transactions.toDate': 'Đến ngày', // REVIEW
+  'transactions.applyFilters': 'Áp dụng', // REVIEW
+  'transactions.resetFilters': 'Đặt lại', // REVIEW
+  'transactions.clearFilters': 'Xóa bộ lọc', // REVIEW
+  'transactions.noMatch': 'Không có giao dịch nào khớp bộ lọc.', // REVIEW
+  'transactions.emptyTitle': 'Chưa có giao dịch nào', // REVIEW
+  'transactions.emptyBody': 'Ghi chép khoản chi, thu hoặc chuyển tiền để theo dõi.', // REVIEW
+  'transactions.loadOlder': 'Xem tháng trước', // REVIEW
+  'transactions.otherCategory': 'Khác', // REVIEW
+  'transactions.prevMonth': 'Tháng trước', // REVIEW
+  'transactions.nextMonth': 'Tháng sau', // REVIEW
+  'transactions.monthLabel': 'Tháng {month}, {year}', // REVIEW
+  'transactions.detailTitle': 'Chi tiết giao dịch', // REVIEW
+  'transactions.edit': 'Sửa', // REVIEW
+  'transactions.delete': 'Xóa', // REVIEW
+  'transactions.deleteConfirmTitle': 'Xóa giao dịch?', // REVIEW
+  'transactions.deleteConfirmBody': 'Giao dịch này sẽ bị xóa. Bạn có thể hoàn tác trong 5 giây.', // REVIEW
+  'transactions.deleteTransferBody': 'Cả hai bên của giao dịch chuyển tiền sẽ bị xóa. Bạn có thể hoàn tác trong 5 giây.', // REVIEW
+  'transactions.deleted': 'Đã xóa', // REVIEW
+  'transactions.removeFilter': 'Xóa bộ lọc {label}', // REVIEW
+  'transactions.directionTo': '→ {wallet}', // REVIEW
+  'transactions.directionFrom': '← {wallet}', // REVIEW
 };
