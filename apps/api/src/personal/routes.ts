@@ -8,6 +8,7 @@ import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import { parseJson } from './validate';
 import { walletRoutes } from './wallets';
+import { categoryAndTagRoutes } from './categories';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -51,6 +52,7 @@ export function personalRoutes(): Hono<AppBindings> {
   });
 
   app.route('/', walletRoutes());
+  app.route('/', categoryAndTagRoutes());
 
   return app;
 }

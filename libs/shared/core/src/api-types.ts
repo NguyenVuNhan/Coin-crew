@@ -735,3 +735,24 @@ export interface PersonalSummary {
   spent: { currency: CurrencyCode; amount: number }[];
   income: { currency: CurrencyCode; amount: number }[];
 }
+
+export interface CategoryView {
+  id: string;
+  parentId: string | null;
+  type: 'expense' | 'income';
+  name: string;
+  icon: string;
+  hidden: boolean;
+  sortOrder: number;
+}
+
+export interface CategoriesResponse {
+  categories: CategoryView[];
+  recentIds: string[];
+}
+
+export interface TagView {
+  id: string;
+  name: string;
+  useCount: number;
+}
