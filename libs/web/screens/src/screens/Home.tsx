@@ -25,6 +25,7 @@ import { PeopleByPerson, PeopleTotalCard } from '../components/PeopleSummary';
 export interface HomeProps {
   title?: string;
   summary?: ReactNode;
+  rightExtra?: ReactNode;
 }
 
 export function Home({
@@ -35,6 +36,7 @@ export function Home({
       <PeopleByPerson />
     </>
   ),
+  rightExtra,
 }: HomeProps = {}): JSX.Element {
   const t = useT();
   const navigate = useNavigate();
@@ -109,6 +111,7 @@ export function Home({
       right={
         user ? (
           <>
+            {rightExtra}
             <FeedbackButton signedIn />
             <AccountMenu user={user} />
           </>

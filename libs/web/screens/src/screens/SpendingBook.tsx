@@ -21,6 +21,7 @@ import { usePeopleTotals } from '../components/PeopleSummary';
 import { FirstWalletSheet } from '../components/FirstWalletSheet';
 import { TransactionRow } from '../components/TransactionRow';
 import { WalletPie } from '../components/WalletPie';
+import { PersonalSettingsMenu } from '../components/PersonalSettingsMenu';
 
 function BookSummary(): JSX.Element {
   const t = useT();
@@ -210,7 +211,13 @@ function BookSummary(): JSX.Element {
  */
 export function MainScreen({ book }: { book: boolean }): JSX.Element {
   const t = useT();
-  return <Home title={book ? t('book.title') : undefined} summary={book ? <BookSummary /> : undefined} />;
+  return (
+    <Home
+      title={book ? t('book.title') : undefined}
+      summary={book ? <BookSummary /> : undefined}
+      rightExtra={book ? <PersonalSettingsMenu /> : undefined}
+    />
+  );
 }
 
 export function SpendingBook(): JSX.Element {

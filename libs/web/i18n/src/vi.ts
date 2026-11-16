@@ -1405,4 +1405,44 @@ export const vi: Record<MessageKey, string> = {
   'transactions.removeFilter': 'Xóa bộ lọc {label}', // REVIEW
   'transactions.directionTo': '→ {wallet}', // REVIEW
   'transactions.directionFrom': '← {wallet}', // REVIEW
+  'personalSettings.title': 'Cài đặt sổ chi tiêu', // REVIEW
+  'personalSettings.wallets': 'Ví', // REVIEW
+  'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
+  'personalSettings.tags': 'Thẻ', // REVIEW
+  'categories.title': 'Nhóm chi tiêu', // REVIEW
+  'categories.tabs': 'Loại nhóm', // REVIEW
+  'categories.hiddenBadge': 'Đã ẩn', // REVIEW
+  'categories.add': 'Thêm nhóm', // REVIEW
+  'categories.edit': 'Sửa', // REVIEW
+  'categories.hide': 'Ẩn', // REVIEW
+  'categories.show': 'Hiện', // REVIEW
+  'categories.delete': 'Xóa', // REVIEW
+  'categories.newTitle': 'Thêm nhóm', // REVIEW
+  'categories.editTitle': 'Sửa nhóm', // REVIEW
+  'categories.name': 'Tên nhóm', // REVIEW
+  'categories.icon': 'Biểu tượng', // REVIEW
+  'categories.parent': 'Nhóm cha', // REVIEW
+  'categories.noParent': 'Không có (nhóm chính)', // REVIEW
+  'categories.save': 'Lưu', // REVIEW
+  'categories.emptyTitle': 'Chưa có nhóm nào', // REVIEW
+  'categories.emptyBody': 'Thêm nhóm để phân loại thu chi.', // REVIEW
+  'categories.deleteConfirmTitle': 'Xóa nhóm?', // REVIEW
+  'categories.deleteConfirmBody': 'Bạn có chắc muốn xóa nhóm "{name}"?', // REVIEW
+  'categories.hasChildrenError': 'Nhóm này đang có nhóm con. Hãy chuyển hoặc xóa các nhóm con trước.', // REVIEW
+  'categories.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
+  'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
+  'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW
+  'categories.hideInstead': 'Ẩn nhóm, giữ lịch sử', // REVIEW
+  'tags.title': 'Thẻ', // REVIEW
+  'tags.useCount': '{count} giao dịch', // REVIEW
+  'tags.rename': 'Đổi tên', // REVIEW
+  'tags.delete': 'Xóa', // REVIEW
+  'tags.renameTitle': 'Đổi tên thẻ', // REVIEW
+  'tags.name': 'Tên thẻ', // REVIEW
+  'tags.save': 'Lưu', // REVIEW
+  'tags.renameConflict': 'Đã có thẻ tên này', // REVIEW
+  'tags.deleteConfirmTitle': 'Xóa thẻ?', // REVIEW
+  'tags.deleteConfirmBody': 'Thẻ sẽ bị gỡ khỏi {count} giao dịch', // REVIEW
+  'tags.emptyTitle': 'Chưa có thẻ nào', // REVIEW
+  'tags.emptyBody': 'Gắn thẻ khi thêm giao dịch để lọc nhanh hơn.', // REVIEW
 };
