@@ -806,3 +806,35 @@ export interface EntriesResponse {
   entries: EntryView[];
 }
 
+export interface PersonRow {
+  kind: 'person';
+  id: string;
+  tripId: string;
+  date: string;
+  share: number;
+  total: number;
+  note: string;
+  people: string[];
+  walletId: string;
+  currency: 'VND';
+  createdAt: string;
+}
+
+export type ListRow = { kind: 'entry'; entry: EntryView } | PersonRow;
+
+export interface ListQuery {
+  month?: string;
+  from?: string;
+  to?: string;
+  walletId?: string;
+  categoryId?: string;
+  tagId?: string;
+  type?: 'expense' | 'income' | 'transfer' | 'person';
+  q?: string;
+}
+
+export interface ListResponse {
+  rows: ListRow[];
+  totals: { currency: CurrencyCode; spent: number; income: number }[];
+}
+
