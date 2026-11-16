@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type {
   CategoriesResponse,
-  CategoryResponse,
+  CategoryView,
   EntriesResponse,
   ListResponse,
   TagView,
@@ -73,7 +73,7 @@ describe('personal money guard sweep — auth, switch, and cross-account privacy
       icon: 'utensils',
     });
     expect(catARes.status).toBe(201);
-    const catA = (await json<CategoryResponse>(catARes)).category;
+    const catA = (await json<{ category: CategoryView }>(catARes)).category;
 
     const expenseARes = await postJson('/api/me/personal/transactions', sidA, {
       type: 'expense',
@@ -138,7 +138,7 @@ describe('personal money guard sweep — auth, switch, and cross-account privacy
       icon: 'coffee',
     });
     expect(catBRes.status).toBe(201);
-    const catB = (await json<CategoryResponse>(catBRes)).category;
+    const catB = (await json<{ category: CategoryView }>(catBRes)).category;
 
     // --- Setup Account C (switch off) ---
     const sidC = await memberSid('u-sweep-c', 'UserC');
