@@ -96,7 +96,8 @@ export function FirstWalletSheet({
     trimmedName.length <= 40 &&
     isAmountValid &&
     resolvedAmount !== null &&
-    isCostVndValid;
+    isCostVndValid &&
+    (!showCostVnd || resolvedCostVnd !== null);
 
   const isPending = create.isPending || addWallet.isPending;
   const activeError = addWallet.error ?? create.error;

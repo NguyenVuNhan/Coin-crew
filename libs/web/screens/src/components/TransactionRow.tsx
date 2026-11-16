@@ -13,43 +13,9 @@ import { Pill } from '@cc/web-ui/components/Pill';
 import { cn } from '@cc/web-ui/lib/utils';
 import { ledgerDetailsPath } from '../lib/detailsNav';
 
-const KNOWN_ICON_MAP: Record<string, IconName> = {
-  home: 'home',
-  wallet: 'wallet',
-  receipt: 'receipt',
-  bank: 'bank',
-  landmark: 'bank',
-  pie: 'pie',
-  'pie-chart': 'pie',
-  piggyBank: 'piggyBank',
-  'piggy-bank': 'piggyBank',
-  users: 'users',
-  user: 'user',
-  calendar: 'calendar',
-  clock: 'clock',
-  star: 'star',
-  crown: 'crown',
-  trophy: 'trophy',
-  shield: 'shield',
-  swap: 'swap',
-  camera: 'camera',
-  smartphone: 'smartphone',
-  settings: 'settings',
-  map: 'map',
-  suitcase: 'suitcase',
-  bell: 'bell',
-  palette: 'palette',
-};
+import { categoryIconName } from './categoryIcon';
 
-export function resolveCategoryIcon(
-  icon: string | undefined,
-  type: 'expense' | 'income',
-): IconName {
-  if (icon && KNOWN_ICON_MAP[icon]) {
-    return KNOWN_ICON_MAP[icon];
-  }
-  return type === 'income' ? 'wallet' : 'receipt';
-}
+export { categoryIconName as resolveCategoryIcon };
 
 export interface TransactionRowProps {
   row: ListRow;
@@ -120,7 +86,7 @@ export function TransactionRow({
 
   const iconName: IconName = isTransfer
     ? 'swap'
-    : resolveCategoryIcon(category?.icon, isExpense ? 'expense' : 'income');
+    : categoryIconName(category?.icon, isExpense ? 'expense' : 'income');
 
   const tagText = entry.tags.length > 0 ? entry.tags.map((tag) => `#${tag}`).join(' ') : '';
   const metaParts = [entry.note ?? '', walletName, tagText].filter(Boolean);

@@ -11,6 +11,8 @@ import {
   type WalletDetailView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
+import { Button } from '@cc/web-ui/components/Button';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -81,14 +83,6 @@ function formatKeypadValue(minor: number, code: CurrencyCode): string {
   return `${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
 }
 
-function getTodayLocalDate(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 function parseInitialType(raw: string | null): FormEntryType {
   if (raw === 'income' || raw === 'transfer') return raw;
   return 'expense';
@@ -149,10 +143,34 @@ export function EntryPage(): JSX.Element {
     return null;
   }, [id, stateEntry, queryClient]);
 
-  const monthParam = searchParams.get('month') ?? getTodayLocalDate().slice(0, 7);
+  const preEntry = useMemo(() => {
+    if (cachedEntry) return cachedEntry;
+    return null;
+  }, [cachedEntry]);
+
+  const cachedCounterpart = useMemo(() => {
+    if (!preEntry?.transferId) return null;
+    const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
+    for (const [, data] of cachedLists) {
+      if (!data) continue;
+      for (const row of data.rows) {
+        if (
+          row.kind === 'entry' &&
+          row.entry.transferId === preEntry.transferId &&
+          row.entry.id !== preEntry.id
+        ) {
+          return row.entry;
+        }
+      }
+    }
+    return null;
+  }, [preEntry, queryClient]);
+
+  const monthParam = preEntry?.date.slice(0, 7) ?? searchParams.get('month') ?? currentMonthLocal();
+  const needsCounterpartFetch = isEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
   const listQuery = usePersonalList(
     { month: monthParam },
-    { enabled: isEdit && !cachedEntry },
+    { enabled: isEdit && (!cachedEntry || needsCounterpartFetch) },
   );
 
   const entry = useMemo(() => {
@@ -168,19 +186,7 @@ export function EntryPage(): JSX.Element {
 
   const counterpartEntry = useMemo(() => {
     if (!entry?.transferId) return null;
-    const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
-    for (const [, data] of cachedLists) {
-      if (!data) continue;
-      for (const row of data.rows) {
-        if (
-          row.kind === 'entry' &&
-          row.entry.transferId === entry.transferId &&
-          row.entry.id !== entry.id
-        ) {
-          return row.entry;
-        }
-      }
-    }
+    if (cachedCounterpart) return cachedCounterpart;
     if (listQuery.data) {
       for (const row of listQuery.data.rows) {
         if (
@@ -193,16 +199,20 @@ export function EntryPage(): JSX.Element {
       }
     }
     return null;
-  }, [entry, queryClient, listQuery.data]);
+  }, [entry, cachedCounterpart, listQuery.data]);
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
 
-  const activeWallets = useMemo(
-    () => (walletsQuery.data?.wallets ?? []).filter((w) => !w.archived),
+  const allWallets = useMemo(
+    () => walletsQuery.data?.wallets ?? [],
     [walletsQuery.data?.wallets],
+  );
+  const activeWallets = useMemo(
+    () => allWallets.filter((w) => !w.archived),
+    [allWallets],
   );
 
   const [entryType, setEntryType] = useState<FormEntryType>(() =>
@@ -215,7 +225,7 @@ export function EntryPage(): JSX.Element {
   const [amountExpr, setAmountExpr] = useState('');
   const [receivedExpr, setReceivedExpr] = useState('');
   const [activeTransferField, setActiveTransferField] = useState<'sent' | 'received'>('sent');
-  const [date, setDate] = useState(() => getTodayLocalDate());
+  const [date, setDate] = useState(() => todayLocal());
   const [time, setTime] = useState('');
   const [note, setNote] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -227,6 +237,7 @@ export function EntryPage(): JSX.Element {
   const [walletSheetTarget, setWalletSheetTarget] = useState<'single' | 'from' | 'to' | null>(null);
   const [validationError, setValidationError] = useState<unknown>(null);
   const [initializedId, setInitializedId] = useState<string | null>(null);
+  const [counterpartAppliedId, setCounterpartAppliedId] = useState<string | null>(null);
   const [walletDefaultsApplied, setWalletDefaultsApplied] = useState(false);
 
   // Initialize default wallets in new mode
@@ -280,22 +291,49 @@ export function EntryPage(): JSX.Element {
       setShowMore(true);
     }
     setInitializedId(entry.id);
+    if (counterpartEntry) {
+      setCounterpartAppliedId(entry.id);
+    }
   }, [isEdit, entry, counterpartEntry, initializedId]);
 
+  useEffect(() => {
+    if (!isEdit || !entry || !counterpartEntry || counterpartAppliedId === entry.id) return;
+    if (entry.type === 'transfer_out') {
+      setReceivedExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
+    } else if (entry.type === 'transfer_in') {
+      setAmountExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
+    }
+    setCounterpartAppliedId(entry.id);
+  }, [isEdit, entry, counterpartEntry, counterpartAppliedId]);
+
   const selectedWallet = useMemo(
-    () => activeWallets.find((w) => w.id === walletId) ?? activeWallets[0],
-    [activeWallets, walletId],
+    () =>
+      isEdit
+        ? allWallets.find((w) => w.id === walletId)
+        : (activeWallets.find((w) => w.id === walletId) ?? activeWallets[0]),
+    [isEdit, allWallets, activeWallets, walletId],
   );
   const fromWallet = useMemo(
-    () => activeWallets.find((w) => w.id === fromWalletId) ?? activeWallets[0],
-    [activeWallets, fromWalletId],
+    () =>
+      isEdit
+        ? allWallets.find((w) => w.id === fromWalletId)
+        : (activeWallets.find((w) => w.id === fromWalletId) ?? activeWallets[0]),
+    [isEdit, allWallets, activeWallets, fromWalletId],
   );
   const toWallet = useMemo(
     () =>
-      activeWallets.find((w) => w.id === toWalletId) ??
-      activeWallets.find((w) => w.id !== fromWallet?.id),
-    [activeWallets, toWalletId, fromWallet?.id],
+      isEdit
+        ? allWallets.find((w) => w.id === toWalletId)
+        : (activeWallets.find((w) => w.id === toWalletId) ??
+          activeWallets.find((w) => w.id !== fromWallet?.id)),
+    [isEdit, allWallets, activeWallets, toWalletId, fromWallet?.id],
   );
+
+  const hasArchivedWallet =
+    isEdit &&
+    (entryType === 'transfer'
+      ? Boolean(fromWallet?.archived || toWallet?.archived)
+      : Boolean(selectedWallet?.archived));
 
   const isDiffCurrencyTransfer =
     entryType === 'transfer' &&
@@ -347,7 +385,7 @@ export function EntryPage(): JSX.Element {
   const isSaving = createEntry.isPending || updateEntry.isPending;
 
   const handleSave = async (doneMinor: number) => {
-    if (isSaving) return;
+    if (isSaving || hasArchivedWallet) return;
     setValidationError(null);
 
     let input: EntryInput;
@@ -464,6 +502,7 @@ export function EntryPage(): JSX.Element {
   };
 
   const isLoading = walletsQuery.isPending || (isEdit && !entry && listQuery.isPending);
+  const noActiveWallet = !isEdit && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
 
   return (
     <div className="fsl-entry-page min-h-screen min-h-dvh bg-background flex flex-col">
@@ -527,8 +566,23 @@ export function EntryPage(): JSX.Element {
           <InlineError error={listQuery.error} onRetry={() => listQuery.refetch()} />
         ) : isEdit && !entry ? (
           <EmptyState icon="receipt" title={t('personalEntry.notFound')} />
+        ) : noActiveWallet ? (
+          <EmptyState
+            icon="wallet"
+            title={t('personalEntry.noWalletTitle')}
+            action={
+              <Button href="/wallets" variant="primary" block data-testid="entry-go-to-wallets">
+                {t('personalEntry.goToWallets')}
+              </Button>
+            }
+          />
         ) : (
           <>
+            {hasArchivedWallet && (
+              <div data-testid="archived-wallet-notice">
+                <InlineError error={ownError(t('personalEntry.archivedWalletNotice'))} />
+              </div>
+            )}
             {validationError !== null && (
               <InlineError error={validationError} />
             )}
@@ -765,10 +819,10 @@ export function EntryPage(): JSX.Element {
       </main>
 
       {/* Docked keypad at the bottom */}
-      {!isLoading && !walletsQuery.isError && !(isEdit && !entry) && (
+      {!isLoading && !walletsQuery.isError && !(isEdit && !entry) && !noActiveWallet && (
         <div className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           <div className="mx-auto w-full max-w-[480px]">
-            <fieldset disabled={isSaving} className="border-0 p-0 m-0 min-w-0">
+            <fieldset disabled={isSaving || hasArchivedWallet} className="border-0 p-0 m-0 min-w-0">
               <AmountKeypad
                 value={activeExpr}
                 currency={activeCurrency}

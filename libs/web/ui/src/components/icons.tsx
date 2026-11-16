@@ -4,12 +4,15 @@ import {
   AlarmClock,
   ArrowLeft,
   ArrowLeftRight,
+  BadgePercent,
   Ban,
   Bell,
   BellOff,
+  Bus,
   Calendar,
   CalendarCheck,
   Camera,
+  CandlestickChart,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -17,12 +20,16 @@ import {
   ChevronUp,
   CircleCheck,
   Clock,
+  Coins,
   Copy,
   Crown,
   Download,
   Ellipsis,
   EllipsisVertical,
+  Gem,
+  Gift,
   Headset,
+  HeartPulse,
   History,
   House,
   Info,
@@ -48,15 +55,18 @@ import {
   Share,
   Share2,
   Shield,
+  ShoppingBag,
   Smartphone,
   SquarePlus,
   Star,
   Trash2,
+  TrendingUp,
   Trophy,
   User,
   UserCheck,
   UserPlus,
   Users,
+  Utensils,
   Venus,
   Wallet,
   X,
@@ -69,7 +79,8 @@ export type IconName =
   | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
   | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play'
-  | 'wallet';
+  | 'wallet' | 'utensils' | 'bus' | 'shopping-bag' | 'heart-pulse' | 'trending-up' | 'landmark' | 'badge-percent'
+  | 'candlestick-chart' | 'coins' | 'pie-chart' | 'gem' | 'piggy-bank' | 'gift';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -132,6 +143,19 @@ const SHAPES: Record<IconName, LucideIcon> = {
   shareIos: Share,
   pause: Pause,
   play: Play,
+  utensils: Utensils,
+  bus: Bus,
+  'shopping-bag': ShoppingBag,
+  'heart-pulse': HeartPulse,
+  'trending-up': TrendingUp,
+  landmark: Landmark,
+  'badge-percent': BadgePercent,
+  'candlestick-chart': CandlestickChart,
+  coins: Coins,
+  'pie-chart': PieChart,
+  gem: Gem,
+  'piggy-bank': PiggyBank,
+  gift: Gift,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

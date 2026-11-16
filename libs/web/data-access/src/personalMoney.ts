@@ -57,6 +57,14 @@ async function invalidateMoney(queryClient: QueryClient): Promise<void> {
   ]);
 }
 
+async function invalidateEntry(queryClient: QueryClient): Promise<void> {
+  await Promise.all([
+    invalidateMoney(queryClient),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_TAGS_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
+  ]);
+}
+
 async function invalidateCategories(queryClient: QueryClient): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
@@ -274,7 +282,7 @@ export function useCreateEntry() {
   return useMutation<EntriesResponse, ApiClientError, EntryInput>({
     mutationFn: (input: EntryInput) =>
       apiSend<EntriesResponse>('/api/me/personal/transactions', 'POST', input),
-    onSuccess: () => invalidateMoney(queryClient),
+    onSuccess: () => invalidateEntry(queryClient),
   });
 }
 
@@ -288,7 +296,7 @@ export function useUpdateEntry() {
         'PATCH',
         input,
       ),
-    onSuccess: () => invalidateMoney(queryClient),
+    onSuccess: () => invalidateEntry(queryClient),
   });
 }
 
@@ -301,7 +309,7 @@ export function useDeleteEntry() {
         `/api/me/personal/transactions/${encodeURIComponent(id)}`,
         'DELETE',
       ),
-    onSuccess: () => invalidateMoney(queryClient),
+    onSuccess: () => invalidateEntry(queryClient),
   });
 }
 
@@ -311,6 +319,6 @@ export function useRestoreEntries() {
   return useMutation<EntriesResponse, ApiClientError, EntriesResponse>({
     mutationFn: (input: EntriesResponse) =>
       apiSend<EntriesResponse>('/api/me/personal/transactions/restore', 'POST', input),
-    onSuccess: () => invalidateMoney(queryClient),
+    onSuccess: () => invalidateEntry(queryClient),
   });
 }

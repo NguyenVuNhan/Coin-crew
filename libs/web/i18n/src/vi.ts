@@ -1366,6 +1366,9 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.deleteDigit': 'Xóa', // REVIEW
   'personalEntry.saved': 'Đã lưu', // REVIEW
   'personalEntry.notFound': 'Không tìm thấy giao dịch', // REVIEW
+  'personalEntry.archivedWalletNotice': 'Ví này đã lưu trữ. Khôi phục ví để sửa giao dịch.', // REVIEW
+  'personalEntry.noWalletTitle': 'Tạo ví trước', // REVIEW
+  'personalEntry.goToWallets': 'Đến trang ví', // REVIEW
   'transactions.title': 'Giao dịch', // REVIEW
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW

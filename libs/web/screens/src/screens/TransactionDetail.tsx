@@ -9,6 +9,7 @@ import {
   type WalletDetailView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { currentMonthLocal } from '@cc/web-util/localDate';
 import {
   PERSONAL_LIST_KEY,
   useCategories,
@@ -254,8 +255,8 @@ export function TransactionDetail(): JSX.Element {
 
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
-  const cachedEntry = useMemo(() => {
-    if (!id || stateEntry) return stateEntry ?? null;
+  const cachedFromCache = (() => {
+    if (!id) return null;
     const cachedLists = queryClient.getQueriesData<ListResponse>({
       queryKey: PERSONAL_LIST_KEY,
     });
@@ -268,24 +269,26 @@ export function TransactionDetail(): JSX.Element {
       }
     }
     return null;
-  }, [id, stateEntry, queryClient]);
+  })();
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const targetMonth =
+    cachedFromCache?.date.slice(0, 7) ?? stateEntry?.date.slice(0, 7) ?? currentMonthLocal();
   const listQuery = usePersonalList(
-    { month: currentMonth },
-    { enabled: Boolean(id) && !cachedEntry },
+    { month: targetMonth },
+    { enabled: Boolean(id) && !cachedFromCache },
   );
 
   const entry = useMemo(() => {
-    if (cachedEntry) return cachedEntry;
-    if (!id || !listQuery.data) return null;
-    for (const row of listQuery.data.rows) {
-      if (row.kind === 'entry' && row.entry.id === id) {
-        return row.entry;
+    if (cachedFromCache) return cachedFromCache;
+    if (id && listQuery.data) {
+      for (const row of listQuery.data.rows) {
+        if (row.kind === 'entry' && row.entry.id === id) {
+          return row.entry;
+        }
       }
     }
-    return null;
-  }, [cachedEntry, id, listQuery.data]);
+    return stateEntry ?? null;
+  }, [cachedFromCache, id, listQuery.data, stateEntry]);
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();

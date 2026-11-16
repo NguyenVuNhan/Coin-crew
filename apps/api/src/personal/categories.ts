@@ -413,7 +413,13 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
-    const name = name1to40(body.name);
+    if (typeof body.name !== 'string') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    const name = body.name.trim();
+    if (name.length < 1 || name.length > 30) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
 
     const db = getDb(c.env);
     const existing = await db

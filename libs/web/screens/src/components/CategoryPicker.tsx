@@ -13,37 +13,7 @@ export interface CategoryPickerProps {
   onChange(categoryId: string): void;
 }
 
-const KNOWN_ICON_MAP: Record<string, IconName> = {
-  home: 'home',
-  wallet: 'wallet',
-  receipt: 'receipt',
-  bank: 'bank',
-  landmark: 'bank',
-  pie: 'pie',
-  'pie-chart': 'pie',
-  piggyBank: 'piggyBank',
-  'piggy-bank': 'piggyBank',
-  users: 'users',
-  user: 'user',
-  calendar: 'calendar',
-  clock: 'clock',
-  star: 'star',
-  crown: 'crown',
-  trophy: 'trophy',
-  shield: 'shield',
-  swap: 'swap',
-  camera: 'camera',
-  smartphone: 'smartphone',
-  settings: 'settings',
-  map: 'map',
-  suitcase: 'suitcase',
-  bell: 'bell',
-  palette: 'palette',
-};
-
-function resolveCategoryIcon(icon: string, type: 'expense' | 'income'): IconName {
-  return KNOWN_ICON_MAP[icon] ?? (type === 'income' ? 'wallet' : 'receipt');
-}
+import { categoryIconName } from './categoryIcon';
 
 export function CategoryPicker({
   type,
@@ -142,7 +112,7 @@ export function CategoryPicker({
                   selected && 'ring-2 ring-primary',
                 )}
               >
-                <Icon name={resolveCategoryIcon(cat.icon, type)} size={20} />
+                <Icon name={categoryIconName(cat.icon, type)} size={20} />
               </span>
               <span className="text-xs font-medium text-foreground leading-tight line-clamp-2 w-full">
                 {cat.name}
@@ -188,7 +158,7 @@ export function CategoryPicker({
                   )}
                 >
                   <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
-                    <Icon name={resolveCategoryIcon(parent.icon, type)} size={18} />
+                    <Icon name={categoryIconName(parent.icon, type)} size={18} />
                   </span>
                   <span className="flex-1 truncate">{parent.name}</span>
                   {parentSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
@@ -207,7 +177,7 @@ export function CategoryPicker({
                       )}
                     >
                       <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
-                        <Icon name={resolveCategoryIcon(sub.icon, type)} size={16} />
+                        <Icon name={categoryIconName(sub.icon, type)} size={16} />
                       </span>
                       <span className="flex-1 truncate">{sub.name}</span>
                       {subSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
@@ -231,7 +201,7 @@ export function CategoryPicker({
                 )}
               >
                 <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
-                  <Icon name={resolveCategoryIcon(sub.icon, type)} size={16} />
+                  <Icon name={categoryIconName(sub.icon, type)} size={16} />
                 </span>
                 <span className="flex-1 truncate">{sub.name}</span>
                 {subSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}

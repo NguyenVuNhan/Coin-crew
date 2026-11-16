@@ -3,7 +3,6 @@ import { and, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
-  personalCategories,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -27,7 +26,7 @@ import {
   type PersonalSummary,
 } from '@cc/core';
 import { loadCalc } from './wallets';
-import { escapeLike, loadPersonRows } from './personRows';
+import { loadPersonRows } from './personRows';
 import { requireDate } from './validate';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -159,119 +158,103 @@ export function listRoutes(): Hono<AppBindings> {
     const rows: ListRow[] = [];
 
     if (type !== 'person') {
-      let categoryIds: string[] | null = null;
+      const conditions = [
+        eq(personalTransactions.userId, user.id),
+        gte(personalTransactions.date, from),
+        lte(personalTransactions.date, to),
+      ];
+
+      if (walletId) {
+        conditions.push(eq(personalTransactions.walletId, walletId));
+      }
       if (categoryId) {
-        const catRows = await db
-          .select({ id: personalCategories.id })
-          .from(personalCategories)
-          .where(
-            and(
-              eq(personalCategories.userId, user.id),
-              or(eq(personalCategories.id, categoryId), eq(personalCategories.parentId, categoryId)),
-            ),
-          )
-          .all();
-        categoryIds = catRows.map((cat) => cat.id);
+        conditions.push(
+          or(
+            eq(personalTransactions.categoryId, categoryId),
+            sql`${personalTransactions.categoryId} IN (SELECT id FROM personal_categories WHERE parent_id = ${categoryId} AND user_id = ${user.id})`,
+          )!,
+        );
+      }
+      if (tagId) {
+        conditions.push(
+          sql`${personalTransactions.id} IN (SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ${tagId})`,
+        );
+      }
+      if (type === 'expense') {
+        conditions.push(eq(personalTransactions.type, 'expense'));
+      } else if (type === 'income') {
+        conditions.push(eq(personalTransactions.type, 'income'));
+      } else if (type === 'transfer') {
+        conditions.push(inArray(personalTransactions.type, ['transfer_out', 'transfer_in']));
       }
 
-      if (categoryIds === null || categoryIds.length > 0) {
-        const conditions = [
-          eq(personalTransactions.userId, user.id),
-          gte(personalTransactions.date, from),
-          lte(personalTransactions.date, to),
-        ];
+      const entryRows = await db
+        .select({
+          id: personalTransactions.id,
+          walletId: personalTransactions.walletId,
+          type: personalTransactions.type,
+          amount: personalTransactions.amount,
+          categoryId: personalTransactions.categoryId,
+          transferId: personalTransactions.transferId,
+          counterpartWalletId: sql<string | null>`(SELECT pt2.wallet_id FROM personal_transactions pt2 WHERE pt2.transfer_id = personal_transactions.transfer_id AND pt2.id <> personal_transactions.id LIMIT 1)`,
+          date: personalTransactions.date,
+          time: personalTransactions.time,
+          note: personalTransactions.note,
+          excludeFromReports: personalTransactions.excludeFromReports,
+          createdAt: personalTransactions.createdAt,
+        })
+        .from(personalTransactions)
+        .where(and(...conditions))
+        .all();
 
-        if (walletId) {
-          conditions.push(eq(personalTransactions.walletId, walletId));
-        }
-        if (categoryIds !== null) {
-          conditions.push(inArray(personalTransactions.categoryId, categoryIds));
-        }
-        if (tagId) {
-          conditions.push(
-            sql`${personalTransactions.id} IN (SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ${tagId})`,
-          );
-        }
-        if (type === 'expense') {
-          conditions.push(eq(personalTransactions.type, 'expense'));
-        } else if (type === 'income') {
-          conditions.push(eq(personalTransactions.type, 'income'));
-        } else if (type === 'transfer') {
-          conditions.push(inArray(personalTransactions.type, ['transfer_out', 'transfer_in']));
-        }
-        if (qTerm !== undefined) {
-          const pattern = `%${escapeLike(qTerm.toLowerCase())}%`;
-          conditions.push(sql`lower(${personalTransactions.note}) LIKE ${pattern} ESCAPE '\\'`);
-        }
-
-        const entryRows = await db
+      const tagsByTx = new Map<string, string[]>();
+      if (entryRows.length > 0) {
+        const entryIdSet = new Set(entryRows.map((e) => e.id));
+        const tagRows = await db
           .select({
-            id: personalTransactions.id,
-            walletId: personalTransactions.walletId,
-            type: personalTransactions.type,
-            amount: personalTransactions.amount,
-            categoryId: personalTransactions.categoryId,
-            transferId: personalTransactions.transferId,
-            counterpartWalletId: sql<string | null>`(SELECT pt2.wallet_id FROM personal_transactions pt2 WHERE pt2.transfer_id = personal_transactions.transfer_id AND pt2.id <> personal_transactions.id LIMIT 1)`,
-            date: personalTransactions.date,
-            time: personalTransactions.time,
-            note: personalTransactions.note,
-            excludeFromReports: personalTransactions.excludeFromReports,
-            createdAt: personalTransactions.createdAt,
+            transactionId: personalTransactionTags.transactionId,
+            name: personalTags.name,
           })
-          .from(personalTransactions)
+          .from(personalTransactionTags)
+          .innerJoin(
+            personalTransactions,
+            eq(personalTransactions.id, personalTransactionTags.transactionId),
+          )
+          .innerJoin(personalTags, eq(personalTags.id, personalTransactionTags.tagId))
           .where(and(...conditions))
+          .orderBy(sql`${personalTransactionTags}.rowid asc`)
           .all();
 
-        const tagsByTx = new Map<string, string[]>();
-        if (entryRows.length > 0) {
-          const entryIdSet = new Set(entryRows.map((e) => e.id));
-          const tagRows = await db
-            .select({
-              transactionId: personalTransactionTags.transactionId,
-              name: personalTags.name,
-            })
-            .from(personalTransactionTags)
-            .innerJoin(
-              personalTransactions,
-              eq(personalTransactions.id, personalTransactionTags.transactionId),
-            )
-            .innerJoin(personalTags, eq(personalTags.id, personalTransactionTags.tagId))
-            .where(and(...conditions))
-            .orderBy(sql`${personalTransactionTags}.rowid asc`)
-            .all();
-
-          for (const tr of tagRows) {
-            if (!entryIdSet.has(tr.transactionId)) continue;
-            const list = tagsByTx.get(tr.transactionId) ?? [];
-            list.push(tr.name);
-            tagsByTx.set(tr.transactionId, list);
-          }
+        for (const tr of tagRows) {
+          if (!entryIdSet.has(tr.transactionId)) continue;
+          const list = tagsByTx.get(tr.transactionId) ?? [];
+          list.push(tr.name);
+          tagsByTx.set(tr.transactionId, list);
         }
+      }
 
-        for (const r of entryRows) {
-          const wallet = walletMap.get(r.walletId);
-          if (!wallet) continue;
-          const entry: EntryView = {
-            id: r.id,
-            walletId: r.walletId,
-            type: r.type as PersonalEntryType,
-            amount: r.amount,
-            currency: wallet.currency,
-            categoryId: r.categoryId ?? null,
-            transferId: r.transferId ?? null,
-            counterpartWalletId: r.counterpartWalletId ?? null,
-            date: r.date,
-            time: r.time ?? null,
-            note: r.note ?? null,
-            tags: tagsByTx.get(r.id) ?? [],
-            excludeFromReports: Boolean(r.excludeFromReports),
-            source: 'manual',
-            beforeStart: isBeforeStart({ date: r.date }, { startDate: wallet.startDate }),
-            createdAt: r.createdAt,
-          };
-          rows.push({ kind: 'entry', entry });
-        }
+      for (const r of entryRows) {
+        const wallet = walletMap.get(r.walletId);
+        if (!wallet) continue;
+        const entry: EntryView = {
+          id: r.id,
+          walletId: r.walletId,
+          type: r.type as PersonalEntryType,
+          amount: r.amount,
+          currency: wallet.currency,
+          categoryId: r.categoryId ?? null,
+          transferId: r.transferId ?? null,
+          counterpartWalletId: r.counterpartWalletId ?? null,
+          date: r.date,
+          time: r.time ?? null,
+          note: r.note ?? null,
+          tags: tagsByTx.get(r.id) ?? [],
+          excludeFromReports: Boolean(r.excludeFromReports),
+          source: 'manual',
+          beforeStart: isBeforeStart({ date: r.date }, { startDate: wallet.startDate }),
+          createdAt: r.createdAt,
+        };
+        rows.push({ kind: 'entry', entry });
       }
     }
 
@@ -288,15 +271,23 @@ export function listRoutes(): Hono<AppBindings> {
         defaultWalletId,
         from,
         to,
-        q: qTerm,
       });
       rows.push(...personRows);
     }
 
-    rows.sort(compareListRows);
-    const totals = sumCounted(rows.map(toCountedRow));
+    const needle = qTerm !== undefined ? qTerm.toLocaleLowerCase('vi') : null;
+    const filteredRows =
+      needle !== null
+        ? rows.filter((row) => {
+            const text = row.kind === 'entry' ? row.entry.note : row.note;
+            return (text ?? '').toLocaleLowerCase('vi').includes(needle);
+          })
+        : rows;
 
-    return c.json<ListResponse>({ rows, totals }, 200);
+    filteredRows.sort(compareListRows);
+    const totals = sumCounted(filteredRows.map(toCountedRow));
+
+    return c.json<ListResponse>({ rows: filteredRows, totals }, 200);
   });
 
   app.get('/me/personal/summary', requirePersonal, async (c) => {

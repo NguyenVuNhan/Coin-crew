@@ -11,6 +11,7 @@ import {
   type WalletKind,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { todayLocal } from '@cc/web-util/localDate';
 import { useAddWallet, useUpdateWallet } from '@cc/web-data-access/personalMoney';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Button } from '@cc/web-ui/components/Button';
@@ -39,10 +40,6 @@ export const WALLET_ICON_IDS = [
 ] as const;
 
 const ZERO_TEXT_RE = /^(?:0+(?:[.,]0{1,2})?)?$/;
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function formatMinorInput(minor: number, currency: CurrencyCode): string {
   const abs = Math.abs(Math.trunc(minor));
@@ -85,7 +82,7 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
   const [amountText, setAmountText] = useState(() =>
     wallet ? formatMinorInput(wallet.startAmount, wallet.currency) : '',
   );
-  const [startDate, setStartDate] = useState(wallet?.startDate ?? todayIso());
+  const [startDate, setStartDate] = useState(wallet?.startDate ?? todayLocal());
   const [costVndText, setCostVndText] = useState(() =>
     wallet?.startCostVnd ? String(wallet.startCostVnd) : '',
   );
@@ -99,7 +96,7 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
       setCurrency(wallet?.currency ?? 'VND');
       setIsNegative(wallet ? wallet.startAmount < 0 : false);
       setAmountText(wallet ? formatMinorInput(wallet.startAmount, wallet.currency) : '');
-      setStartDate(wallet?.startDate ?? todayIso());
+      setStartDate(wallet?.startDate ?? todayLocal());
       setCostVndText(wallet?.startCostVnd ? String(wallet.startCostVnd) : '');
       setIcon(wallet?.icon ?? 'bg-avatar-5');
       addWallet.reset();
@@ -145,7 +142,8 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
     isAmountValid &&
     resolvedAmount !== null &&
     startDate.length === 10 &&
-    isCostVndValid;
+    isCostVndValid &&
+    (!showCostVnd || resolvedCostVnd !== null);
 
   const isPending = addWallet.isPending || updateWallet.isPending;
   const activeError = isEdit ? updateWallet.error : addWallet.error;

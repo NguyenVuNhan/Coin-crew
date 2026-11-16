@@ -10,6 +10,7 @@ import {
   type WalletDetailView,
 } from '@cc/core';
 import { getLang, useT } from '@cc/web-i18n';
+import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
 import {
   useCategories,
   usePersonalList,
@@ -36,9 +37,7 @@ import { TransactionDetailContent } from './TransactionDetail';
 
 type ViewMode = 'day' | 'category';
 
-function getCurrentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
-}
+const MIN_MONTH = '2000-01';
 
 function shiftMonth(ym: string, delta: number): string {
   const [yStr, mStr] = ym.split('-');
@@ -127,7 +126,8 @@ function rowKey(row: ListRow): string {
 }
 
 interface MonthBlockProps {
-  month: string;
+  month?: string;
+  range?: { from: string; to: string };
   filters: TransactionFilterValues;
   viewMode: ViewMode;
   wallets: WalletDetailView[];
@@ -136,10 +136,12 @@ interface MonthBlockProps {
   hasActiveFilters: boolean;
   onClearFilters(): void;
   onOpenEntry?: (entry: EntryView) => void;
+  onLoaded?: (month: string, isEmpty: boolean) => void;
 }
 
 function MonthBlock({
   month,
+  range,
   filters,
   viewMode,
   wallets,
@@ -148,11 +150,21 @@ function MonthBlock({
   hasActiveFilters,
   onClearFilters,
   onOpenEntry,
+  onLoaded,
 }: MonthBlockProps): JSX.Element | null {
   const t = useT();
   const lang = getLang();
-  const query: ListQuery = { ...filters, month };
+  const { from: _f, to: _t, ...restFilters } = filters;
+  const query: ListQuery = range
+    ? { ...restFilters, from: range.from, to: range.to }
+    : { ...restFilters, month };
   const listQuery = usePersonalList(query);
+
+  useEffect(() => {
+    if (month && listQuery.isSuccess && onLoaded) {
+      onLoaded(month, listQuery.data.rows.length === 0);
+    }
+  }, [month, listQuery.isSuccess, listQuery.data, onLoaded]);
 
   const grouped = useMemo(() => {
     const rows = listQuery.data?.rows ?? [];
@@ -254,8 +266,8 @@ function MonthBlock({
   }
 
   return (
-    <div className="fsl-tx-month flex flex-col gap-4" data-month={month}>
-      {!isPrimaryMonth && (
+    <div className="fsl-tx-month flex flex-col gap-4" data-month={month ?? 'range'}>
+      {!isPrimaryMonth && month && (
         <h2 className="m-0 px-1 text-sm font-semibold text-muted-foreground">
           {formatMonthLabel(month, lang)}
         </h2>
@@ -295,7 +307,7 @@ export function TransactionsScreen(): JSX.Element {
   const wide = useIsWide();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const selectedMonth = searchParams.get('month') || getCurrentMonth();
+  const selectedMonth = searchParams.get('month') || currentMonthLocal();
 
   const filters: TransactionFilterValues = useMemo(() => {
     const typeParam = searchParams.get('type');
@@ -330,14 +342,37 @@ export function TransactionsScreen(): JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [filterOpen, setFilterOpen] = useState(false);
   const [loadedMonths, setLoadedMonths] = useState<string[]>([selectedMonth]);
+  const [emptyMonths, setEmptyMonths] = useState<Record<string, boolean>>({});
   const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setLoadedMonths([selectedMonth]);
-  }, [selectedMonth]);
+  const hasDateRange = Boolean(filters.from || filters.to);
+  const resolvedTo = filters.to || todayLocal();
+  const resolvedFrom = filters.from || `${resolvedTo.slice(0, 7)}-01`;
 
   useEffect(() => {
+    setLoadedMonths([selectedMonth]);
+    setEmptyMonths({});
+  }, [selectedMonth, filters]);
+
+  const trailingEmpty = useMemo(() => {
+    let count = 0;
+    for (let i = loadedMonths.length - 1; i >= 0; i--) {
+      const m = loadedMonths[i]!;
+      if (emptyMonths[m] === true) count++;
+      else break;
+    }
+    return count;
+  }, [loadedMonths, emptyMonths]);
+
+  const lastLoadedMonth = loadedMonths[loadedMonths.length - 1] ?? selectedMonth;
+  const nextOlderMonth = shiftMonth(lastLoadedMonth, -1);
+  const canLoadOlder = !hasDateRange && nextOlderMonth >= MIN_MONTH;
+  const canAutoLoadOlder =
+    canLoadOlder && emptyMonths[lastLoadedMonth] !== undefined && trailingEmpty < 3;
+
+  useEffect(() => {
+    if (!canAutoLoadOlder) return;
     const el = sentinelRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(
@@ -346,7 +381,8 @@ export function TransactionsScreen(): JSX.Element {
           setLoadedMonths((prev) => {
             const last = prev[prev.length - 1] ?? selectedMonth;
             const older = shiftMonth(last, -1);
-            return prev.includes(older) ? prev : [...prev, older];
+            if (older < MIN_MONTH || prev.includes(older)) return prev;
+            return [...prev, older];
           });
         }
       },
@@ -354,7 +390,7 @@ export function TransactionsScreen(): JSX.Element {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [selectedMonth]);
+  }, [selectedMonth, canAutoLoadOlder]);
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
@@ -395,7 +431,8 @@ export function TransactionsScreen(): JSX.Element {
     setLoadedMonths((prev) => {
       const last = prev[prev.length - 1] ?? selectedMonth;
       const older = shiftMonth(last, -1);
-      return prev.includes(older) ? prev : [...prev, older];
+      if (older < MIN_MONTH || prev.includes(older)) return prev;
+      return [...prev, older];
     });
   };
 
@@ -472,32 +509,52 @@ export function TransactionsScreen(): JSX.Element {
         />
 
         <div className="flex flex-col gap-6">
-          {loadedMonths.map((month, idx) => (
+          {hasDateRange ? (
             <MonthBlock
-              key={month}
-              month={month}
+              key="range"
+              range={{ from: resolvedFrom, to: resolvedTo }}
               filters={filters}
               viewMode={viewMode}
               wallets={wallets}
               categories={categories}
-              isPrimaryMonth={idx === 0}
+              isPrimaryMonth
               hasActiveFilters={hasActiveFilters}
               onClearFilters={() => updateParams(selectedMonth, {})}
               onOpenEntry={wide ? (entry) => setSelectedEntry(entry) : undefined}
             />
-          ))}
+          ) : (
+            loadedMonths.map((month, idx) => (
+              <MonthBlock
+                key={month}
+                month={month}
+                filters={filters}
+                viewMode={viewMode}
+                wallets={wallets}
+                categories={categories}
+                isPrimaryMonth={idx === 0}
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={() => updateParams(selectedMonth, {})}
+                onOpenEntry={wide ? (entry) => setSelectedEntry(entry) : undefined}
+                onLoaded={(m, isEmpty) =>
+                  setEmptyMonths((prev) => (prev[m] === isEmpty ? prev : { ...prev, [m]: isEmpty }))
+                }
+              />
+            ))
+          )}
         </div>
 
-        <div ref={sentinelRef} className="flex justify-center pt-1">
-          <Button
-            type="button"
-            variant="ghost"
-            data-testid="tx-load-older"
-            onClick={handleLoadOlder}
-          >
-            {t('transactions.loadOlder')}
-          </Button>
-        </div>
+        {canLoadOlder && (
+          <div ref={sentinelRef} className="flex justify-center pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              data-testid="tx-load-older"
+              onClick={handleLoadOlder}
+            >
+              {t('transactions.loadOlder')}
+            </Button>
+          </div>
+        )}
       </div>
 
       <TransactionFilters

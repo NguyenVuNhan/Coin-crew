@@ -1,6 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { formatMoney } from '@cc/core';
+import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
@@ -39,7 +40,7 @@ export function WalletScreen(): JSX.Element {
   const categoriesQuery = useCategories();
   const wallet = walletsQuery.data?.wallets.find((w) => w.id === id);
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = currentMonthLocal();
   const listQuery = usePersonalList(
     { month: currentMonth, walletId: id },
     { enabled: Boolean(wallet && id) },

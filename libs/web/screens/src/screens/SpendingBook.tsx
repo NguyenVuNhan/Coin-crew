@@ -1,6 +1,7 @@
 import { useState, useEffect, type JSX } from 'react';
 import { Link } from 'react-router';
 import { formatVnd } from '@cc/core';
+import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import {
   useCategories,
@@ -38,7 +39,7 @@ function BookSummary(): JSX.Element {
   const wallets = useWalletDetails();
   const list = wallets.data?.wallets;
   const hasWallet = (list?.length ?? 0) > 0;
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = currentMonthLocal();
   const summary = usePersonalSummary(currentMonth, { enabled: hasWallet });
   const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
   const categoriesQuery = useCategories({ enabled: hasWallet });

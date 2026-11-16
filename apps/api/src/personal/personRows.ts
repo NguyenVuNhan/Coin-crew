@@ -1,20 +1,14 @@
-import { and, asc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import type { Db } from '@cc/api-db/client';
 import { participants, transactionShares, transactions } from '@cc/api-db/schema';
 import type { PersonRow } from '@cc/core';
 import { findLedger } from '../me/ledger';
-
-/** Escape `\`, `%`, `_` for SQLite `LIKE ... ESCAPE '\'`. */
-export function escapeLike(q: string): string {
-  return q.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-}
 
 export interface LoadPersonRowsParams {
   userId: string;
   defaultWalletId: string | null;
   from: string;
   to: string;
-  q?: string;
 }
 
 /**
@@ -35,11 +29,6 @@ export async function loadPersonRows(db: Db, params: LoadPersonRowsParams): Prom
     gte(transactions.spentOn, params.from),
     lte(transactions.spentOn, params.to),
   ];
-
-  if (params.q !== undefined && params.q.length > 0) {
-    const pattern = `%${escapeLike(params.q.toLowerCase())}%`;
-    conditions.push(sql`lower(${transactions.description}) LIKE ${pattern} ESCAPE '\\'`);
-  }
 
   const txRows = await db
     .select({

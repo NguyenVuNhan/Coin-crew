@@ -25,13 +25,24 @@ import { NativeSelect, NativeSelectOption } from '@cc/web-ui/components/ui/nativ
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
+import { categoryIconName } from '../components/categoryIcon';
 
 const CATEGORY_ICONS: readonly IconName[] = [
   'receipt',
+  'utensils',
+  'bus',
+  'shopping-bag',
+  'heart-pulse',
+  'trending-up',
+  'landmark',
+  'badge-percent',
+  'candlestick-chart',
+  'coins',
+  'pie-chart',
+  'gem',
   'wallet',
-  'bank',
-  'pie',
-  'piggyBank',
+  'piggy-bank',
+  'gift',
   'home',
   'users',
   'star',
@@ -43,38 +54,6 @@ const CATEGORY_ICONS: readonly IconName[] = [
   'smartphone',
   'palette',
 ];
-
-const KNOWN_ICON_MAP: Record<string, IconName> = {
-  home: 'home',
-  wallet: 'wallet',
-  receipt: 'receipt',
-  bank: 'bank',
-  landmark: 'bank',
-  pie: 'pie',
-  'pie-chart': 'pie',
-  piggyBank: 'piggyBank',
-  'piggy-bank': 'piggyBank',
-  users: 'users',
-  user: 'user',
-  calendar: 'calendar',
-  clock: 'clock',
-  star: 'star',
-  crown: 'crown',
-  trophy: 'trophy',
-  shield: 'shield',
-  swap: 'swap',
-  camera: 'camera',
-  smartphone: 'smartphone',
-  settings: 'settings',
-  map: 'map',
-  suitcase: 'suitcase',
-  bell: 'bell',
-  palette: 'palette',
-};
-
-function resolveCategoryIcon(icon: string, type: 'expense' | 'income'): IconName {
-  return KNOWN_ICON_MAP[icon] ?? (type === 'income' ? 'wallet' : 'receipt');
-}
 
 interface CategoryFormSheetProps {
   open: boolean;
@@ -97,7 +76,7 @@ function CategoryFormSheet({
 
   const [name, setName] = useState(editing?.name ?? '');
   const [icon, setIcon] = useState<IconName>(
-    editing ? resolveCategoryIcon(editing.icon, editing.type) : type === 'income' ? 'wallet' : 'receipt',
+    editing ? categoryIconName(editing.icon, editing.type) : type === 'income' ? 'wallet' : 'receipt',
   );
   const [parentId, setParentId] = useState<string>(editing?.parentId ?? '');
 
@@ -340,7 +319,7 @@ export function CategoriesScreen(): JSX.Element {
           actions={actions}
           leading={
             <div className="size-9 rounded-lg bg-muted grid place-items-center shrink-0 text-foreground">
-              <Icon name={resolveCategoryIcon(cat.icon, cat.type)} size={18} />
+              <Icon name={categoryIconName(cat.icon, cat.type)} size={18} />
             </div>
           }
           trailing={cat.hidden ? <Pill tone="neutral">{t('categories.hiddenBadge')}</Pill> : undefined}

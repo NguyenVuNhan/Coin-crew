@@ -316,7 +316,8 @@ export function entryRoutes(): Hono<AppBindings> {
         throw new ApiError('VALIDATION', 422, 'Invalid amount');
       }
 
-      await requireCategory(db, user.id, input.categoryId, input.type, false);
+      const allowHidden = false;
+      await requireCategory(db, user.id, input.categoryId, input.type, allowHidden);
 
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
       const txId = newId();
@@ -480,6 +481,7 @@ export function entryRoutes(): Hono<AppBindings> {
       .select({
         id: personalTransactions.id,
         type: personalTransactions.type,
+        categoryId: personalTransactions.categoryId,
         transferId: personalTransactions.transferId,
         createdAt: personalTransactions.createdAt,
       })
@@ -505,7 +507,8 @@ export function entryRoutes(): Hono<AppBindings> {
         throw new ApiError('VALIDATION', 422, 'Invalid amount');
       }
 
-      await requireCategory(db, user.id, input.categoryId, input.type, false);
+      const allowHidden = target.categoryId === input.categoryId;
+      await requireCategory(db, user.id, input.categoryId, input.type, allowHidden);
 
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
 

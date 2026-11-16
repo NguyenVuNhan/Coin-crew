@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { CurrencyCode, WalletDetailView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useMe } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import {
@@ -128,7 +129,7 @@ export function WalletsScreen(): JSX.Element {
   const walletsQuery = useWalletDetails();
   const list = walletsQuery.data?.wallets ?? [];
   const hasAny = list.length > 0;
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = currentMonthLocal();
   const summary = usePersonalSummary(currentMonth, { enabled: hasAny });
   const reorder = useReorderWallets();
 
