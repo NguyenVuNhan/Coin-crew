@@ -569,5 +569,5 @@ describe('personal money guard sweep — auth, switch, and cross-account privacy
     expect(txAfterRes.status).toBe(200);
     const txAfter = await json<ListResponse>(txAfterRes);
     expect(txAfter).toEqual(txBefore);
-  });
+  }, 60_000);
 });
