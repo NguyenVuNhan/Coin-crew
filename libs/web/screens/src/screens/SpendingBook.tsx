@@ -2,7 +2,7 @@ import { useState, useEffect, type JSX } from 'react';
 import { Link } from 'react-router';
 import { formatVnd } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { useWallets } from '@cc/web-data-access/personal';
+import { usePersonalSummary, useWalletDetails } from '@cc/web-data-access/personalMoney';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Button } from '@cc/web-ui/components/Button';
 import { Card } from '@cc/web-ui/components/ui/card';
@@ -14,6 +14,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Home } from './Home';
 import { usePeopleTotals } from '../components/PeopleSummary';
 import { FirstWalletSheet } from '../components/FirstWalletSheet';
+import { WalletPie } from '../components/WalletPie';
 
 function BookSummary(): JSX.Element {
   const t = useT();
@@ -27,9 +28,11 @@ function BookSummary(): JSX.Element {
     refetch,
   } = usePeopleTotals();
 
-  const wallets = useWallets();
+  const wallets = useWalletDetails();
   const list = wallets.data?.wallets;
   const hasWallet = (list?.length ?? 0) > 0;
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const summary = usePersonalSummary(currentMonth, { enabled: hasWallet });
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -45,8 +48,18 @@ function BookSummary(): JSX.Element {
     setDismissed(true);
   };
 
-  const total = list ? list.reduce((sum, w) => sum + w.balance, 0) : 0;
-  const walletNames = list ? list.map((w) => w.name).join(', ') : '';
+  const activeWallets = list ? list.filter((w) => !w.archived) : [];
+  const fallbackTotal = activeWallets.reduce(
+    (sum, w) => sum + (w.vndValue !== undefined ? (w.vndValue ?? 0) : w.currency === 'VND' ? w.balance : 0),
+    0,
+  );
+  const totalVnd = summary.data ? summary.data.totalVnd : fallbackTotal;
+  const approximate = summary.data ? summary.data.approximate : false;
+  const pieSlices = activeWallets.map((w) => ({
+    id: w.id,
+    name: w.name,
+    vndValue: w.vndValue !== undefined ? (w.vndValue ?? 0) : w.currency === 'VND' ? w.balance : 0,
+  }));
 
   // Read out as one sentence, with each amount next to what it means.
   const owedLine = `${t('book.peopleOwe')}: ${formatVnd(sumPositive)}`;
@@ -64,13 +77,21 @@ function BookSummary(): JSX.Element {
           data-testid="book-total"
           className="fsl-book__total rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-1 w-full text-card-foreground"
         >
-          <p className="fsl-book__total-label m-0 text-sm font-medium text-muted-foreground">
-            {t('book.total')}
-          </p>
-          <Amount value={total} tone="neutral" size="xl" />
-          <p className="fsl-book__total-wallets m-0 text-sm text-muted-foreground">
-            {walletNames}
-          </p>
+          <div className="flex items-center justify-between w-full gap-2">
+            <p className="fsl-book__total-label m-0 text-sm font-medium text-muted-foreground">
+              {t('book.total')}
+            </p>
+            <Link
+              to="/wallets"
+              data-testid="book-wallets-link"
+              className="fsl-book__wallets-link inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
+            >
+              <span>{t('wallets.viewAll')}</span>
+              <Icon name="chevronRight" size={16} />
+            </Link>
+          </div>
+          <Amount value={totalVnd} approximate={approximate} tone="neutral" size="xl" />
+          <WalletPie slices={pieSlices} />
         </Card>
       ) : (
         <div data-testid="book-empty" className="fsl-book__empty">

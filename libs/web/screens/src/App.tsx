@@ -1,9 +1,12 @@
 import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router';
+import type { ReactNode } from 'react';
 import { useMe, usePersonalArea } from '@cc/web-data-access/hooks';
 import { Placeholder } from './screens/Placeholder';
 import { Landing } from './screens/Landing';
 import { MainScreen } from './screens/SpendingBook';
 import { PeopleOwed } from './screens/PeopleOwed';
+import { WalletsScreen } from './screens/WalletsScreen';
+import { WalletScreen } from './screens/WalletScreen';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
 import { PersonScreen } from './screens/PersonScreen';
@@ -39,12 +42,12 @@ function TripsRoute() {
   return <MainScreen book={personalArea} />;
 }
 
-function PeopleRoute() {
+function PersonalRoute({ children }: { children: ReactNode }) {
   const personalArea = usePersonalArea();
   const me = useMe();
   // On a phone with no remembered setting, wait for the server's answer before sending anyone away.
   if (!personalArea && me.isPending) return null;
-  return personalArea ? <PeopleOwed /> : <Navigate to="/trips" replace />;
+  return personalArea ? <>{children}</> : <Navigate to="/trips" replace />;
 }
 
 /** A trip's pages, mounted under `/t/:tripId` (members) and `/j/:token` (guests and view-only links). */
@@ -84,7 +87,9 @@ export function App() {
       <Route path="/groups" element={<Groups />} />
       <Route path="/activity" element={<MyActivity />} />
       <Route path="/trips/new" element={<CreateTrip />} />
-      <Route path="/people" element={<PeopleRoute />} />
+      <Route path="/people" element={<PersonalRoute><PeopleOwed /></PersonalRoute>} />
+      <Route path="/wallets" element={<PersonalRoute><WalletsScreen /></PersonalRoute>} />
+      <Route path="/wallets/:id" element={<PersonalRoute><WalletScreen /></PersonalRoute>} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />

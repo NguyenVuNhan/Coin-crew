@@ -1287,4 +1287,49 @@ export const vi: Record<MessageKey, string> = {
   'awards.story.next': 'Thẻ tiếp theo', // REVIEW
   'awards.story.pause': 'Tạm dừng', // REVIEW
   'awards.story.resume': 'Tiếp tục', // REVIEW
+
+  'wallets.title': 'Ví', // REVIEW
+  'wallets.whereMoneyIs': 'Tiền đang ở đâu', // REVIEW
+  'wallets.viewAll': 'Ví', // REVIEW
+  'wallets.add': 'Thêm ví', // REVIEW
+  'wallets.everyday': 'Hằng ngày', // REVIEW
+  'wallets.investment': 'Đầu tư', // REVIEW
+  'wallets.archived': 'Đã lưu trữ', // REVIEW
+  'wallets.other': 'Khác', // REVIEW
+  'wallets.defaultBadge': 'Mặc định', // REVIEW
+  'wallets.noRate': 'chưa có tỷ giá', // REVIEW
+  'wallets.emptyTitle': 'Chưa có ví nào', // REVIEW
+  'wallets.emptyBody': 'Tạo ví đầu tiên để bắt đầu theo dõi số dư.', // REVIEW
+  'wallets.moveUp': 'Lên', // REVIEW
+  'wallets.moveDown': 'Xuống', // REVIEW
+  'wallets.reorder': 'Đổi thứ tự', // REVIEW
+  'wallets.done': 'Xong', // REVIEW
+  'wallet.notFound': 'Không tìm thấy ví', // REVIEW
+  'wallet.startDate': 'Bắt đầu từ {date}', // REVIEW
+  'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
+  'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
+  'wallet.seeAll': 'Xem tất cả', // REVIEW
+  'wallet.noEntries': 'Chưa có giao dịch trong tháng này', // REVIEW
+  'wallet.beforeStart': 'Trước ngày bắt đầu ví', // REVIEW
+  'wallet.actions': 'Tùy chọn ví', // REVIEW
+  'wallet.edit': 'Sửa ví', // REVIEW
+  'wallet.makeDefault': 'Đặt làm mặc định', // REVIEW
+  'wallet.archive': 'Lưu trữ', // REVIEW
+  'wallet.restore': 'Khôi phục', // REVIEW
+  'wallet.delete': 'Xóa ví', // REVIEW
+  'wallet.deleteConfirmTitle': 'Xóa ví?', // REVIEW
+  'wallet.deleteConfirmBody': 'Ví "{name}" chưa có giao dịch nào và sẽ bị xóa vĩnh viễn.', // REVIEW
+  'walletForm.newTitle': 'Thêm ví mới', // REVIEW
+  'walletForm.editTitle': 'Sửa ví', // REVIEW
+  'walletForm.name': 'Tên ví', // REVIEW
+  'walletForm.kind': 'Loại ví', // REVIEW
+  'walletForm.currency': 'Tiền tệ', // REVIEW
+  'walletForm.startAmount': 'Số dư ban đầu', // REVIEW
+  'walletForm.negativeToggle': 'Số âm', // REVIEW
+  'walletForm.startDate': 'Ngày bắt đầu', // REVIEW
+  'walletForm.startCostVnd': 'Giá trị quy đổi (VND)', // REVIEW
+  'walletForm.startCostVndHint': 'Để trống nếu chưa biết tỷ giá.', // REVIEW
+  'walletForm.icon': 'Màu biểu tượng', // REVIEW
+  'walletForm.save': 'Lưu', // REVIEW
+  'walletForm.lockedHint': 'Không thể đổi loại ví và tiền tệ khi đã có giao dịch.', // REVIEW
 };

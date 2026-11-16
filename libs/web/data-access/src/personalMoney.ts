@@ -11,6 +11,7 @@ import type {
   TagView,
   UpdateWalletInput,
   WalletDetailResponse,
+  WalletDetailsResponse,
 } from '@cc/core';
 import { apiFetch, apiSend, type ApiClientError } from './client';
 import { WALLETS_KEY } from './personal';
@@ -114,6 +115,14 @@ export function buildListQueryString(query: ListQuery): string {
   }
   const qs = params.toString();
   return qs ? `?${qs}` : '';
+}
+
+export function useWalletDetails(opts?: { enabled?: boolean }) {
+  return useQuery<WalletDetailsResponse, ApiClientError>({
+    queryKey: WALLETS_KEY,
+    queryFn: () => apiFetch<WalletDetailsResponse>('/api/me/personal/wallets'),
+    enabled: opts?.enabled ?? true,
+  });
 }
 
 export function useAddWallet() {
