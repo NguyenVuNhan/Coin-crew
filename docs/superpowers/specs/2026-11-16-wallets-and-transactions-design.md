@@ -156,3 +156,18 @@ The owner approved this brief and asked to review the finished build instead of 
 | U7 | The wallet pie stays on the overview only (no amounts there); the wallets page shows the ≈ VND total, per-currency lines, everyday and investment groups, archived collapsed. | my call |
 | U8 | Delete is on the transaction's detail page, behind a confirmation, then a 5-second "Hoàn tác" snackbar. | my call |
 | U9 | Settings behind the gear: Ví, Nhóm chi tiêu (Chi / Thu tabs, subs indented), Thẻ; rows use `ActionRow` swipe actions. | my call |
+
+## 14. Addendum, 2026-11-17: the owner's review of the built screens
+
+The owner tested the build on the tunnel and asked for these changes. All are **owner** decisions; they overrule the matching lines of §6 and §13.
+
+| # | Decision |
+|---|---|
+| R1 | The entry page's tabs are **Chi / Thu / Vay-Nợ**. Vay-Nợ opens today's "with a person" quick-expense form unchanged. The "+" menu lists Khoản chi, Khoản thu, Vay/Nợ (the last opens that same form); "Với người khác" and the separate "Chuyển tiền" item go. |
+| R2 | **A transfer is a category tile inside Chi / Thu** ("Chuyển sang ví" in Chi, "Nhận từ ví" in Thu). Picking it shows the other wallet and, when currencies differ, the second amount; saving writes the transfer pair as before (both sides excluded from reports by default, W6). There is no separate transfer header or tab. Editing a transfer opens Chi with that tile selected. |
+| R3 | **No signs:** the amount shows no "−" / "+"; expense is always money out and income money in. The keypad loses its − and + keys (no bill arithmetic). |
+| R4 | **The keypad shows only while the amount is focused**: it opens for a new entry, stays closed when editing, and closes when the person taps elsewhere. |
+| R5 | **One date+time picker** ("Ngày") that starts at now; the person usually changes only the day. The separate "Giờ" row goes. |
+| R6 | **Tags leave the entry form.** The list's tag filter and the tags settings stay; an edit keeps an entry's existing tags. |
+| R7 | The wallet form loses the "Số âm" button: the person types "−" in the starting amount. |
+| R8 | The category icon choice becomes a searchable icon grid in a sheet (the list will grow); the parent choice becomes a picker that previews each category's icon and name. |
