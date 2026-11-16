@@ -140,3 +140,19 @@ Phones first at 375px, Vietnamese first and English second, new Vietnamese lines
 ## 12. Left to the builder
 
 File layout inside the libraries named in `CLAUDE.md`; route and type names (avoid "ledger", rule 10); exact SQL of the sums; component structure; icon choices for the starter categories; English copy.
+
+## 13. Addendum, 2026-11-16: the screens (shaped with the owner)
+
+The owner approved this brief and asked to review the finished build instead of a mockup. Decisions marked **owner** were chosen in the shaping round.
+
+| # | Decision | By |
+|---|---|---|
+| U1 | **Entry is a full-screen page**, not a sheet: back arrow, Rice Paper header with a "Chi / Thu / Chuyển tiền" switch; closing returns to where the person was, with a snackbar and the new row visible. This overrules "the matching form" being a sheet and the plan's `EntrySheet` / `TransferSheet`. | owner |
+| U2 | **Category tiles, recent first:** the six most used categories as icon tiles under the amount, plus "Khác" opening the full list with sub-categories. | owner |
+| U3 | **An in-app keypad** (new `AmountKeypad` in `libs/web/ui`): 7 8 9 ⌫ / 4 5 6 − / 1 2 3 + / 000 0 , ✓, docked at the bottom; + and − add up a bill and ✓ works the result out. The system keyboard never opens for the amount. | owner |
+| U4 | **Amount suggestions:** while typing, chips above the keypad offer the typed digits scaled up: `85` → `85.000₫`, `850.000₫`, `8.500.000₫` for VND; `85,00`, `850,00` for USD/USDT. Tapping one sets the amount. | owner ("suggestion on the amount"); the scaling is my reading |
+| U5 | The amount is the loudest thing on the entry page (display size, tabular). Wallet, date and note are compact rows; tags and time sit under "Thêm chi tiết" (REVIEW). | my call |
+| U6 | Transfer is the same page on "Chuyển tiền": Từ ví → Đến ví, amount sent; "Số nhận được" appears only when the currencies differ, with the implied rate in a muted line. | my call |
+| U7 | The wallet pie stays on the overview only (no amounts there); the wallets page shows the ≈ VND total, per-currency lines, everyday and investment groups, archived collapsed. | my call |
+| U8 | Delete is on the transaction's detail page, behind a confirmation, then a 5-second "Hoàn tác" snackbar. | my call |
+| U9 | Settings behind the gear: Ví, Nhóm chi tiêu (Chi / Thu tabs, subs indented), Thẻ; rows use `ActionRow` swipe actions. | my call |
