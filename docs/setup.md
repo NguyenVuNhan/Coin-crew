@@ -53,9 +53,10 @@ The Zalo buttons stay hidden until both secrets exist, so you can deploy first a
 1. Create an app at [developers.zalo.me](https://developers.zalo.me/) and enable Social API / "Đăng nhập với Zalo".
 2. Verify each domain with the **meta tag** method ("Thêm thẻ meta vào trang chủ"). The tag is `zalo-platform-site-verification` in `apps/web/index.html`. Zalo's verifier file (`apps/web/public/zalo_verifier….html`) is there too as a backup, but Cloudflare answers its `.html` address with a 307 to the same path without `.html`, so that method passes only if Zalo follows the redirect. Its token belongs to the Zalo app, so the same tag verifies every domain the site runs on. Keep it after verification. A `*.workers.dev` domain cannot take a DNS TXT record, and Zalo reads the tag from `https://<domain>/`, so a domain verifies only once a build with the tag is live there:
    - `coincrew.nvnlab.workers.dev`: after a deploy that contains the tag.
-   - `sawfish-dear-heron.ngrok-free.app`: while `npm run tunnel` runs.
+   - `coincrew-dev.<name>.diskstation.me` (your `TUNNEL_ORIGIN`, see 3.1): while `npm run tunnel` runs.
+   - `sawfish-dear-heron.ngrok-free.app`: while `npm run tunnel:ngrok` runs.
    - `localhost`: Zalo cannot reach it, so it cannot be verified. Test Zalo sign-in on your machine through the tunnel.
-3. Register the callback URL `<APP_ORIGIN>/api/auth/zalo/callback` for each verified domain, for example `https://coincrew.nvnlab.workers.dev/api/auth/zalo/callback` and `https://sawfish-dear-heron.ngrok-free.app/api/auth/zalo/callback`.
+3. Register the callback URL `<APP_ORIGIN>/api/auth/zalo/callback` for each verified domain, for example `https://coincrew.nvnlab.workers.dev/api/auth/zalo/callback`, `https://coincrew-dev.<name>.diskstation.me/api/auth/zalo/callback` and `https://sawfish-dear-heron.ngrok-free.app/api/auth/zalo/callback`.
 4. Activate the app for public use. In development mode only the app's admins and testers can sign in.
 5. Run `wrangler secret put ZALO_APP_ID` and `wrangler secret put ZALO_APP_SECRET` for the live app, and add `ZALO_APP_ID` and `ZALO_APP_SECRET` to `apps/api/.dev.vars` for your machine (the tunnel uses them too; restart `npm run tunnel` after adding them).
 
@@ -120,6 +121,27 @@ npm run e2e
 ```
 
 `npm test` runs the core, API (inside the Workers runtime with a local D1) and web suites. `npm run e2e` builds the app, starts `wrangler dev` with a fresh database and a test-only sign-in shortcut, and walks the golden path in Chrome at 375×812.
+
+### 3.1 Reach your machine from a phone or Zalo (tunnel)
+
+`npm run tunnel` builds the web app and serves your local Worker at a public HTTPS address, so phones and Zalo's servers can reach it. It goes through the DSM from 2.2: the DSM's reverse proxy forwards a hostname to this machine on the home network. No usage limits, and the address never changes. Away from home, `npm run tunnel:ngrok` does the same through ngrok's free domain `sawfish-dear-heron.ngrok-free.app` (monthly limits apply).
+
+One-time setup for the DSM route (this machine and the DSM on the same network):
+
+1. In the router, give this machine a fixed LAN IP (DHCP reservation).
+2. Windows Firewall: allow inbound TCP 8787 from the DSM's IP only. In an admin PowerShell: `New-NetFirewallRule -DisplayName "CoinCrew tunnel (DSM)" -Direction Inbound -Protocol TCP -LocalPort 8787 -RemoteAddress <DSM IP> -Action Allow`.
+3. DSM reverse proxy: **Control Panel → Login Portal → Advanced → Reverse Proxy → Create**. Source: HTTPS, hostname `coincrew-dev.<name>.diskstation.me`, port 443. Destination: HTTP, `<this machine's LAN IP>`, port 8787. Under **Custom Header → Create → WebSocket**. Then assign the certificate to the entry (**Control Panel → Security → Certificate → Settings**); the `*.<name>.diskstation.me` wildcard covers it, otherwise add the hostname as a SAN.
+4. Create `.env.tunnel.local` in the repo root (git-ignored; `npm run setup` copies it into new worktrees):
+
+   ```
+   TUNNEL_ORIGIN=https://coincrew-dev.<name>.diskstation.me
+   ```
+
+5. For the Zalo Mini App testing build, create `apps/zalo/.env.tunnel.local` with `VITE_API_ORIGIN=<the same address>`, then `npm run deploy:tunnel -w @cc/zalo`. Zalo has one testing slot: after switching to the ngrok fallback, delete or rename that file and deploy again.
+6. Verify the domain and register its callback with Zalo (2.1). If you sign in with Google through the tunnel, add `<TUNNEL_ORIGIN>/api/auth/google/callback` to the OAuth client's redirect URIs (2).
+7. Check: run `npm run tunnel` and open the address from a phone on mobile data. While the tunnel is off, the address shows the DSM's 502 page.
+
+The DSM route makes `wrangler dev` listen on all interfaces (`--ip 0.0.0.0`), so the firewall rule in step 2 is what keeps it off the rest of the network.
 
 ## 4. Deploy to Cloudflare
 

@@ -13,7 +13,8 @@
     "lint": "nx run-many -t lint",
     "dev": "concurrently --kill-others \"npm run dev -w @cc/web\" \"npm run dev -w @cc/api\"",
     "e2e": "npm run build -w @cc/web && playwright test",
-    "tunnel": "npm run build -w @cc/web && concurrently --kill-others \"npm run dev -w @cc/web\" \"npm run dev -w @cc/api -- --var APP_ORIGIN:https://sawfish-dear-heron.ngrok-free.app\" \"ngrok http 8787 --url https://sawfish-dear-heron.ngrok-free.app\""
+    "tunnel": "node scripts/tunnel.mjs",
+    "tunnel:ngrok": "node scripts/tunnel.mjs ngrok"
   },
   "devDependencies": {
     "@nx/eslint": "24.0.3",

@@ -9,6 +9,8 @@ export const DEFAULT_ENV_FILES = [
   'apps/zalo-relay/.env',
   'apps/zalo/.env',
   'apps/zalo/.env.production',
+  'apps/zalo/.env.tunnel.local',
+  '.env.tunnel.local',
   '.claude/settings.local.json',
   '.impeccable/config.local.json',
 ];
