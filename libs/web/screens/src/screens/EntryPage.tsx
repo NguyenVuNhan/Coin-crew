@@ -30,7 +30,7 @@ import { AmountSuggestionChips } from '@cc/web-ui/components/AmountKeypad';
 import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
-import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
+import { InlineError, errorText, ownError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
@@ -40,7 +40,7 @@ import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { EntryDateRow } from '../components/EntryDateRow';
-import { DockedAmountKeypad } from '../components/AmountKeypadDock';
+import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
@@ -256,11 +256,15 @@ export function EntryPage(): JSX.Element {
   const [initializedId, setInitializedId] = useState<string | null>(null);
   const [counterpartAppliedId, setCounterpartAppliedId] = useState<string | null>(null);
   const [walletDefaultsApplied, setWalletDefaultsApplied] = useState(false);
+  const [keypadFocusToken, setKeypadFocusToken] = useState(0);
 
   const amountAreaRef = useRef<HTMLDivElement>(null);
   const categoryGridRef = useRef<HTMLDivElement>(null);
   const categoryRingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const primaryButtonRef = useRef<HTMLButtonElement>(null);
+  const secondaryButtonRef = useRef<HTMLButtonElement>(null);
+  const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
 
   useEffect(() => {
     return () => {
@@ -397,7 +401,10 @@ export function EntryPage(): JSX.Element {
       ? secondaryExpr
       : primaryExpr;
 
+  const spokenAmountRef = useRef('');
+
   const setActiveExpr = (next: string) => {
+    announceSoon(() => spokenAmountRef.current);
     setValidationError(null);
     if (isTransferMode && activeTransferField === 'secondary' && isDiffCurrencyTransfer) {
       setSecondaryExpr(next);
@@ -422,6 +429,34 @@ export function EntryPage(): JSX.Element {
       ? secondaryMinor
       : primaryMinor
     : null;
+
+  const amountLabelFor = (expr: string, cur: CurrencyCode, evaluated: number | null): string =>
+    evaluated !== null
+      ? formatMoney(evaluated, cur)
+      : expr || t('personalEntry.amountNotEntered');
+
+  const primaryAmountText = amountLabelFor(primaryExpr, primaryCurrency, primaryMinor);
+  const secondaryAmountText = amountLabelFor(secondaryExpr, secondaryCurrency, secondaryMinor);
+  const secondaryLabel = entryType === 'expense' ? t('personalEntry.amountReceived') : t('personalEntry.amountSent');
+  const activeIsSecondary =
+    isTransferMode && activeTransferField === 'secondary' && isDiffCurrencyTransfer;
+  spokenAmountRef.current = activeIsSecondary
+    ? `${secondaryLabel}: ${secondaryAmountText}`
+    : t('personalEntry.amountLabel', { amount: primaryAmountText });
+
+  useEffect(() => {
+    if (smallAmountConfirm) {
+      announce(
+        `${t('personalEntry.smallAmountTitle')} ${t('personalEntry.smallAmountBody', {
+          amount: formatMoney(smallAmountConfirm.minor, 'VND'),
+        })}`,
+      );
+    }
+  }, [smallAmountConfirm]);
+
+  useEffect(() => {
+    if (validationError !== null) announce(errorText(validationError, t));
+  }, [validationError]);
 
   const clearCategoryError = () => {
     setCategoryError(false);
@@ -819,6 +854,7 @@ export function EntryPage(): JSX.Element {
         )
       ) : (
         <>
+          {liveRegion}
           <main className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}>
         {isLoading ? (
           <SkeletonList rows={4} />
@@ -853,11 +889,14 @@ export function EntryPage(): JSX.Element {
             <div ref={amountAreaRef} className="flex flex-col gap-2">
               <button
                 type="button"
+                ref={primaryButtonRef}
                 data-testid="amount-display"
+                aria-label={t('personalEntry.amountLabel', { amount: primaryAmountText })}
                 aria-expanded={keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary')}
                 onClick={() => {
                   setActiveTransferField('primary');
                   setKeypadOpen(true);
+                  setKeypadFocusToken((n) => n + 1);
                 }}
                 className={cn(
                   'w-full rounded-xl bg-card border border-border px-4 py-3 flex flex-col items-end justify-center min-h-16 cursor-pointer text-right',
@@ -886,22 +925,21 @@ export function EntryPage(): JSX.Element {
               {isDiffCurrencyTransfer && (
                 <button
                   type="button"
+                  ref={secondaryButtonRef}
                   data-testid={entryType === 'expense' ? 'amount-received-box' : 'amount-sent-box'}
+                  aria-label={`${secondaryLabel}: ${secondaryAmountText}`}
                   aria-expanded={keypadOpen && activeTransferField === 'secondary'}
                   onClick={() => {
                     setActiveTransferField('secondary');
                     setKeypadOpen(true);
+                    setKeypadFocusToken((n) => n + 1);
                   }}
                   className={cn(
                     'w-full rounded-xl bg-card border border-border px-4 py-3 flex items-center justify-between text-left cursor-pointer',
                     keypadOpen && activeTransferField === 'secondary' && 'ring-2 ring-primary',
                   )}
                 >
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {entryType === 'expense'
-                      ? t('personalEntry.amountReceived')
-                      : t('personalEntry.amountSent')}
-                  </span>
+                  <span className="text-sm font-medium text-muted-foreground">{secondaryLabel}</span>
                   <div className="flex flex-col items-end">
                     {renderAmountValue(secondaryExpr, secondaryCurrency, secondaryMinor, 'neutral')}
                   </div>
@@ -1048,12 +1086,18 @@ export function EntryPage(): JSX.Element {
           <DockedAmountKeypad
             open={keypadOpen}
             onClose={() => setKeypadOpen(false)}
+            onEscape={() => {
+              (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
+              setKeypadOpen(false);
+            }}
+            focusToken={keypadFocusToken}
+            tabOutRef={categoryGridRef}
             amountAreaRef={amountAreaRef}
             value={activeExpr}
             currency={activeCurrency}
             onChange={setActiveExpr}
             onDone={(minor) => void handleSave(minor)}
-            doneLabel={t('personalEntry.save')}
+            doneLabel={t('personalEntry.saveEntry')}
             deleteLabel={t('personalEntry.deleteDigit')}
             disabled={isSaving || hasArchivedWallet}
           />

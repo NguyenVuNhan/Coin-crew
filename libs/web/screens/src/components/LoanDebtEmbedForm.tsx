@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type JSX, type SetStateAction } from 'react';
 import { formatMoney, type PersonView, type SplitMode, type SplitResult } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
@@ -8,14 +8,14 @@ import { Avatar } from '@cc/web-ui/components/Avatar';
 import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
-import { InlineError } from '@cc/web-ui/components/InlineError';
+import { InlineError, errorText } from '@cc/web-ui/components/InlineError';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
 import type { RecentGroup } from '@cc/web-util/recentGroups';
-import { DockedAmountKeypad } from './AmountKeypadDock';
+import { DockedAmountKeypad, useLiveAnnouncer } from './AmountKeypadDock';
 import { EntryDateRow } from './EntryDateRow';
 import { SmallAmountModal } from './SmallAmountModal';
 import { SplitModePicker } from './SplitModePicker';
@@ -131,6 +131,29 @@ export function LoanDebtEmbedForm({
 }: LoanDebtEmbedFormProps): JSX.Element {
   const t = useT();
   const amountAreaRef = useRef<HTMLDivElement>(null);
+  const amountButtonRef = useRef<HTMLButtonElement>(null);
+  const whoBlockRef = useRef<HTMLDivElement>(null);
+  const [keypadFocusToken, setKeypadFocusToken] = useState(0);
+  const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
+  const amountText =
+    evaluatedMinor !== null ? formatMoney(evaluatedMinor, 'VND') : amountExpr || t('personalEntry.amountNotEntered');
+  const amountLabel = t('personalEntry.amountLabel', { amount: amountText });
+  const spokenAmountRef = useRef('');
+  spokenAmountRef.current = amountLabel;
+
+  useEffect(() => {
+    if (smallAmountMinor !== null) {
+      announce(
+        `${t('personalEntry.smallAmountTitle')} ${t('personalEntry.smallAmountBody', {
+          amount: formatMoney(smallAmountMinor, 'VND'),
+        })}`,
+      );
+    }
+  }, [smallAmountMinor]);
+
+  useEffect(() => {
+    if (submitError) announce(errorText(formatSubmitError(submitError), t));
+  }, [submitError]);
   const [payerSheetOpen, setPayerSheetOpen] = useState(false);
   const [splitExpanded, setSplitExpanded] = useState(false);
 
@@ -150,6 +173,7 @@ export function LoanDebtEmbedForm({
 
   return (
     <>
+      {liveRegion}
       <main
         className={cn(
           'flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4',
@@ -161,13 +185,13 @@ export function LoanDebtEmbedForm({
           <button
             type="button"
             data-testid="amount-display"
-            aria-label={`${t('expenseForm.amount')}: ${
-              evaluatedMinor !== null
-                ? formatMoney(evaluatedMinor, 'VND')
-                : amountExpr || formatMoney(0, 'VND')
-            }`}
+            ref={amountButtonRef}
+            aria-label={amountLabel}
             aria-expanded={keypadOpen}
-            onClick={() => onKeypadOpenChange(true)}
+            onClick={() => {
+              onKeypadOpenChange(true);
+              setKeypadFocusToken((n) => n + 1);
+            }}
             className={cn(
               'w-full rounded-xl bg-card px-4 py-3 flex flex-col items-end justify-center min-h-16 cursor-pointer text-right border-0',
               keypadOpen && 'ring-2 ring-primary',
@@ -195,7 +219,7 @@ export function LoanDebtEmbedForm({
         </div>
 
         {/* 2. Who block */}
-        <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+        <div ref={whoBlockRef} className="rounded-xl bg-card divide-y divide-border overflow-hidden">
           <button
             type="button"
             data-testid="loan-debt-with-row"
@@ -392,9 +416,18 @@ export function LoanDebtEmbedForm({
           amountAreaRef={amountAreaRef}
           value={amountExpr}
           currency="VND"
-          onChange={onAmountExprChange}
+          onChange={(next) => {
+            announceSoon(() => spokenAmountRef.current);
+            onAmountExprChange(next);
+          }}
+          onEscape={() => {
+            amountButtonRef.current?.focus();
+            onKeypadOpenChange(false);
+          }}
+          focusToken={keypadFocusToken}
+          tabOutRef={whoBlockRef}
           onDone={onKeypadDone}
-          doneLabel={t('personalEntry.save')}
+          doneLabel={t('personalEntry.saveEntry')}
           deleteLabel={t('personalEntry.deleteDigit')}
           disabled={isSubmitting}
         />

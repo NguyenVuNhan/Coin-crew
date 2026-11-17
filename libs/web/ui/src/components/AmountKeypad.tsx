@@ -118,9 +118,12 @@ export function AmountKeypad({
   return (
     <div
       data-testid="amount-keypad"
-      tabIndex={0}
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
-      className={cn('bg-muted p-2 rounded-2xl flex flex-col gap-2 outline-none', className)}
+      className={cn(
+        'bg-muted p-2 rounded-2xl flex flex-col gap-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+        className,
+      )}
     >
       <AmountSuggestionChips
         value={value}
@@ -192,6 +195,7 @@ export function AmountKeypad({
           type="button"
           data-testid="key-done"
           aria-label={doneLabel}
+          title={doneLabel}
           disabled={evaluated === null}
           className={cn(KEY_BASE, 'bg-primary text-primary-foreground')}
           onClick={handleDone}
