@@ -57,7 +57,7 @@ function PickerOverlay({
   onValue(next: string): void;
 }): JSX.Element {
   return (
-    <input
+    <Input
       type={type}
       data-testid={testId}
       aria-hidden="true"
@@ -74,7 +74,7 @@ function PickerOverlay({
       onChange={(e) => {
         if (e.target.value) onValue(e.target.value);
       }}
-      className="absolute inset-0 h-full w-full cursor-pointer opacity-0 appearance-none border-0 p-0 m-0 text-base"
+      className="absolute inset-0 h-full w-full min-w-0 cursor-pointer opacity-0 appearance-none border-0 p-0 m-0 text-base shadow-none"
     />
   );
 }

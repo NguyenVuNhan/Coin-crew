@@ -56,6 +56,8 @@ export function amountSuggestions(expr: string, code: CurrencyCode): number[] {
   if (!Number.isSafeInteger(typed) || typed <= 0) return [];
 
   const { decimals, max } = CURRENCIES[code];
+  // Only small typed numbers look like a dropped "000"; big ones would offer absurd tỷ values.
+  if (typed >= (decimals === 0 ? 1000 : 100)) return [];
   const multipliers = decimals === 0 ? [1_000, 10_000, 100_000] : [100, 1_000];
 
   const results: number[] = [];

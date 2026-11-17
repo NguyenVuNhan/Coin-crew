@@ -249,6 +249,8 @@ describe('EntryPage critique step 1 (save safety)', () => {
     await user.click(screen.getByTestId('entry-save-btn'));
 
     expect(screen.queryByText('Số tiền này đúng chưa?')).toBeNull();
+    // Step A: first non-VND save asks once ("Lưu bằng USD?"); the small-amount question never shows.
+    await user.click(await screen.findByTestId('foreign-save'));
     await waitFor(() => expect(postedBodies).toHaveLength(1));
     expect(postedBodies[0]).toMatchObject({ walletId: 'w-usd', amount: 85 });
   });

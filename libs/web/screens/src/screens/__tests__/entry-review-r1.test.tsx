@@ -455,6 +455,8 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     await user.click(screen.getByTestId('category-tile-cat-food'));
 
     await user.click(screen.getByTestId('entry-save-btn'));
+    // Step A: first non-VND save asks once.
+    await user.click(await screen.findByTestId('foreign-save'));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByTestId('entry-note-input')).toHaveValue('Lunch');
     expect(screen.getByTestId('amount-display')).toHaveTextContent('12,50 $');

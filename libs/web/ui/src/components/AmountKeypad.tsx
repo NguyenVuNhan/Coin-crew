@@ -31,7 +31,7 @@ export function AmountSuggestionChips({
   if (suggestions.length === 0) return null;
 
   return (
-    <div data-testid="amount-suggestions" className={cn('flex flex-wrap gap-2', className)}>
+    <div data-testid="amount-suggestions" className={cn('flex flex-nowrap gap-2 overflow-hidden', className)}>
       {suggestions.map((minor) => (
         <button
           key={minor}
@@ -39,7 +39,7 @@ export function AmountSuggestionChips({
           data-testid="amount-suggestion"
           onClick={() => onSelect(formatKeypadValue(minor, currency))}
           className={cn(
-            'min-h-11 rounded-full bg-card text-foreground px-3.5 text-sm font-semibold tabular-nums transition-colors active:opacity-80',
+            'min-h-11 shrink-0 whitespace-nowrap rounded-full bg-card text-foreground px-3.5 text-sm font-semibold tabular-nums transition-colors active:opacity-80',
             chipClassName,
           )}
         >

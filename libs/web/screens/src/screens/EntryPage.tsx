@@ -42,6 +42,7 @@ import { CategoryPicker } from '../components/CategoryPicker';
 import { EntryDateRow } from '../components/EntryDateRow';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
+import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
 import { QuickExpenseEmbed } from './ExpenseForm';
@@ -252,6 +253,8 @@ export function EntryPage(): JSX.Element {
     minor: number;
     target: 'primary' | 'secondary';
   } | null>(null);
+  const [foreignConfirm, setForeignConfirm] = useState<ForeignWalletConfirm | null>(null);
+  const foreignConfirmedRef = useRef(false);
   const [leaveGuardOpen, setLeaveGuardOpen] = useState(false);
   const [initializedId, setInitializedId] = useState<string | null>(null);
   const [counterpartAppliedId, setCounterpartAppliedId] = useState<string | null>(null);
@@ -455,6 +458,20 @@ export function EntryPage(): JSX.Element {
   }, [smallAmountConfirm]);
 
   useEffect(() => {
+    if (foreignConfirm) {
+      announce(
+        `${t('personalEntry.foreignTitle', { currency: foreignConfirm.currency })} ${t(
+          'personalEntry.foreignBody',
+          {
+            amount: formatMoney(foreignConfirm.minor, foreignConfirm.currency),
+            wallet: foreignConfirm.walletName,
+          },
+        )}`,
+      );
+    }
+  }, [foreignConfirm]);
+
+  useEffect(() => {
     if (validationError !== null) announce(errorText(validationError, t));
   }, [validationError]);
 
@@ -553,7 +570,7 @@ export function EntryPage(): JSX.Element {
     const time = rawTime ? rawTime.slice(0, 5) : null;
 
     let input: EntryInput;
-    let lastUsedWalletId: string;
+    let lastUsedWalletId: string | null;
     let savedMessage: string;
 
     const effectivePrimaryMinor =
@@ -657,7 +674,7 @@ export function EntryPage(): JSX.Element {
         ...(isEdit ? { tags } : {}),
         excludeFromReports,
       };
-      lastUsedWalletId = selectedWallet?.id ?? fromWallet.id;
+      lastUsedWalletId = null; // transfers never change the remembered wallet
       savedMessage = t('personalEntry.savedTransfer', {
         amount: formatMoney(sent, fromWallet.currency),
         wallet: toWallet.name,
@@ -672,6 +689,19 @@ export function EntryPage(): JSX.Element {
         confirmedOverride?.target === 'primary' ? confirmedOverride.minor : doneMinor;
       if (!confirmedOverride && selectedWallet.currency === 'VND' && amountToSave >= 1 && amountToSave <= 999) {
         setSmallAmountConfirm({ minor: amountToSave, target: 'primary' });
+        return;
+      }
+      if (
+        !isEdit &&
+        !confirmedOverride &&
+        selectedWallet.currency !== 'VND' &&
+        !foreignConfirmedRef.current
+      ) {
+        setForeignConfirm({
+          minor: amountToSave,
+          currency: selectedWallet.currency,
+          walletName: selectedWallet.name,
+        });
         return;
       }
 
@@ -702,7 +732,7 @@ export function EntryPage(): JSX.Element {
     try {
       if (isEdit && id) {
         await updateEntry.mutateAsync({ id, input });
-        writeLastWallet(lastUsedWalletId);
+        if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
         showUndo({
           message: t('personalEntry.saved'),
           actionLabel: t('common.close'),
@@ -711,7 +741,7 @@ export function EntryPage(): JSX.Element {
       } else {
         const created = await createEntry.mutateAsync(input);
         const createdId = created?.entries?.[0]?.id;
-        writeLastWallet(lastUsedWalletId);
+        if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
         showUndo(
           {
             message: savedMessage,
@@ -927,6 +957,26 @@ export function EntryPage(): JSX.Element {
                   {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
                 </span>
               </button>
+
+              {!isTransferMode &&
+                selectedWallet &&
+                (selectedWallet.currency !== 'VND' || selectedWallet.kind === 'investment') && (
+                  <button
+                    type="button"
+                    data-testid="amount-wallet-chip"
+                    aria-label={t('personalEntry.walletChip', {
+                      name: selectedWallet.name,
+                      currency: selectedWallet.currency,
+                    })}
+                    onClick={() => setWalletSheetTarget('single')}
+                    className="self-start min-h-11 rounded-full bg-warning-soft text-foreground px-3.5 text-sm font-medium border-0 cursor-pointer"
+                  >
+                    {t('personalEntry.walletChipText', {
+                      name: selectedWallet.name,
+                      currency: selectedWallet.currency,
+                    })}
+                  </button>
+                )}
 
               {!keypadOpen &&
                 primaryCurrency === 'VND' &&
@@ -1195,6 +1245,21 @@ export function EntryPage(): JSX.Element {
           }
           setSmallAmountConfirm(null);
           void handleSave(multiplied, { target, minor: multiplied });
+        }}
+      />
+
+      <ForeignWalletModal
+        confirm={foreignConfirm}
+        onClose={() => setForeignConfirm(null)}
+        disabled={isSaving}
+        onSave={(minor) => {
+          foreignConfirmedRef.current = true;
+          setForeignConfirm(null);
+          void handleSave(minor, { target: 'primary', minor });
+        }}
+        onChangeWallet={() => {
+          setForeignConfirm(null);
+          setWalletSheetTarget('single');
         }}
       />
 

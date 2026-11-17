@@ -78,7 +78,8 @@ describe('amountSuggestions', () => {
   });
 
   it('drops suggestions above currency max', () => {
-    expect(amountSuggestions('100000000', 'VND')).toEqual([100_000_000_000, 1_000_000_000_000]);
+    // Step A: typed numbers >= 1000 (VND) get no suggestions at all.
+    expect(amountSuggestions('100000000', 'VND')).toEqual([]);
   });
 });
 

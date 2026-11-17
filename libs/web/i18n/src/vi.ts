@@ -1381,6 +1381,12 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.smallAmountBody': 'Bạn đang lưu {amount}.', // REVIEW
   'personalEntry.smallAmountMultiply': 'Lưu {amount}', // REVIEW
   'personalEntry.smallAmountKeep': 'Giữ {amount}', // REVIEW
+  'personalEntry.walletChip': 'Ví: {name}, {currency}', // REVIEW
+  'personalEntry.walletChipText': '{name} · {currency}', // REVIEW
+  'personalEntry.foreignTitle': 'Lưu bằng {currency}?', // REVIEW
+  'personalEntry.foreignBody': 'Bạn đang lưu {amount} từ ví {wallet}.', // REVIEW
+  'personalEntry.foreignSave': 'Lưu {amount}', // REVIEW
+  'personalEntry.foreignChangeWallet': 'Đổi ví', // REVIEW
   'personalEntry.savedExpense': 'Đã chi {amount} · {category}', // REVIEW
   'personalEntry.savedIncome': 'Đã thu {amount} · {category}', // REVIEW
   'personalEntry.savedTransfer': 'Đã chuyển {amount} → {wallet}', // REVIEW
