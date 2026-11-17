@@ -1368,7 +1368,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.differentWalletsError': 'Hãy chọn hai ví khác nhau.', // REVIEW
   'personalEntry.save': 'Lưu', // REVIEW
   'personalEntry.deleteDigit': 'Xóa', // REVIEW
-  'personalEntry.saveEntry': 'Lưu khoản', // REVIEW
+  'personalEntry.done': 'Xong', // REVIEW
   'personalEntry.amountLabel': 'Số tiền: {amount}', // REVIEW
   'personalEntry.amountNotEntered': 'chưa nhập', // REVIEW
   'personalEntry.amountBoxLabel': 'Số tiền', // REVIEW

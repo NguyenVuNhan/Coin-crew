@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react';
-import { Check, Delete } from 'lucide-react';
+import { Delete } from 'lucide-react';
 import { CURRENCIES, formatMoney, type CurrencyCode } from '@cc/core';
 import { cn } from '../lib/utils';
 import {
@@ -197,10 +197,10 @@ export function AmountKeypad({
           aria-label={doneLabel}
           title={doneLabel}
           disabled={evaluated === null}
-          className={cn(KEY_BASE, 'bg-primary text-primary-foreground')}
+          className={cn(KEY_BASE, 'bg-primary text-primary-foreground px-2 text-base')}
           onClick={handleDone}
         >
-          <Check size={20} strokeWidth={2} aria-hidden="true" />
+          {doneLabel}
         </button>
       </div>
     </div>

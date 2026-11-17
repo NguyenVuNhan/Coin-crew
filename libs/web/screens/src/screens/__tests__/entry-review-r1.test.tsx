@@ -184,6 +184,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     await user.click(screen.getByTestId('key-5'));
     await user.click(screen.getByTestId('key-000'));
     await user.click(screen.getByTestId('key-done'));
+    await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => expect(postedBodies).toHaveLength(1));
     expect(postedBodies[0]).toMatchObject({
@@ -206,6 +207,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     await user.click(screen.getByTestId('key-7'));
     await user.click(screen.getByTestId('key-000'));
     await user.click(screen.getByTestId('key-done'));
+    await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => expect(postedBodies).toHaveLength(2));
     expect(postedBodies[1]).toMatchObject({
@@ -281,6 +283,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     expect(amountBtn).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByTestId('key-done'));
+    await user.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(patchedBody).not.toBeNull());
     expect(patchedBody).toMatchObject({
       date: '2026-11-12',

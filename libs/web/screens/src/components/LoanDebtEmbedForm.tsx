@@ -86,7 +86,7 @@ export function LoanDebtEmbedForm({
   onAmountExprChange,
   keypadOpen,
   onKeypadOpenChange,
-  onKeypadDone,
+  onKeypadDone: _onKeypadDone,
   formPeople,
   me,
   included,
@@ -133,6 +133,9 @@ export function LoanDebtEmbedForm({
   const amountAreaRef = useRef<HTMLDivElement>(null);
   const amountButtonRef = useRef<HTMLButtonElement>(null);
   const whoBlockRef = useRef<HTMLDivElement>(null);
+  const withRowRef = useRef<HTMLButtonElement>(null);
+  const saveBarRef = useRef<HTMLDivElement>(null);
+  const pendingFocusRef = useRef<'with' | 'save' | null>(null);
   const [keypadFocusToken, setKeypadFocusToken] = useState(0);
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
   const amountText =
@@ -154,6 +157,18 @@ export function LoanDebtEmbedForm({
   useEffect(() => {
     if (submitError) announce(errorText(formatSubmitError(submitError), t));
   }, [submitError]);
+
+  useEffect(() => {
+    if (keypadOpen || pendingFocusRef.current === null) return;
+    const target = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+    if (target === 'with') {
+      withRowRef.current?.focus();
+      withRowRef.current?.scrollIntoView?.({ block: 'nearest' });
+    } else {
+      saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+    }
+  }, [keypadOpen]);
   const [payerSheetOpen, setPayerSheetOpen] = useState(false);
   const [splitExpanded, setSplitExpanded] = useState(false);
 
@@ -227,6 +242,7 @@ export function LoanDebtEmbedForm({
         <div ref={whoBlockRef} className="rounded-xl bg-card divide-y divide-border overflow-hidden">
           <button
             type="button"
+            ref={withRowRef}
             data-testid="loan-debt-with-row"
             onClick={() => onPeopleSheetOpenChange(true)}
             className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
@@ -431,36 +447,46 @@ export function LoanDebtEmbedForm({
           }}
           focusToken={keypadFocusToken}
           tabOutRef={whoBlockRef}
-          onDone={onKeypadDone}
-          doneLabel={t('personalEntry.saveEntry')}
+          onDone={(minor) => {
+            const formatted = String(Math.trunc(minor));
+            if (formatted !== amountExpr) {
+              announceSoon(() => spokenAmountRef.current);
+              onAmountExprChange(formatted);
+            }
+            pendingFocusRef.current = otherChosenPeople.length === 0 ? 'with' : 'save';
+            onKeypadOpenChange(false);
+          }}
+          doneLabel={t('personalEntry.done')}
           deleteLabel={t('personalEntry.deleteDigit')}
           disabled={isSubmitting}
         />
       ) : (
-        <BottomBar>
-          {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
-          {goneNames.length > 0 && (
-            <p className="fsl-expense-form__gone m-0 mb-2 text-center text-sm leading-snug text-muted-foreground" role="status">
-              {t('expenseForm.peopleLeft', { names: goneNames.join(', ') })}
-            </p>
-          )}
-          {!canSubmit && disabledReason && (
-            <p data-testid="loan-debt-disabled-reason" className="m-0 mb-2 text-center text-sm text-muted-foreground">
-              {disabledReason}
-            </p>
-          )}
-          <Button
-            type="button"
-            variant="primary"
-            block
-            loading={isSubmitting}
-            disabled={!canSubmit || isSubmitting}
-            data-testid="entry-save-btn"
-            onClick={onSave}
-          >
-            {t('personalEntry.save')}
-          </Button>
-        </BottomBar>
+        <div ref={saveBarRef}>
+          <BottomBar>
+            {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
+            {goneNames.length > 0 && (
+              <p className="fsl-expense-form__gone m-0 mb-2 text-center text-sm leading-snug text-muted-foreground" role="status">
+                {t('expenseForm.peopleLeft', { names: goneNames.join(', ') })}
+              </p>
+            )}
+            {!canSubmit && disabledReason && (
+              <p data-testid="loan-debt-disabled-reason" className="m-0 mb-2 text-center text-sm text-muted-foreground">
+                {disabledReason}
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="primary"
+              block
+              loading={isSubmitting}
+              disabled={!canSubmit || isSubmitting}
+              data-testid="entry-save-btn"
+              onClick={onSave}
+            >
+              {t('personalEntry.save')}
+            </Button>
+          </BottomBar>
+        </div>
       )}
 
       {/* People picker Sheet */}

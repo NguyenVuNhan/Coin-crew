@@ -267,6 +267,8 @@ export function EntryPage(): JSX.Element {
   const savingRef = useRef(false);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
+  const saveBarRef = useRef<HTMLDivElement>(null);
+  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'save' | null>(null);
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
 
   useEffect(() => {
@@ -274,6 +276,21 @@ export function EntryPage(): JSX.Element {
       if (categoryRingTimerRef.current) clearTimeout(categoryRingTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (keypadOpen || pendingFocusTargetRef.current === null) return;
+    const target = pendingFocusTargetRef.current;
+    pendingFocusTargetRef.current = null;
+    if (target === 'category') {
+      const firstTile = categoryGridRef.current?.querySelector<HTMLElement>('button:not([disabled])');
+      firstTile?.focus();
+      firstTile?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'secondary') {
+      secondaryButtonRef.current?.focus();
+    } else {
+      saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+    }
+  }, [keypadOpen]);
 
   const typeParam = searchParams.get('type');
   useEffect(() => {
@@ -554,6 +571,26 @@ export function EntryPage(): JSX.Element {
     if (!excludeTouched) {
       setExcludeFromReports(false);
     }
+  };
+
+  const handleKeypadDone = (minor: number) => {
+    const formatted = formatKeypadValue(minor, activeCurrency);
+    if (formatted !== activeExpr) {
+      setActiveExpr(formatted);
+    }
+    if (!isTransferMode && !categoryId) {
+      pendingFocusTargetRef.current = 'category';
+    } else if (
+      isTransferMode &&
+      isDiffCurrencyTransfer &&
+      activeTransferField === 'primary' &&
+      (secondaryMinor === null || secondaryMinor <= 0)
+    ) {
+      pendingFocusTargetRef.current = 'secondary';
+    } else {
+      pendingFocusTargetRef.current = 'save';
+    }
+    setKeypadOpen(false);
   };
 
   const isSaving = createEntry.isPending || updateEntry.isPending;
@@ -1164,28 +1201,30 @@ export function EntryPage(): JSX.Element {
             value={activeExpr}
             currency={activeCurrency}
             onChange={setActiveExpr}
-            onDone={(minor) => void handleSave(minor)}
-            doneLabel={t('personalEntry.saveEntry')}
+            onDone={handleKeypadDone}
+            doneLabel={t('personalEntry.done')}
             deleteLabel={t('personalEntry.deleteDigit')}
             disabled={isSaving || hasArchivedWallet}
           />
         ) : (
-          <BottomBar>
-            <Button
-              type="button"
-              variant="primary"
-              block
-              loading={isSaving}
-              disabled={activeMinor === null || isSaving || hasArchivedWallet}
-              data-testid="entry-save-btn"
-              onClick={() => {
-                if (activeMinor !== null) void handleSave(activeMinor);
-              }}
-            >
-              {t('personalEntry.save')}
-            </Button>
+          <div ref={saveBarRef} className="contents">
+            <BottomBar>
+              <Button
+                type="button"
+                variant="primary"
+                block
+                loading={isSaving}
+                disabled={activeMinor === null || isSaving || hasArchivedWallet}
+                data-testid="entry-save-btn"
+                onClick={() => {
+                  if (activeMinor !== null) void handleSave(activeMinor);
+                }}
+              >
+                {t('personalEntry.save')}
+              </Button>
             </BottomBar>
-          )
+          </div>
+        )
         )}
         </>
       )}

@@ -149,8 +149,8 @@ describe('EntryPage critique step 4 — screen reader and keyboard', () => {
     fireEvent.click(screen.getByTestId('key-7'));
     fireEvent.click(screen.getByTestId('key-000'));
     expect(screen.getByTestId('amount-display')).toHaveAccessibleName('Số tiền: 7.000₫');
-    expect(screen.getByTestId('key-done')).toHaveAccessibleName('Lưu khoản');
-    expect(screen.getByTestId('key-done')).toHaveAttribute('title', 'Lưu khoản');
+    expect(screen.getByTestId('key-done')).toHaveAccessibleName('Xong');
+    expect(screen.getByTestId('key-done')).toHaveAttribute('title', 'Xong');
   });
 
   it('live region announces the amount once, after the debounce', async () => {

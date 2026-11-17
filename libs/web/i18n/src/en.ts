@@ -1367,7 +1367,7 @@ export const en = {
   'personalEntry.differentWalletsError': 'Choose two different wallets.',
   'personalEntry.save': 'Save',
   'personalEntry.deleteDigit': 'Delete',
-  'personalEntry.saveEntry': 'Save entry',
+  'personalEntry.done': 'Done',
   'personalEntry.amountLabel': 'Amount: {amount}',
   'personalEntry.amountNotEntered': 'not entered',
   'personalEntry.amountBoxLabel': 'Amount',

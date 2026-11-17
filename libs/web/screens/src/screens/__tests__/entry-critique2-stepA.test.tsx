@@ -126,6 +126,7 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     fireEvent.click(screen.getByTestId('key-5'));
     fireEvent.click(screen.getByTestId('key-000'));
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts.length).toBeGreaterThan(0));
     expect(readLastWallet()).toBe('w-bank');
     first.unmount();
@@ -140,6 +141,7 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     fireEvent.click(screen.getByTestId('key-000'));
     fireEvent.click(screen.getByTestId('category-tile-cat-food'));
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts).toHaveLength(1));
     expect(readLastWallet()).toBe('w-vnd');
   });
@@ -170,6 +172,7 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     await screen.findByTestId('amount-keypad');
     typeAmountAndCategory();
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     await screen.findByText('Lưu bằng USDT?');
     await waitFor(() =>
       expect(screen.getByTestId('entry-live-region').textContent).toContain('Lưu bằng USDT?'),
@@ -180,6 +183,7 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     fireEvent.click(screen.getByTestId('wallet-option-w-bin'));
     await openKeypad();
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     fireEvent.click(await screen.findByTestId('foreign-save'));
     await waitFor(() => expect(posts).toHaveLength(1));
     expect(posts[0]).toMatchObject({ walletId: 'w-bin', amount: 3500 });
@@ -193,11 +197,13 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     await screen.findByTestId('amount-keypad');
     typeAmountAndCategory();
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     fireEvent.click(await screen.findByTestId('foreign-save'));
     await waitFor(() => expect(posts).toHaveLength(1));
     await openKeypad();
     await waitFor(() => expect(screen.getByTestId('key-done')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts).toHaveLength(2));
     expect(screen.queryByTestId('foreign-save')).toBeNull();
   });
@@ -214,6 +220,7 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     fireEvent.click(screen.getByTestId('key-5'));
     fireEvent.click(screen.getByTestId('key-000'));
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts).toHaveLength(1));
     expect(screen.queryByTestId('foreign-save')).toBeNull();
   });

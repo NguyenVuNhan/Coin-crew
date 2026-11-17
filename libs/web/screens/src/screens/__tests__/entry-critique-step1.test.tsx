@@ -416,6 +416,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
     fireEvent.click(screen.getByTestId('key-0'));
     fireEvent.click(screen.getByTestId('key-000'));
     fireEvent.click(screen.getByTestId('key-done'));
+    fireEvent.click(screen.getByTestId('entry-save-btn'));
 
     const picker = screen.getByTestId('category-picker');
     const catError = within(picker).getByTestId('category-error');
