@@ -39,17 +39,51 @@ function openPicker(el: HTMLInputElement | null): void {
   el.click();
 }
 
+/**
+ * A transparent native input laid over a tap target. iOS Safari opens a date/time picker only
+ * when the tap lands on a real, visible-sized input (showPicker()/click() on a hidden one does
+ * nothing), so pointer taps go straight to this input. Keyboard and screen-reader users keep the
+ * button underneath (this overlay is aria-hidden and out of the tab order).
+ */
+function PickerOverlay({
+  type,
+  testId,
+  value,
+  onValue,
+}: {
+  type: 'date' | 'time';
+  testId: string;
+  value: string;
+  onValue(next: string): void;
+}): JSX.Element {
+  return (
+    <input
+      type={type}
+      data-testid={testId}
+      aria-hidden="true"
+      tabIndex={-1}
+      value={value}
+      onClick={(e) => {
+        // Desktop Chrome only opens the picker from its icon; open it from anywhere on the target.
+        try {
+          e.currentTarget.showPicker?.();
+        } catch {
+          /* iOS opens it natively from the tap */
+        }
+      }}
+      onChange={(e) => {
+        if (e.target.value) onValue(e.target.value);
+      }}
+      className="absolute inset-0 h-full w-full cursor-pointer opacity-0 appearance-none border-0 p-0 m-0 text-base"
+    />
+  );
+}
+
 const chipClass =
   'min-h-11 px-3 inline-flex items-center rounded-full bg-muted text-sm font-semibold text-foreground border-0 cursor-pointer';
 
 /** One compact "Ngày" row: readable value, a yesterday chip, and native pickers kept out of sight. */
-export function EntryDateRow({
-  date,
-  time,
-  onChange,
-  showTime = true,
-  now,
-}: EntryDateRowProps): JSX.Element {
+export function EntryDateRow({ date, time, onChange, showTime = true, now }: EntryDateRowProps): JSX.Element {
   const t = useT();
   const dateRef = useRef<HTMLInputElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
@@ -78,35 +112,49 @@ export function EntryDateRow({
   return (
     <div className="w-full px-4 py-2 flex flex-col gap-1" data-testid="entry-date-row">
       <div className="min-h-11 flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-muted-foreground shrink-0">
-          {t('personalEntry.date')}
-        </span>
+        <span className="text-sm font-medium text-muted-foreground shrink-0">{t('personalEntry.date')}</span>
         <span className="flex items-center justify-end min-w-0 text-base font-medium text-foreground">
-          <button
-            type="button"
-            data-testid="entry-date-value"
-            aria-label={t('entryDate.rowLabel', {
-              value: shownTime ? t('entryDate.rowAria', { day: dayText, time: shownTime }) : dayText,
-            })}
-            onClick={() => openPicker(dateRef.current)}
-            className="min-h-11 bg-transparent border-0 p-0 text-base font-medium text-foreground cursor-pointer"
-          >
-            {dayText}
-          </button>
+          <span className="relative inline-flex">
+            <button
+              type="button"
+              data-testid="entry-date-value"
+              aria-label={t('entryDate.rowLabel', {
+                value: shownTime ? t('entryDate.rowAria', { day: dayText, time: shownTime }) : dayText,
+              })}
+              onClick={() => openPicker(dateRef.current)}
+              className="min-h-11 bg-transparent border-0 p-0 text-base font-medium text-foreground cursor-pointer"
+            >
+              {dayText}
+            </button>
+            <PickerOverlay
+              type="date"
+              testId="entry-date-overlay-value"
+              value={date}
+              onValue={(v) => onChange({ date: v, time })}
+            />
+          </span>
           {shownTime && (
             <>
               <span aria-hidden="true" className="text-muted-foreground">
                 {' · '}
               </span>
-              <button
-                type="button"
-                data-testid="entry-time-value"
-                aria-label={t('entryDate.changeTime')}
-                onClick={() => openPicker(timeRef.current)}
-                className="min-h-11 bg-transparent border-0 p-0 text-base font-medium tabular-nums text-foreground cursor-pointer"
-              >
-                {shownTime}
-              </button>
+              <span className="relative inline-flex">
+                <button
+                  type="button"
+                  data-testid="entry-time-value"
+                  aria-label={t('entryDate.changeTime')}
+                  onClick={() => openPicker(timeRef.current)}
+                  className="min-h-11 bg-transparent border-0 p-0 text-base font-medium tabular-nums text-foreground cursor-pointer"
+                >
+                  {shownTime}
+                </button>
+                <PickerOverlay
+                  type="time"
+                  testId="entry-time-overlay-value"
+                  value={time ?? ''}
+                  onValue={(v) => onChange({ date, time: v.slice(0, 5) })}
+                />
+              </span>
             </>
           )}
         </span>
@@ -121,14 +169,22 @@ export function EntryDateRow({
         >
           {isYesterday ? t('entryDate.today') : t('entryDate.yesterday')}
         </button>
-        <button
-          type="button"
-          data-testid="entry-date-chip-pick"
-          onClick={() => openPicker(dateRef.current)}
-          className={chipClass}
-        >
-          {t('entryDate.chipPick')}
-        </button>
+        <span className="relative inline-flex">
+          <button
+            type="button"
+            data-testid="entry-date-chip-pick"
+            onClick={() => openPicker(dateRef.current)}
+            className={chipClass}
+          >
+            {t('entryDate.chipPick')}
+          </button>
+          <PickerOverlay
+            type="date"
+            testId="entry-date-overlay-chip"
+            value={date}
+            onValue={(v) => onChange({ date: v, time })}
+          />
+        </span>
       </div>
 
       <Input

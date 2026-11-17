@@ -120,3 +120,37 @@ describe('EntryDateRow behaviour', () => {
     }
   });
 });
+
+describe('EntryDateRow tap-through pickers (iOS Safari only opens a picker from a real tapped input)', () => {
+  it('lays a transparent native input over the date value, the time and Chọn ngày', () => {
+    setup('2026-11-17', '08:20');
+    const ids = ['entry-date-overlay-value', 'entry-time-overlay-value', 'entry-date-overlay-chip'];
+    for (const id of ids) {
+      const el = screen.getByTestId(id);
+      expect(el.tagName).toBe('INPUT');
+      expect(el).toHaveAttribute('aria-hidden', 'true');
+      expect(el).toHaveAttribute('tabindex', '-1');
+      expect(el.className).toContain('absolute');
+      expect(el.className).toContain('inset-0');
+      expect(el.className).toContain('opacity-0');
+      expect(el.className).not.toContain('sr-only');
+    }
+    expect(screen.getByTestId('entry-date-overlay-value')).toHaveAttribute('type', 'date');
+    expect(screen.getByTestId('entry-time-overlay-value')).toHaveAttribute('type', 'time');
+  });
+
+  it('a value picked on an overlay reaches onChange', () => {
+    const onChange = setup('2026-11-17', '08:20');
+    fireEvent.change(screen.getByTestId('entry-date-overlay-chip'), { target: { value: '2026-11-03' } });
+    expect(onChange).toHaveBeenLastCalledWith({ date: '2026-11-03', time: '08:20' });
+    fireEvent.change(screen.getByTestId('entry-date-overlay-value'), { target: { value: '2026-11-04' } });
+    expect(onChange).toHaveBeenLastCalledWith({ date: '2026-11-04', time: '08:20' });
+    fireEvent.change(screen.getByTestId('entry-time-overlay-value'), { target: { value: '21:05' } });
+    expect(onChange).toHaveBeenLastCalledWith({ date: '2026-11-17', time: '21:05' });
+  });
+
+  it('has no time overlay when time is hidden', () => {
+    setup('2026-11-17', '08:20', 'vi', false);
+    expect(screen.queryByTestId('entry-time-overlay-value')).toBeNull();
+  });
+});
