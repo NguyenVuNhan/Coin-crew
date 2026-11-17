@@ -1,6 +1,12 @@
 import { CURRENCY_CODES, type CurrencyCode } from './currency';
 
-export type PersonalEntryType = 'expense' | 'income' | 'transfer_out' | 'transfer_in';
+export type PersonalEntryType =
+  | 'expense'
+  | 'income'
+  | 'transfer_out'
+  | 'transfer_in'
+  | 'buy'
+  | 'sell';
 
 export interface CalcWallet {
   id: string;
@@ -21,6 +27,15 @@ export interface CalcEntry {
   createdAt: string;
   transferId: string | null;
   excludeFromReports: boolean;
+  assetId?: string | null;
+  quantity?: number | null;
+}
+
+export interface Holding {
+  assetId: string;
+  quantity: number;
+  cost: number;
+  costVnd: number | null;
 }
 
 export function isBeforeStart(
@@ -35,7 +50,7 @@ export function walletBalance(wallet: CalcWallet, entries: CalcEntry[]): number 
   for (const e of entries) {
     if (e.walletId !== wallet.id) continue;
     if (isBeforeStart(e, wallet)) continue;
-    if (e.type === 'income' || e.type === 'transfer_in') {
+    if (e.type === 'income' || e.type === 'transfer_in' || e.type === 'sell') {
       balance += e.amount;
     } else {
       balance -= e.amount;
@@ -55,6 +70,7 @@ interface NonVndState {
 function entryOrderKey(t: PersonalEntryType): number {
   if (t === 'transfer_out') return 0;
   if (t === 'transfer_in') return 1;
+  if (t === 'sell') return 3;
   return 2;
 }
 
@@ -67,15 +83,59 @@ function compareEntries(a: CalcEntry, b: CalcEntry): number {
   return entryOrderKey(a.type) - entryOrderKey(b.type);
 }
 
-export function walletVndValues(
+function applyBuyToHolding(
+  holdings: Map<string, Holding>,
+  assetId: string | null | undefined,
+  quantity: number | null | undefined,
+  cost: number,
+  costVnd: number | null,
+): void {
+  if (!assetId || !quantity || quantity <= 0) return;
+  let h = holdings.get(assetId);
+  if (!h) {
+    h = { assetId, quantity: 0, cost: 0, costVnd: costVnd === null ? null : 0 };
+    holdings.set(assetId, h);
+  }
+  h.quantity += quantity;
+  h.cost += cost;
+  if (costVnd !== null) {
+    h.costVnd = (h.costVnd ?? 0) + costVnd;
+  }
+}
+
+function applySellToHolding(
+  holdings: Map<string, Holding>,
+  assetId: string | null | undefined,
+  quantity: number | null | undefined,
+): void {
+  if (!assetId || !quantity || quantity <= 0) return;
+  const h = holdings.get(assetId);
+  if (!h || h.quantity <= 0) return;
+  if (quantity >= h.quantity) {
+    holdings.delete(assetId);
+    return;
+  }
+  const removedCost = Math.round((h.cost * quantity) / h.quantity);
+  const removedCostVnd =
+    h.costVnd !== null ? Math.round((h.costVnd * quantity) / h.quantity) : null;
+  h.quantity -= quantity;
+  h.cost -= removedCost;
+  if (h.costVnd !== null && removedCostVnd !== null) {
+    h.costVnd -= removedCostVnd;
+  }
+}
+
+function replayWallets(
   wallets: CalcWallet[],
   entries: CalcEntry[],
-): Map<string, number | null> {
+): { vndValues: Map<string, number | null>; holdingsByWallet: Map<string, Holding[]> } {
   const walletMap = new Map<string, CalcWallet>();
   const states = new Map<string, NonVndState>();
+  const holdingsMaps = new Map<string, Map<string, Holding>>();
 
   for (const w of wallets) {
     walletMap.set(w.id, w);
+    holdingsMaps.set(w.id, new Map<string, Holding>());
     if (w.currency !== 'VND') {
       const rated = w.startCostVnd !== null && w.startAmount !== 0;
       const cost = w.startCostVnd ?? 0;
@@ -114,9 +174,15 @@ export function walletVndValues(
       continue;
     }
 
+    const hMap = holdingsMaps.get(w.id)!;
+
     if (w.currency === 'VND') {
       if (e.type === 'transfer_out' && e.transferId !== null) {
         transferCostVnd.set(e.transferId, e.amount);
+      } else if (e.type === 'buy') {
+        applyBuyToHolding(hMap, e.assetId, e.quantity, e.amount, e.amount);
+      } else if (e.type === 'sell') {
+        applySellToHolding(hMap, e.assetId, e.quantity);
       }
       continue;
     }
@@ -124,7 +190,7 @@ export function walletVndValues(
     const st = states.get(w.id);
     if (!st) continue;
 
-    if (e.type === 'expense' || e.type === 'transfer_out') {
+    if (e.type === 'expense' || e.type === 'transfer_out' || e.type === 'buy') {
       if (st.rated) {
         const rate = st.qty > 0 ? st.cost / st.qty : st.lastRate;
         const removed = Math.round(rate * e.amount);
@@ -132,15 +198,22 @@ export function walletVndValues(
         st.qty -= e.amount;
         if (e.type === 'transfer_out' && e.transferId !== null) {
           transferCostVnd.set(e.transferId, removed);
+        } else if (e.type === 'buy') {
+          applyBuyToHolding(hMap, e.assetId, e.quantity, e.amount, removed);
         }
       } else {
         st.qty -= e.amount;
         st.unratedQty -= e.amount;
         if (e.type === 'transfer_out' && e.transferId !== null) {
           transferCostVnd.set(e.transferId, null);
+        } else if (e.type === 'buy') {
+          applyBuyToHolding(hMap, e.assetId, e.quantity, e.amount, null);
         }
       }
-    } else if (e.type === 'income') {
+    } else if (e.type === 'income' || e.type === 'sell') {
+      if (e.type === 'sell') {
+        applySellToHolding(hMap, e.assetId, e.quantity);
+      }
       if (st.rated) {
         const rate = st.qty > 0 ? st.cost / st.qty : st.lastRate;
         st.cost += Math.round(rate * e.amount);
@@ -157,6 +230,9 @@ export function walletVndValues(
           const inflowRate = inCost / e.amount;
           st.cost = inCost + Math.round(st.unratedQty * inflowRate);
           st.unratedQty = 0;
+          for (const h of hMap.values()) {
+            h.costVnd = Math.round(h.cost * inflowRate);
+          }
         } else {
           st.cost += inCost;
         }
@@ -174,21 +250,71 @@ export function walletVndValues(
     }
   }
 
-  const result = new Map<string, number | null>();
+  const vndValues = new Map<string, number | null>();
+  const holdingsByWallet = new Map<string, Holding[]>();
+
   for (const w of wallets) {
+    const hMap = holdingsMaps.get(w.id)!;
+    const holdings = [...hMap.values()];
+    holdingsByWallet.set(w.id, holdings);
+
     if (w.currency === 'VND') {
-      result.set(w.id, walletBalance(w, entries));
+      let holdingsVnd = 0;
+      for (const h of holdings) holdingsVnd += h.cost;
+      vndValues.set(w.id, walletBalance(w, entries) + holdingsVnd);
     } else {
       const st = states.get(w.id);
       if (!st || !st.rated) {
-        result.set(w.id, null);
+        vndValues.set(w.id, null);
       } else {
-        result.set(w.id, st.cost);
+        let holdingsVnd = 0;
+        for (const h of holdings) holdingsVnd += h.costVnd ?? 0;
+        vndValues.set(w.id, st.cost + holdingsVnd);
       }
     }
   }
 
-  return result;
+  return { vndValues, holdingsByWallet };
+}
+
+export function walletHoldings(wallet: CalcWallet, entries: CalcEntry[]): Holding[] {
+  return replayWallets([wallet], entries).holdingsByWallet.get(wallet.id) ?? [];
+}
+
+export function findOversell(
+  wallet: CalcWallet,
+  entries: CalcEntry[],
+): { assetId: string; date: string } | null {
+  const trades = entries
+    .filter(
+      (e) =>
+        e.walletId === wallet.id &&
+        !isBeforeStart(e, wallet) &&
+        (e.type === 'buy' || e.type === 'sell'),
+    )
+    .sort(compareEntries);
+
+  const held = new Map<string, number>();
+  for (const e of trades) {
+    if (!e.assetId || !e.quantity || e.quantity <= 0) continue;
+    const cur = held.get(e.assetId) ?? 0;
+    if (e.type === 'buy') {
+      held.set(e.assetId, cur + e.quantity);
+    } else {
+      if (e.quantity > cur) {
+        return { assetId: e.assetId, date: e.date };
+      }
+      held.set(e.assetId, cur - e.quantity);
+    }
+  }
+  return null;
+}
+
+export function walletVndValues(
+  wallets: CalcWallet[],
+  entries: CalcEntry[],
+): Map<string, number | null> {
+  return replayWallets(wallets, entries).vndValues;
 }
 
 export interface VndTotal {

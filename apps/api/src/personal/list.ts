@@ -243,6 +243,8 @@ export function listRoutes(): Hono<AppBindings> {
           amount: r.amount,
           currency: wallet.currency,
           categoryId: r.categoryId ?? null,
+          assetId: null,
+          quantity: null,
           transferId: r.transferId ?? null,
           counterpartWalletId: r.counterpartWalletId ?? null,
           date: r.date,

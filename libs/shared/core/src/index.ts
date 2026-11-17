@@ -19,3 +19,4 @@ export * from './history';
 export * from './validation';
 export * from './attendance';
 export * from './wallets';
+export * from './assets';

@@ -109,6 +109,8 @@ export async function loadCalc(
     createdAt: e.createdAt,
     transferId: e.transferId ?? null,
     excludeFromReports: Boolean(e.excludeFromReports),
+    assetId: null,
+    quantity: null,
   }));
 
   return { wallets, entries };

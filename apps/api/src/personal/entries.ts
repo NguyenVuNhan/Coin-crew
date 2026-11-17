@@ -185,6 +185,8 @@ function buildEntryView(params: {
     amount: params.amount,
     currency: params.wallet.currency,
     categoryId: params.categoryId,
+    assetId: null,
+    quantity: null,
     transferId: params.transferId,
     counterpartWalletId: params.counterpartWalletId,
     date: params.date,
@@ -308,7 +310,11 @@ export function entryRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const now = nowIso();
 
-    if (input.type !== 'transfer') {
+    if (input.type === 'buy' || input.type === 'sell') {
+      throw new ApiError('NOT_IMPLEMENTED', 501, 'Not implemented');
+    }
+
+    if (input.type === 'expense' || input.type === 'income') {
       const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
       const wallet = wallets.get(input.walletId)!;
 
@@ -366,6 +372,9 @@ export function entryRoutes(): Hono<AppBindings> {
       });
 
       return c.json({ entries: [entry] }, 201);
+    }
+    if (input.type !== 'transfer') {
+      throw new ApiError('NOT_IMPLEMENTED', 501, 'Not implemented');
     }
 
     const wallets = await loadWalletsMap(db, user.id, [input.fromWalletId, input.toWalletId]);
@@ -499,7 +508,11 @@ export function entryRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Cannot change between transfer and non-transfer');
     }
 
-    if (input.type !== 'transfer') {
+    if (input.type === 'buy' || input.type === 'sell') {
+      throw new ApiError('NOT_IMPLEMENTED', 501, 'Not implemented');
+    }
+
+    if (input.type === 'expense' || input.type === 'income') {
       const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
       const wallet = wallets.get(input.walletId)!;
 
@@ -557,6 +570,9 @@ export function entryRoutes(): Hono<AppBindings> {
       });
 
       return c.json({ entries: [entry] }, 200);
+    }
+    if (input.type !== 'transfer') {
+      throw new ApiError('NOT_IMPLEMENTED', 501, 'Not implemented');
     }
 
     if (!target.transferId) {
