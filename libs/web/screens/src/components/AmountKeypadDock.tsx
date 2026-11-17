@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type KeyboardEvent, type RefObject } from 'react';
 import type { CurrencyCode } from '@cc/core';
 import { AmountKeypad } from '@cc/web-ui/components/AmountKeypad';
+import { useIsMousePointer } from '@cc/web-util/media';
 
 export interface DockedAmountKeypadProps {
   open: boolean;
@@ -80,10 +81,12 @@ export function DockedAmountKeypad({
   onEscape,
   tabOutRef,
 }: DockedAmountKeypadProps): JSX.Element | null {
+  const isMousePointer = useIsMousePointer();
+  const effectiveOpen = open && !isMousePointer;
   const keypadAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!effectiveOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target;
       if (!(target instanceof Node) || !target.isConnected) return;
@@ -98,15 +101,15 @@ export function DockedAmountKeypad({
       window.clearTimeout(timer);
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [open, onClose, amountAreaRef]);
+  }, [effectiveOpen, onClose, amountAreaRef]);
 
   // Move focus into the keypad when it opens (or the amount is tapped again) so physical keys work at once.
   useEffect(() => {
-    if (!open) return;
+    if (!effectiveOpen) return;
     keypadAreaRef.current?.querySelector<HTMLElement>('[data-testid="amount-keypad"]')?.focus();
-  }, [open, focusToken]);
+  }, [effectiveOpen, focusToken]);
 
-  if (!open) return null;
+  if (!effectiveOpen) return null;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') {

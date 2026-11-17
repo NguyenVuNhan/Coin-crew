@@ -14,7 +14,9 @@ import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
+import { useIsMousePointer } from '@cc/web-util/media';
 import type { RecentGroup } from '@cc/web-util/recentGroups';
+import { AmountField } from './AmountField';
 import { DockedAmountKeypad, useLiveAnnouncer } from './AmountKeypadDock';
 import { EntryDateRow } from './EntryDateRow';
 import { SmallAmountModal } from './SmallAmountModal';
@@ -130,14 +132,23 @@ export function LoanDebtEmbedForm({
   onSmallAmountMultiply,
 }: LoanDebtEmbedFormProps): JSX.Element {
   const t = useT();
+  const isMousePointer = useIsMousePointer();
+  const effectiveKeypadOpen = !isMousePointer && keypadOpen;
   const amountAreaRef = useRef<HTMLDivElement>(null);
   const amountButtonRef = useRef<HTMLButtonElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
   const whoBlockRef = useRef<HTMLDivElement>(null);
   const withRowRef = useRef<HTMLButtonElement>(null);
   const saveBarRef = useRef<HTMLDivElement>(null);
   const pendingFocusRef = useRef<'with' | 'save' | null>(null);
   const [keypadFocusToken, setKeypadFocusToken] = useState(0);
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
+
+  useEffect(() => {
+    if (isMousePointer) {
+      amountInputRef.current?.focus();
+    }
+  }, [isMousePointer]);
   const amountText =
     evaluatedMinor !== null ? formatMoney(evaluatedMinor, 'VND') : amountExpr || t('personalEntry.amountNotEntered');
   const amountLabel = t('personalEntry.amountLabel', { amount: amountText });
@@ -192,41 +203,67 @@ export function LoanDebtEmbedForm({
       <main
         className={cn(
           'flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4',
-          !keypadOpen && 'pb-24',
+          !effectiveKeypadOpen && 'pb-24',
         )}
       >
         {/* 1. Amount first */}
         <div ref={amountAreaRef} className="flex flex-col gap-2">
-          <button
-            type="button"
-            data-testid="amount-display"
-            ref={amountButtonRef}
-            aria-label={amountLabel}
-            aria-expanded={keypadOpen}
-            onClick={() => {
-              onKeypadOpenChange(true);
-              setKeypadFocusToken((n) => n + 1);
-            }}
-            className={cn(
-              'w-full rounded-xl bg-card px-4 py-3 flex items-center justify-between gap-3 min-h-16 cursor-pointer text-right border-0',
-              keypadOpen && 'ring-2 ring-primary',
-            )}
-          >
-            <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
-              {t('personalEntry.amountBoxLabel')}
-            </span>
-            <span className="flex flex-col items-end tabular-nums min-w-0">
-              {evaluatedMinor !== null ? (
-                <Amount value={evaluatedMinor} currency="VND" size="xl" tone="neutral" />
-              ) : (
-                <span className="text-2xl font-bold tabular-nums text-muted-foreground">
-                  {amountExpr || formatMoney(0, 'VND')}
-                </span>
+          {isMousePointer ? (
+            <AmountField
+              label={t('personalEntry.amountBoxLabel')}
+              value={amountExpr}
+              currency="VND"
+              tone="neutral"
+              inputRef={amountInputRef}
+              testId="amount-display"
+              inputTestId="amount-input"
+              disabled={isSubmitting}
+              onChange={(next) => {
+                announceSoon(() => spokenAmountRef.current);
+                onAmountExprChange(next);
+              }}
+              onDone={() => {
+                if (otherChosenPeople.length === 0) {
+                  withRowRef.current?.focus();
+                  withRowRef.current?.scrollIntoView?.({ block: 'nearest' });
+                } else {
+                  saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+                }
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              data-testid="amount-display"
+              ref={amountButtonRef}
+              aria-label={amountLabel}
+              aria-expanded={keypadOpen}
+              onClick={() => {
+                onKeypadOpenChange(true);
+                setKeypadFocusToken((n) => n + 1);
+              }}
+              className={cn(
+                'w-full rounded-xl bg-card px-4 py-3 flex items-center justify-between gap-3 min-h-16 cursor-pointer text-right border-0',
+                keypadOpen && 'ring-2 ring-primary',
               )}
-            </span>
-          </button>
+            >
+              <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
+                {t('personalEntry.amountBoxLabel')}
+              </span>
+              <span className="flex flex-col items-end tabular-nums min-w-0">
+                {evaluatedMinor !== null ? (
+                  <Amount value={evaluatedMinor} currency="VND" size="xl" tone="neutral" />
+                ) : (
+                  <span className="text-2xl font-bold tabular-nums text-muted-foreground">
+                    {amountExpr || formatMoney(0, 'VND')}
+                  </span>
+                )}
+              </span>
+            </button>
+          )}
 
-          {!keypadOpen &&
+          {!isMousePointer &&
+            !keypadOpen &&
             evaluatedMinor !== null &&
             evaluatedMinor >= 1 &&
             evaluatedMinor <= 999 && (
@@ -430,7 +467,7 @@ export function LoanDebtEmbedForm({
       </main>
 
       {/* 5. Docked keypad or BottomBar Save */}
-      {keypadOpen ? (
+      {effectiveKeypadOpen ? (
         <DockedAmountKeypad
           open={keypadOpen}
           onClose={() => onKeypadOpenChange(false)}

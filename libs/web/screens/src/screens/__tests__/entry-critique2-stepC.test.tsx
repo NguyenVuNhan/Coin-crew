@@ -106,7 +106,7 @@ describe('EntryPage critique round 2 step C (polish)', () => {
     const walletRow = await screen.findByTestId('entry-wallet-row');
     expect(walletRow.className.split(/\s+/)).not.toContain('border-0');
     expect(walletRow.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['border-x-0', 'border-b-0']),
+      expect.arrayContaining(['border-x-0', 'border-t-0']),
     );
   });
 

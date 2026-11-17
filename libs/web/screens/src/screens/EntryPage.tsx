@@ -12,6 +12,7 @@ import {
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
+import { useIsMousePointer } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
 import { useLedger } from '@cc/web-data-access/people';
 import {
@@ -39,6 +40,7 @@ import { Label } from '@cc/web-ui/components/ui/label';
 import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
+import { AmountField, evaluateAmountExpression, formatKeypadValue } from '../components/AmountField';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { EntryDateRow } from '../components/EntryDateRow';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
@@ -50,34 +52,6 @@ import { QuickExpenseEmbed } from './ExpenseForm';
 
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
-
-function parseTermMinor(term: string, decimals: 0 | 2): number | null {
-  if (decimals === 0) {
-    if (!/^\d+$/.test(term)) return null;
-    const value = Number(term);
-    return Number.isSafeInteger(value) ? value : null;
-  }
-  const match = /^(\d+)(?:,(\d{1,2}))?$/.exec(term);
-  if (!match) return null;
-  const whole = Number(match[1]);
-  const frac = Number((match[2] ?? '').padEnd(2, '0'));
-  const minor = whole * 100 + frac;
-  return Number.isSafeInteger(minor) ? minor : null;
-}
-
-function evaluateAmountExpression(expr: string, code: CurrencyCode): number | null {
-  if (!expr) return null;
-  const info = CURRENCIES[code];
-  const total = parseTermMinor(expr, info.decimals);
-  if (total === null || total <= 0 || total > info.max) return null;
-  return total;
-}
-
-function formatKeypadValue(minor: number, code: CurrencyCode): string {
-  if (CURRENCIES[code].decimals === 0) return String(Math.trunc(minor));
-  const abs = Math.abs(Math.trunc(minor));
-  return `${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
-}
 
 function parseInitialType(raw: string | null): {
   tab: TabValue;
@@ -269,9 +243,14 @@ export function EntryPage(): JSX.Element {
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
+  const primaryInputRef = useRef<HTMLInputElement>(null);
+  const secondaryInputRef = useRef<HTMLInputElement>(null);
   const saveBarRef = useRef<HTMLDivElement>(null);
   const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'save' | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
+  const didAutoFocusRef = useRef(false);
+  const isMousePointer = useIsMousePointer();
+  const effectiveKeypadOpen = !isMousePointer && keypadOpen;
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
 
   useEffect(() => {
@@ -539,7 +518,13 @@ export function EntryPage(): JSX.Element {
     }
     if (!isEdit) {
       // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
-      if (activeTab === 'loan-debt') setKeypadOpen(true);
+      if (activeTab === 'loan-debt') {
+        if (isMousePointer) {
+          didAutoFocusRef.current = false;
+        } else {
+          setKeypadOpen(true);
+        }
+      }
       const params = new URLSearchParams(searchParams);
       params.set('type', next);
       setSearchParams(params, { replace: true });
@@ -573,6 +558,23 @@ export function EntryPage(): JSX.Element {
     clearCategoryError();
     if (!excludeTouched) {
       setExcludeFromReports(false);
+    }
+  };
+
+  const handleFieldDone = (field: 'primary' | 'secondary') => {
+    if (!isTransferMode && !categoryId) {
+      const firstTile = categoryGridRef.current?.querySelector<HTMLElement>('button:not([disabled])');
+      firstTile?.focus();
+      firstTile?.scrollIntoView?.({ block: 'nearest' });
+    } else if (
+      isTransferMode &&
+      isDiffCurrencyTransfer &&
+      field === 'primary' &&
+      (secondaryMinor === null || secondaryMinor <= 0)
+    ) {
+      secondaryInputRef.current?.focus();
+    } else {
+      saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
     }
   };
 
@@ -895,6 +897,22 @@ export function EntryPage(): JSX.Element {
   const isLoading = walletsQuery.isPending || (isEdit && !entry && listQuery.isPending);
   const noActiveWallet = !isEdit && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
 
+  useEffect(() => {
+    if (
+      !isMousePointer ||
+      isEdit ||
+      activeTab === 'loan-debt' ||
+      isLoading ||
+      walletsQuery.isError ||
+      noActiveWallet ||
+      didAutoFocusRef.current
+    ) {
+      return;
+    }
+    didAutoFocusRef.current = true;
+    primaryInputRef.current?.focus();
+  }, [isMousePointer, isEdit, activeTab, isLoading, walletsQuery.isError, noActiveWallet]);
+
   return (
     <div className="fsl-entry-page min-h-screen min-h-dvh bg-background flex flex-col">
       <header className="sticky top-0 h-14 bg-background border-b border-border z-20">
@@ -964,7 +982,7 @@ export function EntryPage(): JSX.Element {
         <>
           {liveRegion}
           <main
-            className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}
+            className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !effectiveKeypadOpen && 'pb-24')}
           >
         {isLoading ? (
           <SkeletonList rows={4} />
@@ -997,29 +1015,50 @@ export function EntryPage(): JSX.Element {
 
             {/* Display amount */}
             <div ref={amountAreaRef} className="flex flex-col gap-2">
-              <button
-                type="button"
-                ref={primaryButtonRef}
-                data-testid="amount-display"
-                aria-label={t('personalEntry.amountLabel', { amount: primaryAmountText })}
-                aria-expanded={keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary')}
-                onClick={() => {
-                  setActiveTransferField('primary');
-                  setKeypadOpen(true);
-                  setKeypadFocusToken((n) => n + 1);
-                }}
-                className={cn(
-                  'w-full rounded-xl bg-card border-0 px-4 py-3 flex items-center justify-between gap-3 min-h-16 cursor-pointer text-right',
-                  keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary') && 'ring-2 ring-primary',
-                )}
-              >
-                <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
-                  {t('personalEntry.amountBoxLabel')}
-                </span>
-                <span className="flex flex-col items-end tabular-nums min-w-0">
-                  {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
-                </span>
-              </button>
+              {isMousePointer ? (
+                <AmountField
+                  label={t('personalEntry.amountBoxLabel')}
+                  value={primaryExpr}
+                  currency={primaryCurrency}
+                  tone={displayTone}
+                  inputRef={primaryInputRef}
+                  testId="amount-display"
+                  inputTestId="amount-input"
+                  disabled={hasArchivedWallet}
+                  onFocus={() => setActiveTransferField('primary')}
+                  onChange={(next) => {
+                    setActiveTransferField('primary');
+                    announceSoon(() => spokenAmountRef.current);
+                    setValidationError(null);
+                    setPrimaryExpr(next);
+                  }}
+                  onDone={() => handleFieldDone('primary')}
+                />
+              ) : (
+                <button
+                  type="button"
+                  ref={primaryButtonRef}
+                  data-testid="amount-display"
+                  aria-label={t('personalEntry.amountLabel', { amount: primaryAmountText })}
+                  aria-expanded={keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary')}
+                  onClick={() => {
+                    setActiveTransferField('primary');
+                    setKeypadOpen(true);
+                    setKeypadFocusToken((n) => n + 1);
+                  }}
+                  className={cn(
+                    'w-full rounded-xl bg-card border-0 px-4 py-3 flex items-center justify-between gap-3 min-h-16 cursor-pointer text-right',
+                    keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary') && 'ring-2 ring-primary',
+                  )}
+                >
+                  <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
+                    {t('personalEntry.amountBoxLabel')}
+                  </span>
+                  <span className="flex flex-col items-end tabular-nums min-w-0">
+                    {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
+                  </span>
+                </button>
+              )}
 
               {!isTransferMode &&
                 selectedWallet &&
@@ -1041,7 +1080,8 @@ export function EntryPage(): JSX.Element {
                   </button>
                 )}
 
-              {!keypadOpen &&
+              {!isMousePointer &&
+                !keypadOpen &&
                 primaryCurrency === 'VND' &&
                 primaryMinor !== null &&
                 primaryMinor >= 1 &&
@@ -1058,30 +1098,52 @@ export function EntryPage(): JSX.Element {
                 )}
 
               {isDiffCurrencyTransfer && (
-                <button
-                  type="button"
-                  ref={secondaryButtonRef}
-                  data-testid={entryType === 'expense' ? 'amount-received-box' : 'amount-sent-box'}
-                  aria-label={`${secondaryLabel}: ${secondaryAmountText}`}
-                  aria-expanded={keypadOpen && activeTransferField === 'secondary'}
-                  onClick={() => {
-                    setActiveTransferField('secondary');
-                    setKeypadOpen(true);
-                    setKeypadFocusToken((n) => n + 1);
-                  }}
-                  className={cn(
-                    'w-full rounded-xl bg-card border-0 px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer',
-                    keypadOpen && activeTransferField === 'secondary' && 'ring-2 ring-primary',
-                  )}
-                >
-                  <span className="text-sm font-medium text-muted-foreground">{secondaryLabel}</span>
-                  <div className="flex flex-col items-end">
-                    {renderAmountValue(secondaryExpr, secondaryCurrency, secondaryMinor, 'neutral')}
-                  </div>
-                </button>
+                isMousePointer ? (
+                  <AmountField
+                    label={secondaryLabel}
+                    value={secondaryExpr}
+                    currency={secondaryCurrency}
+                    tone="neutral"
+                    inputRef={secondaryInputRef}
+                    testId={entryType === 'expense' ? 'amount-received-box' : 'amount-sent-box'}
+                    inputTestId={entryType === 'expense' ? 'amount-received-input' : 'amount-sent-input'}
+                    disabled={hasArchivedWallet}
+                    onFocus={() => setActiveTransferField('secondary')}
+                    onChange={(next) => {
+                      setActiveTransferField('secondary');
+                      announceSoon(() => spokenAmountRef.current);
+                      setValidationError(null);
+                      setSecondaryExpr(next);
+                    }}
+                    onDone={() => handleFieldDone('secondary')}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    ref={secondaryButtonRef}
+                    data-testid={entryType === 'expense' ? 'amount-received-box' : 'amount-sent-box'}
+                    aria-label={`${secondaryLabel}: ${secondaryAmountText}`}
+                    aria-expanded={keypadOpen && activeTransferField === 'secondary'}
+                    onClick={() => {
+                      setActiveTransferField('secondary');
+                      setKeypadOpen(true);
+                      setKeypadFocusToken((n) => n + 1);
+                    }}
+                    className={cn(
+                      'w-full rounded-xl bg-card border-0 px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer',
+                      keypadOpen && activeTransferField === 'secondary' && 'ring-2 ring-primary',
+                    )}
+                  >
+                    <span className="text-sm font-medium text-muted-foreground">{secondaryLabel}</span>
+                    <div className="flex flex-col items-end">
+                      {renderAmountValue(secondaryExpr, secondaryCurrency, secondaryMinor, 'neutral')}
+                    </div>
+                  </button>
+                )
               )}
 
-              {!keypadOpen &&
+              {!isMousePointer &&
+                !keypadOpen &&
                 isDiffCurrencyTransfer &&
                 secondaryCurrency === 'VND' &&
                 secondaryMinor !== null &&
@@ -1129,7 +1191,7 @@ export function EntryPage(): JSX.Element {
                 type="button"
                 data-testid="entry-wallet-row"
                 onClick={() => setWalletSheetTarget('single')}
-                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-b-0 text-left cursor-pointer hover:bg-muted/50"
+                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
               >
                 <span className="text-sm font-medium text-muted-foreground">
                   {isTransferMode
@@ -1149,7 +1211,7 @@ export function EntryPage(): JSX.Element {
                   type="button"
                   data-testid={entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'}
                   onClick={() => setWalletSheetTarget('other')}
-                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-b-0 text-left cursor-pointer hover:bg-muted/50"
+                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
                 >
                   <span className="text-sm font-medium text-muted-foreground">
                     {entryType === 'expense'
@@ -1213,7 +1275,7 @@ export function EntryPage(): JSX.Element {
 
       {/* Docked keypad when amount is focused, or BottomBar Save when keypad is closed */}
       {!isLoading && !walletsQuery.isError && !(isEdit && !entry) && !noActiveWallet && (
-        keypadOpen ? (
+        effectiveKeypadOpen ? (
           <DockedAmountKeypad
             open={keypadOpen}
             onClose={() => setKeypadOpen(false)}
@@ -1304,7 +1366,7 @@ export function EntryPage(): JSX.Element {
                 type="button"
                 data-testid={`wallet-option-${w.id}`}
                 onClick={() => handleWalletPick(w.id)}
-                className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-b-0 text-left cursor-pointer hover:bg-muted rounded-xl"
+                className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted rounded-xl"
               >
                 <div className="flex flex-col">
                   <span className="text-base font-medium text-foreground">{w.name}</span>
