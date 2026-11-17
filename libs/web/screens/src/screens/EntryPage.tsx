@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useLocation, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CURRENCIES,
@@ -40,6 +40,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
+import { QuickExpenseEmbed } from './ExpenseForm';
 
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
@@ -72,10 +73,15 @@ function formatKeypadValue(minor: number, code: CurrencyCode): string {
   return `${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
 }
 
-function parseInitialType(raw: string | null): { type: FormEntryType; transfer: boolean } {
-  if (raw === 'income') return { type: 'income', transfer: false };
-  if (raw === 'transfer') return { type: 'expense', transfer: true };
-  return { type: 'expense', transfer: false };
+function parseInitialType(raw: string | null): {
+  tab: TabValue;
+  type: FormEntryType;
+  transfer: boolean;
+} {
+  if (raw === 'loan-debt') return { tab: 'loan-debt', type: 'expense', transfer: false };
+  if (raw === 'income') return { tab: 'income', type: 'income', transfer: false };
+  if (raw === 'transfer') return { tab: 'expense', type: 'expense', transfer: true };
+  return { tab: 'expense', type: 'expense', transfer: false };
 }
 
 function nowDatetimeLocal(): string {
@@ -123,12 +129,10 @@ export function EntryPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const location = useLocation();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { goBack } = useBack('/trips');
-  const { ledger } = useLedger();
-  const loanDebtHref = ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
+  const { ledger, isLoading: ledgerLoading } = useLedger({ enabled: !isEdit });
 
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
@@ -218,7 +222,8 @@ export function EntryPage(): JSX.Element {
     [allWallets],
   );
 
-  const initial = parseInitialType(searchParams.get('type'));
+  const initial = parseInitialType(isEdit ? null : searchParams.get('type'));
+  const [activeTab, setActiveTab] = useState<TabValue>(initial.tab);
   const [entryType, setEntryType] = useState<FormEntryType>(initial.type);
   const [isTransferMode, setIsTransferMode] = useState<boolean>(initial.transfer);
   const [walletId, setWalletId] = useState('');
@@ -243,9 +248,23 @@ export function EntryPage(): JSX.Element {
   const amountAreaRef = useRef<HTMLDivElement>(null);
   const keypadAreaRef = useRef<HTMLDivElement>(null);
 
+  const typeParam = searchParams.get('type');
+  useEffect(() => {
+    if (isEdit) return;
+    if (typeParam === 'loan-debt') {
+      setActiveTab('loan-debt');
+    } else if (typeParam === 'income') {
+      setActiveTab('income');
+      setEntryType('income');
+    } else if (typeParam === 'expense') {
+      setActiveTab('expense');
+      setEntryType('expense');
+    }
+  }, [isEdit, typeParam]);
+
   // Close keypad when tapping outside both the amount area and the keypad
   useEffect(() => {
-    if (!keypadOpen) return;
+    if (!keypadOpen || activeTab === 'loan-debt') return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target;
       if (!(target instanceof Node) || !target.isConnected) return;
@@ -401,10 +420,15 @@ export function EntryPage(): JSX.Element {
   const handleTabChange = (next: TabValue) => {
     if (next === 'loan-debt') {
       if (isEdit) return;
-      navigate(loanDebtHref, { replace: true });
+      setActiveTab('loan-debt');
+      setValidationError(null);
+      const params = new URLSearchParams(searchParams);
+      params.set('type', 'loan-debt');
+      setSearchParams(params, { replace: true });
       return;
     }
     if (isEdit && isTransferMode) return;
+    setActiveTab(next);
     setEntryType(next);
     setIsTransferMode(false);
     setActiveTransferField('primary');
@@ -413,6 +437,20 @@ export function EntryPage(): JSX.Element {
     if (!excludeTouched) {
       setExcludeFromReports(false);
     }
+    if (!isEdit) {
+      const params = new URLSearchParams(searchParams);
+      params.set('type', next);
+      setSearchParams(params, { replace: true });
+    }
+  };
+
+  const handleLoanDebtSaved = () => {
+    showUndo({
+      message: t('personalEntry.saved'),
+      actionLabel: t('common.close'),
+      onAction: () => {},
+    });
+    goBack();
   };
 
   const handleSelectTransfer = () => {
@@ -601,7 +639,7 @@ export function EntryPage(): JSX.Element {
           </button>
 
           <Tabs
-            value={entryType}
+            value={isEdit ? entryType : activeTab}
             onValueChange={(v) => handleTabChange(v as TabValue)}
             className="flex-1 min-w-0 gap-0"
           >
@@ -637,7 +675,21 @@ export function EntryPage(): JSX.Element {
         </div>
       </header>
 
-      <main className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}>
+      {!isEdit && activeTab === 'loan-debt' ? (
+        ledger ? (
+          <QuickExpenseEmbed tripId={ledger.tripId} onSaved={handleLoanDebtSaved} />
+        ) : (
+          <main className="flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4">
+            {ledgerLoading ? (
+              <SkeletonList rows={4} />
+            ) : (
+              <InlineError error={{ code: 'UNKNOWN' }} />
+            )}
+          </main>
+        )
+      ) : (
+        <>
+          <main className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}>
         {isLoading ? (
           <SkeletonList rows={4} />
         ) : walletsQuery.isError ? (
@@ -867,8 +919,10 @@ export function EntryPage(): JSX.Element {
             >
               {t('personalEntry.save')}
             </Button>
-          </BottomBar>
-        )
+            </BottomBar>
+          )
+        )}
+        </>
       )}
 
       {/* Wallet picker Sheet */}

@@ -116,8 +116,8 @@ function renderEntryPage(route: string, state?: unknown) {
 }
 
 describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
-  it('R1: renders Chi / Thu / Vay-Nợ tabs and navigates replace on Vay/Nợ', async () => {
-    const user = userEvent.setup();
+  // R9 replaced "Vay/Nợ navigates away" with the inline form; entry-review-r2.test.tsx covers that now.
+  it('R1: renders Chi / Thu / Vay-Nợ tabs', async () => {
     mockApi({
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/personal/wallets': { wallets: [vndCash, vndBank] },
@@ -131,11 +131,6 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     expect(screen.getByTestId('entry-tab-income')).toHaveTextContent('Thu');
     expect(screen.getByTestId('entry-tab-loan-debt')).toHaveTextContent('Vay/Nợ');
     expect(screen.queryByTestId('entry-tab-transfer')).toBeNull();
-
-    await user.click(screen.getByTestId('entry-tab-loan-debt'));
-    await waitFor(() => {
-      expect(screen.getByTestId('quick-expense-route')).toBeInTheDocument();
-    });
   });
 
   it('R1: AddMenu lists Khoản chi, Khoản thu, Vay/Nợ and drops Chuyển tiền / Với người khác', async () => {

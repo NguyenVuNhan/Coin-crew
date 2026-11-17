@@ -278,6 +278,7 @@ interface ExpenseFormContentProps {
   switcher?: ReactNode;
   isPlanningMode?: boolean;
   isCompleteMode?: boolean;
+  embedded?: boolean;
   leave: () => void;
 }
 
@@ -301,6 +302,7 @@ function ExpenseFormContent({
   switcher,
   isPlanningMode = false,
   isCompleteMode = false,
+  embedded = false,
   leave,
 }: ExpenseFormContentProps) {
   const t = useT();
@@ -1094,6 +1096,7 @@ function ExpenseFormContent({
     <Screen
       title={isDirect && !isEdit ? t('home.newExpense') : title}
       onBack={leave}
+      hideHeader={embedded}
       bottomBar={
         <>
           {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
@@ -2429,6 +2432,68 @@ export function ExpenseForm() {
       isPlanningMode={isPlanningMode}
       isCompleteMode={isCompleteMode}
       leave={leave}
+    />
+  );
+}
+
+export function QuickExpenseEmbed({
+  tripId,
+  onSaved,
+}: {
+  tripId: string;
+  onSaved: () => void;
+}) {
+  const t = useT();
+  const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
+
+  if (isLoading || !view) {
+    return (
+      <Screen title="" hideHeader>
+        <div className={cn('fsl-expense-form flex flex-col gap-4 w-full')}>
+          <div className={cn('fsl-field flex flex-col gap-1.5')}>
+            <Skeleton width="30%" height={14} />
+            <Skeleton width="100%" height={44} radius="md" />
+          </div>
+          <div className={cn('fsl-field flex flex-col gap-1.5')}>
+            <Skeleton width="20%" height={14} />
+            <Skeleton width="100%" height={56} radius="md" />
+          </div>
+          <div className={cn('fsl-field flex flex-col gap-1.5')}>
+            <Skeleton width="20%" height={14} />
+            <Skeleton width="100%" height={44} radius="md" />
+          </div>
+          <div className={cn('fsl-field flex flex-col gap-1.5')}>
+            <Skeleton width="25%" height={14} />
+            <Skeleton width="100%" height={44} radius="md" />
+          </div>
+          <div className={cn('fsl-expense-form__split-section flex flex-col gap-2')}>
+            <Skeleton width="20%" height={14} />
+            <Skeleton width="100%" height={44} radius="md" />
+            <SkeletonList rows={4} />
+          </div>
+          <Skeleton width="100%" height={48} radius="md" />
+        </div>
+      </Screen>
+    );
+  }
+
+  if (tripError) {
+    return (
+      <Screen title="" hideHeader>
+        <div className={cn('fsl-expense-form flex flex-col gap-4 w-full')}>
+          <InlineError error={tripError} onRetry={refetch} />
+        </div>
+      </Screen>
+    );
+  }
+
+  return (
+    <ExpenseFormContent
+      view={view}
+      tripId={tripId}
+      title={t('home.newExpense')}
+      leave={onSaved}
+      embedded
     />
   );
 }

@@ -69,7 +69,7 @@ export function AddMenu({ addHref, align, side, variant }: AddMenuProps): JSX.El
           <span>{t('addMenu.income')}</span>
         </Link>
         <Link
-          to={addHref}
+          to="/entries/new?type=loan-debt"
           data-testid="add-menu-loan-debt"
           onClick={close}
           className={ITEM_CLASS}

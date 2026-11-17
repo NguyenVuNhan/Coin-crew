@@ -20,6 +20,7 @@ export interface ScreenProps {
   bottomBar?: ReactNode;
   barAboveKeyboard?: boolean;
   wide?: boolean;
+  hideHeader?: boolean;
   nav?: { section: NavSection; addHref: string; planHref?: string };
   children?: ReactNode;
   className?: string;
@@ -77,6 +78,7 @@ export function Screen({
   bottomBar,
   barAboveKeyboard,
   wide,
+  hideHeader,
   nav,
   children,
   className,
@@ -89,7 +91,8 @@ export function Screen({
   const rootClass = cn(
     'fsl-screen',
     platform.kind === 'zmp' && 'fsl-screen--zmp',
-    'min-h-screen min-h-dvh bg-background flex flex-col',
+    hideHeader ? 'flex-1' : 'min-h-screen min-h-dvh',
+    'bg-background flex flex-col',
     nav && 'lg:flex-row',
     wide && 'fsl-screen--wide',
     bottomBar && 'fsl-screen--has-bar',
@@ -110,55 +113,57 @@ export function Screen({
 
   const content = (
     <>
-      <header className={headerClass}>
-        <div
-          className={cn(
-            'fsl-screen__header-inner',
-            'h-full flex items-center justify-between px-4 gap-2 mx-auto w-full',
-            wide ? 'max-w-[480px] lg:max-w-[1040px]' : 'max-w-[480px]',
-          )}
-        >
-          {onBack ? (
-            <button
-              type="button"
-              className={backButtonClass}
-              aria-label={t('common.back')}
-              title={t('common.back')}
-              onClick={onBack}
-            >
-              <Icon name="back" size={24} />
-            </button>
-          ) : back ? (
-            <BackLink to={back} className={backLinkClass} label={t('common.back')} />
-          ) : backInApp && depth > 0 ? (
-            <BackInAppButton className={backButtonClass} label={t('common.back')} />
-          ) : (
-            <div className="fsl-screen__header-spacer size-11 shrink-0" aria-hidden="true" />
-          )}
-
-          <h1
-            className={cn(
-              'fsl-screen__title',
-              titleLines === 2
-                ? 'text-lg leading-tight font-semibold text-foreground flex-1 min-w-0 line-clamp-2 [overflow-wrap:anywhere] m-0'
-                : 'text-lg font-semibold text-foreground flex-1 min-w-0 truncate m-0',
-              titleAlign === 'left' ? 'text-left' : 'text-center',
-            )}
-          >
-            {title}
-          </h1>
-
-          {/* From lg the account menu lives in the side panel, so the header one would be a second avatar. */}
+      {!hideHeader && (
+        <header className={headerClass}>
           <div
             className={cn(
-              'fsl-screen__right inline-flex items-center justify-end min-w-11 shrink-0 gap-1',
-              nav && 'lg:[&_.fsl-account-menu]:hidden',
+              'fsl-screen__header-inner',
+              'h-full flex items-center justify-between px-4 gap-2 mx-auto w-full',
+              wide ? 'max-w-[480px] lg:max-w-[1040px]' : 'max-w-[480px]',
             )}
           >
-            {right}
+            {onBack ? (
+              <button
+                type="button"
+                className={backButtonClass}
+                aria-label={t('common.back')}
+                title={t('common.back')}
+                onClick={onBack}
+              >
+                <Icon name="back" size={24} />
+              </button>
+            ) : back ? (
+              <BackLink to={back} className={backLinkClass} label={t('common.back')} />
+            ) : backInApp && depth > 0 ? (
+              <BackInAppButton className={backButtonClass} label={t('common.back')} />
+            ) : (
+              <div className="fsl-screen__header-spacer size-11 shrink-0" aria-hidden="true" />
+            )}
+
+            <h1
+              className={cn(
+                'fsl-screen__title',
+                titleLines === 2
+                  ? 'text-lg leading-tight font-semibold text-foreground flex-1 min-w-0 line-clamp-2 [overflow-wrap:anywhere] m-0'
+                  : 'text-lg font-semibold text-foreground flex-1 min-w-0 truncate m-0',
+                titleAlign === 'left' ? 'text-left' : 'text-center',
+              )}
+            >
+              {title}
+            </h1>
+
+            {/* From lg the account menu lives in the side panel, so the header one would be a second avatar. */}
+            <div
+              className={cn(
+                'fsl-screen__right inline-flex items-center justify-end min-w-11 shrink-0 gap-1',
+                nav && 'lg:[&_.fsl-account-menu]:hidden',
+              )}
+            >
+              {right}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main
         className={cn(
