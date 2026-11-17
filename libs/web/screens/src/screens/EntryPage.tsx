@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type JSX } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router';
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CURRENCIES,
@@ -13,6 +13,7 @@ import {
 import { useT } from '@cc/web-i18n';
 import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
 import { Button } from '@cc/web-ui/components/Button';
+import { useLedger } from '@cc/web-data-access/people';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -25,6 +26,7 @@ import {
 } from '@cc/web-data-access/personalMoney';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { AmountKeypad } from '@cc/web-ui/components/AmountKeypad';
+import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
@@ -36,13 +38,11 @@ import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../components/CategoryPicker';
-import { TagInput } from '../components/TagInput';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
 
-type FormEntryType = 'expense' | 'income' | 'transfer';
-
-const OPERATOR_SPLIT_RE = /([+\-\u2212])/;
+type FormEntryType = 'expense' | 'income';
+type TabValue = FormEntryType | 'loan-debt';
 
 function parseTermMinor(term: string, decimals: 0 | 2): number | null {
   if (decimals === 0) {
@@ -61,19 +61,8 @@ function parseTermMinor(term: string, decimals: 0 | 2): number | null {
 function evaluateAmountExpression(expr: string, code: CurrencyCode): number | null {
   if (!expr) return null;
   const info = CURRENCIES[code];
-  const parts = expr.split(OPERATOR_SPLIT_RE);
-  if (parts.length % 2 === 0) return null;
-  const first = parseTermMinor(parts[0] ?? '', info.decimals);
-  if (first === null) return null;
-  let total = first;
-  for (let i = 1; i < parts.length; i += 2) {
-    const op = parts[i];
-    const rhs = parseTermMinor(parts[i + 1] ?? '', info.decimals);
-    if (rhs === null) return null;
-    total = op === '+' ? total + rhs : total - rhs;
-    if (!Number.isSafeInteger(total)) return null;
-  }
-  if (total <= 0 || total > info.max) return null;
+  const total = parseTermMinor(expr, info.decimals);
+  if (total === null || total <= 0 || total > info.max) return null;
   return total;
 }
 
@@ -83,9 +72,20 @@ function formatKeypadValue(minor: number, code: CurrencyCode): string {
   return `${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
 }
 
-function parseInitialType(raw: string | null): FormEntryType {
-  if (raw === 'income' || raw === 'transfer') return raw;
-  return 'expense';
+function parseInitialType(raw: string | null): { type: FormEntryType; transfer: boolean } {
+  if (raw === 'income') return { type: 'income', transfer: false };
+  if (raw === 'transfer') return { type: 'expense', transfer: true };
+  return { type: 'expense', transfer: false };
+}
+
+function nowDatetimeLocal(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
 function formatImpliedRate(
@@ -123,9 +123,12 @@ export function EntryPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { goBack } = useBack('/trips');
+  const { ledger } = useLedger();
+  const loanDebtHref = ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
 
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
@@ -215,30 +218,44 @@ export function EntryPage(): JSX.Element {
     [allWallets],
   );
 
-  const [entryType, setEntryType] = useState<FormEntryType>(() =>
-    parseInitialType(searchParams.get('type')),
-  );
+  const initial = parseInitialType(searchParams.get('type'));
+  const [entryType, setEntryType] = useState<FormEntryType>(initial.type);
+  const [isTransferMode, setIsTransferMode] = useState<boolean>(initial.transfer);
   const [walletId, setWalletId] = useState('');
-  const [fromWalletId, setFromWalletId] = useState('');
-  const [toWalletId, setToWalletId] = useState('');
+  const [otherWalletId, setOtherWalletId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [amountExpr, setAmountExpr] = useState('');
-  const [receivedExpr, setReceivedExpr] = useState('');
-  const [activeTransferField, setActiveTransferField] = useState<'sent' | 'received'>('sent');
-  const [date, setDate] = useState(() => todayLocal());
-  const [time, setTime] = useState('');
+  const [primaryExpr, setPrimaryExpr] = useState('');
+  const [secondaryExpr, setSecondaryExpr] = useState('');
+  const [activeTransferField, setActiveTransferField] = useState<'primary' | 'secondary'>('primary');
+  const [dateTime, setDateTime] = useState(() => nowDatetimeLocal());
   const [note, setNote] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [excludeFromReports, setExcludeFromReports] = useState(
-    () => parseInitialType(searchParams.get('type')) === 'transfer',
-  );
+  const [excludeFromReports, setExcludeFromReports] = useState(initial.transfer);
   const [excludeTouched, setExcludeTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [walletSheetTarget, setWalletSheetTarget] = useState<'single' | 'from' | 'to' | null>(null);
+  const [keypadOpen, setKeypadOpen] = useState(!isEdit);
+  const [walletSheetTarget, setWalletSheetTarget] = useState<'single' | 'other' | null>(null);
   const [validationError, setValidationError] = useState<unknown>(null);
   const [initializedId, setInitializedId] = useState<string | null>(null);
   const [counterpartAppliedId, setCounterpartAppliedId] = useState<string | null>(null);
   const [walletDefaultsApplied, setWalletDefaultsApplied] = useState(false);
+
+  const amountAreaRef = useRef<HTMLDivElement>(null);
+  const keypadAreaRef = useRef<HTMLDivElement>(null);
+
+  // Close keypad when tapping outside both the amount area and the keypad
+  useEffect(() => {
+    if (!keypadOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target;
+      if (!(target instanceof Node) || !target.isConnected) return;
+      if (amountAreaRef.current?.contains(target)) return;
+      if (keypadAreaRef.current?.contains(target)) return;
+      setKeypadOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [keypadOpen]);
 
   // Initialize default wallets in new mode
   useEffect(() => {
@@ -246,8 +263,7 @@ export function EntryPage(): JSX.Element {
     const defId = pickDefaultWallet(activeWallets);
     const otherId = activeWallets.find((w) => w.id !== defId)?.id ?? '';
     setWalletId(defId);
-    setFromWalletId(defId);
-    setToWalletId(otherId);
+    setOtherWalletId(otherId);
     setWalletDefaultsApplied(true);
   }, [isEdit, walletDefaultsApplied, activeWallets]);
 
@@ -255,39 +271,39 @@ export function EntryPage(): JSX.Element {
   useEffect(() => {
     if (!isEdit || !entry || initializedId === entry.id) return;
     const isTransfer = entry.type === 'transfer_out' || entry.type === 'transfer_in';
-    const nextType: FormEntryType =
-      entry.type === 'transfer_out' || entry.type === 'transfer_in' ? 'transfer' : entry.type;
-    setEntryType(nextType);
+    setIsTransferMode(isTransfer);
 
     if (isTransfer) {
+      setEntryType('expense');
       if (entry.type === 'transfer_out') {
-        setFromWalletId(entry.walletId);
-        setToWalletId(entry.counterpartWalletId ?? '');
-        setAmountExpr(formatKeypadValue(entry.amount, entry.currency));
+        setWalletId(entry.walletId);
+        setOtherWalletId(entry.counterpartWalletId ?? '');
+        setPrimaryExpr(formatKeypadValue(entry.amount, entry.currency));
         if (counterpartEntry) {
-          setReceivedExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
+          setSecondaryExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
         }
       } else {
-        setFromWalletId(entry.counterpartWalletId ?? '');
-        setToWalletId(entry.walletId);
-        setReceivedExpr(formatKeypadValue(entry.amount, entry.currency));
+        setWalletId(entry.counterpartWalletId ?? '');
+        setOtherWalletId(entry.walletId);
+        setSecondaryExpr(formatKeypadValue(entry.amount, entry.currency));
         if (counterpartEntry) {
-          setAmountExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
+          setPrimaryExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
         }
       }
     } else {
+      setEntryType(entry.type === 'income' ? 'income' : 'expense');
       setWalletId(entry.walletId);
       setCategoryId(entry.categoryId);
-      setAmountExpr(formatKeypadValue(entry.amount, entry.currency));
+      setPrimaryExpr(formatKeypadValue(entry.amount, entry.currency));
     }
 
-    setDate(entry.date);
-    setTime(entry.time ?? '');
+    const hhmm = entry.time && /^\d{2}:\d{2}/.test(entry.time) ? entry.time.slice(0, 5) : '00:00';
+    setDateTime(`${entry.date}T${hhmm}`);
     setNote(entry.note ?? '');
     setTags(entry.tags);
     setExcludeFromReports(entry.excludeFromReports);
     setExcludeTouched(true);
-    if (entry.time || entry.tags.length > 0 || entry.excludeFromReports !== isTransfer) {
+    if (entry.excludeFromReports !== isTransfer) {
       setShowMore(true);
     }
     setInitializedId(entry.id);
@@ -299,9 +315,9 @@ export function EntryPage(): JSX.Element {
   useEffect(() => {
     if (!isEdit || !entry || !counterpartEntry || counterpartAppliedId === entry.id) return;
     if (entry.type === 'transfer_out') {
-      setReceivedExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
+      setSecondaryExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
     } else if (entry.type === 'transfer_in') {
-      setAmountExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
+      setPrimaryExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
     }
     setCounterpartAppliedId(entry.id);
   }, [isEdit, entry, counterpartEntry, counterpartAppliedId]);
@@ -313,72 +329,108 @@ export function EntryPage(): JSX.Element {
         : (activeWallets.find((w) => w.id === walletId) ?? activeWallets[0]),
     [isEdit, allWallets, activeWallets, walletId],
   );
-  const fromWallet = useMemo(
+  const otherWallet = useMemo(
     () =>
       isEdit
-        ? allWallets.find((w) => w.id === fromWalletId)
-        : (activeWallets.find((w) => w.id === fromWalletId) ?? activeWallets[0]),
-    [isEdit, allWallets, activeWallets, fromWalletId],
+        ? allWallets.find((w) => w.id === otherWalletId)
+        : (activeWallets.find((w) => w.id === otherWalletId) ??
+          activeWallets.find((w) => w.id !== selectedWallet?.id)),
+    [isEdit, allWallets, activeWallets, otherWalletId, selectedWallet?.id],
   );
-  const toWallet = useMemo(
-    () =>
-      isEdit
-        ? allWallets.find((w) => w.id === toWalletId)
-        : (activeWallets.find((w) => w.id === toWalletId) ??
-          activeWallets.find((w) => w.id !== fromWallet?.id)),
-    [isEdit, allWallets, activeWallets, toWalletId, fromWallet?.id],
-  );
+
+  const fromWallet = isTransferMode
+    ? entryType === 'expense'
+      ? selectedWallet
+      : otherWallet
+    : undefined;
+  const toWallet = isTransferMode
+    ? entryType === 'expense'
+      ? otherWallet
+      : selectedWallet
+    : undefined;
 
   const hasArchivedWallet =
     isEdit &&
-    (entryType === 'transfer'
+    (isTransferMode
       ? Boolean(fromWallet?.archived || toWallet?.archived)
       : Boolean(selectedWallet?.archived));
 
   const isDiffCurrencyTransfer =
-    entryType === 'transfer' &&
+    isTransferMode &&
     Boolean(fromWallet && toWallet && fromWallet.currency !== toWallet.currency);
 
+  const primaryCurrency: CurrencyCode = selectedWallet?.currency ?? 'VND';
+  const secondaryCurrency: CurrencyCode = otherWallet?.currency ?? 'VND';
+
   const activeCurrency: CurrencyCode =
-    entryType === 'transfer'
-      ? activeTransferField === 'received' && isDiffCurrencyTransfer && toWallet
-        ? toWallet.currency
-        : (fromWallet?.currency ?? 'VND')
-      : (selectedWallet?.currency ?? 'VND');
+    isTransferMode && activeTransferField === 'secondary' && isDiffCurrencyTransfer
+      ? secondaryCurrency
+      : primaryCurrency;
 
   const activeExpr =
-    entryType === 'transfer' && activeTransferField === 'received' && isDiffCurrencyTransfer
-      ? receivedExpr
-      : amountExpr;
+    isTransferMode && activeTransferField === 'secondary' && isDiffCurrencyTransfer
+      ? secondaryExpr
+      : primaryExpr;
 
   const setActiveExpr = (next: string) => {
     setValidationError(null);
-    if (entryType === 'transfer' && activeTransferField === 'received' && isDiffCurrencyTransfer) {
-      setReceivedExpr(next);
+    if (isTransferMode && activeTransferField === 'secondary' && isDiffCurrencyTransfer) {
+      setSecondaryExpr(next);
     } else {
-      setAmountExpr(next);
+      setPrimaryExpr(next);
     }
   };
 
-  const sentCurrency = entryType === 'transfer' ? (fromWallet?.currency ?? 'VND') : (selectedWallet?.currency ?? 'VND');
-  const receivedCurrency = toWallet?.currency ?? 'VND';
-  const sentMinor = evaluateAmountExpression(amountExpr, sentCurrency);
-  const receivedMinor = evaluateAmountExpression(receivedExpr, receivedCurrency);
+  const primaryMinor = evaluateAmountExpression(primaryExpr, primaryCurrency);
+  const secondaryMinor = evaluateAmountExpression(secondaryExpr, secondaryCurrency);
+  const activeMinor =
+    isTransferMode && activeTransferField === 'secondary' && isDiffCurrencyTransfer
+      ? secondaryMinor
+      : primaryMinor;
+  const sentMinor = isTransferMode
+    ? entryType === 'expense'
+      ? primaryMinor
+      : secondaryMinor
+    : primaryMinor;
+  const receivedMinor = isTransferMode
+    ? entryType === 'expense'
+      ? secondaryMinor
+      : primaryMinor
+    : null;
 
-  const handleTypeChange = (next: FormEntryType) => {
-    if (isEdit) {
-      const wasTransfer = entryType === 'transfer';
-      const nextIsTransfer = next === 'transfer';
-      if (wasTransfer !== nextIsTransfer) return;
+  const handleTabChange = (next: TabValue) => {
+    if (next === 'loan-debt') {
+      if (isEdit) return;
+      navigate(loanDebtHref, { replace: true });
+      return;
     }
+    if (isEdit && isTransferMode) return;
     setEntryType(next);
+    setIsTransferMode(false);
+    setActiveTransferField('primary');
+    setCategoryId(null);
     setValidationError(null);
-    if (next !== 'transfer') {
-      setActiveTransferField('sent');
-      setCategoryId(null);
-    }
     if (!excludeTouched) {
-      setExcludeFromReports(next === 'transfer');
+      setExcludeFromReports(false);
+    }
+  };
+
+  const handleSelectTransfer = () => {
+    setIsTransferMode(true);
+    setCategoryId(null);
+    setValidationError(null);
+    if (!excludeTouched) {
+      setExcludeFromReports(true);
+    }
+  };
+
+  const handleSelectCategory = (cid: string) => {
+    setIsTransferMode(false);
+    setActiveTransferField('primary');
+    setCategoryId(cid);
+    setValidationError(null);
+    if (!excludeTouched) {
+      setExcludeFromReports(false);
     }
   };
 
@@ -388,29 +440,58 @@ export function EntryPage(): JSX.Element {
     if (isSaving || hasArchivedWallet) return;
     setValidationError(null);
 
+    const [rawDate, rawTime] = dateTime.split('T');
+    const date = rawDate || todayLocal();
+    const time = rawTime ? rawTime.slice(0, 5) : null;
+
     let input: EntryInput;
     let lastUsedWalletId: string;
 
-    if (entryType === 'transfer') {
+    if (isTransferMode) {
       if (!fromWallet || !toWallet || fromWallet.id === toWallet.id) {
         setValidationError(ownError(t('personalEntry.differentWalletsError')));
         return;
       }
-      const sent = activeTransferField === 'sent' ? doneMinor : sentMinor;
-      if (sent === null || sent <= 0) {
-        setActiveTransferField('sent');
-        return;
-      }
+
+      let sent: number;
       let received: number | undefined;
-      if (isDiffCurrencyTransfer) {
-        const rec = activeTransferField === 'received' ? doneMinor : receivedMinor;
-        if (rec === null || rec <= 0) {
-          setActiveTransferField('received');
-          setValidationError(ownError(t('personalEntry.amountReceivedError')));
+
+      if (entryType === 'expense') {
+        const s = activeTransferField === 'primary' ? doneMinor : primaryMinor;
+        if (s === null || s <= 0) {
+          setActiveTransferField('primary');
           return;
         }
-        received = rec;
+        sent = s;
+        if (isDiffCurrencyTransfer) {
+          const r = activeTransferField === 'secondary' ? doneMinor : secondaryMinor;
+          if (r === null || r <= 0) {
+            setActiveTransferField('secondary');
+            setValidationError(ownError(t('personalEntry.amountReceivedError')));
+            return;
+          }
+          received = r;
+        }
+      } else {
+        const r = activeTransferField === 'primary' ? doneMinor : primaryMinor;
+        if (r === null || r <= 0) {
+          setActiveTransferField('primary');
+          return;
+        }
+        if (isDiffCurrencyTransfer) {
+          const s = activeTransferField === 'secondary' ? doneMinor : secondaryMinor;
+          if (s === null || s <= 0) {
+            setActiveTransferField('secondary');
+            setValidationError(ownError(t('personalEntry.amountReceivedError')));
+            return;
+          }
+          sent = s;
+          received = r;
+        } else {
+          sent = r;
+        }
       }
+
       input = {
         type: 'transfer',
         fromWalletId: fromWallet.id,
@@ -418,12 +499,12 @@ export function EntryPage(): JSX.Element {
         amountSent: sent,
         ...(received !== undefined ? { amountReceived: received } : {}),
         date,
-        time: time.trim() ? time.trim() : null,
+        time,
         note: note.trim() ? note.trim() : null,
-        tags,
+        ...(isEdit ? { tags } : {}),
         excludeFromReports,
       };
-      lastUsedWalletId = fromWallet.id;
+      lastUsedWalletId = selectedWallet?.id ?? fromWallet.id;
     } else {
       if (!selectedWallet) return;
       if (!categoryId) {
@@ -436,9 +517,9 @@ export function EntryPage(): JSX.Element {
         amount: doneMinor,
         categoryId,
         date,
-        time: time.trim() ? time.trim() : null,
+        time,
         note: note.trim() ? note.trim() : null,
-        tags,
+        tags: isEdit ? tags : [],
         excludeFromReports,
       };
       lastUsedWalletId = selectedWallet.id;
@@ -462,8 +543,7 @@ export function EntryPage(): JSX.Element {
     }
   };
 
-  const editLockedTransfer = isEdit && entryType === 'transfer';
-  const editLockedNonTransfer = isEdit && entryType !== 'transfer';
+  const editLockedTransfer = isEdit && isTransferMode;
 
   const impliedRate =
     isDiffCurrencyTransfer && fromWallet && toWallet && sentMinor !== null && receivedMinor !== null
@@ -481,22 +561,23 @@ export function EntryPage(): JSX.Element {
     );
   };
 
-  const displayTone =
-    entryType === 'expense' ? 'danger' : entryType === 'income' ? 'success' : 'neutral';
+  const displayTone = isTransferMode
+    ? 'neutral'
+    : entryType === 'expense'
+      ? 'danger'
+      : 'success';
 
   const handleWalletPick = (pickedId: string) => {
     if (walletSheetTarget === 'single') {
+      if (isTransferMode && pickedId === otherWallet?.id) {
+        setOtherWalletId(selectedWallet?.id ?? '');
+      }
       setWalletId(pickedId);
-    } else if (walletSheetTarget === 'from') {
-      if (pickedId === toWallet?.id) {
-        setToWalletId(fromWallet?.id ?? '');
+    } else if (walletSheetTarget === 'other') {
+      if (pickedId === selectedWallet?.id) {
+        setWalletId(otherWallet?.id ?? '');
       }
-      setFromWalletId(pickedId);
-    } else if (walletSheetTarget === 'to') {
-      if (pickedId === fromWallet?.id) {
-        setFromWalletId(toWallet?.id ?? '');
-      }
-      setToWalletId(pickedId);
+      setOtherWalletId(pickedId);
     }
     setWalletSheetTarget(null);
   };
@@ -521,7 +602,7 @@ export function EntryPage(): JSX.Element {
 
           <Tabs
             value={entryType}
-            onValueChange={(v) => handleTypeChange(v as FormEntryType)}
+            onValueChange={(v) => handleTabChange(v as TabValue)}
             className="flex-1 min-w-0 gap-0"
           >
             <TabsList
@@ -530,7 +611,6 @@ export function EntryPage(): JSX.Element {
             >
               <TabsTrigger
                 value="expense"
-                disabled={editLockedTransfer}
                 data-testid="entry-tab-expense"
                 className="flex-1 min-w-0 min-h-10 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
@@ -545,19 +625,19 @@ export function EntryPage(): JSX.Element {
                 {t('personalEntry.income')}
               </TabsTrigger>
               <TabsTrigger
-                value="transfer"
-                disabled={editLockedNonTransfer || (!isEdit && activeWallets.length < 2)}
-                data-testid="entry-tab-transfer"
+                value="loan-debt"
+                disabled={isEdit}
+                data-testid="entry-tab-loan-debt"
                 className="flex-1 min-w-0 min-h-10 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
-                {t('personalEntry.transfer')}
+                {t('personalEntry.loanDebt')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4">
+      <main className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}>
         {isLoading ? (
           <SkeletonList rows={4} />
         ) : walletsQuery.isError ? (
@@ -588,145 +668,100 @@ export function EntryPage(): JSX.Element {
             )}
 
             {/* Display amount */}
-            <div className="flex flex-col gap-2">
-              {entryType === 'transfer' ? (
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    data-testid="amount-sent-box"
-                    onClick={() => setActiveTransferField('sent')}
-                    className={cn(
-                      'w-full rounded-xl bg-card border border-border px-4 py-3 flex items-center justify-between text-left cursor-pointer',
-                      activeTransferField === 'sent' && 'ring-2 ring-primary',
-                    )}
-                  >
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {t('personalEntry.amountSent')}
-                    </span>
-                    <div className="flex flex-col items-end">
-                      {/[+\-\u2212]/.test(amountExpr) && (
-                        <span className="text-xs text-muted-foreground tabular-nums">{amountExpr}</span>
-                      )}
-                      {renderAmountValue(amountExpr, sentCurrency, sentMinor, 'neutral')}
-                    </div>
-                  </button>
+            <div ref={amountAreaRef} className="flex flex-col gap-2">
+              <button
+                type="button"
+                data-testid="amount-display"
+                aria-expanded={keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary')}
+                onClick={() => {
+                  setActiveTransferField('primary');
+                  setKeypadOpen(true);
+                }}
+                className={cn(
+                  'w-full rounded-xl bg-card border border-border px-4 py-3 flex flex-col items-end justify-center min-h-16 cursor-pointer text-right',
+                  keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary') && 'ring-2 ring-primary',
+                )}
+              >
+                {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
+              </button>
 
-                  {isDiffCurrencyTransfer && (
-                    <button
-                      type="button"
-                      data-testid="amount-received-box"
-                      onClick={() => setActiveTransferField('received')}
-                      className={cn(
-                        'w-full rounded-xl bg-card border border-border px-4 py-3 flex items-center justify-between text-left cursor-pointer',
-                        activeTransferField === 'received' && 'ring-2 ring-primary',
-                      )}
-                    >
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {t('personalEntry.amountReceived')}
-                      </span>
-                      <div className="flex flex-col items-end">
-                        {/[+\-\u2212]/.test(receivedExpr) && (
-                          <span className="text-xs text-muted-foreground tabular-nums">{receivedExpr}</span>
-                        )}
-                        {renderAmountValue(receivedExpr, receivedCurrency, receivedMinor, 'neutral')}
-                      </div>
-                    </button>
+              {isDiffCurrencyTransfer && (
+                <button
+                  type="button"
+                  data-testid={entryType === 'expense' ? 'amount-received-box' : 'amount-sent-box'}
+                  aria-expanded={keypadOpen && activeTransferField === 'secondary'}
+                  onClick={() => {
+                    setActiveTransferField('secondary');
+                    setKeypadOpen(true);
+                  }}
+                  className={cn(
+                    'w-full rounded-xl bg-card border border-border px-4 py-3 flex items-center justify-between text-left cursor-pointer',
+                    keypadOpen && activeTransferField === 'secondary' && 'ring-2 ring-primary',
                   )}
-
-                  {impliedRate && (
-                    <p
-                      data-testid="transfer-implied-rate"
-                      className="m-0 px-1 text-xs text-muted-foreground tabular-nums"
-                    >
-                      {impliedRate}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div
-                  data-testid="amount-display"
-                  className="rounded-xl bg-card border border-border px-4 py-3 flex flex-col items-end justify-center min-h-16"
                 >
-                  {/[+\-\u2212]/.test(amountExpr) && (
-                    <span className="text-xs text-muted-foreground tabular-nums">{amountExpr}</span>
-                  )}
-                  <div className="flex items-center gap-1">
-                    {sentMinor !== null && (
-                      <span
-                        className={cn(
-                          'text-2xl font-bold',
-                          entryType === 'expense' ? 'text-danger' : 'text-success',
-                        )}
-                      >
-                        {entryType === 'expense' ? '−' : '+'}
-                      </span>
-                    )}
-                    {renderAmountValue(amountExpr, sentCurrency, sentMinor, displayTone)}
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {entryType === 'expense'
+                      ? t('personalEntry.amountReceived')
+                      : t('personalEntry.amountSent')}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    {renderAmountValue(secondaryExpr, secondaryCurrency, secondaryMinor, 'neutral')}
                   </div>
-                </div>
+                </button>
+              )}
+
+              {impliedRate && (
+                <p
+                  data-testid="transfer-implied-rate"
+                  className="m-0 px-1 text-xs text-muted-foreground tabular-nums"
+                >
+                  {impliedRate}
+                </p>
               )}
             </div>
 
-            {/* Category tiles for expense/income */}
-            {entryType !== 'transfer' && (
-              <CategoryPicker
-                type={entryType}
-                categories={categoriesQuery.data?.categories ?? []}
-                recentIds={categoriesQuery.data?.recentIds ?? []}
-                value={categoryId}
-                onChange={(cid) => {
-                  setCategoryId(cid);
-                  setValidationError(null);
-                }}
-              />
-            )}
+            {/* Category tiles (with fixed transfer tile) */}
+            <CategoryPicker
+              type={entryType}
+              categories={categoriesQuery.data?.categories ?? []}
+              recentIds={categoriesQuery.data?.recentIds ?? []}
+              value={categoryId}
+              onChange={handleSelectCategory}
+              transferSelected={isTransferMode}
+              onSelectTransfer={handleSelectTransfer}
+            />
 
             {/* Compact rows */}
             <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
-              {entryType === 'transfer' ? (
-                <>
-                  <button
-                    type="button"
-                    data-testid="entry-from-wallet-row"
-                    onClick={() => setWalletSheetTarget('from')}
-                    className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
-                  >
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {t('personalEntry.fromWallet')}
-                    </span>
-                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                      <span>{fromWallet ? `${fromWallet.name} (${fromWallet.currency})` : '—'}</span>
-                      <Icon name="chevronRight" size={18} className="text-muted-foreground" />
-                    </span>
-                  </button>
+              <button
+                type="button"
+                data-testid="entry-wallet-row"
+                onClick={() => setWalletSheetTarget('single')}
+                className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+              >
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t('personalEntry.wallet')}
+                </span>
+                <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                  <span>{selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}</span>
+                  <Icon name="chevronRight" size={18} className="text-muted-foreground" />
+                </span>
+              </button>
 
-                  <button
-                    type="button"
-                    data-testid="entry-to-wallet-row"
-                    onClick={() => setWalletSheetTarget('to')}
-                    className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
-                  >
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {t('personalEntry.toWallet')}
-                    </span>
-                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                      <span>{toWallet ? `${toWallet.name} (${toWallet.currency})` : '—'}</span>
-                      <Icon name="chevronRight" size={18} className="text-muted-foreground" />
-                    </span>
-                  </button>
-                </>
-              ) : (
+              {isTransferMode && (
                 <button
                   type="button"
-                  data-testid="entry-wallet-row"
-                  onClick={() => setWalletSheetTarget('single')}
+                  data-testid={entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'}
+                  onClick={() => setWalletSheetTarget('other')}
                   className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
                 >
                   <span className="text-sm font-medium text-muted-foreground">
-                    {t('personalEntry.wallet')}
+                    {entryType === 'expense'
+                      ? t('personalEntry.toWallet')
+                      : t('personalEntry.fromWallet')}
                   </span>
                   <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                    <span>{selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}</span>
+                    <span>{otherWallet ? `${otherWallet.name} (${otherWallet.currency})` : '—'}</span>
                     <Icon name="chevronRight" size={18} className="text-muted-foreground" />
                   </span>
                 </button>
@@ -738,9 +773,9 @@ export function EntryPage(): JSX.Element {
                 </Label>
                 <Input
                   id="entry-date-input"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  type="datetime-local"
+                  value={dateTime}
+                  onChange={(e) => setDateTime(e.target.value)}
                   data-testid="entry-date-input"
                   className="text-base text-foreground bg-transparent border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 w-auto"
                 />
@@ -776,27 +811,6 @@ export function EntryPage(): JSX.Element {
 
               {showMore && (
                 <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
-                  <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-                    <Label htmlFor="entry-time-input" className="text-sm font-medium text-muted-foreground shrink-0">
-                      {t('personalEntry.time')}
-                    </Label>
-                    <Input
-                      id="entry-time-input"
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      data-testid="entry-time-input"
-                      className="text-base text-foreground bg-transparent border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 w-auto"
-                    />
-                  </div>
-
-                  <div className="w-full px-4 py-3 flex flex-col gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {t('personalEntry.tags')}
-                    </span>
-                    <TagInput value={tags} onChange={setTags} />
-                  </div>
-
                   <div className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-foreground">
                       {t('personalEntry.excludeFromReports')}
@@ -818,22 +832,43 @@ export function EntryPage(): JSX.Element {
         )}
       </main>
 
-      {/* Docked keypad at the bottom */}
+      {/* Docked keypad when amount is focused, or BottomBar Save when keypad is closed */}
       {!isLoading && !walletsQuery.isError && !(isEdit && !entry) && !noActiveWallet && (
-        <div className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
-          <div className="mx-auto w-full max-w-[480px]">
-            <fieldset disabled={isSaving || hasArchivedWallet} className="border-0 p-0 m-0 min-w-0">
-              <AmountKeypad
-                value={activeExpr}
-                currency={activeCurrency}
-                onChange={setActiveExpr}
-                onDone={(minor) => void handleSave(minor)}
-                doneLabel={t('personalEntry.save')}
-                deleteLabel={t('personalEntry.deleteDigit')}
-              />
-            </fieldset>
+        keypadOpen ? (
+          <div
+            ref={keypadAreaRef}
+            className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
+          >
+            <div className="mx-auto w-full max-w-[480px]">
+              <fieldset disabled={isSaving || hasArchivedWallet} className="border-0 p-0 m-0 min-w-0">
+                <AmountKeypad
+                  value={activeExpr}
+                  currency={activeCurrency}
+                  onChange={setActiveExpr}
+                  onDone={(minor) => void handleSave(minor)}
+                  doneLabel={t('personalEntry.save')}
+                  deleteLabel={t('personalEntry.deleteDigit')}
+                />
+              </fieldset>
+            </div>
           </div>
-        </div>
+        ) : (
+          <BottomBar>
+            <Button
+              type="button"
+              variant="primary"
+              block
+              loading={isSaving}
+              disabled={activeMinor === null || isSaving || hasArchivedWallet}
+              data-testid="entry-save-btn"
+              onClick={() => {
+                if (activeMinor !== null) void handleSave(activeMinor);
+              }}
+            >
+              {t('personalEntry.save')}
+            </Button>
+          </BottomBar>
+        )
       )}
 
       {/* Wallet picker Sheet */}
@@ -845,11 +880,9 @@ export function EntryPage(): JSX.Element {
         <div data-testid="wallet-picker-list" className="flex flex-col divide-y divide-border">
           {activeWallets.map((w) => {
             const currentId =
-              walletSheetTarget === 'from'
-                ? fromWallet?.id
-                : walletSheetTarget === 'to'
-                  ? toWallet?.id
-                  : selectedWallet?.id;
+              walletSheetTarget === 'other'
+                ? otherWallet?.id
+                : selectedWallet?.id;
             const isSelected = w.id === currentId;
             return (
               <button

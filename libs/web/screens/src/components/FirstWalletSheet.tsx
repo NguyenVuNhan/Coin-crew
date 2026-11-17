@@ -41,7 +41,6 @@ export function FirstWalletSheet({
   const [kind, setKind] = useState<WalletKind>('everyday');
   const [currency, setCurrency] = useState<CurrencyCode>('VND');
   const [amountText, setAmountText] = useState('');
-  const [isNegative, setIsNegative] = useState(false);
   const [costVndText, setCostVndText] = useState('');
 
   const prevOpenRef = useRef(open);
@@ -51,7 +50,6 @@ export function FirstWalletSheet({
       setKind('everyday');
       setCurrency('VND');
       setAmountText('');
-      setIsNegative(false);
       setCostVndText('');
       create.reset();
       addWallet.reset();
@@ -60,17 +58,22 @@ export function FirstWalletSheet({
   }, [open, t, create, addWallet]);
 
   const trimmedAmount = amountText.trim();
-  const isZeroAmount = ZERO_TEXT_RE.test(trimmedAmount);
+  const hasMinus = trimmedAmount.startsWith('-') || trimmedAmount.startsWith('−');
+  const unsignedAmount = hasMinus ? trimmedAmount.slice(1).trim() : trimmedAmount;
+  const isZeroAmount = !hasMinus && ZERO_TEXT_RE.test(unsignedAmount);
   let resolvedAmount: number | null = null;
   let isAmountValid = false;
 
   if (isZeroAmount) {
     resolvedAmount = 0;
     isAmountValid = true;
-  } else {
-    const parsed = parseMoney(amountText, currency);
+  } else if (hasMinus && ZERO_TEXT_RE.test(unsignedAmount) && unsignedAmount !== '') {
+    resolvedAmount = 0;
+    isAmountValid = true;
+  } else if (!(hasMinus && unsignedAmount === '')) {
+    const parsed = parseMoney(unsignedAmount, currency);
     if (parsed !== null) {
-      resolvedAmount = isNegative ? -parsed : parsed;
+      resolvedAmount = hasMinus ? -parsed : parsed;
       isAmountValid = true;
     }
   }
@@ -199,33 +202,16 @@ export function FirstWalletSheet({
 
         <div className="fsl-field flex flex-col gap-1.5">
           <Label htmlFor={amountId}>{t('book.walletAmount')}</Label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              data-testid="first-wallet-negative"
-              aria-pressed={isNegative}
-              aria-label={t('walletForm.negativeToggle')}
-              onClick={() => setIsNegative((v) => !v)}
-              className={cn(
-                'min-h-11 min-w-11 shrink-0 rounded-xl border px-3 text-base font-bold transition-colors cursor-pointer',
-                isNegative
-                  ? 'border-danger bg-danger-soft text-danger'
-                  : 'border-border bg-card text-muted-foreground hover:bg-muted',
-              )}
-            >
-              −
-            </button>
-            <Input
-              id={amountId}
-              data-testid="first-wallet-amount"
-              type="text"
-              inputMode="decimal"
-              className="fsl-input fsl-input--amount font-semibold tabular-nums"
-              aria-describedby={isAmountInvalid ? amountErrorId : amountHintId}
-              value={amountText}
-              onChange={(e) => setAmountText(e.target.value)}
-            />
-          </div>
+          <Input
+            id={amountId}
+            data-testid="first-wallet-amount"
+            type="text"
+            inputMode="text"
+            className="fsl-input fsl-input--amount font-semibold tabular-nums"
+            aria-describedby={isAmountInvalid ? amountErrorId : amountHintId}
+            value={amountText}
+            onChange={(e) => setAmountText(e.target.value)}
+          />
           {trimmedAmount !== '' && isAmountValid && resolvedAmount !== null && (
             <div className="fsl-amount-preview text-sm font-semibold tabular-nums text-muted-foreground">
               {formatMoney(resolvedAmount, currency)}

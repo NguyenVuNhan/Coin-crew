@@ -44,10 +44,11 @@ const ZERO_TEXT_RE = /^(?:0+(?:[.,]0{1,2})?)?$/;
 function formatMinorInput(minor: number, currency: CurrencyCode): string {
   const abs = Math.abs(Math.trunc(minor));
   if (abs === 0) return '';
-  if (CURRENCIES[currency].decimals === 0) return String(abs);
+  const sign = minor < 0 ? '-' : '';
+  if (CURRENCIES[currency].decimals === 0) return `${sign}${abs}`;
   const whole = Math.floor(abs / 100);
   const frac = abs % 100;
-  return frac === 0 ? String(whole) : `${whole}.${String(frac).padStart(2, '0')}`;
+  return frac === 0 ? `${sign}${whole}` : `${sign}${whole}.${String(frac).padStart(2, '0')}`;
 }
 
 export function walletIconClass(icon: string | null | undefined): string {
@@ -78,7 +79,6 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
   const [name, setName] = useState(wallet?.name ?? '');
   const [kind, setKind] = useState<WalletKind>(wallet?.kind ?? 'everyday');
   const [currency, setCurrency] = useState<CurrencyCode>(wallet?.currency ?? 'VND');
-  const [isNegative, setIsNegative] = useState(() => (wallet ? wallet.startAmount < 0 : false));
   const [amountText, setAmountText] = useState(() =>
     wallet ? formatMinorInput(wallet.startAmount, wallet.currency) : '',
   );
@@ -94,7 +94,6 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
       setName(wallet?.name ?? '');
       setKind(wallet?.kind ?? 'everyday');
       setCurrency(wallet?.currency ?? 'VND');
-      setIsNegative(wallet ? wallet.startAmount < 0 : false);
       setAmountText(wallet ? formatMinorInput(wallet.startAmount, wallet.currency) : '');
       setStartDate(wallet?.startDate ?? todayLocal());
       setCostVndText(wallet?.startCostVnd ? String(wallet.startCostVnd) : '');
@@ -106,17 +105,22 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
   }, [open, wallet, addWallet, updateWallet]);
 
   const trimmedAmount = amountText.trim();
-  const isZeroAmount = ZERO_TEXT_RE.test(trimmedAmount);
+  const hasMinus = trimmedAmount.startsWith('-') || trimmedAmount.startsWith('−');
+  const unsignedAmount = hasMinus ? trimmedAmount.slice(1).trim() : trimmedAmount;
+  const isZeroAmount = !hasMinus && ZERO_TEXT_RE.test(unsignedAmount);
   let resolvedAmount: number | null = null;
   let isAmountValid = false;
 
   if (isZeroAmount) {
     resolvedAmount = 0;
     isAmountValid = true;
-  } else {
-    const parsed = parseMoney(amountText, currency);
+  } else if (hasMinus && ZERO_TEXT_RE.test(unsignedAmount) && unsignedAmount !== '') {
+    resolvedAmount = 0;
+    isAmountValid = true;
+  } else if (!(hasMinus && unsignedAmount === '')) {
+    const parsed = parseMoney(unsignedAmount, currency);
     if (parsed !== null) {
-      resolvedAmount = isNegative ? -parsed : parsed;
+      resolvedAmount = hasMinus ? -parsed : parsed;
       isAmountValid = true;
     }
   }
@@ -262,33 +266,16 @@ export function WalletForm({ open, onClose, wallet }: WalletFormProps): JSX.Elem
 
         <div className="fsl-field flex flex-col gap-1.5">
           <Label htmlFor={amountId}>{t('walletForm.startAmount')}</Label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              data-testid="wallet-form-negative"
-              aria-pressed={isNegative}
-              aria-label={t('walletForm.negativeToggle')}
-              onClick={() => setIsNegative((v) => !v)}
-              className={cn(
-                'min-h-11 min-w-11 shrink-0 rounded-xl border px-3 text-base font-bold transition-colors cursor-pointer',
-                isNegative
-                  ? 'border-danger bg-danger-soft text-danger'
-                  : 'border-border bg-card text-muted-foreground hover:bg-muted',
-              )}
-            >
-              −
-            </button>
-            <Input
-              id={amountId}
-              data-testid="wallet-form-amount"
-              type="text"
-              inputMode="decimal"
-              className="fsl-input fsl-input--amount font-semibold tabular-nums"
-              aria-describedby={!isAmountValid ? amountErrorId : undefined}
-              value={amountText}
-              onChange={(e) => setAmountText(e.target.value)}
-            />
-          </div>
+          <Input
+            id={amountId}
+            data-testid="wallet-form-amount"
+            type="text"
+            inputMode="text"
+            className="fsl-input fsl-input--amount font-semibold tabular-nums"
+            aria-describedby={!isAmountValid ? amountErrorId : undefined}
+            value={amountText}
+            onChange={(e) => setAmountText(e.target.value)}
+          />
           {trimmedAmount !== '' && isAmountValid && resolvedAmount !== null && (
             <div className="fsl-amount-preview text-sm font-semibold tabular-nums text-muted-foreground">
               {formatMoney(resolvedAmount, currency)}

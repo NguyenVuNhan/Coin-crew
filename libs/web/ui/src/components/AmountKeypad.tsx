@@ -6,7 +6,6 @@ import {
   amountSuggestions,
   applyKeypadComma,
   applyKeypadDigit,
-  applyKeypadOperator,
   applyKeypadTripleZero,
   evaluateAmountExpression,
   formatKeypadValue,
@@ -48,11 +47,6 @@ export function AmountKeypad({
     if (next !== value) onChange(next);
   };
 
-  const handleOperator = (op: '+' | '−') => {
-    const next = applyKeypadOperator(value, op);
-    if (next !== value) onChange(next);
-  };
-
   const handleComma = () => {
     if (!allowsDecimal) return;
     const next = applyKeypadComma(value, currency);
@@ -74,12 +68,6 @@ export function AmountKeypad({
     } else if (e.key === 'Backspace') {
       e.preventDefault();
       handleBackspace();
-    } else if (e.key === '+') {
-      e.preventDefault();
-      handleOperator('+');
-    } else if (e.key === '-' || e.key === '−') {
-      e.preventDefault();
-      handleOperator('−');
     } else if (e.key === ',') {
       e.preventDefault();
       handleComma();
@@ -143,11 +131,12 @@ export function AmountKeypad({
         </button>
         <button
           type="button"
-          data-testid="key-minus"
+          data-testid="key-comma"
+          disabled={!allowsDecimal}
           className={KEY_CARD}
-          onClick={() => handleOperator('−')}
+          onClick={handleComma}
         >
-          −
+          ,
         </button>
 
         <button type="button" data-testid="key-1" className={KEY_CARD} onClick={() => handleDigit('1')}>
@@ -159,29 +148,17 @@ export function AmountKeypad({
         <button type="button" data-testid="key-3" className={KEY_CARD} onClick={() => handleDigit('3')}>
           3
         </button>
-        <button
-          type="button"
-          data-testid="key-plus"
-          className={KEY_CARD}
-          onClick={() => handleOperator('+')}
-        >
-          +
-        </button>
-
         <button type="button" data-testid="key-000" className={KEY_CARD} onClick={handleTripleZero}>
           000
         </button>
-        <button type="button" data-testid="key-0" className={KEY_CARD} onClick={() => handleDigit('0')}>
-          0
-        </button>
+
         <button
           type="button"
-          data-testid="key-comma"
-          disabled={!allowsDecimal}
-          className={KEY_CARD}
-          onClick={handleComma}
+          data-testid="key-0"
+          className={cn(KEY_CARD, 'col-span-3')}
+          onClick={() => handleDigit('0')}
         >
-          ,
+          0
         </button>
         <button
           type="button"

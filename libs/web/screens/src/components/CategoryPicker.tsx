@@ -11,6 +11,8 @@ export interface CategoryPickerProps {
   recentIds: string[];
   value: string | null;
   onChange(categoryId: string): void;
+  transferSelected?: boolean;
+  onSelectTransfer?: () => void;
 }
 
 import { categoryIconName } from './categoryIcon';
@@ -21,6 +23,8 @@ export function CategoryPicker({
   recentIds,
   value,
   onChange,
+  transferSelected = false,
+  onSelectTransfer,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -95,8 +99,32 @@ export function CategoryPicker({
   return (
     <div data-testid="category-picker" className="fsl-category-picker">
       <div className="grid grid-cols-4 gap-2">
+        {onSelectTransfer && (
+          <button
+            key="transfer"
+            type="button"
+            data-testid="category-tile-transfer"
+            aria-pressed={transferSelected}
+            onClick={onSelectTransfer}
+            className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span
+              className={cn(
+                'size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center transition-shadow',
+                transferSelected && 'ring-2 ring-primary',
+              )}
+            >
+              <Icon name="swap" size={20} />
+            </span>
+            <span className="text-xs font-medium text-foreground leading-tight line-clamp-2 w-full">
+              {type === 'expense'
+                ? t('personalEntry.transferToWallet')
+                : t('personalEntry.transferFromWallet')}
+            </span>
+          </button>
+        )}
         {tiles.map((cat) => {
-          const selected = value === cat.id;
+          const selected = !transferSelected && value === cat.id;
           return (
             <button
               key={cat.id}

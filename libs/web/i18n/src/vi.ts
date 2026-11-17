@@ -1334,6 +1334,7 @@ export const vi: Record<MessageKey, string> = {
   'walletForm.lockedHint': 'Không thể đổi loại ví và tiền tệ khi đã có giao dịch.', // REVIEW
   'addMenu.expense': 'Khoản chi', // REVIEW
   'addMenu.income': 'Khoản thu', // REVIEW
+  'addMenu.loanDebt': 'Vay/Nợ', // REVIEW
   'addMenu.transfer': 'Chuyển tiền', // REVIEW
   'addMenu.withPeople': 'Với người khác', // REVIEW
   'personalEntry.newTitle': 'Thêm giao dịch', // REVIEW
@@ -1341,7 +1342,10 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.tabs': 'Loại giao dịch', // REVIEW
   'personalEntry.expense': 'Chi', // REVIEW
   'personalEntry.income': 'Thu', // REVIEW
+  'personalEntry.loanDebt': 'Vay/Nợ', // REVIEW
   'personalEntry.transfer': 'Chuyển tiền', // REVIEW
+  'personalEntry.transferToWallet': 'Chuyển sang ví', // REVIEW
+  'personalEntry.transferFromWallet': 'Nhận từ ví', // REVIEW
   'personalEntry.wallet': 'Ví', // REVIEW
   'personalEntry.fromWallet': 'Từ ví', // REVIEW
   'personalEntry.toWallet': 'Đến ví', // REVIEW
@@ -1424,7 +1428,11 @@ export const vi: Record<MessageKey, string> = {
   'categories.editTitle': 'Sửa nhóm', // REVIEW
   'categories.name': 'Tên nhóm', // REVIEW
   'categories.icon': 'Biểu tượng', // REVIEW
+  'categories.pickIcon': 'Chọn biểu tượng', // REVIEW
+  'categories.iconSearch': 'Tìm biểu tượng...', // REVIEW
+  'categories.noIconResults': 'Không tìm thấy biểu tượng phù hợp.', // REVIEW
   'categories.parent': 'Nhóm cha', // REVIEW
+  'categories.pickParent': 'Chọn nhóm cha', // REVIEW
   'categories.noParent': 'Không có (nhóm chính)', // REVIEW
   'categories.save': 'Lưu', // REVIEW
   'categories.emptyTitle': 'Chưa có nhóm nào', // REVIEW

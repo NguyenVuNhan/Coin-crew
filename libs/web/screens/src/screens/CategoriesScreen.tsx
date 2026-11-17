@@ -25,35 +25,7 @@ import { NativeSelect, NativeSelectOption } from '@cc/web-ui/components/ui/nativ
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
-import { categoryIconName } from '../components/categoryIcon';
-
-const CATEGORY_ICONS: readonly IconName[] = [
-  'receipt',
-  'utensils',
-  'bus',
-  'shopping-bag',
-  'heart-pulse',
-  'trending-up',
-  'landmark',
-  'badge-percent',
-  'candlestick-chart',
-  'coins',
-  'pie-chart',
-  'gem',
-  'wallet',
-  'piggy-bank',
-  'gift',
-  'home',
-  'users',
-  'star',
-  'crown',
-  'trophy',
-  'shield',
-  'suitcase',
-  'calendar',
-  'smartphone',
-  'palette',
-];
+import { categoryIconName, filterCategoryIcons } from '../components/categoryIcon';
 
 interface CategoryFormSheetProps {
   open: boolean;
@@ -79,6 +51,12 @@ function CategoryFormSheet({
     editing ? categoryIconName(editing.icon, editing.type) : type === 'income' ? 'wallet' : 'receipt',
   );
   const [parentId, setParentId] = useState<string>(editing?.parentId ?? '');
+  const [iconSheetOpen, setIconSheetOpen] = useState(false);
+  const [iconSearch, setIconSearch] = useState('');
+  const [parentSheetOpen, setParentSheetOpen] = useState(false);
+
+  const filteredIcons = useMemo(() => filterCategoryIcons(iconSearch), [iconSearch]);
+  const selectedParent = parents.find((p) => p.id === parentId) ?? null;
 
   const busy = createCategory.isPending || updateCategory.isPending;
   const error = editing ? updateCategory.error : createCategory.error;
@@ -126,48 +104,47 @@ function CategoryFormSheet({
 
         {!editing && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="category-parent-select">{t('categories.parent')}</Label>
-            <NativeSelect
-              id="category-parent-select"
-              value={parentId}
-              onChange={(e) => setParentId(e.target.value)}
-              data-testid="category-parent-select"
-              className="w-full min-h-11 text-base"
+            <span className="text-sm font-medium text-foreground">{t('categories.parent')}</span>
+            <button
+              type="button"
+              data-testid="category-parent-trigger"
+              onClick={() => setParentSheetOpen(true)}
+              className="min-h-11 rounded-xl border border-border bg-card px-3 py-2 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-muted/50"
             >
-              <NativeSelectOption value="">{t('categories.noParent')}</NativeSelectOption>
-              {parents.map((p) => (
-                <NativeSelectOption key={p.id} value={p.id}>
-                  {p.name}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <span className="flex items-center gap-2.5 min-w-0">
+                {selectedParent && (
+                  <span className="size-8 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                    <Icon name={categoryIconName(selectedParent.icon, type)} size={16} />
+                  </span>
+                )}
+                <span className="text-base text-foreground truncate">
+                  {selectedParent ? selectedParent.name : t('categories.noParent')}
+                </span>
+              </span>
+              <Icon name="chevronRight" size={18} className="text-muted-foreground shrink-0" />
+            </button>
           </div>
         )}
 
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-foreground">{t('categories.icon')}</span>
-          <div className="grid grid-cols-5 gap-2">
-            {CATEGORY_ICONS.map((iconName) => {
-              const selected = icon === iconName;
-              return (
-                <button
-                  key={iconName}
-                  type="button"
-                  aria-label={iconName}
-                  aria-pressed={selected}
-                  onClick={() => setIcon(iconName)}
-                  className={cn(
-                    'min-h-11 rounded-xl border grid place-items-center transition-colors cursor-pointer',
-                    selected
-                      ? 'border-primary bg-secondary text-foreground'
-                      : 'border-border bg-card text-muted-foreground hover:bg-muted',
-                  )}
-                >
-                  <Icon name={iconName} size={20} />
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            data-testid="category-icon-trigger"
+            onClick={() => {
+              setIconSearch('');
+              setIconSheetOpen(true);
+            }}
+            className="min-h-11 rounded-xl border border-border bg-card px-3 py-2 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-muted/50"
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                <Icon name={icon} size={20} />
+              </span>
+              <span className="text-base text-foreground">{icon}</span>
+            </span>
+            <Icon name="chevronRight" size={18} className="text-muted-foreground shrink-0" />
+          </button>
         </div>
 
         {error && <InlineError error={error} />}
@@ -187,6 +164,103 @@ function CategoryFormSheet({
           </Button>
         </div>
       </form>
+
+      <Sheet
+        open={iconSheetOpen}
+        onClose={() => setIconSheetOpen(false)}
+        title={t('categories.pickIcon')}
+      >
+        <div className="flex flex-col gap-3">
+          <Input
+            type="search"
+            value={iconSearch}
+            onChange={(e) => setIconSearch(e.target.value)}
+            placeholder={t('categories.iconSearch')}
+            data-testid="category-icon-search"
+            className="min-h-11 text-base"
+          />
+          {filteredIcons.length === 0 ? (
+            <p className="m-0 py-4 text-center text-sm text-muted-foreground">
+              {t('categories.noIconResults')}
+            </p>
+          ) : (
+            <div data-testid="category-icon-grid" className="grid grid-cols-5 gap-2">
+              {filteredIcons.map((iconName) => {
+                const selected = icon === iconName;
+                return (
+                  <button
+                    key={iconName}
+                    type="button"
+                    aria-label={iconName}
+                    aria-pressed={selected}
+                    data-testid={`category-icon-option-${iconName}`}
+                    onClick={() => {
+                      setIcon(iconName);
+                      setIconSheetOpen(false);
+                    }}
+                    className={cn(
+                      'min-h-11 rounded-xl border grid place-items-center transition-colors cursor-pointer',
+                      selected
+                        ? 'border-primary bg-secondary text-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted',
+                    )}
+                  >
+                    <Icon name={iconName} size={20} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={parentSheetOpen}
+        onClose={() => setParentSheetOpen(false)}
+        title={t('categories.pickParent')}
+      >
+        <div data-testid="category-parent-list" className="flex flex-col divide-y divide-border">
+          <button
+            type="button"
+            data-testid="category-parent-option-none"
+            onClick={() => {
+              setParentId('');
+              setParentSheetOpen(false);
+            }}
+            className={cn(
+              'min-h-11 flex items-center justify-between gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+              parentId === '' && 'font-semibold text-primary',
+            )}
+          >
+            <span>{t('categories.noParent')}</span>
+            {parentId === '' && <Icon name="check" size={18} className="text-primary shrink-0" />}
+          </button>
+          {parents.map((p) => {
+            const selected = parentId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                data-testid={`category-parent-option-${p.id}`}
+                onClick={() => {
+                  setParentId(p.id);
+                  setParentSheetOpen(false);
+                }}
+                className={cn(
+                  'min-h-11 flex items-center gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+                  selected && 'font-semibold text-primary',
+                )}
+              >
+                <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                  <Icon name={categoryIconName(p.icon, type)} size={18} />
+                </span>
+                <span className="flex-1 truncate">{p.name}</span>
+                {selected && <Icon name="check" size={18} className="text-primary shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
     </Sheet>
   );
 }

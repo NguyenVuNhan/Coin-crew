@@ -1,7 +1,6 @@
 import { useState, type JSX, type MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { useT } from '@cc/web-i18n';
-import { useWalletDetails } from '@cc/web-data-access/personalMoney';
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
@@ -19,9 +18,6 @@ const ITEM_CLASS =
 export function AddMenu({ addHref, align, side, variant }: AddMenuProps): JSX.Element {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const walletsQuery = useWalletDetails();
-  const activeCount = (walletsQuery.data?.wallets ?? []).filter((w) => !w.archived).length;
-  const canTransfer = activeCount >= 2;
 
   const close = () => setOpen(false);
   const handleFabClick = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -72,25 +68,14 @@ export function AddMenu({ addHref, align, side, variant }: AddMenuProps): JSX.El
           <Icon name="wallet" size={18} />
           <span>{t('addMenu.income')}</span>
         </Link>
-        {canTransfer && (
-          <Link
-            to="/entries/new?type=transfer"
-            data-testid="add-menu-transfer"
-            onClick={close}
-            className={ITEM_CLASS}
-          >
-            <Icon name="swap" size={18} />
-            <span>{t('addMenu.transfer')}</span>
-          </Link>
-        )}
         <Link
           to={addHref}
-          data-testid="add-menu-with-people"
+          data-testid="add-menu-loan-debt"
           onClick={close}
           className={ITEM_CLASS}
         >
           <Icon name="users" size={18} />
-          <span>{t('addMenu.withPeople')}</span>
+          <span>{t('addMenu.loanDebt')}</span>
         </Link>
       </PopoverContent>
     </Popover>

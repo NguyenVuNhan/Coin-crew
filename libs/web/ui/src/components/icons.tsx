@@ -8,11 +8,14 @@ import {
   Ban,
   Bell,
   BellOff,
+  BookOpen,
+  Briefcase,
   Bus,
   Calendar,
   CalendarCheck,
   Camera,
   CandlestickChart,
+  Car,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -20,14 +23,20 @@ import {
   ChevronUp,
   CircleCheck,
   Clock,
+  Coffee,
   Coins,
   Copy,
   Crown,
   Download,
+  Dumbbell,
   Ellipsis,
   EllipsisVertical,
+  Film,
+  Fuel,
+  Gamepad2,
   Gem,
   Gift,
+  GraduationCap,
   Headset,
   HeartPulse,
   History,
@@ -35,16 +44,19 @@ import {
   Info,
   Landmark,
   Languages,
+  Laptop,
   Link as LinkIcon,
   Luggage,
   Map as MapIcon,
   Mars,
   Merge,
+  Music,
   Palette,
   Pause,
   Pencil,
   PieChart,
   PiggyBank,
+  Plane,
   Play,
   Plus,
   QrCode,
@@ -55,10 +67,12 @@ import {
   Share,
   Share2,
   Shield,
+  Shirt,
   ShoppingBag,
   Smartphone,
   SquarePlus,
   Star,
+  Stethoscope,
   Trash2,
   TrendingUp,
   Trophy,
@@ -69,7 +83,10 @@ import {
   Utensils,
   Venus,
   Wallet,
+  Wifi,
+  Wrench,
   X,
+  Zap,
 } from 'lucide-react';
 
 export type IconName =
@@ -80,7 +97,10 @@ export type IconName =
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
   | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play'
   | 'wallet' | 'utensils' | 'bus' | 'shopping-bag' | 'heart-pulse' | 'trending-up' | 'landmark' | 'badge-percent'
-  | 'candlestick-chart' | 'coins' | 'pie-chart' | 'gem' | 'piggy-bank' | 'gift';
+  | 'candlestick-chart' | 'coins' | 'pie-chart' | 'gem' | 'piggy-bank' | 'gift'
+  | 'coffee' | 'car' | 'plane' | 'gamepad-2' | 'graduation-cap' | 'dumbbell' | 'briefcase'
+  | 'laptop' | 'shirt' | 'zap' | 'wifi' | 'stethoscope' | 'music' | 'film' | 'book-open'
+  | 'fuel' | 'wrench';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -156,6 +176,23 @@ const SHAPES: Record<IconName, LucideIcon> = {
   gem: Gem,
   'piggy-bank': PiggyBank,
   gift: Gift,
+  coffee: Coffee,
+  car: Car,
+  plane: Plane,
+  'gamepad-2': Gamepad2,
+  'graduation-cap': GraduationCap,
+  dumbbell: Dumbbell,
+  briefcase: Briefcase,
+  laptop: Laptop,
+  shirt: Shirt,
+  zap: Zap,
+  wifi: Wifi,
+  stethoscope: Stethoscope,
+  music: Music,
+  film: Film,
+  'book-open': BookOpen,
+  fuel: Fuel,
+  wrench: Wrench,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

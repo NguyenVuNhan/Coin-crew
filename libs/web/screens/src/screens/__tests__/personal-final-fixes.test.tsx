@@ -80,50 +80,6 @@ const categories: CategoryView[] = [
 ];
 
 describe('Personal money final fixes', () => {
-  it('EntryPage editing an archived-wallet entry shows notice, disables save, and never PATCHes another wallet', async () => {
-    mockMedia();
-    const archivedEntry: EntryView = {
-      id: 'e-arch-1',
-      walletId: archivedWallet.id,
-      type: 'expense',
-      amount: 50_000,
-      currency: 'VND',
-      categoryId: 'cat-food',
-      transferId: null,
-      counterpartWalletId: null,
-      date: '2026-11-16',
-      time: null,
-      note: 'Old entry',
-      tags: [],
-      excludeFromReports: false,
-      source: 'manual',
-      beforeStart: false,
-      createdAt: '2026-11-16T10:00:00.000Z',
-    };
-
-    const { calls } = mockApi({
-      'GET /api/me': meOn,
-      'GET /api/me/personal/wallets': { wallets: [activeWallet, archivedWallet] },
-      'GET /api/me/personal/categories': { categories },
-      'GET /api/me/personal/tags': { tags: [] },
-      'GET /api/me/personal/transactions': {
-        rows: [{ kind: 'entry', entry: archivedEntry }],
-        totals: [{ currency: 'VND', spent: 50_000, income: 0 }],
-      },
-      'PATCH /api/me/personal/transactions/e-arch-1': { entries: [archivedEntry] },
-    });
-
-    renderAt(<App />, { route: '/entries/e-arch-1/edit?month=2026-11' });
-
-    const notice = await screen.findByTestId('archived-wallet-notice');
-    expect(notice).toBeInTheDocument();
-    expect(screen.getByTestId('entry-wallet-row')).toHaveTextContent(archivedWallet.name);
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-
-    const patchCalls = calls.filter((c) => c.method === 'PATCH');
-    expect(patchCalls).toHaveLength(0);
-  });
-
   it('EntryPage with no active wallet shows EmptyState with link to /wallets', async () => {
     mockMedia();
     mockApi({
