@@ -22,6 +22,8 @@ export type ApiErrorCode =
   | 'PROPOSAL_PENDING'
   | 'CONFLICT'
   | 'ZALO_TOKEN_INVALID'
+  | 'IN_USE'
+  | 'DEFAULT_WALLET'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
@@ -99,6 +101,8 @@ import type { MergePlan } from './mergePlan';
 import type { ThemeId } from './themes';
 import type { HistoryGap, HistoryLine, PairHistory } from './history';
 import type { AttendanceLabel, AttendanceScore } from './attendance';
+import type { CurrencyCode } from './currency';
+import type { PersonalEntryType } from './wallets';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -663,23 +667,174 @@ export interface AttendanceView {
   pendingSessions: number;
 }
 
+export type WalletKind = 'everyday' | 'investment';
+
 export interface WalletView {
   id: string;
   name: string;
-  currency: 'VND';
+  currency: CurrencyCode;
   balance: number;
   isDefault: boolean;
+}
+
+export interface WalletDetailView extends WalletView {
+  kind: WalletKind;
+  startAmount: number;
+  startDate: string;
+  startCostVnd: number | null;
+  vndValue: number | null;
+  icon: string | null;
+  sortOrder: number;
+  archived: boolean;
+  entryCount: number;
 }
 
 export interface WalletsResponse {
   wallets: WalletView[];
 }
 
+export interface WalletDetailsResponse {
+  wallets: WalletDetailView[];
+}
+
 export interface CreateWalletInput {
   name: string;
   startAmount: number;
+  currency?: CurrencyCode;
+  kind?: WalletKind;
+  startDate?: string;
+  startCostVnd?: number | null;
+  icon?: string | null;
+}
+
+export interface UpdateWalletInput {
+  name?: string;
+  startAmount?: number;
+  startDate?: string;
+  startCostVnd?: number | null;
+  icon?: string | null;
+  archived?: boolean;
+  isDefault?: true;
+  kind?: WalletKind;
+  currency?: CurrencyCode;
 }
 
 export interface CreateWalletResponse {
   wallet: WalletView;
 }
+
+export interface WalletDetailResponse {
+  wallet: WalletDetailView;
+}
+
+export interface PersonalSummary {
+  totalVnd: number;
+  approximate: boolean;
+  perCurrency: { currency: CurrencyCode; balance: number }[];
+  unratedWalletIds: string[];
+  month: string;
+  spent: { currency: CurrencyCode; amount: number }[];
+  income: { currency: CurrencyCode; amount: number }[];
+}
+
+export interface CategoryView {
+  id: string;
+  parentId: string | null;
+  type: 'expense' | 'income';
+  name: string;
+  icon: string;
+  hidden: boolean;
+  sortOrder: number;
+}
+
+export interface CategoriesResponse {
+  categories: CategoryView[];
+  recentIds: string[];
+}
+
+export interface TagView {
+  id: string;
+  name: string;
+  useCount: number;
+}
+
+export type EntryInput =
+  | {
+      type: 'expense' | 'income';
+      walletId: string;
+      amount: number;
+      categoryId: string;
+      date: string;
+      time?: string | null;
+      note?: string | null;
+      tags?: string[];
+      excludeFromReports?: boolean;
+    }
+  | {
+      type: 'transfer';
+      fromWalletId: string;
+      toWalletId: string;
+      amountSent: number;
+      amountReceived?: number;
+      date: string;
+      time?: string | null;
+      note?: string | null;
+      tags?: string[];
+      excludeFromReports?: boolean;
+    };
+
+export interface EntryView {
+  id: string;
+  walletId: string;
+  type: PersonalEntryType;
+  amount: number;
+  currency: CurrencyCode;
+  categoryId: string | null;
+  transferId: string | null;
+  counterpartWalletId: string | null;
+  date: string;
+  time: string | null;
+  note: string | null;
+  tags: string[];
+  excludeFromReports: boolean;
+  source: 'manual';
+  beforeStart: boolean;
+  createdAt: string;
+}
+
+export interface EntriesResponse {
+  entries: EntryView[];
+}
+
+export interface PersonRow {
+  kind: 'person';
+  id: string;
+  tripId: string;
+  date: string;
+  share: number;
+  total: number;
+  note: string;
+  people: string[];
+  walletId: string;
+  currency: 'VND';
+  createdAt: string;
+}
+
+export type ListRow = { kind: 'entry'; entry: EntryView } | PersonRow;
+
+export interface ListQuery {
+  month?: string;
+  from?: string;
+  to?: string;
+  walletId?: string;
+  categoryId?: string;
+  tagId?: string;
+  type?: 'expense' | 'income' | 'transfer' | 'person';
+  q?: string;
+}
+
+export interface ListResponse {
+  rows: ListRow[];
+  totals: { currency: CurrencyCode; spent: number; income: number }[];
+}
+

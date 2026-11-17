@@ -8,20 +8,22 @@ import type { MessageKey } from '@cc/web-i18n/en';
 interface SplitModeOption {
   readonly mode: SplitMode;
   readonly labelKey: MessageKey;
+  readonly wordKey: MessageKey;
   readonly content: ReactNode;
 }
 
 const MODES: readonly SplitModeOption[] = [
-  { mode: 'equal', labelKey: 'split.mode.equal', content: '=' },
-  { mode: 'amounts', labelKey: 'split.mode.exact', content: '1.23' },
-  { mode: 'percent', labelKey: 'split.mode.percent', content: '%' },
-  { mode: 'shares', labelKey: 'split.mode.shares', content: <PieChart className="size-5" /> },
-  { mode: 'adjust', labelKey: 'split.mode.adjust', content: '+/\u2212' },
+  { mode: 'equal', labelKey: 'split.mode.equal', wordKey: 'split.word.equal', content: '=' },
+  { mode: 'amounts', labelKey: 'split.mode.exact', wordKey: 'split.word.amounts', content: '1.23' },
+  { mode: 'percent', labelKey: 'split.mode.percent', wordKey: 'split.word.percent', content: '%' },
+  { mode: 'shares', labelKey: 'split.mode.shares', wordKey: 'split.word.shares', content: <PieChart className="size-5" /> },
+  { mode: 'adjust', labelKey: 'split.mode.adjust', wordKey: 'split.word.adjust', content: '+/\u2212' },
 ];
 
 export interface SplitModePickerProps {
   value: SplitMode;
   onChange(mode: SplitMode): void;
+  variant?: 'symbols' | 'words';
   showSport?: boolean;
   sportSelected?: boolean;
   onSelectSport?: () => void;
@@ -30,6 +32,7 @@ export interface SplitModePickerProps {
 export function SplitModePicker({
   value,
   onChange,
+  variant = 'symbols',
   showSport = false,
   sportSelected = false,
   onSelectSport,
@@ -94,6 +97,7 @@ export function SplitModePicker({
         const refIndex = showSport ? index + 1 : index;
         const selected = !sportSelected && value === item.mode;
         const label = t(item.labelKey);
+        const word = t(item.wordKey);
 
         return (
           <button
@@ -104,7 +108,8 @@ export function SplitModePicker({
             type="button"
             role="radio"
             className={cn(
-              'fsl-split-picker__option flex-1 min-w-0 min-h-11 flex items-center justify-center rounded-full px-2 text-base tabular-nums cursor-pointer select-none transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'fsl-split-picker__option flex-1 min-w-0 min-h-11 flex items-center justify-center rounded-full px-2 cursor-pointer select-none transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              variant === 'words' ? 'text-xs whitespace-nowrap' : 'text-base tabular-nums',
               selected
                 ? 'fsl-split-picker__option--active bg-card text-foreground font-semibold shadow-sm'
                 : 'text-muted-foreground hover:text-foreground font-medium',
@@ -116,7 +121,7 @@ export function SplitModePicker({
             onClick={() => onChange(item.mode)}
             onKeyDown={(e) => handleKeyDown(refIndex, e)}
           >
-            <span aria-hidden="true">{item.content}</span>
+            {variant === 'words' ? <span>{word}</span> : <span aria-hidden="true">{item.content}</span>}
           </button>
         );
       })}

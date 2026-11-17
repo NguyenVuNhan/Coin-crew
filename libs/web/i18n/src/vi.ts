@@ -1287,4 +1287,237 @@ export const vi: Record<MessageKey, string> = {
   'awards.story.next': 'Thẻ tiếp theo', // REVIEW
   'awards.story.pause': 'Tạm dừng', // REVIEW
   'awards.story.resume': 'Tiếp tục', // REVIEW
+
+  'wallets.title': 'Ví', // REVIEW
+  'wallets.whereMoneyIs': 'Tiền đang ở đâu', // REVIEW
+  'wallets.viewAll': 'Ví', // REVIEW
+  'wallets.add': 'Thêm ví', // REVIEW
+  'wallets.everyday': 'Hằng ngày', // REVIEW
+  'wallets.investment': 'Đầu tư', // REVIEW
+  'wallets.archived': 'Đã lưu trữ', // REVIEW
+  'wallets.other': 'Khác', // REVIEW
+  'wallets.defaultBadge': 'Mặc định', // REVIEW
+  'wallets.noRate': 'chưa có tỷ giá', // REVIEW
+  'wallets.emptyTitle': 'Chưa có ví nào', // REVIEW
+  'wallets.emptyBody': 'Tạo ví đầu tiên để bắt đầu theo dõi số dư.', // REVIEW
+  'wallets.moveUp': 'Lên', // REVIEW
+  'wallets.moveDown': 'Xuống', // REVIEW
+  'wallets.reorder': 'Đổi thứ tự', // REVIEW
+  'wallets.done': 'Xong', // REVIEW
+  'wallet.notFound': 'Không tìm thấy ví', // REVIEW
+  'wallet.startDate': 'Bắt đầu từ {date}', // REVIEW
+  'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
+  'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
+  'wallet.seeAll': 'Xem tất cả', // REVIEW
+  'wallet.noEntries': 'Chưa có giao dịch trong tháng này', // REVIEW
+  'wallet.beforeStart': 'Trước ngày bắt đầu ví', // REVIEW
+  'wallet.actions': 'Tùy chọn ví', // REVIEW
+  'wallet.edit': 'Sửa ví', // REVIEW
+  'wallet.makeDefault': 'Đặt làm mặc định', // REVIEW
+  'wallet.archive': 'Lưu trữ', // REVIEW
+  'wallet.restore': 'Khôi phục', // REVIEW
+  'wallet.delete': 'Xóa ví', // REVIEW
+  'wallet.deleteConfirmTitle': 'Xóa ví?', // REVIEW
+  'wallet.deleteConfirmBody': 'Ví "{name}" chưa có giao dịch nào và sẽ bị xóa vĩnh viễn.', // REVIEW
+  'walletForm.newTitle': 'Thêm ví mới', // REVIEW
+  'walletForm.editTitle': 'Sửa ví', // REVIEW
+  'walletForm.name': 'Tên ví', // REVIEW
+  'walletForm.kind': 'Loại ví', // REVIEW
+  'walletForm.currency': 'Tiền tệ', // REVIEW
+  'walletForm.startAmount': 'Số dư ban đầu', // REVIEW
+  'walletForm.negativeToggle': 'Số âm', // REVIEW
+  'walletForm.startDate': 'Ngày bắt đầu', // REVIEW
+  'walletForm.startCostVnd': 'Giá trị quy đổi (VND)', // REVIEW
+  'walletForm.startCostVndHint': 'Để trống nếu chưa biết tỷ giá.', // REVIEW
+  'walletForm.icon': 'Màu biểu tượng', // REVIEW
+  'walletForm.save': 'Lưu', // REVIEW
+  'walletForm.lockedHint': 'Không thể đổi loại ví và tiền tệ khi đã có giao dịch.', // REVIEW
+  'addMenu.expense': 'Khoản chi', // REVIEW
+  'addMenu.income': 'Khoản thu', // REVIEW
+  'addMenu.loanDebt': 'Vay/Nợ', // REVIEW
+  'addMenu.transfer': 'Chuyển tiền', // REVIEW
+  'addMenu.withPeople': 'Với người khác', // REVIEW
+  'personalEntry.newTitle': 'Thêm giao dịch', // REVIEW
+  'personalEntry.editTitle': 'Sửa giao dịch', // REVIEW
+  'personalEntry.tabs': 'Loại giao dịch', // REVIEW
+  'personalEntry.expense': 'Chi', // REVIEW
+  'personalEntry.income': 'Thu', // REVIEW
+  'personalEntry.loanDebt': 'Vay/Nợ', // REVIEW
+  'personalEntry.transfer': 'Chuyển tiền', // REVIEW
+  'personalEntry.transferToWallet': 'Chuyển sang ví', // REVIEW
+  'personalEntry.transferFromWallet': 'Nhận từ ví', // REVIEW
+  'personalEntry.wallet': 'Ví', // REVIEW
+  'personalEntry.fromWallet': 'Từ ví', // REVIEW
+  'personalEntry.toWallet': 'Đến ví', // REVIEW
+  'personalEntry.pickWallet': 'Chọn ví', // REVIEW
+  'personalEntry.amountSent': 'Số gửi', // REVIEW
+  'personalEntry.amountReceived': 'Số nhận được', // REVIEW
+  'personalEntry.date': 'Ngày', // REVIEW
+  'personalEntry.note': 'Ghi chú', // REVIEW
+  'personalEntry.notePlaceholder': 'Thêm ghi chú', // REVIEW
+  'personalEntry.moreDetails': 'Thêm chi tiết', // REVIEW
+  'personalEntry.time': 'Giờ', // REVIEW
+  'personalEntry.tags': 'Thẻ', // REVIEW
+  'personalEntry.tagsPlaceholder': 'Thêm thẻ...', // REVIEW
+  'personalEntry.removeTag': 'Xóa thẻ {name}', // REVIEW
+  'personalEntry.excludeFromReports': 'Không tính vào báo cáo', // REVIEW
+  'personalEntry.moreCategories': 'Khác', // REVIEW
+  'personalEntry.pickCategory': 'Tất cả danh mục', // REVIEW
+  'personalEntry.pickCategoryError': 'Hãy chọn một danh mục.', // REVIEW
+  'personalEntry.amountReceivedError': 'Hãy nhập số tiền nhận được.', // REVIEW
+  'personalEntry.differentWalletsError': 'Hãy chọn hai ví khác nhau.', // REVIEW
+  'personalEntry.enterAmountReceived': 'Nhập số nhận được', // REVIEW
+  'personalEntry.enterAmountSent': 'Nhập số gửi', // REVIEW
+  'personalEntry.chooseDifferentWallets': 'Chọn hai ví khác nhau', // REVIEW
+  'personalEntry.save': 'Lưu', // REVIEW
+  'personalEntry.deleteDigit': 'Xóa', // REVIEW
+  'personalEntry.done': 'Xong', // REVIEW
+  'personalEntry.amountLabel': 'Số tiền: {amount}', // REVIEW
+  'personalEntry.amountNotEntered': 'chưa nhập', // REVIEW
+  'personalEntry.amountBoxLabel': 'Số tiền', // REVIEW
+  'personalEntry.saved': 'Đã lưu', // REVIEW
+  'personalEntry.notFound': 'Không tìm thấy giao dịch', // REVIEW
+  'personalEntry.archivedWalletNotice': 'Ví này đã lưu trữ. Khôi phục ví để sửa giao dịch.', // REVIEW
+  'personalEntry.noWalletTitle': 'Tạo ví trước', // REVIEW
+  'personalEntry.goToWallets': 'Đến trang ví', // REVIEW
+  'personalEntry.smallAmountTitle': 'Số tiền này đúng chưa?', // REVIEW
+  'personalEntry.smallAmountBody': 'Bạn đang lưu {amount}.', // REVIEW
+  'personalEntry.smallAmountMultiply': 'Lưu {amount}', // REVIEW
+  'personalEntry.smallAmountKeep': 'Lưu {amount}', // REVIEW
+  'personalEntry.walletChip': 'Ví: {name}, {currency}', // REVIEW
+  'personalEntry.walletChipText': '{name} · {currency}', // REVIEW
+  'personalEntry.foreignTitle': 'Lưu bằng {currency}?', // REVIEW
+  'personalEntry.foreignBody': 'Bạn đang lưu {amount} từ ví {wallet}.', // REVIEW
+  'personalEntry.foreignSave': 'Lưu {amount}', // REVIEW
+  'personalEntry.foreignChangeWallet': 'Đổi ví', // REVIEW
+  'personalEntry.savedExpense': 'Đã chi {amount} · {category}', // REVIEW
+  'personalEntry.savedIncome': 'Đã thu {amount} · {category}', // REVIEW
+  'personalEntry.savedTransfer': 'Đã chuyển {amount} → {wallet}', // REVIEW
+  'personalEntry.discardTitle': 'Bỏ khoản đang nhập?', // REVIEW
+  'personalEntry.discardConfirm': 'Bỏ', // REVIEW
+  'personalEntry.discardKeepEditing': 'Tiếp tục nhập', // REVIEW
+  'transactions.title': 'Giao dịch', // REVIEW
+  'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
+  'transactions.allLink': 'Tất cả', // REVIEW
+  'transactions.byDay': 'Theo ngày', // REVIEW
+  'transactions.byCategory': 'Theo nhóm', // REVIEW
+  'transactions.withPeople': 'Với {names}', // REVIEW
+  'transactions.yourShare': 'phần của bạn', // REVIEW
+  'transactions.filters': 'Bộ lọc', // REVIEW
+  'transactions.filterTitle': 'Lọc giao dịch', // REVIEW
+  'transactions.searchLabel': 'Tìm kiếm', // REVIEW
+  'transactions.searchPlaceholder': 'Tìm theo ghi chú...', // REVIEW
+  'transactions.typeAll': 'Tất cả', // REVIEW
+  'transactions.typePerson': 'Với người khác', // REVIEW
+  'transactions.allWallets': 'Tất cả ví', // REVIEW
+  'transactions.allCategories': 'Tất cả danh mục', // REVIEW
+  'transactions.allTags': 'Tất cả thẻ', // REVIEW
+  'transactions.fromDate': 'Từ ngày', // REVIEW
+  'transactions.toDate': 'Đến ngày', // REVIEW
+  'transactions.applyFilters': 'Áp dụng', // REVIEW
+  'transactions.resetFilters': 'Đặt lại', // REVIEW
+  'transactions.clearFilters': 'Xóa bộ lọc', // REVIEW
+  'transactions.noMatch': 'Không có giao dịch nào khớp bộ lọc.', // REVIEW
+  'transactions.emptyTitle': 'Chưa có giao dịch nào', // REVIEW
+  'transactions.emptyBody': 'Ghi chép khoản chi, thu hoặc chuyển tiền để theo dõi.', // REVIEW
+  'transactions.loadOlder': 'Xem tháng trước', // REVIEW
+  'transactions.otherCategory': 'Khác', // REVIEW
+  'transactions.prevMonth': 'Tháng trước', // REVIEW
+  'transactions.nextMonth': 'Tháng sau', // REVIEW
+  'transactions.monthLabel': 'Tháng {month}, {year}', // REVIEW
+  'transactions.detailTitle': 'Chi tiết giao dịch', // REVIEW
+  'transactions.edit': 'Sửa', // REVIEW
+  'transactions.delete': 'Xóa', // REVIEW
+  'transactions.deleteConfirmTitle': 'Xóa giao dịch?', // REVIEW
+  'transactions.deleteConfirmBody': 'Giao dịch này sẽ bị xóa. Bạn có thể hoàn tác trong 5 giây.', // REVIEW
+  'transactions.deleteTransferBody': 'Cả hai bên của giao dịch chuyển tiền sẽ bị xóa. Bạn có thể hoàn tác trong 5 giây.', // REVIEW
+  'transactions.deleted': 'Đã xóa', // REVIEW
+  'transactions.removeFilter': 'Xóa bộ lọc {label}', // REVIEW
+  'transactions.directionTo': '→ {wallet}', // REVIEW
+  'transactions.directionFrom': '← {wallet}', // REVIEW
+  'personalSettings.title': 'Cài đặt sổ chi tiêu', // REVIEW
+  'personalSettings.wallets': 'Ví', // REVIEW
+  'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
+  'personalSettings.tags': 'Thẻ', // REVIEW
+  'categories.title': 'Nhóm chi tiêu', // REVIEW
+  'categories.tabs': 'Loại nhóm', // REVIEW
+  'categories.hiddenBadge': 'Đã ẩn', // REVIEW
+  'categories.add': 'Thêm nhóm', // REVIEW
+  'categories.edit': 'Sửa', // REVIEW
+  'categories.hide': 'Ẩn', // REVIEW
+  'categories.show': 'Hiện', // REVIEW
+  'categories.delete': 'Xóa', // REVIEW
+  'categories.newTitle': 'Thêm nhóm', // REVIEW
+  'categories.editTitle': 'Sửa nhóm', // REVIEW
+  'categories.name': 'Tên nhóm', // REVIEW
+  'categories.icon': 'Biểu tượng', // REVIEW
+  'categories.pickIcon': 'Chọn biểu tượng', // REVIEW
+  'categories.iconSearch': 'Tìm biểu tượng...', // REVIEW
+  'categories.noIconResults': 'Không tìm thấy biểu tượng phù hợp.', // REVIEW
+  'categories.parent': 'Nhóm cha', // REVIEW
+  'categories.pickParent': 'Chọn nhóm cha', // REVIEW
+  'categories.noParent': 'Không có (nhóm chính)', // REVIEW
+  'categories.save': 'Lưu', // REVIEW
+  'categories.emptyTitle': 'Chưa có nhóm nào', // REVIEW
+  'categories.emptyBody': 'Thêm nhóm để phân loại thu chi.', // REVIEW
+  'categories.deleteConfirmTitle': 'Xóa nhóm?', // REVIEW
+  'categories.deleteConfirmBody': 'Bạn có chắc muốn xóa nhóm "{name}"?', // REVIEW
+  'categories.hasChildrenError': 'Nhóm này đang có nhóm con. Hãy chuyển hoặc xóa các nhóm con trước.', // REVIEW
+  'categories.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
+  'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
+  'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW
+  'categories.hideInstead': 'Ẩn nhóm, giữ lịch sử', // REVIEW
+  'tags.title': 'Thẻ', // REVIEW
+  'tags.useCount': '{count} giao dịch', // REVIEW
+  'tags.rename': 'Đổi tên', // REVIEW
+  'tags.delete': 'Xóa', // REVIEW
+  'tags.renameTitle': 'Đổi tên thẻ', // REVIEW
+  'tags.name': 'Tên thẻ', // REVIEW
+  'tags.save': 'Lưu', // REVIEW
+  'tags.renameConflict': 'Đã có thẻ tên này', // REVIEW
+  'tags.deleteConfirmTitle': 'Xóa thẻ?', // REVIEW
+  'tags.deleteConfirmBody': 'Thẻ sẽ bị gỡ khỏi {count} giao dịch', // REVIEW
+  'tags.emptyTitle': 'Chưa có thẻ nào', // REVIEW
+  'tags.emptyBody': 'Gắn thẻ khi thêm giao dịch để lọc nhanh hơn.', // REVIEW
+  'loanDebt.withWho': 'Với ai', // REVIEW
+  'loanDebt.choosePeople': 'Chọn người', // REVIEW
+  'loanDebt.splitDifferently': 'Chia khác', // REVIEW
+  'loanDebt.splitSummaryCount': '{mode} · {n} người', // REVIEW
+  'loanDebt.enterAmount': 'Nhập số tiền', // REVIEW
+  'loanDebt.chooseOnePerson': 'Chọn ít nhất một người', // REVIEW
+  'loanDebt.splitMismatch': 'Cách chia chưa khớp với số tiền', // REVIEW
+  'loanDebt.enterNote': 'Nhập ghi chú', // REVIEW
+  'split.word.equal': 'Đều', // REVIEW
+  'split.word.amounts': 'Số tiền', // REVIEW
+  'split.word.percent': '%', // REVIEW
+  'split.word.shares': 'Phần', // REVIEW
+  'split.word.adjust': 'Cộng/trừ', // REVIEW
+  'entryDate.today': 'Hôm nay', // REVIEW
+  'entryDate.yesterday': 'Hôm qua', // REVIEW
+  'entryDate.chipPick': 'Chọn ngày', // REVIEW
+  'entryDate.changeTime': 'Đổi giờ', // REVIEW
+  'entryDate.rowLabel': 'Ngày: {value}', // REVIEW
+  'entryDate.withTime': '{day} · {time}', // REVIEW
+  'entryDate.rowAria': '{day}, {time}', // REVIEW
+  'entryDate.dayFormat': '{weekday}, {day}/{month}', // REVIEW
+  'entryDate.dayFormatYear': '{weekday}, {day}/{month}/{year}', // REVIEW
+  'entryDate.wd.0': 'Chủ Nhật', // REVIEW
+  'entryDate.wd.1': 'Thứ Hai', // REVIEW
+  'entryDate.wd.2': 'Thứ Ba', // REVIEW
+  'entryDate.wd.3': 'Thứ Tư', // REVIEW
+  'entryDate.wd.4': 'Thứ Năm', // REVIEW
+  'entryDate.wd.5': 'Thứ Sáu', // REVIEW
+  'entryDate.wd.6': 'Thứ Bảy', // REVIEW
+  'entryDate.mon.0': '1', // REVIEW
+  'entryDate.mon.1': '2', // REVIEW
+  'entryDate.mon.2': '3', // REVIEW
+  'entryDate.mon.3': '4', // REVIEW
+  'entryDate.mon.4': '5', // REVIEW
+  'entryDate.mon.5': '6', // REVIEW
+  'entryDate.mon.6': '7', // REVIEW
+  'entryDate.mon.7': '8', // REVIEW
+  'entryDate.mon.8': '9', // REVIEW
+  'entryDate.mon.9': '10', // REVIEW
+  'entryDate.mon.10': '11', // REVIEW
+  'entryDate.mon.11': '12', // REVIEW
 };

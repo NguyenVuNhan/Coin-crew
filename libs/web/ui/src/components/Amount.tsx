@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react';
-import { formatVnd } from '@cc/core';
+import { formatMoney, type CurrencyCode } from '@cc/core';
 import { cn } from '../lib/utils';
 
 export interface AmountProps {
   value: number;
+  currency?: CurrencyCode;
+  approximate?: boolean;
   tone?: 'auto' | 'neutral' | 'success' | 'danger';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
@@ -25,6 +27,8 @@ const SIZE_CLASSES: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
 
 export function Amount({
   value,
+  currency = 'VND',
+  approximate = false,
   tone = 'neutral',
   size = 'md',
   className = '',
@@ -56,7 +60,7 @@ export function Amount({
       )}
       style={style}
     >
-      {formatVnd(value)}
+      {approximate ? `≈ ${formatMoney(value, currency)}` : formatMoney(value, currency)}
     </span>
   );
 }

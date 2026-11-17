@@ -6,6 +6,7 @@ import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { Button } from '@cc/web-ui/components/Button';
 import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
 import { AccountMenu } from './AccountMenu';
+import { AddMenu } from './AddMenu';
 import { cn } from '@cc/web-ui/lib/utils';
 
 export type NavSection = 'home' | 'groups' | 'activity';
@@ -30,6 +31,8 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
   const location = useLocation();
   const personalArea = usePersonalArea();
   const shouldReplace = TAB_ROOTS.includes(location.pathname);
+  const inGroup = location.pathname.startsWith('/t/') || location.pathname.startsWith('/j/');
+  const showAddMenu = personalArea && !planHref && !inGroup;
 
   const navItems: readonly NavItem[] = [
     {
@@ -112,6 +115,8 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
             </PopoverTrigger>
             {renderPlanMenu('end', 'top')}
           </Popover>
+        ) : showAddMenu ? (
+          <AddMenu addHref={addHref} align="end" side="top" variant="fab" />
         ) : (
           <Link
             to={addHref}
@@ -147,6 +152,8 @@ export function AppNav({ section, addHref, planHref }: AppNavProps): JSX.Element
             </PopoverTrigger>
             {renderPlanMenu('start', 'bottom')}
           </Popover>
+        ) : showAddMenu ? (
+          <AddMenu addHref={addHref} align="start" side="bottom" variant="button" />
         ) : (
           <Button
             variant="primary"

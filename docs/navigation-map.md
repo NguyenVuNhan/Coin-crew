@@ -32,7 +32,9 @@ There is **no catch-all `*` route**: an unknown path renders only `<AuthNotice /
 | `/activity` | `MyActivity` | The user's activity across groups and the ledger | **activity** |
 | `/trips/new` | `CreateTrip` | Create-group form | no |
 | `/people/:key` | `PersonScreen` | One person across groups: total, per-group rows, merge, settle, request | no (nav shown, section `home`) |
-| `/people` | `PeopleRoute` -> `PeopleOwed` when the personal area is on; otherwise `<Navigate to="/trips" replace>` | The per-person list on its own page (added 2026-11-15, #112) | no (nav shown, section `home`) |
+| `/people` | `PersonalRoute` -> `PeopleOwed` when the personal area is on; otherwise `<Navigate to="/trips" replace>` | The per-person list on its own page (added 2026-11-15, #112) | no (nav shown, section `home`) |
+| `/wallets` | `PersonalRoute` -> `WalletsScreen` when the personal area is on; otherwise `<Navigate to="/trips" replace>` | All wallets: ≈ VND total, per-currency totals, everyday/investment/archived groups, add & reorder | no (nav shown, section `home`) |
+| `/wallets/:id` | `PersonalRoute` -> `WalletScreen` when the personal area is on; otherwise `<Navigate to="/trips" replace>` | Single wallet: balance, start date, VND cost basis, this month's entries, edit/default/archive/restore/delete | no (nav shown, section `home`) |
 | `/r/:token` | `RequestPage` | Public payment-request page (sent to the debtor) | no |
 | `/privacy` | `Privacy` | Privacy policy | no |
 | `/me/bank` | `BankDetails` (no trip) | The user's own bank details | no |
@@ -101,6 +103,8 @@ load / external.)
 | `/trips/new` | B: MyTrips "New group" `MyTrips.tsx:79` and empty state `MyTrips.tsx:98` |
 | `/people/:key` | L: Home person row `Home.tsx:113-115`. N: after merge `PersonScreen.tsx:164` (replace) |
 | `/people` | L: `SpendingBook` "People owe you" row (`screens/SpendingBook.tsx`), personal area on only |
+| `/wallets` | L: `SpendingBook` "Wallets ›" link (`screens/SpendingBook.tsx`); back from `WalletScreen`, personal area on only |
+| `/wallets/:id` | L: `WalletsScreen` wallet row (`screens/WalletsScreen.tsx`), personal area on only |
 | `/r/:token` | X only: URL from `requestLink()` shared/copied in `PersonScreen.tsx` (`handleRequestLink`, ~l.222-238) |
 | `/privacy` | L: AccountMenu `AccountMenu.tsx:336`; ConsentSheet `ConsentSheet.tsx:40` (on Home, Groups, CreateTrip); Landing `Landing.tsx:86`; BankDetails `BankDetails.tsx:211`; GuestBank `GuestBank.tsx:221` |
 | `/me/bank` | L: AccountMenu `AccountMenu.tsx:317`; BalanceCard "add bank" prompt on a member trip `BalanceCard.tsx:106-107` |

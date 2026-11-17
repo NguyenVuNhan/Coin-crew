@@ -1,4 +1,5 @@
 export * from './money';
+export * from './currency';
 export * from './split';
 export * from './balances';
 export * from './transfers';
@@ -17,3 +18,4 @@ export * from './themes';
 export * from './history';
 export * from './validation';
 export * from './attendance';
+export * from './wallets';
