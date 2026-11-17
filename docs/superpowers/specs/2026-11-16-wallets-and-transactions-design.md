@@ -171,3 +171,4 @@ The owner tested the build on the tunnel and asked for these changes. All are **
 | R6 | **Tags leave the entry form.** The list's tag filter and the tags settings stay; an edit keeps an entry's existing tags. |
 | R7 | The wallet form loses the "Số âm" button: the person types "−" in the starting amount. |
 | R8 | The category icon choice becomes a searchable icon grid in a sheet (the list will grow); the parent choice becomes a picker that previews each category's icon and name. |
+| R9 | (2026-11-17, second look) **Vay/Nợ shows the quick-expense form inside the entry page**, under the Chi / Thu / Vay-Nợ tabs, instead of leaving for its own page. The form's own "Thêm khoản chi" header goes; the tabs are the page header. Everything else about the quick expense (people, who paid, split, saving to the hidden direct group) is unchanged. |
