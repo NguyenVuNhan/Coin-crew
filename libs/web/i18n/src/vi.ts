@@ -1366,6 +1366,9 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.pickCategoryError': 'Hãy chọn một danh mục.', // REVIEW
   'personalEntry.amountReceivedError': 'Hãy nhập số tiền nhận được.', // REVIEW
   'personalEntry.differentWalletsError': 'Hãy chọn hai ví khác nhau.', // REVIEW
+  'personalEntry.enterAmountReceived': 'Nhập số nhận được', // REVIEW
+  'personalEntry.enterAmountSent': 'Nhập số gửi', // REVIEW
+  'personalEntry.chooseDifferentWallets': 'Chọn hai ví khác nhau', // REVIEW
   'personalEntry.save': 'Lưu', // REVIEW
   'personalEntry.deleteDigit': 'Xóa', // REVIEW
   'personalEntry.done': 'Xong', // REVIEW
@@ -1380,7 +1383,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.smallAmountTitle': 'Số tiền này đúng chưa?', // REVIEW
   'personalEntry.smallAmountBody': 'Bạn đang lưu {amount}.', // REVIEW
   'personalEntry.smallAmountMultiply': 'Lưu {amount}', // REVIEW
-  'personalEntry.smallAmountKeep': 'Giữ {amount}', // REVIEW
+  'personalEntry.smallAmountKeep': 'Lưu {amount}', // REVIEW
   'personalEntry.walletChip': 'Ví: {name}, {currency}', // REVIEW
   'personalEntry.walletChipText': '{name} · {currency}', // REVIEW
   'personalEntry.foreignTitle': 'Lưu bằng {currency}?', // REVIEW

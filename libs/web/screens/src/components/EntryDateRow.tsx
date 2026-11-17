@@ -135,7 +135,7 @@ export function EntryDateRow({ date, time, onChange, showTime = true, now }: Ent
           </span>
           {shownTime && (
             <>
-              <span aria-hidden="true" className="text-muted-foreground">
+              <span aria-hidden="true" className="mx-1 text-muted-foreground">
                 {' · '}
               </span>
               <span className="relative inline-flex">

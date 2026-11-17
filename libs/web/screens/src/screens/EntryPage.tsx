@@ -35,6 +35,7 @@ import { Modal } from '@cc/web-ui/components/Modal';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
 import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -265,10 +266,12 @@ export function EntryPage(): JSX.Element {
   const categoryGridRef = useRef<HTMLDivElement>(null);
   const categoryRingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
   const saveBarRef = useRef<HTMLDivElement>(null);
   const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'save' | null>(null);
+  const wasKeypadOpenBeforeGuardRef = useRef(false);
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
 
   useEffect(() => {
@@ -807,10 +810,24 @@ export function EntryPage(): JSX.Element {
 
   const handleBack = () => {
     if (hasUnsavedAmount) {
+      wasKeypadOpenBeforeGuardRef.current = keypadOpen;
       setLeaveGuardOpen(true);
       return;
     }
     goBack();
+  };
+
+  const handleLeaveGuardKeep = () => {
+    setLeaveGuardOpen(false);
+    if (wasKeypadOpenBeforeGuardRef.current) {
+      setKeypadOpen(true);
+      window.setTimeout(() => setKeypadFocusToken((n) => n + 1), 0);
+    } else {
+      const target = backButtonRef.current?.isConnected
+        ? backButtonRef.current
+        : primaryButtonRef.current;
+      window.setTimeout(() => target?.focus(), 0);
+    }
   };
 
   const editLockedTransfer = isEdit && isTransferMode;
@@ -825,7 +842,7 @@ export function EntryPage(): JSX.Element {
       return <Amount value={evaluated} currency={cur} size="xl" tone={tone} />;
     }
     return (
-      <span className="text-2xl font-bold tabular-nums text-muted-foreground">
+      <span className={cn('text-2xl tabular-nums text-muted-foreground', expr ? 'font-bold' : 'font-medium')}>
         {expr || formatMoney(0, cur)}
       </span>
     );
@@ -838,19 +855,25 @@ export function EntryPage(): JSX.Element {
       : 'success';
 
   const excludeRow = (
-    <div className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3">
-      <span className="text-sm font-medium text-foreground">
+    <div className="w-full min-h-11 flex items-center justify-between gap-3">
+      <Label
+        htmlFor="entry-exclude-switch"
+        className="flex-1 min-h-11 pl-4 py-3 flex items-center text-sm font-medium text-foreground cursor-pointer"
+      >
         {t('personalEntry.excludeFromReports')}
-      </span>
-      <Switch
-        checked={excludeFromReports}
-        onCheckedChange={(checked) => {
-          setExcludeFromReports(checked);
-          setExcludeTouched(true);
-        }}
-        aria-label={t('personalEntry.excludeFromReports')}
-        data-testid="entry-exclude-switch"
-      />
+      </Label>
+      <div className="pr-4 flex items-center">
+        <Switch
+          id="entry-exclude-switch"
+          checked={excludeFromReports}
+          onCheckedChange={(checked) => {
+            setExcludeFromReports(checked);
+            setExcludeTouched(true);
+          }}
+          aria-label={t('personalEntry.excludeFromReports')}
+          data-testid="entry-exclude-switch"
+        />
+      </div>
     </div>
   );
 
@@ -878,6 +901,7 @@ export function EntryPage(): JSX.Element {
         <div className="h-full flex items-center gap-2 px-4 mx-auto w-full max-w-[480px]">
           <button
             type="button"
+            ref={backButtonRef}
             onClick={handleBack}
             aria-label={t('common.back')}
             title={t('common.back')}
@@ -939,7 +963,9 @@ export function EntryPage(): JSX.Element {
       ) : (
         <>
           {liveRegion}
-          <main className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}>
+          <main
+            className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !keypadOpen && 'pb-24')}
+          >
         {isLoading ? (
           <SkeletonList rows={4} />
         ) : walletsQuery.isError ? (
@@ -1103,7 +1129,7 @@ export function EntryPage(): JSX.Element {
                 type="button"
                 data-testid="entry-wallet-row"
                 onClick={() => setWalletSheetTarget('single')}
-                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-b-0 text-left cursor-pointer hover:bg-muted/50"
               >
                 <span className="text-sm font-medium text-muted-foreground">
                   {isTransferMode
@@ -1123,7 +1149,7 @@ export function EntryPage(): JSX.Element {
                   type="button"
                   data-testid={entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'}
                   onClick={() => setWalletSheetTarget('other')}
-                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-b-0 text-left cursor-pointer hover:bg-muted/50"
                 >
                   <span className="text-sm font-medium text-muted-foreground">
                     {entryType === 'expense'
@@ -1209,19 +1235,49 @@ export function EntryPage(): JSX.Element {
         ) : (
           <div ref={saveBarRef} className="contents">
             <BottomBar>
-              <Button
-                type="button"
-                variant="primary"
-                block
-                loading={isSaving}
-                disabled={activeMinor === null || isSaving || hasArchivedWallet}
-                data-testid="entry-save-btn"
-                onClick={() => {
-                  if (activeMinor !== null) void handleSave(activeMinor);
-                }}
-              >
-                {t('personalEntry.save')}
-              </Button>
+              {(() => {
+                const transferDisabledReason = !isTransferMode
+                  ? null
+                  : !fromWallet || !toWallet || fromWallet.id === toWallet.id
+                    ? t('personalEntry.chooseDifferentWallets')
+                    : primaryMinor === null
+                      ? t('loanDebt.enterAmount')
+                      : isDiffCurrencyTransfer && secondaryMinor === null
+                        ? t(
+                            entryType === 'expense'
+                              ? 'personalEntry.enterAmountReceived'
+                              : 'personalEntry.enterAmountSent',
+                          )
+                        : null;
+                const saveDisabled = isTransferMode
+                  ? transferDisabledReason !== null || isSaving || hasArchivedWallet
+                  : activeMinor === null || isSaving || hasArchivedWallet;
+                return (
+                  <>
+                    {transferDisabledReason && !isSaving && !hasArchivedWallet && (
+                      <p
+                        data-testid="transfer-disabled-reason"
+                        className="m-0 text-center text-sm text-muted-foreground"
+                      >
+                        {transferDisabledReason}
+                      </p>
+                    )}
+                    <Button
+                      type="button"
+                      variant="primary"
+                      block
+                      loading={isSaving}
+                      disabled={saveDisabled}
+                      data-testid="entry-save-btn"
+                      onClick={() => {
+                        if (activeMinor !== null) void handleSave(activeMinor);
+                      }}
+                    >
+                      {t('personalEntry.save')}
+                    </Button>
+                  </>
+                );
+              })()}
             </BottomBar>
           </div>
         )
@@ -1248,7 +1304,7 @@ export function EntryPage(): JSX.Element {
                 type="button"
                 data-testid={`wallet-option-${w.id}`}
                 onClick={() => handleWalletPick(w.id)}
-                className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted rounded-xl"
+                className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-b-0 text-left cursor-pointer hover:bg-muted rounded-xl"
               >
                 <div className="flex flex-col">
                   <span className="text-base font-medium text-foreground">{w.name}</span>
@@ -1305,7 +1361,7 @@ export function EntryPage(): JSX.Element {
       {/* Leave guard Modal */}
       <Modal
         open={leaveGuardOpen}
-        onClose={() => setLeaveGuardOpen(false)}
+        onClose={handleLeaveGuardKeep}
         title={t('personalEntry.discardTitle')}
       >
         <div className="flex flex-col gap-4">
@@ -1326,7 +1382,7 @@ export function EntryPage(): JSX.Element {
               type="button"
               variant="primary"
               data-testid="leave-guard-keep"
-              onClick={() => setLeaveGuardOpen(false)}
+              onClick={handleLeaveGuardKeep}
             >
               {t('personalEntry.discardKeepEditing')}
             </Button>

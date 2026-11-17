@@ -204,7 +204,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
     expect(await screen.findByText('Số tiền này đúng chưa?')).toBeInTheDocument();
     expect(screen.getByText('Bạn đang lưu 85₫.')).toBeInTheDocument();
     expect(screen.getByTestId('small-amount-multiply')).toHaveTextContent('Lưu 85.000₫');
-    expect(screen.getByTestId('small-amount-keep')).toHaveTextContent('Giữ 85₫');
+    expect(screen.getByTestId('small-amount-keep')).toHaveTextContent('Lưu 85₫');
 
     await user.click(screen.getByTestId('small-amount-multiply'));
     await waitFor(() => expect(postedBodies).toHaveLength(1));
