@@ -363,8 +363,9 @@ describe('Wallets', () => {
     expect(pie).toHaveTextContent('Other');
     expect(pie).not.toHaveTextContent('W5');
     expect(pie).not.toHaveTextContent('DebtCard');
-    // No amounts in the pie widget
-    expect(pie).not.toHaveTextContent('5.000.000');
+    // Legend shows VND amounts and rounded shares
+    expect(pie).toHaveTextContent('5.000.000₫');
+    expect(pie).toHaveTextContent('33%');
     expect(screen.getByRole('img', { name: /W1, W2, W3, W4, Other/ })).toBeInTheDocument();
   });
 

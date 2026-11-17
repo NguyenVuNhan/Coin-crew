@@ -2,6 +2,7 @@ import { useState, useEffect, type JSX } from 'react';
 import { Link } from 'react-router';
 import { formatVnd } from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
+import { useIsWide } from '@cc/web-util/media';
 import { useT } from '@cc/web-i18n';
 import {
   useCategories,
@@ -24,25 +25,13 @@ import { TransactionRow } from '../components/TransactionRow';
 import { WalletPie } from '../components/WalletPie';
 import { PersonalSettingsMenu } from '../components/PersonalSettingsMenu';
 
-function BookSummary(): JSX.Element {
+function BookTotal(): JSX.Element {
   const t = useT();
-  const {
-    owedToYou,
-    sumPositive,
-    sumNegative,
-    hasData,
-    isLoading,
-    error,
-    refetch,
-  } = usePeopleTotals();
-
   const wallets = useWalletDetails();
   const list = wallets.data?.wallets;
   const hasWallet = (list?.length ?? 0) > 0;
   const currentMonth = currentMonthLocal();
   const summary = usePersonalSummary(currentMonth, { enabled: hasWallet });
-  const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
-  const categoriesQuery = useCategories({ enabled: hasWallet });
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -69,12 +58,8 @@ function BookSummary(): JSX.Element {
     id: w.id,
     name: w.name,
     vndValue: w.vndValue !== undefined ? (w.vndValue ?? 0) : w.currency === 'VND' ? w.balance : 0,
+    approximate: w.currency !== 'VND',
   }));
-
-  // Read out as one sentence, with each amount next to what it means.
-  const owedLine = `${t('book.peopleOwe')}: ${formatVnd(sumPositive)}`;
-  const peopleRowName =
-    sumNegative > 0 ? `${owedLine}. ${t('home.totalOwe', { amount: formatVnd(sumNegative) })}` : owedLine;
 
   return (
     <>
@@ -123,84 +108,129 @@ function BookSummary(): JSX.Element {
         </div>
       )}
 
-      {isLoading || !hasData ? (
-        <SkeletonList rows={1} />
-      ) : error ? (
-        <InlineError error={error} onRetry={refetch} />
+      <FirstWalletSheet open={sheetOpen} onClose={closeSheet} />
+    </>
+  );
+}
+
+function BookPeople(): JSX.Element {
+  const t = useT();
+  const {
+    owedToYou,
+    sumPositive,
+    sumNegative,
+    hasData,
+    isLoading,
+    error,
+    refetch,
+  } = usePeopleTotals();
+
+  // Read out as one sentence, with each amount next to what it means.
+  const owedLine = `${t('book.peopleOwe')}: ${formatVnd(sumPositive)}`;
+  const peopleRowName =
+    sumNegative > 0 ? `${owedLine}. ${t('home.totalOwe', { amount: formatVnd(sumNegative) })}` : owedLine;
+
+  if (isLoading || !hasData) {
+    return <SkeletonList rows={1} />;
+  }
+  if (error) {
+    return <InlineError error={error} onRetry={refetch} />;
+  }
+
+  return (
+    <div className="fsl-book__list bg-card border border-border rounded-xl overflow-hidden">
+      <Link
+        to="/people"
+        data-testid="book-people-row"
+        aria-label={peopleRowName}
+        className="fsl-book__people flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
+      >
+        {owedToYou.length > 0 && (
+          <div className="flex shrink-0 items-center -space-x-2.5">
+            {owedToYou.slice(0, 3).map((person) => (
+              <Avatar
+                key={person.key}
+                name={person.name}
+                size="sm"
+                className="ring-2 ring-card"
+              />
+            ))}
+          </div>
+        )}
+        <div className="flex-1 flex flex-col min-w-0">
+          <span className="text-sm font-semibold text-foreground leading-snug">
+            {t('book.peopleOwe')}
+          </span>
+          {sumNegative > 0 && (
+            <span className="text-sm text-muted-foreground tabular-nums leading-snug">
+              {t('home.totalOwe', { amount: formatVnd(sumNegative) })}
+            </span>
+          )}
+        </div>
+        <Amount value={sumPositive} tone={sumPositive > 0 ? 'success' : 'neutral'} />
+        <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
+      </Link>
+    </div>
+  );
+}
+
+function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
+  const t = useT();
+  const wallets = useWalletDetails();
+  const list = wallets.data?.wallets;
+  const hasWallet = (list?.length ?? 0) > 0;
+  const currentMonth = currentMonthLocal();
+  const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
+  const categoriesQuery = useCategories({ enabled: hasWallet });
+
+  if (!hasWallet || !recentList.isSuccess) {
+    return null;
+  }
+
+  return (
+    <section
+      data-testid="book-recent"
+      className="fsl-book__recent flex flex-col gap-2 w-full"
+    >
+      <div className="flex items-center justify-between px-1">
+        <h2 className="m-0 text-sm font-semibold text-muted-foreground">
+          {t('transactions.recentTitle')}
+        </h2>
+        <Link
+          to="/transactions"
+          data-testid="book-recent-all"
+          className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
+        >
+          <span>{t('transactions.allLink')}</span>
+          <Icon name="chevronRight" size={16} />
+        </Link>
+      </div>
+      {recentList.data.rows.length > 0 ? (
+        <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+          {recentList.data.rows.slice(0, limit).map((row) => (
+            <TransactionRow
+              key={row.kind === 'entry' ? row.entry.id : `person-${row.id}`}
+              row={row}
+              wallets={list ?? []}
+              categories={categoriesQuery.data?.categories ?? []}
+            />
+          ))}
+        </div>
       ) : (
-        <div className="fsl-book__list bg-card border border-border rounded-xl overflow-hidden">
-          <Link
-            to="/people"
-            data-testid="book-people-row"
-            aria-label={peopleRowName}
-            className="fsl-book__people flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
-          >
-            {owedToYou.length > 0 && (
-              <div className="flex shrink-0 items-center -space-x-2.5">
-                {owedToYou.slice(0, 3).map((person) => (
-                  <Avatar
-                    key={person.key}
-                    name={person.name}
-                    size="sm"
-                    className="ring-2 ring-card"
-                  />
-                ))}
-              </div>
-            )}
-            <div className="flex-1 flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-foreground leading-snug">
-                {t('book.peopleOwe')}
-              </span>
-              {sumNegative > 0 && (
-                <span className="text-sm text-muted-foreground tabular-nums leading-snug">
-                  {t('home.totalOwe', { amount: formatVnd(sumNegative) })}
-                </span>
-              )}
-            </div>
-            <Amount value={sumPositive} tone={sumPositive > 0 ? 'success' : 'neutral'} />
-            <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
-          </Link>
+        <div className="bg-card border border-border rounded-xl px-4 py-4 text-sm text-muted-foreground">
+          {t('wallet.noEntries')}
         </div>
       )}
+    </section>
+  );
+}
 
-      {hasWallet && recentList.isSuccess && (
-        <section
-          data-testid="book-recent"
-          className="fsl-book__recent flex flex-col gap-2 w-full"
-        >
-          <div className="flex items-center justify-between px-1">
-            <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-              {t('transactions.recentTitle')}
-            </h2>
-            <Link
-              to="/transactions"
-              data-testid="book-recent-all"
-              className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
-            >
-              <span>{t('transactions.allLink')}</span>
-              <Icon name="chevronRight" size={16} />
-            </Link>
-          </div>
-          {recentList.data.rows.length > 0 ? (
-            <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-              {recentList.data.rows.slice(0, 5).map((row) => (
-                <TransactionRow
-                  key={row.kind === 'entry' ? row.entry.id : `person-${row.id}`}
-                  row={row}
-                  wallets={list ?? []}
-                  categories={categoriesQuery.data?.categories ?? []}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-card border border-border rounded-xl px-4 py-4 text-sm text-muted-foreground">
-              {t('wallet.noEntries')}
-            </div>
-          )}
-        </section>
-      )}
-
-      <FirstWalletSheet open={sheetOpen} onClose={closeSheet} />
+function BookSummary(): JSX.Element {
+  return (
+    <>
+      <BookTotal />
+      <BookPeople />
+      <BookRecent limit={5} />
     </>
   );
 }
@@ -212,10 +242,19 @@ function BookSummary(): JSX.Element {
  */
 export function MainScreen({ book }: { book: boolean }): JSX.Element {
   const t = useT();
+  const wide = useIsWide();
   return (
     <Home
       title={book ? t('book.title') : undefined}
-      summary={book ? <BookSummary /> : undefined}
+      summary={book ? (wide ? <BookPeople /> : <BookSummary />) : undefined}
+      wideMain={
+        book && wide ? (
+          <>
+            <BookTotal />
+            <BookRecent limit={8} />
+          </>
+        ) : undefined
+      }
       rightExtra={book ? <PersonalSettingsMenu /> : undefined}
     />
   );

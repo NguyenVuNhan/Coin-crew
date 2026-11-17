@@ -1,11 +1,13 @@
 import type { JSX } from 'react';
 import { useT } from '@cc/web-i18n';
+import { Amount } from '@cc/web-ui/components/Amount';
 import { cn } from '@cc/web-ui/lib/utils';
 
 export interface WalletPieSlice {
   id: string;
   name: string;
   vndValue: number;
+  approximate?: boolean;
 }
 
 const FILL_CLASSES = [
@@ -38,9 +40,15 @@ export function buildPieSlices(
   if (positive.length <= 4) return positive;
 
   const top = positive.slice(0, 4);
-  const restSum = positive.slice(4).reduce((sum, s) => sum + s.vndValue, 0);
+  const rest = positive.slice(4);
+  const restSum = rest.reduce((sum, s) => sum + s.vndValue, 0);
   if (restSum > 0) {
-    top.push({ id: 'other', name: otherLabel, vndValue: restSum });
+    top.push({
+      id: 'other',
+      name: otherLabel,
+      vndValue: restSum,
+      approximate: rest.some((s) => s.approximate) || undefined,
+    });
   }
   return top;
 }
@@ -55,7 +63,8 @@ function sectorPath(cx: number, cy: number, r: number, startAngle: number, endAn
 }
 
 /**
- * Plain SVG pie chart showing wallet distribution in theme accent tints, with a name-only legend (no amounts).
+ * Plain SVG pie chart showing wallet distribution in theme accent tints, with a legend showing each slice's
+ * colour dot, name, VND amount (prefixed with "≈" when approximate), and rounded percentage share.
  */
 export function WalletPie({ slices }: { slices: WalletPieSlice[] }): JSX.Element | null {
   const t = useT();
@@ -112,19 +121,34 @@ export function WalletPie({ slices }: { slices: WalletPieSlice[] }): JSX.Element
         )}
       </svg>
 
-      <ul className="fsl-wallet-pie__legend flex flex-col gap-1 min-w-0 flex-1 m-0 p-0 list-none">
-        {displaySlices.map((slice, idx) => (
-          <li key={slice.id} className="flex items-center gap-2 min-w-0 text-sm text-muted-foreground">
-            <span
-              aria-hidden="true"
-              className={cn(
-                'inline-block size-2.5 rounded-full shrink-0',
-                SWATCH_CLASSES[idx] ?? SWATCH_CLASSES[4],
-              )}
-            />
-            <span className="truncate">{slice.name}</span>
-          </li>
-        ))}
+      <ul className="fsl-wallet-pie__legend flex flex-col gap-1.5 min-w-0 flex-1 m-0 p-0 list-none">
+        {displaySlices.map((slice, idx) => {
+          const share =
+            total > 0 && Number.isFinite(slice.vndValue) && slice.vndValue > 0
+              ? Math.round((slice.vndValue / total) * 100)
+              : 0;
+          return (
+            <li
+              key={slice.id}
+              className="fsl-wallet-pie__row flex items-center justify-between gap-2 min-w-0 text-sm text-muted-foreground"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'inline-block size-2.5 rounded-full shrink-0',
+                    SWATCH_CLASSES[idx] ?? SWATCH_CLASSES[4],
+                  )}
+                />
+                <span className="truncate">{slice.name}</span>
+              </span>
+              <span className="flex items-baseline gap-1.5 shrink-0 tabular-nums">
+                <Amount value={slice.vndValue} approximate={slice.approximate} size="sm" />
+                <span className="text-xs text-muted-foreground">{share}%</span>
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

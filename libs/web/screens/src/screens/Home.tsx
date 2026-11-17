@@ -25,6 +25,7 @@ import { PeopleByPerson, PeopleTotalCard } from '../components/PeopleSummary';
 export interface HomeProps {
   title?: string;
   summary?: ReactNode;
+  wideMain?: ReactNode;
   rightExtra?: ReactNode;
 }
 
@@ -36,6 +37,7 @@ export function Home({
       <PeopleByPerson />
     </>
   ),
+  wideMain,
   rightExtra,
 }: HomeProps = {}): JSX.Element {
   const t = useT();
@@ -105,6 +107,27 @@ export function Home({
     ? { section: 'home' as const, addHref: `/t/${ledger.tripId}/expenses/new` }
     : undefined;
 
+  const groupLists =
+    ledgerLoading || ledgerViewLoading ? (
+      <SkeletonList rows={4} />
+    ) : ledgerView ? (
+      <>
+        <ExpenseList
+          view={ledgerView}
+          selectedId={selection?.kind === 'expense' ? selection.id : undefined}
+          onOpen={handleOpenExpense}
+          onOpenIncome={handleOpenIncome}
+          hintable={true}
+        />
+        <PaymentsList
+          view={ledgerView}
+          selectedId={selection?.kind === 'payment' ? selection.id : undefined}
+          onOpen={handleOpenPayment}
+          hintable={false}
+        />
+      </>
+    ) : null;
+
   return (
     <Screen
       title={title ?? t('home.title')}
@@ -126,30 +149,15 @@ export function Home({
           <InstallPill />
           <PushPill />
           <TripLayout
-            left={
-              ledgerLoading || ledgerViewLoading ? (
-                <SkeletonList rows={4} />
-              ) : ledgerView ? (
-                <>
-                  <ExpenseList
-                    view={ledgerView}
-                    selectedId={selection?.kind === 'expense' ? selection.id : undefined}
-                    onOpen={handleOpenExpense}
-                    onOpenIncome={handleOpenIncome}
-                    hintable={true}
-                  />
-                  <PaymentsList
-                    view={ledgerView}
-                    selectedId={selection?.kind === 'payment' ? selection.id : undefined}
-                    onOpen={handleOpenPayment}
-                    hintable={false}
-                  />
-                </>
-              ) : null
-            }
+            left={wideMain !== undefined ? wideMain : groupLists}
             right={
               selection && ledgerView ? (
                 <DetailsPanel view={ledgerView} selection={selection} onClose={closeDetails} />
+              ) : wideMain !== undefined ? (
+                <>
+                  {summary}
+                  {groupLists}
+                </>
               ) : (
                 summary
               )
