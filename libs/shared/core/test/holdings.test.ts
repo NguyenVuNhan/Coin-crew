@@ -323,4 +323,29 @@ describe('holdings and buy/sell', () => {
     // 600 unrated cash + 400 unrated holding + 1000 transferred in = 2000 USDT * 25.000 = 50.000.000 VND
     expect(vals.get('w-usdt')).toBe(50_000_000);
   });
+
+  it('computes holding costVnd when transfer_in is rated via allWallets', () => {
+    const vnd = wallet({ id: 'w-vnd', currency: 'VND', startAmount: 25_000_000 });
+    const usdt = wallet({
+      id: 'w-usdt',
+      currency: 'USDT',
+      startAmount: 0,
+      startCostVnd: null,
+    });
+    const [tOut, tIn] = transfer('t-rate', 'w-vnd', 25_000_000, 'w-usdt', 100_000, '2026-11-02');
+    const buyBtc = entry('w-usdt', 'buy', 40_000, '2026-11-03', {
+      assetId: 'btc',
+      quantity: 100_000_000,
+    });
+    const entries = [tOut, tIn, buyBtc];
+
+    expect(walletHoldings(usdt, entries, [vnd, usdt])[0]?.costVnd).toBe(10_000_000);
+    expect(walletVndValues([vnd, usdt], entries).get(usdt.id)).toBe(25_000_000);
+
+    const sellHalf = entry('w-usdt', 'sell', 30_000, '2026-11-04', {
+      assetId: 'btc',
+      quantity: 50_000_000,
+    });
+    expect(walletHoldings(usdt, [...entries, sellHalf], [vnd, usdt])[0]?.costVnd).toBe(5_000_000);
+  });
 });

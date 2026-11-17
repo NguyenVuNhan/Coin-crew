@@ -277,8 +277,12 @@ function replayWallets(
   return { vndValues, holdingsByWallet };
 }
 
-export function walletHoldings(wallet: CalcWallet, entries: CalcEntry[]): Holding[] {
-  return replayWallets([wallet], entries).holdingsByWallet.get(wallet.id) ?? [];
+export function walletHoldings(
+  wallet: CalcWallet,
+  entries: CalcEntry[],
+  allWallets?: CalcWallet[],
+): Holding[] {
+  return replayWallets(allWallets ?? [wallet], entries).holdingsByWallet.get(wallet.id) ?? [];
 }
 
 export function findOversell(
