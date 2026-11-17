@@ -1465,6 +1465,19 @@ export const en = {
   'tags.deleteConfirmBody': 'This tag will be removed from {count} transactions',
   'tags.emptyTitle': 'No tags yet',
   'tags.emptyBody': 'Add tags to entries to filter them easily.',
+  'loanDebt.withWho': 'With',
+  'loanDebt.choosePeople': 'Choose people',
+  'loanDebt.splitDifferently': 'Split differently',
+  'loanDebt.splitSummaryCount': '{mode} · {n} people',
+  'loanDebt.enterAmount': 'Enter an amount',
+  'loanDebt.chooseOnePerson': 'Choose at least one person',
+  'loanDebt.splitMismatch': "The split doesn't add up to the amount",
+  'loanDebt.enterNote': 'Enter a note',
+  'split.word.equal': 'Equal',
+  'split.word.amounts': 'Amounts',
+  'split.word.percent': '%',
+  'split.word.shares': 'Shares',
+  'split.word.adjust': 'Adjust',
 } as const;
 
 export type MessageKey = keyof typeof en;

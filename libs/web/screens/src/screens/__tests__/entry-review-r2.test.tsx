@@ -128,18 +128,16 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
       'GET /api/me/people/candidates': [],
     });
 
-    const { container } = renderEntryPage(['/entries/new?type=expense']);
+    renderEntryPage(['/entries/new?type=expense']);
     await screen.findByTestId('amount-display');
 
     await user.click(screen.getByTestId('entry-tab-loan-debt'));
 
-    await waitFor(() => {
-      expect(container.querySelector('#expense-form')).toBeInTheDocument();
-    });
+    // Critique step 2: the embedded form leads with the shared keypad and the "Với ai" row.
+    expect(await screen.findByTestId('loan-debt-with-row')).toBeInTheDocument();
+    expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
     expect(screen.queryByTestId('quick-expense-route')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Thêm khoản chi' })).toBeNull();
-    expect(screen.queryByTestId('amount-display')).toBeNull();
-    expect(screen.queryByTestId('entry-save-btn')).toBeNull();
     expect(screen.getByTestId('current-location')).toHaveTextContent('/entries/new?type=loan-debt');
   });
 
@@ -152,13 +150,10 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
       'GET /api/me/people/candidates': [],
     });
 
-    const { container } = renderEntryPage(['/entries/new?type=loan-debt']);
-    await waitFor(() => {
-      expect(container.querySelector('#expense-form')).toBeInTheDocument();
-    });
+    renderEntryPage(['/entries/new?type=loan-debt']);
+    expect(await screen.findByTestId('loan-debt-with-row')).toBeInTheDocument();
     expect(screen.getByTestId('entry-tab-loan-debt')).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('heading', { name: 'Thêm khoản chi' })).toBeNull();
-    expect(screen.queryByTestId('amount-display')).toBeNull();
   });
 
   it('saving a quick expense from Vay/Nợ posts to /api/trips/:tripId/expenses and goes back with snackbar', async () => {
@@ -173,21 +168,23 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
     });
 
     const { container } = renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
-    await waitFor(() => {
-      expect(container.querySelector('#expense-form')).toBeInTheDocument();
-    });
+    await screen.findByTestId('amount-keypad');
+
+    await user.click(screen.getByTestId('key-5'));
+    await user.click(screen.getByTestId('key-0'));
+    await user.click(screen.getByTestId('key-000'));
+
+    await user.click(screen.getByTestId('loan-debt-with-row'));
+    await user.click(await screen.findByRole('button', { name: /Minh/ }));
+    await user.click(screen.getByRole('button', { name: 'Xong' }));
 
     const descInput = container.querySelector('#expense-what-for') as HTMLInputElement;
-    const amountInput = container.querySelector('#expense-amount') as HTMLInputElement;
     expect(descInput).toBeTruthy();
-    expect(amountInput).toBeTruthy();
-
     await user.type(descInput, 'Trà sữa');
-    await user.type(amountInput, '50000');
 
-    const submitBtn = container.querySelector('button[type="submit"][form="expense-form"]') as HTMLButtonElement;
-    expect(submitBtn).toBeTruthy();
-    await user.click(submitBtn);
+    const saveBtn = await screen.findByTestId('entry-save-btn');
+    expect(saveBtn).toBeEnabled();
+    await user.click(saveBtn);
 
     await waitFor(() => {
       expect(screen.getByTestId('trips-route')).toBeInTheDocument();
@@ -212,18 +209,16 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
       'GET /api/me/people/candidates': [],
     });
 
-    const { container } = renderEntryPage(['/entries/new?type=loan-debt']);
-    await waitFor(() => {
-      expect(container.querySelector('#expense-form')).toBeInTheDocument();
-    });
+    renderEntryPage(['/entries/new?type=loan-debt']);
+    await screen.findByTestId('loan-debt-with-row');
 
     await user.click(screen.getByTestId('entry-tab-expense'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('amount-display')).toBeInTheDocument();
+      expect(screen.queryByTestId('loan-debt-with-row')).toBeNull();
     });
+    expect(screen.getByTestId('amount-display')).toBeInTheDocument();
     expect(screen.getByTestId('key-done')).toBeInTheDocument();
-    expect(container.querySelector('#expense-form')).toBeNull();
     expect(screen.getByTestId('current-location')).toHaveTextContent('/entries/new?type=expense');
   });
 

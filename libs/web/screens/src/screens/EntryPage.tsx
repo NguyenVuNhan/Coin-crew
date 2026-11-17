@@ -26,7 +26,7 @@ import {
   writeLastWallet,
 } from '@cc/web-data-access/personalMoney';
 import { Amount } from '@cc/web-ui/components/Amount';
-import { AmountKeypad, AmountSuggestionChips } from '@cc/web-ui/components/AmountKeypad';
+import { AmountSuggestionChips } from '@cc/web-ui/components/AmountKeypad';
 import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -40,6 +40,8 @@ import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../components/CategoryPicker';
+import { DockedAmountKeypad } from '../components/AmountKeypadDock';
+import { SmallAmountModal } from '../components/SmallAmountModal';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
 import { QuickExpenseEmbed } from './ExpenseForm';
@@ -256,7 +258,6 @@ export function EntryPage(): JSX.Element {
   const [walletDefaultsApplied, setWalletDefaultsApplied] = useState(false);
 
   const amountAreaRef = useRef<HTMLDivElement>(null);
-  const keypadAreaRef = useRef<HTMLDivElement>(null);
   const categoryGridRef = useRef<HTMLDivElement>(null);
   const categoryRingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
@@ -280,20 +281,6 @@ export function EntryPage(): JSX.Element {
       setEntryType('expense');
     }
   }, [isEdit, typeParam]);
-
-  // Close keypad when tapping outside both the amount area and the keypad
-  useEffect(() => {
-    if (!keypadOpen || activeTab === 'loan-debt') return;
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target;
-      if (!(target instanceof Node) || !target.isConnected) return;
-      if (amountAreaRef.current?.contains(target)) return;
-      if (keypadAreaRef.current?.contains(target)) return;
-      setKeypadOpen(false);
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [keypadOpen]);
 
   // Initialize default wallets in new mode
   useEffect(() => {
@@ -479,6 +466,8 @@ export function EntryPage(): JSX.Element {
       setExcludeFromReports(false);
     }
     if (!isEdit) {
+      // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
+      if (activeTab === 'loan-debt') setKeypadOpen(true);
       const params = new URLSearchParams(searchParams);
       params.set('type', next);
       setSearchParams(params, { replace: true });
@@ -1064,23 +1053,18 @@ export function EntryPage(): JSX.Element {
       {/* Docked keypad when amount is focused, or BottomBar Save when keypad is closed */}
       {!isLoading && !walletsQuery.isError && !(isEdit && !entry) && !noActiveWallet && (
         keypadOpen ? (
-          <div
-            ref={keypadAreaRef}
-            className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
-          >
-            <div className="mx-auto w-full max-w-[480px]">
-              <fieldset disabled={isSaving || hasArchivedWallet} className="border-0 p-0 m-0 min-w-0">
-                <AmountKeypad
-                  value={activeExpr}
-                  currency={activeCurrency}
-                  onChange={setActiveExpr}
-                  onDone={(minor) => void handleSave(minor)}
-                  doneLabel={t('personalEntry.save')}
-                  deleteLabel={t('personalEntry.deleteDigit')}
-                />
-              </fieldset>
-            </div>
-          </div>
+          <DockedAmountKeypad
+            open={keypadOpen}
+            onClose={() => setKeypadOpen(false)}
+            amountAreaRef={amountAreaRef}
+            value={activeExpr}
+            currency={activeCurrency}
+            onChange={setActiveExpr}
+            onDone={(minor) => void handleSave(minor)}
+            doneLabel={t('personalEntry.save')}
+            deleteLabel={t('personalEntry.deleteDigit')}
+            disabled={isSaving || hasArchivedWallet}
+          />
         ) : (
           <BottomBar>
             <Button
@@ -1137,59 +1121,28 @@ export function EntryPage(): JSX.Element {
         </div>
       </Sheet>
       {/* Small-amount guard Modal */}
-      <Modal
-        open={smallAmountConfirm !== null}
+      <SmallAmountModal
+        minor={smallAmountConfirm?.minor ?? null}
         onClose={() => setSmallAmountConfirm(null)}
-        title={t('personalEntry.smallAmountTitle')}
-      >
-        {smallAmountConfirm !== null && (
-          <div className="flex flex-col gap-4">
-            <p className="m-0 text-sm text-muted-foreground tabular-nums">
-              {t('personalEntry.smallAmountBody', {
-                amount: formatMoney(smallAmountConfirm.minor, 'VND'),
-              })}
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                data-testid="small-amount-keep"
-                disabled={isSaving}
-                onClick={() => {
-                  const { minor, target } = smallAmountConfirm;
-                  setSmallAmountConfirm(null);
-                  void handleSave(minor, { target, minor });
-                }}
-              >
-                {t('personalEntry.smallAmountKeep', {
-                  amount: formatMoney(smallAmountConfirm.minor, 'VND'),
-                })}
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                data-testid="small-amount-multiply"
-                disabled={isSaving}
-                onClick={() => {
-                  const { minor, target } = smallAmountConfirm;
-                  const multiplied = minor * 1000;
-                  if (target === 'secondary') {
-                    setSecondaryExpr(formatKeypadValue(multiplied, 'VND'));
-                  } else {
-                    setPrimaryExpr(formatKeypadValue(multiplied, 'VND'));
-                  }
-                  setSmallAmountConfirm(null);
-                  void handleSave(multiplied, { target, minor: multiplied });
-                }}
-              >
-                {t('personalEntry.smallAmountMultiply', {
-                  amount: formatMoney(smallAmountConfirm.minor * 1000, 'VND'),
-                })}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        disabled={isSaving}
+        onKeep={(minor) => {
+          if (!smallAmountConfirm) return;
+          const { target } = smallAmountConfirm;
+          setSmallAmountConfirm(null);
+          void handleSave(minor, { target, minor });
+        }}
+        onMultiply={(multiplied) => {
+          if (!smallAmountConfirm) return;
+          const { target } = smallAmountConfirm;
+          if (target === 'secondary') {
+            setSecondaryExpr(formatKeypadValue(multiplied, 'VND'));
+          } else {
+            setPrimaryExpr(formatKeypadValue(multiplied, 'VND'));
+          }
+          setSmallAmountConfirm(null);
+          void handleSave(multiplied, { target, minor: multiplied });
+        }}
+      />
 
       {/* Leave guard Modal */}
       <Modal

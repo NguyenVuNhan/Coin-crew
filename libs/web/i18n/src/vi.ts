@@ -1466,4 +1466,17 @@ export const vi: Record<MessageKey, string> = {
   'tags.deleteConfirmBody': 'Thẻ sẽ bị gỡ khỏi {count} giao dịch', // REVIEW
   'tags.emptyTitle': 'Chưa có thẻ nào', // REVIEW
   'tags.emptyBody': 'Gắn thẻ khi thêm giao dịch để lọc nhanh hơn.', // REVIEW
+  'loanDebt.withWho': 'Với ai', // REVIEW
+  'loanDebt.choosePeople': 'Chọn người', // REVIEW
+  'loanDebt.splitDifferently': 'Chia khác', // REVIEW
+  'loanDebt.splitSummaryCount': '{mode} · {n} người', // REVIEW
+  'loanDebt.enterAmount': 'Nhập số tiền', // REVIEW
+  'loanDebt.chooseOnePerson': 'Chọn ít nhất một người', // REVIEW
+  'loanDebt.splitMismatch': 'Cách chia chưa khớp với số tiền', // REVIEW
+  'loanDebt.enterNote': 'Nhập ghi chú', // REVIEW
+  'split.word.equal': 'Đều', // REVIEW
+  'split.word.amounts': 'Số tiền', // REVIEW
+  'split.word.percent': '%', // REVIEW
+  'split.word.shares': 'Phần', // REVIEW
+  'split.word.adjust': 'Cộng/trừ', // REVIEW
 };

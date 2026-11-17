@@ -16,7 +16,7 @@ import type {
   TripLocationView,
   ExtractedSportBooking,
 } from '@cc/core';
-import { can, computeShares, computeSportShares, formatVnd, isFundPaid, isPlanningExpense, parseVnd, roundToThousand } from '@cc/core';
+import { can, computeShares, computeSportShares, CURRENCIES, formatVnd, isFundPaid, isPlanningExpense, parseVnd, roundToThousand } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { useTripView } from '@cc/web-data-access/hooks';
@@ -37,6 +37,7 @@ import { EntryTypeSwitch, type EntryType } from '../components/EntryTypeSwitch';
 import { IncomeForm } from '../components/IncomeForm';
 import { FundPaidPanel } from '../components/FundPaidPanel';
 import { SplitModePicker } from '../components/SplitModePicker';
+import { LoanDebtEmbedForm } from '../components/LoanDebtEmbedForm';
 import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { Avatar } from '@cc/web-ui/components/Avatar';
@@ -577,6 +578,9 @@ function ExpenseFormContent({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
+  const [embeddedAmountExpr, setEmbeddedAmountExpr] = useState('');
+  const [embeddedKeypadOpen, setEmbeddedKeypadOpen] = useState(embedded);
+  const [embeddedSmallAmountMinor, setEmbeddedSmallAmountMinor] = useState<number | null>(null);
 
   const parsedAmount = useMemo(() => parseVnd(amountText), [amountText]);
   const isAmountInvalid = amountText.trim() !== '' && parsedAmount === null;
@@ -825,9 +829,12 @@ function ExpenseFormContent({
 
   const overallRangeText = useMemo(() => formatSlotsRange(courtSlots), [courtSlots]);
 
+  const hasOtherPerson = !embedded || formPeople.some((p) => p.id !== me && included.has(p.id));
+
   const canSubmit =
     isDescriptionValid &&
     isPayerValid &&
+    hasOtherPerson &&
     (fromFund
       ? isFundAmountValid
       : isPlanningMode
@@ -835,6 +842,19 @@ function ExpenseFormContent({
         : sportSelected
           ? isLocationValid && isSportAmountValid && isSportSplitValid
           : isAmountValid && isSplitValid);
+
+  const embeddedDisabledReason = useMemo(() => {
+    if (!embedded || canSubmit) return null;
+    if (!isAmountValid) return t('loanDebt.enterAmount');
+    if (!hasOtherPerson) return t('loanDebt.chooseOnePerson');
+    if (!isSplitValid) {
+      return splitResult && !splitResult.ok
+        ? t(`splitError.${splitResult.error}` as MessageKey)
+        : t('loanDebt.splitMismatch');
+    }
+    if (!isDescriptionValid) return t('loanDebt.enterNote');
+    return null;
+  }, [embedded, canSubmit, isAmountValid, hasOtherPerson, isSplitValid, splitResult, isDescriptionValid, t]);
 
   async function handleBookingImageSelect(ev: React.ChangeEvent<HTMLInputElement>) {
     const file = ev.target.files?.[0];
@@ -917,8 +937,7 @@ function ExpenseFormContent({
     return err;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitExpense(overrideAmount?: number) {
     if (!canSubmit || isSubmitting) return;
 
     setIsSubmitting(true);
@@ -1054,10 +1073,11 @@ function ExpenseFormContent({
           navigate(href(`/expenses/${res.expenseId}`), { replace: true });
         }
       } else {
-        if (parsedAmount === null) return;
+        const finalAmount = overrideAmount ?? parsedAmount;
+        if (finalAmount === null) return;
         const body: ExpenseInput = {
           description: description.trim(),
-          amount: parsedAmount,
+          amount: finalAmount,
           spentOn,
           payerId,
           mode,
@@ -1084,6 +1104,34 @@ function ExpenseFormContent({
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void submitExpense();
+  }
+
+  const handleEmbeddedAmountChange = (nextExpr: string) => {
+    setEmbeddedAmountExpr(nextExpr);
+    if (/^\d+$/.test(nextExpr)) {
+      const n = Number(nextExpr);
+      setAmountText(Number.isSafeInteger(n) && n > 0 && n <= CURRENCIES.VND.max ? String(n) : '');
+    } else {
+      setAmountText('');
+    }
+  };
+
+  const handleEmbeddedSaveAttempt = (minorOverride?: number) => {
+    const amount = minorOverride ?? parsedAmount;
+    if (!canSubmit || amount === null) {
+      setEmbeddedKeypadOpen(false);
+      return;
+    }
+    if (amount >= 1 && amount <= 999) {
+      setEmbeddedSmallAmountMinor(amount);
+      return;
+    }
+    void submitExpense(amount);
+  };
+
   const submitText = isPlanningMode
     ? t('sport.savePlanning')
     : isEdit
@@ -1091,6 +1139,70 @@ function ExpenseFormContent({
       : view.me.kind === 'guest'
         ? t('expense.sendForApproval')
         : t('expenseForm.add');
+
+  if (embedded) {
+    return (
+      <LoanDebtEmbedForm
+        amountExpr={embeddedAmountExpr}
+        evaluatedMinor={parsedAmount}
+        onAmountExprChange={handleEmbeddedAmountChange}
+        keypadOpen={embeddedKeypadOpen}
+        onKeypadOpenChange={setEmbeddedKeypadOpen}
+        onKeypadDone={(minor) => handleEmbeddedSaveAttempt(minor)}
+        formPeople={formPeople}
+        me={me}
+        included={included}
+        onIncludedChange={setIncluded}
+        peopleSheetOpen={peopleSheetOpen}
+        onPeopleSheetOpenChange={setPeopleSheetOpen}
+        recent={recent}
+        splitExtra={splitExtra}
+        payerId={payer}
+        onPayerChange={setPayerId}
+        description={description}
+        onDescriptionChange={setDescription}
+        spentOn={spentOn}
+        onSpentOnChange={setSpentOn}
+        mode={mode}
+        onModeChange={(m) => {
+          setSportSelected(false);
+          setMode(m);
+        }}
+        caption={caption}
+        liveShares={liveShares}
+        displayShare={displayShare}
+        placeholderFor={placeholderFor}
+        inputErrors={inputErrors}
+        amountsInputs={amountsInputs}
+        onAmountsInputsChange={setAmountsInputs}
+        percentInputs={percentInputs}
+        onPercentInputsChange={setPercentInputs}
+        sharesInputs={sharesInputs}
+        onSharesInputsChange={setSharesInputs}
+        adjustInputs={adjustInputs}
+        onAdjustInputsChange={setAdjustInputs}
+        splitResult={splitResult}
+        canSubmit={canSubmit}
+        isSubmitting={isSubmitting}
+        disabledReason={embeddedDisabledReason}
+        submitError={submitError}
+        formatSubmitError={formatSubmitError}
+        goneNames={goneNames}
+        onSave={() => handleEmbeddedSaveAttempt()}
+        smallAmountMinor={embeddedSmallAmountMinor}
+        onSmallAmountClose={() => setEmbeddedSmallAmountMinor(null)}
+        onSmallAmountKeep={(minor) => {
+          setEmbeddedSmallAmountMinor(null);
+          void submitExpense(minor);
+        }}
+        onSmallAmountMultiply={(multiplied) => {
+          handleEmbeddedAmountChange(String(multiplied));
+          setEmbeddedSmallAmountMinor(null);
+          void submitExpense(multiplied);
+        }}
+      />
+    );
+  }
 
   return (
     <Screen
