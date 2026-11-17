@@ -19,17 +19,19 @@ import {
   readLastWallet,
   useCategories,
   useCreateEntry,
+  useDeleteEntry,
   usePersonalList,
   useUpdateEntry,
   useWalletDetails,
   writeLastWallet,
 } from '@cc/web-data-access/personalMoney';
 import { Amount } from '@cc/web-ui/components/Amount';
-import { AmountKeypad } from '@cc/web-ui/components/AmountKeypad';
+import { AmountKeypad, AmountSuggestionChips } from '@cc/web-ui/components/AmountKeypad';
 import { BottomBar } from '@cc/web-ui/components/BottomBar';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
+import { Modal } from '@cc/web-ui/components/Modal';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -212,6 +214,7 @@ export function EntryPage(): JSX.Element {
   const categoriesQuery = useCategories();
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
+  const deleteEntry = useDeleteEntry();
 
   const allWallets = useMemo(
     () => walletsQuery.data?.wallets ?? [],
@@ -241,12 +244,28 @@ export function EntryPage(): JSX.Element {
   const [keypadOpen, setKeypadOpen] = useState(!isEdit);
   const [walletSheetTarget, setWalletSheetTarget] = useState<'single' | 'other' | null>(null);
   const [validationError, setValidationError] = useState<unknown>(null);
+  const [categoryError, setCategoryError] = useState(false);
+  const [categoryRingActive, setCategoryRingActive] = useState(false);
+  const [smallAmountConfirm, setSmallAmountConfirm] = useState<{
+    minor: number;
+    target: 'primary' | 'secondary';
+  } | null>(null);
+  const [leaveGuardOpen, setLeaveGuardOpen] = useState(false);
   const [initializedId, setInitializedId] = useState<string | null>(null);
   const [counterpartAppliedId, setCounterpartAppliedId] = useState<string | null>(null);
   const [walletDefaultsApplied, setWalletDefaultsApplied] = useState(false);
 
   const amountAreaRef = useRef<HTMLDivElement>(null);
   const keypadAreaRef = useRef<HTMLDivElement>(null);
+  const categoryGridRef = useRef<HTMLDivElement>(null);
+  const categoryRingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (categoryRingTimerRef.current) clearTimeout(categoryRingTimerRef.current);
+    };
+  }, []);
 
   const typeParam = searchParams.get('type');
   useEffect(() => {
@@ -417,11 +436,32 @@ export function EntryPage(): JSX.Element {
       : primaryMinor
     : null;
 
+  const clearCategoryError = () => {
+    setCategoryError(false);
+    setCategoryRingActive(false);
+    if (categoryRingTimerRef.current) {
+      clearTimeout(categoryRingTimerRef.current);
+      categoryRingTimerRef.current = null;
+    }
+  };
+
+  const triggerCategoryError = () => {
+    setCategoryError(true);
+    setCategoryRingActive(true);
+    if (categoryRingTimerRef.current) clearTimeout(categoryRingTimerRef.current);
+    categoryRingTimerRef.current = setTimeout(() => {
+      setCategoryRingActive(false);
+      categoryRingTimerRef.current = null;
+    }, 1500);
+    categoryGridRef.current?.scrollIntoView?.({ block: 'nearest' });
+  };
+
   const handleTabChange = (next: TabValue) => {
     if (next === 'loan-debt') {
       if (isEdit) return;
       setActiveTab('loan-debt');
       setValidationError(null);
+      clearCategoryError();
       const params = new URLSearchParams(searchParams);
       params.set('type', 'loan-debt');
       setSearchParams(params, { replace: true });
@@ -434,6 +474,7 @@ export function EntryPage(): JSX.Element {
     setActiveTransferField('primary');
     setCategoryId(null);
     setValidationError(null);
+    clearCategoryError();
     if (!excludeTouched) {
       setExcludeFromReports(false);
     }
@@ -457,6 +498,7 @@ export function EntryPage(): JSX.Element {
     setIsTransferMode(true);
     setCategoryId(null);
     setValidationError(null);
+    clearCategoryError();
     if (!excludeTouched) {
       setExcludeFromReports(true);
     }
@@ -467,6 +509,7 @@ export function EntryPage(): JSX.Element {
     setActiveTransferField('primary');
     setCategoryId(cid);
     setValidationError(null);
+    clearCategoryError();
     if (!excludeTouched) {
       setExcludeFromReports(false);
     }
@@ -474,8 +517,11 @@ export function EntryPage(): JSX.Element {
 
   const isSaving = createEntry.isPending || updateEntry.isPending;
 
-  const handleSave = async (doneMinor: number) => {
-    if (isSaving || hasArchivedWallet) return;
+  const handleSave = async (
+    doneMinor: number,
+    confirmedOverride?: { target: 'primary' | 'secondary'; minor: number },
+  ) => {
+    if (isSaving || savingRef.current || hasArchivedWallet) return;
     setValidationError(null);
 
     const [rawDate, rawTime] = dateTime.split('T');
@@ -484,6 +530,12 @@ export function EntryPage(): JSX.Element {
 
     let input: EntryInput;
     let lastUsedWalletId: string;
+    let savedMessage: string;
+
+    const effectivePrimaryMinor =
+      confirmedOverride?.target === 'primary' ? confirmedOverride.minor : primaryMinor;
+    const effectiveSecondaryMinor =
+      confirmedOverride?.target === 'secondary' ? confirmedOverride.minor : secondaryMinor;
 
     if (isTransferMode) {
       if (!fromWallet || !toWallet || fromWallet.id === toWallet.id) {
@@ -495,14 +547,24 @@ export function EntryPage(): JSX.Element {
       let received: number | undefined;
 
       if (entryType === 'expense') {
-        const s = activeTransferField === 'primary' ? doneMinor : primaryMinor;
+        const s =
+          confirmedOverride?.target === 'primary'
+            ? confirmedOverride.minor
+            : activeTransferField === 'primary'
+              ? doneMinor
+              : effectivePrimaryMinor;
         if (s === null || s <= 0) {
           setActiveTransferField('primary');
           return;
         }
         sent = s;
         if (isDiffCurrencyTransfer) {
-          const r = activeTransferField === 'secondary' ? doneMinor : secondaryMinor;
+          const r =
+            confirmedOverride?.target === 'secondary'
+              ? confirmedOverride.minor
+              : activeTransferField === 'secondary'
+                ? doneMinor
+                : effectiveSecondaryMinor;
           if (r === null || r <= 0) {
             setActiveTransferField('secondary');
             setValidationError(ownError(t('personalEntry.amountReceivedError')));
@@ -511,13 +573,23 @@ export function EntryPage(): JSX.Element {
           received = r;
         }
       } else {
-        const r = activeTransferField === 'primary' ? doneMinor : primaryMinor;
+        const r =
+          confirmedOverride?.target === 'primary'
+            ? confirmedOverride.minor
+            : activeTransferField === 'primary'
+              ? doneMinor
+              : effectivePrimaryMinor;
         if (r === null || r <= 0) {
           setActiveTransferField('primary');
           return;
         }
         if (isDiffCurrencyTransfer) {
-          const s = activeTransferField === 'secondary' ? doneMinor : secondaryMinor;
+          const s =
+            confirmedOverride?.target === 'secondary'
+              ? confirmedOverride.minor
+              : activeTransferField === 'secondary'
+                ? doneMinor
+                : effectiveSecondaryMinor;
           if (s === null || s <= 0) {
             setActiveTransferField('secondary');
             setValidationError(ownError(t('personalEntry.amountReceivedError')));
@@ -527,6 +599,25 @@ export function EntryPage(): JSX.Element {
           received = r;
         } else {
           sent = r;
+        }
+      }
+
+      if (!confirmedOverride) {
+        if (fromWallet.currency === 'VND' && sent >= 1 && sent <= 999) {
+          const target = entryType === 'expense' || !isDiffCurrencyTransfer ? 'primary' : 'secondary';
+          setSmallAmountConfirm({ minor: sent, target });
+          return;
+        }
+        if (
+          isDiffCurrencyTransfer &&
+          toWallet.currency === 'VND' &&
+          received !== undefined &&
+          received >= 1 &&
+          received <= 999
+        ) {
+          const target = entryType === 'expense' ? 'secondary' : 'primary';
+          setSmallAmountConfirm({ minor: received, target });
+          return;
         }
       }
 
@@ -543,16 +634,27 @@ export function EntryPage(): JSX.Element {
         excludeFromReports,
       };
       lastUsedWalletId = selectedWallet?.id ?? fromWallet.id;
+      savedMessage = t('personalEntry.savedTransfer', {
+        amount: formatMoney(sent, fromWallet.currency),
+        wallet: toWallet.name,
+      });
     } else {
       if (!selectedWallet) return;
       if (!categoryId) {
-        setValidationError(ownError(t('personalEntry.pickCategoryError')));
+        triggerCategoryError();
         return;
       }
+      const amountToSave =
+        confirmedOverride?.target === 'primary' ? confirmedOverride.minor : doneMinor;
+      if (!confirmedOverride && selectedWallet.currency === 'VND' && amountToSave >= 1 && amountToSave <= 999) {
+        setSmallAmountConfirm({ minor: amountToSave, target: 'primary' });
+        return;
+      }
+
       input = {
         type: entryType,
         walletId: selectedWallet.id,
-        amount: doneMinor,
+        amount: amountToSave,
         categoryId,
         date,
         time,
@@ -561,24 +663,63 @@ export function EntryPage(): JSX.Element {
         excludeFromReports,
       };
       lastUsedWalletId = selectedWallet.id;
+      const categoryName =
+        categoriesQuery.data?.categories.find((c) => c.id === categoryId)?.name ?? '';
+      savedMessage = t(
+        entryType === 'expense' ? 'personalEntry.savedExpense' : 'personalEntry.savedIncome',
+        {
+          amount: formatMoney(amountToSave, selectedWallet.currency),
+          category: categoryName,
+        },
+      );
     }
 
+    savingRef.current = true;
     try {
       if (isEdit && id) {
         await updateEntry.mutateAsync({ id, input });
+        writeLastWallet(lastUsedWalletId);
+        showUndo({
+          message: t('personalEntry.saved'),
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
       } else {
-        await createEntry.mutateAsync(input);
+        const created = await createEntry.mutateAsync(input);
+        const createdId = created?.entries?.[0]?.id;
+        writeLastWallet(lastUsedWalletId);
+        showUndo(
+          {
+            message: savedMessage,
+            actionLabel: t('common.undo'),
+            onAction: () => {
+              if (createdId) {
+                deleteEntry.mutate(createdId);
+              }
+            },
+          },
+          5000,
+        );
       }
-      writeLastWallet(lastUsedWalletId);
-      showUndo({
-        message: t('personalEntry.saved'),
-        actionLabel: t('common.close'),
-        onAction: () => {},
-      });
       goBack();
     } catch (err) {
       setValidationError(err);
+    } finally {
+      savingRef.current = false;
     }
+  };
+
+  const hasUnsavedAmount =
+    !isEdit &&
+    activeTab !== 'loan-debt' &&
+    (primaryExpr.trim().length > 0 || (isDiffCurrencyTransfer && secondaryExpr.trim().length > 0));
+
+  const handleBack = () => {
+    if (hasUnsavedAmount) {
+      setLeaveGuardOpen(true);
+      return;
+    }
+    goBack();
   };
 
   const editLockedTransfer = isEdit && isTransferMode;
@@ -629,7 +770,7 @@ export function EntryPage(): JSX.Element {
         <div className="h-full flex items-center gap-2 px-4 mx-auto w-full max-w-[480px]">
           <button
             type="button"
-            onClick={goBack}
+            onClick={handleBack}
             aria-label={t('common.back')}
             title={t('common.back')}
             data-testid="entry-back"
@@ -737,6 +878,22 @@ export function EntryPage(): JSX.Element {
                 {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
               </button>
 
+              {!keypadOpen &&
+                primaryCurrency === 'VND' &&
+                primaryMinor !== null &&
+                primaryMinor >= 1 &&
+                primaryMinor <= 999 && (
+                  <AmountSuggestionChips
+                    value={primaryExpr}
+                    currency={primaryCurrency}
+                    onSelect={(next) => {
+                      setValidationError(null);
+                      setPrimaryExpr(next);
+                    }}
+                    chipClassName="border border-border"
+                  />
+                )}
+
               {isDiffCurrencyTransfer && (
                 <button
                   type="button"
@@ -762,6 +919,23 @@ export function EntryPage(): JSX.Element {
                 </button>
               )}
 
+              {!keypadOpen &&
+                isDiffCurrencyTransfer &&
+                secondaryCurrency === 'VND' &&
+                secondaryMinor !== null &&
+                secondaryMinor >= 1 &&
+                secondaryMinor <= 999 && (
+                  <AmountSuggestionChips
+                    value={secondaryExpr}
+                    currency={secondaryCurrency}
+                    onSelect={(next) => {
+                      setValidationError(null);
+                      setSecondaryExpr(next);
+                    }}
+                    chipClassName="border border-border"
+                  />
+                )}
+
               {impliedRate && (
                 <p
                   data-testid="transfer-implied-rate"
@@ -781,6 +955,9 @@ export function EntryPage(): JSX.Element {
               onChange={handleSelectCategory}
               transferSelected={isTransferMode}
               onSelectTransfer={handleSelectTransfer}
+              error={categoryError ? t('personalEntry.pickCategoryError') : null}
+              highlightError={categoryRingActive}
+              gridRef={categoryGridRef}
             />
 
             {/* Compact rows */}
@@ -959,6 +1136,92 @@ export function EntryPage(): JSX.Element {
           })}
         </div>
       </Sheet>
+      {/* Small-amount guard Modal */}
+      <Modal
+        open={smallAmountConfirm !== null}
+        onClose={() => setSmallAmountConfirm(null)}
+        title={t('personalEntry.smallAmountTitle')}
+      >
+        {smallAmountConfirm !== null && (
+          <div className="flex flex-col gap-4">
+            <p className="m-0 text-sm text-muted-foreground tabular-nums">
+              {t('personalEntry.smallAmountBody', {
+                amount: formatMoney(smallAmountConfirm.minor, 'VND'),
+              })}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                data-testid="small-amount-keep"
+                disabled={isSaving}
+                onClick={() => {
+                  const { minor, target } = smallAmountConfirm;
+                  setSmallAmountConfirm(null);
+                  void handleSave(minor, { target, minor });
+                }}
+              >
+                {t('personalEntry.smallAmountKeep', {
+                  amount: formatMoney(smallAmountConfirm.minor, 'VND'),
+                })}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                data-testid="small-amount-multiply"
+                disabled={isSaving}
+                onClick={() => {
+                  const { minor, target } = smallAmountConfirm;
+                  const multiplied = minor * 1000;
+                  if (target === 'secondary') {
+                    setSecondaryExpr(formatKeypadValue(multiplied, 'VND'));
+                  } else {
+                    setPrimaryExpr(formatKeypadValue(multiplied, 'VND'));
+                  }
+                  setSmallAmountConfirm(null);
+                  void handleSave(multiplied, { target, minor: multiplied });
+                }}
+              >
+                {t('personalEntry.smallAmountMultiply', {
+                  amount: formatMoney(smallAmountConfirm.minor * 1000, 'VND'),
+                })}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Leave guard Modal */}
+      <Modal
+        open={leaveGuardOpen}
+        onClose={() => setLeaveGuardOpen(false)}
+        title={t('personalEntry.discardTitle')}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              data-testid="leave-guard-discard"
+              className="text-danger border border-danger/40 hover:bg-danger-soft hover:text-danger"
+              onClick={() => {
+                setLeaveGuardOpen(false);
+                goBack();
+              }}
+            >
+              {t('personalEntry.discardConfirm')}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              data-testid="leave-guard-keep"
+              onClick={() => setLeaveGuardOpen(false)}
+            >
+              {t('personalEntry.discardKeepEditing')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

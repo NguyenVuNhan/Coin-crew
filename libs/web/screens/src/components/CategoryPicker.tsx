@@ -1,7 +1,8 @@
-import { useMemo, useState, type JSX } from 'react';
+import { useMemo, useState, type JSX, type RefObject } from 'react';
 import type { CategoryView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { Icon, type IconName } from '@cc/web-ui/components/icons';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { cn } from '@cc/web-ui/lib/utils';
 
@@ -13,6 +14,9 @@ export interface CategoryPickerProps {
   onChange(categoryId: string): void;
   transferSelected?: boolean;
   onSelectTransfer?: () => void;
+  error?: string | null;
+  highlightError?: boolean;
+  gridRef?: RefObject<HTMLDivElement | null>;
 }
 
 import { categoryIconName } from './categoryIcon';
@@ -25,6 +29,9 @@ export function CategoryPicker({
   onChange,
   transferSelected = false,
   onSelectTransfer,
+  error,
+  highlightError = false,
+  gridRef,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -98,7 +105,14 @@ export function CategoryPicker({
 
   return (
     <div data-testid="category-picker" className="fsl-category-picker">
-      <div className="grid grid-cols-4 gap-2">
+      <div
+        ref={gridRef}
+        data-testid="category-grid"
+        className={cn(
+          'grid grid-cols-4 gap-2 rounded-2xl',
+          highlightError && 'ring-2 ring-danger transition-shadow duration-150 motion-reduce:transition-none',
+        )}
+      >
         {onSelectTransfer && (
           <button
             key="transfer"
@@ -164,6 +178,12 @@ export function CategoryPicker({
           </span>
         </button>
       </div>
+
+      {error && (
+        <div data-testid="category-error" className="mt-2">
+          <InlineError error={ownError(error)} />
+        </div>
+      )}
 
       <Sheet
         open={sheetOpen}

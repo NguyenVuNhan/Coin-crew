@@ -1373,6 +1373,16 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.archivedWalletNotice': 'Ví này đã lưu trữ. Khôi phục ví để sửa giao dịch.', // REVIEW
   'personalEntry.noWalletTitle': 'Tạo ví trước', // REVIEW
   'personalEntry.goToWallets': 'Đến trang ví', // REVIEW
+  'personalEntry.smallAmountTitle': 'Số tiền này đúng chưa?', // REVIEW
+  'personalEntry.smallAmountBody': 'Bạn đang lưu {amount}.', // REVIEW
+  'personalEntry.smallAmountMultiply': 'Lưu {amount}', // REVIEW
+  'personalEntry.smallAmountKeep': 'Giữ {amount}', // REVIEW
+  'personalEntry.savedExpense': 'Đã chi {amount} · {category}', // REVIEW
+  'personalEntry.savedIncome': 'Đã thu {amount} · {category}', // REVIEW
+  'personalEntry.savedTransfer': 'Đã chuyển {amount} → {wallet}', // REVIEW
+  'personalEntry.discardTitle': 'Bỏ khoản đang nhập?', // REVIEW
+  'personalEntry.discardConfirm': 'Bỏ', // REVIEW
+  'personalEntry.discardKeepEditing': 'Tiếp tục nhập', // REVIEW
   'transactions.title': 'Giao dịch', // REVIEW
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW

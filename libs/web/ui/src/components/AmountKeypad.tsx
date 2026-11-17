@@ -11,6 +11,45 @@ import {
   formatKeypadValue,
 } from './amountKeypad';
 
+export interface AmountSuggestionChipsProps {
+  value: string;
+  currency: CurrencyCode;
+  onSelect(nextExpr: string): void;
+  className?: string;
+  chipClassName?: string;
+}
+
+/** Renders up to 3 scaled amount suggestion chips for the current keypad input. */
+export function AmountSuggestionChips({
+  value,
+  currency,
+  onSelect,
+  className,
+  chipClassName,
+}: AmountSuggestionChipsProps) {
+  const suggestions = amountSuggestions(value, currency);
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div data-testid="amount-suggestions" className={cn('flex flex-wrap gap-2', className)}>
+      {suggestions.map((minor) => (
+        <button
+          key={minor}
+          type="button"
+          data-testid="amount-suggestion"
+          onClick={() => onSelect(formatKeypadValue(minor, currency))}
+          className={cn(
+            'min-h-11 rounded-full bg-card text-foreground px-3.5 text-sm font-semibold tabular-nums transition-colors active:opacity-80',
+            chipClassName,
+          )}
+        >
+          {formatMoney(minor, currency)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export interface AmountKeypadProps {
   value: string;
   currency: CurrencyCode;
@@ -36,7 +75,6 @@ export function AmountKeypad({
 }: AmountKeypadProps) {
   const allowsDecimal = CURRENCIES[currency].decimals > 0;
   const evaluated = evaluateAmountExpression(value, currency);
-  const suggestions = amountSuggestions(value, currency);
 
   const handleDigit = (digit: string) => {
     onChange(applyKeypadDigit(value, digit));
@@ -84,21 +122,11 @@ export function AmountKeypad({
       onKeyDown={handleKeyDown}
       className={cn('bg-muted p-2 rounded-2xl flex flex-col gap-2 outline-none', className)}
     >
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((minor) => (
-            <button
-              key={minor}
-              type="button"
-              data-testid="amount-suggestion"
-              onClick={() => onChange(formatKeypadValue(minor, currency))}
-              className="min-h-11 rounded-full bg-card text-foreground px-3.5 text-sm font-semibold tabular-nums transition-colors active:opacity-80"
-            >
-              {formatMoney(minor, currency)}
-            </button>
-          ))}
-        </div>
-      )}
+      <AmountSuggestionChips
+        value={value}
+        currency={currency}
+        onSelect={onChange}
+      />
 
       <div className="grid grid-cols-4 gap-2">
         <button type="button" data-testid="key-7" className={KEY_CARD} onClick={() => handleDigit('7')}>
