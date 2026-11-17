@@ -163,8 +163,8 @@ describe('EntryPage and AddMenu', () => {
     unmount();
 
     renderEntryPage('/entries/new?type=transfer');
-    await screen.findByTestId('entry-more-details-toggle');
-    await user.click(screen.getByTestId('entry-more-details-toggle'));
+    // Step 5: transfers show the switch inline, with no "Thêm chi tiết" toggle.
+    await screen.findByTestId('entry-exclude-switch');
     expect(screen.getByTestId('entry-exclude-switch')).toHaveAttribute('aria-checked', 'true');
   });
 });

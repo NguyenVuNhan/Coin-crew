@@ -193,17 +193,22 @@ export function LoanDebtEmbedForm({
               setKeypadFocusToken((n) => n + 1);
             }}
             className={cn(
-              'w-full rounded-xl bg-card px-4 py-3 flex flex-col items-end justify-center min-h-16 cursor-pointer text-right border-0',
+              'w-full rounded-xl bg-card px-4 py-3 flex items-center justify-between gap-3 min-h-16 cursor-pointer text-right border-0',
               keypadOpen && 'ring-2 ring-primary',
             )}
           >
-            {evaluatedMinor !== null ? (
-              <Amount value={evaluatedMinor} currency="VND" size="xl" tone="neutral" />
-            ) : (
-              <span className="text-2xl font-bold tabular-nums text-muted-foreground">
-                {amountExpr || formatMoney(0, 'VND')}
-              </span>
-            )}
+            <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
+              {t('personalEntry.amountBoxLabel')}
+            </span>
+            <span className="flex flex-col items-end tabular-nums min-w-0">
+              {evaluatedMinor !== null ? (
+                <Amount value={evaluatedMinor} currency="VND" size="xl" tone="neutral" />
+              ) : (
+                <span className="text-2xl font-bold tabular-nums text-muted-foreground">
+                  {amountExpr || formatMoney(0, 'VND')}
+                </span>
+              )}
+            </span>
           </button>
 
           {!keypadOpen &&
@@ -224,7 +229,7 @@ export function LoanDebtEmbedForm({
             type="button"
             data-testid="loan-debt-with-row"
             onClick={() => onPeopleSheetOpenChange(true)}
-            className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+            className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
           >
             <span className="text-sm font-medium text-muted-foreground shrink-0">
               {t('loanDebt.withWho')}
@@ -260,7 +265,7 @@ export function LoanDebtEmbedForm({
             type="button"
             data-testid="loan-debt-payer-row"
             onClick={() => setPayerSheetOpen(true)}
-            className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+            className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
           >
             <span className="text-sm font-medium text-muted-foreground shrink-0">
               {t('expenseForm.paidBy')}
@@ -488,7 +493,7 @@ export function LoanDebtEmbedForm({
                   onPayerChange(person.id);
                   setPayerSheetOpen(false);
                 }}
-                className="min-h-11 px-2 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted rounded-xl"
+                className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted rounded-xl"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar name={person.name} avatarUrl={person.avatarUrl} size="sm" />

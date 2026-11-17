@@ -1370,6 +1370,7 @@ export const en = {
   'personalEntry.saveEntry': 'Save entry',
   'personalEntry.amountLabel': 'Amount: {amount}',
   'personalEntry.amountNotEntered': 'not entered',
+  'personalEntry.amountBoxLabel': 'Amount',
   'personalEntry.saved': 'Saved',
   'personalEntry.notFound': 'Entry not found',
   'personalEntry.archivedWalletNotice': 'This wallet is archived. Restore it to edit this transaction.',

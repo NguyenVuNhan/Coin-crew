@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX, type RefObject } from 'react';
-import type { CategoryView } from '@cc/core';
+import type { CategoryView, WalletKind } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
@@ -17,6 +17,18 @@ export interface CategoryPickerProps {
   error?: string | null;
   highlightError?: boolean;
   gridRef?: RefObject<HTMLDivElement | null>;
+  /** Kind of the wallet the entry goes to; everyday wallets don't get investing tiles up front. */
+  walletKind?: WalletKind;
+}
+
+/** Ids of the Đầu tư parent and its sub-categories (the parent carries the trending-up icon). */
+function investingIds(categories: CategoryView[]): Set<string> {
+  const parents = new Set(
+    categories.filter((c) => c.parentId === null && c.icon === 'trending-up').map((c) => c.id),
+  );
+  const ids = new Set(parents);
+  for (const c of categories) if (c.parentId && parents.has(c.parentId)) ids.add(c.id);
+  return ids;
 }
 
 import { categoryIconName } from './categoryIcon';
@@ -32,6 +44,7 @@ export function CategoryPicker({
   error,
   highlightError = false,
   gridRef,
+  walletKind,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -45,11 +58,13 @@ export function CategoryPicker({
     const byId = new Map(visible.map((c) => [c.id, c]));
     const picked: CategoryView[] = [];
     const seen = new Set<string>();
+    // Investing tiles are for investment wallets; on an everyday wallet they stay in "Thêm".
+    const blocked = walletKind === 'everyday' ? investingIds(categories) : new Set<string>();
 
     for (const id of recentIds) {
       if (picked.length >= 6) break;
       const cat = byId.get(id);
-      if (cat && !seen.has(cat.id)) {
+      if (cat && !seen.has(cat.id) && !blocked.has(cat.id)) {
         seen.add(cat.id);
         picked.push(cat);
       }
@@ -57,7 +72,7 @@ export function CategoryPicker({
 
     for (const cat of visible) {
       if (picked.length >= 6) break;
-      if (!seen.has(cat.id)) {
+      if (!seen.has(cat.id) && !blocked.has(cat.id)) {
         seen.add(cat.id);
         picked.push(cat);
       }
@@ -75,7 +90,7 @@ export function CategoryPicker({
     }
 
     return picked;
-  }, [visible, recentIds, value, categories, type]);
+  }, [visible, recentIds, value, categories, type, walletKind]);
 
   const tree = useMemo(() => {
     const parents = visible
@@ -130,7 +145,7 @@ export function CategoryPicker({
             >
               <Icon name="swap" size={20} />
             </span>
-            <span className="text-xs font-medium text-foreground leading-tight line-clamp-2 w-full">
+            <span className="text-sm font-medium text-foreground leading-tight line-clamp-2 break-words w-full">
               {type === 'expense'
                 ? t('personalEntry.transferToWallet')
                 : t('personalEntry.transferFromWallet')}
@@ -156,7 +171,7 @@ export function CategoryPicker({
               >
                 <Icon name={categoryIconName(cat.icon, type)} size={20} />
               </span>
-              <span className="text-xs font-medium text-foreground leading-tight line-clamp-2 w-full">
+              <span className="text-sm font-medium text-foreground leading-tight line-clamp-2 break-words w-full">
                 {cat.name}
               </span>
             </button>
@@ -173,7 +188,7 @@ export function CategoryPicker({
           <span className="size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center">
             <Icon name="ellipsis" size={20} />
           </span>
-          <span className="text-xs font-medium text-muted-foreground leading-tight line-clamp-2 w-full">
+          <span className="text-sm font-medium text-muted-foreground leading-tight line-clamp-2 break-words w-full">
             {t('personalEntry.moreCategories')}
           </span>
         </button>

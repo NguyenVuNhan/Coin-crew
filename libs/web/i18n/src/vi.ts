@@ -1371,6 +1371,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.saveEntry': 'Lưu khoản', // REVIEW
   'personalEntry.amountLabel': 'Số tiền: {amount}', // REVIEW
   'personalEntry.amountNotEntered': 'chưa nhập', // REVIEW
+  'personalEntry.amountBoxLabel': 'Số tiền', // REVIEW
   'personalEntry.saved': 'Đã lưu', // REVIEW
   'personalEntry.notFound': 'Không tìm thấy giao dịch', // REVIEW
   'personalEntry.archivedWalletNotice': 'Ví này đã lưu trữ. Khôi phục ví để sửa giao dịch.', // REVIEW

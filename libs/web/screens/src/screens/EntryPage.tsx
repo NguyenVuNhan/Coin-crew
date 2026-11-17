@@ -770,6 +770,23 @@ export function EntryPage(): JSX.Element {
       ? 'danger'
       : 'success';
 
+  const excludeRow = (
+    <div className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3">
+      <span className="text-sm font-medium text-foreground">
+        {t('personalEntry.excludeFromReports')}
+      </span>
+      <Switch
+        checked={excludeFromReports}
+        onCheckedChange={(checked) => {
+          setExcludeFromReports(checked);
+          setExcludeTouched(true);
+        }}
+        aria-label={t('personalEntry.excludeFromReports')}
+        data-testid="entry-exclude-switch"
+      />
+    </div>
+  );
+
   const handleWalletPick = (pickedId: string) => {
     if (walletSheetTarget === 'single') {
       if (isTransferMode && pickedId === otherWallet?.id) {
@@ -815,7 +832,7 @@ export function EntryPage(): JSX.Element {
               <TabsTrigger
                 value="expense"
                 data-testid="entry-tab-expense"
-                className="flex-1 min-w-0 min-h-10 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+                className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.expense')}
               </TabsTrigger>
@@ -823,7 +840,7 @@ export function EntryPage(): JSX.Element {
                 value="income"
                 disabled={editLockedTransfer}
                 data-testid="entry-tab-income"
-                className="flex-1 min-w-0 min-h-10 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+                className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.income')}
               </TabsTrigger>
@@ -831,7 +848,7 @@ export function EntryPage(): JSX.Element {
                 value="loan-debt"
                 disabled={isEdit}
                 data-testid="entry-tab-loan-debt"
-                className="flex-1 min-w-0 min-h-10 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+                className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.loanDebt')}
               </TabsTrigger>
@@ -899,11 +916,16 @@ export function EntryPage(): JSX.Element {
                   setKeypadFocusToken((n) => n + 1);
                 }}
                 className={cn(
-                  'w-full rounded-xl bg-card border border-border px-4 py-3 flex flex-col items-end justify-center min-h-16 cursor-pointer text-right',
+                  'w-full rounded-xl bg-card border-0 px-4 py-3 flex items-center justify-between gap-3 min-h-16 cursor-pointer text-right',
                   keypadOpen && (!isDiffCurrencyTransfer || activeTransferField === 'primary') && 'ring-2 ring-primary',
                 )}
               >
-                {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
+                <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
+                  {t('personalEntry.amountBoxLabel')}
+                </span>
+                <span className="flex flex-col items-end tabular-nums min-w-0">
+                  {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
+                </span>
               </button>
 
               {!keypadOpen &&
@@ -935,7 +957,7 @@ export function EntryPage(): JSX.Element {
                     setKeypadFocusToken((n) => n + 1);
                   }}
                   className={cn(
-                    'w-full rounded-xl bg-card border border-border px-4 py-3 flex items-center justify-between text-left cursor-pointer',
+                    'w-full rounded-xl bg-card border-0 px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer',
                     keypadOpen && activeTransferField === 'secondary' && 'ring-2 ring-primary',
                   )}
                 >
@@ -966,7 +988,7 @@ export function EntryPage(): JSX.Element {
               {impliedRate && (
                 <p
                   data-testid="transfer-implied-rate"
-                  className="m-0 px-1 text-xs text-muted-foreground tabular-nums"
+                  className="m-0 px-1 text-sm text-muted-foreground tabular-nums"
                 >
                   {impliedRate}
                 </p>
@@ -978,6 +1000,7 @@ export function EntryPage(): JSX.Element {
               type={entryType}
               categories={categoriesQuery.data?.categories ?? []}
               recentIds={categoriesQuery.data?.recentIds ?? []}
+              walletKind={selectedWallet?.kind}
               value={categoryId}
               onChange={handleSelectCategory}
               transferSelected={isTransferMode}
@@ -988,15 +1011,19 @@ export function EntryPage(): JSX.Element {
             />
 
             {/* Compact rows */}
-            <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
+            <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
               <button
                 type="button"
                 data-testid="entry-wallet-row"
                 onClick={() => setWalletSheetTarget('single')}
-                className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
               >
                 <span className="text-sm font-medium text-muted-foreground">
-                  {t('personalEntry.wallet')}
+                  {isTransferMode
+                    ? entryType === 'expense'
+                      ? t('personalEntry.fromWallet')
+                      : t('personalEntry.toWallet')
+                    : t('personalEntry.wallet')}
                 </span>
                 <span className="flex items-center gap-1 text-base font-medium text-foreground">
                   <span>{selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}</span>
@@ -1009,7 +1036,7 @@ export function EntryPage(): JSX.Element {
                   type="button"
                   data-testid={entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'}
                   onClick={() => setWalletSheetTarget('other')}
-                  className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
+                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted/50"
                 >
                   <span className="text-sm font-medium text-muted-foreground">
                     {entryType === 'expense'
@@ -1043,39 +1070,30 @@ export function EntryPage(): JSX.Element {
                   className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
                 />
               </div>
+
+              {isTransferMode && excludeRow}
             </div>
 
-            {/* More details toggle */}
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                data-testid="entry-more-details-toggle"
-                onClick={() => setShowMore((prev) => !prev)}
-                className="min-h-11 px-1 flex items-center justify-between text-sm font-medium text-primary bg-transparent border-0 cursor-pointer"
-              >
-                <span>{t('personalEntry.moreDetails')}</span>
-                <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={18} />
-              </button>
+            {/* More details toggle (not for transfers: the switch is inline above) */}
+            {!isTransferMode && (
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  data-testid="entry-more-details-toggle"
+                  onClick={() => setShowMore((prev) => !prev)}
+                  className="min-h-11 px-1 flex items-center justify-between text-sm font-medium text-primary bg-transparent border-0 cursor-pointer"
+                >
+                  <span>{t('personalEntry.moreDetails')}</span>
+                  <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={18} />
+                </button>
 
-              {showMore && (
-                <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
-                  <div className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-foreground">
-                      {t('personalEntry.excludeFromReports')}
-                    </span>
-                    <Switch
-                      checked={excludeFromReports}
-                      onCheckedChange={(checked) => {
-                        setExcludeFromReports(checked);
-                        setExcludeTouched(true);
-                      }}
-                      aria-label={t('personalEntry.excludeFromReports')}
-                      data-testid="entry-exclude-switch"
-                    />
+                {showMore && (
+                  <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                    {excludeRow}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </main>
@@ -1141,7 +1159,7 @@ export function EntryPage(): JSX.Element {
                 type="button"
                 data-testid={`wallet-option-${w.id}`}
                 onClick={() => handleWalletPick(w.id)}
-                className="min-h-11 px-2 py-2.5 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted rounded-xl"
+                className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left cursor-pointer hover:bg-muted rounded-xl"
               >
                 <div className="flex flex-col">
                   <span className="text-base font-medium text-foreground">{w.name}</span>
