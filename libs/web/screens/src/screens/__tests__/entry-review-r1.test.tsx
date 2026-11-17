@@ -269,10 +269,12 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
     expect(amountBtn).toHaveAttribute('aria-expanded', 'false');
 
-    const dtInput = screen.getByTestId('entry-date-input') as HTMLInputElement;
-    expect(dtInput.type).toBe('datetime-local');
-    expect(dtInput.value).toBe('2026-11-10T09:30');
-    fireEvent.change(dtInput, { target: { value: '2026-11-12T14:45' } });
+    const dateInput = screen.getByTestId('entry-date-picker') as HTMLInputElement;
+    const timeInput = screen.getByTestId('entry-time-picker') as HTMLInputElement;
+    expect(dateInput.value).toBe('2026-11-10');
+    expect(timeInput.value).toBe('09:30');
+    fireEvent.change(dateInput, { target: { value: '2026-11-12' } });
+    fireEvent.change(timeInput, { target: { value: '14:45' } });
 
     await user.click(amountBtn);
     expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();

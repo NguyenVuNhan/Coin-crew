@@ -16,6 +16,7 @@ import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
 import type { RecentGroup } from '@cc/web-util/recentGroups';
 import { DockedAmountKeypad } from './AmountKeypadDock';
+import { EntryDateRow } from './EntryDateRow';
 import { SmallAmountModal } from './SmallAmountModal';
 import { SplitModePicker } from './SplitModePicker';
 import { SplitPeopleSheet, type SplitPeopleSheetProps } from './SplitPeopleSheet';
@@ -270,18 +271,12 @@ export function LoanDebtEmbedForm({
             />
           </div>
 
-          <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-            <Label htmlFor="expense-date" className="text-sm font-medium text-muted-foreground shrink-0">
-              {t('expenseForm.date')}
-            </Label>
-            <Input
-              id="expense-date"
-              type="date"
-              value={spentOn}
-              onChange={(e) => onSpentOnChange(e.target.value)}
-              className="text-base text-foreground bg-transparent border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 w-auto"
-            />
-          </div>
+          <EntryDateRow
+            date={spentOn}
+            time={null}
+            showTime={false}
+            onChange={(next) => onSpentOnChange(next.date)}
+          />
         </div>
 
         {/* 4. Split, collapsed by default behind "Chia khác" */}

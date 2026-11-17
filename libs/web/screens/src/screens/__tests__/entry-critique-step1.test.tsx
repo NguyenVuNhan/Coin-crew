@@ -486,8 +486,8 @@ describe('EntryPage critique step 1 (save safety)', () => {
     await user.click(screen.getByTestId('key-5'));
     await user.click(screen.getByTestId('key-000'));
     await user.type(screen.getByTestId('entry-note-input'), 'Cà phê');
-    const dateInput = screen.getByTestId('entry-date-input') as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: '2026-11-15T14:30' } });
+    fireEvent.change(screen.getByTestId('entry-date-picker'), { target: { value: '2026-11-15' } });
+    fireEvent.change(screen.getByTestId('entry-time-picker'), { target: { value: '14:30' } });
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -495,7 +495,8 @@ describe('EntryPage critique step 1 (save safety)', () => {
     expect(screen.getByTestId('amount-display')).toHaveTextContent('85.000₫');
     expect(screen.getByTestId('category-tile-cat-food')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('entry-wallet-row')).toHaveTextContent('Tiền mặt (VND)');
-    expect(screen.getByTestId('entry-date-input')).toHaveValue('2026-11-15T14:30');
+    expect(screen.getByTestId('entry-date-picker')).toHaveValue('2026-11-15');
+    expect(screen.getByTestId('entry-time-picker')).toHaveValue('14:30');
     expect(screen.getByTestId('entry-note-input')).toHaveValue('Cà phê');
   });
 

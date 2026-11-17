@@ -35,11 +35,11 @@ import { Modal } from '@cc/web-ui/components/Modal';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Input } from '@cc/web-ui/components/ui/input';
-import { Label } from '@cc/web-ui/components/ui/label';
 import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../components/CategoryPicker';
+import { EntryDateRow } from '../components/EntryDateRow';
 import { DockedAmountKeypad } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { showUndo } from '../components/UndoSnackbarHost';
@@ -985,19 +985,11 @@ export function EntryPage(): JSX.Element {
                 </button>
               )}
 
-              <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-                <Label htmlFor="entry-date-input" className="text-sm font-medium text-muted-foreground shrink-0">
-                  {t('personalEntry.date')}
-                </Label>
-                <Input
-                  id="entry-date-input"
-                  type="datetime-local"
-                  value={dateTime}
-                  onChange={(e) => setDateTime(e.target.value)}
-                  data-testid="entry-date-input"
-                  className="text-base text-foreground bg-transparent border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 w-auto"
-                />
-              </div>
+              <EntryDateRow
+                date={dateTime.split('T')[0] ?? ''}
+                time={dateTime.split('T')[1]?.slice(0, 5) || null}
+                onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
+              />
 
               <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
                 <span className="text-sm font-medium text-muted-foreground shrink-0">

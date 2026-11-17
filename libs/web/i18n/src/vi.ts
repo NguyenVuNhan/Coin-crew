@@ -1479,4 +1479,32 @@ export const vi: Record<MessageKey, string> = {
   'split.word.percent': '%', // REVIEW
   'split.word.shares': 'Phần', // REVIEW
   'split.word.adjust': 'Cộng/trừ', // REVIEW
+  'entryDate.today': 'Hôm nay', // REVIEW
+  'entryDate.yesterday': 'Hôm qua', // REVIEW
+  'entryDate.chipPick': 'Chọn ngày', // REVIEW
+  'entryDate.changeTime': 'Đổi giờ', // REVIEW
+  'entryDate.rowLabel': 'Ngày: {value}', // REVIEW
+  'entryDate.withTime': '{day} · {time}', // REVIEW
+  'entryDate.rowAria': '{day}, {time}', // REVIEW
+  'entryDate.dayFormat': '{weekday}, {day}/{month}', // REVIEW
+  'entryDate.dayFormatYear': '{weekday}, {day}/{month}/{year}', // REVIEW
+  'entryDate.wd.0': 'Chủ Nhật', // REVIEW
+  'entryDate.wd.1': 'Thứ Hai', // REVIEW
+  'entryDate.wd.2': 'Thứ Ba', // REVIEW
+  'entryDate.wd.3': 'Thứ Tư', // REVIEW
+  'entryDate.wd.4': 'Thứ Năm', // REVIEW
+  'entryDate.wd.5': 'Thứ Sáu', // REVIEW
+  'entryDate.wd.6': 'Thứ Bảy', // REVIEW
+  'entryDate.mon.0': '1', // REVIEW
+  'entryDate.mon.1': '2', // REVIEW
+  'entryDate.mon.2': '3', // REVIEW
+  'entryDate.mon.3': '4', // REVIEW
+  'entryDate.mon.4': '5', // REVIEW
+  'entryDate.mon.5': '6', // REVIEW
+  'entryDate.mon.6': '7', // REVIEW
+  'entryDate.mon.7': '8', // REVIEW
+  'entryDate.mon.8': '9', // REVIEW
+  'entryDate.mon.9': '10', // REVIEW
+  'entryDate.mon.10': '11', // REVIEW
+  'entryDate.mon.11': '12', // REVIEW
 };
