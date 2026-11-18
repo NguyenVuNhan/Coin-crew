@@ -82,6 +82,31 @@ function PickerOverlay({
 const chipClass =
   'min-h-11 px-3 inline-flex items-center rounded-full bg-muted text-sm font-semibold text-foreground border-0 cursor-pointer';
 
+/** Formats a `YYYY-MM-DD` date as "Hôm nay" / "Hôm qua" / localized date string. */
+export function formatEntryDayLabel(
+  date: string,
+  t: ReturnType<typeof useT>,
+  now?: Date,
+): string {
+  const current = now ?? new Date();
+  const today = todayLocal(current);
+  const yesterday = shiftDay(current, -1);
+
+  const parsed = parseDay(date);
+  if (date === today) return t('entryDate.today');
+  if (date === yesterday) return t('entryDate.yesterday');
+  if (parsed) {
+    const sameYear = parsed.getFullYear() === current.getFullYear();
+    return t(sameYear ? 'entryDate.dayFormat' : 'entryDate.dayFormatYear', {
+      weekday: t(`entryDate.wd.${parsed.getDay()}` as MessageKey),
+      day: parsed.getDate(),
+      month: t(`entryDate.mon.${parsed.getMonth()}` as MessageKey),
+      year: parsed.getFullYear(),
+    });
+  }
+  return date;
+}
+
 /** One compact "Ngày" row: readable value, a yesterday chip, and native pickers kept out of sight. */
 export function EntryDateRow({ date, time, onChange, showTime = true, now }: EntryDateRowProps): JSX.Element {
   const t = useT();
@@ -92,19 +117,7 @@ export function EntryDateRow({ date, time, onChange, showTime = true, now }: Ent
   const today = todayLocal(current);
   const yesterday = shiftDay(current, -1);
 
-  const parsed = parseDay(date);
-  let dayText: string;
-  if (date === today) dayText = t('entryDate.today');
-  else if (date === yesterday) dayText = t('entryDate.yesterday');
-  else if (parsed) {
-    const sameYear = parsed.getFullYear() === current.getFullYear();
-    dayText = t(sameYear ? 'entryDate.dayFormat' : 'entryDate.dayFormatYear', {
-      weekday: t(`entryDate.wd.${parsed.getDay()}` as MessageKey),
-      day: parsed.getDate(),
-      month: t(`entryDate.mon.${parsed.getMonth()}` as MessageKey),
-      year: parsed.getFullYear(),
-    });
-  } else dayText = date;
+  const dayText = formatEntryDayLabel(date, t, current);
 
   const shownTime = showTime && time ? time : null;
   const isYesterday = date === yesterday;

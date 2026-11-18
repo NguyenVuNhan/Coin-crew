@@ -1358,6 +1358,8 @@ export const en = {
   'personalEntry.date': 'Date',
   'personalEntry.note': 'Note',
   'personalEntry.notePlaceholder': 'Add a note',
+  'personalEntry.noNote': 'No note',
+  'personalEntry.addDetails': 'Add details',
   'personalEntry.moreDetails': 'More details',
   'personalEntry.time': 'Time',
   'personalEntry.tags': 'Tags',

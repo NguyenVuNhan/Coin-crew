@@ -1359,6 +1359,8 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.date': 'Ngày', // REVIEW
   'personalEntry.note': 'Ghi chú', // REVIEW
   'personalEntry.notePlaceholder': 'Thêm ghi chú', // REVIEW
+  'personalEntry.noNote': 'Không ghi chú', // REVIEW
+  'personalEntry.addDetails': 'Thêm chi tiết', // REVIEW
   'personalEntry.moreDetails': 'Thêm chi tiết', // REVIEW
   'personalEntry.time': 'Giờ', // REVIEW
   'personalEntry.tags': 'Thẻ', // REVIEW

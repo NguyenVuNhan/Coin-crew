@@ -54,7 +54,7 @@ import { AmountField, evaluateAmountExpression, formatKeypadValue } from '../com
 import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { categoryIconName } from '../components/categoryIcon';
-import { EntryDateRow } from '../components/EntryDateRow';
+import { EntryDateRow, formatEntryDayLabel } from '../components/EntryDateRow';
 import { useEntryFold } from '../components/entryFold';
 import { FoldLine } from '../components/FoldLine';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
@@ -66,6 +66,30 @@ import { QuickExpenseEmbed } from './ExpenseForm';
 
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
+
+/** Formats the one-line summary shown on the folded details row. */
+export function formatDetailsFoldSummary({
+  date,
+  walletName,
+  note,
+  includeWallet,
+  translate,
+}: {
+  date: string;
+  walletName?: string | null;
+  note: string;
+  includeWallet: boolean;
+  translate: ReturnType<typeof useT>;
+}): string {
+  const dayLabel = formatEntryDayLabel(date, translate);
+  const trimmedNote = note.trim();
+  const noteLabel = trimmedNote
+    ? trimmedNote.length > 24
+      ? `${trimmedNote.slice(0, 24)}…`
+      : trimmedNote
+    : translate('personalEntry.noNote');
+  return [dayLabel, includeWallet ? walletName : null, noteLabel].filter(Boolean).join(' · ');
+}
 
 function parseInitialType(
   rawType: string | null,
@@ -1497,188 +1521,240 @@ export function EntryPage(): JSX.Element {
               </FoldLine>
             ) : null}
 
-            {/* Compact rows */}
-            <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
-              <button
-                type="button"
-                data-testid="entry-wallet-row"
-                onClick={() => setWalletSheetTarget('single')}
-                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
-              >
-                <span className="text-sm font-medium text-muted-foreground">
-                  {isTransferMode
-                    ? entryType === 'expense'
-                      ? t('personalEntry.fromWallet')
-                      : t('personalEntry.toWallet')
-                    : t('personalEntry.wallet')}
-                </span>
-                <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                  <span>{selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}</span>
-                  <Icon name="chevronRight" size={18} className="text-muted-foreground" />
-                </span>
-              </button>
-
-              {isTransferMode && (
-                <button
-                  type="button"
-                  data-testid={entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'}
-                  onClick={() => setWalletSheetTarget('other')}
-                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
-                >
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {entryType === 'expense'
-                      ? t('personalEntry.toWallet')
-                      : t('personalEntry.fromWallet')}
-                  </span>
-                  <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                    <span>{otherWallet ? `${otherWallet.name} (${otherWallet.currency})` : '—'}</span>
-                    <Icon name="chevronRight" size={18} className="text-muted-foreground" />
-                  </span>
-                </button>
-              )}
-
-              {isTradeMode && (
-                <>
+            {/* Compact rows and details fold */}
+            {(isMousePointer || (!fold.isOpen('amount') && !fold.isOpen('category'))) &&
+              (() => {
+                const walletRow = (
                   <button
                     type="button"
-                    ref={assetRowRef}
-                    data-testid="entry-asset-row"
-                    onClick={() => setAssetPickerOpen(true)}
+                    data-testid="entry-wallet-row"
+                    onClick={() => setWalletSheetTarget('single')}
                     className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
                   >
                     <span className="text-sm font-medium text-muted-foreground">
-                      {t('personalEntry.asset')}
+                      {isTransferMode
+                        ? entryType === 'expense'
+                          ? t('personalEntry.fromWallet')
+                          : t('personalEntry.toWallet')
+                        : t('personalEntry.wallet')}
                     </span>
                     <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                      <span className={!selectedAsset ? 'text-muted-foreground' : undefined}>
-                        {selectedAsset ? selectedAsset.name : t('personalEntry.pickAsset')}
+                      <span>
+                        {selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}
                       </span>
                       <Icon name="chevronRight" size={18} className="text-muted-foreground" />
                     </span>
                   </button>
+                );
 
-                  <div className="w-full px-4 py-2 flex flex-col gap-1">
-                    <div className="min-h-11 flex items-center justify-between gap-3">
-                      <Label
-                        htmlFor="entry-quantity-input"
-                        className="text-sm font-medium text-muted-foreground shrink-0"
-                      >
-                        {t('personalEntry.quantity')}
-                      </Label>
-                      <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-                        <Input
-                          id="entry-quantity-input"
-                          ref={quantityInputRef}
-                          type="text"
-                          inputMode={selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'}
-                          value={quantityText}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const next =
-                              selectedAsset && quantityInputDecimals(selectedAsset) > 0
-                                ? raw.replace(/\./g, ',')
-                                : raw;
-                            setQuantityText(next);
-                            setServerOversellError(null);
-                            setValidationError(null);
-                          }}
-                          placeholder="0"
-                          data-testid="entry-quantity"
-                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
-                        />
-                        {selectedAsset && (
-                          <span
-                            data-testid="entry-quantity-unit"
-                            className="text-sm font-medium text-muted-foreground shrink-0"
-                          >
-                            {isLotAsset(selectedAsset)
-                              ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
-                              : selectedAsset.unit}
-                          </span>
-                        )}
+                const otherWalletRow = isTransferMode && (
+                  <button
+                    type="button"
+                    data-testid={
+                      entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'
+                    }
+                    onClick={() => setWalletSheetTarget('other')}
+                    className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
+                  >
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {entryType === 'expense'
+                        ? t('personalEntry.toWallet')
+                        : t('personalEntry.fromWallet')}
+                    </span>
+                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                      <span>
+                        {otherWallet ? `${otherWallet.name} (${otherWallet.currency})` : '—'}
+                      </span>
+                      <Icon name="chevronRight" size={18} className="text-muted-foreground" />
+                    </span>
+                  </button>
+                );
+
+                const tradeRows = isTradeMode && (
+                  <>
+                    <button
+                      type="button"
+                      ref={assetRowRef}
+                      data-testid="entry-asset-row"
+                      onClick={() => setAssetPickerOpen(true)}
+                      className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
+                    >
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {t('personalEntry.asset')}
+                      </span>
+                      <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                        <span className={!selectedAsset ? 'text-muted-foreground' : undefined}>
+                          {selectedAsset ? selectedAsset.name : t('personalEntry.pickAsset')}
+                        </span>
+                        <Icon name="chevronRight" size={18} className="text-muted-foreground" />
+                      </span>
+                    </button>
+
+                    <div className="w-full px-4 py-2 flex flex-col gap-1">
+                      <div className="min-h-11 flex items-center justify-between gap-3">
+                        <Label
+                          htmlFor="entry-quantity-input"
+                          className="text-sm font-medium text-muted-foreground shrink-0"
+                        >
+                          {t('personalEntry.quantity')}
+                        </Label>
+                        <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                          <Input
+                            id="entry-quantity-input"
+                            ref={quantityInputRef}
+                            type="text"
+                            inputMode={
+                              selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'
+                            }
+                            value={quantityText}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const next =
+                                selectedAsset && quantityInputDecimals(selectedAsset) > 0
+                                  ? raw.replace(/\./g, ',')
+                                  : raw;
+                              setQuantityText(next);
+                              setServerOversellError(null);
+                              setValidationError(null);
+                            }}
+                            placeholder="0"
+                            data-testid="entry-quantity"
+                            className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
+                          />
+                          {selectedAsset && (
+                            <span
+                              data-testid="entry-quantity-unit"
+                              className="text-sm font-medium text-muted-foreground shrink-0"
+                            >
+                              {isLotAsset(selectedAsset)
+                                ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
+                                : selectedAsset.unit}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {selectedAsset &&
-                      isLotAsset(selectedAsset) &&
-                      selectedAsset.decimals > 0 &&
-                      parsedQuantity !== null && (
+                      {selectedAsset &&
+                        isLotAsset(selectedAsset) &&
+                        selectedAsset.decimals > 0 &&
+                        parsedQuantity !== null && (
+                          <p
+                            data-testid="entry-quantity-total"
+                            className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                          >
+                            = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                          </p>
+                        )}
+                      {entryType === 'income' && selectedAsset && heldQuantity !== null && (
                         <p
-                          data-testid="entry-quantity-total"
+                          data-testid="entry-held"
                           className="m-0 text-xs text-muted-foreground text-right tabular-nums"
                         >
-                          = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                          {t('personalEntry.heldQuantity', {
+                            qty: formatQuantity(heldQuantity, selectedAsset.decimals),
+                            unit: selectedAsset.unit || selectedAsset.name,
+                          })}
                         </p>
                       )}
-                    {entryType === 'income' && selectedAsset && heldQuantity !== null && (
-                      <p
-                        data-testid="entry-held"
-                        className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                      {showOversellError && (
+                        <div data-testid="entry-quantity-error">
+                          <InlineError
+                            error={
+                              isClientOversell
+                                ? ownError(t('personalEntry.oversellError'))
+                                : serverOversellError
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+
+                if (!fold.isOpen('details')) {
+                  return (
+                    <>
+                      {(isTransferMode || isTradeMode) && (
+                        <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                          {isTransferMode && (
+                            <>
+                              {walletRow}
+                              {otherWalletRow}
+                            </>
+                          )}
+                          {tradeRows}
+                        </div>
+                      )}
+                      <FoldLine
+                        testId="entry-fold-details"
+                        label={t('personalEntry.addDetails')}
+                        onOpen={() => fold.open('details')}
                       >
-                        {t('personalEntry.heldQuantity', {
-                          qty: formatQuantity(heldQuantity, selectedAsset.decimals),
-                          unit: selectedAsset.unit || selectedAsset.name,
+                        {formatDetailsFoldSummary({
+                          date: dateTime.split('T')[0] ?? '',
+                          walletName: selectedWallet?.name,
+                          note,
+                          includeWallet: !isTransferMode,
+                          translate: t,
                         })}
-                      </p>
-                    )}
-                    {showOversellError && (
-                      <div data-testid="entry-quantity-error">
-                        <InlineError
-                          error={
-                            isClientOversell
-                              ? ownError(t('personalEntry.oversellError'))
-                              : serverOversellError
-                          }
+                      </FoldLine>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                      {walletRow}
+                      {otherWalletRow}
+                      {tradeRows}
+
+                      <EntryDateRow
+                        date={dateTime.split('T')[0] ?? ''}
+                        time={dateTime.split('T')[1]?.slice(0, 5) || null}
+                        onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
+                      />
+
+                      <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-muted-foreground shrink-0">
+                          {t('personalEntry.note')}
+                        </span>
+                        <Input
+                          type="text"
+                          maxLength={200}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          placeholder={t('personalEntry.notePlaceholder')}
+                          data-testid="entry-note-input"
+                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
                         />
                       </div>
+
+                      {isTransferMode && excludeRow}
+                    </div>
+
+                    {/* More details toggle (not for transfers or trades) */}
+                    {!isTransferMode && !isTradeMode && (
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          data-testid="entry-more-details-toggle"
+                          onClick={() => setShowMore((prev) => !prev)}
+                          className="min-h-11 px-1 flex items-center justify-between text-sm font-medium text-primary bg-transparent border-0 cursor-pointer"
+                        >
+                          <span>{t('personalEntry.moreDetails')}</span>
+                          <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={18} />
+                        </button>
+
+                        {showMore && (
+                          <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                            {excludeRow}
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </div>
-                </>
-              )}
-
-              <EntryDateRow
-                date={dateTime.split('T')[0] ?? ''}
-                time={dateTime.split('T')[1]?.slice(0, 5) || null}
-                onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
-              />
-
-              <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-                <span className="text-sm font-medium text-muted-foreground shrink-0">
-                  {t('personalEntry.note')}
-                </span>
-                <Input
-                  type="text"
-                  maxLength={200}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder={t('personalEntry.notePlaceholder')}
-                  data-testid="entry-note-input"
-                  className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
-                />
-              </div>
-
-              {isTransferMode && excludeRow}
-            </div>
-
-            {/* More details toggle (not for transfers or trades) */}
-            {!isTransferMode && !isTradeMode && (
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  data-testid="entry-more-details-toggle"
-                  onClick={() => setShowMore((prev) => !prev)}
-                  className="min-h-11 px-1 flex items-center justify-between text-sm font-medium text-primary bg-transparent border-0 cursor-pointer"
-                >
-                  <span>{t('personalEntry.moreDetails')}</span>
-                  <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={18} />
-                </button>
-
-                {showMore && (
-                  <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
-                    {excludeRow}
-                  </div>
-                )}
-              </div>
-            )}
+                  </>
+                );
+              })()}
           </>
         )}
       </main>
