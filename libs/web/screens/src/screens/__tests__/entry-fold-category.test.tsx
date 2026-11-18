@@ -365,4 +365,41 @@ describe('EntryPage — category folding on phones (Task 3)', () => {
     const tile = await screen.findByTestId('category-tile-cat-food');
     expect(document.activeElement).toBe(tile);
   });
+
+  it('folds open amount and focuses entry-fold-category when tapping Ăn uống after Escape', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    for (const ch of '120000') {
+      await user.click(screen.getByTestId(`key-${ch}`));
+    }
+    await user.keyboard('{Escape}');
+
+    await user.click(await screen.findByTestId('category-tile-cat-food'));
+
+    const foldedAmount = await screen.findByTestId('entry-fold-amount');
+    expect(foldedAmount).toHaveTextContent('120.000₫');
+    const foldedCategory = await screen.findByTestId('entry-fold-category');
+    expect(foldedCategory).toHaveTextContent('Ăn uống');
+    expect(document.activeElement).toBe(foldedCategory);
+  });
+
+  it('folds open amount and shows entry-asset-row when tapping "Mua tài sản" after Escape', async () => {
+    const user = userEvent.setup();
+    mockEntryApi([binanceWallet]);
+
+    renderEntryPage('/entries/new?type=expense&wallet=w-inv');
+    await screen.findByTestId('amount-keypad');
+    for (const ch of '120000') {
+      await user.click(screen.getByTestId(`key-${ch}`));
+    }
+    await user.keyboard('{Escape}');
+
+    await user.click(await screen.findByTestId('category-tile-buy'));
+
+    expect(await screen.findByTestId('entry-fold-amount')).toBeInTheDocument();
+    expect(await screen.findByTestId('entry-asset-row')).toBeVisible();
+  });
 });

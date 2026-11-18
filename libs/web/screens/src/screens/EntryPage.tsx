@@ -766,6 +766,25 @@ export function EntryPage(): JSX.Element {
     goBack();
   };
 
+  const isWaitingForSecondary = () =>
+    isTransferMode &&
+    isDiffCurrencyTransfer &&
+    activeTransferField === 'primary' &&
+    (secondaryMinor === null || secondaryMinor <= 0);
+
+  const foldOpenAmountIfValid = () => {
+    if (
+      !isMousePointer &&
+      fold.isOpen('amount') &&
+      activeMinor !== null &&
+      activeMinor > 0 &&
+      !isWaitingForSecondary()
+    ) {
+      fold.finish('amount');
+      setKeypadOpen(false);
+    }
+  };
+
   const handleSelectTransfer = () => {
     if (isEdit && isTradeMode) return;
     if (!isMousePointer) pendingFoldFocusRef.current = 'fold-category';
@@ -779,6 +798,7 @@ export function EntryPage(): JSX.Element {
       if (!excludeTouched) {
         setExcludeFromReports(true);
       }
+      foldOpenAmountIfValid();
       fold.finish('category');
     });
   };
@@ -797,6 +817,7 @@ export function EntryPage(): JSX.Element {
       if (!excludeTouched) {
         setExcludeFromReports(false);
       }
+      foldOpenAmountIfValid();
       fold.finish('category');
     });
   };
@@ -811,6 +832,7 @@ export function EntryPage(): JSX.Element {
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
+      foldOpenAmountIfValid();
       fold.finish('category');
     });
   };
@@ -863,11 +885,7 @@ export function EntryPage(): JSX.Element {
   };
 
   const finishAmountOrClose = (minor: number | null, moveFocus: boolean) => {
-    const waitingForSecondary =
-      isTransferMode &&
-      isDiffCurrencyTransfer &&
-      activeTransferField === 'primary' &&
-      (secondaryMinor === null || secondaryMinor <= 0);
+    const waitingForSecondary = isWaitingForSecondary();
     const willFold = minor !== null && minor > 0 && !waitingForSecondary;
     if (moveFocus) {
       if (willFold || waitingForSecondary) {
@@ -897,12 +915,7 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleKeypadEscape = () => {
-    const waitingForSecondary =
-      isTransferMode &&
-      isDiffCurrencyTransfer &&
-      activeTransferField === 'primary' &&
-      (secondaryMinor === null || secondaryMinor <= 0);
-    const hasValidAmount = activeMinor !== null && activeMinor > 0 && !waitingForSecondary;
+    const hasValidAmount = activeMinor !== null && activeMinor > 0 && !isWaitingForSecondary();
     runTransition(() => {
       if (hasValidAmount) {
         fold.open('category');
