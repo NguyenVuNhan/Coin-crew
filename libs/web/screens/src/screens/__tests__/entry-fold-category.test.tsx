@@ -315,4 +315,23 @@ describe('EntryPage — category folding on phones (Task 3)', () => {
     expect(screen.queryByTestId('category-grid')).toBeNull();
     expect(screen.getByTestId('entry-fold-details')).toBeInTheDocument();
   });
+
+  it('keeps the transfer choice folded when reopening amount and pressing Xong', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await enterAmountAndFold(user, '50000');
+
+    await user.click(screen.getByTestId('category-tile-transfer'));
+    expect(await screen.findByTestId('entry-fold-category')).toHaveTextContent('Chuyển sang ví');
+
+    await user.click(screen.getByTestId('entry-fold-amount'));
+    await screen.findByTestId('amount-keypad');
+    await user.click(screen.getByTestId('key-done'));
+
+    expect(await screen.findByTestId('entry-fold-category')).toHaveTextContent('Chuyển sang ví');
+    expect(screen.queryByTestId('category-grid')).toBeNull();
+    expect(screen.getByTestId('entry-wallet-row')).toBeInTheDocument();
+  });
 });

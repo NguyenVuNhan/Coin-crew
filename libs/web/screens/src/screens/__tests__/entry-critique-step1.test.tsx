@@ -168,6 +168,8 @@ describe('EntryPage critique step 1 (save safety)', () => {
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
     await user.click(screen.getByTestId('entry-fold-amount'));
 
+    // On phones the 1..999 suggestions live in the keypad once the amount folds.
+    expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
     const chips = screen.getAllByTestId('amount-suggestion');
     expect(chips.map((c) => c.textContent)).toEqual(['85.000₫', '850.000₫', '8.500.000₫']);
 

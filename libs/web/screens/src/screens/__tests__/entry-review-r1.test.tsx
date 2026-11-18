@@ -341,7 +341,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     renderEntryPage('/entries/new?type=expense');
     await finishAmount(user, '50000');
 
-    // Tapping a category tile closes the keypad and reveals the docked BottomBar Lưu button
+    // Xong already folded the amount; tapping a category tile folds the grid and leaves the docked BottomBar Lưu button ready
     await user.click(screen.getByTestId('category-tile-cat-food'));
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
 
