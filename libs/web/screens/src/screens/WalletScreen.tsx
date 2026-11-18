@@ -1,6 +1,5 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { formatMoney } from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
@@ -16,20 +15,17 @@ import {
 } from '@cc/web-data-access/personalMoney';
 import type { RowAction } from '@cc/web-ui/components/ActionRow';
 import { ActionSheet } from '@cc/web-ui/components/ActionSheet';
-import { Amount } from '@cc/web-ui/components/Amount';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
-import { Pill } from '@cc/web-ui/components/Pill';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
-import { Card } from '@cc/web-ui/components/ui/card';
-import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { TransactionRow } from '../components/TransactionRow';
-import { WalletForm, walletIconClass } from '../components/WalletForm';
+import { WalletForm } from '../components/WalletForm';
 import { HoldingsPie } from '../components/HoldingsPie';
+import { WalletSummary } from '../components/WalletSummary';
 
 export function WalletScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -146,49 +142,7 @@ export function WalletScreen(): JSX.Element {
           <EmptyState icon="wallet" title={t('wallet.notFound')} body="" />
         ) : (
           <>
-            <Card
-              data-testid="wallet-summary"
-              className="fsl-wallet__summary rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-2 w-full text-card-foreground"
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    'size-10 rounded-xl grid place-items-center shrink-0',
-                    walletIconClass(wallet.icon),
-                  )}
-                >
-                  <Icon name="wallet" size={18} />
-                </div>
-                {wallet.isDefault && <Pill tone="neutral">{t('wallets.defaultBadge')}</Pill>}
-                {wallet.archived && <Pill tone="neutral">{t('wallets.archived')}</Pill>}
-              </div>
-
-              <div className="flex flex-col items-start gap-0.5">
-                <Amount value={wallet.balance} currency={wallet.currency} tone="neutral" size="xl" />
-
-                {isInvestment && holdings.length > 0 ? (
-                  <span data-testid="wallet-cost-basis" className="text-sm text-muted-foreground">
-                    {t('wallet.cashAndTotal', {
-                      cash: formatMoney(wallet.balance, wallet.currency),
-                      total:
-                        wallet.vndValue !== null
-                          ? wallet.currency === 'VND'
-                            ? formatMoney(wallet.vndValue, 'VND')
-                            : `≈ ${formatMoney(wallet.vndValue, 'VND')}`
-                          : t('wallets.noRate'),
-                    })}
-                  </span>
-                ) : (
-                  wallet.currency !== 'VND' && (
-                    <span data-testid="wallet-cost-basis" className="text-sm text-muted-foreground">
-                      {wallet.vndValue !== null
-                        ? t('wallet.costBasis', { amount: formatMoney(wallet.vndValue, 'VND') })
-                        : t('wallets.noRate')}
-                    </span>
-                  )
-                )}
-              </div>
-            </Card>
+            <WalletSummary wallet={wallet} withHoldings={Boolean(isInvestment && holdings.length > 0)} />
 
             {mutationError && <InlineError error={mutationError} />}
 

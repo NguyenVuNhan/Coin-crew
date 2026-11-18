@@ -162,9 +162,10 @@ describe('Critique P1 fixes', () => {
     act(() => setLang('vi'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('wallet-cost-basis')).toHaveTextContent(
-        'Tiền mặt 3.000.000₫ · Tổng gồm tài sản 15.000.000₫',
-      );
+      expect(screen.getByTestId('wallet-cost-basis')).toHaveTextContent('15.000.000₫');
+      const summary = screen.getByTestId('wallet-summary');
+      expect(summary).toHaveTextContent('Tiền mặt3.000.000₫');
+      expect(summary).toHaveTextContent('Tổng gồm tài sản15.000.000₫');
     });
   });
 });

@@ -1308,7 +1308,6 @@ export const vi: Record<MessageKey, string> = {
   'wallets.totalWithAssets': 'Tổng gồm tài sản ≈ {total}', // REVIEW
   'wallet.notFound': 'Không tìm thấy ví', // REVIEW
   'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
-  'wallet.cashAndTotal': 'Tiền mặt {cash} · Tổng gồm tài sản {total}', // REVIEW
   'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
   'wallet.seeAll': 'Xem tất cả', // REVIEW
   'wallet.noEntries': 'Chưa có giao dịch trong tháng này', // REVIEW
@@ -1587,4 +1586,6 @@ export const vi: Record<MessageKey, string> = {
   'wallet.holdingsTotal': 'Tổng vốn · {count} tài sản', // REVIEW
   'wallet.holdingsTotalWithCash': 'Tổng · {count} tài sản + tiền mặt', // REVIEW
   'wallet.cashRow': 'Tiền mặt', // REVIEW
+  'wallet.balanceLabel': 'Số dư', // REVIEW
+  'wallet.totalInclAssets': 'Tổng gồm tài sản', // REVIEW
 };

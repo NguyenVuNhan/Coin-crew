@@ -299,8 +299,8 @@ describe('I3: WalletScreen totalCostBasis when investment wallet has holdings', 
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('wallet-cost-basis')).toHaveTextContent('Tiền mặt');
-      expect(screen.getByTestId('wallet-cost-basis')).toHaveTextContent('Tổng gồm tài sản ≈');
+      expect(screen.getByTestId('wallet-summary')).toHaveTextContent('Tiền mặt');
+      expect(screen.getByTestId('wallet-summary')).toHaveTextContent('Tổng gồm tài sản≈');
     });
     unmount();
 

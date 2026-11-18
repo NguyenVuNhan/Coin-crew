@@ -1307,7 +1307,6 @@ export const en = {
   'wallets.totalWithAssets': 'Total incl. assets ≈ {total}',
   'wallet.notFound': 'Wallet not found',
   'wallet.costBasis': 'cost ≈ {amount}',
-  'wallet.cashAndTotal': 'Cash {cash} · Total incl. assets {total}',
   'wallet.entriesThisMonth': 'This month’s entries',
   'wallet.seeAll': 'See all',
   'wallet.noEntries': 'No entries this month',
@@ -1586,6 +1585,8 @@ export const en = {
   'wallet.holdingsTotal': 'Total cost · {count} assets',
   'wallet.holdingsTotalWithCash': 'Total · {count} assets + cash',
   'wallet.cashRow': 'Cash',
+  'wallet.balanceLabel': 'Balance',
+  'wallet.totalInclAssets': 'Total incl. assets',
 } as const;
 
 export type MessageKey = keyof typeof en;
