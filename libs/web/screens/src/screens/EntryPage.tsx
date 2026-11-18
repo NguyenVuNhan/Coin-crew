@@ -526,6 +526,12 @@ export function EntryPage(): JSX.Element {
       ? Boolean(fromWallet?.archived || toWallet?.archived)
       : Boolean(selectedWallet?.archived));
 
+  useEffect(() => {
+    if (hasArchivedWallet) {
+      fold.open('details');
+    }
+  }, [hasArchivedWallet, fold.open]);
+
   const isDiffCurrencyTransfer =
     isTransferMode &&
     Boolean(fromWallet && toWallet && fromWallet.currency !== toWallet.currency);

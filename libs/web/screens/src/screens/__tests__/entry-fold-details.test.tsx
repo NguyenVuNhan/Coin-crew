@@ -280,4 +280,37 @@ describe('EntryPage — details folding on phones (Task 4)', () => {
     expect(screen.queryByTestId('entry-date-row')).toBeNull();
     expect(screen.queryByTestId('entry-note-input')).toBeNull();
   });
+
+  it('opens details when hasArchivedWallet is true so entry-wallet-row is visible and entry-fold-details is absent', async () => {
+    const archivedCash: WalletDetailView = {
+      ...vndCash,
+      archived: true,
+    };
+    mockEntryApi([archivedCash, bankWallet]);
+    const today = todayLocal(new Date());
+    const archivedEntry: EntryView = {
+      id: 'e-arch-1',
+      type: 'expense',
+      amount: 50_000,
+      currency: 'VND',
+      walletId: archivedCash.id,
+      categoryId: foodCat.id,
+      date: today,
+      time: '09:00',
+      note: '',
+      tags: [],
+      excludeFromReports: false,
+      transferId: null,
+      counterpartWalletId: null,
+      source: 'manual',
+      beforeStart: false,
+      createdAt: '2026-11-10T09:00:00Z',
+    };
+
+    renderEntryPage('/entries/e-arch-1/edit', { entry: archivedEntry });
+
+    expect(await screen.findByTestId('entry-wallet-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('entry-fold-details')).toBeNull();
+    expect(screen.getByText('Ví này đã lưu trữ. Khôi phục ví để sửa giao dịch.')).toBeInTheDocument();
+  });
 });
