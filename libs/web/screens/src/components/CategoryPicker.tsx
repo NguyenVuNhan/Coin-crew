@@ -17,6 +17,7 @@ export interface CategoryPickerProps {
   tradeSelected?: boolean;
   onTradeSelect?: () => void;
   showTrade?: boolean;
+  disableNonTrade?: boolean;
   error?: string | null;
   highlightError?: boolean;
   gridRef?: RefObject<HTMLDivElement | null>;
@@ -47,6 +48,7 @@ export function CategoryPicker({
   tradeSelected = false,
   onTradeSelect,
   showTrade = false,
+  disableNonTrade = false,
   error,
   highlightError = false,
   gridRef,
@@ -60,6 +62,8 @@ export function CategoryPicker({
     [categories, type],
   );
 
+  const maxTiles = showTrade && onTradeSelect ? 5 : 6;
+
   const tiles = useMemo(() => {
     const byId = new Map(visible.map((c) => [c.id, c]));
     const picked: CategoryView[] = [];
@@ -68,7 +72,7 @@ export function CategoryPicker({
     const blocked = walletKind === 'everyday' ? investingIds(categories) : new Set<string>();
 
     for (const id of recentIds) {
-      if (picked.length >= 6) break;
+      if (picked.length >= maxTiles) break;
       const cat = byId.get(id);
       if (cat && !seen.has(cat.id) && !blocked.has(cat.id)) {
         seen.add(cat.id);
@@ -77,7 +81,7 @@ export function CategoryPicker({
     }
 
     for (const cat of visible) {
-      if (picked.length >= 6) break;
+      if (picked.length >= maxTiles) break;
       if (!seen.has(cat.id) && !blocked.has(cat.id)) {
         seen.add(cat.id);
         picked.push(cat);
@@ -87,8 +91,8 @@ export function CategoryPicker({
     if (value && !seen.has(value)) {
       const selectedCat = byId.get(value) ?? categories.find((c) => c.id === value && c.type === type);
       if (selectedCat) {
-        if (picked.length >= 6) {
-          picked[5] = selectedCat;
+        if (picked.length >= maxTiles) {
+          picked[maxTiles - 1] = selectedCat;
         } else {
           picked.push(selectedCat);
         }
@@ -96,7 +100,7 @@ export function CategoryPicker({
     }
 
     return picked;
-  }, [visible, recentIds, value, categories, type, walletKind]);
+  }, [visible, recentIds, value, categories, type, walletKind, maxTiles]);
 
   const tree = useMemo(() => {
     const parents = visible
@@ -140,8 +144,13 @@ export function CategoryPicker({
             type="button"
             data-testid="category-tile-transfer"
             aria-pressed={transferSelected}
-            onClick={onSelectTransfer}
-            className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-disabled={disableNonTrade || undefined}
+            disabled={disableNonTrade}
+            onClick={disableNonTrade ? undefined : onSelectTransfer}
+            className={cn(
+              'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              disableNonTrade && 'opacity-50 cursor-not-allowed',
+            )}
           >
             <span
               className={cn(
@@ -190,8 +199,13 @@ export function CategoryPicker({
               type="button"
               data-testid={`category-tile-${cat.id}`}
               aria-pressed={selected}
-              onClick={() => onChange(cat.id)}
-              className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-disabled={disableNonTrade || undefined}
+              disabled={disableNonTrade}
+              onClick={disableNonTrade ? undefined : () => onChange(cat.id)}
+              className={cn(
+                'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                disableNonTrade && 'opacity-50 cursor-not-allowed',
+              )}
             >
               <span
                 className={cn(
@@ -212,8 +226,13 @@ export function CategoryPicker({
           key="more"
           type="button"
           data-testid="category-more"
-          onClick={() => setSheetOpen(true)}
-          className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-disabled={disableNonTrade || undefined}
+          disabled={disableNonTrade}
+          onClick={disableNonTrade ? undefined : () => setSheetOpen(true)}
+          className={cn(
+            'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            disableNonTrade && 'opacity-50 cursor-not-allowed',
+          )}
         >
           <span className="size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center">
             <Icon name="ellipsis" size={20} />

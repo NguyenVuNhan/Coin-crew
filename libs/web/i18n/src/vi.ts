@@ -19,6 +19,7 @@ export const vi: Record<MessageKey, string> = {
   'error.dailyLimit': 'CoinCrew đang bảo trì. Hãy thử lại sau 07:00.',
   'error.linkDead': 'Link này không còn dùng được. Hãy xin trưởng nhóm link mới.',
   'error.rateLimited': 'Có quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.',
+  'error.oversell': 'Lần bán sau đó sẽ vượt số đang có ({date})', // REVIEW
   'error.validation': 'Có chỗ chưa đúng. Hãy kiểm tra rồi thử lại.', // REVIEW
   'validation.signInExpired': 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.', // REVIEW
   'validation.nameLength': 'Hãy nhập tên, tối đa 40 ký tự.', // REVIEW
@@ -1307,6 +1308,7 @@ export const vi: Record<MessageKey, string> = {
   'wallet.notFound': 'Không tìm thấy ví', // REVIEW
   'wallet.startDate': 'Bắt đầu từ {date}', // REVIEW
   'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
+  'wallet.totalCostBasis': 'tổng giá vốn (gồm tài sản) ≈ {amount}', // REVIEW
   'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
   'wallet.seeAll': 'Xem tất cả', // REVIEW
   'wallet.noEntries': 'Chưa có giao dịch trong tháng này', // REVIEW

@@ -206,6 +206,9 @@ function MonthBlock({
       ) {
         key = 'transfer';
         title = t('personalEntry.transfer');
+      } else if (row.entry.type === 'buy' || row.entry.type === 'sell') {
+        key = 'trade';
+        title = t('transactions.typeTrade');
       } else {
         key = `cat:${row.entry.categoryId ?? 'other'}`;
         title =

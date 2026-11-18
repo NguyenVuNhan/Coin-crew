@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { personalAssets, personalTransactions } from '@cc/api-db/schema';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
-import { ApiError } from '@cc/api-util/errors';
+import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { MAX_ASSET_DECIMALS, type AssetView, type AssetsResponse } from '@cc/core';
 import { name1to40, parseJson } from './validate';
@@ -50,25 +50,34 @@ function toAssetView(row: {
   };
 }
 
+function normalizeAssetNameKey(name: string): string {
+  return name.trim().normalize('NFC').toLocaleLowerCase('vi');
+}
+
+function duplicateAssetNameError(): ApiError {
+  return new ApiError('VALIDATION', 422, 'Asset name already exists.', {
+    details: { field: 'name' },
+  });
+}
+
 async function assertUniqueAssetName(
   db: ReturnType<typeof getDb>,
   userId: string,
   name: string,
   excludeId?: string,
 ): Promise<void> {
-  const cond = excludeId
-    ? and(
-        eq(personalAssets.userId, userId),
-        sql`lower(${personalAssets.name}) = ${name.toLowerCase()}`,
-        ne(personalAssets.id, excludeId),
-      )
-    : and(eq(personalAssets.userId, userId), sql`lower(${personalAssets.name}) = ${name.toLowerCase()}`);
+  const target = normalizeAssetNameKey(name);
+  const rows = await db
+    .select({ id: personalAssets.id, name: personalAssets.name })
+    .from(personalAssets)
+    .where(eq(personalAssets.userId, userId))
+    .all();
 
-  const dup = await db.select({ id: personalAssets.id }).from(personalAssets).where(cond).get();
+  const dup = rows.find(
+    (r) => r.id !== excludeId && normalizeAssetNameKey(r.name) === target,
+  );
   if (dup) {
-    throw new ApiError('VALIDATION', 422, 'Asset name already exists.', {
-      details: { field: 'name' },
-    });
+    throw duplicateAssetNameError();
   }
 }
 
@@ -134,18 +143,25 @@ export function assetRoutes(): Hono<AppBindings> {
     const id = newId();
     const now = nowIso();
 
-    await db.insert(personalAssets).values({
-      id,
-      userId: user.id,
-      name,
-      unit,
-      groupName,
-      decimals,
-      hidden: 0,
-      sortOrder,
-      createdAt: now,
-      updatedAt: now,
-    });
+    try {
+      await db.insert(personalAssets).values({
+        id,
+        userId: user.id,
+        name,
+        unit,
+        groupName,
+        decimals,
+        hidden: 0,
+        sortOrder,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } catch (err) {
+      if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
+        throw duplicateAssetNameError();
+      }
+      throw err;
+    }
 
     const asset: AssetView = {
       id,
@@ -197,7 +213,7 @@ export function assetRoutes(): Hono<AppBindings> {
 
     const entryCount = Number(existing.entryCount);
     const nextName = body.name !== undefined ? name1to40(body.name) : existing.name;
-    if (body.name !== undefined && nextName.toLowerCase() !== existing.name.toLowerCase()) {
+    if (body.name !== undefined && normalizeAssetNameKey(nextName) !== normalizeAssetNameKey(existing.name)) {
       await assertUniqueAssetName(db, user.id, nextName, id);
     }
 
@@ -225,17 +241,24 @@ export function assetRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    await db
-      .update(personalAssets)
-      .set({
-        name: nextName,
-        unit: nextUnit,
-        groupName: nextGroupName,
-        decimals: nextDecimals,
-        hidden: nextHidden ? 1 : 0,
-        updatedAt: now,
-      })
-      .where(and(eq(personalAssets.id, id), eq(personalAssets.userId, user.id)));
+    try {
+      await db
+        .update(personalAssets)
+        .set({
+          name: nextName,
+          unit: nextUnit,
+          groupName: nextGroupName,
+          decimals: nextDecimals,
+          hidden: nextHidden ? 1 : 0,
+          updatedAt: now,
+        })
+        .where(and(eq(personalAssets.id, id), eq(personalAssets.userId, user.id)));
+    } catch (err) {
+      if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
+        throw duplicateAssetNameError();
+      }
+      throw err;
+    }
 
     const asset: AssetView = {
       id: existing.id,

@@ -419,7 +419,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
       expect(postCalls).toHaveLength(1);
     });
     expect(await screen.findByTestId('entry-quantity-error')).toHaveTextContent(
-      'Vượt quá số đang có',
+      'Lần bán sau đó sẽ vượt số đang có (18/11/2026)',
     );
   });
 

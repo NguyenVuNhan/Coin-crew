@@ -231,7 +231,7 @@ export function EntryPage(): JSX.Element {
   const [pickedAsset, setPickedAsset] = useState<AssetView | null>(null);
   const [quantityText, setQuantityText] = useState('');
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
-  const [serverOversell, setServerOversell] = useState(false);
+  const [serverOversellError, setServerOversellError] = useState<unknown>(null);
   const [primaryExpr, setPrimaryExpr] = useState('');
   const [secondaryExpr, setSecondaryExpr] = useState('');
   const [activeTransferField, setActiveTransferField] = useState<'primary' | 'secondary'>('primary');
@@ -466,7 +466,7 @@ export function EntryPage(): JSX.Element {
     parsedQuantity !== null &&
     heldQuantity !== null &&
     parsedQuantity > heldQuantity;
-  const showOversellError = isClientOversell || serverOversell;
+  const showOversellError = isClientOversell || Boolean(serverOversellError);
 
   const fromWallet = isTransferMode
     ? entryType === 'expense'
@@ -611,7 +611,7 @@ export function EntryPage(): JSX.Element {
     setIsTradeMode(false);
     setActiveTransferField('primary');
     setCategoryId(null);
-    setServerOversell(false);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
     if (!excludeTouched) {
@@ -642,10 +642,11 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleSelectTransfer = () => {
+    if (isEdit && isTradeMode) return;
     setIsTransferMode(true);
     setIsTradeMode(false);
     setCategoryId(null);
-    setServerOversell(false);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
     if (!excludeTouched) {
@@ -654,11 +655,12 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleSelectCategory = (cid: string) => {
+    if (isEdit && isTradeMode) return;
     setIsTransferMode(false);
     setIsTradeMode(false);
     setActiveTransferField('primary');
     setCategoryId(cid);
-    setServerOversell(false);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
     if (!excludeTouched) {
@@ -671,7 +673,7 @@ export function EntryPage(): JSX.Element {
     setIsTransferMode(false);
     setActiveTransferField('primary');
     setCategoryId(null);
-    setServerOversell(false);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
   };
@@ -982,7 +984,7 @@ export function EntryPage(): JSX.Element {
             ? String((err as { code: unknown }).code)
             : undefined;
       if (code === 'OVERSELL') {
-        setServerOversell(true);
+        setServerOversellError(err);
       } else {
         setValidationError(err);
       }
@@ -1077,7 +1079,7 @@ export function EntryPage(): JSX.Element {
       if (pickedWallet && pickedWallet.kind !== 'investment') {
         setIsTradeMode(false);
       }
-      setServerOversell(false);
+      setServerOversellError(null);
       setWalletId(pickedId);
     } else if (walletSheetTarget === 'other') {
       if (pickedId === selectedWallet?.id) {
@@ -1377,7 +1379,8 @@ export function EntryPage(): JSX.Element {
               onSelectTransfer={handleSelectTransfer}
               tradeSelected={isTradeMode}
               onTradeSelect={handleSelectTrade}
-              showTrade={isInvestmentWallet}
+              showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
+              disableNonTrade={editLockedTrade}
               error={categoryError ? t('personalEntry.pickCategoryError') : null}
               highlightError={categoryRingActive}
               gridRef={categoryGridRef}
@@ -1459,8 +1462,13 @@ export function EntryPage(): JSX.Element {
                           inputMode="decimal"
                           value={quantityText}
                           onChange={(e) => {
-                            setQuantityText(e.target.value);
-                            setServerOversell(false);
+                            const raw = e.target.value;
+                            const next =
+                              selectedAsset && selectedAsset.decimals > 0
+                                ? raw.replace(/\./g, ',')
+                                : raw;
+                            setQuantityText(next);
+                            setServerOversellError(null);
                             setValidationError(null);
                           }}
                           placeholder="0"
@@ -1490,7 +1498,13 @@ export function EntryPage(): JSX.Element {
                     )}
                     {showOversellError && (
                       <div data-testid="entry-quantity-error">
-                        <InlineError error={ownError(t('personalEntry.oversellError'))} />
+                        <InlineError
+                          error={
+                            isClientOversell
+                              ? ownError(t('personalEntry.oversellError'))
+                              : serverOversellError
+                          }
+                        />
                       </div>
                     )}
                   </div>
@@ -1683,7 +1697,7 @@ export function EntryPage(): JSX.Element {
         onSelect={(asset) => {
           setAssetId(asset.id);
           setPickedAsset(asset);
-          setServerOversell(false);
+          setServerOversellError(null);
           setValidationError(null);
         }}
       />

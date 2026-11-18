@@ -116,7 +116,7 @@ export function AssetPicker({
             <div className="flex flex-col gap-3">
               {grouped.map(([groupName, items]) => (
                 <div key={groupName} className="flex flex-col">
-                  <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="px-2 py-1 text-sm font-semibold text-muted-foreground">
                     {groupName}
                   </div>
                   <div className="flex flex-col divide-y divide-border">

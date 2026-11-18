@@ -78,6 +78,7 @@ async function invalidateMoney(queryClient: QueryClient): Promise<void> {
     queryClient.invalidateQueries({ queryKey: WALLETS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_SUMMARY_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
   ]);
 }
 

@@ -169,7 +169,12 @@ export function WalletScreen(): JSX.Element {
                 {wallet.currency !== 'VND' && (
                   <span data-testid="wallet-cost-basis">
                     {wallet.vndValue !== null
-                      ? t('wallet.costBasis', { amount: formatMoney(wallet.vndValue, 'VND') })
+                      ? t(
+                          isInvestment && holdings.length > 0
+                            ? 'wallet.totalCostBasis'
+                            : 'wallet.costBasis',
+                          { amount: formatMoney(wallet.vndValue, 'VND') },
+                        )
                       : t('wallets.noRate')}
                   </span>
                 )}

@@ -14,6 +14,7 @@ export const en = {
   'error.dailyLimit': 'CoinCrew is down for maintenance. Try again after 07:00.',
   'error.linkDead': 'This link no longer works. Ask the organiser for a new one.', // SPEC
   'error.rateLimited': 'Too many items are waiting for approval. Ask a member to approve them first.',
+  'error.oversell': 'A later sale would exceed what you hold ({date})',
   // A VALIDATION error: the generic line, then one per reason (ValidationReason in @cc/core).
   'error.validation': "Something here isn't right. Check it and try again.",
   'validation.signInExpired': 'Sign-in took too long. Sign in again.',
@@ -1306,6 +1307,7 @@ export const en = {
   'wallet.notFound': 'Wallet not found',
   'wallet.startDate': 'From {date}',
   'wallet.costBasis': 'cost ≈ {amount}',
+  'wallet.totalCostBasis': 'total cost basis (incl. assets) ≈ {amount}',
   'wallet.entriesThisMonth': 'This month’s entries',
   'wallet.seeAll': 'See all',
   'wallet.noEntries': 'No entries this month',

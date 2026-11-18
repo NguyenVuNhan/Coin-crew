@@ -329,7 +329,7 @@ export interface VndTotal {
 }
 
 export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal {
-  const vndValues = walletVndValues(wallets, entries);
+  const { vndValues, holdingsByWallet } = replayWallets(wallets, entries);
   let totalVnd = 0;
   let approximate = false;
   const unratedWalletIds: string[] = [];
@@ -340,7 +340,8 @@ export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal 
     const bal = walletBalance(w, entries);
     currencyBalances.set(w.currency, (currencyBalances.get(w.currency) ?? 0) + bal);
 
-    if (w.currency !== 'VND' && bal !== 0) {
+    const hasHoldings = (holdingsByWallet.get(w.id)?.length ?? 0) > 0;
+    if (w.currency !== 'VND' && (bal !== 0 || hasHoldings)) {
       approximate = true;
     }
 
