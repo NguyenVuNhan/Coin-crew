@@ -437,7 +437,7 @@ export function AssetsScreen(): JSX.Element {
                     className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 text-left text-base text-foreground hover:bg-muted bg-transparent border-0 cursor-pointer disabled:opacity-50"
                   >
                     <span className="font-medium truncate">{target.name}</span>
-                    <span className="text-sm text-muted-foreground shrink-0">{target.unit}</span>
+                    <span className="text-sm text-muted-foreground shrink-0">{assetUnitText(target)}</span>
                   </button>
                 ))}
               </div>

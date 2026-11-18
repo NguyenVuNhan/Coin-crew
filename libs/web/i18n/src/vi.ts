@@ -1493,6 +1493,9 @@ export const vi: Record<MessageKey, string> = {
   'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
   'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW
   'categories.hideInstead': 'Ẩn nhóm, giữ lịch sử', // REVIEW
+  'categories.editAria': 'Sửa {name}', // REVIEW
+  'categories.hideAria': 'Ẩn {name}', // REVIEW
+  'categories.showAria': 'Hiện {name}', // REVIEW
   'tags.title': 'Thẻ', // REVIEW
   'tags.useCount': '{count} giao dịch', // REVIEW
   'tags.rename': 'Đổi tên', // REVIEW
