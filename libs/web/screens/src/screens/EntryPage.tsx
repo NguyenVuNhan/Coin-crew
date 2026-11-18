@@ -53,6 +53,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { AmountField, evaluateAmountExpression, formatKeypadValue } from '../components/AmountField';
 import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
+import { categoryIconName } from '../components/categoryIcon';
 import { EntryDateRow } from '../components/EntryDateRow';
 import { useEntryFold } from '../components/entryFold';
 import { FoldLine } from '../components/FoldLine';
@@ -284,6 +285,12 @@ export function EntryPage(): JSX.Element {
   const fold = useEntryFold({ enabled: !isMousePointer, isEdit });
   const effectiveKeypadOpen = !isMousePointer && keypadOpen;
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
+
+  useEffect(() => {
+    if (categoryRingActive) {
+      fold.open('category');
+    }
+  }, [categoryRingActive, fold.open]);
 
   useEffect(() => {
     return () => {
@@ -627,6 +634,9 @@ export function EntryPage(): JSX.Element {
     if (!excludeTouched) {
       setExcludeFromReports(false);
     }
+    if (!fold.isOpen('amount')) {
+      fold.open('category');
+    }
     if (!isEdit) {
       // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
       if (activeTab === 'loan-debt') {
@@ -662,6 +672,7 @@ export function EntryPage(): JSX.Element {
     if (!excludeTouched) {
       setExcludeFromReports(true);
     }
+    fold.finish('category');
   };
 
   const handleSelectCategory = (cid: string) => {
@@ -676,6 +687,7 @@ export function EntryPage(): JSX.Element {
     if (!excludeTouched) {
       setExcludeFromReports(false);
     }
+    fold.finish('category');
   };
 
   const handleSelectTrade = () => {
@@ -686,6 +698,7 @@ export function EntryPage(): JSX.Element {
     setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
+    fold.finish('category');
   };
 
   const handleFieldDone = (field: 'primary' | 'secondary') => {
@@ -1411,25 +1424,78 @@ export function EntryPage(): JSX.Element {
             )}
 
             {/* Category tiles (with fixed transfer and trade tiles) */}
-            {(fold.isOpen('category') || !fold.isOpen('amount')) && (
-              <CategoryPicker
-                type={entryType}
-                categories={categoriesQuery.data?.categories ?? []}
-                recentIds={categoriesQuery.data?.recentIds ?? []}
-                walletKind={selectedWallet?.kind}
-                value={categoryId}
-                onChange={handleSelectCategory}
-                transferSelected={isTransferMode}
-                onSelectTransfer={handleSelectTransfer}
-                tradeSelected={isTradeMode}
-                onTradeSelect={handleSelectTrade}
-                showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
-                disableNonTrade={editLockedTrade}
-                error={categoryError ? t('personalEntry.pickCategoryError') : null}
-                highlightError={categoryRingActive}
-                gridRef={categoryGridRef}
-              />
-            )}
+            {fold.isOpen('category') ? (
+              <div className="flex flex-col gap-2">
+                {!isMousePointer && (
+                  <p className="m-0 text-sm text-muted-foreground">
+                    {entryType === 'expense'
+                      ? t('personalEntry.categoryPromptExpense')
+                      : t('personalEntry.categoryPromptIncome')}
+                  </p>
+                )}
+                <CategoryPicker
+                  type={entryType}
+                  categories={categoriesQuery.data?.categories ?? []}
+                  recentIds={categoriesQuery.data?.recentIds ?? []}
+                  walletKind={selectedWallet?.kind}
+                  value={categoryId}
+                  onChange={handleSelectCategory}
+                  transferSelected={isTransferMode}
+                  onSelectTransfer={handleSelectTransfer}
+                  tradeSelected={isTradeMode}
+                  onTradeSelect={handleSelectTrade}
+                  showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
+                  disableNonTrade={editLockedTrade}
+                  error={categoryError ? t('personalEntry.pickCategoryError') : null}
+                  highlightError={categoryRingActive}
+                  gridRef={categoryGridRef}
+                />
+              </div>
+            ) : !fold.isOpen('amount') ? (
+              <FoldLine
+                testId="entry-fold-category"
+                label={t('personalEntry.categoryLine')}
+                onOpen={() => fold.open('category')}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  {isTransferMode ? (
+                    <>
+                      <Icon name="swap" size={18} className="text-muted-foreground shrink-0" />
+                      <span className="truncate">
+                        {entryType === 'expense'
+                          ? t('personalEntry.transferToWallet')
+                          : t('personalEntry.transferFromWallet')}
+                      </span>
+                    </>
+                  ) : isTradeMode ? (
+                    <>
+                      <Icon name="trending-up" size={18} className="text-muted-foreground shrink-0" />
+                      <span className="truncate">
+                        {entryType === 'expense'
+                          ? t('personalEntry.buyAsset')
+                          : t('personalEntry.sellAsset')}
+                      </span>
+                    </>
+                  ) : (
+                    (() => {
+                      const selectedCategory = (categoriesQuery.data?.categories ?? []).find(
+                        (c) => c.id === categoryId,
+                      );
+                      return (
+                        <>
+                          <Icon
+                            name={categoryIconName(selectedCategory?.icon, entryType)}
+                            size={18}
+                            className="text-muted-foreground shrink-0"
+                          />
+                          <span className="truncate">{selectedCategory?.name ?? ''}</span>
+                        </>
+                      );
+                    })()
+                  )}
+                </span>
+              </FoldLine>
+            ) : null}
 
             {/* Compact rows */}
             <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">

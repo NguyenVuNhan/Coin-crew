@@ -1368,6 +1368,9 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.moreCategories': 'Khác', // REVIEW
   'personalEntry.pickCategory': 'Tất cả danh mục', // REVIEW
   'personalEntry.pickCategoryError': 'Hãy chọn một danh mục.', // REVIEW
+  'personalEntry.categoryPromptExpense': 'Chi cho việc gì?', // REVIEW
+  'personalEntry.categoryPromptIncome': 'Thu từ đâu?', // REVIEW
+  'personalEntry.categoryLine': 'Danh mục', // REVIEW
   'personalEntry.amountReceivedError': 'Hãy nhập số tiền nhận được.', // REVIEW
   'personalEntry.differentWalletsError': 'Hãy chọn hai ví khác nhau.', // REVIEW
   'personalEntry.enterAmountReceived': 'Nhập số nhận được', // REVIEW
