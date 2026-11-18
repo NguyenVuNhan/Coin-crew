@@ -3,6 +3,7 @@ import { and, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
+  personalAssets,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -73,7 +74,13 @@ function parseListPeriod(query: {
 
 function parseListType(raw: string | undefined): ListQuery['type'] {
   if (raw === undefined) return undefined;
-  if (raw === 'expense' || raw === 'income' || raw === 'transfer' || raw === 'person') {
+  if (
+    raw === 'expense' ||
+    raw === 'income' ||
+    raw === 'transfer' ||
+    raw === 'person' ||
+    raw === 'trade'
+  ) {
     return raw;
   }
   throw new ApiError('VALIDATION', 422, 'Invalid type');
@@ -104,11 +111,12 @@ function toCountedRow(row: ListRow): CountedRow {
     return { currency: row.currency, signedAmount: -row.share, counted: true };
   }
   const e = row.entry;
+  const isTrade = e.type === 'buy' || e.type === 'sell';
   const isOut = e.type === 'expense' || e.type === 'transfer_out';
   return {
     currency: e.currency,
     signedAmount: isOut ? -e.amount : e.amount,
-    counted: !e.excludeFromReports,
+    counted: !e.excludeFromReports && !isTrade,
   };
 }
 
@@ -124,12 +132,24 @@ export function listRoutes(): Hono<AppBindings> {
     });
     const walletId = c.req.query('walletId') || undefined;
     const categoryId = c.req.query('categoryId') || undefined;
+    const assetId = c.req.query('assetId') || undefined;
     const tagId = c.req.query('tagId') || undefined;
     const type = parseListType(c.req.query('type'));
     const rawQ = c.req.query('q');
     const qTerm = rawQ !== undefined && rawQ.trim().length > 0 ? rawQ.trim() : undefined;
 
     const db = getDb(c.env);
+
+    if (assetId) {
+      const assetRow = await db
+        .select({ id: personalAssets.id })
+        .from(personalAssets)
+        .where(and(eq(personalAssets.id, assetId), eq(personalAssets.userId, user.id)))
+        .get();
+      if (!assetRow) {
+        throw new ApiError('NOT_FOUND', 404, 'Asset not found');
+      }
+    }
 
     const walletRows = await db
       .select({
@@ -175,6 +195,9 @@ export function listRoutes(): Hono<AppBindings> {
           )!,
         );
       }
+      if (assetId) {
+        conditions.push(eq(personalTransactions.assetId, assetId));
+      }
       if (tagId) {
         conditions.push(
           sql`${personalTransactions.id} IN (SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ${tagId})`,
@@ -186,6 +209,8 @@ export function listRoutes(): Hono<AppBindings> {
         conditions.push(eq(personalTransactions.type, 'income'));
       } else if (type === 'transfer') {
         conditions.push(inArray(personalTransactions.type, ['transfer_out', 'transfer_in']));
+      } else if (type === 'trade') {
+        conditions.push(inArray(personalTransactions.type, ['buy', 'sell']));
       }
 
       const entryRows = await db
@@ -195,6 +220,8 @@ export function listRoutes(): Hono<AppBindings> {
           type: personalTransactions.type,
           amount: personalTransactions.amount,
           categoryId: personalTransactions.categoryId,
+          assetId: personalTransactions.assetId,
+          quantity: personalTransactions.quantity,
           transferId: personalTransactions.transferId,
           counterpartWalletId: sql<string | null>`(SELECT pt2.wallet_id FROM personal_transactions pt2 WHERE pt2.transfer_id = personal_transactions.transfer_id AND pt2.id <> personal_transactions.id LIMIT 1)`,
           date: personalTransactions.date,
@@ -243,8 +270,8 @@ export function listRoutes(): Hono<AppBindings> {
           amount: r.amount,
           currency: wallet.currency,
           categoryId: r.categoryId ?? null,
-          assetId: null,
-          quantity: null,
+          assetId: r.assetId ?? null,
+          quantity: r.quantity ?? null,
           transferId: r.transferId ?? null,
           counterpartWalletId: r.counterpartWalletId ?? null,
           date: r.date,
@@ -262,6 +289,7 @@ export function listRoutes(): Hono<AppBindings> {
 
     const includePersonRows =
       !categoryId &&
+      !assetId &&
       !tagId &&
       (type === undefined || type === 'person') &&
       defaultWalletId !== null &&
@@ -317,11 +345,12 @@ export function listRoutes(): Hono<AppBindings> {
       if (e.date < from || e.date > to) continue;
       const currency = walletCurrency.get(e.walletId);
       if (!currency) continue;
+      const isTrade = e.type === 'buy' || e.type === 'sell';
       const isOut = e.type === 'expense' || e.type === 'transfer_out';
       counted.push({
         currency,
         signedAmount: isOut ? -e.amount : e.amount,
-        counted: !e.excludeFromReports,
+        counted: !e.excludeFromReports && !isTrade,
       });
     }
     for (const p of personRows) {
