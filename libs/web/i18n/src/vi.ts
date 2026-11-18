@@ -1308,7 +1308,7 @@ export const vi: Record<MessageKey, string> = {
   'wallet.notFound': 'Không tìm thấy ví', // REVIEW
   'wallet.startDate': 'Bắt đầu từ {date}', // REVIEW
   'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
-  'wallet.totalCostBasis': 'tổng giá vốn (gồm tài sản) ≈ {amount}', // REVIEW
+  'wallet.cashAndTotal': 'Tiền mặt {cash} · Tổng gồm tài sản {total}', // REVIEW
   'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
   'wallet.seeAll': 'Xem tất cả', // REVIEW
   'wallet.noEntries': 'Chưa có giao dịch trong tháng này', // REVIEW

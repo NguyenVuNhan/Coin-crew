@@ -118,23 +118,14 @@ export function WalletScreen(): JSX.Element {
         .filter((h) => h.cost > 0)
         .map((h) => {
           const asset = assetMap.get(h.assetId);
-          const assetName = asset?.name ?? h.assetId;
-          let subtitle: string | undefined;
-          if (asset && h.quantity > 0) {
-            const avgMinor = Math.round((h.cost * 10 ** asset.decimals) / h.quantity);
-            subtitle = t('wallet.holdingAvgPrice', {
-              price: formatMoney(avgMinor, wallet.currency),
-              unit: asset.unit || asset.name,
-            });
-          }
           return {
             id: h.assetId,
-            name: assetName,
+            name: asset?.name ?? h.assetId,
             vndValue: h.cost,
-            subtitle,
           };
         })
     : [];
+  const totalHoldingCost = holdings.reduce((sum, h) => sum + (h.cost > 0 ? h.cost : 0), 0);
 
   return (
     <Screen
@@ -189,17 +180,26 @@ export function WalletScreen(): JSX.Element {
 
               <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
                 <span>{t('wallet.startDate', { date: wallet.startDate })}</span>
-                {wallet.currency !== 'VND' && (
+                {isInvestment && holdings.length > 0 ? (
                   <span data-testid="wallet-cost-basis">
-                    {wallet.vndValue !== null
-                      ? t(
-                          isInvestment && holdings.length > 0
-                            ? 'wallet.totalCostBasis'
-                            : 'wallet.costBasis',
-                          { amount: formatMoney(wallet.vndValue, 'VND') },
-                        )
-                      : t('wallets.noRate')}
+                    {t('wallet.cashAndTotal', {
+                      cash: formatMoney(wallet.balance, wallet.currency),
+                      total:
+                        wallet.vndValue !== null
+                          ? wallet.currency === 'VND'
+                            ? formatMoney(wallet.vndValue, 'VND')
+                            : `≈ ${formatMoney(wallet.vndValue, 'VND')}`
+                          : t('wallets.noRate'),
+                    })}
                   </span>
+                ) : (
+                  wallet.currency !== 'VND' && (
+                    <span data-testid="wallet-cost-basis">
+                      {wallet.vndValue !== null
+                        ? t('wallet.costBasis', { amount: formatMoney(wallet.vndValue, 'VND') })
+                        : t('wallets.noRate')}
+                    </span>
+                  )
                 )}
               </div>
             </Card>
@@ -225,7 +225,7 @@ export function WalletScreen(): JSX.Element {
                   <p className="m-0 px-1 text-sm text-muted-foreground">{t('wallet.noHoldings')}</p>
                 ) : (
                   <>
-                    {holdingPieSlices.length > 0 && (
+                    {holdingPieSlices.length >= 2 && (
                       <Card
                         data-testid="wallet-holdings-pie"
                         className="rounded-xl bg-card p-4 border border-border shadow-none ring-0"
@@ -234,6 +234,7 @@ export function WalletScreen(): JSX.Element {
                           slices={holdingPieSlices}
                           currency={wallet.currency}
                           ariaLabelPrefix={t('wallet.holdings')}
+                          showAmounts={false}
                         />
                       </Card>
                     )}
@@ -247,6 +248,21 @@ export function WalletScreen(): JSX.Element {
                         const qtyText = asset
                           ? assetQuantityLabel(h.quantity, asset)
                           : String(h.quantity);
+                        const avgText =
+                          asset && h.quantity > 0
+                            ? t('wallet.holdingAvgPrice', {
+                                price: formatMoney(
+                                  Math.round((h.cost * 10 ** asset.decimals) / h.quantity),
+                                  wallet.currency,
+                                ),
+                                unit: asset.unit || asset.name,
+                              })
+                            : null;
+                        const metaText = avgText ? `${qtyText} · ${avgText}` : qtyText;
+                        const share =
+                          totalHoldingCost > 0 && h.cost > 0
+                            ? Math.round((h.cost / totalHoldingCost) * 100)
+                            : 0;
                         return (
                           <div
                             key={h.assetId}
@@ -254,14 +270,17 @@ export function WalletScreen(): JSX.Element {
                             className="flex items-center justify-between gap-3 px-4 py-3 min-h-14"
                           >
                             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                              <span className="text-sm font-semibold text-foreground truncate">
+                              <span className="text-sm font-semibold text-foreground break-words">
                                 {assetName}
                               </span>
-                              <span className="text-xs text-muted-foreground tabular-nums truncate">
-                                {qtyText}
+                              <span className="text-xs text-muted-foreground tabular-nums break-words">
+                                {metaText}
                               </span>
                             </div>
-                            <Amount value={h.cost} currency={wallet.currency} tone="neutral" size="sm" />
+                            <div className="shrink-0 flex flex-col items-end gap-0.5">
+                              <Amount value={h.cost} currency={wallet.currency} tone="neutral" size="sm" />
+                              <span className="text-sm text-muted-foreground tabular-nums">{share}%</span>
+                            </div>
                           </div>
                         );
                       })}

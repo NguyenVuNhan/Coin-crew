@@ -72,10 +72,12 @@ export function WalletPie({
   slices,
   currency = 'VND',
   ariaLabelPrefix,
+  showAmounts = true,
 }: {
   slices: WalletPieSlice[];
   currency?: CurrencyCode;
   ariaLabelPrefix?: string;
+  showAmounts?: boolean;
 }): JSX.Element | null {
   const t = useT();
   const displaySlices = buildPieSlices(slices, t('wallets.other'));
@@ -151,8 +153,8 @@ export function WalletPie({
                   )}
                 />
                 <span className="flex flex-col min-w-0">
-                  <span className="truncate">{slice.name}</span>
-                  {slice.subtitle && (
+                  <span className={showAmounts ? 'truncate' : 'break-words'}>{slice.name}</span>
+                  {showAmounts && slice.subtitle && (
                     <span className="text-xs text-muted-foreground tabular-nums truncate">
                       {slice.subtitle}
                     </span>
@@ -160,7 +162,9 @@ export function WalletPie({
                 </span>
               </span>
               <span className="flex items-baseline gap-1.5 shrink-0 tabular-nums">
-                <Amount value={slice.vndValue} currency={currency} approximate={slice.approximate} size="sm" />
+                {showAmounts && (
+                  <Amount value={slice.vndValue} currency={currency} approximate={slice.approximate} size="sm" />
+                )}
                 <span className="text-xs text-muted-foreground">{share}%</span>
               </span>
             </li>

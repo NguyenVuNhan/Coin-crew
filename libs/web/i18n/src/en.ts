@@ -1307,7 +1307,7 @@ export const en = {
   'wallet.notFound': 'Wallet not found',
   'wallet.startDate': 'From {date}',
   'wallet.costBasis': 'cost ≈ {amount}',
-  'wallet.totalCostBasis': 'total cost basis (incl. assets) ≈ {amount}',
+  'wallet.cashAndTotal': 'Cash {cash} · Total incl. assets {total}',
   'wallet.entriesThisMonth': 'This month’s entries',
   'wallet.seeAll': 'See all',
   'wallet.noEntries': 'No entries this month',
