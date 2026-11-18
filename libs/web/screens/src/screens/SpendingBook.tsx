@@ -5,6 +5,7 @@ import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useIsWide } from '@cc/web-util/media';
 import { useT } from '@cc/web-i18n';
 import {
+  useAssets,
   useCategories,
   usePersonalList,
   usePersonalSummary,
@@ -179,9 +180,11 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   const wallets = useWalletDetails();
   const list = wallets.data?.wallets;
   const hasWallet = (list?.length ?? 0) > 0;
+  const hasInvestmentWallet = list?.some((w) => w.kind === 'investment') ?? false;
   const currentMonth = currentMonthLocal();
   const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
   const categoriesQuery = useCategories({ enabled: hasWallet });
+  const assetsQuery = useAssets({ enabled: hasInvestmentWallet });
 
   if (!hasWallet || !recentList.isSuccess) {
     return null;
@@ -213,6 +216,7 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
               row={row}
               wallets={list ?? []}
               categories={categoriesQuery.data?.categories ?? []}
+              assets={assetsQuery.data?.assets ?? []}
             />
           ))}
         </div>

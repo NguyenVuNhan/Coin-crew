@@ -1,13 +1,15 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { formatMoney } from '@cc/core';
+import { formatMoney, formatQuantity } from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import {
+  useAssets,
   useCategories,
   useDeleteWallet,
+  useHoldings,
   usePersonalList,
   useUpdateWallet,
   useWalletDetails,
@@ -39,6 +41,9 @@ export function WalletScreen(): JSX.Element {
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
   const wallet = walletsQuery.data?.wallets.find((w) => w.id === id);
+  const isInvestment = wallet?.kind === 'investment';
+  const assetsQuery = useAssets({ enabled: isInvestment });
+  const holdingsQuery = useHoldings(id, { enabled: Boolean(isInvestment && id) });
 
   const currentMonth = currentMonthLocal();
   const listQuery = usePersonalList(
@@ -104,6 +109,9 @@ export function WalletScreen(): JSX.Element {
 
   const mutationError = updateWallet.error ?? deleteWallet.error;
   const rows = listQuery.data?.rows ?? [];
+  const assets = assetsQuery.data?.assets ?? [];
+  const assetMap = new Map(assets.map((a) => [a.id, a]));
+  const holdings = holdingsQuery.data?.holdings ?? [];
 
   return (
     <Screen
@@ -170,6 +178,57 @@ export function WalletScreen(): JSX.Element {
 
             {mutationError && <InlineError error={mutationError} />}
 
+            {isInvestment && (
+              <section data-testid="wallet-holdings" className="flex flex-col gap-2">
+                <div className="flex flex-col gap-0.5 px-1">
+                  <h2 className="m-0 text-sm font-semibold text-muted-foreground">
+                    {t('wallet.holdings')}
+                  </h2>
+                  <p className="m-0 text-xs text-muted-foreground">
+                    {t('wallet.holdingsSubtitle')}
+                  </p>
+                </div>
+
+                {holdingsQuery.isPending ? (
+                  <SkeletonList rows={2} />
+                ) : holdingsQuery.error ? (
+                  <InlineError error={holdingsQuery.error} onRetry={() => holdingsQuery.refetch()} />
+                ) : holdings.length === 0 ? (
+                  <p className="m-0 px-1 text-sm text-muted-foreground">{t('wallet.noHoldings')}</p>
+                ) : (
+                  <div
+                    data-testid="wallet-holdings-list"
+                    className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden"
+                  >
+                    {holdings.map((h) => {
+                      const asset = assetMap.get(h.assetId);
+                      const assetName = asset?.name ?? h.assetId;
+                      const qtyText = asset
+                        ? `${formatQuantity(h.quantity, asset.decimals)} ${asset.unit}`
+                        : String(h.quantity);
+                      return (
+                        <div
+                          key={h.assetId}
+                          data-testid={`wallet-holding-${h.assetId}`}
+                          className="flex items-center justify-between gap-3 px-4 py-3 min-h-14"
+                        >
+                          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                            <span className="text-sm font-semibold text-foreground truncate">
+                              {assetName}
+                            </span>
+                            <span className="text-xs text-muted-foreground tabular-nums truncate">
+                              {qtyText}
+                            </span>
+                          </div>
+                          <Amount value={h.cost} currency={wallet.currency} tone="neutral" size="sm" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
             <section className="flex flex-col gap-2">
               <div className="flex items-center justify-between px-1">
                 <h2 className="m-0 text-sm font-semibold text-muted-foreground">
@@ -202,6 +261,7 @@ export function WalletScreen(): JSX.Element {
                       row={row}
                       wallets={walletsQuery.data?.wallets ?? []}
                       categories={categoriesQuery.data?.categories ?? []}
+                      assets={assets}
                     />
                   ))}
                 </div>

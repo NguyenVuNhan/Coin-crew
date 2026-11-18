@@ -3,6 +3,8 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   formatMoney,
+  formatQuantity,
+  type AssetView,
   type CategoryView,
   type EntryView,
   type ListResponse,
@@ -12,12 +14,14 @@ import { useT } from '@cc/web-i18n';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import {
   PERSONAL_LIST_KEY,
+  useAssets,
   useCategories,
   useDeleteEntry,
   usePersonalList,
   useRestoreEntries,
   useWalletDetails,
 } from '@cc/web-data-access/personalMoney';
+import { Amount } from '@cc/web-ui/components/Amount';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
@@ -35,6 +39,7 @@ export interface TransactionDetailContentProps {
   entry: EntryView;
   wallets: WalletDetailView[];
   categories: CategoryView[];
+  assets?: AssetView[];
   onDone(): void;
 }
 
@@ -42,6 +47,7 @@ export function TransactionDetailContent({
   entry,
   wallets,
   categories,
+  assets = [],
   onDone,
 }: TransactionDetailContentProps): JSX.Element {
   const t = useT();
@@ -51,29 +57,43 @@ export function TransactionDetailContent({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const isTransfer = entry.type === 'transfer_in' || entry.type === 'transfer_out';
+  const isTrade = entry.type === 'buy' || entry.type === 'sell';
+  const isBuy = entry.type === 'buy';
   const isExpense = entry.type === 'expense';
   const walletMap = new Map(wallets.map((w) => [w.id, w.name]));
   const category = entry.categoryId
     ? categories.find((c) => c.id === entry.categoryId)
     : undefined;
+  const asset = entry.assetId ? assets.find((a) => a.id === entry.assetId) : undefined;
+  const assetName = asset?.name ?? entry.assetId ?? '';
 
   const title = isTransfer
     ? t('personalEntry.transfer')
-    : category?.name ??
-      (isExpense ? t('personalEntry.expense') : t('personalEntry.income'));
+    : isTrade
+      ? isBuy
+        ? t('transactions.buyAssetTitle', { asset: assetName })
+        : t('transactions.sellAssetTitle', { asset: assetName })
+      : category?.name ??
+        (isExpense ? t('personalEntry.expense') : t('personalEntry.income'));
 
   const iconName: IconName = isTransfer
     ? 'swap'
-    : resolveCategoryIcon(category?.icon, isExpense ? 'expense' : 'income');
+    : isTrade
+      ? 'trending-up'
+      : resolveCategoryIcon(category?.icon, isExpense ? 'expense' : 'income');
 
   const formattedAmount = formatMoney(Math.abs(entry.amount), entry.currency);
   const signedText = isTransfer
     ? formattedAmount
-    : isExpense
-      ? `\u2212${formattedAmount}`
-      : `+${formattedAmount}`;
+    : isTrade
+      ? isBuy
+        ? `\u2212${formattedAmount}`
+        : `+${formattedAmount}`
+      : isExpense
+        ? `\u2212${formattedAmount}`
+        : `+${formattedAmount}`;
 
-  const amountToneClass = isTransfer
+  const amountToneClass = isTransfer || isTrade
     ? 'text-foreground'
     : isExpense
       ? 'text-danger'
@@ -140,6 +160,45 @@ export function TransactionDetailContent({
       </div>
 
       <div className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden">
+        {isTrade && assetName && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">{t('personalEntry.asset')}</span>
+            <span data-testid="tx-detail-asset" className="font-medium text-foreground text-right">
+              {assetName}
+            </span>
+          </div>
+        )}
+
+        {isTrade && entry.quantity != null && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">{t('personalEntry.quantity')}</span>
+            <span
+              data-testid="tx-detail-quantity"
+              className="font-medium text-foreground tabular-nums text-right"
+            >
+              {asset
+                ? `${formatQuantity(entry.quantity, asset.decimals)} ${asset.unit}`
+                : String(entry.quantity)}
+            </span>
+          </div>
+        )}
+
+        {isTrade && asset && entry.quantity != null && entry.quantity > 0 && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">
+              {t('transactions.pricePerUnit', { unit: asset.unit })}
+            </span>
+            <span data-testid="tx-detail-unit-price" className="text-right">
+              <Amount
+                value={Math.round((Math.abs(entry.amount) * 10 ** asset.decimals) / entry.quantity)}
+                currency={entry.currency}
+                tone="neutral"
+                size="sm"
+              />
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
           <span className="text-muted-foreground">{t('personalEntry.wallet')}</span>
           <span className="font-medium text-foreground text-right">{walletLine}</span>
@@ -292,11 +351,13 @@ export function TransactionDetail(): JSX.Element {
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
+  const isTradeEntry = entry?.type === 'buy' || entry?.type === 'sell';
+  const assetsQuery = useAssets({ enabled: isTradeEntry });
 
   return (
     <Screen title={t('transactions.detailTitle')} back="/transactions">
       <div className="py-4">
-        {!entry && listQuery.isPending ? (
+        {(!entry && listQuery.isPending) || (isTradeEntry && assetsQuery.isPending) ? (
           <SkeletonList rows={4} />
         ) : !entry && listQuery.error ? (
           <InlineError error={listQuery.error} onRetry={() => listQuery.refetch()} />
@@ -315,6 +376,7 @@ export function TransactionDetail(): JSX.Element {
             entry={entry}
             wallets={walletsQuery.data?.wallets ?? []}
             categories={categoriesQuery.data?.categories ?? []}
+            assets={assetsQuery.data?.assets ?? []}
             onDone={goBack}
           />
         )}

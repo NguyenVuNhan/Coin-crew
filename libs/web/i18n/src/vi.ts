@@ -1319,6 +1319,9 @@ export const vi: Record<MessageKey, string> = {
   'wallet.delete': 'Xóa ví', // REVIEW
   'wallet.deleteConfirmTitle': 'Xóa ví?', // REVIEW
   'wallet.deleteConfirmBody': 'Ví "{name}" chưa có giao dịch nào và sẽ bị xóa vĩnh viễn.', // REVIEW
+  'wallet.holdings': 'Đang nắm giữ', // REVIEW
+  'wallet.holdingsSubtitle': 'Giá vốn, chưa tính giá thị trường', // REVIEW
+  'wallet.noHoldings': 'Chưa nắm giữ tài sản nào', // REVIEW
   'walletForm.newTitle': 'Thêm ví mới', // REVIEW
   'walletForm.editTitle': 'Sửa ví', // REVIEW
   'walletForm.name': 'Tên ví', // REVIEW
@@ -1335,6 +1338,7 @@ export const vi: Record<MessageKey, string> = {
   'addMenu.expense': 'Khoản chi', // REVIEW
   'addMenu.income': 'Khoản thu', // REVIEW
   'addMenu.loanDebt': 'Vay/Nợ', // REVIEW
+  'addMenu.buySell': 'Mua / bán tài sản', // REVIEW
   'addMenu.transfer': 'Chuyển tiền', // REVIEW
   'addMenu.withPeople': 'Với người khác', // REVIEW
   'personalEntry.newTitle': 'Thêm giao dịch', // REVIEW
@@ -1422,9 +1426,11 @@ export const vi: Record<MessageKey, string> = {
   'transactions.searchLabel': 'Tìm kiếm', // REVIEW
   'transactions.searchPlaceholder': 'Tìm theo ghi chú...', // REVIEW
   'transactions.typeAll': 'Tất cả', // REVIEW
+  'transactions.typeTrade': 'Mua / bán', // REVIEW
   'transactions.typePerson': 'Với người khác', // REVIEW
   'transactions.allWallets': 'Tất cả ví', // REVIEW
   'transactions.allCategories': 'Tất cả danh mục', // REVIEW
+  'transactions.allAssets': 'Tất cả tài sản', // REVIEW
   'transactions.allTags': 'Tất cả thẻ', // REVIEW
   'transactions.fromDate': 'Từ ngày', // REVIEW
   'transactions.toDate': 'Đến ngày', // REVIEW
@@ -1449,6 +1455,9 @@ export const vi: Record<MessageKey, string> = {
   'transactions.removeFilter': 'Xóa bộ lọc {label}', // REVIEW
   'transactions.directionTo': '→ {wallet}', // REVIEW
   'transactions.directionFrom': '← {wallet}', // REVIEW
+  'transactions.buyAssetTitle': 'Mua {asset}', // REVIEW
+  'transactions.sellAssetTitle': 'Bán {asset}', // REVIEW
+  'transactions.pricePerUnit': 'Giá mỗi {unit}', // REVIEW
   'personalSettings.title': 'Cài đặt sổ chi tiêu', // REVIEW
   'personalSettings.wallets': 'Ví', // REVIEW
   'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
