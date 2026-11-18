@@ -26,6 +26,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete (document as unknown as { startViewTransition?: unknown }).startViewTransition;
   localStorage.clear();
   hideUndo();
 });
@@ -158,5 +159,51 @@ describe('EntryPage — fold motion view-transition names (Task 5b)', () => {
     await screen.findByTestId('amount-display');
 
     expect(screen.getByTestId('entry-tab-expense').style.viewTransitionName).toBe('');
+  });
+
+  it('calls document.startViewTransition exactly once per tap on entry-tab-income', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    const startViewTransition = vi.fn((cb: () => void) => {
+      queueMicrotask(cb);
+      return {} as ViewTransition;
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      writable: true,
+      value: startViewTransition,
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+
+    await user.click(screen.getByTestId('entry-tab-income'));
+
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('entry-tab-income')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('renders entry-fold-details with wrapping muted summary on the left and non-wrapping primary action on the right', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    for (const ch of '120000') {
+      await user.click(screen.getByTestId(`key-${ch}`));
+    }
+    await user.click(screen.getByTestId('key-done'));
+    await screen.findByTestId('entry-fold-amount');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+
+    const detailsFold = await screen.findByTestId('entry-fold-details');
+    const spans = detailsFold.querySelectorAll<HTMLElement>(':scope > span');
+    expect(spans).toHaveLength(2);
+    expect(spans[0]).toHaveTextContent('Hôm nay · Tiền mặt · Không ghi chú');
+    expect(spans[0]).toHaveClass('text-sm', 'text-muted-foreground');
+    expect(spans[0]).not.toHaveClass('truncate');
+    expect(spans[1]).toHaveTextContent('Thêm chi tiết');
+    expect(spans[1]).toHaveClass('text-sm', 'font-medium', 'text-primary', 'whitespace-nowrap');
   });
 });

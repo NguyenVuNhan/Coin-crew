@@ -413,7 +413,7 @@
 }
 
 .entry-tiles-enter .entry-tile {
-  animation: tile-in 200ms var(--entry-ease-out) both;
+  animation: tile-in 200ms var(--entry-ease-out) backwards;
   animation-delay: calc(min(var(--i, 0), 8) * 18ms);
 }
 .entry-tiles-enter .entry-tile:active {
@@ -432,7 +432,7 @@
     animation: entry-vt-fade-in 120ms linear both !important;
   }
   .entry-tiles-enter .entry-tile {
-    animation: entry-vt-fade-in 120ms linear both;
+    animation: entry-vt-fade-in 120ms linear backwards;
     animation-delay: 0ms;
   }
   .entry-tiles-enter .entry-tile:active {

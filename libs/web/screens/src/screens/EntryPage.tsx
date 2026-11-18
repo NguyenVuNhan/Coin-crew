@@ -304,6 +304,7 @@ export function EntryPage(): JSX.Element {
   const quantityInitializedRef = useRef(false);
   const saveBarRef = useRef<HTMLDivElement>(null);
   const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'save' | null>(null);
+  const pendingTabRef = useRef<TabValue | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
   const isMousePointer = useIsMousePointer();
@@ -348,13 +349,13 @@ export function EntryPage(): JSX.Element {
   useEffect(() => {
     if (isEdit) return;
     if (typeParam === 'loan-debt') {
-      setActiveTab('loan-debt');
+      setActiveTab((prev) => (prev === 'loan-debt' ? prev : 'loan-debt'));
     } else if (typeParam === 'income') {
-      setActiveTab('income');
-      setEntryType('income');
+      setActiveTab((prev) => (prev === 'income' ? prev : 'income'));
+      setEntryType((prev) => (prev === 'income' ? prev : 'income'));
     } else if (typeParam === 'expense') {
-      setActiveTab('expense');
-      setEntryType('expense');
+      setActiveTab((prev) => (prev === 'expense' ? prev : 'expense'));
+      setEntryType((prev) => (prev === 'expense' ? prev : 'expense'));
     }
   }, [isEdit, typeParam]);
 
@@ -642,20 +643,28 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleTabChange = (next: TabValue) => {
+    const currentTab = isEdit ? entryType : activeTab;
+    // Radix Tabs fires onValueChange on mousedown and again on focus if value has not updated yet
+    // (because document.startViewTransition runs its callback asynchronously on the next frame).
+    if (next === currentTab || next === pendingTabRef.current) return;
     if (next === 'loan-debt') {
       if (isEdit) return;
+      pendingTabRef.current = next;
       runFoldTransition(() => {
+        pendingTabRef.current = null;
         setActiveTab('loan-debt');
         setValidationError(null);
         clearCategoryError();
+        const params = new URLSearchParams(searchParams);
+        params.set('type', 'loan-debt');
+        setSearchParams(params, { replace: true });
       });
-      const params = new URLSearchParams(searchParams);
-      params.set('type', 'loan-debt');
-      setSearchParams(params, { replace: true });
       return;
     }
     if (isEdit && (isTransferMode || isTradeMode)) return;
+    pendingTabRef.current = next;
     runFoldTransition(() => {
+      pendingTabRef.current = null;
       setActiveTab(next);
       setEntryType(next);
       setIsTransferMode(false);
@@ -679,12 +688,12 @@ export function EntryPage(): JSX.Element {
           setKeypadOpen(true);
         }
       }
+      if (!isEdit) {
+        const params = new URLSearchParams(searchParams);
+        params.set('type', next);
+        setSearchParams(params, { replace: true });
+      }
     });
-    if (!isEdit) {
-      const params = new URLSearchParams(searchParams);
-      params.set('type', next);
-      setSearchParams(params, { replace: true });
-    }
   };
 
   const handleLoanDebtSaved = () => {
@@ -1740,6 +1749,7 @@ export function EntryPage(): JSX.Element {
                       )}
                       <FoldLine
                         testId="entry-fold-details"
+                        variant="action"
                         label={t('personalEntry.addDetails')}
                         style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
                         onOpen={() => runFoldTransition(() => fold.open('details'))}
