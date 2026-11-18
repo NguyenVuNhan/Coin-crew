@@ -2,8 +2,8 @@ import { useMemo, useState, type JSX } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  assetQuantityLabel,
   formatMoney,
-  formatQuantity,
   type AssetView,
   type CategoryView,
   type EntryView,
@@ -177,7 +177,7 @@ export function TransactionDetailContent({
               className="font-medium text-foreground tabular-nums text-right"
             >
               {asset
-                ? `${formatQuantity(entry.quantity, asset.decimals)} ${asset.unit}`
+                ? assetQuantityLabel(entry.quantity, asset)
                 : String(entry.quantity)}
             </span>
           </div>
@@ -186,7 +186,7 @@ export function TransactionDetailContent({
         {isTrade && asset && entry.quantity != null && entry.quantity > 0 && (
           <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
             <span className="text-muted-foreground">
-              {t('transactions.pricePerUnit', { unit: asset.unit })}
+              {t('transactions.pricePerUnit', { unit: asset.unit || asset.name })}
             </span>
             <span data-testid="tx-detail-unit-price" className="text-right">
               <Amount

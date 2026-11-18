@@ -31,6 +31,8 @@ import {
   Dumbbell,
   Ellipsis,
   EllipsisVertical,
+  Eye,
+  EyeOff,
   Film,
   Fuel,
   Gamepad2,
@@ -100,7 +102,7 @@ export type IconName =
   | 'candlestick-chart' | 'coins' | 'pie-chart' | 'gem' | 'piggy-bank' | 'gift'
   | 'coffee' | 'car' | 'plane' | 'gamepad-2' | 'graduation-cap' | 'dumbbell' | 'briefcase'
   | 'laptop' | 'shirt' | 'zap' | 'wifi' | 'stethoscope' | 'music' | 'film' | 'book-open'
-  | 'fuel' | 'wrench';
+  | 'fuel' | 'wrench' | 'eye' | 'eye-off';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -193,6 +195,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   'book-open': BookOpen,
   fuel: Fuel,
   wrench: Wrench,
+  eye: Eye,
+  'eye-off': EyeOff,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

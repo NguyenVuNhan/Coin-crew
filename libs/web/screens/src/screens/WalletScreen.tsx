@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { formatMoney, formatQuantity } from '@cc/core';
+import { assetQuantityLabel, formatMoney } from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
@@ -29,6 +29,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { TransactionRow } from '../components/TransactionRow';
 import { WalletForm, walletIconClass } from '../components/WalletForm';
+import { WalletPie, type WalletPieSlice } from '../components/WalletPie';
 
 export function WalletScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -112,6 +113,28 @@ export function WalletScreen(): JSX.Element {
   const assets = assetsQuery.data?.assets ?? [];
   const assetMap = new Map(assets.map((a) => [a.id, a]));
   const holdings = holdingsQuery.data?.holdings ?? [];
+  const holdingPieSlices: WalletPieSlice[] = wallet
+    ? holdings
+        .filter((h) => h.cost > 0)
+        .map((h) => {
+          const asset = assetMap.get(h.assetId);
+          const assetName = asset?.name ?? h.assetId;
+          let subtitle: string | undefined;
+          if (asset && h.quantity > 0) {
+            const avgMinor = Math.round((h.cost * 10 ** asset.decimals) / h.quantity);
+            subtitle = t('wallet.holdingAvgPrice', {
+              price: formatMoney(avgMinor, wallet.currency),
+              unit: asset.unit || asset.name,
+            });
+          }
+          return {
+            id: h.assetId,
+            name: assetName,
+            vndValue: h.cost,
+            subtitle,
+          };
+        })
+    : [];
 
   return (
     <Screen
@@ -201,35 +224,49 @@ export function WalletScreen(): JSX.Element {
                 ) : holdings.length === 0 ? (
                   <p className="m-0 px-1 text-sm text-muted-foreground">{t('wallet.noHoldings')}</p>
                 ) : (
-                  <div
-                    data-testid="wallet-holdings-list"
-                    className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden"
-                  >
-                    {holdings.map((h) => {
-                      const asset = assetMap.get(h.assetId);
-                      const assetName = asset?.name ?? h.assetId;
-                      const qtyText = asset
-                        ? `${formatQuantity(h.quantity, asset.decimals)} ${asset.unit}`
-                        : String(h.quantity);
-                      return (
-                        <div
-                          key={h.assetId}
-                          data-testid={`wallet-holding-${h.assetId}`}
-                          className="flex items-center justify-between gap-3 px-4 py-3 min-h-14"
-                        >
-                          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                            <span className="text-sm font-semibold text-foreground truncate">
-                              {assetName}
-                            </span>
-                            <span className="text-xs text-muted-foreground tabular-nums truncate">
-                              {qtyText}
-                            </span>
+                  <>
+                    {holdingPieSlices.length > 0 && (
+                      <Card
+                        data-testid="wallet-holdings-pie"
+                        className="rounded-xl bg-card p-4 border border-border shadow-none ring-0"
+                      >
+                        <WalletPie
+                          slices={holdingPieSlices}
+                          currency={wallet.currency}
+                          ariaLabelPrefix={t('wallet.holdings')}
+                        />
+                      </Card>
+                    )}
+                    <div
+                      data-testid="wallet-holdings-list"
+                      className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden"
+                    >
+                      {holdings.map((h) => {
+                        const asset = assetMap.get(h.assetId);
+                        const assetName = asset?.name ?? h.assetId;
+                        const qtyText = asset
+                          ? assetQuantityLabel(h.quantity, asset)
+                          : String(h.quantity);
+                        return (
+                          <div
+                            key={h.assetId}
+                            data-testid={`wallet-holding-${h.assetId}`}
+                            className="flex items-center justify-between gap-3 px-4 py-3 min-h-14"
+                          >
+                            <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {assetName}
+                              </span>
+                              <span className="text-xs text-muted-foreground tabular-nums truncate">
+                                {qtyText}
+                              </span>
+                            </div>
+                            <Amount value={h.cost} currency={wallet.currency} tone="neutral" size="sm" />
                           </div>
-                          <Amount value={h.cost} currency={wallet.currency} tone="neutral" size="sm" />
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </section>
             )}

@@ -1557,7 +1557,10 @@ export const en = {
   'assets.decimals': 'Decimals',
   'assets.decimalsDecrease': 'Decrease decimals',
   'assets.decimalsIncrease': 'Increase decimals',
-  'assets.decimalsLocked': 'Has transactions, cannot change',
+  'assets.decimalsLocked': 'Has transactions, cannot change the smallest step',
+  'assets.unitHelp': 'A number (e.g. 0.0001) sets the smallest step; a word (e.g. oz) is the unit name',
+  'assets.unitStepError': 'Enter a smallest step like 1, 0.1, 0.01…',
+  'assets.unitRequired': 'Enter a unit',
   'assets.duplicateName': 'An asset with this name already exists',
   'assets.save': 'Save',
   'assets.emptyTitle': 'No assets yet',
@@ -1574,6 +1577,10 @@ export const en = {
   'assets.noSameDecimalsTarget': 'No other asset has the same decimals.',
   'assets.hideInstead': 'Hide and keep history',
   'assets.decimalsSummary': '{decimals} decimals',
+  'assets.editAria': 'Edit {name}',
+  'assets.hideAria': 'Hide {name}',
+  'assets.showAria': 'Show {name}',
+  'wallet.holdingAvgPrice': 'Avg {price}/{unit}',
 } as const;
 
 export type MessageKey = keyof typeof en;

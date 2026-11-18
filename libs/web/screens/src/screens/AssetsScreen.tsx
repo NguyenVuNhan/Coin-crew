@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from 'react';
-import type { AssetView } from '@cc/core';
+import { assetUnitText, type AssetView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { useLedger } from '@cc/web-data-access/people';
@@ -173,7 +173,7 @@ export function AssetsScreen(): JSX.Element {
       {
         id: 'toggle-hidden',
         label: asset.hidden ? t('assets.show') : t('assets.hide'),
-        icon: asset.hidden ? 'check' : 'ban',
+        icon: asset.hidden ? 'eye' : 'eye-off',
         onSelect: () => {
           void handleToggleHidden(asset);
         },
@@ -202,12 +202,40 @@ export function AssetsScreen(): JSX.Element {
               <Icon name="coins" size={18} />
             </div>
           }
-          trailing={asset.hidden ? <Pill tone="neutral">{t('assets.hiddenBadge')}</Pill> : undefined}
+          trailing={
+            <div className="flex items-center gap-1">
+              {asset.hidden && <Pill tone="neutral">{t('assets.hiddenBadge')}</Pill>}
+              <button
+                type="button"
+                aria-label={t('assets.editAria', { name: asset.name })}
+                data-testid={`asset-edit-${asset.id}`}
+                onClick={() => openEdit(asset)}
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Icon name="edit" size={18} />
+              </button>
+              <button
+                type="button"
+                aria-label={
+                  asset.hidden
+                    ? t('assets.showAria', { name: asset.name })
+                    : t('assets.hideAria', { name: asset.name })
+                }
+                data-testid={`asset-toggle-hidden-${asset.id}`}
+                onClick={() => {
+                  void handleToggleHidden(asset);
+                }}
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Icon name={asset.hidden ? 'eye' : 'eye-off'} size={18} />
+              </button>
+            </div>
+          }
         >
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-medium text-foreground truncate">{asset.name}</span>
             <span className="text-xs text-muted-foreground truncate">
-              {asset.unit} · {t('assets.decimalsSummary', { decimals: asset.decimals })}
+              {assetUnitText(asset)}
             </span>
           </div>
         </ActionRow>

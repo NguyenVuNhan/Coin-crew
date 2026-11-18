@@ -1,5 +1,10 @@
 import { useId, useMemo, useState, type FormEvent, type JSX } from 'react';
-import { ASSET_GROUPS, MAX_ASSET_DECIMALS, type AssetView } from '@cc/core';
+import {
+  ASSET_GROUPS,
+  assetUnitText,
+  parseAssetUnit,
+  type AssetView,
+} from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { useCreateAsset, useUpdateAsset } from '@cc/web-data-access/personalMoney';
@@ -50,7 +55,8 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
   const initialInChips = asset ? groupChips.includes(asset.groupName) : true;
 
   const [name, setName] = useState(asset?.name ?? '');
-  const [unit, setUnit] = useState(asset?.unit ?? '');
+  const [unitText, setUnitText] = useState(asset ? assetUnitText(asset) : '');
+  const [unitTouched, setUnitTouched] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>(
     asset ? (initialInChips ? asset.groupName : '') : (groupChips[0] ?? 'Crypto'),
   );
@@ -58,11 +64,28 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
   const [customGroup, setCustomGroup] = useState<string>(
     asset && !initialInChips ? asset.groupName : '',
   );
-  const [decimals, setDecimals] = useState<number>(asset?.decimals ?? 0);
   const [nameError, setNameError] = useState<string | null>(null);
 
   const decimalsLocked = Boolean(asset && asset.entryCount > 0);
   const resolvedGroup = isOtherGroup ? customGroup.trim() : selectedGroup;
+  const trimmedUnitText = unitText.trim();
+  const parsedUnit = parseAssetUnit(unitText);
+  const unitUnchanged = Boolean(asset && trimmedUnitText === assetUnitText(asset));
+  const effectiveDecimals = unitUnchanged && asset ? asset.decimals : parsedUnit?.decimals;
+  const decimalsChangedWhileLocked = Boolean(
+    decimalsLocked && asset && parsedUnit && effectiveDecimals !== asset.decimals,
+  );
+
+  const unitErrorMessage =
+    trimmedUnitText.length === 0
+      ? unitTouched
+        ? t('assets.unitRequired')
+        : null
+      : parsedUnit === null
+        ? t('assets.unitStepError')
+        : decimalsChangedWhileLocked
+          ? t('assets.decimalsLocked')
+          : null;
 
   const busy = createAsset.isPending || updateAsset.isPending;
   const mutationError = asset ? updateAsset.error : createAsset.error;
@@ -71,16 +94,16 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
 
   const canSubmit =
     name.trim().length > 0 &&
-    unit.trim().length > 0 &&
+    parsedUnit !== null &&
+    !decimalsChangedWhileLocked &&
     resolvedGroup.length > 0 &&
     !busy;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !parsedUnit) return;
     setNameError(null);
     const trimmedName = name.trim();
-    const trimmedUnit = unit.trim();
 
     try {
       if (asset) {
@@ -88,18 +111,18 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
           id: asset.id,
           input: {
             name: trimmedName,
-            unit: trimmedUnit,
+            unit: parsedUnit.unit,
             groupName: resolvedGroup,
-            ...(decimalsLocked ? {} : { decimals }),
+            ...(decimalsLocked ? {} : { decimals: parsedUnit.decimals }),
           },
         });
         onSaved(res.asset);
       } else {
         const res = await createAsset.mutateAsync({
           name: trimmedName,
-          unit: trimmedUnit,
+          unit: parsedUnit.unit,
           groupName: resolvedGroup,
-          decimals,
+          decimals: parsedUnit.decimals,
         });
         onSaved(res.asset);
       }
@@ -145,11 +168,24 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
           type="text"
           required
           maxLength={20}
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
+          value={unitText}
+          onChange={(e) => {
+            setUnitTouched(true);
+            setUnitText(e.target.value);
+          }}
           data-testid="asset-unit-input"
           className="min-h-11 text-base"
         />
+        <p className="m-0 text-xs text-muted-foreground">{t('assets.unitHelp')}</p>
+        {unitErrorMessage && (
+          <div
+            data-testid={
+              decimalsChangedWhileLocked ? 'asset-decimals-locked-reason' : 'asset-unit-error'
+            }
+          >
+            <InlineError error={ownError(unitErrorMessage)} />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -206,46 +242,6 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
             data-testid="asset-group-custom-input"
             className="min-h-11 text-base"
           />
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-foreground">{t('assets.decimals')}</span>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label={t('assets.decimalsDecrease')}
-            data-testid="asset-decimals-minus"
-            disabled={decimalsLocked || decimals <= 0}
-            onClick={() => setDecimals((d) => Math.max(0, d - 1))}
-            className="min-h-11 min-w-11 rounded-full border border-border bg-card text-foreground text-lg font-semibold inline-flex items-center justify-center cursor-pointer hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            −
-          </button>
-          <span
-            data-testid="asset-decimals-value"
-            className="min-w-8 text-center text-base font-semibold tabular-nums text-foreground"
-          >
-            {decimals}
-          </span>
-          <button
-            type="button"
-            aria-label={t('assets.decimalsIncrease')}
-            data-testid="asset-decimals-plus"
-            disabled={decimalsLocked || decimals >= MAX_ASSET_DECIMALS}
-            onClick={() => setDecimals((d) => Math.min(MAX_ASSET_DECIMALS, d + 1))}
-            className="min-h-11 min-w-11 rounded-full border border-border bg-card text-foreground text-lg font-semibold inline-flex items-center justify-center cursor-pointer hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            +
-          </button>
-        </div>
-        {decimalsLocked && (
-          <p
-            data-testid="asset-decimals-locked-reason"
-            className="m-0 text-sm text-muted-foreground"
-          >
-            {t('assets.decimalsLocked')}
-          </p>
         )}
       </div>
 

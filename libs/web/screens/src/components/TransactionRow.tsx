@@ -1,8 +1,8 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router';
 import {
+  assetQuantityLabel,
   formatMoney,
-  formatQuantity,
   type AssetView,
   type CategoryView,
   type EntryView,
@@ -107,7 +107,7 @@ export function TransactionRow({
   const tagText = entry.tags.length > 0 ? entry.tags.map((tag) => `#${tag}`).join(' ') : '';
   const qtyPart =
     isTrade && asset && entry.quantity != null
-      ? `${formatQuantity(entry.quantity, asset.decimals)} ${asset.unit}`
+      ? assetQuantityLabel(entry.quantity, asset)
       : '';
   const metaParts = isTrade
     ? [qtyPart, walletName, entry.note ?? '', tagText].filter(Boolean)

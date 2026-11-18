@@ -10,12 +10,17 @@ import { newId, nowIso } from '@cc/api-util/ids';
 import { MAX_ASSET_DECIMALS, type AssetView, type AssetsResponse } from '@cc/core';
 import { name1to40, parseJson } from './validate';
 
-function trimmedString(v: unknown, maxLen: number, message: string): string {
+function trimmedString(
+  v: unknown,
+  maxLen: number,
+  message: string,
+  minLen = 1,
+): string {
   if (typeof v !== 'string') {
     throw new ApiError('VALIDATION', 422, message);
   }
   const trimmed = v.trim();
-  if (trimmed.length < 1 || trimmed.length > maxLen) {
+  if (trimmed.length < minLen || trimmed.length > maxLen) {
     throw new ApiError('VALIDATION', 422, message);
   }
   return trimmed;
@@ -124,7 +129,7 @@ export function assetRoutes(): Hono<AppBindings> {
     }
 
     const name = name1to40(body.name);
-    const unit = trimmedString(body.unit, 20, 'Invalid unit');
+    const unit = trimmedString(body.unit, 20, 'Invalid unit', 0);
     const groupName = trimmedString(body.groupName, 30, 'Invalid groupName');
     const decimals = requireDecimals(body.decimals);
 
@@ -218,7 +223,7 @@ export function assetRoutes(): Hono<AppBindings> {
     }
 
     const nextUnit =
-      body.unit !== undefined ? trimmedString(body.unit, 20, 'Invalid unit') : existing.unit;
+      body.unit !== undefined ? trimmedString(body.unit, 20, 'Invalid unit', 0) : existing.unit;
     const nextGroupName =
       body.groupName !== undefined
         ? trimmedString(body.groupName, 30, 'Invalid groupName')

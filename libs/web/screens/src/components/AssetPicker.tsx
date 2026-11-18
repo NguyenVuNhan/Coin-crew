@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from 'react';
-import { normalizeName, type AssetView } from '@cc/core';
+import { assetUnitText, normalizeName, type AssetView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -57,7 +57,7 @@ export function AssetPicker({
       ? nonHidden.filter(
           (a) =>
             normalizeName(a.name).includes(needle) ||
-            normalizeName(a.unit).includes(needle) ||
+            normalizeName(assetUnitText(a)).includes(needle) ||
             normalizeName(a.groupName).includes(needle),
         )
       : nonHidden;
@@ -135,7 +135,7 @@ export function AssetPicker({
                         >
                           <span className="truncate">{asset.name}</span>
                           <span className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm text-muted-foreground">{asset.unit}</span>
+                            <span className="text-sm text-muted-foreground">{assetUnitText(asset)}</span>
                             {selected && <Icon name="check" size={18} className="text-primary" />}
                           </span>
                         </button>

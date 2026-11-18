@@ -155,14 +155,8 @@ describe('Personal settings: Assets', () => {
 
     await user.click(screen.getByTestId('asset-add-btn'));
     await user.type(await screen.findByTestId('asset-name-input'), 'BTC');
-    await user.type(screen.getByTestId('asset-unit-input'), 'coin');
+    await user.type(screen.getByTestId('asset-unit-input'), '0.00000001');
     await user.click(screen.getByTestId('asset-group-chip-Crypto'));
-
-    const plusBtn = screen.getByTestId('asset-decimals-plus');
-    for (let i = 0; i < 8; i++) {
-      await user.click(plusBtn);
-    }
-    expect(screen.getByTestId('asset-decimals-value')).toHaveTextContent('8');
 
     await user.click(screen.getByTestId('asset-save-btn'));
 
@@ -170,14 +164,14 @@ describe('Personal settings: Assets', () => {
       const post = calls.find((c) => c.method === 'POST' && c.path === '/api/me/personal/assets');
       expect(post?.body).toEqual({
         name: 'BTC',
-        unit: 'coin',
+        unit: '',
         groupName: 'Crypto',
         decimals: 8,
       });
     });
   });
 
-  it('renames an asset via PATCH and disables decimals stepper when used', async () => {
+  it('renames an asset via PATCH and blocks step change when used', async () => {
     const user = userEvent.setup();
     let currentAssets = [...starterAssets];
     const { calls } = mockApp({
@@ -193,11 +187,16 @@ describe('Personal settings: Assets', () => {
     const btcRow = await screen.findByTestId('asset-row-a-btc');
     await user.click(within(btcRow).getByRole('button', { name: 'Bitcoin' }));
 
-    expect(await screen.findByTestId('asset-decimals-minus')).toBeDisabled();
-    expect(screen.getByTestId('asset-decimals-plus')).toBeDisabled();
+    const unitInput = await screen.findByTestId('asset-unit-input');
+    await user.clear(unitInput);
+    await user.type(unitInput, '0.0001');
     expect(screen.getByTestId('asset-decimals-locked-reason')).toHaveTextContent(
-      'Has transactions, cannot change',
+      'Has transactions, cannot change the smallest step',
     );
+    expect(screen.getByTestId('asset-save-btn')).toBeDisabled();
+
+    await user.clear(unitInput);
+    await user.type(unitInput, 'BTC');
 
     const nameInput = screen.getByTestId('asset-name-input');
     await user.clear(nameInput);

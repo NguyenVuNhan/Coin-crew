@@ -1480,7 +1480,7 @@ export function EntryPage(): JSX.Element {
                             data-testid="entry-quantity-unit"
                             className="text-sm font-medium text-muted-foreground shrink-0"
                           >
-                            {selectedAsset.unit}
+                            {selectedAsset.unit || selectedAsset.name}
                           </span>
                         )}
                       </div>
@@ -1492,7 +1492,7 @@ export function EntryPage(): JSX.Element {
                       >
                         {t('personalEntry.heldQuantity', {
                           qty: formatQuantity(heldQuantity, selectedAsset.decimals),
-                          unit: selectedAsset.unit,
+                          unit: selectedAsset.unit || selectedAsset.name,
                         })}
                       </p>
                     )}

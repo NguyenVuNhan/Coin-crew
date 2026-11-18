@@ -46,3 +46,44 @@ export function formatQuantity(q: number, decimals: number): string {
   const frac = String(fracNum).padStart(decimals, '0').replace(/0+$/, '');
   return `${sign}${whole},${frac}`;
 }
+
+export interface ParsedAssetUnit {
+  unit: string;
+  decimals: number;
+}
+
+const NUMERIC_INPUT_RE = /^[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/;
+const STEP_FRAC_RE = /^0[.,](0{0,7})1$/;
+
+export function parseAssetUnit(text: string): ParsedAssetUnit | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  if (NUMERIC_INPUT_RE.test(trimmed)) {
+    if (trimmed === '1') {
+      return { unit: '', decimals: 0 };
+    }
+    const stepMatch = STEP_FRAC_RE.exec(trimmed);
+    if (stepMatch) {
+      return { unit: '', decimals: (stepMatch[1]?.length ?? 0) + 1 };
+    }
+    return null;
+  }
+
+  if (trimmed.length > 20) return null;
+  return { unit: trimmed, decimals: 2 };
+}
+
+export function assetUnitText(asset: { unit: string; decimals: number }): string {
+  if (asset.unit) return asset.unit;
+  if (asset.decimals <= 0) return '1';
+  const clamped = Math.min(asset.decimals, MAX_ASSET_DECIMALS);
+  return `0.${'0'.repeat(clamped - 1)}1`;
+}
+
+export function assetQuantityLabel(
+  quantity: number,
+  asset: { name: string; unit: string; decimals: number },
+): string {
+  return `${formatQuantity(quantity, asset.decimals)} ${asset.unit || asset.name}`;
+}

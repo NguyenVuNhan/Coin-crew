@@ -1558,7 +1558,10 @@ export const vi: Record<MessageKey, string> = {
   'assets.decimals': 'Số chữ số thập phân', // REVIEW
   'assets.decimalsDecrease': 'Giảm số chữ số thập phân', // REVIEW
   'assets.decimalsIncrease': 'Tăng số chữ số thập phân', // REVIEW
-  'assets.decimalsLocked': 'Đã có giao dịch, không đổi được', // REVIEW
+  'assets.decimalsLocked': 'Đã có giao dịch, không đổi được bước nhỏ nhất', // REVIEW
+  'assets.unitHelp': 'Số (vd 0.0001) là bước nhỏ nhất; chữ (vd chỉ) là tên đơn vị', // REVIEW
+  'assets.unitStepError': 'Nhập bước nhỏ nhất như 1, 0.1, 0.01…', // REVIEW
+  'assets.unitRequired': 'Nhập đơn vị', // REVIEW
   'assets.duplicateName': 'Đã có tài sản tên này', // REVIEW
   'assets.save': 'Lưu', // REVIEW
   'assets.emptyTitle': 'Chưa có tài sản nào', // REVIEW
@@ -1575,4 +1578,8 @@ export const vi: Record<MessageKey, string> = {
   'assets.noSameDecimalsTarget': 'Không có tài sản nào cùng số chữ số thập phân.', // REVIEW
   'assets.hideInstead': 'Ẩn và giữ lịch sử', // REVIEW
   'assets.decimalsSummary': '{decimals} số thập phân', // REVIEW
+  'assets.editAria': 'Sửa {name}', // REVIEW
+  'assets.hideAria': 'Ẩn {name}', // REVIEW
+  'assets.showAria': 'Hiện {name}', // REVIEW
+  'wallet.holdingAvgPrice': 'TB {price}/{unit}', // REVIEW
 };

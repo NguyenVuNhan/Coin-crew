@@ -199,9 +199,10 @@ describe('Task 9 — Holdings, trade rows, asset filter, and + menu', () => {
     const section = await screen.findByTestId('wallet-holdings');
     expect(within(section).getByText('Holdings')).toBeInTheDocument();
     expect(within(section).getByText('Cost basis, market price not included')).toBeInTheDocument();
-    expect(within(section).getByText('BTC')).toBeInTheDocument();
-    expect(within(section).getByText('0,5 coin')).toBeInTheDocument();
-    expect(within(section).getByText('500.000.000₫')).toBeInTheDocument();
+    const list = screen.getByTestId('wallet-holdings-list');
+    expect(within(list).getByText('BTC')).toBeInTheDocument();
+    expect(within(list).getByText('0,5 coin')).toBeInTheDocument();
+    expect(within(list).getByText('500.000.000₫')).toBeInTheDocument();
     first.unmount();
 
     mockBase();
