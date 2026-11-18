@@ -1,17 +1,18 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useKeyboardInset } from '@cc/web-util/useKeyboardInset';
 import { cn } from '../lib/utils';
 
 export interface BottomBarProps {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
   wide?: boolean;
   keyboardAware?: boolean;
   /** Told the bar's rendered height whenever it changes, so the page can keep exactly that much room under it. */
   onHeight?: (px: number) => void;
 }
 
-export function BottomBar({ children, className, wide, keyboardAware, onHeight }: BottomBarProps) {
+export function BottomBar({ children, className, style, wide, keyboardAware, onHeight }: BottomBarProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -39,7 +40,7 @@ export function BottomBar({ children, className, wide, keyboardAware, onHeight }
         '[&_[aria-current]]:text-primary [&_[data-active=true]]:text-primary',
         className,
       )}
-      style={{ transform: inset ? `translateY(-${inset}px)` : undefined }}
+      style={{ ...style, transform: inset ? `translateY(-${inset}px)` : undefined }}
     >
       <div
         className={cn(

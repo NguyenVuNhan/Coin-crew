@@ -57,6 +57,7 @@ import { categoryIconName } from '../components/categoryIcon';
 import { EntryDateRow, formatEntryDayLabel } from '../components/EntryDateRow';
 import { useEntryFold } from '../components/entryFold';
 import { FoldLine } from '../components/FoldLine';
+import { runFoldTransition } from '../components/foldTransition';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
@@ -643,39 +644,43 @@ export function EntryPage(): JSX.Element {
   const handleTabChange = (next: TabValue) => {
     if (next === 'loan-debt') {
       if (isEdit) return;
-      setActiveTab('loan-debt');
-      setValidationError(null);
-      clearCategoryError();
+      runFoldTransition(() => {
+        setActiveTab('loan-debt');
+        setValidationError(null);
+        clearCategoryError();
+      });
       const params = new URLSearchParams(searchParams);
       params.set('type', 'loan-debt');
       setSearchParams(params, { replace: true });
       return;
     }
     if (isEdit && (isTransferMode || isTradeMode)) return;
-    setActiveTab(next);
-    setEntryType(next);
-    setIsTransferMode(false);
-    setIsTradeMode(false);
-    setActiveTransferField('primary');
-    setCategoryId(null);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    if (!excludeTouched) {
-      setExcludeFromReports(false);
-    }
-    if (!fold.isOpen('amount')) {
-      fold.open('category');
-    }
-    if (!isEdit) {
-      // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
-      if (activeTab === 'loan-debt') {
+    runFoldTransition(() => {
+      setActiveTab(next);
+      setEntryType(next);
+      setIsTransferMode(false);
+      setIsTradeMode(false);
+      setActiveTransferField('primary');
+      setCategoryId(null);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      if (!excludeTouched) {
+        setExcludeFromReports(false);
+      }
+      if (!fold.isOpen('amount')) {
+        fold.open('category');
+      }
+      if (!isEdit && activeTab === 'loan-debt') {
+        // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
         if (isMousePointer) {
           didAutoFocusRef.current = false;
         } else {
           setKeypadOpen(true);
         }
       }
+    });
+    if (!isEdit) {
       const params = new URLSearchParams(searchParams);
       params.set('type', next);
       setSearchParams(params, { replace: true });
@@ -693,42 +698,48 @@ export function EntryPage(): JSX.Element {
 
   const handleSelectTransfer = () => {
     if (isEdit && isTradeMode) return;
-    setIsTransferMode(true);
-    setIsTradeMode(false);
-    setCategoryId(null);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    if (!excludeTouched) {
-      setExcludeFromReports(true);
-    }
-    fold.finish('category');
+    runFoldTransition(() => {
+      setIsTransferMode(true);
+      setIsTradeMode(false);
+      setCategoryId(null);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      if (!excludeTouched) {
+        setExcludeFromReports(true);
+      }
+      fold.finish('category');
+    });
   };
 
   const handleSelectCategory = (cid: string) => {
     if (isEdit && isTradeMode) return;
-    setIsTransferMode(false);
-    setIsTradeMode(false);
-    setActiveTransferField('primary');
-    setCategoryId(cid);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    if (!excludeTouched) {
-      setExcludeFromReports(false);
-    }
-    fold.finish('category');
+    runFoldTransition(() => {
+      setIsTransferMode(false);
+      setIsTradeMode(false);
+      setActiveTransferField('primary');
+      setCategoryId(cid);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      if (!excludeTouched) {
+        setExcludeFromReports(false);
+      }
+      fold.finish('category');
+    });
   };
 
   const handleSelectTrade = () => {
-    setIsTradeMode(true);
-    setIsTransferMode(false);
-    setActiveTransferField('primary');
-    setCategoryId(null);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    fold.finish('category');
+    runFoldTransition(() => {
+      setIsTradeMode(true);
+      setIsTransferMode(false);
+      setActiveTransferField('primary');
+      setCategoryId(null);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      fold.finish('category');
+    });
   };
 
   const handleFieldDone = (field: 'primary' | 'secondary') => {
@@ -785,10 +796,12 @@ export function EntryPage(): JSX.Element {
     } else {
       pendingFocusTargetRef.current = 'save';
     }
-    if (minor > 0 && !waitingForSecondary) {
-      fold.finish('amount');
-    }
-    setKeypadOpen(false);
+    runFoldTransition(() => {
+      if (minor > 0 && !waitingForSecondary) {
+        fold.finish('amount');
+      }
+      setKeypadOpen(false);
+    });
   };
 
   const isSaving = createEntry.isPending || updateEntry.isPending;
@@ -1194,6 +1207,7 @@ export function EntryPage(): JSX.Element {
                 value="expense"
                 disabled={editLockedTrade && entryType !== 'expense'}
                 data-testid="entry-tab-expense"
+                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.expense')}
@@ -1202,6 +1216,7 @@ export function EntryPage(): JSX.Element {
                 value="income"
                 disabled={editLockedTransfer || (editLockedTrade && entryType !== 'income')}
                 data-testid="entry-tab-income"
+                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.income')}
@@ -1210,6 +1225,7 @@ export function EntryPage(): JSX.Element {
                 value="loan-debt"
                 disabled={isEdit}
                 data-testid="entry-tab-loan-debt"
+                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.loanDebt')}
@@ -1272,13 +1288,15 @@ export function EntryPage(): JSX.Element {
                 testId="entry-fold-amount"
                 label={t('personalEntry.amountBoxLabel')}
                 onOpen={() => {
-                  fold.open('amount');
-                  setKeypadOpen(true);
+                  runFoldTransition(() => {
+                    fold.open('amount');
+                    setKeypadOpen(true);
+                  });
                   setKeypadFocusToken((n) => n + 1);
                 }}
               >
                 <span className="inline-flex items-center gap-1.5 tabular-nums">
-                  <span>
+                  <span style={!isMousePointer ? { viewTransitionName: 'entry-amt' } : undefined}>
                     {isDiffCurrencyTransfer
                       ? `${primaryAmountText} → ${secondaryAmountText}`
                       : primaryAmountText}
@@ -1336,7 +1354,10 @@ export function EntryPage(): JSX.Element {
                   <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
                     {t('personalEntry.amountBoxLabel')}
                   </span>
-                  <span className="flex flex-col items-end tabular-nums min-w-0">
+                  <span
+                    className="flex flex-col items-end tabular-nums min-w-0"
+                    style={!isMousePointer ? { viewTransitionName: 'entry-amt' } : undefined}
+                  >
                     {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
                   </span>
                 </button>
@@ -1479,19 +1500,28 @@ export function EntryPage(): JSX.Element {
                   error={categoryError ? t('personalEntry.pickCategoryError') : null}
                   highlightError={categoryRingActive}
                   gridRef={categoryGridRef}
+                  transitionEnabled={!isMousePointer}
                 />
               </div>
             ) : !fold.isOpen('amount') ? (
               <FoldLine
                 testId="entry-fold-category"
                 label={t('personalEntry.categoryLine')}
-                onOpen={() => fold.open('category')}
+                onOpen={() => runFoldTransition(() => fold.open('category'))}
               >
                 <span className="inline-flex items-center gap-1.5">
                   {isTransferMode ? (
                     <>
-                      <Icon name="swap" size={18} className="text-muted-foreground shrink-0" />
-                      <span className="truncate">
+                      <span
+                        className="inline-flex shrink-0"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-ic' } : undefined}
+                      >
+                        <Icon name="swap" size={18} className="text-muted-foreground shrink-0" />
+                      </span>
+                      <span
+                        className="truncate"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-name' } : undefined}
+                      >
                         {entryType === 'expense'
                           ? t('personalEntry.transferToWallet')
                           : t('personalEntry.transferFromWallet')}
@@ -1499,8 +1529,16 @@ export function EntryPage(): JSX.Element {
                     </>
                   ) : isTradeMode ? (
                     <>
-                      <Icon name="trending-up" size={18} className="text-muted-foreground shrink-0" />
-                      <span className="truncate">
+                      <span
+                        className="inline-flex shrink-0"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-ic' } : undefined}
+                      >
+                        <Icon name="trending-up" size={18} className="text-muted-foreground shrink-0" />
+                      </span>
+                      <span
+                        className="truncate"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-name' } : undefined}
+                      >
                         {entryType === 'expense'
                           ? t('personalEntry.buyAsset')
                           : t('personalEntry.sellAsset')}
@@ -1513,12 +1551,22 @@ export function EntryPage(): JSX.Element {
                       );
                       return (
                         <>
-                          <Icon
-                            name={categoryIconName(selectedCategory?.icon, entryType)}
-                            size={18}
-                            className="text-muted-foreground shrink-0"
-                          />
-                          <span className="truncate">{selectedCategory?.name ?? ''}</span>
+                          <span
+                            className="inline-flex shrink-0"
+                            style={!isMousePointer ? { viewTransitionName: 'entry-cat-ic' } : undefined}
+                          >
+                            <Icon
+                              name={categoryIconName(selectedCategory?.icon, entryType)}
+                              size={18}
+                              className="text-muted-foreground shrink-0"
+                            />
+                          </span>
+                          <span
+                            className="truncate"
+                            style={!isMousePointer ? { viewTransitionName: 'entry-cat-name' } : undefined}
+                          >
+                            {selectedCategory?.name ?? ''}
+                          </span>
                         </>
                       );
                     })()
@@ -1693,7 +1741,8 @@ export function EntryPage(): JSX.Element {
                       <FoldLine
                         testId="entry-fold-details"
                         label={t('personalEntry.addDetails')}
-                        onOpen={() => fold.open('details')}
+                        style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
+                        onOpen={() => runFoldTransition(() => fold.open('details'))}
                       >
                         {formatDetailsFoldSummary({
                           date: dateTime.split('T')[0] ?? '',
@@ -1709,7 +1758,10 @@ export function EntryPage(): JSX.Element {
 
                 return (
                   <>
-                    <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                    <div
+                      className="rounded-xl bg-card divide-y divide-border overflow-hidden"
+                      style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
+                    >
                       {walletRow}
                       {otherWalletRow}
                       {tradeRows}
@@ -1788,7 +1840,7 @@ export function EntryPage(): JSX.Element {
           />
         ) : (
           <div ref={saveBarRef} className="contents">
-            <BottomBar>
+            <BottomBar style={!isMousePointer ? { viewTransitionName: 'entry-save' } : undefined}>
               {(() => {
                 const transferDisabledReason = !isTransferMode
                   ? null
@@ -1874,7 +1926,13 @@ export function EntryPage(): JSX.Element {
                         if (activeMinor !== null) void handleSave(activeMinor);
                       }}
                     >
-                      {saveLabel}
+                      {!isMousePointer ? (
+                        <span style={{ viewTransitionName: 'entry-save-label', display: 'inline-block' }}>
+                          {saveLabel}
+                        </span>
+                      ) : (
+                        saveLabel
+                      )}
                     </Button>
                   </>
                 );

@@ -135,6 +135,7 @@ export function DockedAmountKeypad({
     <div
       ref={keypadAreaRef}
       onKeyDown={handleKeyDown}
+      style={!isMousePointer ? { viewTransitionName: 'entry-keypad' } : undefined}
       className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
     >
       <div className="mx-auto w-full max-w-[480px]">

@@ -325,3 +325,117 @@
 .fsl-screen--zmp .fsl-screen__title {
   text-align: left;
 }
+
+/* ---- Entry flow A: fold motion ---- */
+:root {
+  --entry-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --entry-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+::view-transition-group(*) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--entry-ease-out);
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(entry-amt),
+::view-transition-new(entry-amt),
+::view-transition-old(entry-cat-ic),
+::view-transition-new(entry-cat-ic),
+::view-transition-old(entry-cat-name),
+::view-transition-new(entry-cat-name) {
+  height: 100%;
+  object-fit: contain;
+}
+::view-transition-old(entry-keypad) {
+  animation: entry-vt-drop 160ms var(--entry-ease-in) both;
+}
+::view-transition-new(entry-keypad) {
+  animation: entry-vt-rise 240ms var(--entry-ease-out) both;
+}
+::view-transition-new(entry-save) {
+  animation: entry-vt-rise 220ms var(--entry-ease-out) 60ms both;
+}
+::view-transition-old(entry-save) {
+  animation: entry-vt-fade-out 120ms var(--entry-ease-in) both;
+}
+::view-transition-new(entry-tiles) {
+  animation: entry-vt-fade-in 160ms var(--entry-ease-out) both;
+}
+::view-transition-old(entry-tiles) {
+  animation: entry-vt-fade-out 110ms var(--entry-ease-in) both;
+}
+::view-transition-group(entry-tab) {
+  animation-duration: 220ms;
+}
+::view-transition-group(entry-details) {
+  animation-duration: 240ms;
+}
+::view-transition-new(entry-details) {
+  animation: entry-vt-fade-in 200ms var(--entry-ease-out) 40ms both;
+}
+::view-transition-old(entry-details) {
+  animation: entry-vt-fade-out 100ms var(--entry-ease-in) both;
+}
+::view-transition-group(entry-save-label) {
+  animation-duration: 140ms;
+}
+
+@keyframes entry-vt-drop {
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+@keyframes entry-vt-rise {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+@keyframes entry-vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes entry-vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+}
+
+.entry-tiles-enter .entry-tile {
+  animation: tile-in 200ms var(--entry-ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 18ms);
+}
+.entry-tiles-enter .entry-tile:active {
+  transform: scale(0.97);
+  transition: transform 100ms var(--entry-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+  }
+  ::view-transition-old(*) {
+    animation: entry-vt-fade-out 120ms linear both !important;
+  }
+  ::view-transition-new(*) {
+    animation: entry-vt-fade-in 120ms linear both !important;
+  }
+  .entry-tiles-enter .entry-tile {
+    animation: entry-vt-fade-in 120ms linear both;
+    animation-delay: 0ms;
+  }
+  .entry-tiles-enter .entry-tile:active {
+    transform: none;
+  }
+}
