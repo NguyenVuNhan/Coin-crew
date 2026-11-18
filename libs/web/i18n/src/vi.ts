@@ -19,6 +19,7 @@ export const vi: Record<MessageKey, string> = {
   'error.dailyLimit': 'CoinCrew đang bảo trì. Hãy thử lại sau 07:00.',
   'error.linkDead': 'Link này không còn dùng được. Hãy xin trưởng nhóm link mới.',
   'error.rateLimited': 'Có quá nhiều mục đang chờ duyệt. Hãy nhờ một thành viên duyệt trước.',
+  'error.oversell': 'Lần bán sau đó sẽ vượt số đang có ({date})', // REVIEW
   'error.validation': 'Có chỗ chưa đúng. Hãy kiểm tra rồi thử lại.', // REVIEW
   'validation.signInExpired': 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.', // REVIEW
   'validation.nameLength': 'Hãy nhập tên, tối đa 40 ký tự.', // REVIEW
@@ -1304,8 +1305,8 @@ export const vi: Record<MessageKey, string> = {
   'wallets.moveDown': 'Xuống', // REVIEW
   'wallets.reorder': 'Đổi thứ tự', // REVIEW
   'wallets.done': 'Xong', // REVIEW
+  'wallets.totalWithAssets': 'Tổng gồm tài sản ≈ {total}', // REVIEW
   'wallet.notFound': 'Không tìm thấy ví', // REVIEW
-  'wallet.startDate': 'Bắt đầu từ {date}', // REVIEW
   'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
   'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
   'wallet.seeAll': 'Xem tất cả', // REVIEW
@@ -1319,6 +1320,9 @@ export const vi: Record<MessageKey, string> = {
   'wallet.delete': 'Xóa ví', // REVIEW
   'wallet.deleteConfirmTitle': 'Xóa ví?', // REVIEW
   'wallet.deleteConfirmBody': 'Ví "{name}" chưa có giao dịch nào và sẽ bị xóa vĩnh viễn.', // REVIEW
+  'wallet.holdings': 'Đang nắm giữ', // REVIEW
+  'wallet.holdingsSubtitle': 'Giá vốn, chưa tính giá thị trường', // REVIEW
+  'wallet.noHoldings': 'Chưa nắm giữ tài sản nào', // REVIEW
   'walletForm.newTitle': 'Thêm ví mới', // REVIEW
   'walletForm.editTitle': 'Sửa ví', // REVIEW
   'walletForm.name': 'Tên ví', // REVIEW
@@ -1396,6 +1400,20 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.discardTitle': 'Bỏ khoản đang nhập?', // REVIEW
   'personalEntry.discardConfirm': 'Bỏ', // REVIEW
   'personalEntry.discardKeepEditing': 'Tiếp tục nhập', // REVIEW
+  'personalEntry.buyAsset': 'Mua tài sản', // REVIEW
+  'personalEntry.sellAsset': 'Bán tài sản', // REVIEW
+  'personalEntry.asset': 'Tài sản', // REVIEW
+  'personalEntry.pickAsset': 'Chọn tài sản', // REVIEW
+  'personalEntry.quantity': 'Số lượng', // REVIEW
+  'personalEntry.heldQuantity': 'Đang có: {qty} {unit}', // REVIEW
+  'personalEntry.oversellError': 'Vượt quá số đang có', // REVIEW
+  'personalEntry.savedBuy': 'Đã mua {qty} {asset}', // REVIEW
+  'personalEntry.savedSell': 'Đã bán {qty} {asset}', // REVIEW
+  'personalEntry.addAsset': 'Thêm tài sản', // REVIEW
+  'personalEntry.searchAssets': 'Tìm tài sản...', // REVIEW
+  'personalEntry.noAssets': 'Chưa có tài sản nào', // REVIEW
+  'personalEntry.chooseAsset': 'Chọn tài sản', // REVIEW
+  'personalEntry.enterQuantity': 'Nhập số lượng', // REVIEW
   'transactions.title': 'Giao dịch', // REVIEW
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW
@@ -1408,9 +1426,11 @@ export const vi: Record<MessageKey, string> = {
   'transactions.searchLabel': 'Tìm kiếm', // REVIEW
   'transactions.searchPlaceholder': 'Tìm theo ghi chú...', // REVIEW
   'transactions.typeAll': 'Tất cả', // REVIEW
+  'transactions.typeTrade': 'Mua / bán', // REVIEW
   'transactions.typePerson': 'Với người khác', // REVIEW
   'transactions.allWallets': 'Tất cả ví', // REVIEW
   'transactions.allCategories': 'Tất cả danh mục', // REVIEW
+  'transactions.allAssets': 'Tất cả tài sản', // REVIEW
   'transactions.allTags': 'Tất cả thẻ', // REVIEW
   'transactions.fromDate': 'Từ ngày', // REVIEW
   'transactions.toDate': 'Đến ngày', // REVIEW
@@ -1435,9 +1455,13 @@ export const vi: Record<MessageKey, string> = {
   'transactions.removeFilter': 'Xóa bộ lọc {label}', // REVIEW
   'transactions.directionTo': '→ {wallet}', // REVIEW
   'transactions.directionFrom': '← {wallet}', // REVIEW
+  'transactions.buyAssetTitle': 'Mua {asset}', // REVIEW
+  'transactions.sellAssetTitle': 'Bán {asset}', // REVIEW
+  'transactions.pricePerUnit': 'Giá mỗi {unit}', // REVIEW
   'personalSettings.title': 'Cài đặt sổ chi tiêu', // REVIEW
   'personalSettings.wallets': 'Ví', // REVIEW
   'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
+  'personalSettings.assets': 'Tài sản', // REVIEW
   'personalSettings.tags': 'Thẻ', // REVIEW
   'categories.title': 'Nhóm chi tiêu', // REVIEW
   'categories.tabs': 'Loại nhóm', // REVIEW
@@ -1467,6 +1491,9 @@ export const vi: Record<MessageKey, string> = {
   'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
   'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW
   'categories.hideInstead': 'Ẩn nhóm, giữ lịch sử', // REVIEW
+  'categories.editAria': 'Sửa {name}', // REVIEW
+  'categories.hideAria': 'Ẩn {name}', // REVIEW
+  'categories.showAria': 'Hiện {name}', // REVIEW
   'tags.title': 'Thẻ', // REVIEW
   'tags.useCount': '{count} giao dịch', // REVIEW
   'tags.rename': 'Đổi tên', // REVIEW
@@ -1520,4 +1547,45 @@ export const vi: Record<MessageKey, string> = {
   'entryDate.mon.9': '10', // REVIEW
   'entryDate.mon.10': '11', // REVIEW
   'entryDate.mon.11': '12', // REVIEW
+  'assets.title': 'Tài sản', // REVIEW
+  'assets.add': 'Thêm tài sản', // REVIEW
+  'assets.newTitle': 'Thêm tài sản', // REVIEW
+  'assets.editTitle': 'Sửa tài sản', // REVIEW
+  'assets.name': 'Tên', // REVIEW
+  'assets.unit': 'Đơn vị', // REVIEW
+  'assets.group': 'Nhóm', // REVIEW
+  'assets.otherGroup': 'Nhóm khác', // REVIEW
+  'assets.otherGroupPlaceholder': 'Nhập tên nhóm', // REVIEW
+  'assets.decimals': 'Số chữ số thập phân', // REVIEW
+  'assets.decimalsDecrease': 'Giảm số chữ số thập phân', // REVIEW
+  'assets.decimalsIncrease': 'Tăng số chữ số thập phân', // REVIEW
+  'assets.decimalsLocked': 'Đã có giao dịch, không đổi được bước nhỏ nhất', // REVIEW
+  'assets.unitHelp': 'Số (vd 0.0001) là bước nhỏ nhất; chữ (vd chỉ) là tên đơn vị', // REVIEW
+  'assets.unitStepError': 'Nhập bước nhỏ nhất như 1, 0.1, 0.01…', // REVIEW
+  'assets.unitRequired': 'Nhập đơn vị', // REVIEW
+  'assets.duplicateName': 'Đã có tài sản tên này', // REVIEW
+  'assets.save': 'Lưu', // REVIEW
+  'assets.emptyTitle': 'Chưa có tài sản nào', // REVIEW
+  'assets.hiddenSection': 'Đã ẩn', // REVIEW
+  'assets.hiddenBadge': 'Đã ẩn', // REVIEW
+  'assets.edit': 'Sửa', // REVIEW
+  'assets.hide': 'Ẩn', // REVIEW
+  'assets.show': 'Hiện', // REVIEW
+  'assets.delete': 'Xóa', // REVIEW
+  'assets.deleteConfirmTitle': 'Xóa tài sản?', // REVIEW
+  'assets.deleteConfirmBody': 'Bạn có chắc muốn xóa tài sản "{name}"?', // REVIEW
+  'assets.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
+  'assets.moveToOther': 'Chuyển giao dịch sang…', // REVIEW
+  'assets.noSameDecimalsTarget': 'Không có tài sản nào cùng số chữ số thập phân.', // REVIEW
+  'assets.hideInstead': 'Ẩn và giữ lịch sử', // REVIEW
+  'assets.decimalsSummary': '{decimals} số thập phân', // REVIEW
+  'assets.editAria': 'Sửa {name}', // REVIEW
+  'assets.hideAria': 'Ẩn {name}', // REVIEW
+  'assets.showAria': 'Hiện {name}', // REVIEW
+  'wallet.holdingAvgPrice': '~{price}/{unit}', // REVIEW
+  'wallet.holdingsTotal': 'Tổng vốn · {count} tài sản', // REVIEW
+  'wallet.holdingsTotalWithCash': 'Tổng · {count} tài sản + tiền mặt', // REVIEW
+  'wallet.cashRow': 'Tiền mặt', // REVIEW
+  'wallet.balanceLabel': 'Số dư', // REVIEW
+  'wallet.totalInclAssets': 'Tổng gồm tài sản', // REVIEW
 };

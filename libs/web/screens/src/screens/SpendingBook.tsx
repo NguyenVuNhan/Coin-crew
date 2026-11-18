@@ -1,10 +1,11 @@
 import { useState, useEffect, type JSX } from 'react';
 import { Link } from 'react-router';
-import { formatVnd } from '@cc/core';
+import { formatMoney, formatVnd } from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useIsWide } from '@cc/web-util/media';
 import { useT } from '@cc/web-i18n';
 import {
+  useAssets,
   useCategories,
   usePersonalList,
   usePersonalSummary,
@@ -52,7 +53,12 @@ function BookTotal(): JSX.Element {
     (sum, w) => sum + (w.vndValue !== undefined ? (w.vndValue ?? 0) : w.currency === 'VND' ? w.balance : 0),
     0,
   );
+  const fallbackCash = activeWallets.reduce(
+    (sum, w) => sum + (w.currency === 'VND' ? w.balance : (w.vndValue ?? 0)),
+    0,
+  );
   const totalVnd = summary.data ? summary.data.totalVnd : fallbackTotal;
+  const cashVnd = summary.data ? (summary.data.cashVnd ?? summary.data.totalVnd) : fallbackCash;
   const approximate = summary.data ? summary.data.approximate : false;
   const pieSlices = activeWallets.map((w) => ({
     id: w.id,
@@ -85,7 +91,15 @@ function BookTotal(): JSX.Element {
               <Icon name="chevronRight" size={16} />
             </Link>
           </div>
-          <Amount value={totalVnd} approximate={approximate} tone="neutral" size="xl" />
+          <Amount value={cashVnd} approximate={approximate} tone="neutral" size="xl" />
+          {totalVnd !== cashVnd && (
+            <p
+              data-testid="wallets-total-with-assets"
+              className="m-0 text-sm text-muted-foreground tabular-nums"
+            >
+              {t('wallets.totalWithAssets', { total: formatMoney(totalVnd, 'VND') })}
+            </p>
+          )}
           <WalletPie slices={pieSlices} />
         </Card>
       ) : (
@@ -179,9 +193,11 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   const wallets = useWalletDetails();
   const list = wallets.data?.wallets;
   const hasWallet = (list?.length ?? 0) > 0;
+  const hasInvestmentWallet = list?.some((w) => w.kind === 'investment') ?? false;
   const currentMonth = currentMonthLocal();
   const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
   const categoriesQuery = useCategories({ enabled: hasWallet });
+  const assetsQuery = useAssets({ enabled: hasInvestmentWallet });
 
   if (!hasWallet || !recentList.isSuccess) {
     return null;
@@ -213,6 +229,7 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
               row={row}
               wallets={list ?? []}
               categories={categoriesQuery.data?.categories ?? []}
+              assets={assetsQuery.data?.assets ?? []}
             />
           ))}
         </div>

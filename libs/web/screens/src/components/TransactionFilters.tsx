@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import type {
+  AssetView,
   CategoryView,
   ListQuery,
   TagView,
@@ -23,6 +24,7 @@ export interface TransactionFiltersProps {
   onApply(next: TransactionFilterValues): void;
   wallets: WalletDetailView[];
   categories: CategoryView[];
+  assets?: AssetView[];
   tags: TagView[];
 }
 
@@ -38,6 +40,7 @@ export function TransactionFilters({
   onApply,
   wallets,
   categories,
+  assets = [],
   tags,
 }: TransactionFiltersProps): JSX.Element {
   const t = useT();
@@ -62,6 +65,7 @@ export function TransactionFilters({
     if (draft.type) cleaned.type = draft.type;
     if (draft.walletId) cleaned.walletId = draft.walletId;
     if (draft.categoryId) cleaned.categoryId = draft.categoryId;
+    if (draft.assetId) cleaned.assetId = draft.assetId;
     if (draft.tagId) cleaned.tagId = draft.tagId;
     if (draft.from) cleaned.from = draft.from;
     if (draft.to) cleaned.to = draft.to;
@@ -96,6 +100,7 @@ export function TransactionFilters({
                 { key: 'expense', label: t('personalEntry.expense') },
                 { key: 'income', label: t('personalEntry.income') },
                 { key: 'transfer', label: t('personalEntry.transfer') },
+                { key: 'trade', label: t('transactions.typeTrade') },
                 { key: 'person', label: t('transactions.typePerson') },
               ] as const
             ).map((opt) => {
@@ -180,6 +185,42 @@ export function TransactionFilters({
                     className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
                   >
                     {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {assets.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-foreground">
+              {t('personalEntry.asset')}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setDraft((prev) => ({ ...prev, assetId: undefined }))}
+                className={cn(CHIP_CLASS, !draft.assetId ? CHIP_ACTIVE : CHIP_IDLE)}
+              >
+                {t('transactions.allAssets')}
+              </button>
+              {assets.map((a) => {
+                const active = draft.assetId === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    data-testid={`tx-filter-asset-${a.id}`}
+                    onClick={() =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        assetId: active ? undefined : a.id,
+                      }))
+                    }
+                    className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
+                  >
+                    {a.name}
                   </button>
                 );
               })}
@@ -275,6 +316,7 @@ export interface ActiveFilterPillsProps {
   filters: TransactionFilterValues;
   wallets: WalletDetailView[];
   categories: CategoryView[];
+  assets?: AssetView[];
   tags: TagView[];
   onRemove(key: keyof TransactionFilterValues): void;
 }
@@ -283,6 +325,7 @@ export function ActiveFilterPills({
   filters,
   wallets,
   categories,
+  assets = [],
   tags,
   onRemove,
 }: ActiveFilterPillsProps): JSX.Element | null {
@@ -300,7 +343,9 @@ export function ActiveFilterPills({
           ? t('personalEntry.income')
           : filters.type === 'transfer'
             ? t('personalEntry.transfer')
-            : t('transactions.typePerson');
+            : filters.type === 'trade'
+              ? t('transactions.typeTrade')
+              : t('transactions.typePerson');
     items.push({ key: 'type', label: typeLabel });
   }
   if (filters.walletId) {
@@ -310,6 +355,10 @@ export function ActiveFilterPills({
   if (filters.categoryId) {
     const c = categories.find((x) => x.id === filters.categoryId);
     items.push({ key: 'categoryId', label: c?.name ?? filters.categoryId });
+  }
+  if (filters.assetId) {
+    const a = assets.find((x) => x.id === filters.assetId);
+    items.push({ key: 'assetId', label: a?.name ?? filters.assetId });
   }
   if (filters.tagId) {
     const tag = tags.find((x) => x.id === filters.tagId);

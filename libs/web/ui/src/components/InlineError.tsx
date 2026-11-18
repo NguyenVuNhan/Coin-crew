@@ -22,6 +22,22 @@ const CODE_COPY: Record<string, MessageKey> = {
   RATING_LIMIT: 'error.ratingLimit',
 };
 
+function oversellDate(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const details = (error as { details?: unknown }).details;
+  if (!details || typeof details !== 'object') return undefined;
+  const nested = (details as { details?: unknown }).details;
+  const raw =
+    nested && typeof nested === 'object' && 'date' in nested
+      ? (nested as { date?: unknown }).date
+      : (details as { date?: unknown }).date;
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : trimmed;
+}
+
 function errorCode(error: unknown): string | undefined {
   return error && typeof error === 'object' && 'code' in error ? String((error as { code: unknown }).code) : undefined;
 }
@@ -63,6 +79,12 @@ export function errorText(error: unknown, t: ReturnType<typeof useT>): string {
   const code = errorCode(error);
   const key = code === undefined ? undefined : CODE_COPY[code];
   if (key) return t(key);
+  if (code === 'OVERSELL') {
+    const date = oversellDate(error);
+    return date
+      ? t('error.oversell', { date })
+      : t('error.oversell', { date: '' }).replace(/\s*\(\)/, '');
+  }
   if (code === 'VALIDATION') {
     const reason = validationReason(error);
     return t(reason ? (`validation.${reason}` as MessageKey) : 'error.validation');
@@ -75,7 +97,11 @@ export function InlineError({ error, onRetry, className = '' }: InlineErrorProps
   const code = errorCode(error);
   const message = errorText(error, t);
   // Retry helps only with the unexpected: a known code or a validation error would fail the same way again.
-  const showRetry = Boolean(onRetry) && code !== 'VALIDATION' && (code === undefined || !(code in CODE_COPY));
+  const showRetry =
+    Boolean(onRetry) &&
+    code !== 'VALIDATION' &&
+    code !== 'OVERSELL' &&
+    (code === undefined || !(code in CODE_COPY));
 
   return (
     <Alert

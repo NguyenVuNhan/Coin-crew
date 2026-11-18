@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   formatMoney,
+  type AssetView,
   type CategoryView,
   type CurrencyCode,
   type EntryView,
@@ -12,6 +13,7 @@ import {
 import { getLang, useT } from '@cc/web-i18n';
 import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
 import {
+  useAssets,
   useCategories,
   usePersonalList,
   useTags,
@@ -132,6 +134,7 @@ interface MonthBlockProps {
   viewMode: ViewMode;
   wallets: WalletDetailView[];
   categories: CategoryView[];
+  assets: AssetView[];
   isPrimaryMonth: boolean;
   hasActiveFilters: boolean;
   onClearFilters(): void;
@@ -146,6 +149,7 @@ function MonthBlock({
   viewMode,
   wallets,
   categories,
+  assets,
   isPrimaryMonth,
   hasActiveFilters,
   onClearFilters,
@@ -202,6 +206,9 @@ function MonthBlock({
       ) {
         key = 'transfer';
         title = t('personalEntry.transfer');
+      } else if (row.entry.type === 'buy' || row.entry.type === 'sell') {
+        key = 'trade';
+        title = t('transactions.typeTrade');
       } else {
         key = `cat:${row.entry.categoryId ?? 'other'}`;
         title =
@@ -291,6 +298,7 @@ function MonthBlock({
                 row={row}
                 wallets={wallets}
                 categories={categories}
+                assets={assets}
                 onOpenEntry={onOpenEntry}
               />
             ))}
@@ -315,12 +323,14 @@ export function TransactionsScreen(): JSX.Element {
       typeParam === 'expense' ||
       typeParam === 'income' ||
       typeParam === 'transfer' ||
+      typeParam === 'trade' ||
       typeParam === 'person'
         ? typeParam
         : undefined;
     return {
       walletId: searchParams.get('walletId') || undefined,
       categoryId: searchParams.get('categoryId') || undefined,
+      assetId: searchParams.get('assetId') || undefined,
       tagId: searchParams.get('tagId') || undefined,
       type,
       q: searchParams.get('q') || undefined,
@@ -332,6 +342,7 @@ export function TransactionsScreen(): JSX.Element {
   const hasActiveFilters = Boolean(
     filters.walletId ||
       filters.categoryId ||
+      filters.assetId ||
       filters.tagId ||
       filters.type ||
       filters.q ||
@@ -394,10 +405,12 @@ export function TransactionsScreen(): JSX.Element {
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
+  const assetsQuery = useAssets();
   const tagsQuery = useTags();
 
   const wallets = walletsQuery.data?.wallets ?? [];
   const categories = categoriesQuery.data?.categories ?? [];
+  const assets = assetsQuery.data?.assets ?? [];
   const tags = tagsQuery.data?.tags ?? [];
 
   const updateParams = (
@@ -408,6 +421,7 @@ export function TransactionsScreen(): JSX.Element {
     next.set('month', nextMonth);
     if (nextFilters.walletId) next.set('walletId', nextFilters.walletId);
     if (nextFilters.categoryId) next.set('categoryId', nextFilters.categoryId);
+    if (nextFilters.assetId) next.set('assetId', nextFilters.assetId);
     if (nextFilters.tagId) next.set('tagId', nextFilters.tagId);
     if (nextFilters.type) next.set('type', nextFilters.type);
     if (nextFilters.q) next.set('q', nextFilters.q);
@@ -504,6 +518,7 @@ export function TransactionsScreen(): JSX.Element {
           filters={filters}
           wallets={wallets}
           categories={categories}
+          assets={assets}
           tags={tags}
           onRemove={handleRemoveFilter}
         />
@@ -517,6 +532,7 @@ export function TransactionsScreen(): JSX.Element {
               viewMode={viewMode}
               wallets={wallets}
               categories={categories}
+              assets={assets}
               isPrimaryMonth
               hasActiveFilters={hasActiveFilters}
               onClearFilters={() => updateParams(selectedMonth, {})}
@@ -531,6 +547,7 @@ export function TransactionsScreen(): JSX.Element {
                 viewMode={viewMode}
                 wallets={wallets}
                 categories={categories}
+                assets={assets}
                 isPrimaryMonth={idx === 0}
                 hasActiveFilters={hasActiveFilters}
                 onClearFilters={() => updateParams(selectedMonth, {})}
@@ -564,6 +581,7 @@ export function TransactionsScreen(): JSX.Element {
         onApply={(next) => updateParams(selectedMonth, next)}
         wallets={wallets}
         categories={categories}
+        assets={assets}
         tags={tags}
       />
 
@@ -577,6 +595,7 @@ export function TransactionsScreen(): JSX.Element {
             entry={selectedEntry}
             wallets={wallets}
             categories={categories}
+            assets={assets}
             onDone={() => setSelectedEntry(null)}
           />
         )}

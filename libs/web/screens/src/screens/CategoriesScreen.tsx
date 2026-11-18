@@ -368,7 +368,7 @@ export function CategoriesScreen(): JSX.Element {
       {
         id: 'toggle-hidden',
         label: cat.hidden ? t('categories.show') : t('categories.hide'),
-        icon: cat.hidden ? 'check' : 'ban',
+        icon: cat.hidden ? 'eye' : 'eye-off',
         onSelect: () => {
           void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
         },
@@ -391,12 +391,41 @@ export function CategoriesScreen(): JSX.Element {
         <ActionRow
           label={cat.name}
           actions={actions}
+          onOpen={() => openEdit(cat)}
           leading={
             <div className="size-9 rounded-lg bg-muted grid place-items-center shrink-0 text-foreground">
               <Icon name={categoryIconName(cat.icon, cat.type)} size={18} />
             </div>
           }
-          trailing={cat.hidden ? <Pill tone="neutral">{t('categories.hiddenBadge')}</Pill> : undefined}
+          trailing={
+            <div className="flex items-center gap-1">
+              {cat.hidden && <Pill tone="neutral">{t('categories.hiddenBadge')}</Pill>}
+              <button
+                type="button"
+                aria-label={t('categories.editAria', { name: cat.name })}
+                data-testid={`category-edit-${cat.id}`}
+                onClick={() => openEdit(cat)}
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Icon name="edit" size={18} />
+              </button>
+              <button
+                type="button"
+                aria-label={
+                  cat.hidden
+                    ? t('categories.showAria', { name: cat.name })
+                    : t('categories.hideAria', { name: cat.name })
+                }
+                data-testid={`category-toggle-hidden-${cat.id}`}
+                onClick={() => {
+                  void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
+                }}
+                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Icon name={cat.hidden ? 'eye' : 'eye-off'} size={18} />
+              </button>
+            </div>
+          }
         >
           <span className="text-sm font-medium text-foreground truncate">{cat.name}</span>
         </ActionRow>
@@ -414,12 +443,22 @@ export function CategoriesScreen(): JSX.Element {
         <Tabs
           value={type}
           onValueChange={(v) => setType(v as 'expense' | 'income')}
+          className="gap-0"
         >
-          <TabsList className="grid grid-cols-2 w-full" aria-label={t('categories.tabs')}>
-            <TabsTrigger value="expense" className="min-h-11">
+          <TabsList
+            aria-label={t('categories.tabs')}
+            className="flex bg-muted rounded-full p-1 gap-1 h-auto w-full"
+          >
+            <TabsTrigger
+              value="expense"
+              className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+            >
               {t('personalEntry.expense')}
             </TabsTrigger>
-            <TabsTrigger value="income" className="min-h-11">
+            <TabsTrigger
+              value="income"
+              className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+            >
               {t('personalEntry.income')}
             </TabsTrigger>
           </TabsList>

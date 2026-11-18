@@ -3,7 +3,14 @@ import { useLocation, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CURRENCIES,
+  assetQuantityLabel,
+  assetUnitText,
   formatMoney,
+  formatQuantity,
+  isLotAsset,
+  parseQuantity,
+  quantityInputDecimals,
+  type AssetView,
   type CurrencyCode,
   type EntryInput,
   type EntryView,
@@ -14,13 +21,16 @@ import { useT } from '@cc/web-i18n';
 import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
 import { useIsMousePointer } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
+import { ApiClientError } from '@cc/web-data-access/client';
 import { useLedger } from '@cc/web-data-access/people';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
+  useAssets,
   useCategories,
   useCreateEntry,
   useDeleteEntry,
+  useHoldings,
   usePersonalList,
   useUpdateEntry,
   useWalletDetails,
@@ -41,6 +51,7 @@ import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { AmountField, evaluateAmountExpression, formatKeypadValue } from '../components/AmountField';
+import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { EntryDateRow } from '../components/EntryDateRow';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
@@ -53,15 +64,21 @@ import { QuickExpenseEmbed } from './ExpenseForm';
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
 
-function parseInitialType(raw: string | null): {
+function parseInitialType(
+  rawType: string | null,
+  rawTile: string | null,
+): {
   tab: TabValue;
   type: FormEntryType;
   transfer: boolean;
+  trade: boolean;
 } {
-  if (raw === 'loan-debt') return { tab: 'loan-debt', type: 'expense', transfer: false };
-  if (raw === 'income') return { tab: 'income', type: 'income', transfer: false };
-  if (raw === 'transfer') return { tab: 'expense', type: 'expense', transfer: true };
-  return { tab: 'expense', type: 'expense', transfer: false };
+  if (rawTile === 'buy') return { tab: 'expense', type: 'expense', transfer: false, trade: true };
+  if (rawTile === 'sell') return { tab: 'income', type: 'income', transfer: false, trade: true };
+  if (rawType === 'loan-debt') return { tab: 'loan-debt', type: 'expense', transfer: false, trade: false };
+  if (rawType === 'income') return { tab: 'income', type: 'income', transfer: false, trade: false };
+  if (rawType === 'transfer') return { tab: 'expense', type: 'expense', transfer: true, trade: false };
+  return { tab: 'expense', type: 'expense', transfer: false, trade: false };
 }
 
 function nowDatetimeLocal(): string {
@@ -203,13 +220,22 @@ export function EntryPage(): JSX.Element {
     [allWallets],
   );
 
-  const initial = parseInitialType(isEdit ? null : searchParams.get('type'));
+  const initial = parseInitialType(
+    isEdit ? null : searchParams.get('type'),
+    isEdit ? null : searchParams.get('tile'),
+  );
   const [activeTab, setActiveTab] = useState<TabValue>(initial.tab);
   const [entryType, setEntryType] = useState<FormEntryType>(initial.type);
   const [isTransferMode, setIsTransferMode] = useState<boolean>(initial.transfer);
+  const [isTradeMode, setIsTradeMode] = useState<boolean>(initial.trade);
   const [walletId, setWalletId] = useState('');
   const [otherWalletId, setOtherWalletId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [assetId, setAssetId] = useState<string | null>(null);
+  const [pickedAsset, setPickedAsset] = useState<AssetView | null>(null);
+  const [quantityText, setQuantityText] = useState('');
+  const [assetPickerOpen, setAssetPickerOpen] = useState(false);
+  const [serverOversellError, setServerOversellError] = useState<unknown>(null);
   const [primaryExpr, setPrimaryExpr] = useState('');
   const [secondaryExpr, setSecondaryExpr] = useState('');
   const [activeTransferField, setActiveTransferField] = useState<'primary' | 'secondary'>('primary');
@@ -245,8 +271,11 @@ export function EntryPage(): JSX.Element {
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
   const primaryInputRef = useRef<HTMLInputElement>(null);
   const secondaryInputRef = useRef<HTMLInputElement>(null);
+  const assetRowRef = useRef<HTMLButtonElement>(null);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const quantityInitializedRef = useRef(false);
   const saveBarRef = useRef<HTMLDivElement>(null);
-  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'save' | null>(null);
+  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'save' | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
   const isMousePointer = useIsMousePointer();
@@ -269,6 +298,12 @@ export function EntryPage(): JSX.Element {
       firstTile?.scrollIntoView?.({ block: 'nearest' });
     } else if (target === 'secondary') {
       secondaryButtonRef.current?.focus();
+    } else if (target === 'asset') {
+      assetRowRef.current?.focus();
+      assetRowRef.current?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'quantity') {
+      quantityInputRef.current?.focus();
+      quantityInputRef.current?.scrollIntoView?.({ block: 'nearest' });
     } else {
       saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
     }
@@ -291,18 +326,27 @@ export function EntryPage(): JSX.Element {
   // Initialize default wallets in new mode
   useEffect(() => {
     if (isEdit || walletDefaultsApplied || activeWallets.length === 0) return;
-    const defId = pickDefaultWallet(activeWallets);
+    const urlWalletId = searchParams.get('wallet');
+    const validUrlWallet =
+      urlWalletId && activeWallets.some((w) => w.id === urlWalletId) ? urlWalletId : null;
+    const defId = validUrlWallet ?? pickDefaultWallet(activeWallets);
     const otherId = activeWallets.find((w) => w.id !== defId)?.id ?? '';
     setWalletId(defId);
     setOtherWalletId(otherId);
+    const defWallet = activeWallets.find((w) => w.id === defId);
+    if (defWallet && defWallet.kind !== 'investment') {
+      setIsTradeMode(false);
+    }
     setWalletDefaultsApplied(true);
-  }, [isEdit, walletDefaultsApplied, activeWallets]);
+  }, [isEdit, walletDefaultsApplied, activeWallets, searchParams]);
 
   // Initialize form from loaded entry in edit mode
   useEffect(() => {
     if (!isEdit || !entry || initializedId === entry.id) return;
     const isTransfer = entry.type === 'transfer_out' || entry.type === 'transfer_in';
+    const isTrade = entry.type === 'buy' || entry.type === 'sell';
     setIsTransferMode(isTransfer);
+    setIsTradeMode(isTrade);
 
     if (isTransfer) {
       setEntryType('expense');
@@ -321,6 +365,12 @@ export function EntryPage(): JSX.Element {
           setPrimaryExpr(formatKeypadValue(counterpartEntry.amount, counterpartEntry.currency));
         }
       }
+    } else if (isTrade) {
+      setEntryType(entry.type === 'sell' ? 'income' : 'expense');
+      setWalletId(entry.walletId);
+      setCategoryId(null);
+      setAssetId(entry.assetId ?? null);
+      setPrimaryExpr(formatKeypadValue(entry.amount, entry.currency));
     } else {
       setEntryType(entry.type === 'income' ? 'income' : 'expense');
       setWalletId(entry.walletId);
@@ -368,6 +418,62 @@ export function EntryPage(): JSX.Element {
           activeWallets.find((w) => w.id !== selectedWallet?.id)),
     [isEdit, allWallets, activeWallets, otherWalletId, selectedWallet?.id],
   );
+
+  const isInvestmentWallet = selectedWallet?.kind === 'investment';
+  const assetsQuery = useAssets({ enabled: isInvestmentWallet || isTradeMode });
+  const holdingsQuery = useHoldings(selectedWallet?.id, {
+    enabled: isTradeMode && entryType === 'income' && Boolean(selectedWallet?.id),
+  });
+
+  const allAssets = useMemo(
+    () => assetsQuery.data?.assets ?? [],
+    [assetsQuery.data?.assets],
+  );
+  const selectedAsset = useMemo(
+    () =>
+      allAssets.find((a) => a.id === assetId) ??
+      (pickedAsset && pickedAsset.id === assetId ? pickedAsset : null),
+    [allAssets, assetId, pickedAsset],
+  );
+
+  useEffect(() => {
+    if (!isEdit || !entry || !isTradeMode || quantityInitializedRef.current) return;
+    if (entry.quantity == null || !selectedAsset) return;
+    setQuantityText(formatQuantity(entry.quantity, quantityInputDecimals(selectedAsset)));
+    quantityInitializedRef.current = true;
+  }, [isEdit, entry, isTradeMode, selectedAsset]);
+
+  const parsedQuantity = useMemo(
+    () =>
+      isTradeMode && selectedAsset
+        ? parseQuantity(quantityText, quantityInputDecimals(selectedAsset))
+        : null,
+    [isTradeMode, selectedAsset, quantityText],
+  );
+
+  const heldQuantity = useMemo(() => {
+    if (!isTradeMode || entryType !== 'income' || !selectedAsset || !holdingsQuery.data) return null;
+    const baseHeld =
+      holdingsQuery.data.holdings.find((h) => h.assetId === selectedAsset.id)?.quantity ?? 0;
+    if (
+      isEdit &&
+      entry?.type === 'sell' &&
+      entry.walletId === selectedWallet?.id &&
+      entry.assetId === selectedAsset.id &&
+      entry.quantity != null
+    ) {
+      return baseHeld + entry.quantity;
+    }
+    return baseHeld;
+  }, [isTradeMode, entryType, selectedAsset, holdingsQuery.data, isEdit, entry, selectedWallet?.id]);
+
+  const isClientOversell =
+    isTradeMode &&
+    entryType === 'income' &&
+    parsedQuantity !== null &&
+    heldQuantity !== null &&
+    parsedQuantity > heldQuantity;
+  const showOversellError = isClientOversell || Boolean(serverOversellError);
 
   const fromWallet = isTransferMode
     ? entryType === 'expense'
@@ -505,12 +611,14 @@ export function EntryPage(): JSX.Element {
       setSearchParams(params, { replace: true });
       return;
     }
-    if (isEdit && isTransferMode) return;
+    if (isEdit && (isTransferMode || isTradeMode)) return;
     setActiveTab(next);
     setEntryType(next);
     setIsTransferMode(false);
+    setIsTradeMode(false);
     setActiveTransferField('primary');
     setCategoryId(null);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
     if (!excludeTouched) {
@@ -541,8 +649,11 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleSelectTransfer = () => {
+    if (isEdit && isTradeMode) return;
     setIsTransferMode(true);
+    setIsTradeMode(false);
     setCategoryId(null);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
     if (!excludeTouched) {
@@ -551,9 +662,12 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleSelectCategory = (cid: string) => {
+    if (isEdit && isTradeMode) return;
     setIsTransferMode(false);
+    setIsTradeMode(false);
     setActiveTransferField('primary');
     setCategoryId(cid);
+    setServerOversellError(null);
     setValidationError(null);
     clearCategoryError();
     if (!excludeTouched) {
@@ -561,7 +675,29 @@ export function EntryPage(): JSX.Element {
     }
   };
 
+  const handleSelectTrade = () => {
+    setIsTradeMode(true);
+    setIsTransferMode(false);
+    setActiveTransferField('primary');
+    setCategoryId(null);
+    setServerOversellError(null);
+    setValidationError(null);
+    clearCategoryError();
+  };
+
   const handleFieldDone = (field: 'primary' | 'secondary') => {
+    if (isTradeMode) {
+      if (!assetId) {
+        assetRowRef.current?.focus();
+        assetRowRef.current?.scrollIntoView?.({ block: 'nearest' });
+      } else if (!quantityText.trim()) {
+        quantityInputRef.current?.focus();
+        quantityInputRef.current?.scrollIntoView?.({ block: 'nearest' });
+      } else {
+        saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+      }
+      return;
+    }
     if (!isTransferMode && !categoryId) {
       const firstTile = categoryGridRef.current?.querySelector<HTMLElement>('button:not([disabled])');
       firstTile?.focus();
@@ -583,7 +719,15 @@ export function EntryPage(): JSX.Element {
     if (formatted !== activeExpr) {
       setActiveExpr(formatted);
     }
-    if (!isTransferMode && !categoryId) {
+    if (isTradeMode) {
+      if (!assetId) {
+        pendingFocusTargetRef.current = 'asset';
+      } else if (!quantityText.trim()) {
+        pendingFocusTargetRef.current = 'quantity';
+      } else {
+        pendingFocusTargetRef.current = 'save';
+      }
+    } else if (!isTransferMode && !categoryId) {
       pendingFocusTargetRef.current = 'category';
     } else if (
       isTransferMode &&
@@ -721,6 +865,47 @@ export function EntryPage(): JSX.Element {
         amount: formatMoney(sent, fromWallet.currency),
         wallet: toWallet.name,
       });
+    } else if (isTradeMode) {
+      if (!selectedWallet || !selectedAsset || parsedQuantity === null || isClientOversell) return;
+      const amountToSave =
+        confirmedOverride?.target === 'primary' ? confirmedOverride.minor : doneMinor;
+      if (!confirmedOverride && selectedWallet.currency === 'VND' && amountToSave >= 1 && amountToSave <= 999) {
+        setSmallAmountConfirm({ minor: amountToSave, target: 'primary' });
+        return;
+      }
+      if (
+        !isEdit &&
+        !confirmedOverride &&
+        selectedWallet.currency !== 'VND' &&
+        !foreignConfirmedRef.current
+      ) {
+        setForeignConfirm({
+          minor: amountToSave,
+          currency: selectedWallet.currency,
+          walletName: selectedWallet.name,
+        });
+        return;
+      }
+
+      input = {
+        type: entryType === 'expense' ? 'buy' : 'sell',
+        walletId: selectedWallet.id,
+        assetId: selectedAsset.id,
+        quantity: parsedQuantity,
+        amount: amountToSave,
+        date,
+        time,
+        note: note.trim() ? note.trim() : null,
+        ...(isEdit ? { tags } : {}),
+      };
+      lastUsedWalletId = selectedWallet.id;
+      savedMessage = t(
+        entryType === 'expense' ? 'personalEntry.savedBuy' : 'personalEntry.savedSell',
+        {
+          qty: formatQuantity(parsedQuantity, selectedAsset.decimals),
+          asset: selectedAsset.name,
+        },
+      );
     } else {
       if (!selectedWallet) return;
       if (!categoryId) {
@@ -799,7 +984,17 @@ export function EntryPage(): JSX.Element {
       }
       goBack();
     } catch (err) {
-      setValidationError(err);
+      const code =
+        err instanceof ApiClientError
+          ? err.code
+          : err && typeof err === 'object' && 'code' in err
+            ? String((err as { code: unknown }).code)
+            : undefined;
+      if (code === 'OVERSELL') {
+        setServerOversellError(err);
+      } else {
+        setValidationError(err);
+      }
     } finally {
       savingRef.current = false;
     }
@@ -808,7 +1003,9 @@ export function EntryPage(): JSX.Element {
   const hasUnsavedAmount =
     !isEdit &&
     activeTab !== 'loan-debt' &&
-    (primaryExpr.trim().length > 0 || (isDiffCurrencyTransfer && secondaryExpr.trim().length > 0));
+    (primaryExpr.trim().length > 0 ||
+      (isDiffCurrencyTransfer && secondaryExpr.trim().length > 0) ||
+      (isTradeMode && quantityText.trim().length > 0));
 
   const handleBack = () => {
     if (hasUnsavedAmount) {
@@ -833,6 +1030,7 @@ export function EntryPage(): JSX.Element {
   };
 
   const editLockedTransfer = isEdit && isTransferMode;
+  const editLockedTrade = isEdit && isTradeMode;
 
   const impliedRate =
     isDiffCurrencyTransfer && fromWallet && toWallet && sentMinor !== null && receivedMinor !== null
@@ -884,6 +1082,11 @@ export function EntryPage(): JSX.Element {
       if (isTransferMode && pickedId === otherWallet?.id) {
         setOtherWalletId(selectedWallet?.id ?? '');
       }
+      const pickedWallet = allWallets.find((w) => w.id === pickedId);
+      if (pickedWallet && pickedWallet.kind !== 'investment') {
+        setIsTradeMode(false);
+      }
+      setServerOversellError(null);
       setWalletId(pickedId);
     } else if (walletSheetTarget === 'other') {
       if (pickedId === selectedWallet?.id) {
@@ -940,6 +1143,7 @@ export function EntryPage(): JSX.Element {
             >
               <TabsTrigger
                 value="expense"
+                disabled={editLockedTrade && entryType !== 'expense'}
                 data-testid="entry-tab-expense"
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
@@ -947,7 +1151,7 @@ export function EntryPage(): JSX.Element {
               </TabsTrigger>
               <TabsTrigger
                 value="income"
-                disabled={editLockedTransfer}
+                disabled={editLockedTransfer || (editLockedTrade && entryType !== 'income')}
                 data-testid="entry-tab-income"
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
@@ -1170,7 +1374,7 @@ export function EntryPage(): JSX.Element {
               )}
             </div>
 
-            {/* Category tiles (with fixed transfer tile) */}
+            {/* Category tiles (with fixed transfer and trade tiles) */}
             <CategoryPicker
               type={entryType}
               categories={categoriesQuery.data?.categories ?? []}
@@ -1180,6 +1384,10 @@ export function EntryPage(): JSX.Element {
               onChange={handleSelectCategory}
               transferSelected={isTransferMode}
               onSelectTransfer={handleSelectTransfer}
+              tradeSelected={isTradeMode}
+              onTradeSelect={handleSelectTrade}
+              showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
+              disableNonTrade={editLockedTrade}
               error={categoryError ? t('personalEntry.pickCategoryError') : null}
               highlightError={categoryRingActive}
               gridRef={categoryGridRef}
@@ -1225,6 +1433,104 @@ export function EntryPage(): JSX.Element {
                 </button>
               )}
 
+              {isTradeMode && (
+                <>
+                  <button
+                    type="button"
+                    ref={assetRowRef}
+                    data-testid="entry-asset-row"
+                    onClick={() => setAssetPickerOpen(true)}
+                    className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
+                  >
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {t('personalEntry.asset')}
+                    </span>
+                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                      <span className={!selectedAsset ? 'text-muted-foreground' : undefined}>
+                        {selectedAsset ? selectedAsset.name : t('personalEntry.pickAsset')}
+                      </span>
+                      <Icon name="chevronRight" size={18} className="text-muted-foreground" />
+                    </span>
+                  </button>
+
+                  <div className="w-full px-4 py-2 flex flex-col gap-1">
+                    <div className="min-h-11 flex items-center justify-between gap-3">
+                      <Label
+                        htmlFor="entry-quantity-input"
+                        className="text-sm font-medium text-muted-foreground shrink-0"
+                      >
+                        {t('personalEntry.quantity')}
+                      </Label>
+                      <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                        <Input
+                          id="entry-quantity-input"
+                          ref={quantityInputRef}
+                          type="text"
+                          inputMode={selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'}
+                          value={quantityText}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const next =
+                              selectedAsset && quantityInputDecimals(selectedAsset) > 0
+                                ? raw.replace(/\./g, ',')
+                                : raw;
+                            setQuantityText(next);
+                            setServerOversellError(null);
+                            setValidationError(null);
+                          }}
+                          placeholder="0"
+                          data-testid="entry-quantity"
+                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
+                        />
+                        {selectedAsset && (
+                          <span
+                            data-testid="entry-quantity-unit"
+                            className="text-sm font-medium text-muted-foreground shrink-0"
+                          >
+                            {isLotAsset(selectedAsset)
+                              ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
+                              : selectedAsset.unit}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {selectedAsset &&
+                      isLotAsset(selectedAsset) &&
+                      selectedAsset.decimals > 0 &&
+                      parsedQuantity !== null && (
+                        <p
+                          data-testid="entry-quantity-total"
+                          className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                        >
+                          = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                        </p>
+                      )}
+                    {entryType === 'income' && selectedAsset && heldQuantity !== null && (
+                      <p
+                        data-testid="entry-held"
+                        className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                      >
+                        {t('personalEntry.heldQuantity', {
+                          qty: formatQuantity(heldQuantity, selectedAsset.decimals),
+                          unit: selectedAsset.unit || selectedAsset.name,
+                        })}
+                      </p>
+                    )}
+                    {showOversellError && (
+                      <div data-testid="entry-quantity-error">
+                        <InlineError
+                          error={
+                            isClientOversell
+                              ? ownError(t('personalEntry.oversellError'))
+                              : serverOversellError
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
               <EntryDateRow
                 date={dateTime.split('T')[0] ?? ''}
                 time={dateTime.split('T')[1]?.slice(0, 5) || null}
@@ -1249,8 +1555,8 @@ export function EntryPage(): JSX.Element {
               {isTransferMode && excludeRow}
             </div>
 
-            {/* More details toggle (not for transfers: the switch is inline above) */}
-            {!isTransferMode && (
+            {/* More details toggle (not for transfers or trades) */}
+            {!isTransferMode && !isTradeMode && (
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
@@ -1311,9 +1617,22 @@ export function EntryPage(): JSX.Element {
                               : 'personalEntry.enterAmountSent',
                           )
                         : null;
+                const tradeDisabledReason = !isTradeMode
+                  ? null
+                  : !selectedAsset
+                    ? t('personalEntry.chooseAsset')
+                    : parsedQuantity === null
+                      ? t('personalEntry.enterQuantity')
+                      : isClientOversell
+                        ? t('personalEntry.oversellError')
+                        : primaryMinor === null
+                          ? t('loanDebt.enterAmount')
+                          : null;
                 const saveDisabled = isTransferMode
                   ? transferDisabledReason !== null || isSaving || hasArchivedWallet
-                  : activeMinor === null || isSaving || hasArchivedWallet;
+                  : isTradeMode
+                    ? tradeDisabledReason !== null || isSaving || hasArchivedWallet
+                    : activeMinor === null || isSaving || hasArchivedWallet;
                 return (
                   <>
                     {transferDisabledReason && !isSaving && !hasArchivedWallet && (
@@ -1322,6 +1641,14 @@ export function EntryPage(): JSX.Element {
                         className="m-0 text-center text-sm text-muted-foreground"
                       >
                         {transferDisabledReason}
+                      </p>
+                    )}
+                    {tradeDisabledReason && !isSaving && !hasArchivedWallet && (
+                      <p
+                        data-testid="trade-disabled-reason"
+                        className="m-0 text-center text-sm text-muted-foreground"
+                      >
+                        {tradeDisabledReason}
                       </p>
                     )}
                     <Button
@@ -1381,6 +1708,20 @@ export function EntryPage(): JSX.Element {
           })}
         </div>
       </Sheet>
+      {/* Asset picker Sheet */}
+      <AssetPicker
+        open={assetPickerOpen}
+        onClose={() => setAssetPickerOpen(false)}
+        assets={allAssets}
+        value={assetId}
+        onSelect={(asset) => {
+          setAssetId(asset.id);
+          setPickedAsset(asset);
+          setServerOversellError(null);
+          setValidationError(null);
+        }}
+      />
+
       {/* Small-amount guard Modal */}
       <SmallAmountModal
         minor={smallAmountConfirm?.minor ?? null}

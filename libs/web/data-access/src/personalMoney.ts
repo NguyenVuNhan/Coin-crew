@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
+  AssetsResponse,
+  AssetView,
   CategoriesResponse,
   CategoryView,
   CreateWalletInput,
   EntriesResponse,
   EntryInput,
+  HoldingsResponse,
   ListQuery,
   ListResponse,
   PersonalSummary,
@@ -20,6 +23,8 @@ export const PERSONAL_SUMMARY_KEY = ['me', 'personal', 'summary'] as const;
 export const PERSONAL_CATEGORIES_KEY = ['me', 'personal', 'categories'] as const;
 export const PERSONAL_TAGS_KEY = ['me', 'personal', 'tags'] as const;
 export const PERSONAL_LIST_KEY = ['me', 'personal', 'list'] as const;
+export const PERSONAL_ASSETS_KEY = ['me', 'personal', 'assets'] as const;
+export const PERSONAL_HOLDINGS_KEY = ['me', 'personal', 'holdings'] as const;
 
 const LAST_WALLET_STORAGE_KEY = 'cc.personal.lastWallet';
 
@@ -49,11 +54,31 @@ export interface TagResponse {
   tag: TagView;
 }
 
+export interface CreateAssetInput {
+  name: string;
+  unit: string;
+  groupName: string;
+  decimals: number;
+}
+
+export interface UpdateAssetInput {
+  name?: string;
+  unit?: string;
+  groupName?: string;
+  decimals?: number;
+  hidden?: boolean;
+}
+
+export interface AssetResponse {
+  asset: AssetView;
+}
+
 async function invalidateMoney(queryClient: QueryClient): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: WALLETS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_SUMMARY_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
   ]);
 }
 
@@ -62,6 +87,8 @@ async function invalidateEntry(queryClient: QueryClient): Promise<void> {
     invalidateMoney(queryClient),
     queryClient.invalidateQueries({ queryKey: PERSONAL_TAGS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
   ]);
 }
 
@@ -112,6 +139,7 @@ export function buildListQueryString(query: ListQuery): string {
     ['to', query.to],
     ['walletId', query.walletId],
     ['categoryId', query.categoryId],
+    ['assetId', query.assetId],
     ['tagId', query.tagId],
     ['type', query.type],
     ['q', query.q],
@@ -320,5 +348,68 @@ export function useRestoreEntries() {
     mutationFn: (input: EntriesResponse) =>
       apiSend<EntriesResponse>('/api/me/personal/transactions/restore', 'POST', input),
     onSuccess: () => invalidateEntry(queryClient),
+  });
+}
+
+export function useAssets(opts?: { enabled?: boolean }) {
+  return useQuery<AssetsResponse, ApiClientError>({
+    queryKey: PERSONAL_ASSETS_KEY,
+    queryFn: () => apiFetch<AssetsResponse>('/api/me/personal/assets'),
+    enabled: opts?.enabled ?? true,
+  });
+}
+
+export function useCreateAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AssetResponse, ApiClientError, CreateAssetInput>({
+    mutationFn: (input: CreateAssetInput) =>
+      apiSend<AssetResponse>('/api/me/personal/assets', 'POST', input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
+  });
+}
+
+export function useUpdateAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AssetResponse, ApiClientError, { id: string; input: UpdateAssetInput }>({
+    mutationFn: ({ id, input }) =>
+      apiSend<AssetResponse>(`/api/me/personal/assets/${encodeURIComponent(id)}`, 'PATCH', input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
+  });
+}
+
+export function useDeleteAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ ok: true }, ApiClientError, { id: string; moveTo?: string }>({
+    mutationFn: ({ id, moveTo }) => {
+      const base = `/api/me/personal/assets/${encodeURIComponent(id)}`;
+      const path = moveTo ? `${base}?moveTo=${encodeURIComponent(moveTo)}` : base;
+      return apiSend<{ ok: true }>(path, 'DELETE');
+    },
+    onSuccess: async (_data, { moveTo }) => {
+      if (moveTo) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
+          queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
+          queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
+        ]);
+      } else {
+        await queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY });
+      }
+    },
+  });
+}
+
+export function useHoldings(walletId?: string, opts?: { enabled?: boolean }) {
+  const path = walletId
+    ? `/api/me/personal/holdings?walletId=${encodeURIComponent(walletId)}`
+    : '/api/me/personal/holdings';
+
+  return useQuery<HoldingsResponse, ApiClientError>({
+    queryKey: [...PERSONAL_HOLDINGS_KEY, walletId ?? 'all'],
+    queryFn: () => apiFetch<HoldingsResponse>(path),
+    enabled: opts?.enabled ?? true,
   });
 }

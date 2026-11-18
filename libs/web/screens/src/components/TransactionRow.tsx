@@ -1,13 +1,16 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router';
 import {
+  assetQuantityLabel,
   formatMoney,
+  type AssetView,
   type CategoryView,
   type EntryView,
   type ListRow,
   type WalletDetailView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { Amount } from '@cc/web-ui/components/Amount';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -21,6 +24,7 @@ export interface TransactionRowProps {
   row: ListRow;
   categories?: CategoryView[];
   wallets?: WalletDetailView[];
+  assets?: AssetView[];
   onOpenEntry?: (entry: EntryView) => void;
 }
 
@@ -31,11 +35,13 @@ export function TransactionRow({
   row,
   categories = [],
   wallets = [],
+  assets = [],
   onOpenEntry,
 }: TransactionRowProps): JSX.Element {
   const t = useT();
   const walletMap = new Map(wallets.map((w) => [w.id, w.name]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
+  const assetMap = new Map(assets.map((a) => [a.id, a]));
 
   if (row.kind === 'person') {
     const walletName = walletMap.get(row.walletId) ?? '';
@@ -72,8 +78,12 @@ export function TransactionRow({
 
   const entry = row.entry;
   const isTransfer = entry.type === 'transfer_in' || entry.type === 'transfer_out';
+  const isTrade = entry.type === 'buy' || entry.type === 'sell';
+  const isBuy = entry.type === 'buy';
   const isExpense = entry.type === 'expense';
   const category = entry.categoryId ? categoryMap.get(entry.categoryId) : undefined;
+  const asset = entry.assetId ? assetMap.get(entry.assetId) : undefined;
+  const assetName = asset?.name ?? entry.assetId ?? '';
   const walletName = walletMap.get(entry.walletId) ?? '';
   const counterpartName = entry.counterpartWalletId
     ? walletMap.get(entry.counterpartWalletId) ?? ''
@@ -81,15 +91,27 @@ export function TransactionRow({
 
   const title = isTransfer
     ? t('personalEntry.transfer')
-    : category?.name ??
-      (isExpense ? t('personalEntry.expense') : t('personalEntry.income'));
+    : isTrade
+      ? isBuy
+        ? t('transactions.buyAssetTitle', { asset: assetName })
+        : t('transactions.sellAssetTitle', { asset: assetName })
+      : category?.name ??
+        (isExpense ? t('personalEntry.expense') : t('personalEntry.income'));
 
   const iconName: IconName = isTransfer
     ? 'swap'
-    : categoryIconName(category?.icon, isExpense ? 'expense' : 'income');
+    : isTrade
+      ? 'trending-up'
+      : categoryIconName(category?.icon, isExpense ? 'expense' : 'income');
 
   const tagText = entry.tags.length > 0 ? entry.tags.map((tag) => `#${tag}`).join(' ') : '';
-  const metaParts = [entry.note ?? '', walletName, tagText].filter(Boolean);
+  const qtyPart =
+    isTrade && asset && entry.quantity != null
+      ? assetQuantityLabel(entry.quantity, asset)
+      : '';
+  const metaParts = isTrade
+    ? [qtyPart, walletName, entry.note ?? '', tagText].filter(Boolean)
+    : [entry.note ?? '', walletName, tagText].filter(Boolean);
 
   const formattedAmount = formatMoney(Math.abs(entry.amount), entry.currency);
   const signedText = isTransfer
@@ -128,14 +150,21 @@ export function TransactionRow({
         )}
       </div>
       <div className="flex flex-col items-end shrink-0">
-        <span
-          className={cn(
-            'fsl-tx-row__amount text-sm font-semibold tabular-nums whitespace-nowrap',
-            amountToneClass,
-          )}
-        >
-          {signedText}
-        </span>
+        {isTrade ? (
+          <span className="fsl-tx-row__amount inline-flex items-baseline text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">
+            <span>{isBuy ? '\u2212' : '+'}</span>
+            <Amount value={Math.abs(entry.amount)} currency={entry.currency} tone="neutral" size="sm" />
+          </span>
+        ) : (
+          <span
+            className={cn(
+              'fsl-tx-row__amount text-sm font-semibold tabular-nums whitespace-nowrap',
+              amountToneClass,
+            )}
+          >
+            {signedText}
+          </span>
+        )}
         {isTransfer && counterpartName && (
           <span className="text-xs text-foreground tabular-nums whitespace-nowrap">
             {t('transactions.directionTo', { wallet: counterpartName })}

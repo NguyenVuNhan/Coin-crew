@@ -24,6 +24,7 @@ export type ApiErrorCode =
   | 'ZALO_TOKEN_INVALID'
   | 'IN_USE'
   | 'DEFAULT_WALLET'
+  | 'OVERSELL'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
@@ -729,6 +730,7 @@ export interface WalletDetailResponse {
 
 export interface PersonalSummary {
   totalVnd: number;
+  cashVnd?: number;
   approximate: boolean;
   perCurrency: { currency: CurrencyCode; balance: number }[];
   unratedWalletIds: string[];
@@ -781,6 +783,17 @@ export type EntryInput =
       note?: string | null;
       tags?: string[];
       excludeFromReports?: boolean;
+    }
+  | {
+      type: 'buy' | 'sell';
+      walletId: string;
+      assetId: string;
+      quantity: number;
+      amount: number;
+      date: string;
+      time?: string | null;
+      note?: string | null;
+      tags?: string[];
     };
 
 export interface EntryView {
@@ -790,6 +803,8 @@ export interface EntryView {
   amount: number;
   currency: CurrencyCode;
   categoryId: string | null;
+  assetId?: string | null;
+  quantity?: number | null;
   transferId: string | null;
   counterpartWalletId: string | null;
   date: string;
@@ -828,13 +843,41 @@ export interface ListQuery {
   to?: string;
   walletId?: string;
   categoryId?: string;
+  assetId?: string;
   tagId?: string;
-  type?: 'expense' | 'income' | 'transfer' | 'person';
+  type?: 'expense' | 'income' | 'transfer' | 'person' | 'trade';
   q?: string;
 }
 
 export interface ListResponse {
   rows: ListRow[];
   totals: { currency: CurrencyCode; spent: number; income: number }[];
+}
+
+export interface AssetView {
+  id: string;
+  name: string;
+  unit: string;
+  groupName: string;
+  decimals: number;
+  hidden: boolean;
+  sortOrder: number;
+  entryCount: number;
+}
+
+export interface AssetsResponse {
+  assets: AssetView[];
+}
+
+export interface HoldingView {
+  walletId: string;
+  assetId: string;
+  quantity: number;
+  cost: number;
+  costVnd: number | null;
+}
+
+export interface HoldingsResponse {
+  holdings: HoldingView[];
 }
 

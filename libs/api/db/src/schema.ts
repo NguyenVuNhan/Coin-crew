@@ -561,6 +561,7 @@ export const personalTransactions = sqliteTable(
     index('personal_tx_user_date_idx').on(t.userId, t.date),
     index('personal_tx_wallet_date_idx').on(t.walletId, t.date),
     index('personal_tx_transfer_idx').on(t.transferId),
+    index('personal_tx_asset_idx').on(t.assetId),
     uniqueIndex('personal_tx_external_uq')
       .on(t.userId, t.source, t.externalRef)
       .where(sql`${t.externalRef} IS NOT NULL`),
@@ -584,6 +585,29 @@ export const personalTransactionTags = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.transactionId, t.tagId] }),
     index('personal_tx_tags_tag_idx').on(t.tagId),
+  ],
+);
+
+export const personalAssets = sqliteTable(
+  'personal_assets',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    unit: text('unit').notNull(),
+    groupName: text('group_name').notNull(),
+    decimals: integer('decimals').notNull(),
+    hidden: integer('hidden').notNull().default(0),
+    sortOrder: integer('sort_order').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    index('personal_assets_user_sort_idx').on(t.userId, t.sortOrder),
+    uniqueIndex('personal_assets_user_name_uq').on(t.userId, sql`lower(${t.name})`),
+    check('personal_assets_decimals_check', sql`${t.decimals} BETWEEN 0 AND 8`),
   ],
 );
 

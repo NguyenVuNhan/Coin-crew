@@ -4,6 +4,7 @@ import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import {
+  personalAssets,
   personalCategories,
   personalTags,
   personalTransactions,
@@ -16,11 +17,16 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import {
+  findOversell,
   isBeforeStart,
   isValidAmount,
+  isValidQuantity,
+  type CalcEntry,
+  type CalcWallet,
   type CurrencyCode,
   type EntryView,
   type PersonalEntryType,
+  type WalletKind,
 } from '@cc/core';
 import { parseEntryInput, parseNote, parseTags } from './entryInput';
 import { optionalTime, parseJson, requireDate } from './validate';
@@ -28,7 +34,10 @@ import { optionalTime, parseJson, requireDate } from './validate';
 interface WalletInfo {
   id: string;
   currency: CurrencyCode;
+  kind: WalletKind;
+  startAmount: number;
   startDate: string;
+  startCostVnd: number | null;
   archived: boolean;
 }
 
@@ -42,7 +51,10 @@ async function loadWalletsMap(
     .select({
       id: personalWallets.id,
       currency: personalWallets.currency,
+      startAmount: personalWallets.startAmount,
       startDate: personalWallets.startDate,
+      kind: personalWalletSettings.kind,
+      startCostVnd: personalWalletSettings.startCostVnd,
       archivedAt: personalWalletSettings.archivedAt,
     })
     .from(personalWallets)
@@ -55,7 +67,10 @@ async function loadWalletsMap(
     map.set(r.id, {
       id: r.id,
       currency: r.currency as CurrencyCode,
+      kind: (r.kind ?? 'everyday') as WalletKind,
+      startAmount: r.startAmount,
       startDate: r.startDate,
+      startCostVnd: r.startCostVnd ?? null,
       archived: r.archivedAt !== null && r.archivedAt !== undefined,
     });
   }
@@ -96,6 +111,85 @@ async function requireCategory(
   }
   if (cat.type !== expectedType || (!allowHidden && Boolean(cat.hidden))) {
     throw new ApiError('VALIDATION', 422, 'Invalid category');
+  }
+}
+
+async function requireAsset(
+  db: Db,
+  userId: string,
+  assetId: string,
+  allowHidden = false,
+): Promise<void> {
+  const asset = await db
+    .select({
+      id: personalAssets.id,
+      hidden: personalAssets.hidden,
+    })
+    .from(personalAssets)
+    .where(and(eq(personalAssets.id, assetId), eq(personalAssets.userId, userId)))
+    .get();
+
+  if (!asset) {
+    throw new ApiError('NOT_FOUND', 404, 'Asset not found');
+  }
+  if (!allowHidden && Boolean(asset.hidden)) {
+    throw new ApiError('VALIDATION', 422, 'Asset is hidden');
+  }
+}
+
+async function loadWalletTrades(
+  db: Db,
+  userId: string,
+  walletId: string,
+): Promise<CalcEntry[]> {
+  const rows = await db
+    .select({
+      id: personalTransactions.id,
+      walletId: personalTransactions.walletId,
+      type: personalTransactions.type,
+      amount: personalTransactions.amount,
+      date: personalTransactions.date,
+      time: personalTransactions.time,
+      createdAt: personalTransactions.createdAt,
+      transferId: personalTransactions.transferId,
+      excludeFromReports: personalTransactions.excludeFromReports,
+      assetId: personalTransactions.assetId,
+      quantity: personalTransactions.quantity,
+    })
+    .from(personalTransactions)
+    .where(
+      and(
+        eq(personalTransactions.userId, userId),
+        eq(personalTransactions.walletId, walletId),
+        inArray(personalTransactions.type, ['buy', 'sell']),
+      ),
+    )
+    .all();
+
+  return rows.map((r) => ({
+    id: r.id,
+    walletId: r.walletId,
+    type: r.type as PersonalEntryType,
+    amount: r.amount,
+    date: r.date,
+    time: r.time ?? null,
+    createdAt: r.createdAt,
+    transferId: r.transferId ?? null,
+    excludeFromReports: Boolean(r.excludeFromReports),
+    assetId: r.assetId ?? null,
+    quantity: r.quantity ?? null,
+  }));
+}
+
+function assertNoOversell(
+  wallet: Pick<CalcWallet, 'id' | 'currency' | 'startAmount' | 'startDate' | 'startCostVnd' | 'archived'>,
+  trades: CalcEntry[],
+): void {
+  const oversell = findOversell(wallet, trades);
+  if (oversell) {
+    throw new ApiError('OVERSELL', 422, 'Insufficient asset quantity', {
+      details: oversell,
+    });
   }
 }
 
@@ -169,6 +263,8 @@ function buildEntryView(params: {
   type: PersonalEntryType;
   amount: number;
   categoryId: string | null;
+  assetId?: string | null;
+  quantity?: number | null;
   transferId: string | null;
   counterpartWalletId: string | null;
   date: string;
@@ -185,6 +281,8 @@ function buildEntryView(params: {
     amount: params.amount,
     currency: params.wallet.currency,
     categoryId: params.categoryId,
+    assetId: params.assetId ?? null,
+    quantity: params.quantity ?? null,
     transferId: params.transferId,
     counterpartWalletId: params.counterpartWalletId,
     date: params.date,
@@ -204,6 +302,8 @@ interface ParsedRestoreItem {
   type: PersonalEntryType;
   amount: number;
   categoryId: string | null;
+  assetId: string | null;
+  quantity: number | null;
   transferId: string | null;
   date: string;
   time: string | null;
@@ -234,7 +334,9 @@ function parseRestoreItem(raw: unknown): ParsedRestoreItem {
     e.type !== 'expense' &&
     e.type !== 'income' &&
     e.type !== 'transfer_out' &&
-    e.type !== 'transfer_in'
+    e.type !== 'transfer_in' &&
+    e.type !== 'buy' &&
+    e.type !== 'sell'
   ) {
     throw new ApiError('VALIDATION', 422, 'Invalid type');
   }
@@ -249,7 +351,27 @@ function parseRestoreItem(raw: unknown): ParsedRestoreItem {
     }
     categoryId = e.categoryId;
   } else if (e.categoryId !== undefined && e.categoryId !== null) {
-    throw new ApiError('VALIDATION', 422, 'Transfer cannot have categoryId');
+    throw new ApiError('VALIDATION', 422, 'Entry cannot have categoryId');
+  }
+
+  let assetId: string | null = null;
+  let quantity: number | null = null;
+  if (e.type === 'buy' || e.type === 'sell') {
+    if (typeof e.assetId !== 'string' || e.assetId.trim().length === 0) {
+      throw new ApiError('VALIDATION', 422, 'Invalid assetId');
+    }
+    if (typeof e.quantity !== 'number' || !isValidQuantity(e.quantity)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid quantity');
+    }
+    assetId = e.assetId;
+    quantity = e.quantity;
+  } else {
+    if (e.assetId !== undefined && e.assetId !== null) {
+      throw new ApiError('VALIDATION', 422, 'Non-trade cannot have assetId');
+    }
+    if (e.quantity !== undefined && e.quantity !== null) {
+      throw new ApiError('VALIDATION', 422, 'Non-trade cannot have quantity');
+    }
   }
 
   let transferId: string | null = null;
@@ -271,7 +393,9 @@ function parseRestoreItem(raw: unknown): ParsedRestoreItem {
     throw new ApiError('VALIDATION', 422, 'Invalid excludeFromReports');
   }
   const excludeFromReports =
-    e.excludeFromReports ?? (e.type === 'transfer_out' || e.type === 'transfer_in');
+    e.type === 'buy' || e.type === 'sell'
+      ? false
+      : (e.excludeFromReports ?? (e.type === 'transfer_out' || e.type === 'transfer_in'));
 
   if (typeof e.createdAt !== 'string') {
     throw new ApiError('VALIDATION', 422, 'Invalid createdAt');
@@ -288,6 +412,8 @@ function parseRestoreItem(raw: unknown): ParsedRestoreItem {
     type: e.type,
     amount: e.amount,
     categoryId,
+    assetId,
+    quantity,
     transferId,
     date,
     time,
@@ -308,7 +434,91 @@ export function entryRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const now = nowIso();
 
-    if (input.type !== 'transfer') {
+    if (input.type === 'buy' || input.type === 'sell') {
+      const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
+      const wallet = wallets.get(input.walletId)!;
+      if (wallet.kind !== 'investment') {
+        throw new ApiError('VALIDATION', 422, 'Wallet must be an investment wallet');
+      }
+      if (!isValidAmount(input.amount, wallet.currency)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+
+      await requireAsset(db, user.id, input.assetId, false);
+
+      const txId = newId();
+      const existingTrades = await loadWalletTrades(db, user.id, wallet.id);
+      const nextTrades: CalcEntry[] = [
+        ...existingTrades,
+        {
+          id: txId,
+          walletId: wallet.id,
+          type: input.type,
+          amount: input.amount,
+          date: input.date,
+          time: input.time ?? null,
+          createdAt: now,
+          transferId: null,
+          excludeFromReports: false,
+          assetId: input.assetId,
+          quantity: input.quantity,
+        },
+      ];
+      assertNoOversell(wallet, nextTrades);
+
+      const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+
+      const stmts: BatchItem<'sqlite'>[] = [
+        db.insert(personalTransactions).values({
+          id: txId,
+          userId: user.id,
+          walletId: wallet.id,
+          type: input.type,
+          amount: input.amount,
+          categoryId: null,
+          transferId: null,
+          assetId: input.assetId,
+          quantity: input.quantity,
+          date: input.date,
+          time: input.time ?? null,
+          note: input.note ?? null,
+          excludeFromReports: 0,
+          source: 'manual',
+          createdAt: now,
+          updatedAt: now,
+        }),
+        ...resolvedTags.map((t) =>
+          db.insert(personalTransactionTags).values({
+            transactionId: txId,
+            tagId: t.id,
+          }),
+        ),
+      ];
+
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+
+      const entry = buildEntryView({
+        id: txId,
+        wallet,
+        type: input.type,
+        amount: input.amount,
+        categoryId: null,
+        assetId: input.assetId,
+        quantity: input.quantity,
+        transferId: null,
+        counterpartWalletId: null,
+        date: input.date,
+        time: input.time ?? null,
+        note: input.note ?? null,
+        tags: resolvedTags.map((t) => t.name),
+        excludeFromReports: false,
+        createdAt: now,
+      });
+
+      return c.json({ entries: [entry] }, 201);
+    }
+
+    if (input.type === 'expense' || input.type === 'income') {
       const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
       const wallet = wallets.get(input.walletId)!;
 
@@ -366,6 +576,9 @@ export function entryRoutes(): Hono<AppBindings> {
       });
 
       return c.json({ entries: [entry] }, 201);
+    }
+    if (input.type !== 'transfer') {
+      throw new ApiError('NOT_IMPLEMENTED', 501, 'Not implemented');
     }
 
     const wallets = await loadWalletsMap(db, user.id, [input.fromWalletId, input.toWalletId]);
@@ -480,8 +693,10 @@ export function entryRoutes(): Hono<AppBindings> {
     const target = await db
       .select({
         id: personalTransactions.id,
+        walletId: personalTransactions.walletId,
         type: personalTransactions.type,
         categoryId: personalTransactions.categoryId,
+        assetId: personalTransactions.assetId,
         transferId: personalTransactions.transferId,
         createdAt: personalTransactions.createdAt,
       })
@@ -499,7 +714,109 @@ export function entryRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Cannot change between transfer and non-transfer');
     }
 
-    if (input.type !== 'transfer') {
+    const targetIsTrade = target.type === 'buy' || target.type === 'sell';
+    const inputIsTrade = input.type === 'buy' || input.type === 'sell';
+    if (targetIsTrade !== inputIsTrade) {
+      throw new ApiError('VALIDATION', 422, 'Cannot change between trade and non-trade');
+    }
+
+    if (input.type === 'buy' || input.type === 'sell') {
+      const wallets = await loadWalletsMap(db, user.id, [target.walletId, input.walletId]);
+      const oldWallet = wallets.get(target.walletId)!;
+      const newWallet = wallets.get(input.walletId)!;
+
+      if (newWallet.kind !== 'investment') {
+        throw new ApiError('VALIDATION', 422, 'Wallet must be an investment wallet');
+      }
+      if (!isValidAmount(input.amount, newWallet.currency)) {
+        throw new ApiError('VALIDATION', 422, 'Invalid amount');
+      }
+
+      const allowHidden = target.assetId === input.assetId;
+      await requireAsset(db, user.id, input.assetId, allowHidden);
+
+      const updatedEntry: CalcEntry = {
+        id: target.id,
+        walletId: newWallet.id,
+        type: input.type,
+        amount: input.amount,
+        date: input.date,
+        time: input.time ?? null,
+        createdAt: target.createdAt,
+        transferId: null,
+        excludeFromReports: false,
+        assetId: input.assetId,
+        quantity: input.quantity,
+      };
+
+      if (oldWallet.id === newWallet.id) {
+        const trades = await loadWalletTrades(db, user.id, newWallet.id);
+        const nextTrades = trades.map((t) => (t.id === target.id ? updatedEntry : t));
+        assertNoOversell(newWallet, nextTrades);
+      } else {
+        const oldTrades = await loadWalletTrades(db, user.id, oldWallet.id);
+        assertNoOversell(
+          oldWallet,
+          oldTrades.filter((t) => t.id !== target.id),
+        );
+        const newTrades = await loadWalletTrades(db, user.id, newWallet.id);
+        assertNoOversell(newWallet, [...newTrades, updatedEntry]);
+      }
+
+      const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+
+      const stmts: BatchItem<'sqlite'>[] = [
+        db
+          .update(personalTransactions)
+          .set({
+            walletId: newWallet.id,
+            type: input.type,
+            amount: input.amount,
+            categoryId: null,
+            assetId: input.assetId,
+            quantity: input.quantity,
+            date: input.date,
+            time: input.time ?? null,
+            note: input.note ?? null,
+            excludeFromReports: 0,
+            updatedAt: now,
+          })
+          .where(and(eq(personalTransactions.id, target.id), eq(personalTransactions.userId, user.id))),
+        db
+          .delete(personalTransactionTags)
+          .where(eq(personalTransactionTags.transactionId, target.id)),
+        ...resolvedTags.map((t) =>
+          db.insert(personalTransactionTags).values({
+            transactionId: target.id,
+            tagId: t.id,
+          }),
+        ),
+      ];
+
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+
+      const entry = buildEntryView({
+        id: target.id,
+        wallet: newWallet,
+        type: input.type,
+        amount: input.amount,
+        categoryId: null,
+        assetId: input.assetId,
+        quantity: input.quantity,
+        transferId: null,
+        counterpartWalletId: null,
+        date: input.date,
+        time: input.time ?? null,
+        note: input.note ?? null,
+        tags: resolvedTags.map((t) => t.name),
+        excludeFromReports: false,
+        createdAt: target.createdAt,
+      });
+
+      return c.json({ entries: [entry] }, 200);
+    }
+
+    if (input.type === 'expense' || input.type === 'income') {
       const wallets = await loadWalletsMap(db, user.id, [input.walletId]);
       const wallet = wallets.get(input.walletId)!;
 
@@ -557,6 +874,9 @@ export function entryRoutes(): Hono<AppBindings> {
       });
 
       return c.json({ entries: [entry] }, 200);
+    }
+    if (input.type !== 'transfer') {
+      throw new ApiError('NOT_IMPLEMENTED', 501, 'Not implemented');
     }
 
     if (!target.transferId) {
@@ -689,6 +1009,8 @@ export function entryRoutes(): Hono<AppBindings> {
         type: personalTransactions.type,
         amount: personalTransactions.amount,
         categoryId: personalTransactions.categoryId,
+        assetId: personalTransactions.assetId,
+        quantity: personalTransactions.quantity,
         transferId: personalTransactions.transferId,
         date: personalTransactions.date,
         time: personalTransactions.time,
@@ -722,6 +1044,24 @@ export function entryRoutes(): Hono<AppBindings> {
     });
 
     const txIds = sortedRows.map((r) => r.id);
+    const deletedIds = new Set(txIds);
+
+    for (const r of sortedRows) {
+      if (r.type === 'buy') {
+        const existingTrades = await loadWalletTrades(db, user.id, r.walletId);
+        assertNoOversell(
+          {
+            id: r.walletId,
+            currency: r.currency as CurrencyCode,
+            startAmount: 0,
+            startDate: r.startDate,
+            startCostVnd: null,
+            archived: false,
+          },
+          existingTrades.filter((t) => !deletedIds.has(t.id)),
+        );
+      }
+    }
 
     const tagRows = await db
       .select({
@@ -763,12 +1103,17 @@ export function entryRoutes(): Hono<AppBindings> {
         wallet: {
           id: r.walletId,
           currency: r.currency as CurrencyCode,
+          kind: 'everyday',
+          startAmount: 0,
           startDate: r.startDate,
+          startCostVnd: null,
           archived: false,
         },
         type: r.type as PersonalEntryType,
         amount: r.amount,
         categoryId: r.categoryId ?? null,
+        assetId: r.assetId ?? null,
+        quantity: r.quantity ?? null,
         transferId: r.transferId ?? null,
         counterpartWalletId: other ? other.walletId : null,
         date: r.date,
@@ -803,8 +1148,13 @@ export function entryRoutes(): Hono<AppBindings> {
 
     if (items.length === 1) {
       const item = items[0]!;
-      if (item.type !== 'expense' && item.type !== 'income') {
-        throw new ApiError('VALIDATION', 422, 'Single restored entry must be expense or income');
+      if (
+        item.type !== 'expense' &&
+        item.type !== 'income' &&
+        item.type !== 'buy' &&
+        item.type !== 'sell'
+      ) {
+        throw new ApiError('VALIDATION', 422, 'Single restored entry must be expense, income, buy or sell');
       }
     } else {
       const [outItem, inItem] = items as [ParsedRestoreItem, ParsedRestoreItem];
@@ -869,7 +1219,31 @@ export function entryRoutes(): Hono<AppBindings> {
       if (!isValidAmount(item.amount, wallet.currency)) {
         throw new ApiError('VALIDATION', 422, 'Invalid amount');
       }
-      await requireCategory(db, user.id, item.categoryId!, item.type as 'expense' | 'income', true);
+      if (item.type === 'buy' || item.type === 'sell') {
+        if (wallet.kind !== 'investment') {
+          throw new ApiError('VALIDATION', 422, 'Wallet must be an investment wallet');
+        }
+        await requireAsset(db, user.id, item.assetId!, true);
+        const existingTrades = await loadWalletTrades(db, user.id, wallet.id);
+        assertNoOversell(wallet, [
+          ...existingTrades,
+          {
+            id: item.id,
+            walletId: item.walletId,
+            type: item.type,
+            amount: item.amount,
+            date: item.date,
+            time: item.time,
+            createdAt: item.createdAt,
+            transferId: null,
+            excludeFromReports: false,
+            assetId: item.assetId,
+            quantity: item.quantity,
+          },
+        ]);
+      } else {
+        await requireCategory(db, user.id, item.categoryId!, item.type as 'expense' | 'income', true);
+      }
     } else {
       const [outItem, inItem] = items as [ParsedRestoreItem, ParsedRestoreItem];
       const fromWallet = wallets.get(outItem.walletId)!;
@@ -908,6 +1282,8 @@ export function entryRoutes(): Hono<AppBindings> {
           type: item.type,
           amount: item.amount,
           categoryId: item.categoryId,
+          assetId: item.assetId,
+          quantity: item.quantity,
           transferId: item.transferId,
           date: item.date,
           time: item.time,
@@ -948,6 +1324,8 @@ export function entryRoutes(): Hono<AppBindings> {
         type: item.type,
         amount: item.amount,
         categoryId: item.categoryId,
+        assetId: item.assetId,
+        quantity: item.quantity,
         transferId: item.transferId,
         counterpartWalletId: other ? other.walletId : null,
         date: item.date,

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
@@ -13,6 +13,7 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import {
+  findOversell,
   isCurrencyCode,
   isValidAmount,
   walletBalance,
@@ -76,6 +77,8 @@ export async function loadCalc(
       createdAt: personalTransactions.createdAt,
       transferId: personalTransactions.transferId,
       excludeFromReports: personalTransactions.excludeFromReports,
+      assetId: personalTransactions.assetId,
+      quantity: personalTransactions.quantity,
     })
     .from(personalTransactions)
     .where(eq(personalTransactions.userId, userId))
@@ -109,6 +112,8 @@ export async function loadCalc(
     createdAt: e.createdAt,
     transferId: e.transferId ?? null,
     excludeFromReports: Boolean(e.excludeFromReports),
+    assetId: e.assetId ?? null,
+    quantity: e.quantity ?? null,
   }));
 
   return { wallets, entries };
@@ -584,6 +589,63 @@ export function walletRoutes(): Hono<AppBindings> {
 
     if ((nextKind !== currentKind || nextCurrency !== currentCurrency) && entryCount > 0) {
       throw new ApiError('IN_USE', 409, 'Wallet has entries.');
+    }
+
+    if (
+      nextKind === 'investment' &&
+      (nextStartDate !== currentStartDate || nextStartAmount !== currentStartAmount)
+    ) {
+      const tradeRows = await db
+        .select({
+          id: personalTransactions.id,
+          walletId: personalTransactions.walletId,
+          type: personalTransactions.type,
+          amount: personalTransactions.amount,
+          date: personalTransactions.date,
+          time: personalTransactions.time,
+          createdAt: personalTransactions.createdAt,
+          transferId: personalTransactions.transferId,
+          excludeFromReports: personalTransactions.excludeFromReports,
+          assetId: personalTransactions.assetId,
+          quantity: personalTransactions.quantity,
+        })
+        .from(personalTransactions)
+        .where(
+          and(
+            eq(personalTransactions.userId, user.id),
+            eq(personalTransactions.walletId, walletId),
+            inArray(personalTransactions.type, ['buy', 'sell']),
+          ),
+        )
+        .all();
+
+      const calcWallet: CalcWallet = {
+        id: walletId,
+        currency: nextCurrency,
+        startAmount: nextStartAmount,
+        startDate: nextStartDate,
+        startCostVnd: nextStartCostVnd,
+        archived: nextArchived,
+      };
+      const calcEntries: CalcEntry[] = tradeRows.map((r) => ({
+        id: r.id,
+        walletId: r.walletId,
+        type: r.type as PersonalEntryType,
+        amount: r.amount,
+        date: r.date,
+        time: r.time ?? null,
+        createdAt: r.createdAt,
+        transferId: r.transferId ?? null,
+        excludeFromReports: Boolean(r.excludeFromReports),
+        assetId: r.assetId ?? null,
+        quantity: r.quantity ?? null,
+      }));
+      const oversell = findOversell(calcWallet, calcEntries);
+      if (oversell) {
+        throw new ApiError('OVERSELL', 422, 'Insufficient asset quantity', {
+          details: oversell,
+        });
+      }
     }
 
     const now = nowIso();

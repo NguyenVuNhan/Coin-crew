@@ -11,6 +11,8 @@ import { walletRoutes } from './wallets';
 import { categoryAndTagRoutes } from './categories';
 import { entryRoutes } from './entries';
 import { listRoutes } from './list';
+import { assetRoutes } from './assets';
+import { holdingsRoutes } from './holdings';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -57,6 +59,8 @@ export function personalRoutes(): Hono<AppBindings> {
   app.route('/', categoryAndTagRoutes());
   app.route('/', entryRoutes());
   app.route('/', listRoutes());
+  app.route('/', assetRoutes());
+  app.route('/', holdingsRoutes());
 
   return app;
 }

@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import type { CurrencyCode } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -8,6 +9,7 @@ export interface WalletPieSlice {
   name: string;
   vndValue: number;
   approximate?: boolean;
+  subtitle?: string;
 }
 
 const FILL_CLASSES = [
@@ -66,7 +68,17 @@ function sectorPath(cx: number, cy: number, r: number, startAngle: number, endAn
  * Plain SVG pie chart showing wallet distribution in theme accent tints, with a legend showing each slice's
  * colour dot, name, VND amount (prefixed with "≈" when approximate), and rounded percentage share.
  */
-export function WalletPie({ slices }: { slices: WalletPieSlice[] }): JSX.Element | null {
+export function WalletPie({
+  slices,
+  currency = 'VND',
+  ariaLabelPrefix,
+  showAmounts = true,
+}: {
+  slices: WalletPieSlice[];
+  currency?: CurrencyCode;
+  ariaLabelPrefix?: string;
+  showAmounts?: boolean;
+}): JSX.Element | null {
   const t = useT();
   const displaySlices = buildPieSlices(slices, t('wallets.other'));
   if (displaySlices.length === 0) return null;
@@ -78,7 +90,7 @@ export function WalletPie({ slices }: { slices: WalletPieSlice[] }): JSX.Element
   const cy = 40;
   const r = 36;
   const orderText = displaySlices.map((s) => s.name).join(', ');
-  const ariaLabel = `${t('wallets.whereMoneyIs')}: ${orderText}`;
+  const ariaLabel = `${ariaLabelPrefix ?? t('wallets.whereMoneyIs')}: ${orderText}`;
 
   let angle = -Math.PI / 2;
 
@@ -140,10 +152,19 @@ export function WalletPie({ slices }: { slices: WalletPieSlice[] }): JSX.Element
                     SWATCH_CLASSES[idx] ?? SWATCH_CLASSES[4],
                   )}
                 />
-                <span className="truncate">{slice.name}</span>
+                <span className="flex flex-col min-w-0">
+                  <span className={showAmounts ? 'truncate' : 'break-words'}>{slice.name}</span>
+                  {showAmounts && slice.subtitle && (
+                    <span className="text-xs text-muted-foreground tabular-nums truncate">
+                      {slice.subtitle}
+                    </span>
+                  )}
+                </span>
               </span>
               <span className="flex items-baseline gap-1.5 shrink-0 tabular-nums">
-                <Amount value={slice.vndValue} approximate={slice.approximate} size="sm" />
+                {showAmounts && (
+                  <Amount value={slice.vndValue} currency={currency} approximate={slice.approximate} size="sm" />
+                )}
                 <span className="text-xs text-muted-foreground">{share}%</span>
               </span>
             </li>

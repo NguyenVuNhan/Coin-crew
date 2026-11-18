@@ -24,6 +24,12 @@ export function PersonalSettingsMenu(): JSX.Element {
       onSelect: () => navigate('/personal/categories'),
     },
     {
+      id: 'assets',
+      label: t('personalSettings.assets'),
+      icon: 'coins',
+      onSelect: () => navigate('/personal/assets'),
+    },
+    {
       id: 'tags',
       label: t('personalSettings.tags'),
       icon: 'receipt',
