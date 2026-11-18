@@ -1,5 +1,5 @@
 import { ApiError } from '@cc/api-util/errors';
-import type { EntryInput } from '@cc/core';
+import { isValidQuantity, type EntryInput } from '@cc/core';
 import { optionalTime, requireDate } from './validate';
 
 export function parseNote(v: unknown): string | null {
@@ -110,6 +110,30 @@ export function parseEntryInput(body: unknown): EntryInput {
       note,
       tags,
       excludeFromReports,
+    };
+  }
+
+  if (input.type === 'buy' || input.type === 'sell') {
+    if (input.categoryId !== undefined && input.categoryId !== null) {
+      throw new ApiError('VALIDATION', 422, 'Buy/sell cannot have categoryId');
+    }
+    const walletId = requireId(input.walletId, 'Invalid walletId');
+    const assetId = requireId(input.assetId, 'Invalid assetId');
+    if (typeof input.quantity !== 'number' || !isValidQuantity(input.quantity)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid quantity');
+    }
+    const amount = requirePositiveInt(input.amount, 'Invalid amount');
+
+    return {
+      type: input.type,
+      walletId,
+      assetId,
+      quantity: input.quantity,
+      amount,
+      date,
+      time,
+      note,
+      tags,
     };
   }
 
