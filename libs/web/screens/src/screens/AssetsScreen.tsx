@@ -36,8 +36,11 @@ export function AssetsScreen(): JSX.Element {
   const [formKey, setFormKey] = useState(0);
   const [showHidden, setShowHidden] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<AssetView | null>(null);
+  const [confirmDeleteError, setConfirmDeleteError] = useState<unknown>(null);
   const [inUseState, setInUseState] = useState<{ asset: AssetView; count: number } | null>(null);
+  const [inUseError, setInUseError] = useState<unknown>(null);
   const [showMovePicker, setShowMovePicker] = useState(false);
+  const [actionError, setActionError] = useState<unknown>(null);
 
   const allAssets = assetsQuery.data?.assets ?? [];
 
@@ -75,7 +78,9 @@ export function AssetsScreen(): JSX.Element {
   const moveTargets = useMemo(() => {
     if (!inUseState) return [];
     const target = inUseState.asset;
-    return allAssets.filter((a) => a.id !== target.id && a.decimals === target.decimals);
+    return allAssets.filter(
+      (a) => !a.hidden && a.id !== target.id && a.decimals === target.decimals,
+    );
   }, [allAssets, inUseState]);
 
   const openAdd = () => {
@@ -93,10 +98,13 @@ export function AssetsScreen(): JSX.Element {
   };
 
   const requestDelete = (asset: AssetView) => {
+    setActionError(null);
     if (asset.entryCount > 0) {
       setShowMovePicker(false);
+      setInUseError(null);
       setInUseState({ asset, count: asset.entryCount });
     } else {
+      setConfirmDeleteError(null);
       setConfirmDelete(asset);
     }
   };
@@ -104,6 +112,7 @@ export function AssetsScreen(): JSX.Element {
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
     const asset = confirmDelete;
+    setConfirmDeleteError(null);
     try {
       await deleteAsset.mutateAsync({ id: asset.id });
       setConfirmDelete(null);
@@ -112,23 +121,45 @@ export function AssetsScreen(): JSX.Element {
         setConfirmDelete(null);
         const count = typeof err.details.count === 'number' ? err.details.count : asset.entryCount;
         setShowMovePicker(false);
+        setInUseError(null);
         setInUseState({ asset, count });
+      } else {
+        setConfirmDeleteError(err);
       }
     }
   };
 
   const handleMoveAndDelete = async (moveToId: string) => {
     if (!inUseState) return;
-    await deleteAsset.mutateAsync({ id: inUseState.asset.id, moveTo: moveToId });
-    setInUseState(null);
-    setShowMovePicker(false);
+    setInUseError(null);
+    try {
+      await deleteAsset.mutateAsync({ id: inUseState.asset.id, moveTo: moveToId });
+      setInUseState(null);
+      setShowMovePicker(false);
+    } catch (err) {
+      setInUseError(err);
+    }
   };
 
   const handleHideInstead = async () => {
     if (!inUseState) return;
-    await updateAsset.mutateAsync({ id: inUseState.asset.id, input: { hidden: true } });
-    setInUseState(null);
-    setShowMovePicker(false);
+    setInUseError(null);
+    try {
+      await updateAsset.mutateAsync({ id: inUseState.asset.id, input: { hidden: true } });
+      setInUseState(null);
+      setShowMovePicker(false);
+    } catch (err) {
+      setInUseError(err);
+    }
+  };
+
+  const handleToggleHidden = async (asset: AssetView) => {
+    setActionError(null);
+    try {
+      await updateAsset.mutateAsync({ id: asset.id, input: { hidden: !asset.hidden } });
+    } catch (err) {
+      setActionError(err);
+    }
   };
 
   const renderRow = (asset: AssetView) => {
@@ -144,7 +175,7 @@ export function AssetsScreen(): JSX.Element {
         label: asset.hidden ? t('assets.show') : t('assets.hide'),
         icon: asset.hidden ? 'check' : 'ban',
         onSelect: () => {
-          void updateAsset.mutate({ id: asset.id, input: { hidden: !asset.hidden } });
+          void handleToggleHidden(asset);
         },
       },
       {
@@ -208,6 +239,7 @@ export function AssetsScreen(): JSX.Element {
           />
         ) : (
           <>
+            {actionError !== null && <InlineError error={actionError} />}
             <SwipeGroupProvider>
               <div className="flex flex-col gap-4">
                 {groupedActive.map(([groupName, groupAssets]) => (
@@ -279,15 +311,25 @@ export function AssetsScreen(): JSX.Element {
 
       <Modal
         open={confirmDelete !== null}
-        onClose={() => setConfirmDelete(null)}
+        onClose={() => {
+          setConfirmDelete(null);
+          setConfirmDeleteError(null);
+        }}
         title={t('assets.deleteConfirmTitle')}
       >
         <div className="flex flex-col gap-4">
           <p className="m-0 text-sm text-muted-foreground">
             {confirmDelete ? t('assets.deleteConfirmBody', { name: confirmDelete.name }) : ''}
           </p>
+          {confirmDeleteError !== null && <InlineError error={confirmDeleteError} />}
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConfirmDelete(null);
+                setConfirmDeleteError(null);
+              }}
+            >
               {t('common.cancel')}
             </Button>
             <Button
@@ -306,11 +348,13 @@ export function AssetsScreen(): JSX.Element {
         open={inUseState !== null}
         onClose={() => {
           setInUseState(null);
+          setInUseError(null);
           setShowMovePicker(false);
         }}
         title={inUseState ? t('assets.inUseTitle', { count: inUseState.count }) : ''}
       >
         <div className="flex flex-col gap-3">
+          {inUseError !== null && <InlineError error={inUseError} />}
           {!showMovePicker ? (
             <>
               <Button

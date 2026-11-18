@@ -67,7 +67,7 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
   const busy = createAsset.isPending || updateAsset.isPending;
   const mutationError = asset ? updateAsset.error : createAsset.error;
   const isDuplicateNameError = isDuplicateNameApiError(mutationError);
-  const otherError = nameError && isDuplicateNameError ? null : mutationError;
+  const otherError = isDuplicateNameError ? null : mutationError;
 
   const canSubmit =
     name.trim().length > 0 &&
@@ -128,6 +128,9 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
           onChange={(e) => {
             setName(e.target.value);
             if (nameError) setNameError(null);
+            if (isDuplicateNameError) {
+              (asset ? updateAsset : createAsset).reset();
+            }
           }}
           data-testid="asset-name-input"
           className="min-h-11 text-base"
