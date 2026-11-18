@@ -295,4 +295,24 @@ describe('EntryPage — category folding on phones (Task 3)', () => {
     expect(grid.className).toContain('ring-danger');
     expect(screen.getByTestId('category-error')).toHaveTextContent('Hãy chọn một danh mục.');
   });
+
+  it('keeps chosen category folded when reopening amount, editing it, and pressing Xong', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await enterAmountAndFold(user, '50000');
+
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    expect(await screen.findByTestId('entry-fold-category')).toHaveTextContent('Ăn uống');
+
+    await user.click(screen.getByTestId('entry-fold-amount'));
+    await screen.findByTestId('amount-keypad');
+    await user.click(screen.getByTestId('key-0'));
+    await user.click(screen.getByTestId('key-done'));
+
+    expect(await screen.findByTestId('entry-fold-category')).toHaveTextContent('Ăn uống');
+    expect(screen.queryByTestId('category-grid')).toBeNull();
+    expect(screen.getByTestId('entry-fold-details')).toBeInTheDocument();
+  });
 });

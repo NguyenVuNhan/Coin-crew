@@ -178,7 +178,6 @@ describe('Owner review fixes (PR #131)', () => {
     act(() => setLang('vi'));
 
     await finishAmount(user, '25000000');
-    await user.click(await screen.findByTestId('category-tile-buy'));
     await waitFor(() => expect(screen.getByTestId('entry-asset-row')).toBeInTheDocument());
 
     await user.click(screen.getByTestId('entry-asset-row'));

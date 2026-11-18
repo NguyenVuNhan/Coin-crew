@@ -805,9 +805,13 @@ export function EntryPage(): JSX.Element {
     } else {
       pendingFocusTargetRef.current = 'save';
     }
+    const hasCategoryChoice = Boolean(categoryId || isTransferMode || isTradeMode);
     runFoldTransition(() => {
       if (minor > 0 && !waitingForSecondary) {
         fold.finish('amount');
+        if (hasCategoryChoice) {
+          fold.finish('category');
+        }
       }
       setKeypadOpen(false);
     });

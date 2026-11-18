@@ -167,7 +167,6 @@ describe('EntryPage critique step 5 — polish', () => {
     setup([vndCash, investWallet]);
     renderEntryPage('/entries/new?type=transfer');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('category-tile-transfer'));
     await openDetails(user);
     const sw = await screen.findByTestId('entry-exclude-switch');
     expect(sw).toBeChecked();

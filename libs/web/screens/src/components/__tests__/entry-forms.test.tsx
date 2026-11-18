@@ -168,7 +168,6 @@ describe('EntryPage and AddMenu', () => {
 
     renderEntryPage('/entries/new?type=transfer');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('category-tile-transfer'));
     await openDetails(user);
     // Step 5: transfers show the switch inline, with no "Thêm chi tiết" toggle.
     await screen.findByTestId('entry-exclude-switch');

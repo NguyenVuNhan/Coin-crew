@@ -125,7 +125,6 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     setup(posts);
     const first = renderEntryPage('/entries/new?type=transfer');
     await finishAmount(user, '5000');
-    await user.click(await screen.findByTestId('category-tile-transfer'));
     fireEvent.click(screen.getByTestId('entry-wallet-row'));
     fireEvent.click(await screen.findByTestId('wallet-option-w-bin'));
     fireEvent.click(screen.getByTestId('entry-to-wallet-row'));
@@ -216,7 +215,6 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     await finishAmount(user, '5000');
     await user.click(await screen.findByTestId('amount-received-box'));
     await finishAmount(user, '5000');
-    await user.click(await screen.findByTestId('category-tile-transfer'));
     fireEvent.click(screen.getByTestId('entry-to-wallet-row'));
     fireEvent.click(await screen.findByTestId('wallet-option-w-bin2'));
     fireEvent.click(screen.getByTestId('entry-save-btn'));

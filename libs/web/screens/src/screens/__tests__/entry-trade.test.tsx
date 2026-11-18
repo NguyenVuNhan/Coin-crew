@@ -338,7 +338,6 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
     await finishAmount(user, '500000000');
-    await user.click(await screen.findByTestId('category-tile-buy'));
     await screen.findByTestId('entry-asset-row');
 
     await user.click(screen.getByTestId('entry-asset-row'));
@@ -394,7 +393,6 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
 
     renderEntryPage('/entries/new?type=income&tile=sell&wallet=w-inv');
     await finishAmount(user, '100000000');
-    await user.click(await screen.findByTestId('category-tile-sell'));
     await screen.findByTestId('entry-asset-row');
 
     await user.click(screen.getByTestId('entry-asset-row'));
@@ -462,7 +460,6 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
     await finishAmount(user, '100000');
-    await user.click(await screen.findByTestId('category-tile-buy'));
     await user.click(await screen.findByTestId('entry-asset-row'));
 
     // Search field appears when > 8 assets
@@ -606,10 +603,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
 
     // 1. No asset chosen -> Xong focuses asset row
     await finishAmount(user, '500000');
-    await user.click(await screen.findByTestId('category-tile-buy'));
     await screen.findByTestId('entry-asset-row');
-    await user.click(screen.getByTestId('entry-fold-amount'));
-    await user.click(screen.getByTestId('key-done'));
     expect(screen.getByTestId('entry-asset-row')).toHaveFocus();
 
     // 2. Asset chosen, quantity empty -> Xong focuses quantity
@@ -639,7 +633,6 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
     await finishAmount(user, '500');
-    await user.click(await screen.findByTestId('category-tile-buy'));
     await screen.findByTestId('entry-asset-row');
     await user.click(screen.getByTestId('entry-asset-row'));
     await user.click(await screen.findByTestId('asset-option-asset-btc'));
