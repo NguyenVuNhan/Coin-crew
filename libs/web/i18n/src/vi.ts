@@ -1379,6 +1379,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.enterAmountSent': 'Nhập số gửi', // REVIEW
   'personalEntry.chooseDifferentWallets': 'Chọn hai ví khác nhau', // REVIEW
   'personalEntry.save': 'Lưu', // REVIEW
+  'personalEntry.saveSummary': 'Lưu {amount} · {what}', // REVIEW
   'personalEntry.deleteDigit': 'Xóa', // REVIEW
   'personalEntry.done': 'Xong', // REVIEW
   'personalEntry.amountLabel': 'Số tiền: {amount}', // REVIEW

@@ -1819,6 +1819,32 @@ export function EntryPage(): JSX.Element {
                   : isTradeMode
                     ? tradeDisabledReason !== null || isSaving || hasArchivedWallet
                     : activeMinor === null || isSaving || hasArchivedWallet;
+                const saveWhat = isMousePointer
+                  ? null
+                  : isTransferMode
+                    ? t(
+                        entryType === 'expense'
+                          ? 'personalEntry.transferToWallet'
+                          : 'personalEntry.transferFromWallet',
+                      )
+                    : isTradeMode
+                      ? selectedAsset
+                        ? t(
+                            entryType === 'expense'
+                              ? 'transactions.buyAssetTitle'
+                              : 'transactions.sellAssetTitle',
+                            { asset: selectedAsset.name },
+                          )
+                        : null
+                      : (categoriesQuery.data?.categories ?? []).find((c) => c.id === categoryId)
+                          ?.name ?? null;
+                const saveLabel =
+                  !isMousePointer && activeMinor !== null && saveWhat
+                    ? t('personalEntry.saveSummary', {
+                        amount: formatMoney(activeMinor, activeCurrency),
+                        what: saveWhat,
+                      })
+                    : t('personalEntry.save');
                 return (
                   <>
                     {transferDisabledReason && !isSaving && !hasArchivedWallet && (
@@ -1848,7 +1874,7 @@ export function EntryPage(): JSX.Element {
                         if (activeMinor !== null) void handleSave(activeMinor);
                       }}
                     >
-                      {t('personalEntry.save')}
+                      {saveLabel}
                     </Button>
                   </>
                 );

@@ -1378,6 +1378,7 @@ export const en = {
   'personalEntry.enterAmountSent': 'Enter amount sent',
   'personalEntry.chooseDifferentWallets': 'Choose two different wallets',
   'personalEntry.save': 'Save',
+  'personalEntry.saveSummary': 'Save {amount} · {what}',
   'personalEntry.deleteDigit': 'Delete',
   'personalEntry.done': 'Done',
   'personalEntry.amountLabel': 'Amount: {amount}',
