@@ -14,6 +14,9 @@ export interface CategoryPickerProps {
   onChange(categoryId: string): void;
   transferSelected?: boolean;
   onSelectTransfer?: () => void;
+  tradeSelected?: boolean;
+  onTradeSelect?: () => void;
+  showTrade?: boolean;
   error?: string | null;
   highlightError?: boolean;
   gridRef?: RefObject<HTMLDivElement | null>;
@@ -41,6 +44,9 @@ export function CategoryPicker({
   onChange,
   transferSelected = false,
   onSelectTransfer,
+  tradeSelected = false,
+  onTradeSelect,
+  showTrade = false,
   error,
   highlightError = false,
   gridRef,
@@ -152,8 +158,32 @@ export function CategoryPicker({
             </span>
           </button>
         )}
+        {showTrade && onTradeSelect && (
+          <button
+            key="trade"
+            type="button"
+            data-testid={type === 'expense' ? 'category-tile-buy' : 'category-tile-sell'}
+            aria-pressed={tradeSelected}
+            onClick={onTradeSelect}
+            className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span
+              className={cn(
+                'size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center transition-shadow',
+                tradeSelected && 'ring-2 ring-primary',
+              )}
+            >
+              <Icon name="trending-up" size={20} />
+            </span>
+            <span className="text-sm font-medium text-foreground leading-tight line-clamp-2 break-words w-full">
+              {type === 'expense'
+                ? t('personalEntry.buyAsset')
+                : t('personalEntry.sellAsset')}
+            </span>
+          </button>
+        )}
         {tiles.map((cat) => {
-          const selected = !transferSelected && value === cat.id;
+          const selected = !transferSelected && !tradeSelected && value === cat.id;
           return (
             <button
               key={cat.id}

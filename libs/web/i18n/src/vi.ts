@@ -1396,6 +1396,20 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.discardTitle': 'Bỏ khoản đang nhập?', // REVIEW
   'personalEntry.discardConfirm': 'Bỏ', // REVIEW
   'personalEntry.discardKeepEditing': 'Tiếp tục nhập', // REVIEW
+  'personalEntry.buyAsset': 'Mua tài sản', // REVIEW
+  'personalEntry.sellAsset': 'Bán tài sản', // REVIEW
+  'personalEntry.asset': 'Tài sản', // REVIEW
+  'personalEntry.pickAsset': 'Chọn tài sản', // REVIEW
+  'personalEntry.quantity': 'Số lượng', // REVIEW
+  'personalEntry.heldQuantity': 'Đang có: {qty} {unit}', // REVIEW
+  'personalEntry.oversellError': 'Vượt quá số đang có', // REVIEW
+  'personalEntry.savedBuy': 'Đã mua {qty} {asset}', // REVIEW
+  'personalEntry.savedSell': 'Đã bán {qty} {asset}', // REVIEW
+  'personalEntry.addAsset': 'Thêm tài sản', // REVIEW
+  'personalEntry.searchAssets': 'Tìm tài sản...', // REVIEW
+  'personalEntry.noAssets': 'Chưa có tài sản nào', // REVIEW
+  'personalEntry.chooseAsset': 'Chọn tài sản', // REVIEW
+  'personalEntry.enterQuantity': 'Nhập số lượng', // REVIEW
   'transactions.title': 'Giao dịch', // REVIEW
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW

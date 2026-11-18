@@ -20,6 +20,7 @@ const CODE_COPY: Record<string, MessageKey> = {
   MERGE_STALE: 'error.mergeStale',
   FUND_SHORT: 'error.fundShort',
   RATING_LIMIT: 'error.ratingLimit',
+  OVERSELL: 'personalEntry.oversellError',
 };
 
 function errorCode(error: unknown): string | undefined {
