@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import type { CategoriesResponse, CategoryView, WalletDetailView } from '@cc/core';
@@ -7,6 +8,7 @@ import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { readLastWallet, writeLastWallet } from '@cc/web-data-access/personalMoney';
 import { mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -101,31 +103,32 @@ function setup(posts: unknown[], failFirst = false) {
 }
 
 async function openKeypad() {
-  if (!screen.queryByTestId('amount-keypad')) fireEvent.click(screen.getByTestId('amount-display'));
+  if (!screen.queryByTestId('amount-keypad')) {
+    const fold = screen.queryByTestId('entry-fold-amount');
+    fireEvent.click(fold ?? screen.getByTestId('amount-display'));
+  }
   await screen.findByTestId('amount-keypad');
 }
 
 function typeAmountAndCategory() {
   fireEvent.click(screen.getByTestId('key-3'));
   fireEvent.click(screen.getByTestId('key-5'));
+  fireEvent.click(screen.getByTestId('key-done'));
   fireEvent.click(screen.getByTestId('category-tile-cat-food'));
 }
 
 describe('EntryPage critique 2 step A — never the wrong wallet or currency', () => {
   it('saving a transfer does not change the remembered wallet; a Chi does', async () => {
+    const user = userEvent.setup();
     writeLastWallet('w-bank');
     const posts: unknown[] = [];
     setup(posts);
     const first = renderEntryPage('/entries/new?type=transfer');
-    await screen.findByTestId('amount-keypad');
+    await finishAmount(user, '5000');
     fireEvent.click(screen.getByTestId('entry-wallet-row'));
     fireEvent.click(await screen.findByTestId('wallet-option-w-bin'));
     fireEvent.click(screen.getByTestId('entry-to-wallet-row'));
     fireEvent.click(await screen.findByTestId('wallet-option-w-bin2'));
-    await openKeypad();
-    fireEvent.click(screen.getByTestId('key-5'));
-    fireEvent.click(screen.getByTestId('key-000'));
-    fireEvent.click(screen.getByTestId('key-done'));
     fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts.length).toBeGreaterThan(0));
     expect(readLastWallet()).toBe('w-bank');
@@ -133,14 +136,11 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
 
     posts.length = 0;
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
+    await finishAmount(user, '5000');
+    await user.click(await screen.findByTestId('category-tile-cat-food'));
+    await openDetails(user);
     fireEvent.click(screen.getByTestId('entry-wallet-row'));
     fireEvent.click(await screen.findByTestId('wallet-option-w-vnd'));
-    await openKeypad();
-    fireEvent.click(screen.getByTestId('key-5'));
-    fireEvent.click(screen.getByTestId('key-000'));
-    fireEvent.click(screen.getByTestId('category-tile-cat-food'));
-    fireEvent.click(screen.getByTestId('key-done'));
     fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts).toHaveLength(1));
     expect(readLastWallet()).toBe('w-vnd');
@@ -171,7 +171,6 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     renderEntryPage('/entries/new?type=expense');
     await screen.findByTestId('amount-keypad');
     typeAmountAndCategory();
-    fireEvent.click(screen.getByTestId('key-done'));
     fireEvent.click(screen.getByTestId('entry-save-btn'));
     await screen.findByText('Lưu bằng USDT?');
     await waitFor(() =>
@@ -196,7 +195,6 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
     renderEntryPage('/entries/new?type=expense');
     await screen.findByTestId('amount-keypad');
     typeAmountAndCategory();
-    fireEvent.click(screen.getByTestId('key-done'));
     fireEvent.click(screen.getByTestId('entry-save-btn'));
     fireEvent.click(await screen.findByTestId('foreign-save'));
     await waitFor(() => expect(posts).toHaveLength(1));
@@ -209,17 +207,16 @@ describe('EntryPage critique 2 step A — never the wrong wallet or currency', (
   });
 
   it('transfers never ask', async () => {
+    const user = userEvent.setup();
     writeLastWallet('w-bin');
     const posts: unknown[] = [];
     setup(posts);
     renderEntryPage('/entries/new?type=transfer');
-    await screen.findByTestId('amount-keypad');
+    await finishAmount(user, '5000');
+    await user.click(await screen.findByTestId('amount-received-box'));
+    await finishAmount(user, '5000');
     fireEvent.click(screen.getByTestId('entry-to-wallet-row'));
     fireEvent.click(await screen.findByTestId('wallet-option-w-bin2'));
-    await openKeypad();
-    fireEvent.click(screen.getByTestId('key-5'));
-    fireEvent.click(screen.getByTestId('key-000'));
-    fireEvent.click(screen.getByTestId('key-done'));
     fireEvent.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => expect(posts).toHaveLength(1));
     expect(screen.queryByTestId('foreign-save')).toBeNull();

@@ -8,6 +8,7 @@ import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { writeLastWallet } from '@cc/web-data-access/personalMoney';
 import { mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -162,14 +163,13 @@ describe('EntryPage critique step 1 (save safety)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
-    // Picking category closes keypad
+    await finishAmount(user, '85');
     await user.click(screen.getByTestId('category-tile-cat-food'));
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
+    await user.click(screen.getByTestId('entry-fold-amount'));
 
+    // On phones the 1..999 suggestions live in the keypad once the amount folds.
+    expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
     const chips = screen.getAllByTestId('amount-suggestion');
     expect(chips.map((c) => c.textContent)).toEqual(['85.000₫', '850.000₫', '8.500.000₫']);
 
@@ -193,10 +193,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
     });
 
     const { unmount } = renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
+    await finishAmount(user, '85');
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -213,9 +210,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
 
     // Also verify Giữ 85₫ saves 85
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
+    await finishAmount(user, '85');
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
     await screen.findByTestId('small-amount-keep');
@@ -239,12 +234,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-comma'));
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
+    await finishAmount(user, '0,85');
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -291,10 +281,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
 
     // Expense
     const r1 = renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '85000');
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -307,10 +294,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
 
     // Income
     const r2 = renderEntryPage('/entries/new?type=income');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-2'));
-    await user.click(screen.getByTestId('key-000'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '2000000');
     await user.click(screen.getByTestId('category-tile-cat-salary'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -322,11 +306,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
 
     // Transfer
     const r3 = renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-2'));
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '250000');
     await user.click(screen.getByTestId('category-tile-transfer'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -457,9 +437,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '50000');
     await user.click(screen.getByTestId('category-tile-cat-food'));
 
     const saveBtn = screen.getByTestId('entry-save-btn');
@@ -483,20 +461,17 @@ describe('EntryPage critique step 1 (save safety)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '85000');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     await user.type(screen.getByTestId('entry-note-input'), 'Cà phê');
     fireEvent.change(screen.getByTestId('entry-date-picker'), { target: { value: '2026-11-15' } });
     fireEvent.change(screen.getByTestId('entry-time-picker'), { target: { value: '14:30' } });
-    await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByTestId('amount-display')).toHaveTextContent('85.000₫');
-    expect(screen.getByTestId('category-tile-cat-food')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('entry-fold-amount')).toHaveTextContent('85.000₫');
+    expect(screen.getByTestId('entry-fold-category')).toHaveTextContent('Ăn uống');
     expect(screen.getByTestId('entry-wallet-row')).toHaveTextContent('Tiền mặt (VND)');
     expect(screen.getByTestId('entry-date-picker')).toHaveValue('2026-11-15');
     expect(screen.getByTestId('entry-time-picker')).toHaveValue('14:30');
@@ -512,10 +487,7 @@ describe('EntryPage critique step 1 (save safety)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
+    await finishAmount(user, '85');
     await user.click(screen.getByTestId('category-tile-cat-food'));
 
     // Small-amount modal opened from Lưu button

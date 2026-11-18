@@ -199,7 +199,7 @@ describe('EntryPage critique 2 step B — one save button (✓ means Xong)', () 
     });
 
     renderEntryPage('/entries/e-1/edit', { entry: existingEntry });
-    const amountBtn = await screen.findByTestId('amount-display');
+    const amountBtn = await screen.findByTestId('entry-fold-amount');
     fireEvent.click(amountBtn);
     await screen.findByTestId('amount-keypad');
     fireEvent.click(screen.getByTestId('key-0'));

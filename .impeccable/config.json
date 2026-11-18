@@ -29,6 +29,12 @@
         ],
         "createdAt": "2026-11-16T16:33:38.040Z",
         "reason": "built bundle (gitignored); DESIGN.md sanctions the Stadium board's infinite ticker on /awards"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "vietnam pro\",system-ui,sans-serif",
+        "createdAt": "2026-11-18T13:09:07.072Z",
+        "reason": "agent: Be Vietnam Pro is the app's shipped font (live-mode computed styles on the entry page)"
       }
     ]
   }

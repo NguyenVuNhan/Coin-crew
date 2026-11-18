@@ -1,4 +1,4 @@
-import { useMemo, useState, type JSX, type RefObject } from 'react';
+import { useMemo, useState, type CSSProperties, type JSX, type RefObject } from 'react';
 import type { CategoryView, WalletKind } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -23,6 +23,16 @@ export interface CategoryPickerProps {
   gridRef?: RefObject<HTMLDivElement | null>;
   /** Kind of the wallet the entry goes to; everyday wallets don't get investing tiles up front. */
   walletKind?: WalletKind;
+  /** Enable fold view-transition names and tile stagger animation (touch mode). */
+  transitionEnabled?: boolean;
+}
+
+/** Tags a tapped tile's icon and label right before a View Transition snapshot is captured. */
+function tagTappedTile(button: HTMLButtonElement | null): void {
+  if (!button) return;
+  const spans = button.querySelectorAll<HTMLElement>(':scope > span');
+  if (spans[0]) spans[0].style.viewTransitionName = 'entry-cat-ic';
+  if (spans[1]) spans[1].style.viewTransitionName = 'entry-cat-name';
 }
 
 /** Ids of the Đầu tư parent and its sub-categories (the parent carries the trending-up icon). */
@@ -53,6 +63,7 @@ export function CategoryPicker({
   highlightError = false,
   gridRef,
   walletKind,
+  transitionEnabled = false,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -128,13 +139,20 @@ export function CategoryPicker({
     setSheetOpen(false);
   };
 
+  const tileStyle = (index: number): CSSProperties | undefined =>
+    transitionEnabled ? ({ '--i': index } as CSSProperties) : undefined;
+  const tradeIndex = onSelectTransfer ? 1 : 0;
+  const catOffset = tradeIndex + (showTrade && onTradeSelect ? 1 : 0);
+
   return (
     <div data-testid="category-picker" className="fsl-category-picker">
       <div
         ref={gridRef}
         data-testid="category-grid"
+        style={transitionEnabled ? { viewTransitionName: 'entry-tiles' } : undefined}
         className={cn(
           'grid grid-cols-4 gap-2 rounded-2xl',
+          transitionEnabled && 'entry-tiles-enter',
           highlightError && 'ring-2 ring-danger transition-shadow duration-150 motion-reduce:transition-none',
         )}
       >
@@ -146,9 +164,18 @@ export function CategoryPicker({
             aria-pressed={transferSelected}
             aria-disabled={disableNonTrade || undefined}
             disabled={disableNonTrade}
-            onClick={disableNonTrade ? undefined : onSelectTransfer}
+            style={tileStyle(0)}
+            onClick={
+              disableNonTrade
+                ? undefined
+                : (e) => {
+                    if (transitionEnabled) tagTappedTile(e.currentTarget);
+                    onSelectTransfer();
+                  }
+            }
             className={cn(
               'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              transitionEnabled && 'entry-tile',
               disableNonTrade && 'opacity-50 cursor-not-allowed',
             )}
           >
@@ -173,8 +200,15 @@ export function CategoryPicker({
             type="button"
             data-testid={type === 'expense' ? 'category-tile-buy' : 'category-tile-sell'}
             aria-pressed={tradeSelected}
-            onClick={onTradeSelect}
-            className="min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={tileStyle(tradeIndex)}
+            onClick={(e) => {
+              if (transitionEnabled) tagTappedTile(e.currentTarget);
+              onTradeSelect();
+            }}
+            className={cn(
+              'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              transitionEnabled && 'entry-tile',
+            )}
           >
             <span
               className={cn(
@@ -191,7 +225,7 @@ export function CategoryPicker({
             </span>
           </button>
         )}
-        {tiles.map((cat) => {
+        {tiles.map((cat, idx) => {
           const selected = !transferSelected && !tradeSelected && value === cat.id;
           return (
             <button
@@ -201,9 +235,18 @@ export function CategoryPicker({
               aria-pressed={selected}
               aria-disabled={disableNonTrade || undefined}
               disabled={disableNonTrade}
-              onClick={disableNonTrade ? undefined : () => onChange(cat.id)}
+              style={tileStyle(catOffset + idx)}
+              onClick={
+                disableNonTrade
+                  ? undefined
+                  : (e) => {
+                      if (transitionEnabled) tagTappedTile(e.currentTarget);
+                      onChange(cat.id);
+                    }
+              }
               className={cn(
                 'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                transitionEnabled && 'entry-tile',
                 disableNonTrade && 'opacity-50 cursor-not-allowed',
               )}
             >
@@ -228,9 +271,11 @@ export function CategoryPicker({
           data-testid="category-more"
           aria-disabled={disableNonTrade || undefined}
           disabled={disableNonTrade}
+          style={tileStyle(catOffset + tiles.length)}
           onClick={disableNonTrade ? undefined : () => setSheetOpen(true)}
           className={cn(
             'min-h-11 flex flex-col items-center gap-1 p-1 rounded-2xl text-center cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            transitionEnabled && 'entry-tile',
             disableNonTrade && 'opacity-50 cursor-not-allowed',
           )}
         >

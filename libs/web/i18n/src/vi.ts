@@ -1359,6 +1359,8 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.date': 'Ngày', // REVIEW
   'personalEntry.note': 'Ghi chú', // REVIEW
   'personalEntry.notePlaceholder': 'Thêm ghi chú', // REVIEW
+  'personalEntry.noNote': 'Không ghi chú', // REVIEW
+  'personalEntry.addDetails': 'Thêm chi tiết', // REVIEW
   'personalEntry.moreDetails': 'Thêm chi tiết', // REVIEW
   'personalEntry.time': 'Giờ', // REVIEW
   'personalEntry.tags': 'Thẻ', // REVIEW
@@ -1368,12 +1370,16 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.moreCategories': 'Khác', // REVIEW
   'personalEntry.pickCategory': 'Tất cả danh mục', // REVIEW
   'personalEntry.pickCategoryError': 'Hãy chọn một danh mục.', // REVIEW
+  'personalEntry.categoryPromptExpense': 'Chi cho việc gì?', // REVIEW
+  'personalEntry.categoryPromptIncome': 'Thu từ đâu?', // REVIEW
+  'personalEntry.categoryLine': 'Danh mục', // REVIEW
   'personalEntry.amountReceivedError': 'Hãy nhập số tiền nhận được.', // REVIEW
   'personalEntry.differentWalletsError': 'Hãy chọn hai ví khác nhau.', // REVIEW
   'personalEntry.enterAmountReceived': 'Nhập số nhận được', // REVIEW
   'personalEntry.enterAmountSent': 'Nhập số gửi', // REVIEW
   'personalEntry.chooseDifferentWallets': 'Chọn hai ví khác nhau', // REVIEW
   'personalEntry.save': 'Lưu', // REVIEW
+  'personalEntry.saveSummary': 'Lưu {amount} · {what}', // REVIEW
   'personalEntry.deleteDigit': 'Xóa', // REVIEW
   'personalEntry.done': 'Xong', // REVIEW
   'personalEntry.amountLabel': 'Số tiền: {amount}', // REVIEW

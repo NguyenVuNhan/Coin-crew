@@ -15,6 +15,7 @@ import type {
 import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -240,15 +241,19 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '100000');
     await screen.findByTestId('category-picker');
 
     // Everyday wallet is default -> no trade tile
     expect(screen.queryByTestId('category-tile-buy')).toBeNull();
 
     // Switch to investment wallet
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     await user.click(screen.getByTestId('entry-wallet-row'));
     await user.click(await screen.findByTestId('wallet-option-w-inv'));
 
+    await user.click(screen.getByTestId('entry-fold-category'));
     expect(await screen.findByTestId('category-tile-buy')).toBeInTheDocument();
     expect(screen.getByTestId('category-tile-buy')).toHaveTextContent('Mua tài sản');
 
@@ -279,6 +284,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '100000');
     await user.click(await screen.findByTestId('category-tile-buy'));
 
     expect(screen.getByTestId('entry-asset-row')).toBeInTheDocument();
@@ -331,10 +337,8 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
+    await finishAmount(user, '500000000');
     await screen.findByTestId('entry-asset-row');
-
-    await tapKeypadDigits(user, '500000000');
-    await user.click(screen.getByTestId('key-done'));
 
     await user.click(screen.getByTestId('entry-asset-row'));
     await user.click(await screen.findByTestId('asset-option-asset-btc'));
@@ -388,10 +392,8 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=income&tile=sell&wallet=w-inv');
+    await finishAmount(user, '100000000');
     await screen.findByTestId('entry-asset-row');
-
-    await tapKeypadDigits(user, '100000000');
-    await user.click(screen.getByTestId('key-done'));
 
     await user.click(screen.getByTestId('entry-asset-row'));
     await user.click(await screen.findByTestId('asset-option-asset-btc'));
@@ -457,6 +459,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
+    await finishAmount(user, '100000');
     await user.click(await screen.findByTestId('entry-asset-row'));
 
     // Search field appears when > 8 assets
@@ -477,6 +480,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
   });
 
   it('editing a buy opens Chi with buy tile selected and asset + quantity filled', async () => {
+    const user = userEvent.setup();
     const buyEntry: EntryView = {
       id: 'e-buy-edit',
       walletId: 'w-inv',
@@ -517,6 +521,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
       expect(screen.getByTestId('entry-asset-row')).toHaveTextContent('BTC');
     });
     expect(screen.getByTestId('entry-quantity')).toHaveValue('0,5');
+    await user.click(screen.getByTestId('entry-fold-category'));
     expect(screen.getByTestId('category-tile-buy')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('entry-tab-income')).toBeDisabled();
     expect(screen.getByTestId('entry-tab-loan-debt')).toBeDisabled();
@@ -595,23 +600,22 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
-    await screen.findByTestId('entry-asset-row');
 
     // 1. No asset chosen -> Xong focuses asset row
-    await tapKeypadDigits(user, '500000');
-    await user.click(screen.getByTestId('key-done'));
+    await finishAmount(user, '500000');
+    await screen.findByTestId('entry-asset-row');
     expect(screen.getByTestId('entry-asset-row')).toHaveFocus();
 
     // 2. Asset chosen, quantity empty -> Xong focuses quantity
     await user.click(screen.getByTestId('entry-asset-row'));
     await user.click(await screen.findByTestId('asset-option-asset-btc'));
-    await user.click(screen.getByTestId('amount-display'));
+    await user.click(screen.getByTestId('entry-fold-amount'));
     await user.click(screen.getByTestId('key-done'));
     expect(screen.getByTestId('entry-quantity')).toHaveFocus();
 
     // 3. Quantity filled -> Xong focuses Lưu
     await user.type(screen.getByTestId('entry-quantity'), '0,1');
-    await user.click(screen.getByTestId('amount-display'));
+    await user.click(screen.getByTestId('entry-fold-amount'));
     await user.click(screen.getByTestId('key-done'));
     expect(screen.getByTestId('entry-save-btn')).toHaveFocus();
   });
@@ -628,10 +632,8 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense&tile=buy&wallet=w-inv');
+    await finishAmount(user, '500');
     await screen.findByTestId('entry-asset-row');
-
-    await tapKeypadDigits(user, '500');
-    await user.click(screen.getByTestId('key-done'));
     await user.click(screen.getByTestId('entry-asset-row'));
     await user.click(await screen.findByTestId('asset-option-asset-btc'));
     await user.type(screen.getByTestId('entry-quantity'), '0,1');
@@ -641,6 +643,7 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
     await user.keyboard('{Escape}');
 
     // Switch to USD investment wallet -> foreign wallet guard
+    await openDetails(user);
     await user.click(screen.getByTestId('entry-wallet-row'));
     await user.click(await screen.findByTestId('wallet-option-w-usd-inv'));
     await user.click(screen.getByTestId('entry-save-btn'));

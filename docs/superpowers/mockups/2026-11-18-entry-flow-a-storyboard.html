@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entry flow A storyboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7f4; --card: #ffffff; --fg: #1c1917; --muted: #efefeb; --muted-fg: #57534e; --subtle: #78716c;
+    --border: #e7e5e4; --primary: #0f766e; --primary-fg: #fff; --secondary: #ccfbf1; --secondary-fg: #134e4a;
+    --leaf: #047857; --ff: "Be Vietnam Pro", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  button, input { font-family: var(--ff); }
+  ::selection { background: var(--secondary); color: var(--secondary-fg); }
+  body { margin: 0; background: #e9ebe6; color: var(--fg); font: 16px/1.5 var(--ff); }
+  .doc { max-width: 1240px; margin: 0 auto; padding: 32px 16px 8px; }
+  .doc h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .doc p { margin: 0; color: var(--muted-fg); font-size: 15px; max-width: 75ch; }
+  h2.sec { max-width: 1240px; margin: 28px auto 0; padding: 0 16px; font-size: 17px; font-weight: 600; }
+  .board { max-width: 1240px; margin: 0 auto; padding: 16px; display: flex; gap: 0; overflow-x: auto; align-items: flex-start; }
+  .step { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; width: 270px; }
+  .step .cap { font-size: 14px; color: var(--muted-fg); min-height: 42px; padding-right: 8px; }
+  .step .cap b { color: var(--fg); font-weight: 600; }
+  .arrow { flex: 0 0 auto; width: 54px; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--primary); font-size: 12px; font-weight: 600; text-align: center; margin-top: 60px; }
+  .arrow svg { width: 32px; height: 32px; }
+  .phone { width: 270px; height: 540px; background: var(--bg); border-radius: 28px; border: 8px solid #1c1917; overflow: hidden; position: relative; display: flex; flex-direction: column; box-shadow: 0 14px 30px -16px rgba(28,25,23,.45); font-size: 13px; }
+  .live .phone { width: 360px; height: 720px; border-width: 10px; border-radius: 36px; font-size: 16px; }
+  .top { padding: 10px 10px 6px; display: flex; flex-direction: column; gap: 8px; }
+  .tabs { display: flex; background: var(--muted); border-radius: 999px; padding: 3px; gap: 3px; }
+  .tabs button { flex: 1; min-height: 32px; border: 0; border-radius: 999px; background: transparent; color: var(--muted-fg); font-size: 1em; font-weight: 500; cursor: pointer; }
+  .live .tabs button { min-height: 44px; }
+  .tabs button.on { background: var(--card); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .body { flex: 1; overflow-y: auto; padding: 2px 10px 10px; display: flex; flex-direction: column; gap: 9px; }
+  .amount { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.02em; }
+  .group { background: var(--card); border-radius: 12px; overflow: hidden; }
+  .line { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 8px 12px; background: var(--card); border-radius: 12px; border: 0; width: 100%; text-align: left; color: var(--fg); font-size: 1em; cursor: pointer; }
+  .live .line { min-height: 52px; padding: 10px 16px; }
+  .line .lab { color: var(--muted-fg); font-size: .92em; }
+  .line .val { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .line .more { color: var(--primary); font-weight: 500; font-size: .92em; white-space: nowrap; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 8px 12px; }
+  .row + .row { border-top: 1px solid var(--border); }
+  .row .lab { color: var(--muted-fg); font-size: .92em; }
+  .chips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip { white-space: nowrap; min-height: 28px; padding: 0 10px; border-radius: 999px; border: 0; background: var(--card); box-shadow: inset 0 0 0 1px var(--border); font-size: .9em; font-weight: 500; color: var(--fg); cursor: pointer; }
+  .chip.on { background: var(--secondary); color: var(--secondary-fg); box-shadow: none; }
+  .wchip { align-self: flex-start; min-height: 30px; padding: 0 12px; border-radius: 999px; background: #fef3c7; font-size: .9em; font-weight: 500; display: inline-flex; align-items: center; border: 0; }
+  .prompt { color: var(--muted-fg); font-size: .92em; margin: 2px 2px 0; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .tile { border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 3px 1px; cursor: pointer; font-size: .82em; font-weight: 500; color: var(--fg); line-height: 1.2; }
+  .tile .ic { width: 36px; height: 36px; border-radius: 11px; background: var(--secondary); color: var(--secondary-fg); display: grid; place-items: center; }
+  .live .tile .ic { width: 44px; height: 44px; border-radius: 14px; }
+  .tile.on .ic { background: var(--primary); color: var(--primary-fg); }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); }
+  .keypad button { border: 0; background: var(--card); min-height: 40px; font-size: 1.3em; font-weight: 500; color: var(--fg); cursor: pointer; }
+  .live .keypad button { min-height: 52px; }
+  .keypad button.done { background: var(--primary); color: #fff; font-size: 1em; font-weight: 600; }
+  .save { margin: 0 10px 10px; min-height: 42px; border: 0; border-radius: 999px; background: var(--primary); color: #fff; font-size: 1em; font-weight: 600; cursor: pointer; }
+  .live .save { margin: 0 16px 16px; min-height: 52px; }
+  .save[disabled] { background: var(--muted); color: var(--subtle); }
+  .note { width: 100%; border: 0; outline: none; background: transparent; font-size: 1em; text-align: right; color: var(--fg); min-height: 30px; }
+  .people { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--secondary-fg); background: var(--secondary); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 1px; }
+  .hl { outline: 2.5px solid #f59e0b; outline-offset: 2px; border-radius: 12px; }
+  .live-wrap { max-width: 1240px; margin: 0 auto; padding: 16px 16px 56px; display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .live-wrap .notes { max-width: 52ch; color: var(--muted-fg); font-size: 15px; }
+  .live-wrap .notes li { margin-bottom: 6px; }
+
+  /* ---- Motion (live phone only): the fold ---- */
+  :root { --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.4, 0, 1, 1); }
+  ::view-transition-group(*) { animation-duration: 260ms; animation-timing-function: var(--ease-out); }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  ::view-transition-old(amt), ::view-transition-new(amt),
+  ::view-transition-old(cat-ic), ::view-transition-new(cat-ic),
+  ::view-transition-old(cat-name), ::view-transition-new(cat-name) { height: 100%; object-fit: contain; }
+  ::view-transition-old(keypad) { animation: vt-drop 160ms var(--ease-in) both; }
+  ::view-transition-new(keypad) { animation: vt-rise 240ms var(--ease-out) both; }
+  ::view-transition-new(save) { animation: vt-rise 220ms var(--ease-out) 60ms both; }
+  ::view-transition-old(save) { animation: vt-fade-out 120ms var(--ease-in) both; }
+  ::view-transition-new(tiles) { animation: vt-fade-in 160ms var(--ease-out) both; }
+  ::view-transition-old(tiles) { animation: vt-fade-out 110ms var(--ease-in) both; }
+  ::view-transition-group(tabpill) { animation-duration: 220ms; }
+  ::view-transition-group(details) { animation-duration: 240ms; }
+  ::view-transition-new(details) { animation: vt-fade-in 200ms var(--ease-out) 40ms both; }
+  ::view-transition-old(details) { animation: vt-fade-out 100ms var(--ease-in) both; }
+  ::view-transition-group(save-label) { animation-duration: 140ms; }
+  @keyframes vt-drop { to { transform: translateY(100%); opacity: 0; } }
+  @keyframes vt-rise { from { transform: translateY(24px); opacity: 0; } }
+  @keyframes vt-fade-in { from { opacity: 0; } }
+  @keyframes vt-fade-out { to { opacity: 0; } }
+  .live .tiles.enter .tile { animation: tile-in 200ms var(--ease-out) both; animation-delay: calc(var(--i) * 18ms); }
+  @keyframes tile-in { from { opacity: 0; transform: translateY(6px) scale(.96); } }
+  .live button { transition: transform 100ms var(--ease-out), background-color 150ms var(--ease-out); }
+  .live button:active { transform: scale(.97); }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*) { animation-duration: 0s !important; }
+    ::view-transition-old(*) { animation: vt-fade-out 120ms linear both !important; }
+    ::view-transition-new(*) { animation: vt-fade-in 120ms linear both !important; }
+    .live .tiles.enter .tile { animation: vt-fade-in 120ms linear both; animation-delay: 0ms; }
+    .live button:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Thêm giao dịch, flow A: what you see at each tap</h1>
+  <p>Phone screens in order. The orange outline marks what you tap next. The Chi / Thu / Vay/Nợ tabs at the top are always there; that's how you switch type. At the bottom is one phone you can click through yourself.</p>
+</div>
+
+<h2 class="sec">1 · Recording a spend (Chi)</h2>
+<div class="board" id="story-chi"></div>
+
+<h2 class="sec">2 · Switching type</h2>
+<div class="board" id="story-switch"></div>
+
+<h2 class="sec">3 · Try it</h2>
+<div class="live-wrap">
+  <div class="live"><div class="phone" id="live"></div></div>
+  <ul class="notes">
+    <li>Type an amount and press <b>Xong</b>: the amount folds into one line and the categories appear.</li>
+    <li>Pick a category: it folds too, and the details line and Save appear.</li>
+    <li>Tap any folded line to reopen it; nothing you typed is lost.</li>
+    <li>Switch <b>Chi ⇄ Thu</b>: the amount stays, the category is cleared and the tiles reopen.</li>
+    <li><b>Vay/Nợ</b> shows today's separate people-and-split form, unchanged in this plan.</li>
+    <li>On PC (mouse), the page stays as it is today, with nothing folded.</li>
+  </ul>
+</div>
+
+<script>
+const ICON = {
+ 'Ăn uống':'<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+ 'Di chuyển':'<circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/>',
+ 'Mua sắm':'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+ 'Hóa đơn':'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8H8"/><path d="M16 12H8"/>',
+ 'Cà phê':'<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>',
+ 'Chuyển ví':'<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+ 'Giải trí':'<rect x="2" y="6" width="20" height="14" rx="2"/><path d="m2 10 20-4"/>',
+ 'Lương':'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>',
+ 'Thưởng':'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>',
+ 'Bán đồ':'<path d="M12 2H2v10l9.3 9.3a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z"/><circle cx="7" cy="7" r="1.5"/>',
+ 'Lãi':'<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
+ 'Tất cả':'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'};
+const CATS = { expense: ['Chuyển ví','Ăn uống','Di chuyển','Mua sắm','Hóa đơn','Cà phê','Giải trí','Tất cả'], income: ['Chuyển ví','Lương','Thưởng','Bán đồ','Lãi','Tất cả'] };
+const PROMPT = { expense: 'Chi cho việc gì?', income: 'Thu từ đâu?' };
+const ic = (n) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+const chev = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+const fmt = (s) => (s ? Number(s).toLocaleString('vi-VN') : '0') + '₫';
+const hl = (s, k) => (s.hl === k ? ' hl' : '');
+
+/* One screen from a state: { tab, amt, amtDone, cat, details, note, hl } */
+function screen(s, live = false) {
+  const vt = (n) => (live ? ` style="view-transition-name:${n}"` : '');
+  const vtx = (n, extra) => (live ? ` style="view-transition-name:${n};${extra}"` : ` style="${extra}"`);
+  const tabs = `<div class="tabs">${[['expense','Chi'],['income','Thu'],['loan','Vay/Nợ']].map(([k,l]) => `<button data-tab="${k}" class="${s.tab===k?'on':''}${hl(s,'tab-'+k)}"${s.tab===k?vt('tabpill'):''}>${l}</button>`).join('')}</div>`;
+  if (s.tab === 'loan') {
+    return `<div class="top">${tabs}</div><div class="body">
+      <div class="group"><div class="row"><span class="lab">Số tiền</span><span class="amount" style="font-size:1.4em">${fmt(s.amt)}</span></div></div>
+      <div class="group"><div class="row"><span class="lab">Ai trả</span><b>Bạn</b></div><div class="row"><span class="lab">Chia với</span><span class="people"><span class="chip on">Minh</span><span class="chip">Lan</span><span class="chip">+</span></span></div><div class="row"><span class="lab">Cách chia</span><b>Chia đều</b></div></div>
+      <p class="prompt" style="text-align:center">Vay/Nợ keeps today's form, unchanged</p>
+      </div><button class="save" disabled>Lưu</button>`;
+  }
+  const amountOpen = !s.amtDone;
+  let body = '';
+  if (amountOpen) {
+    body += `<div style="padding:14px 4px 2px"><div class="prompt" style="margin:0">Số tiền</div><div class="amount"${vtx('amt', `font-size:2.4em;line-height:1.1;width:max-content;color:${s.amt?'var(--fg)':'var(--subtle)'}`)}>${fmt(s.amt)}</div></div>`;
+  } else {
+    body += `<button class="line${hl(s,'amount')}" data-act="amount"><span class="lab">Số tiền</span><span class="val amount"${vtx('amt', 'font-size:1.15em')}>${fmt(s.amt)}</span></button>`;
+    if (!s.cat) {
+      body += `<p class="prompt">${PROMPT[s.tab]}</p><div class="tiles${s.enter ? ' enter' : ''}"${vt('tiles')}>${CATS[s.tab].map((n, i) => `<button class="tile${hl(s,'cat-'+n)}" data-cat="${n}" style="--i:${i}"><span class="ic">${ic(n)}</span><span class="nm">${n}</span></button>`).join('')}</div>`;
+    } else {
+      body += `<button class="line${hl(s,'cat')}" data-act="cat"><span class="lab">Danh mục</span><span class="val"><span${vtx('cat-ic', 'display:inline-flex')}>${ic(s.cat)}</span> <span${vt('cat-name')}>${s.cat}</span></span></button>`;
+      if (!s.details) {
+        body += `<button class="line${hl(s,'details')}" data-act="details"${vt('details')}><span class="lab">Hôm nay · Tiền mặt · ${s.note || 'Không ghi chú'}</span><span class="more">Thêm chi tiết</span></button>`;
+      } else {
+        body += `<div class="group"${vt('details')}><div class="row"><span class="lab">Ví</span><span class="val" style="font-weight:500;display:flex;gap:4px;align-items:center">Tiền mặt ${chev}</span></div>
+          <div class="row"><span class="lab">Ngày</span><span class="chips"><button class="chip on">Hôm nay</button><button class="chip">Hôm qua</button><button class="chip">Chọn…</button></span></div>
+          <div class="row"><span class="lab">Ghi chú</span><input class="note" data-note placeholder="Thêm ghi chú" value="${s.note||''}"></div></div>`;
+      }
+    }
+  }
+  const foot = amountOpen
+    ? `<div class="keypad"${vt('keypad')}>${['1','2','3','4','5','6','7','8','9','000','0','⌫'].map(k => `<button data-k="${k}">${k}</button>`).join('')}<button class="done${hl(s,'done')}" data-act="done" style="grid-column:span 3">Xong</button></div>`
+    : `<button class="save${hl(s,'save')}" ${s.cat ? '' : 'disabled'}${vt('save')}><span${vtx('save-label', 'display:inline-block')}>${s.cat ? `Lưu ${fmt(s.amt)} · ${s.cat}` : 'Chọn danh mục'}</span></button>`;
+  return `<div class="top">${tabs}</div><div class="body">${body}</div>${foot}`;
+}
+
+function board(id, frames) {
+  const el = document.getElementById(id);
+  el.innerHTML = frames.map((f, i) => `${i ? `<div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>${f.tap}</div>` : ''}
+    <div class="step"><div class="cap">${f.cap}</div><div class="phone" aria-hidden="true">${screen(f.s)}</div></div>`).join('');
+}
+
+board('story-chi', [
+  { cap: '<b>Opens on the amount.</b> The keypad is up, and nothing else asks for attention.', s: { tab: 'expense', amt: '120000', hl: 'done' } },
+  { tap: 'Xong', cap: '<b>The amount folds into one line.</b> The category tiles appear.', s: { tab: 'expense', amt: '120000', amtDone: true, hl: 'cat-Ăn uống' } },
+  { tap: 'Ăn uống', cap: '<b>The category folds.</b> Details sit behind one line. Save names what it saves.', s: { tab: 'expense', amt: '120000', amtDone: true, cat: 'Ăn uống', hl: 'details' } },
+  { tap: 'Thêm chi tiết', cap: '<b>Optional:</b> wallet, date and note open only if you want them.', s: { tab: 'expense', amt: '120000', amtDone: true, cat: 'Ăn uống', details: true, note: 'Phở', hl: 'save' } },
+]);
+board('story-switch', [
+  { cap: '<b>Mid-way through a Chi</b>, you realise it was money in.', s: { tab: 'expense', amt: '120000', amtDone: true, cat: 'Ăn uống', hl: 'tab-income' } },
+  { tap: 'Thu tab', cap: '<b>The amount stays.</b> The category is cleared and the Thu tiles open.', s: { tab: 'income', amt: '120000', amtDone: true, hl: 'amount' } },
+  { tap: 'tap amount', cap: '<b>Any folded line reopens</b> with its value kept, here the amount with the keypad.', s: { tab: 'income', amt: '120000', hl: 'tab-loan' } },
+  { tap: 'Vay/Nợ tab', cap: '<b>Vay/Nợ</b> is today\'s separate people-and-split form; this plan doesn\'t fold it.', s: { tab: 'loan', amt: '120000' } },
+]);
+
+/* Interactive phone */
+const L = { tab: 'expense', amt: '', amtDone: false, cat: null, details: false, note: '' };
+const live = document.getElementById('live');
+const draw = () => { live.innerHTML = screen(L, true); L.enter = false; };
+const go = (fn) => {
+  if (!document.startViewTransition) { fn(); draw(); return; }
+  document.startViewTransition(() => { fn(); draw(); });
+};
+live.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.k) {
+    const k = b.dataset.k;
+    L.amt = k === '⌫' ? L.amt.slice(0, -1) : (L.amt + k).replace(/^0+/, '').slice(0, 10);
+    draw(); return;
+  }
+  if (b.dataset.cat === 'Tất cả') return;
+  if (b.dataset.cat) {
+    b.querySelector('.ic').style.viewTransitionName = 'cat-ic';
+    b.querySelector('.nm').style.viewTransitionName = 'cat-name';
+  }
+  go(() => {
+    if (b.dataset.tab && b.dataset.tab !== L.tab) { L.tab = b.dataset.tab; L.cat = null; L.details = false; L.enter = L.amtDone; }
+    if (b.dataset.cat) L.cat = b.dataset.cat;
+    const a = b.dataset.act;
+    if (a === 'done' && L.amt) { L.amtDone = true; L.enter = !L.cat; }
+    if (a === 'amount') L.amtDone = false;
+    if (a === 'cat') { L.cat = null; L.enter = true; }
+    if (a === 'details') L.details = true;
+    if (b.classList.contains('save') && L.cat) Object.assign(L, { amt: '', amtDone: false, cat: null, details: false, note: '' });
+  });
+});
+live.addEventListener('input', (e) => { if (e.target.dataset.note !== undefined) L.note = e.target.value; });
+draw();
+</script>
+</body>
+</html>

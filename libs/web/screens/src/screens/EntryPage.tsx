@@ -53,7 +53,11 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { AmountField, evaluateAmountExpression, formatKeypadValue } from '../components/AmountField';
 import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
-import { EntryDateRow } from '../components/EntryDateRow';
+import { categoryIconName } from '../components/categoryIcon';
+import { EntryDateRow, formatEntryDayLabel } from '../components/EntryDateRow';
+import { useEntryFold } from '../components/entryFold';
+import { FoldLine } from '../components/FoldLine';
+import { runFoldTransition } from '../components/foldTransition';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
@@ -63,6 +67,30 @@ import { QuickExpenseEmbed } from './ExpenseForm';
 
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
+
+/** Formats the one-line summary shown on the folded details row. */
+export function formatDetailsFoldSummary({
+  date,
+  walletName,
+  note,
+  includeWallet,
+  translate,
+}: {
+  date: string;
+  walletName?: string | null;
+  note: string;
+  includeWallet: boolean;
+  translate: ReturnType<typeof useT>;
+}): string {
+  const dayLabel = formatEntryDayLabel(date, translate);
+  const trimmedNote = note.trim();
+  const noteLabel = trimmedNote
+    ? trimmedNote.length > 24
+      ? `${trimmedNote.slice(0, 24)}…`
+      : trimmedNote
+    : translate('personalEntry.noNote');
+  return [dayLabel, includeWallet ? walletName : null, noteLabel].filter(Boolean).join(' · ');
+}
 
 function parseInitialType(
   rawType: string | null,
@@ -275,12 +303,56 @@ export function EntryPage(): JSX.Element {
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const quantityInitializedRef = useRef(false);
   const saveBarRef = useRef<HTMLDivElement>(null);
+  const foldCategoryRef = useRef<HTMLButtonElement>(null);
+  const walletRowRef = useRef<HTMLButtonElement>(null);
+  const detailsCardRef = useRef<HTMLDivElement>(null);
   const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'save' | null>(null);
+  const pendingFoldFocusRef = useRef<'fold-category' | 'category-grid' | 'asset' | 'details' | null>(null);
+  const pendingTabRef = useRef<TabValue | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
   const isMousePointer = useIsMousePointer();
+  const fold = useEntryFold({ enabled: !isMousePointer, isEdit });
+  const foldAmountOpen = fold.isOpen('amount');
+  const foldCategoryOpen = fold.isOpen('category');
+  const foldDetailsOpen = fold.isOpen('details');
+  const runTransition = (update: () => void) => runFoldTransition(update, !isMousePointer);
   const effectiveKeypadOpen = !isMousePointer && keypadOpen;
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
+
+  useEffect(() => {
+    if (!categoryRingActive) return;
+    if (!foldCategoryOpen) {
+      fold.open('category');
+      return;
+    }
+    categoryGridRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [categoryRingActive, foldCategoryOpen, fold.open]);
+
+  useEffect(() => {
+    const target = pendingFoldFocusRef.current;
+    if (!target) return;
+    pendingFoldFocusRef.current = null;
+    if (target === 'fold-category') {
+      foldCategoryRef.current?.focus();
+    } else if (target === 'asset') {
+      assetRowRef.current?.focus();
+      assetRowRef.current?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'category-grid') {
+      const grid = categoryGridRef.current;
+      const preferred =
+        grid?.querySelector<HTMLElement>('button[aria-pressed="true"]:not([disabled])') ??
+        grid?.querySelector<HTMLElement>('button:not([disabled])');
+      preferred?.focus();
+      preferred?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'details') {
+      if (isTransferMode) {
+        detailsCardRef.current?.querySelector<HTMLElement>('[data-testid="entry-date-value"]')?.focus();
+      } else {
+        walletRowRef.current?.focus();
+      }
+    }
+  }, [foldCategoryOpen, foldDetailsOpen, isTransferMode, isTradeMode]);
 
   useEffect(() => {
     return () => {
@@ -313,13 +385,13 @@ export function EntryPage(): JSX.Element {
   useEffect(() => {
     if (isEdit) return;
     if (typeParam === 'loan-debt') {
-      setActiveTab('loan-debt');
+      setActiveTab((prev) => (prev === 'loan-debt' ? prev : 'loan-debt'));
     } else if (typeParam === 'income') {
-      setActiveTab('income');
-      setEntryType('income');
+      setActiveTab((prev) => (prev === 'income' ? prev : 'income'));
+      setEntryType((prev) => (prev === 'income' ? prev : 'income'));
     } else if (typeParam === 'expense') {
-      setActiveTab('expense');
-      setEntryType('expense');
+      setActiveTab((prev) => (prev === 'expense' ? prev : 'expense'));
+      setEntryType((prev) => (prev === 'expense' ? prev : 'expense'));
     }
   }, [isEdit, typeParam]);
 
@@ -492,6 +564,12 @@ export function EntryPage(): JSX.Element {
       ? Boolean(fromWallet?.archived || toWallet?.archived)
       : Boolean(selectedWallet?.archived));
 
+  useEffect(() => {
+    if (hasArchivedWallet) {
+      fold.open('details');
+    }
+  }, [hasArchivedWallet, fold.open]);
+
   const isDiffCurrencyTransfer =
     isTransferMode &&
     Boolean(fromWallet && toWallet && fromWallet.currency !== toWallet.currency);
@@ -537,6 +615,32 @@ export function EntryPage(): JSX.Element {
       ? secondaryMinor
       : primaryMinor
     : null;
+
+  useEffect(() => {
+    if (
+      isMousePointer ||
+      foldAmountOpen ||
+      !isDiffCurrencyTransfer ||
+      (secondaryMinor !== null && secondaryMinor > 0) ||
+      (isEdit && Boolean(entry?.transferId) && counterpartAppliedId !== entry?.id)
+    ) {
+      return;
+    }
+    fold.open('amount');
+    setActiveTransferField('secondary');
+    setKeypadOpen(true);
+    setKeypadFocusToken((n) => n + 1);
+  }, [
+    isMousePointer,
+    foldAmountOpen,
+    isDiffCurrencyTransfer,
+    secondaryMinor,
+    isEdit,
+    entry?.transferId,
+    entry?.id,
+    counterpartAppliedId,
+    fold.open,
+  ]);
 
   const amountLabelFor = (expr: string, cur: CurrencyCode, evaluated: number | null): string =>
     evaluated !== null
@@ -597,46 +701,60 @@ export function EntryPage(): JSX.Element {
       setCategoryRingActive(false);
       categoryRingTimerRef.current = null;
     }, 1500);
-    categoryGridRef.current?.scrollIntoView?.({ block: 'nearest' });
   };
 
   const handleTabChange = (next: TabValue) => {
+    const currentTab = isEdit ? entryType : activeTab;
+    // Radix Tabs fires onValueChange on mousedown and again on focus if value has not updated yet
+    // (because document.startViewTransition runs its callback asynchronously on the next frame).
+    if (next === currentTab || next === pendingTabRef.current) return;
     if (next === 'loan-debt') {
       if (isEdit) return;
-      setActiveTab('loan-debt');
-      setValidationError(null);
-      clearCategoryError();
-      const params = new URLSearchParams(searchParams);
-      params.set('type', 'loan-debt');
-      setSearchParams(params, { replace: true });
+      pendingTabRef.current = next;
+      runTransition(() => {
+        pendingTabRef.current = null;
+        setActiveTab('loan-debt');
+        setValidationError(null);
+        clearCategoryError();
+        const params = new URLSearchParams(searchParams);
+        params.set('type', 'loan-debt');
+        setSearchParams(params, { replace: true });
+      });
       return;
     }
     if (isEdit && (isTransferMode || isTradeMode)) return;
-    setActiveTab(next);
-    setEntryType(next);
-    setIsTransferMode(false);
-    setIsTradeMode(false);
-    setActiveTransferField('primary');
-    setCategoryId(null);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    if (!excludeTouched) {
-      setExcludeFromReports(false);
-    }
-    if (!isEdit) {
-      // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
-      if (activeTab === 'loan-debt') {
+    pendingTabRef.current = next;
+    runTransition(() => {
+      pendingTabRef.current = null;
+      setActiveTab(next);
+      setEntryType(next);
+      setIsTransferMode(false);
+      setIsTradeMode(false);
+      setActiveTransferField('primary');
+      setCategoryId(null);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      if (!excludeTouched) {
+        setExcludeFromReports(false);
+      }
+      if (!fold.isOpen('amount')) {
+        fold.open('category');
+      }
+      if (!isEdit && activeTab === 'loan-debt') {
+        // Coming back from Vay/Nợ on a new entry: reopen keypad only if amount is still open (R4).
         if (isMousePointer) {
           didAutoFocusRef.current = false;
-        } else {
+        } else if (fold.isOpen('amount')) {
           setKeypadOpen(true);
         }
       }
-      const params = new URLSearchParams(searchParams);
-      params.set('type', next);
-      setSearchParams(params, { replace: true });
-    }
+      if (!isEdit) {
+        const params = new URLSearchParams(searchParams);
+        params.set('type', next);
+        setSearchParams(params, { replace: true });
+      }
+    });
   };
 
   const handleLoanDebtSaved = () => {
@@ -648,41 +766,75 @@ export function EntryPage(): JSX.Element {
     goBack();
   };
 
+  const isWaitingForSecondary = () =>
+    isTransferMode &&
+    isDiffCurrencyTransfer &&
+    activeTransferField === 'primary' &&
+    (secondaryMinor === null || secondaryMinor <= 0);
+
+  const foldOpenAmountIfValid = () => {
+    if (
+      !isMousePointer &&
+      fold.isOpen('amount') &&
+      activeMinor !== null &&
+      activeMinor > 0 &&
+      !isWaitingForSecondary()
+    ) {
+      fold.finish('amount');
+      setKeypadOpen(false);
+    }
+  };
+
   const handleSelectTransfer = () => {
     if (isEdit && isTradeMode) return;
-    setIsTransferMode(true);
-    setIsTradeMode(false);
-    setCategoryId(null);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    if (!excludeTouched) {
-      setExcludeFromReports(true);
-    }
+    if (!isMousePointer) pendingFoldFocusRef.current = 'fold-category';
+    runTransition(() => {
+      setIsTransferMode(true);
+      setIsTradeMode(false);
+      setCategoryId(null);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      if (!excludeTouched) {
+        setExcludeFromReports(true);
+      }
+      foldOpenAmountIfValid();
+      fold.finish('category');
+    });
   };
 
   const handleSelectCategory = (cid: string) => {
     if (isEdit && isTradeMode) return;
-    setIsTransferMode(false);
-    setIsTradeMode(false);
-    setActiveTransferField('primary');
-    setCategoryId(cid);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
-    if (!excludeTouched) {
-      setExcludeFromReports(false);
-    }
+    if (!isMousePointer) pendingFoldFocusRef.current = 'fold-category';
+    runTransition(() => {
+      setIsTransferMode(false);
+      setIsTradeMode(false);
+      setActiveTransferField('primary');
+      setCategoryId(cid);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      if (!excludeTouched) {
+        setExcludeFromReports(false);
+      }
+      foldOpenAmountIfValid();
+      fold.finish('category');
+    });
   };
 
   const handleSelectTrade = () => {
-    setIsTradeMode(true);
-    setIsTransferMode(false);
-    setActiveTransferField('primary');
-    setCategoryId(null);
-    setServerOversellError(null);
-    setValidationError(null);
-    clearCategoryError();
+    if (!isMousePointer) pendingFoldFocusRef.current = 'asset';
+    runTransition(() => {
+      setIsTradeMode(true);
+      setIsTransferMode(false);
+      setActiveTransferField('primary');
+      setCategoryId(null);
+      setServerOversellError(null);
+      setValidationError(null);
+      clearCategoryError();
+      foldOpenAmountIfValid();
+      fold.finish('category');
+    });
   };
 
   const handleFieldDone = (field: 'primary' | 'secondary') => {
@@ -714,11 +866,7 @@ export function EntryPage(): JSX.Element {
     }
   };
 
-  const handleKeypadDone = (minor: number) => {
-    const formatted = formatKeypadValue(minor, activeCurrency);
-    if (formatted !== activeExpr) {
-      setActiveExpr(formatted);
-    }
+  const setPendingFocusAfterAmount = (waitingForSecondary: boolean) => {
     if (isTradeMode) {
       if (!assetId) {
         pendingFocusTargetRef.current = 'asset';
@@ -729,17 +877,52 @@ export function EntryPage(): JSX.Element {
       }
     } else if (!isTransferMode && !categoryId) {
       pendingFocusTargetRef.current = 'category';
-    } else if (
-      isTransferMode &&
-      isDiffCurrencyTransfer &&
-      activeTransferField === 'primary' &&
-      (secondaryMinor === null || secondaryMinor <= 0)
-    ) {
+    } else if (waitingForSecondary) {
       pendingFocusTargetRef.current = 'secondary';
     } else {
       pendingFocusTargetRef.current = 'save';
     }
-    setKeypadOpen(false);
+  };
+
+  const finishAmountOrClose = (minor: number | null, moveFocus: boolean) => {
+    const waitingForSecondary = isWaitingForSecondary();
+    const willFold = minor !== null && minor > 0 && !waitingForSecondary;
+    if (moveFocus) {
+      if (willFold || waitingForSecondary) {
+        setPendingFocusAfterAmount(waitingForSecondary);
+      } else {
+        (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
+      }
+    }
+    const hasCategoryChoice = Boolean(categoryId || isTransferMode || isTradeMode);
+    runTransition(() => {
+      if (willFold) {
+        fold.finish('amount');
+        if (hasCategoryChoice) {
+          fold.finish('category');
+        }
+      }
+      setKeypadOpen(false);
+    });
+  };
+
+  const handleKeypadDone = (minor: number) => {
+    const formatted = formatKeypadValue(minor, activeCurrency);
+    if (formatted !== activeExpr) {
+      setActiveExpr(formatted);
+    }
+    finishAmountOrClose(minor, true);
+  };
+
+  const handleKeypadEscape = () => {
+    const hasValidAmount = activeMinor !== null && activeMinor > 0 && !isWaitingForSecondary();
+    runTransition(() => {
+      if (hasValidAmount) {
+        fold.open('category');
+      }
+      setKeypadOpen(false);
+    });
+    (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
   };
 
   const isSaving = createEntry.isPending || updateEntry.isPending;
@@ -1078,8 +1261,11 @@ export function EntryPage(): JSX.Element {
   );
 
   const handleWalletPick = (pickedId: string) => {
+    let nextSelected = selectedWallet;
+    let nextOther = otherWallet;
     if (walletSheetTarget === 'single') {
       if (isTransferMode && pickedId === otherWallet?.id) {
+        nextOther = selectedWallet;
         setOtherWalletId(selectedWallet?.id ?? '');
       }
       const pickedWallet = allWallets.find((w) => w.id === pickedId);
@@ -1087,14 +1273,34 @@ export function EntryPage(): JSX.Element {
         setIsTradeMode(false);
       }
       setServerOversellError(null);
+      nextSelected = pickedWallet;
       setWalletId(pickedId);
     } else if (walletSheetTarget === 'other') {
       if (pickedId === selectedWallet?.id) {
+        nextSelected = otherWallet;
         setWalletId(otherWallet?.id ?? '');
       }
+      nextOther = allWallets.find((w) => w.id === pickedId);
       setOtherWalletId(pickedId);
     }
     setWalletSheetTarget(null);
+    if (
+      !isMousePointer &&
+      isTransferMode &&
+      fold.isOpen('amount') &&
+      nextSelected &&
+      nextOther &&
+      nextSelected.currency === nextOther.currency &&
+      primaryMinor !== null &&
+      primaryMinor > 0
+    ) {
+      setActiveTransferField('primary');
+      runTransition(() => {
+        fold.finish('amount');
+        fold.finish('category');
+        setKeypadOpen(false);
+      });
+    }
   };
 
   const isLoading = walletsQuery.isPending || (isEdit && !entry && listQuery.isPending);
@@ -1145,6 +1351,7 @@ export function EntryPage(): JSX.Element {
                 value="expense"
                 disabled={editLockedTrade && entryType !== 'expense'}
                 data-testid="entry-tab-expense"
+                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.expense')}
@@ -1153,6 +1360,7 @@ export function EntryPage(): JSX.Element {
                 value="income"
                 disabled={editLockedTransfer || (editLockedTrade && entryType !== 'income')}
                 data-testid="entry-tab-income"
+                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.income')}
@@ -1161,6 +1369,7 @@ export function EntryPage(): JSX.Element {
                 value="loan-debt"
                 disabled={isEdit}
                 data-testid="entry-tab-loan-debt"
+                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.loanDebt')}
@@ -1218,7 +1427,38 @@ export function EntryPage(): JSX.Element {
             )}
 
             {/* Display amount */}
-            <div ref={amountAreaRef} className="flex flex-col gap-2">
+            {!fold.isOpen('amount') ? (
+              <FoldLine
+                testId="entry-fold-amount"
+                label={t('personalEntry.amountBoxLabel')}
+                onOpen={() => {
+                  runTransition(() => {
+                    fold.open('amount');
+                    setKeypadOpen(true);
+                  });
+                  setKeypadFocusToken((n) => n + 1);
+                }}
+              >
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <span style={!isMousePointer ? { viewTransitionName: 'entry-amt' } : undefined}>
+                    {isDiffCurrencyTransfer
+                      ? `${primaryAmountText} → ${secondaryAmountText}`
+                      : primaryAmountText}
+                  </span>
+                  {!isTransferMode &&
+                    selectedWallet &&
+                    (selectedWallet.currency !== 'VND' || selectedWallet.kind === 'investment') && (
+                      <span
+                        data-testid="amount-wallet-chip"
+                        className="text-sm font-medium text-muted-foreground"
+                      >
+                        · {selectedWallet.name}
+                      </span>
+                    )}
+                </span>
+              </FoldLine>
+            ) : (
+              <div ref={amountAreaRef} className="flex flex-col gap-2">
               {isMousePointer ? (
                 <AmountField
                   label={t('personalEntry.amountBoxLabel')}
@@ -1258,7 +1498,10 @@ export function EntryPage(): JSX.Element {
                   <span aria-hidden="true" className="text-sm font-medium text-muted-foreground shrink-0">
                     {t('personalEntry.amountBoxLabel')}
                   </span>
-                  <span className="flex flex-col items-end tabular-nums min-w-0">
+                  <span
+                    className="flex flex-col items-end tabular-nums min-w-0"
+                    style={!isMousePointer ? { viewTransitionName: 'entry-amt' } : undefined}
+                  >
                     {renderAmountValue(primaryExpr, primaryCurrency, primaryMinor, displayTone)}
                   </span>
                 </button>
@@ -1372,209 +1615,368 @@ export function EntryPage(): JSX.Element {
                   {impliedRate}
                 </p>
               )}
-            </div>
+              </div>
+            )}
 
             {/* Category tiles (with fixed transfer and trade tiles) */}
-            <CategoryPicker
-              type={entryType}
-              categories={categoriesQuery.data?.categories ?? []}
-              recentIds={categoriesQuery.data?.recentIds ?? []}
-              walletKind={selectedWallet?.kind}
-              value={categoryId}
-              onChange={handleSelectCategory}
-              transferSelected={isTransferMode}
-              onSelectTransfer={handleSelectTransfer}
-              tradeSelected={isTradeMode}
-              onTradeSelect={handleSelectTrade}
-              showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
-              disableNonTrade={editLockedTrade}
-              error={categoryError ? t('personalEntry.pickCategoryError') : null}
-              highlightError={categoryRingActive}
-              gridRef={categoryGridRef}
-            />
-
-            {/* Compact rows */}
-            <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
-              <button
-                type="button"
-                data-testid="entry-wallet-row"
-                onClick={() => setWalletSheetTarget('single')}
-                className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
-              >
-                <span className="text-sm font-medium text-muted-foreground">
-                  {isTransferMode
-                    ? entryType === 'expense'
-                      ? t('personalEntry.fromWallet')
-                      : t('personalEntry.toWallet')
-                    : t('personalEntry.wallet')}
-                </span>
-                <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                  <span>{selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}</span>
-                  <Icon name="chevronRight" size={18} className="text-muted-foreground" />
-                </span>
-              </button>
-
-              {isTransferMode && (
-                <button
-                  type="button"
-                  data-testid={entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'}
-                  onClick={() => setWalletSheetTarget('other')}
-                  className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
-                >
-                  <span className="text-sm font-medium text-muted-foreground">
+            {fold.isOpen('category') ? (
+              <div className="flex flex-col gap-2">
+                {!isMousePointer && (
+                  <p className="m-0 text-sm text-muted-foreground">
                     {entryType === 'expense'
-                      ? t('personalEntry.toWallet')
-                      : t('personalEntry.fromWallet')}
-                  </span>
-                  <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                    <span>{otherWallet ? `${otherWallet.name} (${otherWallet.currency})` : '—'}</span>
-                    <Icon name="chevronRight" size={18} className="text-muted-foreground" />
-                  </span>
-                </button>
-              )}
+                      ? t('personalEntry.categoryPromptExpense')
+                      : t('personalEntry.categoryPromptIncome')}
+                  </p>
+                )}
+                <CategoryPicker
+                  type={entryType}
+                  categories={categoriesQuery.data?.categories ?? []}
+                  recentIds={categoriesQuery.data?.recentIds ?? []}
+                  walletKind={selectedWallet?.kind}
+                  value={categoryId}
+                  onChange={handleSelectCategory}
+                  transferSelected={isTransferMode}
+                  onSelectTransfer={handleSelectTransfer}
+                  tradeSelected={isTradeMode}
+                  onTradeSelect={handleSelectTrade}
+                  showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
+                  disableNonTrade={editLockedTrade}
+                  error={categoryError ? t('personalEntry.pickCategoryError') : null}
+                  highlightError={categoryRingActive}
+                  gridRef={categoryGridRef}
+                  transitionEnabled={!isMousePointer}
+                />
+              </div>
+            ) : !fold.isOpen('amount') ? (
+              <FoldLine
+                buttonRef={foldCategoryRef}
+                testId="entry-fold-category"
+                label={t('personalEntry.categoryLine')}
+                onOpen={() => {
+                  if (!isMousePointer) pendingFoldFocusRef.current = 'category-grid';
+                  runTransition(() => fold.open('category'));
+                }}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  {isTransferMode ? (
+                    <>
+                      <span
+                        className="inline-flex shrink-0"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-ic' } : undefined}
+                      >
+                        <Icon name="swap" size={18} className="text-muted-foreground shrink-0" />
+                      </span>
+                      <span
+                        className="truncate"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-name' } : undefined}
+                      >
+                        {entryType === 'expense'
+                          ? t('personalEntry.transferToWallet')
+                          : t('personalEntry.transferFromWallet')}
+                      </span>
+                    </>
+                  ) : isTradeMode ? (
+                    <>
+                      <span
+                        className="inline-flex shrink-0"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-ic' } : undefined}
+                      >
+                        <Icon name="trending-up" size={18} className="text-muted-foreground shrink-0" />
+                      </span>
+                      <span
+                        className="truncate"
+                        style={!isMousePointer ? { viewTransitionName: 'entry-cat-name' } : undefined}
+                      >
+                        {entryType === 'expense'
+                          ? t('personalEntry.buyAsset')
+                          : t('personalEntry.sellAsset')}
+                      </span>
+                    </>
+                  ) : (
+                    (() => {
+                      const selectedCategory = (categoriesQuery.data?.categories ?? []).find(
+                        (c) => c.id === categoryId,
+                      );
+                      return (
+                        <>
+                          <span
+                            className="inline-flex shrink-0"
+                            style={!isMousePointer ? { viewTransitionName: 'entry-cat-ic' } : undefined}
+                          >
+                            <Icon
+                              name={categoryIconName(selectedCategory?.icon, entryType)}
+                              size={18}
+                              className="text-muted-foreground shrink-0"
+                            />
+                          </span>
+                          <span
+                            className="truncate"
+                            style={!isMousePointer ? { viewTransitionName: 'entry-cat-name' } : undefined}
+                          >
+                            {selectedCategory?.name ?? ''}
+                          </span>
+                        </>
+                      );
+                    })()
+                  )}
+                </span>
+              </FoldLine>
+            ) : null}
 
-              {isTradeMode && (
-                <>
+            {/* Compact rows and details fold */}
+            {(isMousePointer || !fold.isOpen('category')) &&
+              (() => {
+                const walletRow = (
                   <button
+                    ref={walletRowRef}
                     type="button"
-                    ref={assetRowRef}
-                    data-testid="entry-asset-row"
-                    onClick={() => setAssetPickerOpen(true)}
+                    data-testid="entry-wallet-row"
+                    onClick={() => setWalletSheetTarget('single')}
                     className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
                   >
                     <span className="text-sm font-medium text-muted-foreground">
-                      {t('personalEntry.asset')}
+                      {isTransferMode
+                        ? entryType === 'expense'
+                          ? t('personalEntry.fromWallet')
+                          : t('personalEntry.toWallet')
+                        : t('personalEntry.wallet')}
                     </span>
                     <span className="flex items-center gap-1 text-base font-medium text-foreground">
-                      <span className={!selectedAsset ? 'text-muted-foreground' : undefined}>
-                        {selectedAsset ? selectedAsset.name : t('personalEntry.pickAsset')}
+                      <span>
+                        {selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}
                       </span>
                       <Icon name="chevronRight" size={18} className="text-muted-foreground" />
                     </span>
                   </button>
+                );
 
-                  <div className="w-full px-4 py-2 flex flex-col gap-1">
-                    <div className="min-h-11 flex items-center justify-between gap-3">
-                      <Label
-                        htmlFor="entry-quantity-input"
-                        className="text-sm font-medium text-muted-foreground shrink-0"
-                      >
-                        {t('personalEntry.quantity')}
-                      </Label>
-                      <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-                        <Input
-                          id="entry-quantity-input"
-                          ref={quantityInputRef}
-                          type="text"
-                          inputMode={selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'}
-                          value={quantityText}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const next =
-                              selectedAsset && quantityInputDecimals(selectedAsset) > 0
-                                ? raw.replace(/\./g, ',')
-                                : raw;
-                            setQuantityText(next);
-                            setServerOversellError(null);
-                            setValidationError(null);
-                          }}
-                          placeholder="0"
-                          data-testid="entry-quantity"
-                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
-                        />
-                        {selectedAsset && (
-                          <span
-                            data-testid="entry-quantity-unit"
-                            className="text-sm font-medium text-muted-foreground shrink-0"
-                          >
-                            {isLotAsset(selectedAsset)
-                              ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
-                              : selectedAsset.unit}
-                          </span>
-                        )}
+                const otherWalletRow = isTransferMode && (
+                  <button
+                    type="button"
+                    data-testid={
+                      entryType === 'expense' ? 'entry-to-wallet-row' : 'entry-from-wallet-row'
+                    }
+                    onClick={() => setWalletSheetTarget('other')}
+                    className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
+                  >
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {entryType === 'expense'
+                        ? t('personalEntry.toWallet')
+                        : t('personalEntry.fromWallet')}
+                    </span>
+                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                      <span>
+                        {otherWallet ? `${otherWallet.name} (${otherWallet.currency})` : '—'}
+                      </span>
+                      <Icon name="chevronRight" size={18} className="text-muted-foreground" />
+                    </span>
+                  </button>
+                );
+
+                const tradeRows = isTradeMode && (
+                  <>
+                    <button
+                      type="button"
+                      ref={assetRowRef}
+                      data-testid="entry-asset-row"
+                      onClick={() => setAssetPickerOpen(true)}
+                      className="w-full min-h-11 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted/50"
+                    >
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {t('personalEntry.asset')}
+                      </span>
+                      <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                        <span className={!selectedAsset ? 'text-muted-foreground' : undefined}>
+                          {selectedAsset ? selectedAsset.name : t('personalEntry.pickAsset')}
+                        </span>
+                        <Icon name="chevronRight" size={18} className="text-muted-foreground" />
+                      </span>
+                    </button>
+
+                    <div className="w-full px-4 py-2 flex flex-col gap-1">
+                      <div className="min-h-11 flex items-center justify-between gap-3">
+                        <Label
+                          htmlFor="entry-quantity-input"
+                          className="text-sm font-medium text-muted-foreground shrink-0"
+                        >
+                          {t('personalEntry.quantity')}
+                        </Label>
+                        <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                          <Input
+                            id="entry-quantity-input"
+                            ref={quantityInputRef}
+                            type="text"
+                            inputMode={
+                              selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'
+                            }
+                            value={quantityText}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const next =
+                                selectedAsset && quantityInputDecimals(selectedAsset) > 0
+                                  ? raw.replace(/\./g, ',')
+                                  : raw;
+                              setQuantityText(next);
+                              setServerOversellError(null);
+                              setValidationError(null);
+                            }}
+                            placeholder="0"
+                            data-testid="entry-quantity"
+                            className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
+                          />
+                          {selectedAsset && (
+                            <span
+                              data-testid="entry-quantity-unit"
+                              className="text-sm font-medium text-muted-foreground shrink-0"
+                            >
+                              {isLotAsset(selectedAsset)
+                                ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
+                                : selectedAsset.unit}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {selectedAsset &&
-                      isLotAsset(selectedAsset) &&
-                      selectedAsset.decimals > 0 &&
-                      parsedQuantity !== null && (
+                      {selectedAsset &&
+                        isLotAsset(selectedAsset) &&
+                        selectedAsset.decimals > 0 &&
+                        parsedQuantity !== null && (
+                          <p
+                            data-testid="entry-quantity-total"
+                            className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                          >
+                            = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                          </p>
+                        )}
+                      {entryType === 'income' && selectedAsset && heldQuantity !== null && (
                         <p
-                          data-testid="entry-quantity-total"
+                          data-testid="entry-held"
                           className="m-0 text-xs text-muted-foreground text-right tabular-nums"
                         >
-                          = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                          {t('personalEntry.heldQuantity', {
+                            qty: formatQuantity(heldQuantity, selectedAsset.decimals),
+                            unit: selectedAsset.unit || selectedAsset.name,
+                          })}
                         </p>
                       )}
-                    {entryType === 'income' && selectedAsset && heldQuantity !== null && (
-                      <p
-                        data-testid="entry-held"
-                        className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                      {showOversellError && (
+                        <div data-testid="entry-quantity-error">
+                          <InlineError
+                            error={
+                              isClientOversell
+                                ? ownError(t('personalEntry.oversellError'))
+                                : serverOversellError
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+
+                if (!isMousePointer && fold.isOpen('amount')) {
+                  if (!isTransferMode) return null;
+                  return (
+                    <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                      {walletRow}
+                      {otherWalletRow}
+                    </div>
+                  );
+                }
+
+                if (!fold.isOpen('details')) {
+                  return (
+                    <>
+                      {(isTransferMode || isTradeMode) && (
+                        <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                          {isTransferMode && (
+                            <>
+                              {walletRow}
+                              {otherWalletRow}
+                            </>
+                          )}
+                          {tradeRows}
+                        </div>
+                      )}
+                      <FoldLine
+                        testId="entry-fold-details"
+                        variant="action"
+                        label={t('personalEntry.addDetails')}
+                        style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
+                        onOpen={() => {
+                          if (!isMousePointer) pendingFoldFocusRef.current = 'details';
+                          runTransition(() => fold.open('details'));
+                        }}
                       >
-                        {t('personalEntry.heldQuantity', {
-                          qty: formatQuantity(heldQuantity, selectedAsset.decimals),
-                          unit: selectedAsset.unit || selectedAsset.name,
+                        {formatDetailsFoldSummary({
+                          date: dateTime.split('T')[0] ?? '',
+                          walletName: selectedWallet?.name,
+                          note,
+                          includeWallet: !isTransferMode,
+                          translate: t,
                         })}
-                      </p>
-                    )}
-                    {showOversellError && (
-                      <div data-testid="entry-quantity-error">
-                        <InlineError
-                          error={
-                            isClientOversell
-                              ? ownError(t('personalEntry.oversellError'))
-                              : serverOversellError
-                          }
+                      </FoldLine>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <div
+                      ref={detailsCardRef}
+                      className="rounded-xl bg-card divide-y divide-border overflow-hidden"
+                      style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
+                    >
+                      {walletRow}
+                      {otherWalletRow}
+                      {tradeRows}
+
+                      <EntryDateRow
+                        date={dateTime.split('T')[0] ?? ''}
+                        time={dateTime.split('T')[1]?.slice(0, 5) || null}
+                        onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
+                      />
+
+                      <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-muted-foreground shrink-0">
+                          {t('personalEntry.note')}
+                        </span>
+                        <Input
+                          type="text"
+                          maxLength={200}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          placeholder={t('personalEntry.notePlaceholder')}
+                          data-testid="entry-note-input"
+                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
                         />
                       </div>
+
+                      {isTransferMode && excludeRow}
+                    </div>
+
+                    {/* More details toggle (not for transfers or trades) */}
+                    {!isTransferMode && !isTradeMode && (
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          data-testid="entry-more-details-toggle"
+                          onClick={() => setShowMore((prev) => !prev)}
+                          className="min-h-11 px-1 flex items-center justify-between text-sm font-medium text-primary bg-transparent border-0 cursor-pointer"
+                        >
+                          <span>{t('personalEntry.moreDetails')}</span>
+                          <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={18} />
+                        </button>
+
+                        {showMore && (
+                          <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                            {excludeRow}
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </div>
-                </>
-              )}
-
-              <EntryDateRow
-                date={dateTime.split('T')[0] ?? ''}
-                time={dateTime.split('T')[1]?.slice(0, 5) || null}
-                onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
-              />
-
-              <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-                <span className="text-sm font-medium text-muted-foreground shrink-0">
-                  {t('personalEntry.note')}
-                </span>
-                <Input
-                  type="text"
-                  maxLength={200}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder={t('personalEntry.notePlaceholder')}
-                  data-testid="entry-note-input"
-                  className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
-                />
-              </div>
-
-              {isTransferMode && excludeRow}
-            </div>
-
-            {/* More details toggle (not for transfers or trades) */}
-            {!isTransferMode && !isTradeMode && (
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  data-testid="entry-more-details-toggle"
-                  onClick={() => setShowMore((prev) => !prev)}
-                  className="min-h-11 px-1 flex items-center justify-between text-sm font-medium text-primary bg-transparent border-0 cursor-pointer"
-                >
-                  <span>{t('personalEntry.moreDetails')}</span>
-                  <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={18} />
-                </button>
-
-                {showMore && (
-                  <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
-                    {excludeRow}
-                  </div>
-                )}
-              </div>
-            )}
+                  </>
+                );
+              })()}
           </>
         )}
       </main>
@@ -1584,11 +1986,8 @@ export function EntryPage(): JSX.Element {
         effectiveKeypadOpen ? (
           <DockedAmountKeypad
             open={keypadOpen}
-            onClose={() => setKeypadOpen(false)}
-            onEscape={() => {
-              (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
-              setKeypadOpen(false);
-            }}
+            onClose={() => finishAmountOrClose(activeMinor, false)}
+            onEscape={handleKeypadEscape}
             focusToken={keypadFocusToken}
             tabOutRef={categoryGridRef}
             amountAreaRef={amountAreaRef}
@@ -1602,7 +2001,7 @@ export function EntryPage(): JSX.Element {
           />
         ) : (
           <div ref={saveBarRef} className="contents">
-            <BottomBar>
+            <BottomBar style={!isMousePointer ? { viewTransitionName: 'entry-save' } : undefined}>
               {(() => {
                 const transferDisabledReason = !isTransferMode
                   ? null
@@ -1633,6 +2032,32 @@ export function EntryPage(): JSX.Element {
                   : isTradeMode
                     ? tradeDisabledReason !== null || isSaving || hasArchivedWallet
                     : activeMinor === null || isSaving || hasArchivedWallet;
+                const saveWhat = isMousePointer
+                  ? null
+                  : isTransferMode
+                    ? t(
+                        entryType === 'expense'
+                          ? 'personalEntry.transferToWallet'
+                          : 'personalEntry.transferFromWallet',
+                      )
+                    : isTradeMode
+                      ? selectedAsset
+                        ? t(
+                            entryType === 'expense'
+                              ? 'transactions.buyAssetTitle'
+                              : 'transactions.sellAssetTitle',
+                            { asset: selectedAsset.name },
+                          )
+                        : null
+                      : (categoriesQuery.data?.categories ?? []).find((c) => c.id === categoryId)
+                          ?.name ?? null;
+                const saveLabel =
+                  !isMousePointer && activeMinor !== null && saveWhat
+                    ? t('personalEntry.saveSummary', {
+                        amount: formatMoney(activeMinor, activeCurrency),
+                        what: saveWhat,
+                      })
+                    : t('personalEntry.save');
                 return (
                   <>
                     {transferDisabledReason && !isSaving && !hasArchivedWallet && (
@@ -1662,7 +2087,13 @@ export function EntryPage(): JSX.Element {
                         if (activeMinor !== null) void handleSave(activeMinor);
                       }}
                     >
-                      {t('personalEntry.save')}
+                      {!isMousePointer ? (
+                        <span style={{ viewTransitionName: 'entry-save-label', display: 'inline-block' }}>
+                          {saveLabel}
+                        </span>
+                      ) : (
+                        saveLabel
+                      )}
                     </Button>
                   </>
                 );
