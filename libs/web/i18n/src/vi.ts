@@ -1585,4 +1585,5 @@ export const vi: Record<MessageKey, string> = {
   'assets.hideAria': 'Ẩn {name}', // REVIEW
   'assets.showAria': 'Hiện {name}', // REVIEW
   'wallet.holdingAvgPrice': 'TB {price}/{unit}', // REVIEW
+  'wallet.holdingsTotal': 'Tổng vốn · {count} tài sản', // REVIEW
 };

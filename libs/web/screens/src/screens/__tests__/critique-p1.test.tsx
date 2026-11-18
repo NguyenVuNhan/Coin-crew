@@ -78,7 +78,7 @@ const vndInvestWallet: WalletDetailView = {
 };
 
 describe('Critique P1 fixes', () => {
-  it('holdings list: 1 holding hides pie and shows qty · TB price and cost; 2 holdings shows pie with name + % only', async () => {
+  it('holdings card: arc of cost shares over the total, then one row per asset with qty · TB price, cost and %', async () => {
     const oneHolding: HoldingView[] = [
       { walletId: 'w-usdt', assetId: 'a-btc', quantity: 300, cost: 30_000, costVnd: 7_500_000 },
     ];
@@ -100,7 +100,7 @@ describe('Critique P1 fixes', () => {
     act(() => setLang('vi'));
 
     const list = await screen.findByTestId('wallet-holdings-list');
-    expect(screen.queryByTestId('wallet-holdings-pie')).toBeNull();
+    expect(screen.getAllByTestId('wallet-holdings-arc-slice')).toHaveLength(1);
     const btcRow = within(list).getByTestId('wallet-holding-a-btc');
     expect(btcRow).toHaveTextContent('0,03 BTC · TB 10.000,00 USDT/BTC');
     expect(btcRow).toHaveTextContent('300,00 USDT');
@@ -128,13 +128,15 @@ describe('Critique P1 fixes', () => {
     });
     act(() => setLang('vi'));
 
-    const pie = await screen.findByTestId('wallet-holdings-pie');
-    expect(pie).toHaveTextContent('BTC');
-    expect(pie).toHaveTextContent('75%');
-    expect(pie).toHaveTextContent('E1VFVN30');
-    expect(pie).toHaveTextContent('25%');
-    expect(pie).not.toHaveTextContent('TB');
-    expect(pie).not.toHaveTextContent('300,00 USDT');
+    const arc = await screen.findByTestId('wallet-holdings-arc');
+    expect(within(arc).getAllByTestId('wallet-holdings-arc-slice')).toHaveLength(2);
+    expect(arc).toHaveAttribute('aria-label', 'BTC 75%, E1VFVN30 25%');
+    const card = screen.getByTestId('wallet-holdings-card');
+    expect(card).toHaveTextContent('400,00 USDT');
+    expect(card).toHaveTextContent('Tổng vốn · 2 tài sản');
+    const rows = within(screen.getByTestId('wallet-holdings-list'));
+    expect(rows.getByTestId('wallet-holding-a-btc')).toHaveTextContent('75%');
+    expect(rows.getByTestId('wallet-holding-a-etf')).toHaveTextContent('25%');
   });
 
   it('VND investment wallet with holdings shows cash vs total line', async () => {

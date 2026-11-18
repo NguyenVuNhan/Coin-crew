@@ -1584,6 +1584,7 @@ export const en = {
   'assets.hideAria': 'Hide {name}',
   'assets.showAria': 'Show {name}',
   'wallet.holdingAvgPrice': 'Avg {price}/{unit}',
+  'wallet.holdingsTotal': 'Total cost · {count} assets',
 } as const;
 
 export type MessageKey = keyof typeof en;
