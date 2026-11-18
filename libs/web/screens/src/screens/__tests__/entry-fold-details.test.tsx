@@ -313,4 +313,19 @@ describe('EntryPage — details folding on phones (Task 4)', () => {
     expect(screen.queryByTestId('entry-fold-details')).toBeNull();
     expect(screen.getByText('Ví này đã lưu trữ. Khôi phục ví để sửa giao dịch.')).toBeInTheDocument();
   });
+
+  it('moves focus to the wallet row after opening entry-fold-details (I4)', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await enterAmountAndFold(user);
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+
+    const detailsFold = await screen.findByTestId('entry-fold-details');
+    await user.click(detailsFold);
+
+    const walletRow = await screen.findByTestId('entry-wallet-row');
+    expect(document.activeElement).toBe(walletRow);
+  });
 });

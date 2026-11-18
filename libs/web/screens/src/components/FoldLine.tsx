@@ -1,10 +1,11 @@
-import type { CSSProperties, JSX, ReactNode } from 'react';
+import type { CSSProperties, JSX, ReactNode, RefObject } from 'react';
 
 export interface FoldLineProps {
   testId: string;
   label: string;
   children: ReactNode;
   onOpen(): void;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
   style?: CSSProperties;
   /**
    * `default`: muted label on the left, bold truncated value on the right.
@@ -22,11 +23,13 @@ export function FoldLine({
   label,
   children,
   onOpen,
+  buttonRef,
   style,
   variant = 'default',
 }: FoldLineProps): JSX.Element {
   return (
     <button
+      ref={buttonRef}
       type="button"
       data-testid={testId}
       aria-expanded="false"

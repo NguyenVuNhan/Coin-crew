@@ -55,4 +55,19 @@ describe('runFoldTransition', () => {
     expect(startViewTransition).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledTimes(1);
   });
+
+  it('skips document.startViewTransition when enabled is false', () => {
+    const update = vi.fn();
+    const startViewTransition = vi.fn();
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      writable: true,
+      value: startViewTransition,
+    });
+
+    runFoldTransition(update, false);
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledTimes(1);
+  });
 });

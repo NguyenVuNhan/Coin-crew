@@ -206,4 +206,26 @@ describe('EntryPage — fold motion view-transition names (Task 5b)', () => {
     expect(spans[1]).toHaveTextContent('Thêm chi tiết');
     expect(spans[1]).toHaveClass('text-sm', 'font-medium', 'text-primary', 'whitespace-nowrap');
   });
+
+  it('never calls document.startViewTransition on a category click in mouse mode (M1)', async () => {
+    const user = userEvent.setup();
+    mockMedia({ mouse: true });
+    mockEntryApi();
+
+    const startViewTransition = vi.fn((cb: () => void) => {
+      cb();
+      return {} as ViewTransition;
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      writable: true,
+      value: startViewTransition,
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('category-grid');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+  });
 });

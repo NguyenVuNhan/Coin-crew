@@ -260,4 +260,137 @@ describe('EntryPage — amount folding on phones (Task 2)', () => {
     expect(await screen.findByTestId('entry-fold-amount')).toBeInTheDocument();
     expect(screen.queryByTestId('amount-display')).toBeNull();
   });
+
+  it('folds amount on outside click when amount > 0 (I1)', async () => {
+    const user = userEvent.setup();
+    mockApi({
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
+      'GET /api/me/personal/wallets': { wallets: [vndCash] },
+      'GET /api/me/personal/categories': categoriesResp,
+      'GET /api/me/personal/assets': { assets: [] },
+      'GET /api/trips/t-led': directTripView(),
+      'GET /api/me/people/candidates': [],
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    await tapKeypadDigits(user, '120000');
+
+    const main = document.querySelector('main');
+    expect(main).not.toBeNull();
+    await user.click(main as HTMLElement);
+
+    const folded = await screen.findByTestId('entry-fold-amount');
+    expect(folded).toHaveTextContent('120.000₫');
+    expect(screen.getByTestId('category-grid')).toBeInTheDocument();
+    expect(screen.queryByTestId('amount-keypad')).toBeNull();
+  });
+
+  it('keeps amount-display focused and opens category-grid on Escape when amount > 0 (I1)', async () => {
+    const user = userEvent.setup();
+    mockApi({
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
+      'GET /api/me/personal/wallets': { wallets: [vndCash] },
+      'GET /api/me/personal/categories': categoriesResp,
+      'GET /api/me/personal/assets': { assets: [] },
+      'GET /api/trips/t-led': directTripView(),
+      'GET /api/me/people/candidates': [],
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    await tapKeypadDigits(user, '120000');
+
+    await user.keyboard('{Escape}');
+
+    const amountDisplay = await screen.findByTestId('amount-display');
+    expect(amountDisplay).toHaveTextContent('120.000₫');
+    expect(amountDisplay).toHaveFocus();
+    expect(screen.getByTestId('category-grid')).toBeInTheDocument();
+    expect(screen.queryByTestId('amount-keypad')).toBeNull();
+  });
+
+  it('keeps category and details folded when reopening amount and clicking outside (I1 Scenario B)', async () => {
+    const user = userEvent.setup();
+    mockApi({
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
+      'GET /api/me/personal/wallets': { wallets: [vndCash] },
+      'GET /api/me/personal/categories': categoriesResp,
+      'GET /api/me/personal/assets': { assets: [] },
+      'GET /api/trips/t-led': directTripView(),
+      'GET /api/me/people/candidates': [],
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    await tapKeypadDigits(user, '120000');
+    await user.click(screen.getByTestId('key-done'));
+
+    await user.click(await screen.findByTestId('category-tile-cat-food'));
+    expect(await screen.findByTestId('entry-fold-category')).toBeInTheDocument();
+    expect(screen.getByTestId('entry-fold-details')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('entry-fold-amount'));
+    await screen.findByTestId('amount-keypad');
+
+    await user.click(document.querySelector('main') as HTMLElement);
+
+    expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('120.000₫');
+    expect(screen.getByTestId('entry-fold-category')).toBeInTheDocument();
+    expect(screen.getByTestId('entry-fold-details')).toBeInTheDocument();
+  });
+
+  it('reopens amount on received box with keypad when picking transfer after folding VND amount with a USD wallet (I2)', async () => {
+    const user = userEvent.setup();
+    mockApi({
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
+      'GET /api/me/personal/wallets': { wallets: [vndCash, usdWallet] },
+      'GET /api/me/personal/categories': categoriesResp,
+      'GET /api/me/personal/assets': { assets: [] },
+      'GET /api/trips/t-led': directTripView(),
+      'GET /api/me/people/candidates': [],
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    await tapKeypadDigits(user, '120000');
+    await user.click(screen.getByTestId('key-done'));
+
+    await user.click(await screen.findByTestId('category-tile-transfer'));
+
+    const receivedBox = await screen.findByTestId('amount-received-box');
+    expect(receivedBox).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
+
+    await tapKeypadDigits(user, '5');
+    await user.click(screen.getByTestId('key-done'));
+
+    const folded = await screen.findByTestId('entry-fold-amount');
+    expect(folded.textContent).toContain('120.000₫ →');
+  });
+
+  it('keeps amount folded and keypad closed when returning from Vay/Nợ to Chi (I3)', async () => {
+    const user = userEvent.setup();
+    mockApi({
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
+      'GET /api/me/personal/wallets': { wallets: [vndCash] },
+      'GET /api/me/personal/categories': categoriesResp,
+      'GET /api/me/personal/assets': { assets: [] },
+      'GET /api/trips/t-led': directTripView(),
+      'GET /api/me/people/candidates': [],
+    });
+
+    renderEntryPage('/entries/new?type=expense');
+    await screen.findByTestId('amount-keypad');
+    await tapKeypadDigits(user, '120000');
+    await user.click(screen.getByTestId('key-done'));
+    await screen.findByTestId('entry-fold-amount');
+
+    await user.click(screen.getByTestId('entry-tab-loan-debt'));
+    expect(screen.queryByTestId('entry-fold-amount')).toBeNull();
+
+    await user.click(screen.getByTestId('entry-tab-expense'));
+    expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('120.000₫');
+    expect(screen.queryByTestId('amount-keypad')).toBeNull();
+  });
 });

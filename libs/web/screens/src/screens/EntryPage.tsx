@@ -303,20 +303,56 @@ export function EntryPage(): JSX.Element {
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const quantityInitializedRef = useRef(false);
   const saveBarRef = useRef<HTMLDivElement>(null);
+  const foldCategoryRef = useRef<HTMLButtonElement>(null);
+  const walletRowRef = useRef<HTMLButtonElement>(null);
+  const detailsCardRef = useRef<HTMLDivElement>(null);
   const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'save' | null>(null);
+  const pendingFoldFocusRef = useRef<'fold-category' | 'category-grid' | 'asset' | 'details' | null>(null);
   const pendingTabRef = useRef<TabValue | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
   const isMousePointer = useIsMousePointer();
   const fold = useEntryFold({ enabled: !isMousePointer, isEdit });
+  const foldAmountOpen = fold.isOpen('amount');
+  const foldCategoryOpen = fold.isOpen('category');
+  const foldDetailsOpen = fold.isOpen('details');
+  const runTransition = (update: () => void) => runFoldTransition(update, !isMousePointer);
   const effectiveKeypadOpen = !isMousePointer && keypadOpen;
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
 
   useEffect(() => {
-    if (categoryRingActive) {
+    if (!categoryRingActive) return;
+    if (!foldCategoryOpen) {
       fold.open('category');
+      return;
     }
-  }, [categoryRingActive, fold.open]);
+    categoryGridRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [categoryRingActive, foldCategoryOpen, fold.open]);
+
+  useEffect(() => {
+    const target = pendingFoldFocusRef.current;
+    if (!target) return;
+    pendingFoldFocusRef.current = null;
+    if (target === 'fold-category') {
+      foldCategoryRef.current?.focus();
+    } else if (target === 'asset') {
+      assetRowRef.current?.focus();
+      assetRowRef.current?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'category-grid') {
+      const grid = categoryGridRef.current;
+      const preferred =
+        grid?.querySelector<HTMLElement>('button[aria-pressed="true"]:not([disabled])') ??
+        grid?.querySelector<HTMLElement>('button:not([disabled])');
+      preferred?.focus();
+      preferred?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'details') {
+      if (isTransferMode) {
+        detailsCardRef.current?.querySelector<HTMLElement>('[data-testid="entry-date-value"]')?.focus();
+      } else {
+        walletRowRef.current?.focus();
+      }
+    }
+  }, [foldCategoryOpen, foldDetailsOpen, isTransferMode, isTradeMode]);
 
   useEffect(() => {
     return () => {
@@ -580,6 +616,32 @@ export function EntryPage(): JSX.Element {
       : primaryMinor
     : null;
 
+  useEffect(() => {
+    if (
+      isMousePointer ||
+      foldAmountOpen ||
+      !isDiffCurrencyTransfer ||
+      (secondaryMinor !== null && secondaryMinor > 0) ||
+      (isEdit && Boolean(entry?.transferId) && counterpartAppliedId !== entry?.id)
+    ) {
+      return;
+    }
+    fold.open('amount');
+    setActiveTransferField('secondary');
+    setKeypadOpen(true);
+    setKeypadFocusToken((n) => n + 1);
+  }, [
+    isMousePointer,
+    foldAmountOpen,
+    isDiffCurrencyTransfer,
+    secondaryMinor,
+    isEdit,
+    entry?.transferId,
+    entry?.id,
+    counterpartAppliedId,
+    fold.open,
+  ]);
+
   const amountLabelFor = (expr: string, cur: CurrencyCode, evaluated: number | null): string =>
     evaluated !== null
       ? formatMoney(evaluated, cur)
@@ -639,7 +701,6 @@ export function EntryPage(): JSX.Element {
       setCategoryRingActive(false);
       categoryRingTimerRef.current = null;
     }, 1500);
-    categoryGridRef.current?.scrollIntoView?.({ block: 'nearest' });
   };
 
   const handleTabChange = (next: TabValue) => {
@@ -650,7 +711,7 @@ export function EntryPage(): JSX.Element {
     if (next === 'loan-debt') {
       if (isEdit) return;
       pendingTabRef.current = next;
-      runFoldTransition(() => {
+      runTransition(() => {
         pendingTabRef.current = null;
         setActiveTab('loan-debt');
         setValidationError(null);
@@ -663,7 +724,7 @@ export function EntryPage(): JSX.Element {
     }
     if (isEdit && (isTransferMode || isTradeMode)) return;
     pendingTabRef.current = next;
-    runFoldTransition(() => {
+    runTransition(() => {
       pendingTabRef.current = null;
       setActiveTab(next);
       setEntryType(next);
@@ -681,10 +742,10 @@ export function EntryPage(): JSX.Element {
         fold.open('category');
       }
       if (!isEdit && activeTab === 'loan-debt') {
-        // Coming back from Vay/Nợ (or switching Chi/Thu) on a new entry: amount first again (R4).
+        // Coming back from Vay/Nợ on a new entry: reopen keypad only if amount is still open (R4).
         if (isMousePointer) {
           didAutoFocusRef.current = false;
-        } else {
+        } else if (fold.isOpen('amount')) {
           setKeypadOpen(true);
         }
       }
@@ -707,7 +768,8 @@ export function EntryPage(): JSX.Element {
 
   const handleSelectTransfer = () => {
     if (isEdit && isTradeMode) return;
-    runFoldTransition(() => {
+    if (!isMousePointer) pendingFoldFocusRef.current = 'fold-category';
+    runTransition(() => {
       setIsTransferMode(true);
       setIsTradeMode(false);
       setCategoryId(null);
@@ -723,7 +785,8 @@ export function EntryPage(): JSX.Element {
 
   const handleSelectCategory = (cid: string) => {
     if (isEdit && isTradeMode) return;
-    runFoldTransition(() => {
+    if (!isMousePointer) pendingFoldFocusRef.current = 'fold-category';
+    runTransition(() => {
       setIsTransferMode(false);
       setIsTradeMode(false);
       setActiveTransferField('primary');
@@ -739,7 +802,8 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleSelectTrade = () => {
-    runFoldTransition(() => {
+    if (!isMousePointer) pendingFoldFocusRef.current = 'asset';
+    runTransition(() => {
       setIsTradeMode(true);
       setIsTransferMode(false);
       setActiveTransferField('primary');
@@ -780,16 +844,7 @@ export function EntryPage(): JSX.Element {
     }
   };
 
-  const handleKeypadDone = (minor: number) => {
-    const formatted = formatKeypadValue(minor, activeCurrency);
-    if (formatted !== activeExpr) {
-      setActiveExpr(formatted);
-    }
-    const waitingForSecondary =
-      isTransferMode &&
-      isDiffCurrencyTransfer &&
-      activeTransferField === 'primary' &&
-      (secondaryMinor === null || secondaryMinor <= 0);
+  const setPendingFocusAfterAmount = (waitingForSecondary: boolean) => {
     if (isTradeMode) {
       if (!assetId) {
         pendingFocusTargetRef.current = 'asset';
@@ -805,9 +860,25 @@ export function EntryPage(): JSX.Element {
     } else {
       pendingFocusTargetRef.current = 'save';
     }
+  };
+
+  const finishAmountOrClose = (minor: number | null, moveFocus: boolean) => {
+    const waitingForSecondary =
+      isTransferMode &&
+      isDiffCurrencyTransfer &&
+      activeTransferField === 'primary' &&
+      (secondaryMinor === null || secondaryMinor <= 0);
+    const willFold = minor !== null && minor > 0 && !waitingForSecondary;
+    if (moveFocus) {
+      if (willFold || waitingForSecondary) {
+        setPendingFocusAfterAmount(waitingForSecondary);
+      } else {
+        (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
+      }
+    }
     const hasCategoryChoice = Boolean(categoryId || isTransferMode || isTradeMode);
-    runFoldTransition(() => {
-      if (minor > 0 && !waitingForSecondary) {
+    runTransition(() => {
+      if (willFold) {
         fold.finish('amount');
         if (hasCategoryChoice) {
           fold.finish('category');
@@ -815,6 +886,30 @@ export function EntryPage(): JSX.Element {
       }
       setKeypadOpen(false);
     });
+  };
+
+  const handleKeypadDone = (minor: number) => {
+    const formatted = formatKeypadValue(minor, activeCurrency);
+    if (formatted !== activeExpr) {
+      setActiveExpr(formatted);
+    }
+    finishAmountOrClose(minor, true);
+  };
+
+  const handleKeypadEscape = () => {
+    const waitingForSecondary =
+      isTransferMode &&
+      isDiffCurrencyTransfer &&
+      activeTransferField === 'primary' &&
+      (secondaryMinor === null || secondaryMinor <= 0);
+    const hasValidAmount = activeMinor !== null && activeMinor > 0 && !waitingForSecondary;
+    runTransition(() => {
+      if (hasValidAmount) {
+        fold.open('category');
+      }
+      setKeypadOpen(false);
+    });
+    (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
   };
 
   const isSaving = createEntry.isPending || updateEntry.isPending;
@@ -1153,8 +1248,11 @@ export function EntryPage(): JSX.Element {
   );
 
   const handleWalletPick = (pickedId: string) => {
+    let nextSelected = selectedWallet;
+    let nextOther = otherWallet;
     if (walletSheetTarget === 'single') {
       if (isTransferMode && pickedId === otherWallet?.id) {
+        nextOther = selectedWallet;
         setOtherWalletId(selectedWallet?.id ?? '');
       }
       const pickedWallet = allWallets.find((w) => w.id === pickedId);
@@ -1162,14 +1260,34 @@ export function EntryPage(): JSX.Element {
         setIsTradeMode(false);
       }
       setServerOversellError(null);
+      nextSelected = pickedWallet;
       setWalletId(pickedId);
     } else if (walletSheetTarget === 'other') {
       if (pickedId === selectedWallet?.id) {
+        nextSelected = otherWallet;
         setWalletId(otherWallet?.id ?? '');
       }
+      nextOther = allWallets.find((w) => w.id === pickedId);
       setOtherWalletId(pickedId);
     }
     setWalletSheetTarget(null);
+    if (
+      !isMousePointer &&
+      isTransferMode &&
+      fold.isOpen('amount') &&
+      nextSelected &&
+      nextOther &&
+      nextSelected.currency === nextOther.currency &&
+      primaryMinor !== null &&
+      primaryMinor > 0
+    ) {
+      setActiveTransferField('primary');
+      runTransition(() => {
+        fold.finish('amount');
+        fold.finish('category');
+        setKeypadOpen(false);
+      });
+    }
   };
 
   const isLoading = walletsQuery.isPending || (isEdit && !entry && listQuery.isPending);
@@ -1301,7 +1419,7 @@ export function EntryPage(): JSX.Element {
                 testId="entry-fold-amount"
                 label={t('personalEntry.amountBoxLabel')}
                 onOpen={() => {
-                  runFoldTransition(() => {
+                  runTransition(() => {
                     fold.open('amount');
                     setKeypadOpen(true);
                   });
@@ -1518,9 +1636,13 @@ export function EntryPage(): JSX.Element {
               </div>
             ) : !fold.isOpen('amount') ? (
               <FoldLine
+                buttonRef={foldCategoryRef}
                 testId="entry-fold-category"
                 label={t('personalEntry.categoryLine')}
-                onOpen={() => runFoldTransition(() => fold.open('category'))}
+                onOpen={() => {
+                  if (!isMousePointer) pendingFoldFocusRef.current = 'category-grid';
+                  runTransition(() => fold.open('category'));
+                }}
               >
                 <span className="inline-flex items-center gap-1.5">
                   {isTransferMode ? (
@@ -1589,10 +1711,11 @@ export function EntryPage(): JSX.Element {
             ) : null}
 
             {/* Compact rows and details fold */}
-            {(isMousePointer || (!fold.isOpen('amount') && !fold.isOpen('category'))) &&
+            {(isMousePointer || !fold.isOpen('category')) &&
               (() => {
                 const walletRow = (
                   <button
+                    ref={walletRowRef}
                     type="button"
                     data-testid="entry-wallet-row"
                     onClick={() => setWalletSheetTarget('single')}
@@ -1737,6 +1860,16 @@ export function EntryPage(): JSX.Element {
                   </>
                 );
 
+                if (!isMousePointer && fold.isOpen('amount')) {
+                  if (!isTransferMode) return null;
+                  return (
+                    <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                      {walletRow}
+                      {otherWalletRow}
+                    </div>
+                  );
+                }
+
                 if (!fold.isOpen('details')) {
                   return (
                     <>
@@ -1756,7 +1889,10 @@ export function EntryPage(): JSX.Element {
                         variant="action"
                         label={t('personalEntry.addDetails')}
                         style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
-                        onOpen={() => runFoldTransition(() => fold.open('details'))}
+                        onOpen={() => {
+                          if (!isMousePointer) pendingFoldFocusRef.current = 'details';
+                          runTransition(() => fold.open('details'));
+                        }}
                       >
                         {formatDetailsFoldSummary({
                           date: dateTime.split('T')[0] ?? '',
@@ -1773,6 +1909,7 @@ export function EntryPage(): JSX.Element {
                 return (
                   <>
                     <div
+                      ref={detailsCardRef}
                       className="rounded-xl bg-card divide-y divide-border overflow-hidden"
                       style={!isMousePointer ? { viewTransitionName: 'entry-details' } : undefined}
                     >
@@ -1836,11 +1973,8 @@ export function EntryPage(): JSX.Element {
         effectiveKeypadOpen ? (
           <DockedAmountKeypad
             open={keypadOpen}
-            onClose={() => setKeypadOpen(false)}
-            onEscape={() => {
-              (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
-              setKeypadOpen(false);
-            }}
+            onClose={() => finishAmountOrClose(activeMinor, false)}
+            onEscape={handleKeypadEscape}
             focusToken={keypadFocusToken}
             tabOutRef={categoryGridRef}
             amountAreaRef={amountAreaRef}

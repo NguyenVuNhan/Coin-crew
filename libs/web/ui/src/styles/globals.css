@@ -332,6 +332,7 @@
   --entry-ease-in: cubic-bezier(0.4, 0, 1, 1);
 }
 
+/* App-wide View Transition rules below belong to the entry fold (entry-* names). */
 ::view-transition-group(*) {
   animation-duration: 260ms;
   animation-timing-function: var(--entry-ease-out);

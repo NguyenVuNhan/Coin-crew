@@ -334,4 +334,35 @@ describe('EntryPage — category folding on phones (Task 3)', () => {
     expect(screen.queryByTestId('category-grid')).toBeNull();
     expect(screen.getByTestId('entry-wallet-row')).toBeInTheDocument();
   });
+
+  it('reopens category grid on Thu tab when amount is folded and Ăn uống was picked (I1b)', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await enterAmountAndFold(user, '120000');
+
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    expect(await screen.findByTestId('entry-fold-category')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('entry-tab-income'));
+    expect(await screen.findByTestId('category-grid')).toBeInTheDocument();
+    expect(screen.queryByTestId('entry-fold-category')).toBeNull();
+  });
+
+  it('moves focus to entry-fold-category after picking Ăn uống (I4)', async () => {
+    const user = userEvent.setup();
+    mockEntryApi();
+
+    renderEntryPage('/entries/new?type=expense');
+    await enterAmountAndFold(user, '120000');
+
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    const foldedCat = await screen.findByTestId('entry-fold-category');
+    expect(document.activeElement).toBe(foldedCat);
+
+    await user.click(foldedCat);
+    const tile = await screen.findByTestId('category-tile-cat-food');
+    expect(document.activeElement).toBe(tile);
+  });
 });

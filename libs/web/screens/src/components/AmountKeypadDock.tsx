@@ -90,6 +90,12 @@ export function DockedAmountKeypad({
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target;
       if (!(target instanceof Node) || !target.isConnected) return;
+      if (
+        target instanceof Element &&
+        (target.closest('header') || target.closest('[role="dialog"]'))
+      ) {
+        return;
+      }
       if (amountAreaRef.current?.contains(target)) return;
       if (keypadAreaRef.current?.contains(target)) return;
       onClose();

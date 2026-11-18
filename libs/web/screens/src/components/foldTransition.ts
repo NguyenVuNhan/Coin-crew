@@ -10,11 +10,12 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Runs a fold state update inside `document.startViewTransition` (flushing React state
- * synchronously so the new snapshot sees the folded/unfolded DOM), unless View Transitions
- * are unavailable or reduced motion is preferred.
+ * synchronously so the new snapshot sees the folded/unfolded DOM), unless `enabled` is false,
+ * View Transitions are unavailable, or reduced motion is preferred.
  */
-export function runFoldTransition(update: () => void): void {
+export function runFoldTransition(update: () => void, enabled = true): void {
   if (
+    enabled &&
     typeof document !== 'undefined' &&
     typeof document.startViewTransition === 'function' &&
     !prefersReducedMotion()
