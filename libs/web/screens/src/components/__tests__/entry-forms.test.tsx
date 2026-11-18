@@ -8,6 +8,7 @@ import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { writeLastWallet } from '@cc/web-data-access/personalMoney';
 import { renderAt, mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../../screens/EntryPage';
 import { AppNav } from '../AppNav';
@@ -157,12 +158,18 @@ describe('EntryPage and AddMenu', () => {
     });
 
     const { unmount } = renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('category-tile-c-food'));
+    await openDetails(user);
     await screen.findByTestId('entry-more-details-toggle');
     await user.click(screen.getByTestId('entry-more-details-toggle'));
     expect(screen.getByTestId('entry-exclude-switch')).toHaveAttribute('aria-checked', 'false');
     unmount();
 
     renderEntryPage('/entries/new?type=transfer');
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('category-tile-transfer'));
+    await openDetails(user);
     // Step 5: transfers show the switch inline, with no "Thêm chi tiết" toggle.
     await screen.findByTestId('entry-exclude-switch');
     expect(screen.getByTestId('entry-exclude-switch')).toHaveAttribute('aria-checked', 'true');

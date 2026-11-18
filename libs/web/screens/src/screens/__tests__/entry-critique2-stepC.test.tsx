@@ -7,6 +7,7 @@ import type { CategoriesResponse, CategoryView, WalletDetailView } from '@cc/cor
 import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -96,6 +97,7 @@ function renderEntryPage(initialPath = '/entries/new?type=expense') {
 
 describe('EntryPage critique round 2 step C (polish)', () => {
   it('1. row buttons in the main grouped list do not carry bare border-0', async () => {
+    const user = userEvent.setup();
     mockApi({
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/personal/wallets': { wallets: [vndCash, usdWallet] },
@@ -103,6 +105,9 @@ describe('EntryPage critique round 2 step C (polish)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '50000');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     const walletRow = await screen.findByTestId('entry-wallet-row');
     expect(walletRow.className.split(/\s+/)).not.toContain('border-0');
     expect(walletRow.className.split(/\s+/)).toEqual(
@@ -111,6 +116,7 @@ describe('EntryPage critique round 2 step C (polish)', () => {
   });
 
   it('2. date row text contains "Hôm nay · " with spaces', async () => {
+    const user = userEvent.setup();
     mockApi({
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/personal/wallets': { wallets: [vndCash, usdWallet] },
@@ -118,6 +124,9 @@ describe('EntryPage critique round 2 step C (polish)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '50000');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     const dateRow = await screen.findByTestId('entry-date-row');
     expect(dateRow.textContent).toContain('Hôm nay · ');
   });
@@ -159,8 +168,8 @@ describe('EntryPage critique round 2 step C (polish)', () => {
     await user.click(screen.getByTestId('key-0'));
     await user.click(screen.getByTestId('key-0'));
 
-    // Close keypad by tapping outside (e.g. note input)
-    await user.click(screen.getByTestId('entry-note-input'));
+    // Close keypad by tapping Xong
+    await user.click(screen.getByTestId('key-done'));
 
     const saveBtn = await screen.findByTestId('entry-save-btn');
     expect(saveBtn).toBeDisabled();
@@ -176,6 +185,9 @@ describe('EntryPage critique round 2 step C (polish)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '50000');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     await screen.findByTestId('entry-more-details-toggle');
     await user.click(screen.getByTestId('entry-more-details-toggle'));
 
@@ -196,9 +208,7 @@ describe('EntryPage critique round 2 step C (polish)', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
+    await finishAmount(user, '85');
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-save-btn'));
 

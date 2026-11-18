@@ -8,6 +8,7 @@ import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { writeLastWallet } from '@cc/web-data-access/personalMoney';
 import { mockApi, renderAt } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { AppNav } from '../../components/AppNav';
@@ -174,16 +175,12 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
 
     // Chi transfer
     const { unmount } = renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '5000');
     const transferTile = await screen.findByTestId('category-tile-transfer');
     expect(transferTile).toHaveTextContent('Chuyển sang ví');
     await user.click(transferTile);
 
     expect(screen.getByTestId('entry-to-wallet-row')).toBeInTheDocument();
-    // Re-open keypad by tapping amount
-    await user.click(screen.getByTestId('amount-display'));
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-000'));
-    await user.click(screen.getByTestId('key-done'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => expect(postedBodies).toHaveLength(1));
@@ -198,15 +195,12 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
 
     // Thu transfer: page's wallet (w-vnd) is receiver, picked wallet (w-bank) is sender
     renderEntryPage('/entries/new?type=income');
+    await finishAmount(user, '7000');
     const thuTransferTile = await screen.findByTestId('category-tile-transfer');
     expect(thuTransferTile).toHaveTextContent('Nhận từ ví');
     await user.click(thuTransferTile);
 
     expect(screen.getByTestId('entry-from-wallet-row')).toBeInTheDocument();
-    await user.click(screen.getByTestId('amount-display'));
-    await user.click(screen.getByTestId('key-7'));
-    await user.click(screen.getByTestId('key-000'));
-    await user.click(screen.getByTestId('key-done'));
     await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => expect(postedBodies).toHaveLength(2));
@@ -252,7 +246,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
       },
     });
 
-    // New entry: keypad is open on load, closes when tapping outside
+    // New entry: keypad is open on load, closes when amount is finished
     const { unmount } = renderEntryPage('/entries/new?type=expense');
     await screen.findByTestId('amount-display');
     expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
@@ -260,14 +254,16 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     expect(screen.queryByTestId('entry-time-input')).toBeNull();
     expect(screen.queryByTestId('tag-input')).toBeNull();
 
-    await user.click(screen.getByTestId('entry-note-input'));
+    await finishAmount(user, '50000');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
-    expect(screen.getByTestId('amount-display')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('entry-fold-amount')).toHaveAttribute('aria-expanded', 'false');
     unmount();
 
     // Edit entry: keypad is hidden until amount is tapped
     renderEntryPage('/entries/e-1/edit', { entry: existingEntry });
-    const amountBtn = await screen.findByTestId('amount-display');
+    const amountBtn = await screen.findByTestId('entry-fold-amount');
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
     expect(amountBtn).toHaveAttribute('aria-expanded', 'false');
 
@@ -280,7 +276,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
 
     await user.click(amountBtn);
     expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
-    expect(amountBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('amount-display')).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(screen.getByTestId('key-done'));
     await user.click(screen.getByTestId('entry-save-btn'));
@@ -343,11 +339,7 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '50000');
 
     // Tapping a category tile closes the keypad and reveals the docked BottomBar Lưu button
     await user.click(screen.getByTestId('category-tile-cat-food'));
@@ -447,22 +439,18 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
     });
 
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    expect(screen.getByTestId('entry-wallet-row')).toHaveTextContent('USD Card (USD)');
-
-    await user.click(screen.getByTestId('key-1'));
-    await user.click(screen.getByTestId('key-2'));
-    await user.click(screen.getByTestId('key-comma'));
-    await user.click(screen.getByTestId('key-5'));
-    await user.type(screen.getByTestId('entry-note-input'), 'Lunch');
+    await finishAmount(user, '12,5');
     await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
+    expect(screen.getByTestId('entry-wallet-row')).toHaveTextContent('USD Card (USD)');
+    await user.type(screen.getByTestId('entry-note-input'), 'Lunch');
 
     await user.click(screen.getByTestId('entry-save-btn'));
     // Step A: first non-VND save asks once.
     await user.click(await screen.findByTestId('foreign-save'));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByTestId('entry-note-input')).toHaveValue('Lunch');
-    expect(screen.getByTestId('amount-display')).toHaveTextContent('12,50 $');
+    expect(screen.getByTestId('entry-fold-amount')).toHaveTextContent('12,50 $');
 
     return422 = false;
     await user.click(screen.getByTestId('entry-save-btn'));

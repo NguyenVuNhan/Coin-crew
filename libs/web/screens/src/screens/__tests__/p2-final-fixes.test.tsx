@@ -17,6 +17,7 @@ import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { mockApi } from '../../test/render';
+import { finishAmount } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { WalletScreen } from '../WalletScreen';
@@ -152,8 +153,10 @@ describe('I1: editing must not switch between trade and non-trade', () => {
       'GET /api/me/personal/holdings': { holdings: [] },
     });
 
+    const user = userEvent.setup();
     renderWithRouter(<EntryPage />, '/entries/e-buy-1/edit', '/entries/:id/edit');
 
+    await user.click(await screen.findByTestId('entry-fold-category'));
     await waitFor(() => {
       expect(screen.getByTestId('category-tile-buy')).toHaveAttribute('aria-pressed', 'true');
     });
@@ -197,8 +200,10 @@ describe('I1: editing must not switch between trade and non-trade', () => {
       'GET /api/me/personal/holdings': { holdings: [] },
     });
 
+    const user = userEvent.setup();
     renderWithRouter(<EntryPage />, '/entries/e-exp-1/edit', '/entries/:id/edit');
 
+    await user.click(await screen.findByTestId('entry-fold-category'));
     await waitFor(() => {
       expect(screen.getByTestId('category-tile-c-food')).toHaveAttribute('aria-pressed', 'true');
     });
@@ -250,12 +255,10 @@ describe('I2: fractional quantity accepts "." on decimal pad', () => {
     const user = userEvent.setup();
     renderWithRouter(<EntryPage />, '/entries/new', '/entries/new');
 
+    await finishAmount(user, '100000');
     await waitFor(() => {
       expect(screen.getByTestId('category-tile-buy')).toBeInTheDocument();
     });
-
-    await tapKeypadDigits(user, '100000');
-    await user.click(screen.getByTestId('key-done'));
 
     await user.click(screen.getByTestId('category-tile-buy'));
     await user.click(screen.getByTestId('entry-asset-row'));

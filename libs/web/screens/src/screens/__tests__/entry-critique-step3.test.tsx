@@ -7,6 +7,7 @@ import type { CategoriesResponse, CategoryView, TripView, WalletDetailView } fro
 import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -106,13 +107,16 @@ function renderEntryPage(route: string) {
 
 describe('EntryPage critique step 3 — date row', () => {
   it('has no datetime-local input; the row reads Hôm nay · 08:20', async () => {
+    const user = userEvent.setup();
     mockApi({
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
       'GET /api/me/personal/wallets': { wallets: [vndCash] },
       'GET /api/me/personal/categories': categoriesResp,
     });
     const { container } = renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
+    await finishAmount(user, '50000');
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     expect(container.querySelector('input[type="datetime-local"]')).toBeNull();
     expect(screen.getByTestId('entry-date-row')).toHaveTextContent('Hôm nay · 08:20');
   });
@@ -126,11 +130,9 @@ describe('EntryPage critique step 3 — date row', () => {
       'POST /api/me/personal/transactions': () => Response.json({ entries: [] }, { status: 201 }),
     });
     renderEntryPage('/entries/new?type=expense');
-    await screen.findByTestId('amount-keypad');
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
+    await finishAmount(user, '50000');
     await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
     await user.click(screen.getByRole('button', { name: 'Hôm qua' }));
     expect(screen.getByTestId('entry-date-row')).toHaveTextContent('Hôm qua · 08:20');
     await user.click(screen.getByTestId('entry-save-btn'));

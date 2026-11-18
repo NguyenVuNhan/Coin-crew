@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import type { CategoriesResponse, CategoryView, WalletDetailView } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { mockApi } from '../../test/render';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -107,15 +109,21 @@ describe('EntryPage critique step 5 — polish', () => {
   });
 
   it('wallet row reads "Từ ví" with the transfer tile, the normal label otherwise', async () => {
+    const user = userEvent.setup();
     setup([vndCash, investWallet]);
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('category-tile-cat-food'));
+    await openDetails(user);
     const row = await screen.findByTestId('entry-wallet-row');
     expect(row).toHaveTextContent('Ví');
     expect(row).not.toHaveTextContent('Từ ví');
-    fireEvent.click(screen.getByTestId('category-tile-transfer'));
+    await user.click(screen.getByTestId('entry-fold-category'));
+    await user.click(screen.getByTestId('category-tile-transfer'));
     expect(screen.getByTestId('entry-wallet-row')).toHaveTextContent('Từ ví');
     expect(screen.getByTestId('entry-to-wallet-row')).toHaveTextContent('Đến ví');
-    fireEvent.click(screen.getByTestId('category-tile-cat-food'));
+    await user.click(screen.getByTestId('entry-fold-category'));
+    await user.click(screen.getByTestId('category-tile-cat-food'));
     expect(screen.getByTestId('entry-wallet-row')).not.toHaveTextContent('Từ ví');
   });
 
@@ -132,30 +140,42 @@ describe('EntryPage critique step 5 — polish', () => {
   });
 
   it('recent tiles skip investing categories on an everyday wallet and re-filter on switch', async () => {
+    const user = userEvent.setup();
     setup([vndCash, investWallet]);
     renderEntryPage('/entries/new?type=expense');
+    await finishAmount(user, '50000');
     await screen.findByTestId('category-tile-cat-food');
     expect(screen.queryByTestId('category-tile-cat-stock')).toBeNull();
     expect(screen.queryByTestId('category-tile-cat-invest')).toBeNull();
 
-    fireEvent.click(screen.getByTestId('entry-wallet-row'));
-    fireEvent.click(await screen.findByTestId('wallet-option-w-inv'));
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await openDetails(user);
+    await user.click(screen.getByTestId('entry-wallet-row'));
+    await user.click(await screen.findByTestId('wallet-option-w-inv'));
+    await user.click(screen.getByTestId('entry-fold-category'));
     expect(await screen.findByTestId('category-tile-cat-stock')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('entry-wallet-row'));
-    fireEvent.click(await screen.findByTestId('wallet-option-w-vnd'));
+    await user.click(screen.getByTestId('category-tile-cat-food'));
+    await user.click(screen.getByTestId('entry-wallet-row'));
+    await user.click(await screen.findByTestId('wallet-option-w-vnd'));
+    await user.click(screen.getByTestId('entry-fold-category'));
     expect(screen.queryByTestId('category-tile-cat-stock')).toBeNull();
   });
 
   it('transfer shows the exclude switch inline without "Thêm chi tiết"; a category keeps it', async () => {
+    const user = userEvent.setup();
     setup([vndCash, investWallet]);
     renderEntryPage('/entries/new?type=transfer');
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('category-tile-transfer'));
+    await openDetails(user);
     const sw = await screen.findByTestId('entry-exclude-switch');
     expect(sw).toBeChecked();
     expect(screen.queryByTestId('entry-more-details-toggle')).toBeNull();
     expect(screen.queryByText('Thêm chi tiết')).toBeNull();
 
-    fireEvent.click(screen.getByTestId('category-tile-cat-food'));
+    await user.click(screen.getByTestId('entry-fold-category'));
+    await user.click(screen.getByTestId('category-tile-cat-food'));
     expect(screen.getByTestId('entry-more-details-toggle')).toHaveTextContent('Thêm chi tiết');
     expect(screen.queryByTestId('entry-exclude-switch')).toBeNull();
   });

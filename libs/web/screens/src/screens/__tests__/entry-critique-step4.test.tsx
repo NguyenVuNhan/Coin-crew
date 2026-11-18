@@ -209,8 +209,8 @@ describe('EntryPage critique step 4 — screen reader and keyboard', () => {
     await waitFor(() => expect(keypad).toHaveFocus());
     await user.keyboard('85000');
     expect(screen.getByTestId('amount-display')).toHaveAccessibleName('Số tiền: 85.000₫');
+    await user.keyboard('{Enter}');
 
-    await user.tab();
     const tiles = screen.getByTestId('category-grid').querySelectorAll('button');
     expect(tiles[0]).toHaveFocus();
     await user.tab();
@@ -219,7 +219,8 @@ describe('EntryPage critique step 4 — screen reader and keyboard', () => {
     expect(food).toHaveAccessibleName('Ăn uống');
     expect(food).toHaveAttribute('aria-pressed', 'false');
     await user.keyboard(' ');
-    expect(food).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByTestId('entry-fold-category'));
+    expect(screen.getByTestId('category-tile-cat-food')).toHaveAttribute('aria-pressed', 'true');
 
     const save = await screen.findByTestId('entry-save-btn');
     for (let i = 0; i < 15 && document.activeElement !== save; i += 1) await user.tab();

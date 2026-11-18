@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { AssetView, HoldingView, WalletDetailView } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
 import { mockApi, renderAt } from '../../test/render';
+import { finishAmount } from '../../test/entry';
 import { AddMenu } from '../../components/AddMenu';
 import { EntryPage } from '../EntryPage';
 import { SpendingBook } from '../SpendingBook';
@@ -176,11 +177,9 @@ describe('Owner review fixes (PR #131)', () => {
     });
     act(() => setLang('vi'));
 
+    await finishAmount(user, '25000000');
+    await user.click(await screen.findByTestId('category-tile-buy'));
     await waitFor(() => expect(screen.getByTestId('entry-asset-row')).toBeInTheDocument());
-    for (const ch of '25000000') {
-      await user.click(screen.getByTestId(`key-${ch}`));
-    }
-    await user.click(screen.getByTestId('key-done'));
 
     await user.click(screen.getByTestId('entry-asset-row'));
     await user.click(await screen.findByText('BTC'));
