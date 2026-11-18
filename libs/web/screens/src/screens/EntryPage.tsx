@@ -54,6 +54,8 @@ import { AmountField, evaluateAmountExpression, formatKeypadValue } from '../com
 import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { EntryDateRow } from '../components/EntryDateRow';
+import { useEntryFold } from '../components/entryFold';
+import { FoldLine } from '../components/FoldLine';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
@@ -279,6 +281,7 @@ export function EntryPage(): JSX.Element {
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
   const isMousePointer = useIsMousePointer();
+  const fold = useEntryFold({ enabled: !isMousePointer, isEdit });
   const effectiveKeypadOpen = !isMousePointer && keypadOpen;
   const { announce, announceSoon, region: liveRegion } = useLiveAnnouncer();
 
@@ -719,6 +722,11 @@ export function EntryPage(): JSX.Element {
     if (formatted !== activeExpr) {
       setActiveExpr(formatted);
     }
+    const waitingForSecondary =
+      isTransferMode &&
+      isDiffCurrencyTransfer &&
+      activeTransferField === 'primary' &&
+      (secondaryMinor === null || secondaryMinor <= 0);
     if (isTradeMode) {
       if (!assetId) {
         pendingFocusTargetRef.current = 'asset';
@@ -729,15 +737,13 @@ export function EntryPage(): JSX.Element {
       }
     } else if (!isTransferMode && !categoryId) {
       pendingFocusTargetRef.current = 'category';
-    } else if (
-      isTransferMode &&
-      isDiffCurrencyTransfer &&
-      activeTransferField === 'primary' &&
-      (secondaryMinor === null || secondaryMinor <= 0)
-    ) {
+    } else if (waitingForSecondary) {
       pendingFocusTargetRef.current = 'secondary';
     } else {
       pendingFocusTargetRef.current = 'save';
+    }
+    if (minor > 0 && !waitingForSecondary) {
+      fold.finish('amount');
     }
     setKeypadOpen(false);
   };
@@ -1218,7 +1224,36 @@ export function EntryPage(): JSX.Element {
             )}
 
             {/* Display amount */}
-            <div ref={amountAreaRef} className="flex flex-col gap-2">
+            {!fold.isOpen('amount') ? (
+              <FoldLine
+                testId="entry-fold-amount"
+                label={t('personalEntry.amountBoxLabel')}
+                onOpen={() => {
+                  fold.open('amount');
+                  setKeypadOpen(true);
+                  setKeypadFocusToken((n) => n + 1);
+                }}
+              >
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <span>
+                    {isDiffCurrencyTransfer
+                      ? `${primaryAmountText} → ${secondaryAmountText}`
+                      : primaryAmountText}
+                  </span>
+                  {!isTransferMode &&
+                    selectedWallet &&
+                    (selectedWallet.currency !== 'VND' || selectedWallet.kind === 'investment') && (
+                      <span
+                        data-testid="amount-wallet-chip"
+                        className="text-sm font-medium text-muted-foreground"
+                      >
+                        · {selectedWallet.name}
+                      </span>
+                    )}
+                </span>
+              </FoldLine>
+            ) : (
+              <div ref={amountAreaRef} className="flex flex-col gap-2">
               {isMousePointer ? (
                 <AmountField
                   label={t('personalEntry.amountBoxLabel')}
@@ -1372,26 +1407,29 @@ export function EntryPage(): JSX.Element {
                   {impliedRate}
                 </p>
               )}
-            </div>
+              </div>
+            )}
 
             {/* Category tiles (with fixed transfer and trade tiles) */}
-            <CategoryPicker
-              type={entryType}
-              categories={categoriesQuery.data?.categories ?? []}
-              recentIds={categoriesQuery.data?.recentIds ?? []}
-              walletKind={selectedWallet?.kind}
-              value={categoryId}
-              onChange={handleSelectCategory}
-              transferSelected={isTransferMode}
-              onSelectTransfer={handleSelectTransfer}
-              tradeSelected={isTradeMode}
-              onTradeSelect={handleSelectTrade}
-              showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
-              disableNonTrade={editLockedTrade}
-              error={categoryError ? t('personalEntry.pickCategoryError') : null}
-              highlightError={categoryRingActive}
-              gridRef={categoryGridRef}
-            />
+            {(fold.isOpen('category') || !fold.isOpen('amount')) && (
+              <CategoryPicker
+                type={entryType}
+                categories={categoriesQuery.data?.categories ?? []}
+                recentIds={categoriesQuery.data?.recentIds ?? []}
+                walletKind={selectedWallet?.kind}
+                value={categoryId}
+                onChange={handleSelectCategory}
+                transferSelected={isTransferMode}
+                onSelectTransfer={handleSelectTransfer}
+                tradeSelected={isTradeMode}
+                onTradeSelect={handleSelectTrade}
+                showTrade={isInvestmentWallet && !(isEdit && !isTradeMode)}
+                disableNonTrade={editLockedTrade}
+                error={categoryError ? t('personalEntry.pickCategoryError') : null}
+                highlightError={categoryRingActive}
+                gridRef={categoryGridRef}
+              />
+            )}
 
             {/* Compact rows */}
             <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
