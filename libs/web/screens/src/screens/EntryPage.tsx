@@ -3,9 +3,13 @@ import { useLocation, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CURRENCIES,
+  assetQuantityLabel,
+  assetUnitText,
   formatMoney,
   formatQuantity,
+  isLotAsset,
   parseQuantity,
+  quantityInputDecimals,
   type AssetView,
   type CurrencyCode,
   type EntryInput,
@@ -435,12 +439,15 @@ export function EntryPage(): JSX.Element {
   useEffect(() => {
     if (!isEdit || !entry || !isTradeMode || quantityInitializedRef.current) return;
     if (entry.quantity == null || !selectedAsset) return;
-    setQuantityText(formatQuantity(entry.quantity, selectedAsset.decimals));
+    setQuantityText(formatQuantity(entry.quantity, quantityInputDecimals(selectedAsset)));
     quantityInitializedRef.current = true;
   }, [isEdit, entry, isTradeMode, selectedAsset]);
 
   const parsedQuantity = useMemo(
-    () => (isTradeMode && selectedAsset ? parseQuantity(quantityText, selectedAsset.decimals) : null),
+    () =>
+      isTradeMode && selectedAsset
+        ? parseQuantity(quantityText, quantityInputDecimals(selectedAsset))
+        : null,
     [isTradeMode, selectedAsset, quantityText],
   );
 
@@ -1459,12 +1466,12 @@ export function EntryPage(): JSX.Element {
                           id="entry-quantity-input"
                           ref={quantityInputRef}
                           type="text"
-                          inputMode="decimal"
+                          inputMode={selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'}
                           value={quantityText}
                           onChange={(e) => {
                             const raw = e.target.value;
                             const next =
-                              selectedAsset && selectedAsset.decimals > 0
+                              selectedAsset && quantityInputDecimals(selectedAsset) > 0
                                 ? raw.replace(/\./g, ',')
                                 : raw;
                             setQuantityText(next);
@@ -1480,11 +1487,24 @@ export function EntryPage(): JSX.Element {
                             data-testid="entry-quantity-unit"
                             className="text-sm font-medium text-muted-foreground shrink-0"
                           >
-                            {selectedAsset.unit || selectedAsset.name}
+                            {isLotAsset(selectedAsset)
+                              ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
+                              : selectedAsset.unit}
                           </span>
                         )}
                       </div>
                     </div>
+                    {selectedAsset &&
+                      isLotAsset(selectedAsset) &&
+                      selectedAsset.decimals > 0 &&
+                      parsedQuantity !== null && (
+                        <p
+                          data-testid="entry-quantity-total"
+                          className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                        >
+                          = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                        </p>
+                      )}
                     {entryType === 'income' && selectedAsset && heldQuantity !== null && (
                       <p
                         data-testid="entry-held"

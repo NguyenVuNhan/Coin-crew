@@ -264,7 +264,7 @@ describe('owner review round 1: assets and holdings', () => {
 
     await waitFor(() => expect(screen.getByTestId('wallet-holdings-list')).toBeTruthy());
     expect(screen.queryByTestId('wallet-holdings-pie')).toBeNull();
-    expect(screen.getByTestId('wallet-holding-a-btc').textContent).toContain('TB 52.083,33 USDT/BTC');
+    expect(screen.getByTestId('wallet-holding-a-btc').textContent).toContain('~52.083,33 USDT/BTC');
     // Zero-cost holding stays in the list
     expect(screen.getByTestId('wallet-holding-a-gold')).toBeTruthy();
     expect(screen.getByTestId('wallet-holding-a-gold').textContent).toContain('2,5 chỉ');

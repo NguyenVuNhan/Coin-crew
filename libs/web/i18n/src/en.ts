@@ -1304,8 +1304,8 @@ export const en = {
   'wallets.moveDown': 'Move down',
   'wallets.reorder': 'Reorder',
   'wallets.done': 'Done',
+  'wallets.totalWithAssets': 'Total incl. assets ≈ {total}',
   'wallet.notFound': 'Wallet not found',
-  'wallet.startDate': 'From {date}',
   'wallet.costBasis': 'cost ≈ {amount}',
   'wallet.cashAndTotal': 'Cash {cash} · Total incl. assets {total}',
   'wallet.entriesThisMonth': 'This month’s entries',
@@ -1339,7 +1339,6 @@ export const en = {
   'addMenu.expense': 'Expense',
   'addMenu.income': 'Income',
   'addMenu.loanDebt': 'Loan/Debt',
-  'addMenu.buySell': 'Buy / sell asset',
   'addMenu.transfer': 'Transfer',
   'addMenu.withPeople': 'With others',
   'personalEntry.newTitle': 'Add entry',
@@ -1583,8 +1582,10 @@ export const en = {
   'assets.editAria': 'Edit {name}',
   'assets.hideAria': 'Hide {name}',
   'assets.showAria': 'Show {name}',
-  'wallet.holdingAvgPrice': 'Avg {price}/{unit}',
+  'wallet.holdingAvgPrice': '~{price}/{unit}',
   'wallet.holdingsTotal': 'Total cost · {count} assets',
+  'wallet.holdingsTotalWithCash': 'Total · {count} assets + cash',
+  'wallet.cashRow': 'Cash',
 } as const;
 
 export type MessageKey = keyof typeof en;

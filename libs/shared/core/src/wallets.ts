@@ -128,7 +128,11 @@ function applySellToHolding(
 function replayWallets(
   wallets: CalcWallet[],
   entries: CalcEntry[],
-): { vndValues: Map<string, number | null>; holdingsByWallet: Map<string, Holding[]> } {
+): {
+  vndValues: Map<string, number | null>;
+  cashVndValues: Map<string, number | null>;
+  holdingsByWallet: Map<string, Holding[]>;
+} {
   const walletMap = new Map<string, CalcWallet>();
   const states = new Map<string, NonVndState>();
   const holdingsMaps = new Map<string, Map<string, Holding>>();
@@ -251,6 +255,7 @@ function replayWallets(
   }
 
   const vndValues = new Map<string, number | null>();
+  const cashVndValues = new Map<string, number | null>();
   const holdingsByWallet = new Map<string, Holding[]>();
 
   for (const w of wallets) {
@@ -259,22 +264,26 @@ function replayWallets(
     holdingsByWallet.set(w.id, holdings);
 
     if (w.currency === 'VND') {
+      const cash = walletBalance(w, entries);
       let holdingsVnd = 0;
       for (const h of holdings) holdingsVnd += h.cost;
-      vndValues.set(w.id, walletBalance(w, entries) + holdingsVnd);
+      cashVndValues.set(w.id, cash);
+      vndValues.set(w.id, cash + holdingsVnd);
     } else {
       const st = states.get(w.id);
       if (!st || !st.rated) {
+        cashVndValues.set(w.id, null);
         vndValues.set(w.id, null);
       } else {
         let holdingsVnd = 0;
         for (const h of holdings) holdingsVnd += h.costVnd ?? 0;
+        cashVndValues.set(w.id, st.cost);
         vndValues.set(w.id, st.cost + holdingsVnd);
       }
     }
   }
 
-  return { vndValues, holdingsByWallet };
+  return { vndValues, cashVndValues, holdingsByWallet };
 }
 
 export function walletHoldings(
@@ -323,14 +332,16 @@ export function walletVndValues(
 
 export interface VndTotal {
   totalVnd: number;
+  cashVnd?: number;
   approximate: boolean;
   perCurrency: { currency: CurrencyCode; balance: number }[];
   unratedWalletIds: string[];
 }
 
 export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal {
-  const { vndValues, holdingsByWallet } = replayWallets(wallets, entries);
+  const { vndValues, cashVndValues, holdingsByWallet } = replayWallets(wallets, entries);
   let totalVnd = 0;
+  let cashVnd = 0;
   let approximate = false;
   const unratedWalletIds: string[] = [];
   const currencyBalances = new Map<CurrencyCode, number>();
@@ -351,6 +362,11 @@ export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal 
     } else {
       totalVnd += vndVal;
     }
+
+    const cashVal = cashVndValues.get(w.id) ?? null;
+    if (cashVal !== null) {
+      cashVnd += cashVal;
+    }
   }
 
   const perCurrency: { currency: CurrencyCode; balance: number }[] = [];
@@ -363,6 +379,7 @@ export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal 
 
   return {
     totalVnd,
+    ...(cashVnd !== totalVnd ? { cashVnd } : {}),
     approximate,
     perCurrency,
     unratedWalletIds,

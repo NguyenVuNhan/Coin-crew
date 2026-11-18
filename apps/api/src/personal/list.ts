@@ -365,6 +365,7 @@ export function listRoutes(): Hono<AppBindings> {
 
     const summary: PersonalSummary = {
       totalVnd: vnd.totalVnd,
+      ...(vnd.cashVnd !== undefined ? { cashVnd: vnd.cashVnd } : {}),
       approximate: vnd.approximate,
       perCurrency: vnd.perCurrency,
       unratedWalletIds: vnd.unratedWalletIds,

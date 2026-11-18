@@ -730,6 +730,7 @@ export interface WalletDetailResponse {
 
 export interface PersonalSummary {
   totalVnd: number;
+  cashVnd?: number;
   approximate: boolean;
   perCurrency: { currency: CurrencyCode; balance: number }[];
   unratedWalletIds: string[];

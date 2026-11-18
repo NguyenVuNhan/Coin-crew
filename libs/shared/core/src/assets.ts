@@ -87,3 +87,13 @@ export function assetQuantityLabel(
 ): string {
   return `${formatQuantity(quantity, asset.decimals)} ${asset.unit || asset.name}`;
 }
+
+/** True when the asset's unit is a numeric lot step (e.g. 0.0001 BTC) rather than a word. */
+export function isLotAsset(asset: { unit: string }): boolean {
+  return asset.unit === '';
+}
+
+/** Number of decimal places accepted when typing a quantity for this asset. */
+export function quantityInputDecimals(asset: { unit: string; decimals: number }): number {
+  return isLotAsset(asset) ? 0 : asset.decimals;
+}

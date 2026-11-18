@@ -163,12 +163,11 @@ export function WalletScreen(): JSX.Element {
                 {wallet.archived && <Pill tone="neutral">{t('wallets.archived')}</Pill>}
               </div>
 
-              <Amount value={wallet.balance} currency={wallet.currency} tone="neutral" size="xl" />
+              <div className="flex flex-col items-start gap-0.5">
+                <Amount value={wallet.balance} currency={wallet.currency} tone="neutral" size="xl" />
 
-              <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
-                <span>{t('wallet.startDate', { date: wallet.startDate })}</span>
                 {isInvestment && holdings.length > 0 ? (
-                  <span data-testid="wallet-cost-basis">
+                  <span data-testid="wallet-cost-basis" className="text-sm text-muted-foreground">
                     {t('wallet.cashAndTotal', {
                       cash: formatMoney(wallet.balance, wallet.currency),
                       total:
@@ -181,7 +180,7 @@ export function WalletScreen(): JSX.Element {
                   </span>
                 ) : (
                   wallet.currency !== 'VND' && (
-                    <span data-testid="wallet-cost-basis">
+                    <span data-testid="wallet-cost-basis" className="text-sm text-muted-foreground">
                       {wallet.vndValue !== null
                         ? t('wallet.costBasis', { amount: formatMoney(wallet.vndValue, 'VND') })
                         : t('wallets.noRate')}
@@ -206,7 +205,7 @@ export function WalletScreen(): JSX.Element {
               ) : holdings.length === 0 ? (
                 <p className="m-0 px-1 text-sm text-muted-foreground">{t('wallet.noHoldings')}</p>
               ) : (
-                <HoldingsPie holdings={holdings} assetMap={assetMap} currency={wallet.currency} />
+                <HoldingsPie holdings={holdings} assetMap={assetMap} currency={wallet.currency} cash={wallet.balance} />
               )}
             </section>
             )}

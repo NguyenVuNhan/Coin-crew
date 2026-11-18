@@ -51,13 +51,17 @@ export function HoldingsPie({
   holdings,
   assetMap,
   currency,
+  cash = 0,
 }: {
   holdings: HoldingView[];
   assetMap: Map<string, AssetView>;
   currency: CurrencyCode;
+  cash?: number;
 }): JSX.Element {
   const t = useT();
-  const total = holdings.reduce((sum, h) => sum + (h.cost > 0 ? h.cost : 0), 0);
+  const holdingsCost = holdings.reduce((sum, h) => sum + (h.cost > 0 ? h.cost : 0), 0);
+  const ringTotal = holdingsCost + Math.max(cash, 0);
+  const centreTotal = holdingsCost + cash;
   const items: Item[] = [...holdings]
     .sort((a, b) => b.cost - a.cost)
     .map((h) => {
@@ -75,15 +79,21 @@ export function HoldingsPie({
         name: asset?.name ?? h.assetId,
         meta: avg ? `${qty} · ${avg}` : qty,
         cost: h.cost,
-        share: total > 0 && h.cost > 0 ? Math.round((h.cost / total) * 100) : 0,
+        share: ringTotal > 0 && h.cost > 0 ? Math.round((h.cost / ringTotal) * 100) : 0,
       };
     });
   const positive = items.filter((i) => i.cost > 0);
+  const cashShare = ringTotal > 0 && cash > 0 ? Math.round((cash / ringTotal) * 100) : 0;
+  const hasArc = ringTotal > 0;
+  const ariaParts = [
+    ...positive.map((i) => `${i.name} ${i.share}%`),
+    ...(cash > 0 ? [`${t('wallet.cashRow')} ${cashShare}%`] : []),
+  ];
 
   let a = Math.PI;
   return (
     <div data-testid="wallet-holdings-card" className="bg-card border border-border rounded-xl overflow-hidden">
-      {positive.length > 0 && (
+      {hasArc && (
         <div className="flex flex-col items-center px-4 pt-5 pb-4">
           <div className="relative w-52 h-[104px] overflow-hidden">
             <svg
@@ -91,11 +101,11 @@ export function HoldingsPie({
               viewBox={`0 0 ${SIZE} ${SIZE}`}
               className="block w-52 h-52"
               role="img"
-              aria-label={positive.map((i) => `${i.name} ${i.share}%`).join(', ')}
+              aria-label={ariaParts.join(', ')}
             >
               {positive.map((item, idx) => {
                 const a0 = a;
-                a += (item.cost / total) * Math.PI;
+                a += (item.cost / ringTotal) * Math.PI;
                 return (
                   <path
                     key={item.id}
@@ -107,17 +117,33 @@ export function HoldingsPie({
                   />
                 );
               })}
+              {cash > 0 && (() => {
+                const a0 = a;
+                a += (cash / ringTotal) * Math.PI;
+                return (
+                  <path
+                    key="cash"
+                    data-testid="wallet-holdings-arc-slice"
+                    d={arcPath(a0, a)}
+                    className="fill-muted-foreground/30 stroke-card"
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                  />
+                );
+              })()}
             </svg>
             <div className="absolute inset-x-0 bottom-0 flex justify-center">
-              <Amount value={total} currency={currency} tone="neutral" size="lg" className="font-semibold leading-tight" />
+              <Amount value={centreTotal} currency={currency} tone="neutral" size="lg" className="font-semibold leading-tight" />
             </div>
           </div>
           <span className="mt-1 text-xs text-muted-foreground tabular-nums">
-            {t('wallet.holdingsTotal', { count: items.length })}
+            {cash !== 0
+              ? t('wallet.holdingsTotalWithCash', { count: items.length })
+              : t('wallet.holdingsTotal', { count: items.length })}
           </span>
         </div>
       )}
-      <div data-testid="wallet-holdings-list" className={cn('divide-y divide-border', positive.length > 0 && 'border-t border-border')}>
+      <div data-testid="wallet-holdings-list" className={cn('divide-y divide-border', hasArc && 'border-t border-border')}>
         {items.map((item, idx) => (
           <div
             key={item.id}
@@ -140,6 +166,28 @@ export function HoldingsPie({
             </div>
           </div>
         ))}
+        {cash !== 0 && (
+          <div
+            data-testid="wallet-holding-cash"
+            className="flex items-center justify-between gap-3 px-4 py-3 min-h-14"
+          >
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <span
+                aria-hidden="true"
+                className="inline-block size-2.5 rounded-full shrink-0 bg-muted-foreground/30"
+              />
+              <span className="text-sm font-semibold text-foreground break-words">
+                {t('wallet.cashRow')}
+              </span>
+            </div>
+            <div className="shrink-0 flex flex-col items-end gap-0.5">
+              <Amount value={cash} currency={currency} tone="neutral" size="sm" />
+              {cash > 0 && (
+                <span className="text-sm text-muted-foreground tabular-nums">{cashShare}%</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

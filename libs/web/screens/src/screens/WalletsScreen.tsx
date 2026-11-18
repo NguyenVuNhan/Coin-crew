@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate } from 'react-router';
-import type { CurrencyCode, WalletDetailView } from '@cc/core';
+import { formatMoney, type CurrencyCode, type WalletDetailView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useMe } from '@cc/web-data-access/hooks';
@@ -152,7 +152,11 @@ export function WalletsScreen(): JSX.Element {
   const fallbackTotal = sorted
     .filter((w) => !w.archived)
     .reduce((sum, w) => sum + (w.vndValue ?? (w.currency === 'VND' ? w.balance : 0)), 0);
+  const fallbackCash = sorted
+    .filter((w) => !w.archived)
+    .reduce((sum, w) => sum + (w.currency === 'VND' ? w.balance : (w.vndValue ?? 0)), 0);
   const totalVnd = summary.data ? summary.data.totalVnd : fallbackTotal;
+  const cashVnd = summary.data ? (summary.data.cashVnd ?? summary.data.totalVnd) : fallbackCash;
   const approximate = summary.data ? summary.data.approximate : false;
   const perCurrency = summary.data ? summary.data.perCurrency : computePerCurrency(sorted);
 
@@ -218,7 +222,17 @@ export function WalletsScreen(): JSX.Element {
               data-testid="wallets-total"
               className="fsl-wallets__total rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-2 w-full text-card-foreground"
             >
-              <Amount value={totalVnd} approximate={approximate} tone="neutral" size="xl" />
+              <div className="flex flex-col items-start gap-0.5">
+                <Amount value={cashVnd} approximate={approximate} tone="neutral" size="xl" />
+                {totalVnd !== cashVnd && (
+                  <p
+                    data-testid="wallets-total-with-assets"
+                    className="m-0 text-sm text-muted-foreground tabular-nums"
+                  >
+                    {t('wallets.totalWithAssets', { total: formatMoney(totalVnd, 'VND') })}
+                  </p>
+                )}
+              </div>
               {perCurrency.length > 0 && (
                 <div
                   data-testid="wallets-per-currency"

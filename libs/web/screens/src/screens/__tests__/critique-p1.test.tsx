@@ -100,11 +100,11 @@ describe('Critique P1 fixes', () => {
     act(() => setLang('vi'));
 
     const list = await screen.findByTestId('wallet-holdings-list');
-    expect(screen.getAllByTestId('wallet-holdings-arc-slice')).toHaveLength(1);
+    expect(screen.getAllByTestId('wallet-holdings-arc-slice')).toHaveLength(2);
     const btcRow = within(list).getByTestId('wallet-holding-a-btc');
-    expect(btcRow).toHaveTextContent('0,03 BTC · TB 10.000,00 USDT/BTC');
+    expect(btcRow).toHaveTextContent('0,03 BTC · ~10.000,00 USDT/BTC');
     expect(btcRow).toHaveTextContent('300,00 USDT');
-    expect(btcRow).toHaveTextContent('100%');
+    expect(btcRow).toHaveTextContent('38%');
     first.unmount();
 
     const twoHoldings: HoldingView[] = [
@@ -129,14 +129,15 @@ describe('Critique P1 fixes', () => {
     act(() => setLang('vi'));
 
     const arc = await screen.findByTestId('wallet-holdings-arc');
-    expect(within(arc).getAllByTestId('wallet-holdings-arc-slice')).toHaveLength(2);
-    expect(arc).toHaveAttribute('aria-label', 'BTC 75%, E1VFVN30 25%');
+    expect(within(arc).getAllByTestId('wallet-holdings-arc-slice')).toHaveLength(3);
+    expect(arc).toHaveAttribute('aria-label', 'BTC 33%, E1VFVN30 11%, Tiền mặt 56%');
     const card = screen.getByTestId('wallet-holdings-card');
-    expect(card).toHaveTextContent('400,00 USDT');
-    expect(card).toHaveTextContent('Tổng vốn · 2 tài sản');
+    expect(card).toHaveTextContent('900,00 USDT');
+    expect(card).toHaveTextContent('Tổng · 2 tài sản + tiền mặt');
     const rows = within(screen.getByTestId('wallet-holdings-list'));
-    expect(rows.getByTestId('wallet-holding-a-btc')).toHaveTextContent('75%');
-    expect(rows.getByTestId('wallet-holding-a-etf')).toHaveTextContent('25%');
+    expect(rows.getByTestId('wallet-holding-a-btc')).toHaveTextContent('33%');
+    expect(rows.getByTestId('wallet-holding-a-etf')).toHaveTextContent('11%');
+    expect(rows.getByTestId('wallet-holding-cash')).toHaveTextContent('56%');
   });
 
   it('VND investment wallet with holdings shows cash vs total line', async () => {

@@ -1,7 +1,6 @@
 import { useState, type JSX, type MouseEvent } from 'react';
 import { Link } from 'react-router';
 import { useT } from '@cc/web-i18n';
-import { readLastWallet, useWalletDetails } from '@cc/web-data-access/personalMoney';
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@cc/web-ui/components/ui/popover';
@@ -19,13 +18,6 @@ const ITEM_CLASS =
 export function AddMenu({ addHref, align, side, variant }: AddMenuProps): JSX.Element {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const walletsQuery = useWalletDetails();
-  const activeInvestmentWallets = (walletsQuery.data?.wallets ?? [])
-    .filter((w) => !w.archived && w.kind === 'investment')
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-  const lastWalletId = readLastWallet();
-  const targetInvestmentWallet =
-    activeInvestmentWallets.find((w) => w.id === lastWalletId) ?? activeInvestmentWallets[0];
 
   const close = () => setOpen(false);
   const handleFabClick = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -85,17 +77,6 @@ export function AddMenu({ addHref, align, side, variant }: AddMenuProps): JSX.El
           <Icon name="users" size={18} />
           <span>{t('addMenu.loanDebt')}</span>
         </Link>
-        {targetInvestmentWallet && (
-          <Link
-            to={`/entries/new?type=expense&tile=buy&wallet=${encodeURIComponent(targetInvestmentWallet.id)}`}
-            data-testid="add-menu-buy-sell"
-            onClick={close}
-            className={ITEM_CLASS}
-          >
-            <Icon name="trending-up" size={18} />
-            <span>{t('addMenu.buySell')}</span>
-          </Link>
-        )}
       </PopoverContent>
     </Popover>
   );

@@ -10,7 +10,6 @@ import type {
   WalletDetailView,
 } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
-import { writeLastWallet } from '@cc/web-data-access/personalMoney';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView } from '../../test/fixtures';
 import { App } from '../../App';
@@ -199,7 +198,7 @@ describe('Task 9 — Holdings, trade rows, asset filter, and + menu', () => {
     const section = await screen.findByTestId('wallet-holdings');
     expect(within(section).getByText('Holdings')).toBeInTheDocument();
     expect(within(section).getByText('Cost basis, market price not included')).toBeInTheDocument();
-    const list = screen.getByTestId('wallet-holdings-list');
+    const list = await screen.findByTestId('wallet-holdings-list');
     expect(within(list).getByText('BTC')).toBeInTheDocument();
     expect(within(list).getByText(/0,5 coin/)).toBeInTheDocument();
     expect(within(list).getByText('500.000.000₫')).toBeInTheDocument();
@@ -218,7 +217,7 @@ describe('Task 9 — Holdings, trade rows, asset filter, and + menu', () => {
     renderAt(<App />, { route: '/wallets/w-inv' });
 
     const section = await screen.findByTestId('wallet-holdings');
-    expect(within(section).getByText('No assets held yet')).toBeInTheDocument();
+    expect(await within(section).findByText('No assets held yet')).toBeInTheDocument();
   });
 
   it('buy row reads "Mua BTC" with quantity and neutral ink; sell row reads "Bán BTC" with + in neutral ink', async () => {
@@ -316,47 +315,12 @@ describe('Task 9 — Holdings, trade rows, asset filter, and + menu', () => {
     });
   });
 
-  it('+ menu shows "Mua / bán tài sản" only when an active investment wallet exists, and prefers readLastWallet()', async () => {
+  it('+ menu omits "Mua / bán tài sản" even when an active investment wallet exists', async () => {
     const user = userEvent.setup();
 
-    // Case 1: Only everyday + archived investment wallet -> no "Mua / bán tài sản"
-    mockBase({
-      'GET /api/me/personal/wallets': { wallets: [everydayWallet, archivedInvestWallet] },
-    });
-    const first = renderAt(<AppNav section="home" addHref="/t/t-led/expenses/new" />, {
-      route: '/trips',
-    });
-    await waitFor(() =>
-      expect(screen.getAllByTestId('nav-add')[0]).toHaveAttribute('aria-haspopup', 'dialog'),
-    );
-    await user.click(screen.getAllByTestId('nav-add')[0]!);
-    expect(await screen.findByTestId('add-menu-expense')).toBeInTheDocument();
-    expect(screen.queryByTestId('add-menu-buy-sell')).toBeNull();
-    first.unmount();
-
-    // Case 2: Active investment wallets, no lastWallet -> picks first active investment wallet by sortOrder
     mockBase({
       'GET /api/me/personal/wallets': {
         wallets: [everydayWallet, investWallet2, investWallet],
-      },
-    });
-    const second = renderAt(<AppNav section="home" addHref="/t/t-led/expenses/new" />, {
-      route: '/trips',
-    });
-    await waitFor(() =>
-      expect(screen.getAllByTestId('nav-add')[0]).toHaveAttribute('aria-haspopup', 'dialog'),
-    );
-    await user.click(screen.getAllByTestId('nav-add')[0]!);
-    const buyItem = await screen.findByTestId('add-menu-buy-sell');
-    expect(buyItem).toHaveTextContent('Buy / sell asset');
-    expect(buyItem).toHaveAttribute('href', '/entries/new?type=expense&tile=buy&wallet=w-inv');
-    second.unmount();
-
-    // Case 3: readLastWallet() is an active investment wallet -> uses it
-    writeLastWallet('w-inv-2');
-    mockBase({
-      'GET /api/me/personal/wallets': {
-        wallets: [everydayWallet, investWallet, investWallet2],
       },
     });
     renderAt(<AppNav section="home" addHref="/t/t-led/expenses/new" />, {
@@ -366,7 +330,7 @@ describe('Task 9 — Holdings, trade rows, asset filter, and + menu', () => {
       expect(screen.getAllByTestId('nav-add')[0]).toHaveAttribute('aria-haspopup', 'dialog'),
     );
     await user.click(screen.getAllByTestId('nav-add')[0]!);
-    const buyItemLast = await screen.findByTestId('add-menu-buy-sell');
-    expect(buyItemLast).toHaveAttribute('href', '/entries/new?type=expense&tile=buy&wallet=w-inv-2');
+    expect(await screen.findByTestId('add-menu-expense')).toBeInTheDocument();
+    expect(screen.queryByTestId('add-menu-buy-sell')).toBeNull();
   });
 });

@@ -1305,8 +1305,8 @@ export const vi: Record<MessageKey, string> = {
   'wallets.moveDown': 'Xuống', // REVIEW
   'wallets.reorder': 'Đổi thứ tự', // REVIEW
   'wallets.done': 'Xong', // REVIEW
+  'wallets.totalWithAssets': 'Tổng gồm tài sản ≈ {total}', // REVIEW
   'wallet.notFound': 'Không tìm thấy ví', // REVIEW
-  'wallet.startDate': 'Bắt đầu từ {date}', // REVIEW
   'wallet.costBasis': 'giá vốn ≈ {amount}', // REVIEW
   'wallet.cashAndTotal': 'Tiền mặt {cash} · Tổng gồm tài sản {total}', // REVIEW
   'wallet.entriesThisMonth': 'Giao dịch tháng này', // REVIEW
@@ -1340,7 +1340,6 @@ export const vi: Record<MessageKey, string> = {
   'addMenu.expense': 'Khoản chi', // REVIEW
   'addMenu.income': 'Khoản thu', // REVIEW
   'addMenu.loanDebt': 'Vay/Nợ', // REVIEW
-  'addMenu.buySell': 'Mua / bán tài sản', // REVIEW
   'addMenu.transfer': 'Chuyển tiền', // REVIEW
   'addMenu.withPeople': 'Với người khác', // REVIEW
   'personalEntry.newTitle': 'Thêm giao dịch', // REVIEW
@@ -1584,6 +1583,8 @@ export const vi: Record<MessageKey, string> = {
   'assets.editAria': 'Sửa {name}', // REVIEW
   'assets.hideAria': 'Ẩn {name}', // REVIEW
   'assets.showAria': 'Hiện {name}', // REVIEW
-  'wallet.holdingAvgPrice': 'TB {price}/{unit}', // REVIEW
+  'wallet.holdingAvgPrice': '~{price}/{unit}', // REVIEW
   'wallet.holdingsTotal': 'Tổng vốn · {count} tài sản', // REVIEW
+  'wallet.holdingsTotalWithCash': 'Tổng · {count} tài sản + tiền mặt', // REVIEW
+  'wallet.cashRow': 'Tiền mặt', // REVIEW
 };
