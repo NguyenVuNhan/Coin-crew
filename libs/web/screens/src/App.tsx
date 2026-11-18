@@ -11,6 +11,7 @@ import { EntryPage } from './screens/EntryPage';
 import { TransactionsScreen } from './screens/TransactionsScreen';
 import { TransactionDetail } from './screens/TransactionDetail';
 import { CategoriesScreen } from './screens/CategoriesScreen';
+import { AssetsScreen } from './screens/AssetsScreen';
 import { TagsScreen } from './screens/TagsScreen';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
@@ -100,6 +101,7 @@ export function App() {
       <Route path="/entries/:id" element={<PersonalRoute><TransactionDetail /></PersonalRoute>} />
       <Route path="/entries/:id/edit" element={<PersonalRoute><EntryPage /></PersonalRoute>} />
       <Route path="/personal/categories" element={<PersonalRoute><CategoriesScreen /></PersonalRoute>} />
+      <Route path="/personal/assets" element={<PersonalRoute><AssetsScreen /></PersonalRoute>} />
       <Route path="/personal/tags" element={<PersonalRoute><TagsScreen /></PersonalRoute>} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />

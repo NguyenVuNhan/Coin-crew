@@ -1438,6 +1438,7 @@ export const vi: Record<MessageKey, string> = {
   'personalSettings.title': 'Cài đặt sổ chi tiêu', // REVIEW
   'personalSettings.wallets': 'Ví', // REVIEW
   'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
+  'personalSettings.assets': 'Tài sản', // REVIEW
   'personalSettings.tags': 'Thẻ', // REVIEW
   'categories.title': 'Nhóm chi tiêu', // REVIEW
   'categories.tabs': 'Loại nhóm', // REVIEW
@@ -1520,4 +1521,33 @@ export const vi: Record<MessageKey, string> = {
   'entryDate.mon.9': '10', // REVIEW
   'entryDate.mon.10': '11', // REVIEW
   'entryDate.mon.11': '12', // REVIEW
+  'assets.title': 'Tài sản', // REVIEW
+  'assets.add': 'Thêm tài sản', // REVIEW
+  'assets.newTitle': 'Thêm tài sản', // REVIEW
+  'assets.editTitle': 'Sửa tài sản', // REVIEW
+  'assets.name': 'Tên', // REVIEW
+  'assets.unit': 'Đơn vị', // REVIEW
+  'assets.group': 'Nhóm', // REVIEW
+  'assets.otherGroup': 'Nhóm khác', // REVIEW
+  'assets.otherGroupPlaceholder': 'Nhập tên nhóm', // REVIEW
+  'assets.decimals': 'Số chữ số thập phân', // REVIEW
+  'assets.decimalsDecrease': 'Giảm số chữ số thập phân', // REVIEW
+  'assets.decimalsIncrease': 'Tăng số chữ số thập phân', // REVIEW
+  'assets.decimalsLocked': 'Đã có giao dịch, không đổi được', // REVIEW
+  'assets.duplicateName': 'Đã có tài sản tên này', // REVIEW
+  'assets.save': 'Lưu', // REVIEW
+  'assets.emptyTitle': 'Chưa có tài sản nào', // REVIEW
+  'assets.hiddenSection': 'Đã ẩn', // REVIEW
+  'assets.hiddenBadge': 'Đã ẩn', // REVIEW
+  'assets.edit': 'Sửa', // REVIEW
+  'assets.hide': 'Ẩn', // REVIEW
+  'assets.show': 'Hiện', // REVIEW
+  'assets.delete': 'Xóa', // REVIEW
+  'assets.deleteConfirmTitle': 'Xóa tài sản?', // REVIEW
+  'assets.deleteConfirmBody': 'Bạn có chắc muốn xóa tài sản "{name}"?', // REVIEW
+  'assets.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
+  'assets.moveToOther': 'Chuyển giao dịch sang…', // REVIEW
+  'assets.noSameDecimalsTarget': 'Không có tài sản nào cùng số chữ số thập phân.', // REVIEW
+  'assets.hideInstead': 'Ẩn và giữ lịch sử', // REVIEW
+  'assets.decimalsSummary': '{decimals} số thập phân', // REVIEW
 };
