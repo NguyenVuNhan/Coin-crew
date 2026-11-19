@@ -159,11 +159,11 @@ describe('SearchResults', () => {
     renderSearchResults({ viewMode: 'category' });
 
     const foodGroup = screen.getByTestId('tx-group-cat:cat-food');
-    expect(within(foodGroup).getByText('Ăn uống')).toBeInTheDocument();
+    expect(within(foodGroup).getByRole('heading', { name: 'Ăn uống' })).toBeInTheDocument();
     expect(within(foodGroup).getAllByTestId(/^tx-row-/)).toHaveLength(2);
 
     const salaryGroup = screen.getByTestId('tx-group-cat:cat-salary');
-    expect(within(salaryGroup).getByText('Lương')).toBeInTheDocument();
+    expect(within(salaryGroup).getByRole('heading', { name: 'Lương' })).toBeInTheDocument();
     expect(within(salaryGroup).getAllByTestId(/^tx-row-/)).toHaveLength(1);
   });
 
