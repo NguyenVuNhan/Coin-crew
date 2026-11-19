@@ -114,6 +114,9 @@ export const en = {
   'account.book': 'Spending book',
   'account.bookHint': 'Keep track of your own money, next to your groups.',
   'account.bookBeta': 'Beta',
+  'account.reloadData': 'Reload data',
+  'account.reloadDataHint': "Download this device's saved transactions again",
+  'account.reloadDataStarted': 'Reloading data…',
   'trips.accountAria': 'Account',
   'trips.signOut': 'Sign out',
 

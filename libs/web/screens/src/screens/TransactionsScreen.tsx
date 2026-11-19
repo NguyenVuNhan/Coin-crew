@@ -19,6 +19,7 @@ import {
   useTags,
   useWalletDetails,
 } from '@cc/web-data-access/personalMoney';
+import { useCopyList } from '@cc/web-data-access/txCopy/hooks';
 import { useIsWide } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -162,17 +163,18 @@ function MonthBlock({
   const query: ListQuery = range
     ? { ...restFilters, from: range.from, to: range.to }
     : { ...restFilters, month };
-  const listQuery = usePersonalList(query);
+  const copy = useCopyList(query);
+  const server = usePersonalList(query, { enabled: !copy.ready });
+  const rows = copy.ready ? (copy.rows ?? []) : server.data?.rows;
 
   useEffect(() => {
-    if (month && listQuery.isSuccess && onLoaded) {
-      onLoaded(month, listQuery.data.rows.length === 0);
+    if (month && rows !== undefined && onLoaded) {
+      onLoaded(month, rows.length === 0);
     }
-  }, [month, listQuery.isSuccess, listQuery.data, onLoaded]);
+  }, [month, rows, onLoaded]);
 
   const grouped = useMemo(() => {
-    const rows = listQuery.data?.rows ?? [];
-    if (rows.length === 0) return [];
+    if (!rows || rows.length === 0) return [];
 
     if (viewMode === 'day') {
       const byDay = new Map<string, ListRow[]>();
@@ -225,23 +227,24 @@ function MonthBlock({
       rows: group.rows,
       nets: computeCurrencyNets(group.rows),
     }));
-  }, [listQuery.data?.rows, viewMode, categories, lang, t]);
+  }, [rows, viewMode, categories, lang, t]);
 
-  if (listQuery.isPending) {
+  const isPending = !copy.ready && server.isPending;
+  if (isPending) {
     return <SkeletonList rows={isPrimaryMonth ? 5 : 2} />;
   }
 
-  if (listQuery.error) {
+  const error = !copy.ready ? server.error : null;
+  if (error) {
     return (
       <InlineError
-        error={listQuery.error}
-        onRetry={() => listQuery.refetch()}
+        error={error}
+        onRetry={() => server.refetch()}
       />
     );
   }
 
-  const rows = listQuery.data?.rows ?? [];
-  if (rows.length === 0) {
+  if (!rows || rows.length === 0) {
     if (!isPrimaryMonth) return null;
     if (hasActiveFilters) {
       return (

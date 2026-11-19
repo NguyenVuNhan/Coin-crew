@@ -118,6 +118,9 @@ export const vi: Record<MessageKey, string> = {
   'account.book': 'Sổ chi tiêu', // REVIEW
   'account.bookHint': 'Ghi lại tiền của riêng bạn, cùng chỗ với các nhóm.', // REVIEW
   'account.bookBeta': 'Thử nghiệm', // REVIEW
+  'account.reloadData': 'Tải lại dữ liệu', // REVIEW
+  'account.reloadDataHint': 'Tải lại giao dịch đã lưu trên máy này', // REVIEW
+  'account.reloadDataStarted': 'Đang tải lại dữ liệu…', // REVIEW
   'trips.accountAria': 'Tài khoản',
   'trips.signOut': 'Đăng xuất',
 
