@@ -40,6 +40,9 @@ interface TxCopySchema extends DBSchema {
 }
 
 const DB_VERSION = 1;
+
+/** Open connections by user id, so `deleteTxCopy` can close them first (an open connection blocks deletion). */
+const openConnections = new Map<string, IDBPDatabase<TxCopySchema>>();
 const STATE_KEY = 'state';
 
 function dbName(userId: string): string {
@@ -128,6 +131,8 @@ export async function openTxCopyStore(userId: string): Promise<TxCopyStore | nul
         }
       },
     });
+    openConnections.get(userId)?.close();
+    openConnections.set(userId, db);
     return createStore(db);
   } catch {
     return null;
@@ -144,6 +149,8 @@ export async function deleteTxCopy(userId: string): Promise<void> {
   }
 
   try {
+    openConnections.get(userId)?.close();
+    openConnections.delete(userId);
     await deleteDB(dbName(userId));
   } catch {
     // Best-effort: storage cleanup must never throw.
