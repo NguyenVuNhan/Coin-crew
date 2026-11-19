@@ -355,8 +355,10 @@ export interface ActiveFilterPillsProps {
   wallets: WalletDetailView[];
   categories: CategoryView[];
   assets?: AssetView[];
-  tags: TagView[];
+  tags?: TagView[];
+  hasAnyFilter: boolean;
   onRemove(key: keyof TransactionFilterValues): void;
+  onClearAll(): void;
 }
 
 export function ActiveFilterPills({
@@ -364,15 +366,13 @@ export function ActiveFilterPills({
   wallets,
   categories,
   assets = [],
-  tags,
+  hasAnyFilter,
   onRemove,
+  onClearAll,
 }: ActiveFilterPillsProps): JSX.Element | null {
   const t = useT();
   const items: { key: keyof TransactionFilterValues; label: string }[] = [];
 
-  if (filters.q) {
-    items.push({ key: 'q', label: `"${filters.q}"` });
-  }
   if (filters.type) {
     const typeLabel =
       filters.type === 'expense'
@@ -398,18 +398,8 @@ export function ActiveFilterPills({
     const a = assets.find((x) => x.id === filters.assetId);
     items.push({ key: 'assetId', label: a?.name ?? filters.assetId });
   }
-  if (filters.tagId) {
-    const tag = tags.find((x) => x.id === filters.tagId);
-    items.push({ key: 'tagId', label: `#${tag?.name ?? filters.tagId}` });
-  }
-  if (filters.from) {
-    items.push({ key: 'from', label: `${t('transactions.fromDate')}: ${filters.from}` });
-  }
-  if (filters.to) {
-    items.push({ key: 'to', label: `${t('transactions.toDate')}: ${filters.to}` });
-  }
 
-  if (items.length === 0) return null;
+  if (!hasAnyFilter && items.length === 0) return null;
 
   return (
     <div
@@ -423,14 +413,26 @@ export function ActiveFilterPills({
           onClick={() => onRemove(item.key)}
           aria-label={t('transactions.removeFilter', { label: item.label })}
           data-testid={`tx-filter-pill-${item.key}`}
-          className="inline-flex items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
+          className="inline-flex min-h-11 items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
         >
           <Pill tone="accent" className="gap-1 pr-1.5 py-1 text-xs">
-            <span>{item.label}</span>
+            <span className="max-w-48 truncate">{item.label}</span>
             <Icon name="x" size={12} />
           </Pill>
         </button>
       ))}
+      {hasAnyFilter && (
+        <Button
+          type="button"
+          variant="ghost"
+          data-testid="tx-clear-all"
+          onClick={onClearAll}
+          className="text-xs text-muted-foreground px-3 motion-reduce:transition-none"
+        >
+          <Icon name="x" size={14} />
+          <span>{t('transactions.clearAll')}</span>
+        </Button>
+      )}
     </div>
   );
 }
