@@ -14,7 +14,9 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import {
+  compareListRows,
   isBeforeStart,
+  matchesNote,
   sumCounted,
   vndTotal,
   type CountedRow,
@@ -84,26 +86,6 @@ function parseListType(raw: string | undefined): ListQuery['type'] {
     return raw;
   }
   throw new ApiError('VALIDATION', 422, 'Invalid type');
-}
-
-function rowSortFields(row: ListRow): { date: string; time: string | null; createdAt: string } {
-  if (row.kind === 'entry') {
-    return { date: row.entry.date, time: row.entry.time, createdAt: row.entry.createdAt };
-  }
-  return { date: row.date, time: null, createdAt: row.createdAt };
-}
-
-function compareListRows(a: ListRow, b: ListRow): number {
-  const ka = rowSortFields(a);
-  const kb = rowSortFields(b);
-  if (ka.date !== kb.date) return ka.date > kb.date ? -1 : 1;
-  if (ka.time !== kb.time) {
-    if (ka.time === null) return 1;
-    if (kb.time === null) return -1;
-    return ka.time > kb.time ? -1 : 1;
-  }
-  if (ka.createdAt !== kb.createdAt) return ka.createdAt > kb.createdAt ? -1 : 1;
-  return 0;
 }
 
 function toCountedRow(row: ListRow): CountedRow {
@@ -305,12 +287,11 @@ export function listRoutes(): Hono<AppBindings> {
       rows.push(...personRows);
     }
 
-    const needle = qTerm !== undefined ? qTerm.toLocaleLowerCase('vi') : null;
     const filteredRows =
-      needle !== null
+      qTerm !== undefined
         ? rows.filter((row) => {
             const text = row.kind === 'entry' ? row.entry.note : row.note;
-            return (text ?? '').toLocaleLowerCase('vi').includes(needle);
+            return matchesNote(text, qTerm);
           })
         : rows;
 
