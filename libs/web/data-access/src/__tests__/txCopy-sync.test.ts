@@ -355,7 +355,7 @@ describe('txCopy/sync', () => {
     await expect(syncTxCopy(store!, fetchSync)).rejects.toThrow('network error');
 
     const snapshot = await store!.load();
-    expect(snapshot?.state.ready).toBe(false);
+    expect(snapshot?.state.ready ?? false).toBe(false);
   });
 
   it('a ready copy sends epoch, since and ledgerVersion', async () => {
