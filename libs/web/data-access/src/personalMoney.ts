@@ -18,6 +18,7 @@ import type {
 } from '@cc/core';
 import { apiFetch, apiSend, type ApiClientError } from './client';
 import { WALLETS_KEY } from './personal';
+import { requestTxCopySync } from './txCopy/hooks';
 
 export const PERSONAL_SUMMARY_KEY = ['me', 'personal', 'summary'] as const;
 export const PERSONAL_CATEGORIES_KEY = ['me', 'personal', 'categories'] as const;
@@ -263,7 +264,9 @@ export function useDeleteCategory() {
       const path = moveTo ? `${base}?moveTo=${encodeURIComponent(moveTo)}` : base;
       return apiSend<{ ok: true }>(path, 'DELETE');
     },
-    onSuccess: () => invalidateCategories(queryClient),
+    onSuccess: async () => {
+      await Promise.all([invalidateCategories(queryClient), requestTxCopySync()]);
+    },
   });
 }
 
@@ -291,7 +294,9 @@ export function useDeleteTag() {
   return useMutation<{ ok: true }, ApiClientError, string>({
     mutationFn: (id: string) =>
       apiSend<{ ok: true }>(`/api/me/personal/tags/${encodeURIComponent(id)}`, 'DELETE'),
-    onSuccess: () => invalidateTags(queryClient),
+    onSuccess: async () => {
+      await Promise.all([invalidateTags(queryClient), requestTxCopySync()]);
+    },
   });
 }
 
@@ -310,7 +315,9 @@ export function useCreateEntry() {
   return useMutation<EntriesResponse, ApiClientError, EntryInput>({
     mutationFn: (input: EntryInput) =>
       apiSend<EntriesResponse>('/api/me/personal/transactions', 'POST', input),
-    onSuccess: () => invalidateEntry(queryClient),
+    onSuccess: async () => {
+      await Promise.all([invalidateEntry(queryClient), requestTxCopySync()]);
+    },
   });
 }
 
@@ -324,7 +331,9 @@ export function useUpdateEntry() {
         'PATCH',
         input,
       ),
-    onSuccess: () => invalidateEntry(queryClient),
+    onSuccess: async () => {
+      await Promise.all([invalidateEntry(queryClient), requestTxCopySync()]);
+    },
   });
 }
 
@@ -337,7 +346,9 @@ export function useDeleteEntry() {
         `/api/me/personal/transactions/${encodeURIComponent(id)}`,
         'DELETE',
       ),
-    onSuccess: () => invalidateEntry(queryClient),
+    onSuccess: async () => {
+      await Promise.all([invalidateEntry(queryClient), requestTxCopySync()]);
+    },
   });
 }
 
@@ -347,7 +358,9 @@ export function useRestoreEntries() {
   return useMutation<EntriesResponse, ApiClientError, EntriesResponse>({
     mutationFn: (input: EntriesResponse) =>
       apiSend<EntriesResponse>('/api/me/personal/transactions/restore', 'POST', input),
-    onSuccess: () => invalidateEntry(queryClient),
+    onSuccess: async () => {
+      await Promise.all([invalidateEntry(queryClient), requestTxCopySync()]);
+    },
   });
 }
 
@@ -394,9 +407,13 @@ export function useDeleteAsset() {
           queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
           queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
           queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
+          requestTxCopySync(),
         ]);
       } else {
-        await queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
+          requestTxCopySync(),
+        ]);
       }
     },
   });

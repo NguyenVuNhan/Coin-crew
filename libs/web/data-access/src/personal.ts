@@ -6,6 +6,7 @@ import type {
 } from '@cc/core';
 import { apiFetch, apiSend, type ApiClientError } from './client';
 import { writePersonalHint } from './personalHint';
+import { forgetTxCopy } from './txCopy/hooks';
 
 export function useSetPersonalArea() {
   const queryClient = useQueryClient();
@@ -15,6 +16,12 @@ export function useSetPersonalArea() {
       apiSend<{ enabled: boolean }>('/api/me/personal', 'PATCH', { enabled }),
     onSuccess: async (result) => {
       writePersonalHint(result.enabled);
+      if (!result.enabled) {
+        const me = queryClient.getQueryData<{ user?: { id: string } | null }>(['me']);
+        if (me?.user?.id) {
+          await forgetTxCopy(me.user.id);
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ['me'], exact: true });
     },
   });

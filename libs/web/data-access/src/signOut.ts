@@ -5,6 +5,7 @@ import { sessionStore } from '@cc/web-platform/session';
 import { linkTokens } from '@cc/web-util/linkTokens';
 import { cacheTheme } from '@cc/web-util/themeCache';
 import { apiSend } from './client';
+import { forgetTxCopy } from './txCopy/hooks';
 
 /** Set in the Mini App's storage by "Sign out", so the next start doesn't silently sign the person back in. */
 export const SIGNED_OUT_KEY = 'signedOut';
@@ -56,6 +57,10 @@ export async function signOut(platform: PlatformBridge, queryClient: QueryClient
     cacheTheme(null);
     forgetPerGroupChoices();
     await platform.storage.remove('zaloName');
+    const me = queryClient.getQueryData<{ user?: { id: string } | null }>(['me']);
+    if (me?.user?.id) {
+      await forgetTxCopy(me.user.id);
+    }
   } finally {
     queryClient.clear();
   }
