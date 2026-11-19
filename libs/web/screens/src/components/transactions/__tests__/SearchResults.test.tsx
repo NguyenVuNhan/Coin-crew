@@ -110,6 +110,18 @@ afterEach(() => {
 });
 
 describe('SearchResults', () => {
+  it('asks the copy for all history when no range is set, and keeps a range when one is', () => {
+    mockedUseCopyList.mockReturnValue({ ready: true, rows: [] });
+
+    renderSearchResults();
+    expect(mockedUseCopyList).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: 'cà phê', from: '0000-01-01', to: '9999-12-31' }),
+    );
+
+    renderSearchResults({ filters: { q: 'cà phê', from: '2026-11-01', to: '2026-11-15' } });
+    expect(mockedUseCopyList).toHaveBeenLastCalledWith({ q: 'cà phê', from: '2026-11-01', to: '2026-11-15' });
+  });
+
   it('renders 50 of 2,000 rows, then 100 after "Xem thêm"', () => {
     const rows: ListRow[] = Array.from({ length: 2000 }, (_, i) =>
       makeEntryRow(`e-${i}`, {
