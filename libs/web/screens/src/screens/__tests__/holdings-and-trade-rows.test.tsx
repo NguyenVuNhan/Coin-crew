@@ -287,13 +287,14 @@ describe('Task 9 — Holdings, trade rows, asset filter, and + menu', () => {
     await screen.findByTestId('tx-filter-btn');
     await user.click(screen.getByTestId('tx-filter-btn'));
 
-    // Hidden asset is included in filter sheet
+    // Hidden asset is included in the asset pick list (#133: assets open from a row in the sheet)
+    expect(await screen.findByTestId('tx-filter-type-trade')).toHaveTextContent('Buy / sell');
+    await user.click(screen.getByTestId('tx-filter-type-trade'));
+    await user.click(screen.getByTestId('tx-filter-row-asset'));
     const goldChip = await screen.findByTestId('tx-filter-asset-a-gold');
     expect(goldChip).toHaveTextContent('Vàng SJC');
-    expect(screen.getByTestId('tx-filter-type-trade')).toHaveTextContent('Buy / sell');
 
     await user.click(goldChip);
-    await user.click(screen.getByTestId('tx-filter-type-trade'));
     await user.click(screen.getByTestId('tx-filter-apply'));
 
     await waitFor(() => {

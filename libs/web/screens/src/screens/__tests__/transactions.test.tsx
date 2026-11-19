@@ -335,25 +335,24 @@ describe('TransactionsScreen, Detail, Filters & SpendingBook widget', () => {
     expect(row).toHaveAttribute('href', '/t/t-led/expenses/e-taxi');
   });
 
-  it('filters show as removable pills; no match shows "Xóa bộ lọc"', async () => {
+  it('a search with no match shows "Xóa bộ lọc", which clears it', async () => {
     mockMedia();
     setupMock();
     const user = userEvent.setup();
     renderAt(<App />, { route: '/transactions?month=2026-11' });
 
     await screen.findByTestId('tx-row-e-1');
-    await user.click(screen.getByTestId('tx-filter-btn'));
-
-    const searchInput = await screen.findByTestId('tx-filter-search');
+    // #133: search lives in the page body and runs on the search button.
+    const searchInput = screen.getByTestId('tx-filter-search');
     await user.type(searchInput, 'nomatchxyz');
-    await user.click(screen.getByTestId('tx-filter-apply'));
+    await user.click(screen.getByTestId('tx-search-submit'));
 
-    expect(await screen.findByTestId('tx-filter-pill-q')).toBeInTheDocument();
     expect(await screen.findByTestId('tx-no-match')).toBeInTheDocument();
+    expect(screen.getByTestId('tx-filter-search')).toHaveValue('nomatchxyz');
 
     await user.click(screen.getByTestId('tx-clear-filters'));
     expect(await screen.findByTestId('tx-row-e-1')).toBeInTheDocument();
-    expect(screen.queryByTestId('tx-filter-pill-q')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tx-filter-search')).toHaveValue('');
   });
 
   it('delete asks first, removes the row, Undo within 5 s restores it, after 5 s it is gone', async () => {
