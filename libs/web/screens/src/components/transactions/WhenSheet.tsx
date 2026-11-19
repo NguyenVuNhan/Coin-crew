@@ -105,6 +105,7 @@ export function WhenSheet({
   };
 
   const handleApplyCustom = () => {
+    setError(null);
     const nextFrom = customFrom || undefined;
     const nextTo = customTo || undefined;
     const status = validateRange(nextFrom, nextTo, { maxDays: rangeLimitDays, today });

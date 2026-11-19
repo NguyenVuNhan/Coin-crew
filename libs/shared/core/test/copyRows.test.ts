@@ -224,7 +224,7 @@ describe('listFromCopy', () => {
     );
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].kind).toBe('entry');
+    expect(rows[0]!.kind).toBe('entry');
   });
 
   it('month filter keeps only that month', () => {

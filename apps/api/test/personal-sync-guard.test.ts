@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { describe, it, expect } from 'vitest';
 
 const files = import.meta.glob('../src/**/*.ts', {

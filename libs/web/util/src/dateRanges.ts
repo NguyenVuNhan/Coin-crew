@@ -6,7 +6,9 @@ const MS_PER_DAY = 86_400_000;
 const FROM_TO_RANGES: readonly QuickRange[] = ['thisWeek', 'lastWeek', 'last30'];
 
 function parseUtcDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split('-').map(Number);
+  const y = Number(dateStr.slice(0, 4));
+  const m = Number(dateStr.slice(5, 7));
+  const d = Number(dateStr.slice(8, 10));
   return new Date(Date.UTC(y, m - 1, d));
 }
 
