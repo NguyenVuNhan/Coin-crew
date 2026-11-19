@@ -1430,7 +1430,26 @@ export const vi: Record<MessageKey, string> = {
   'transactions.filters': 'Bộ lọc', // REVIEW
   'transactions.filterTitle': 'Lọc giao dịch', // REVIEW
   'transactions.searchLabel': 'Tìm kiếm', // REVIEW
-  'transactions.searchPlaceholder': 'Tìm theo ghi chú...', // REVIEW
+  'transactions.searchPlaceholder': 'Tìm theo ghi chú hoặc #thẻ', // REVIEW
+  'transactions.searchSubmit': 'Tìm', // REVIEW
+  'transactions.clearSearch': 'Xóa nội dung tìm', // REVIEW
+  'transactions.advancedFilters': 'Bộ lọc nâng cao', // REVIEW
+  'transactions.noTagMatch': 'Không có thẻ nào khớp', // REVIEW
+  'transactions.clearAll': 'Xóa tất cả', // REVIEW
+  'transactions.allTime': 'Mọi lúc', // REVIEW
+  'transactions.clearRange': 'Bỏ khoảng thời gian', // REVIEW
+  'transactions.whenTitle': 'Chọn thời gian', // REVIEW
+  'transactions.quickThisWeek': 'Tuần này', // REVIEW
+  'transactions.quickLastWeek': 'Tuần trước', // REVIEW
+  'transactions.quickThisMonth': 'Tháng này', // REVIEW
+  'transactions.quickLastMonth': 'Tháng trước', // REVIEW
+  'transactions.quickLast30': '30 ngày qua', // REVIEW
+  'transactions.customRange': 'Tùy chọn', // REVIEW
+  'transactions.rangeFromAfterTo': 'Ngày bắt đầu phải trước ngày kết thúc', // REVIEW
+  'transactions.rangeTooLong': 'Chọn tối đa 1 năm', // REVIEW
+  'transactions.loadingHistory': 'Đang tải toàn bộ lịch sử để tìm…', // REVIEW
+  'transactions.backToFilters': 'Quay lại bộ lọc', // REVIEW
+  'transactions.loadMore': 'Xem thêm', // REVIEW
   'transactions.typeAll': 'Tất cả', // REVIEW
   'transactions.typeTrade': 'Mua / bán', // REVIEW
   'transactions.typePerson': 'Với người khác', // REVIEW
