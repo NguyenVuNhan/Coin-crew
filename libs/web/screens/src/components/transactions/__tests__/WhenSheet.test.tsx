@@ -29,23 +29,22 @@ describe('WhenSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('Tháng trước picks month 2026-10', () => {
-    const onPickMonth = vi.fn();
-    const onClose = vi.fn();
+  it('quick picks leave whole months to the month grid', () => {
     render(
       <WhenSheet
         open={true}
-        onClose={onClose}
+        onClose={vi.fn()}
         month="2026-11"
         today={TODAY}
-        onPickMonth={onPickMonth}
+        onPickMonth={vi.fn()}
         onPickRange={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByTestId('tx-when-quick-lastMonth'));
-    expect(onPickMonth).toHaveBeenCalledWith('2026-10');
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('tx-when-quick-thisWeek')).toBeInTheDocument();
+    expect(screen.getByTestId('tx-when-quick-last30')).toBeInTheDocument();
+    expect(screen.queryByTestId('tx-when-quick-thisMonth')).toBeNull();
+    expect(screen.queryByTestId('tx-when-quick-lastMonth')).toBeNull();
   });
 
   it('month grid picks 2026-03 and disables 2026-12', () => {

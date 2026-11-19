@@ -1470,6 +1470,7 @@ export const vi: Record<MessageKey, string> = {
   'transactions.emptyTitle': 'Chưa có giao dịch nào', // REVIEW
   'transactions.emptyBody': 'Ghi chép khoản chi, thu hoặc chuyển tiền để theo dõi.', // REVIEW
   'transactions.loadOlder': 'Xem tháng trước', // REVIEW
+  'transactions.backToTop': 'Lên đầu trang', // REVIEW
   'transactions.otherCategory': 'Khác', // REVIEW
   'transactions.prevMonth': 'Tháng trước', // REVIEW
   'transactions.nextMonth': 'Tháng sau', // REVIEW

@@ -31,6 +31,7 @@ import { SearchResults } from '../components/transactions/SearchResults';
 import { TransactionSearchBar } from '../components/transactions/TransactionSearchBar';
 import { useTxParams } from '../components/transactions/useTxParams';
 import { WhenSheet } from '../components/transactions/WhenSheet';
+import { BackToTop } from '../components/transactions/BackToTop';
 import { TransactionDetailContent } from './TransactionDetail';
 
 type ViewMode = 'day' | 'category';
@@ -379,6 +380,8 @@ export function TransactionsScreen(): JSX.Element {
           </div>
         )}
       </div>
+
+      <BackToTop />
 
       <TransactionFilters
         open={filterOpen}

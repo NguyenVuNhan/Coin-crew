@@ -31,8 +31,6 @@ const MONTHS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'
 const QUICK_RANGES = [
   { key: 'thisWeek', labelKey: 'transactions.quickThisWeek' },
   { key: 'lastWeek', labelKey: 'transactions.quickLastWeek' },
-  { key: 'thisMonth', labelKey: 'transactions.quickThisMonth' },
-  { key: 'lastMonth', labelKey: 'transactions.quickLastMonth' },
   { key: 'last30', labelKey: 'transactions.quickLast30' },
 ] as const satisfies readonly { key: QuickRange; labelKey: string }[];
 
@@ -40,7 +38,9 @@ function formatShortMonth(year: number, monthNum: number, lang: 'vi' | 'en'): st
   if (lang === 'vi') {
     return `T${monthNum}`;
   }
-  return new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'short' });
+  return new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', {
+    month: 'short',
+  });
 }
 
 export function WhenSheet({
@@ -76,25 +76,10 @@ export function WhenSheet({
   }, [open, month, from, to, currentYear]);
 
   const matchedRange = hasRange ? matchQuickRange(from, to, today) : null;
-  const thisMonthStr = currentMonthStr;
-  const lastMonthStr = quickRangeDates('lastMonth', today).from.slice(0, 7);
-
-  const isQuickSelected = (key: QuickRange): boolean => {
-    if (hasRange) {
-      return matchedRange === key;
-    }
-    if (key === 'thisMonth') return month === thisMonthStr;
-    if (key === 'lastMonth') return month === lastMonthStr;
-    return false;
-  };
+  // This month / last month are not quick picks here: the month grid above already does them.
+  const isQuickSelected = (key: QuickRange): boolean => matchedRange === key;
 
   const handleQuickPick = (key: QuickRange) => {
-    if (key === 'thisMonth' || key === 'lastMonth') {
-      const targetMonth = quickRangeDates(key, today).from.slice(0, 7);
-      onPickMonth(targetMonth);
-      onClose();
-      return;
-    }
     onPickRange(quickRangeDates(key, today));
     onClose();
   };
@@ -108,7 +93,10 @@ export function WhenSheet({
     setError(null);
     const nextFrom = customFrom || undefined;
     const nextTo = customTo || undefined;
-    const status = validateRange(nextFrom, nextTo, { maxDays: rangeLimitDays, today });
+    const status = validateRange(nextFrom, nextTo, {
+      maxDays: rangeLimitDays,
+      today,
+    });
     if (status === 'fromAfterTo') {
       setError(t('transactions.rangeFromAfterTo'));
       return;
@@ -123,54 +111,36 @@ export function WhenSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title={t('transactions.whenTitle')}>
-      <div className="fsl-tx-when flex flex-col gap-5 pb-4">
-        <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-          {QUICK_RANGES.map(({ key, labelKey }) => {
-            const selected = isQuickSelected(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                data-testid={`tx-when-quick-${key}`}
-                onClick={() => handleQuickPick(key)}
-                className="w-full min-h-11 flex items-center justify-between px-4 py-2.5 text-sm font-medium text-foreground bg-transparent border-0 cursor-pointer hover:bg-muted transition-colors motion-reduce:transition-none text-left"
-              >
-                <span>{t(labelKey)}</span>
-                {selected && <Icon name="check" size={18} className="text-primary shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-col gap-2">
+      <div className="fsl-tx-when flex flex-col gap-6 pb-4">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <button
-              type="button"
-              data-testid="tx-when-year-prev"
-              aria-label={String(year - 1)}
-              disabled={year <= MIN_YEAR}
-              onClick={() => setYear((y) => Math.max(MIN_YEAR, y - 1))}
-              className="size-11 grid place-items-center rounded-full text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
-            >
-              <Icon name="chevronLeft" size={20} />
-            </button>
-            <span className="text-sm font-semibold text-foreground tabular-nums">{year}</span>
-            <button
-              type="button"
-              data-testid="tx-when-year-next"
-              aria-label={String(year + 1)}
-              disabled={year >= currentYear}
-              onClick={() => setYear((y) => Math.min(currentYear, y + 1))}
-              className="size-11 grid place-items-center rounded-full text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
-            >
-              <Icon name="chevronRight" size={20} />
-            </button>
+            <span className="text-lg font-semibold text-foreground tabular-nums">{year}</span>
+            <div className="flex items-center">
+              <button
+                type="button"
+                data-testid="tx-when-year-prev"
+                aria-label={String(year - 1)}
+                disabled={year <= MIN_YEAR}
+                onClick={() => setYear((y) => Math.max(MIN_YEAR, y - 1))}
+                className="size-11 grid place-items-center rounded-full text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
+              >
+                <Icon name="chevronLeft" size={20} />
+              </button>
+              <button
+                type="button"
+                data-testid="tx-when-year-next"
+                aria-label={String(year + 1)}
+                disabled={year >= currentYear}
+                onClick={() => setYear((y) => Math.min(currentYear, y + 1))}
+                className="size-11 grid place-items-center rounded-full text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
+              >
+                <Icon name="chevronRight" size={20} />
+              </button>
+            </div>
           </div>
-
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {MONTHS.map((mm) => {
               const ym = `${year}-${mm}`;
-              const mNum = Number(mm);
               const isFuture = ym > currentMonthStr;
               const isActive = !hasRange && ym === month;
               return (
@@ -181,23 +151,45 @@ export function WhenSheet({
                   disabled={isFuture}
                   onClick={() => handleMonthPick(ym)}
                   className={cn(
-                    'min-h-11 rounded-full text-sm font-medium border transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-40 disabled:pointer-events-none',
+                    'min-h-11 rounded-full text-sm font-medium border transition-colors motion-reduce:transition-none cursor-pointer disabled:opacity-40 disabled:pointer-events-none tabular-nums',
                     isActive
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-card text-foreground border-border hover:bg-muted',
                   )}
                 >
-                  {formatShortMonth(year, mNum, lang)}
+                  {formatShortMonth(year, Number(mm), lang)}
                 </button>
               );
             })}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <span className="text-sm font-medium text-foreground">
+        <div className="flex flex-col gap-3 border-t border-border pt-5">
+          <span className="text-sm font-semibold text-foreground">
             {t('transactions.customRange')}
           </span>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_RANGES.map(({ key, labelKey }) => {
+              const selected = isQuickSelected(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  data-testid={`tx-when-quick-${key}`}
+                  aria-pressed={selected}
+                  onClick={() => handleQuickPick(key)}
+                  className={cn(
+                    'min-h-11 px-4 rounded-full text-sm font-medium border transition-colors motion-reduce:transition-none cursor-pointer',
+                    selected
+                      ? 'bg-secondary text-secondary-foreground border-transparent'
+                      : 'bg-card text-foreground border-border hover:bg-muted',
+                  )}
+                >
+                  {t(labelKey)}
+                </button>
+              );
+            })}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="tx-when-from">{t('transactions.fromDate')}</Label>
@@ -228,19 +220,12 @@ export function WhenSheet({
               />
             </div>
           </div>
-
           {error && (
             <p data-testid="tx-when-error" role="alert" className="m-0 text-sm text-danger">
               {error}
             </p>
           )}
-
-          <Button
-            variant="primary"
-            block
-            data-testid="tx-when-apply"
-            onClick={handleApplyCustom}
-          >
+          <Button variant="primary" block data-testid="tx-when-apply" onClick={handleApplyCustom}>
             {t('transactions.applyFilters')}
           </Button>
         </div>

@@ -1469,6 +1469,7 @@ export const en = {
   'transactions.emptyTitle': 'No transactions yet',
   'transactions.emptyBody': 'Record an expense, income, or transfer to track it.',
   'transactions.loadOlder': 'Load earlier month',
+  'transactions.backToTop': 'Back to top',
   'transactions.otherCategory': 'Other',
   'transactions.prevMonth': 'Previous month',
   'transactions.nextMonth': 'Next month',

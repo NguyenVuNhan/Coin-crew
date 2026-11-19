@@ -108,10 +108,9 @@ export function PeriodRow({
           type="button"
           data-testid="tx-month-label"
           onClick={onOpenWhen}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-foreground whitespace-nowrap hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
+          className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-foreground whitespace-nowrap hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
         >
           <span>{formatMonthHeading(month, lang)}</span>
-          <Icon name="chevronDown" size={16} className="text-muted-foreground shrink-0" />
         </button>
         <button
           type="button"
