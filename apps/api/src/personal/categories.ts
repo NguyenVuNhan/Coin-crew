@@ -8,6 +8,7 @@ import {
   personalTransactions,
   personalTransactionTags,
 } from '@cc/api-db/schema';
+import { commitPersonalWrite } from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
@@ -355,10 +356,10 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       }
 
       const now = nowIso();
-      await db.batch([
+      await commitPersonalWrite(db, user.id, (v) => [
         db
           .update(personalTransactions)
-          .set({ categoryId: moveTo, updatedAt: now })
+          .set({ categoryId: moveTo, updatedAt: now, syncVersion: v })
           .where(and(eq(personalTransactions.categoryId, id), eq(personalTransactions.userId, user.id))),
         db
           .delete(personalCategories)
@@ -473,7 +474,17 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404, 'Tag not found');
     }
 
-    await db.batch([
+    const now = nowIso();
+    await commitPersonalWrite(db, user.id, (v) => [
+      db
+        .update(personalTransactions)
+        .set({ syncVersion: v, updatedAt: now })
+        .where(
+          and(
+            eq(personalTransactions.userId, user.id),
+            sql`${personalTransactions.id} IN (SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ${id})`,
+          ),
+        ),
       db.delete(personalTransactionTags).where(eq(personalTransactionTags.tagId, id)),
       db.delete(personalTags).where(and(eq(personalTags.id, id), eq(personalTags.userId, user.id))),
     ]);
