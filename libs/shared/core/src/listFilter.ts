@@ -68,16 +68,16 @@ export function resolveListPeriod(query: ListQuery, today: string): { from: stri
   return { from, to };
 }
 
-function rowSortFields(row: ListRow): { date: string; time: string | null; createdAt: string } {
+function rowSortFields(row: ListRow): { date: string; time: string | null; createdAt: string; id: string } {
   if (row.kind === 'entry') {
-    return { date: row.entry.date, time: row.entry.time, createdAt: row.entry.createdAt };
+    return { date: row.entry.date, time: row.entry.time, createdAt: row.entry.createdAt, id: row.entry.id };
   }
-  return { date: row.date, time: null, createdAt: row.createdAt };
+  return { date: row.date, time: null, createdAt: row.createdAt, id: row.id };
 }
 
 /**
  * Compares two ListRows for descending sort order: date desc, then time desc
- * (with null time last), then createdAt desc, or 0 if equal.
+ * (with null time last), then createdAt desc, then id asc.
  */
 export function compareListRows(a: ListRow, b: ListRow): number {
   const ka = rowSortFields(a);
@@ -89,6 +89,9 @@ export function compareListRows(a: ListRow, b: ListRow): number {
     return ka.time > kb.time ? -1 : 1;
   }
   if (ka.createdAt !== kb.createdAt) return ka.createdAt > kb.createdAt ? -1 : 1;
+  // Ties (both sides of a transfer share date, time and createdAt) fall back to the id, so the server and the
+  // saved copy always agree on the order.
+  if (ka.id !== kb.id) return ka.id < kb.id ? -1 : 1;
   return 0;
 }
 

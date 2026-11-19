@@ -233,3 +233,13 @@ describe('listFilter pure functions', () => {
     });
   });
 });
+
+describe('compareListRows ties', () => {
+  it('orders rows with equal date, time and createdAt by id, so server and saved copy agree', () => {
+    const base = { kind: 'person' as const, tripId: 't', date: '2026-11-12', share: 0, total: 0, note: '', people: [], walletId: 'w', currency: 'VND' as const, createdAt: '2026-11-12T00:00:00.000Z' };
+    const a = { ...base, id: 'a' };
+    const b = { ...base, id: 'b' };
+    expect([b, a].sort(compareListRows).map((r) => r.id)).toEqual(['a', 'b']);
+    expect([a, b].sort(compareListRows).map((r) => r.id)).toEqual(['a', 'b']);
+  });
+});
