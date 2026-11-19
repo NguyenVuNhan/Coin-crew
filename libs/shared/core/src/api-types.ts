@@ -881,3 +881,48 @@ export interface HoldingsResponse {
   holdings: HoldingView[];
 }
 
+export interface SyncEntryRow {
+  id: string;
+  walletId: string;
+  type: PersonalEntryType;
+  amount: number;
+  categoryId: string | null;
+  assetId: string | null;
+  quantity: number | null;
+  transferId: string | null;
+  counterpartWalletId: string | null;
+  date: string;
+  time: string | null;
+  note: string | null;
+  tagIds: string[];
+  excludeFromReports: boolean;
+  createdAt: string;
+  syncVersion: number;
+}
+
+export interface SyncLedgerRow {
+  id: string;
+  tripId: string;
+  date: string;
+  share: number;
+  total: number;
+  note: string;
+  people: string[];
+  createdAt: string;
+}
+
+export interface SyncCursor {
+  v: number;
+  id: string;
+}
+
+export interface SyncResponse {
+  status: 'current' | 'delta' | 'reset';
+  epoch: string;
+  version: number;
+  entries: SyncEntryRow[];
+  removedIds: string[];
+  cursor: SyncCursor | null;
+  ledger: { version: number; rows: SyncLedgerRow[] } | null;
+}
+
