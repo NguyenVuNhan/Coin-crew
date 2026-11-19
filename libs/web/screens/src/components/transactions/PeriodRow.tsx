@@ -60,10 +60,12 @@ export function PeriodRow({
           type="button"
           data-testid="tx-range-button"
           onClick={onOpenWhen}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors motion-reduce:transition-none hover:bg-muted cursor-pointer"
+          className="group inline-flex min-h-11 items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none"
         >
-          <span>{label}</span>
-          <Icon name="chevronDown" size={16} className="text-muted-foreground shrink-0" />
+          <span className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border bg-card pl-3 pr-2 text-sm font-medium text-foreground whitespace-nowrap transition-colors motion-reduce:transition-none group-hover:bg-muted group-focus-visible:ring-2 group-focus-visible:ring-ring">
+            {label}
+            <Icon name="chevronDown" size={16} className="text-muted-foreground shrink-0" />
+          </span>
         </button>
         <button
           type="button"
@@ -82,10 +84,12 @@ export function PeriodRow({
         type="button"
         data-testid="tx-range-button"
         onClick={onOpenWhen}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors motion-reduce:transition-none hover:bg-muted cursor-pointer"
+        className="group inline-flex min-h-11 items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none"
       >
-        <span>{t('transactions.allTime')}</span>
-        <Icon name="chevronDown" size={16} className="text-muted-foreground shrink-0" />
+        <span className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border bg-card pl-3 pr-2 text-sm font-medium text-foreground whitespace-nowrap transition-colors motion-reduce:transition-none group-hover:bg-muted group-focus-visible:ring-2 group-focus-visible:ring-ring">
+          {t('transactions.allTime')}
+          <Icon name="chevronDown" size={16} className="text-muted-foreground shrink-0" />
+        </span>
       </button>
     );
   } else {
@@ -104,7 +108,7 @@ export function PeriodRow({
           type="button"
           data-testid="tx-month-label"
           onClick={onOpenWhen}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
+          className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold text-foreground whitespace-nowrap hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
         >
           <span>{formatMonthHeading(month, lang)}</span>
           <Icon name="chevronDown" size={16} className="text-muted-foreground shrink-0" />

@@ -1437,6 +1437,7 @@ export const en = {
   'transactions.clearSearch': 'Clear search text',
   'transactions.advancedFilters': 'More filters',
   'transactions.noTagMatch': 'No matching tags',
+  'transactions.categoryLabel': 'Category',
   'transactions.clearAll': 'Clear all',
   'transactions.allTime': 'All time',
   'transactions.clearRange': 'Clear date range',

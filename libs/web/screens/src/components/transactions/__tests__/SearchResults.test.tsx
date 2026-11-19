@@ -111,7 +111,7 @@ afterEach(() => {
 
 describe('SearchResults', () => {
   it('asks the copy for all history when no range is set, and keeps a range when one is', () => {
-    mockedUseCopyList.mockReturnValue({ ready: true, rows: [] });
+    mockedUseCopyList.mockReturnValue({ opening: false, ready: true, rows: [] });
 
     renderSearchResults();
     expect(mockedUseCopyList).toHaveBeenLastCalledWith(
@@ -128,7 +128,7 @@ describe('SearchResults', () => {
         date: i < 1000 ? '2026-11-19' : '2026-11-18',
       }),
     );
-    mockedUseCopyList.mockReturnValue({ ready: true, rows });
+    mockedUseCopyList.mockReturnValue({ opening: false, ready: true, rows });
 
     renderSearchResults();
 
@@ -145,7 +145,7 @@ describe('SearchResults', () => {
       makeEntryRow('e-2026', { date: '2026-11-19' }),
       makeEntryRow('e-2025', { date: '2025-11-19' }),
     ];
-    mockedUseCopyList.mockReturnValue({ ready: true, rows });
+    mockedUseCopyList.mockReturnValue({ opening: false, ready: true, rows });
 
     renderSearchResults();
 
@@ -166,7 +166,7 @@ describe('SearchResults', () => {
         categoryId: 'cat-salary',
       }),
     ];
-    mockedUseCopyList.mockReturnValue({ ready: true, rows });
+    mockedUseCopyList.mockReturnValue({ opening: false, ready: true, rows });
 
     renderSearchResults({ viewMode: 'category' });
 
@@ -181,7 +181,7 @@ describe('SearchResults', () => {
 
   it('no rows shows NoMatch', () => {
     const onClear = vi.fn();
-    mockedUseCopyList.mockReturnValue({ ready: true, rows: [] });
+    mockedUseCopyList.mockReturnValue({ opening: false, ready: true, rows: [] });
 
     renderSearchResults({ onClear });
 
@@ -197,7 +197,7 @@ describe('SearchResults', () => {
   });
 
   it('renders nothing when copy is not ready', () => {
-    mockedUseCopyList.mockReturnValue({ ready: false, rows: null });
+    mockedUseCopyList.mockReturnValue({ opening: false, ready: false, rows: null });
 
     const { container } = renderSearchResults();
 

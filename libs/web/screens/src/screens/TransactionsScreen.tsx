@@ -92,7 +92,8 @@ function MonthBlock({
     ? { ...restFilters, from: range.from, to: range.to }
     : { ...restFilters, month };
   const copy = useCopyList(query);
-  const server = usePersonalList(query, { enabled: !copy.ready });
+  // While the copy is still opening (a few ms), wait for it rather than spending a server read.
+  const server = usePersonalList(query, { enabled: !copy.ready && !copy.opening });
   const rows = copy.ready ? (copy.rows ?? []) : server.data?.rows;
 
   useEffect(() => {
@@ -106,7 +107,7 @@ function MonthBlock({
     [rows, viewMode, categories, lang, t],
   );
 
-  const isPending = !copy.ready && server.isPending;
+  const isPending = !copy.ready && (copy.opening || server.isPending);
   if (isPending) {
     return <SkeletonList rows={isPrimaryMonth ? 5 : 2} />;
   }

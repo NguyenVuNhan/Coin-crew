@@ -163,7 +163,7 @@ export function TransactionFilters({
 
       {pick === 'category' && (
         <FilterPickView
-          title={t('personalEntry.pickCategory')}
+          title={t('transactions.categoryLabel')}
           allLabel={t('transactions.allCategories')}
           items={visibleCategories}
           selectedId={draft.categoryId}
@@ -273,7 +273,7 @@ export function TransactionFilters({
                   className={PICK_ROW_CLASS}
                 >
                   <span className="shrink-0 font-medium text-foreground">
-                    {t('personalEntry.pickCategory')}
+                    {t('transactions.categoryLabel')}
                   </span>
                   <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
                     <span className="truncate">{categoryLabel}</span>

@@ -17,8 +17,11 @@ import {
 } from './store';
 import { syncTxCopy, type FetchSync } from './sync';
 
-/** Lifecycle status of the browser's local `/transactions` copy. */
-export type TxCopyStatus = 'unavailable' | 'loading' | 'ready';
+/**
+ * Lifecycle status of the browser's local `/transactions` copy. `opening` lasts the few milliseconds it takes to open
+ * IndexedDB, so screens wait for a copy that may already be there instead of asking the server first.
+ */
+export type TxCopyStatus = 'unavailable' | 'opening' | 'loading' | 'ready';
 
 interface TxCopyHookState {
   status: TxCopyStatus;
@@ -27,6 +30,8 @@ interface TxCopyHookState {
 
 const UNAVAILABLE_STATE: TxCopyHookState = { status: 'unavailable', snapshot: null };
 const LOADING_STATE: TxCopyHookState = { status: 'loading', snapshot: null };
+const OPENING_STATE: TxCopyHookState = { status: 'opening', snapshot: null };
+const OPENING_TIMEOUT_MS = 1500;
 
 const fetchSync: FetchSync = (params) => {
   const qs = new URLSearchParams();
@@ -44,7 +49,7 @@ const fetchSync: FetchSync = (params) => {
 
 class TxCopyController {
   private readonly userId: string;
-  private state: TxCopyHookState = LOADING_STATE;
+  private state: TxCopyHookState = OPENING_STATE;
   private readonly listeners = new Set<() => void>();
   private store: TxCopyStore | null = null;
   private unavailable = false;
@@ -76,6 +81,10 @@ class TxCopyController {
     }
     if (!this.started) {
       this.started = true;
+      // If opening IndexedDB hangs (some in-app webviews), stop waiting and let the screen use the server.
+      setTimeout(() => {
+        if (this.state.status === 'opening') this.publish(LOADING_STATE);
+      }, OPENING_TIMEOUT_MS);
       void this.sync();
     }
     return () => {
@@ -209,8 +218,10 @@ function getActiveController(): TxCopyController | null {
  * and falls back to `'unavailable'` when signed out or when IndexedDB cannot be used.
  */
 export function useTxCopy(): { status: TxCopyStatus; snapshot: TxCopySnapshot | null } {
-  const { data } = useMe();
+  const { data, isPending: meLoading } = useMe();
   const userId = data?.user?.id;
+  // Until we know who is signed in, the copy may still be there: say "opening", not "unavailable".
+  const noUserState = meLoading ? OPENING_STATE : UNAVAILABLE_STATE;
   const controller = userId ? getOrCreateController(userId) : null;
 
   useEffect(() => {
@@ -228,8 +239,8 @@ export function useTxCopy(): { status: TxCopyStatus; snapshot: TxCopySnapshot | 
   );
 
   const getSnapshot = useCallback(
-    (): TxCopyHookState => (controller ? controller.getSnapshot() : UNAVAILABLE_STATE),
-    [controller],
+    (): TxCopyHookState => (controller ? controller.getSnapshot() : noUserState),
+    [controller, noUserState],
   );
 
   return useSyncExternalStore(subscribe, getSnapshot, () => UNAVAILABLE_STATE);
@@ -242,7 +253,7 @@ export function useTxCopy(): { status: TxCopyStatus; snapshot: TxCopySnapshot | 
 export function useCopyList(
   query: ListQuery,
   opts?: { enabled?: boolean },
-): { rows: ListRow[] | null; ready: boolean } {
+): { rows: ListRow[] | null; ready: boolean; opening: boolean } {
   const enabled = opts?.enabled ?? true;
   const { status, snapshot } = useTxCopy();
   const walletsQuery = useWalletDetails({ enabled });
@@ -276,7 +287,10 @@ export function useCopyList(
     query.q,
   ]);
 
-  return { rows, ready: rows !== null };
+  // Also wait while a ready copy's lookup lists are still loading, so a fresh page doesn't spend a server read.
+  const lookupsLoading = walletsQuery.isPending || categoriesQuery.isPending || tagsQuery.isPending;
+  const opening = enabled && rows === null && (status === 'opening' || (status === 'ready' && lookupsLoading));
+  return { rows, ready: rows !== null, opening };
 }
 
 /**

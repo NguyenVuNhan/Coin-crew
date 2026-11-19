@@ -1438,6 +1438,7 @@ export const vi: Record<MessageKey, string> = {
   'transactions.clearSearch': 'Xóa nội dung tìm', // REVIEW
   'transactions.advancedFilters': 'Bộ lọc nâng cao', // REVIEW
   'transactions.noTagMatch': 'Không có thẻ nào khớp', // REVIEW
+  'transactions.categoryLabel': 'Danh mục', // REVIEW
   'transactions.clearAll': 'Xóa tất cả', // REVIEW
   'transactions.allTime': 'Mọi lúc', // REVIEW
   'transactions.clearRange': 'Bỏ khoảng thời gian', // REVIEW

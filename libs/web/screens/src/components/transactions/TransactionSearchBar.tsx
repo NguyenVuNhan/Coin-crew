@@ -257,7 +257,7 @@ export function TransactionSearchBar({
           aria-activedescendant={
             activeTag ? `tx-tag-option-${activeTag.id}` : undefined
           }
-          className="text-base md:text-base h-11 min-w-0"
+          className="text-base md:text-base h-11 min-w-0 [&::-webkit-search-cancel-button]:appearance-none"
         />
 
         <InputGroupAddon align="inline-end" className="gap-0 py-0 pr-0.5">

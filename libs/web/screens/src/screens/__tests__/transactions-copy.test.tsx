@@ -133,6 +133,19 @@ describe('TransactionsScreen with local copy', () => {
     expect(calls.filter((c) => c.path.startsWith('/api/me/personal/transactions'))).toHaveLength(1);
   });
 
+  it('while the copy is still opening the month waits instead of asking the server', async () => {
+    mockMedia();
+    useCopyListMock.mockReturnValue({ rows: null, ready: false, opening: true });
+    const { calls } = setupApi();
+
+    renderAt(<App />, { route: '/transactions?month=2026-11' });
+
+    expect(await screen.findByTestId('tx-filter-search')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 200));
+    expect(screen.queryByTestId('tx-row-e-server')).not.toBeInTheDocument();
+    expect(calls.filter((c) => c.path.startsWith('/api/me/personal/transactions'))).toHaveLength(0);
+  });
+
   it('once ready, the month renders copy rows and makes no list request', async () => {
     mockMedia();
     useCopyListMock.mockReturnValue({
