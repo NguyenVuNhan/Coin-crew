@@ -556,9 +556,12 @@ export const personalTransactions = sqliteTable(
     externalRef: text('external_ref'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
+    /** `personal_sync_state.version` of the write that last changed this row (0029). */
+    syncVersion: integer('sync_version').notNull().default(0),
   },
   (t) => [
     index('personal_tx_user_date_idx').on(t.userId, t.date),
+    index('personal_tx_user_sync_idx').on(t.userId, t.syncVersion, t.id),
     index('personal_tx_wallet_date_idx').on(t.walletId, t.date),
     index('personal_tx_transfer_idx').on(t.transferId),
     index('personal_tx_asset_idx').on(t.assetId),
@@ -726,3 +729,32 @@ export const attendanceState = sqliteTable('attendance_state', {
   tripId: text('trip_id').primaryKey(),
   version: integer('version').notNull().default(0),
 });
+
+/** Per-user change counter for the browser's saved copy of /transactions (0029, #133). */
+export const personalSyncState = sqliteTable('personal_sync_state', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull().default(0),
+  epoch: integer('epoch').notNull().default(0),
+  purgedVersion: integer('purged_version').notNull().default(0),
+  updatedAt: text('updated_at').notNull(),
+});
+
+/** Deleted personal transactions, kept 90 days so a sync can tell other browsers (0029, #133). */
+export const personalSyncDeletions = sqliteTable(
+  'personal_sync_deletions',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    transactionId: text('transaction_id').notNull(),
+    version: integer('version').notNull(),
+    deletedAt: text('deleted_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.transactionId] }),
+    index('personal_sync_del_user_version_idx').on(t.userId, t.version),
+    index('personal_sync_del_deleted_at_idx').on(t.deletedAt),
+  ],
+);
