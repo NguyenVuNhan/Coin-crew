@@ -13,6 +13,7 @@ const { useCopyListMock } = vi.hoisted(() => ({
 
 vi.mock('@cc/web-data-access/txCopy/hooks', () => ({
   useCopyList: (...args: unknown[]) => useCopyListMock(...args),
+  useTxCopy: () => ({ status: 'loading', snapshot: null }),
 }));
 
 beforeEach(() => {
