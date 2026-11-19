@@ -1,15 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import { eq } from 'drizzle-orm';
 import type {
   CategoriesResponse,
   EntriesResponse,
   SyncResponse,
   WalletDetailResponse,
 } from '@cc/core';
-import { getDb } from '@cc/api-db/client';
-import { personalTransactions } from '@cc/api-db/schema';
-import { commitPersonalWrite, recordDeletions } from '@cc/api-db/personalSync';
 import { call, json, memberSid } from './helpers';
 import { addWallet, postJson, switchOn } from './personal-helpers';
 
@@ -29,34 +25,16 @@ const patchEntry = (sid: string, id: string, body: unknown) =>
 const deleteEntry = (sid: string, id: string) =>
   postJson(`/api/me/personal/transactions/${encodeURIComponent(id)}`, sid, {}, 'DELETE');
 
-async function stampEntry(userId: string, txId: string) {
-  const db = getDb(env);
-  await commitPersonalWrite(db, userId, (v) => [
-    db
-      .update(personalTransactions)
-      .set({ syncVersion: v as unknown as number })
-      .where(eq(personalTransactions.id, txId)),
-  ]);
-}
+/** The entry routes stamp rows themselves (commitPersonalWrite), so these only call the API. */
+async function stampEntry(_userId: string, _txId: string): Promise<void> {}
 
-async function editAndStamp(sid: string, userId: string, id: string, body: unknown) {
+async function editAndStamp(sid: string, _userId: string, id: string, body: unknown) {
   const res = await patchEntry(sid, id, body);
   expect(res.status).toBe(200);
-  const db = getDb(env);
-  await commitPersonalWrite(db, userId, (v) => [
-    db
-      .update(personalTransactions)
-      .set({ syncVersion: v as unknown as number })
-      .where(eq(personalTransactions.id, id)),
-  ]);
   return res;
 }
 
-async function deleteAndRecord(sid: string, userId: string, id: string) {
-  const db = getDb(env);
-  await commitPersonalWrite(db, userId, () => [
-    recordDeletions(db, userId, eq(personalTransactions.id, id)),
-  ]);
+async function deleteAndRecord(sid: string, _userId: string, id: string) {
   const res = await deleteEntry(sid, id);
   expect(res.status).toBe(200);
   return res;
@@ -333,6 +311,36 @@ describe('personal saved-copy sync endpoint GET /me/personal/sync', () => {
     expect(data.removedIds).toEqual([e1.id]);
     expect(data.cursor).toBeNull();
     expect(data.ledger).toBeNull();
+  });
+
+  it('a full page of tagged rows returns every tag (more than 100 ids in one page)', async () => {
+    const userId = 'u-sync-tags-150';
+    const sid = await memberSid(userId, 'SyncTags');
+    await switchOn(userId);
+    const now = '2026-11-19T00:00:00.000Z';
+    await env.DB.prepare(
+      "INSERT INTO personal_wallets (id, user_id, name, currency, start_amount, start_date, is_default, created_at, updated_at) VALUES ('w-sync-tags', ?, 'Cash', 'VND', 0, '2026-01-01', 1, ?, ?)",
+    )
+      .bind(userId, now, now)
+      .run();
+    await env.DB.prepare("INSERT INTO personal_tags (id, user_id, name, created_at) VALUES ('tag-sync-150', ?, 'an', ?)")
+      .bind(userId, now)
+      .run();
+    const stmts = [];
+    for (let j = 0; j < 150; j++) {
+      const id = `txt-${String(j).padStart(4, '0')}`;
+      stmts.push(
+        env.DB.prepare(
+          "INSERT INTO personal_transactions (id, user_id, wallet_id, type, amount, date, created_at, updated_at) VALUES (?, ?, 'w-sync-tags', 'expense', 1000, '2026-11-19', ?, ?)",
+        ).bind(id, userId, now, now),
+        env.DB.prepare("INSERT INTO personal_transaction_tags (transaction_id, tag_id) VALUES (?, 'tag-sync-150')").bind(id),
+      );
+    }
+    await env.DB.batch(stmts);
+
+    const data = await json<SyncResponse>(await getSync(sid, ''));
+    expect(data.entries).toHaveLength(150);
+    expect(data.entries.every((e) => e.tagIds.length === 1 && e.tagIds[0] === 'tag-sync-150')).toBe(true);
   });
 
   it('1,201 rows page as 500/500/201 with cursors, no duplicates or gaps', async () => {
