@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
-import { buildAttendanceSeedSql, buildSeedSql, buildUserCopySql, localD1File, readUsers } from './seed-local.mjs';
+import { buildAttendanceSeedSql, buildPersonalSeedSql, buildSeedSql, buildUserCopySql, localD1File, readUsers } from './seed-local.mjs';
 
 const NOW = '2026-11-12T10:00:00.000Z';
 const owner = (id, extra = {}) => ({ id, name: 'Owner', google_sub: `g-${id}`, ...extra });
@@ -241,4 +241,28 @@ test('buildAttendanceSeedSql: seeds Cầu lông CN (seed) with 7 planned->billed
     const headShares = shares.filter((s) => s.transaction_id === head.id);
     assert.equal(headShares.reduce((a, s) => a + s.amount, 0), head.amount);
   }
+});
+
+test('buildPersonalSeedSql: turns the area on, pairs transfers, skips future dates, bumps the sync epoch', () => {
+  const sql = buildPersonalSeedSql([owner('abcdef1234')], NOW);
+  assert.match(sql[0], /^INSERT INTO user_personal_settings .* ON CONFLICT\(user_id\) DO UPDATE SET enabled = 1/);
+  assert.match(sql.at(-1), /^INSERT INTO personal_sync_state .* epoch = epoch \+ 1/);
+
+  const entries = rows(sql, 'personal_transactions');
+  assert.ok(entries.length > 500, `expected a multi-page download, got ${entries.length}`);
+  assert.ok(entries.every((e) => e.id.startsWith('seed-abcdef12-p-')));
+  assert.ok(entries.every((e) => e.date <= '2026-11-12'));
+  assert.equal(new Set(entries.map((e) => e.id)).size, entries.length);
+
+  const byTransfer = Map.groupBy(entries.filter((e) => e.transfer_id), (e) => e.transfer_id);
+  for (const pair of byTransfer.values()) {
+    assert.deepEqual(pair.map((e) => e.type).sort(), ['transfer_in', 'transfer_out']);
+  }
+  // Three empty months in a row (8–10 months back), and one entry far back for all-time search.
+  const months = new Set(entries.map((e) => e.date.slice(0, 7)));
+  for (const m of ['2026-01', '2026-02', '2026-03']) assert.ok(!months.has(m), `${m} should be empty`);
+  assert.ok(entries.some((e) => e.note === 'Mua laptop cũ' && e.date < '2025-01-01'));
+
+  // Same rows on a re-run.
+  assert.deepEqual(buildPersonalSeedSql([owner('abcdef1234')], NOW), sql);
 });

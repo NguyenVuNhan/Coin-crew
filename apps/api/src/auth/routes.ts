@@ -10,6 +10,7 @@ import { getDb } from '@cc/api-db/client';
 import { deviceExpenseGrants, deviceParticipants, participants, sessions, trips, users } from '@cc/api-db/schema';
 import { ApiError, validationError } from '@cc/api-util/errors';
 import { nowIso, sha256Hex } from '@cc/api-util/ids';
+import { requestOrigin } from '@cc/api-util/origin';
 import { GOOGLE_SCOPES, googleClient } from '@cc/api-auth/google';
 import { linkIdentity, requestClaim, upsertIdentity } from '@cc/api-auth/identity';
 import { buildMeResponse, toMeUserView } from '@cc/api-auth/me';
@@ -48,6 +49,9 @@ async function parseJson<T>(c: Context): Promise<T> {
   }
 }
 
+/** Where this browser reached us, so OAuth returns to the same site (localhost or the tunnel). */
+const originOf = (c: Context): string => requestOrigin(c.req.url, (name) => c.req.header(name));
+
 function clearOauthCookies(c: Context, prefix: 'oauth' | 'zalo_oauth'): void {
   deleteCookie(c, `${prefix}_state`, { path: '/' });
   deleteCookie(c, `${prefix}_verifier`, { path: '/' });
@@ -83,7 +87,7 @@ export function authRoutes(): Hono<AppBindings> {
     setCookie(c, 'oauth_return', returnTo, cookieOpts);
     setCookie(c, 'oauth_intent', intent, cookieOpts);
 
-    const url = googleClient(c.env).createAuthorizationURL(state, verifier, GOOGLE_SCOPES);
+    const url = googleClient(c.env, originOf(c)).createAuthorizationURL(state, verifier, GOOGLE_SCOPES);
     return c.redirect(url.toString(), 302);
   });
 
@@ -105,7 +109,7 @@ export function authRoutes(): Hono<AppBindings> {
       throw validationError('signInExpired', 'Sign-in expired. Please try again.', 400);
     }
 
-    const tokens = await googleClient(c.env).validateAuthorizationCode(code, oauthVerifier);
+    const tokens = await googleClient(c.env, originOf(c)).validateAuthorizationCode(code, oauthVerifier);
     const claims = decodeIdToken(tokens.idToken()) as {
       sub: string;
       email: string;
@@ -185,7 +189,7 @@ export function authRoutes(): Hono<AppBindings> {
       setCookie(c, 'zalo_oauth_claim', JSON.stringify({ tripId, participantId }), cookieOpts);
     }
 
-    return c.redirect(zaloAuthorizeUrl(c.env, state, challenge).toString(), 302);
+    return c.redirect(zaloAuthorizeUrl(c.env, state, challenge, originOf(c)).toString(), 302);
   });
 
   app.get('/auth/zalo/callback', async (c) => {

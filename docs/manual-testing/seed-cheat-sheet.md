@@ -96,3 +96,20 @@ Full checklist: [person-history.md](./person-history.md)
 
 - **Seeded data:** `seed-user-minh` (`e2e-minh`, `minh@example.com`), 60 generated Vietnamese users (`seed-user-01`..`60`), and 30 trips (`Seed trip 01`..`30`) with 10 participants each (300 rows).
 - **What it verifies:** Runs 5 `curl` calls to `GET /api/me/people` (asserting `< 0.300s` returning 50 recent people) and 1,000 Playwright `filterRecentPeople()` evaluations (asserting `< 1ms` average).
+
+---
+
+## Sổ chi tiêu (`/transactions`) — search, quick dates, saved copy (#133 / PR #139)
+
+`npm run seed:local` also turns Sổ chi tiêu on for every owner and seeds about 550 entries (ids `seed-<o>-p-…`). It bumps the owner's sync epoch, so every browser copy downloads again in two pages of 500.
+
+| Data | Use it to test |
+| --- | --- |
+| Wallets `Tiền mặt (seed)`, `Techcombank (seed)`, `Ví đầu tư (seed)` (investment), `MoMo cũ (seed)` (archived) | Wallet filter; archived wallet history 11–15 months back |
+| Sub-category `Cà phê` under `Ăn uống`; the starter categories | Category filter, parent vs sub-category |
+| Tags `#congtac`, `#giadinh`, `#dulich-dalat`, `#Tết`, `#sinhnhat`, `#hoàn-tiền` | `#` suggestions turning into a chip; tag filter |
+| Assets `BTC`, `FPT`, `Vàng SJC` (buys monthly, FPT sold ~95 days ago) | Asset filter, buy/sell rows |
+| Notes like `Cà phê sữa đá`, `Bún chả`, `Đổ xăng`, `Lương tháng …` | Accent-free search (`ca phe`, `bun cha`, `do xang`) |
+| Entries today, yesterday, 7 and 29 days ago; a Đà Lạt trip ~2 months ago | Quick picks: this week, last week, this month, last month, last 30 days |
+| No entries 8–10 months back; `Mua laptop cũ` ~26 months back | Empty-month auto-load; all-time search beyond loaded months |
+| Monthly transfers (`Rút tiền mặt`, `Nạp ví đầu tư`), `Cho Minh mượn` (kept out of reports) | Transfer rows, exclude-from-reports |
