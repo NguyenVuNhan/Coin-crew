@@ -12,6 +12,11 @@ import {
   personalWallets,
   personalWalletSettings,
 } from '@cc/api-db/schema';
+import {
+  clearDeletions,
+  commitPersonalWrite,
+  recordDeletions,
+} from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
@@ -468,7 +473,7 @@ export function entryRoutes(): Hono<AppBindings> {
 
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
 
-      const stmts: BatchItem<'sqlite'>[] = [
+      await commitPersonalWrite(db, user.id, (v) => [
         db.insert(personalTransactions).values({
           id: txId,
           userId: user.id,
@@ -486,6 +491,7 @@ export function entryRoutes(): Hono<AppBindings> {
           source: 'manual',
           createdAt: now,
           updatedAt: now,
+          syncVersion: v,
         }),
         ...resolvedTags.map((t) =>
           db.insert(personalTransactionTags).values({
@@ -493,9 +499,7 @@ export function entryRoutes(): Hono<AppBindings> {
             tagId: t.id,
           }),
         ),
-      ];
-
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+      ]);
 
       const entry = buildEntryView({
         id: txId,
@@ -532,7 +536,7 @@ export function entryRoutes(): Hono<AppBindings> {
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
       const txId = newId();
 
-      const stmts: BatchItem<'sqlite'>[] = [
+      await commitPersonalWrite(db, user.id, (v) => [
         db.insert(personalTransactions).values({
           id: txId,
           userId: user.id,
@@ -548,6 +552,7 @@ export function entryRoutes(): Hono<AppBindings> {
           source: 'manual',
           createdAt: now,
           updatedAt: now,
+          syncVersion: v,
         }),
         ...resolvedTags.map((t) =>
           db.insert(personalTransactionTags).values({
@@ -555,9 +560,7 @@ export function entryRoutes(): Hono<AppBindings> {
             tagId: t.id,
           }),
         ),
-      ];
-
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+      ]);
 
       const entry = buildEntryView({
         id: txId,
@@ -598,7 +601,7 @@ export function entryRoutes(): Hono<AppBindings> {
     const inId = newId();
     const excludeInt = input.excludeFromReports ? 1 : 0;
 
-    const stmts: BatchItem<'sqlite'>[] = [
+    await commitPersonalWrite(db, user.id, (v) => [
       db.insert(personalTransactions).values({
         id: outId,
         userId: user.id,
@@ -614,6 +617,7 @@ export function entryRoutes(): Hono<AppBindings> {
         source: 'manual',
         createdAt: now,
         updatedAt: now,
+        syncVersion: v,
       }),
       db.insert(personalTransactions).values({
         id: inId,
@@ -630,6 +634,7 @@ export function entryRoutes(): Hono<AppBindings> {
         source: 'manual',
         createdAt: now,
         updatedAt: now,
+        syncVersion: v,
       }),
       ...resolvedTags.map((t) =>
         db.insert(personalTransactionTags).values({
@@ -643,9 +648,7 @@ export function entryRoutes(): Hono<AppBindings> {
           tagId: t.id,
         }),
       ),
-    ];
-
-    await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    ]);
 
     const tagNames = resolvedTags.map((t) => t.name);
     const outEntry = buildEntryView({
@@ -765,7 +768,7 @@ export function entryRoutes(): Hono<AppBindings> {
 
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
 
-      const stmts: BatchItem<'sqlite'>[] = [
+      await commitPersonalWrite(db, user.id, (v) => [
         db
           .update(personalTransactions)
           .set({
@@ -779,6 +782,7 @@ export function entryRoutes(): Hono<AppBindings> {
             time: input.time ?? null,
             note: input.note ?? null,
             excludeFromReports: 0,
+            syncVersion: v,
             updatedAt: now,
           })
           .where(and(eq(personalTransactions.id, target.id), eq(personalTransactions.userId, user.id))),
@@ -791,9 +795,7 @@ export function entryRoutes(): Hono<AppBindings> {
             tagId: t.id,
           }),
         ),
-      ];
-
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+      ]);
 
       const entry = buildEntryView({
         id: target.id,
@@ -829,7 +831,7 @@ export function entryRoutes(): Hono<AppBindings> {
 
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
 
-      const stmts: BatchItem<'sqlite'>[] = [
+      await commitPersonalWrite(db, user.id, (v) => [
         db
           .update(personalTransactions)
           .set({
@@ -841,6 +843,7 @@ export function entryRoutes(): Hono<AppBindings> {
             time: input.time ?? null,
             note: input.note ?? null,
             excludeFromReports: input.excludeFromReports ? 1 : 0,
+            syncVersion: v,
             updatedAt: now,
           })
           .where(and(eq(personalTransactions.id, target.id), eq(personalTransactions.userId, user.id))),
@@ -853,9 +856,7 @@ export function entryRoutes(): Hono<AppBindings> {
             tagId: t.id,
           }),
         ),
-      ];
-
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+      ]);
 
       const entry = buildEntryView({
         id: target.id,
@@ -918,7 +919,7 @@ export function entryRoutes(): Hono<AppBindings> {
     const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
     const excludeInt = input.excludeFromReports ? 1 : 0;
 
-    const stmts: BatchItem<'sqlite'>[] = [
+    await commitPersonalWrite(db, user.id, (v) => [
       db
         .update(personalTransactions)
         .set({
@@ -928,6 +929,7 @@ export function entryRoutes(): Hono<AppBindings> {
           time: input.time ?? null,
           note: input.note ?? null,
           excludeFromReports: excludeInt,
+          syncVersion: v,
           updatedAt: now,
         })
         .where(and(eq(personalTransactions.id, outRow.id), eq(personalTransactions.userId, user.id))),
@@ -940,6 +942,7 @@ export function entryRoutes(): Hono<AppBindings> {
           time: input.time ?? null,
           note: input.note ?? null,
           excludeFromReports: excludeInt,
+          syncVersion: v,
           updatedAt: now,
         })
         .where(and(eq(personalTransactions.id, inRow.id), eq(personalTransactions.userId, user.id))),
@@ -958,9 +961,7 @@ export function entryRoutes(): Hono<AppBindings> {
           tagId: t.id,
         }),
       ),
-    ];
-
-    await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    ]);
 
     const tagNames = resolvedTags.map((t) => t.name);
     const outEntry = buildEntryView({
@@ -1081,7 +1082,8 @@ export function entryRoutes(): Hono<AppBindings> {
       tagsByTx.set(tr.transactionId, list);
     }
 
-    await db.batch([
+    await commitPersonalWrite(db, user.id, () => [
+      recordDeletions(db, user.id, inArray(personalTransactions.id, txIds)),
       db
         .delete(personalTransactionTags)
         .where(inArray(personalTransactionTags.transactionId, txIds)),
@@ -1272,41 +1274,40 @@ export function entryRoutes(): Hono<AppBindings> {
     const resolvedAll = await resolveTags(db, user.id, allTagNames, now);
     const resolvedByLower = new Map(resolvedAll.map((t) => [t.name.toLowerCase(), t]));
 
-    const stmts: BatchItem<'sqlite'>[] = [];
-    for (const item of items) {
-      stmts.push(
-        db.insert(personalTransactions).values({
-          id: item.id,
-          userId: user.id,
-          walletId: item.walletId,
-          type: item.type,
-          amount: item.amount,
-          categoryId: item.categoryId,
-          assetId: item.assetId,
-          quantity: item.quantity,
-          transferId: item.transferId,
-          date: item.date,
-          time: item.time,
-          note: item.note,
-          excludeFromReports: item.excludeFromReports ? 1 : 0,
-          source: 'manual',
-          createdAt: item.createdAt,
-          updatedAt: now,
-        }),
-      );
-      for (const rawTag of item.tags) {
-        const tag = resolvedByLower.get(rawTag.toLowerCase())!;
-        stmts.push(
-          db.insert(personalTransactionTags).values({
-            transactionId: item.id,
-            tagId: tag.id,
-          }),
-        );
-      }
-    }
+    const restoredIds = items.map((i) => i.id);
 
     try {
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+      await commitPersonalWrite(db, user.id, (v) => [
+        clearDeletions(db, user.id, restoredIds),
+        ...items.flatMap((item) => [
+          db.insert(personalTransactions).values({
+            id: item.id,
+            userId: user.id,
+            walletId: item.walletId,
+            type: item.type,
+            amount: item.amount,
+            categoryId: item.categoryId,
+            assetId: item.assetId,
+            quantity: item.quantity,
+            transferId: item.transferId,
+            date: item.date,
+            time: item.time,
+            note: item.note,
+            excludeFromReports: item.excludeFromReports ? 1 : 0,
+            source: 'manual',
+            createdAt: item.createdAt,
+            updatedAt: now,
+            syncVersion: v,
+          }),
+          ...item.tags.map((rawTag) => {
+            const tag = resolvedByLower.get(rawTag.toLowerCase())!;
+            return db.insert(personalTransactionTags).values({
+              transactionId: item.id,
+              tagId: tag.id,
+            });
+          }),
+        ]),
+      ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
         throw new ApiError('ALREADY_HANDLED', 409, 'Transaction already exists.');
