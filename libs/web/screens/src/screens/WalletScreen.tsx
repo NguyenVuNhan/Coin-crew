@@ -26,6 +26,7 @@ import { TransactionRow } from '../components/TransactionRow';
 import { WalletForm } from '../components/WalletForm';
 import { HoldingsPie } from '../components/HoldingsPie';
 import { WalletSummary } from '../components/WalletSummary';
+import { BalanceCheckPrompt } from '../components/BalanceCheckPrompt';
 
 export function WalletScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -142,6 +143,7 @@ export function WalletScreen(): JSX.Element {
           <EmptyState icon="wallet" title={t('wallet.notFound')} body="" />
         ) : (
           <>
+            <BalanceCheckPrompt walletId={wallet.id} />
             <WalletSummary wallet={wallet} withHoldings={Boolean(isInvestment && holdings.length > 0)} />
 
             {mutationError && <InlineError error={mutationError} />}
