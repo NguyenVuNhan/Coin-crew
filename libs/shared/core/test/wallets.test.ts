@@ -90,10 +90,10 @@ describe('wallets', () => {
   const bank = wallet({ id: 'b', currency: 'VND', startAmount: 30_000_000 });
   const ex = wallet({ id: 'x', currency: 'USDT', startAmount: 0, startCostVnd: null });
 
-  it('entries before the start date are ignored', () => {
+  it('entries dated before startDate still count toward balance (isBeforeStart is false)', () => {
     const w = wallet({ id: 'v', currency: 'VND', startAmount: 1_000_000, startDate: '2026-11-10' });
-    expect(walletBalance(w, [e('v', 'expense', 200_000, '2026-11-09'), e('v', 'income', 50_000, '2026-11-10')])).toBe(1_050_000);
-    expect(isBeforeStart({ date: '2026-11-09' }, { startDate: '2026-11-10' })).toBe(true);
+    expect(walletBalance(w, [e('v', 'expense', 200_000, '2026-11-09'), e('v', 'income', 50_000, '2026-11-10')])).toBe(850_000);
+    expect(isBeforeStart({ date: '2026-11-09' }, { startDate: '2026-11-10' })).toBe(false);
     expect(isBeforeStart({ date: '2026-11-10' }, { startDate: '2026-11-10' })).toBe(false);
   });
 

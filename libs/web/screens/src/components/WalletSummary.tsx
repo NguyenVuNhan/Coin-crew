@@ -2,11 +2,9 @@ import type { JSX } from 'react';
 import { formatMoney, type WalletDetailView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Amount } from '@cc/web-ui/components/Amount';
-import { Icon } from '@cc/web-ui/components/icons';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Card } from '@cc/web-ui/components/ui/card';
-import { cn } from '@cc/web-ui/lib/utils';
-import { walletIconClass } from './WalletForm';
+import { WalletIcon } from './WalletIcon';
 
 /**
  * Wallet page header: the icon beside the balance at display size. With holdings, a
@@ -41,12 +39,7 @@ export function WalletSummary({
       className="fsl-wallet__summary rounded-xl bg-card border border-border shadow-none ring-0 w-full text-card-foreground p-0 gap-0 overflow-hidden"
     >
       <div className="p-5 flex items-center gap-3.5">
-        <div
-          aria-hidden="true"
-          className={cn('size-12 rounded-xl grid place-items-center shrink-0', walletIconClass(wallet.icon))}
-        >
-          <Icon name="wallet" size={22} />
-        </div>
+        <WalletIcon icon={wallet.icon} size="lg" />
         <div className="min-w-0 flex flex-col gap-1">
           {(wallet.isDefault || wallet.archived) && (
             <div className="flex items-center gap-1.5">

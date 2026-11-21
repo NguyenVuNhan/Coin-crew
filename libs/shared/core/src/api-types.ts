@@ -689,6 +689,7 @@ export interface WalletDetailView extends WalletView {
   sortOrder: number;
   archived: boolean;
   entryCount: number;
+  excludeFromReports?: boolean;
 }
 
 export interface WalletsResponse {
@@ -707,6 +708,7 @@ export interface CreateWalletInput {
   startDate?: string;
   startCostVnd?: number | null;
   icon?: string | null;
+  excludeFromReports?: boolean;
 }
 
 export interface UpdateWalletInput {
@@ -719,6 +721,7 @@ export interface UpdateWalletInput {
   isDefault?: true;
   kind?: WalletKind;
   currency?: CurrencyCode;
+  excludeFromReports?: boolean;
 }
 
 export interface CreateWalletResponse {

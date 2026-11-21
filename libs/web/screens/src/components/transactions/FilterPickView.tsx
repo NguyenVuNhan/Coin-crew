@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from 'react';
 import { foldForSearch } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -11,6 +11,7 @@ export interface FilterPickViewProps<T extends { id: string; name: string }> {
   items: T[];
   selectedId?: string;
   indentOf?(item: T): number;
+  leadingOf?(item: T): ReactNode;
   testIdPrefix: string;
   onPick(id: string | undefined): void;
   onBack(): void;
@@ -26,6 +27,7 @@ export function FilterPickView<T extends { id: string; name: string }>({
   items,
   selectedId,
   indentOf,
+  leadingOf,
   testIdPrefix,
   onPick,
   onBack,
@@ -108,7 +110,10 @@ export function FilterPickView<T extends { id: string; name: string }>({
                 selected ? 'font-semibold text-primary' : 'text-foreground',
               )}
             >
-              <span className="truncate">{item.name}</span>
+              <span className="flex min-w-0 items-center gap-2.5">
+                {leadingOf?.(item)}
+                <span className="truncate">{item.name}</span>
+              </span>
               {selected && <Icon name="check" size={16} className="shrink-0 text-primary" />}
             </button>
           );

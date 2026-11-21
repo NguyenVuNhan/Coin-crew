@@ -255,25 +255,33 @@ describe('holdings and buy/sell', () => {
     expect(findOversell(w, [sellNoTimeFirst, buyNoTimeFirst])).toBeNull();
   });
 
-  it('ignores buys and sells before startDate', () => {
+  it('includes buys and sells dated before startDate in holdings and oversell checks', () => {
     const w = wallet({
       id: 'w-vnd',
       currency: 'VND',
       startAmount: 1_000_000_000,
       startDate: '2026-11-10',
     });
-    const entries: CalcEntry[] = [
-      entry('w-vnd', 'buy', 500_000_000, '2026-11-01', {
+    const buy = entry('w-vnd', 'buy', 500_000_000, '2026-11-01', {
+      assetId: 'btc',
+      quantity: 100_000_000,
+    });
+    const oversell = entry('w-vnd', 'sell', 500_000_000, '2026-11-02', {
+      assetId: 'btc',
+      quantity: 200_000_000,
+    });
+    expect(walletHoldings(w, [buy])).toEqual([
+      {
         assetId: 'btc',
         quantity: 100_000_000,
-      }),
-      entry('w-vnd', 'sell', 500_000_000, '2026-11-02', {
-        assetId: 'btc',
-        quantity: 200_000_000,
-      }),
-    ];
-    expect(walletHoldings(w, entries)).toEqual([]);
-    expect(findOversell(w, entries)).toBeNull();
+        cost: 500_000_000,
+        costVnd: 500_000_000,
+      },
+    ]);
+    expect(findOversell(w, [buy, oversell])).toEqual({
+      assetId: 'btc',
+      date: '2026-11-02',
+    });
   });
 
   it('skips archived investment wallet holdings in vndTotal', () => {

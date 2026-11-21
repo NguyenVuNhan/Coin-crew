@@ -498,6 +498,23 @@ export const personalWalletSettings = sqliteTable('personal_wallet_settings', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const personalWalletOptions = sqliteTable(
+  'personal_wallet_options',
+  {
+    walletId: text('wallet_id')
+      .primaryKey()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    excludeFromReports: integer('exclude_from_reports').notNull().default(0),
+    enableNotification: integer('enable_notification').notNull().default(0),
+    linkedBankCode: text('linked_bank_code'),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('personal_wallet_options_user_id_idx').on(t.userId)],
+);
+
 export const personalCategories = sqliteTable(
   'personal_categories',
   {

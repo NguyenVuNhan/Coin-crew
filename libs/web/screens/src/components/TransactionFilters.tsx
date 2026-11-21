@@ -13,6 +13,7 @@ import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { cn } from '@cc/web-ui/lib/utils';
 import { FilterPickView } from './transactions/FilterPickView';
+import { WalletIcon } from './WalletIcon';
 
 export type TransactionFilterValues = Omit<ListQuery, 'month'>;
 
@@ -152,6 +153,7 @@ export function TransactionFilters({
           allLabel={t('transactions.allWallets')}
           items={activeWallets}
           selectedId={draft.walletId}
+          leadingOf={(w) => <WalletIcon icon={w.icon} size="xs" />}
           testIdPrefix="tx-filter-wallet"
           onPick={(id) => {
             setDraft((prev) => ({ ...prev, walletId: id }));
