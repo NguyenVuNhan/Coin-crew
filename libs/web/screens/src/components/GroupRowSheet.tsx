@@ -8,6 +8,7 @@ import {
   type GroupSettingsView,
 } from '@cc/core';
 import { useLang, useT, type Lang } from '@cc/web-i18n';
+import { useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import {
   useCategories,
   useGroupSettings,
@@ -19,6 +20,7 @@ import {
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Modal } from '@cc/web-ui/components/Modal';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { Switch } from '@cc/web-ui/components/ui/switch';
@@ -28,6 +30,7 @@ import { CategoryPicker } from './CategoryPicker';
 import { categoryIconName } from './categoryIcon';
 import { formatEntryDayLabel } from './EntryDateRow';
 import { TagInput } from './TagInput';
+import { showUndo } from './UndoSnackbarHost';
 
 export interface GroupRowSheetProps {
   row: GroupRow | null;
@@ -143,10 +146,13 @@ export function GroupRowSheet({
   const tagsQuery = useTags({ enabled: open });
   const groupSettingsQuery = useGroupSettings({ enabled: open });
   const updateLink = useUpdateGroupLink();
+  const quickShare = useSaveQuickShare();
 
   const [linkState, setLinkState] = useState<GroupLinkView>(() => initialLink(row));
   const [expanded, setExpanded] = useState<ExpandedField>(null);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const rowRootId = row?.rootId ?? null;
   const rowWalletId = row?.link?.walletId ?? null;
@@ -167,6 +173,7 @@ export function GroupRowSheet({
       savedSinceOpenRef.current = false;
       setExpanded(null);
       setSaveError(null);
+      setConfirmDeleteOpen(false);
     } else if (savedSinceOpenRef.current) {
       // A list reload started by an earlier save can land after a later one: the sheet's own state, set from
       // each save's answer, is newer, so the reload must not overwrite it or close the open field.
@@ -280,6 +287,27 @@ export function GroupRowSheet({
 
   const handleExcludeChange = (excludeFromReports: boolean) => {
     saveField({ excludeFromReports }, { excludeFromReports });
+  };
+
+  const handleDelete = async () => {
+    if (!row || !isDirectExpense || deleting) return;
+    setDeleting(true);
+    setSaveError(null);
+    try {
+      await quickShare.deleteExpense({ tripId: row.tripId, expenseId: row.id });
+      setConfirmDeleteOpen(false);
+      onClose();
+      showUndo({
+        message: t('transactions.deleted'),
+        actionLabel: t('common.close'),
+        onAction: () => {},
+      });
+    } catch (err) {
+      setConfirmDeleteOpen(false);
+      setSaveError(err);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const sheetTitle = !row
@@ -487,16 +515,71 @@ export function GroupRowSheet({
 
           {saveError !== null && <InlineError error={saveError} />}
 
-          <Button
-            variant="secondary"
-            block
-            href={openInGroupHref}
-            onClick={onClose}
-            data-testid="group-row-open-in-group"
-            className="mt-1"
-          >
-            {isDirectExpense ? t('transactions.edit') : t('groupRow.openInGroup')}
-          </Button>
+          {isDirectExpense ? (
+            <div className="flex items-center gap-2 pt-1">
+              <Button
+                variant="secondary"
+                href={openInGroupHref}
+                onClick={onClose}
+                data-testid="group-row-open-in-group"
+                className="flex-1"
+              >
+                {t('transactions.edit')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                data-testid="group-row-delete"
+                onClick={() => setConfirmDeleteOpen(true)}
+                className="flex-1 text-danger hover:text-danger hover:bg-danger-soft"
+              >
+                {t('transactions.delete')}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              block
+              href={openInGroupHref}
+              onClick={onClose}
+              data-testid="group-row-open-in-group"
+              className="mt-1"
+            >
+              {t('groupRow.openInGroup')}
+            </Button>
+          )}
+
+          {isDirectExpense && (
+            <Modal
+              open={confirmDeleteOpen}
+              onClose={() => setConfirmDeleteOpen(false)}
+              title={t('transactions.deleteConfirmTitle')}
+            >
+              <div className="flex flex-col gap-4">
+                <p className="m-0 text-sm text-muted-foreground">
+                  {t('transactions.deleteConfirmBody')}
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirmDeleteOpen(false)}
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    data-testid="group-row-delete-confirm"
+                    loading={deleting}
+                    onClick={() => void handleDelete()}
+                  >
+                    {t('transactions.delete')}
+                  </Button>
+                </div>
+              </div>
+            </Modal>
+          )}
         </div>
       )}
     </Sheet>
