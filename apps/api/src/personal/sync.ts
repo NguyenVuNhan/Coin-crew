@@ -89,7 +89,7 @@ export function syncRoutes(): Hono<AppBindings> {
     const isReset = since === undefined || epochParam !== serverEpoch || since < state.purgedVersion;
     const isFirstPage = cursorV === undefined && cursorId === undefined;
 
-    const ledger = await findLedger(db, user.id);
+    const ledger = wantGroups ? null : await findLedger(db, user.id);
     let ledgerTripVersion = 0;
     if (ledger) {
       const tripRow = await db
@@ -135,7 +135,7 @@ export function syncRoutes(): Hono<AppBindings> {
     if (
       !isReset &&
       since === state.version &&
-      Number(ledgerVersion) === ledgerTripVersion &&
+      (wantGroups || Number(ledgerVersion) === ledgerTripVersion) &&
       isFirstPage &&
       (!wantGroups || groupsKey === currentGroupsKey)
     ) {
@@ -260,7 +260,7 @@ export function syncRoutes(): Hono<AppBindings> {
     }
 
     let ledgerField: { version: number; rows: SyncLedgerRow[] } | null = null;
-    if (isFirstPage && (isReset || Number(ledgerVersion) !== ledgerTripVersion)) {
+    if (!wantGroups && isFirstPage && (isReset || Number(ledgerVersion) !== ledgerTripVersion)) {
       ledgerField = {
         version: ledgerTripVersion,
         rows: ledger ? await loadLedgerRows(db, ledger) : [],

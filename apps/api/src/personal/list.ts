@@ -286,6 +286,7 @@ export function listRoutes(): Hono<AppBindings> {
     }
 
     const includePersonRows =
+      !showGroups &&
       !categoryId &&
       !assetId &&
       !tagId &&
@@ -327,16 +328,9 @@ export function listRoutes(): Hono<AppBindings> {
       ? loanPaybacks(await loadGroupRows(db, user.id))
       : new Map<string, number>();
 
-    const directExpenseById = new Map<string, GroupRow>();
-    for (const r of allGroupRows) {
-      if (r.isDirect && r.source === 'expense') {
-        directExpenseById.set(r.id, r);
-      }
-    }
-
     let groupRows: GroupRow[] = [];
     if (!assetId && (type === undefined || type === 'group')) {
-      groupRows = allGroupRows.filter((r) => !(r.isDirect && r.source === 'expense'));
+      groupRows = allGroupRows;
       if (tripId) {
         groupRows = groupRows.filter((r) => r.tripId === tripId);
       }
@@ -371,23 +365,7 @@ export function listRoutes(): Hono<AppBindings> {
       }
     }
 
-    const countedRows: CountedRow[] = [];
-    for (const row of filteredRows) {
-      if (row.kind === 'person') {
-        const directRow = directExpenseById.get(row.id);
-        if (directRow && directRow.link !== null) {
-          const eff = groupRowEffect(directRow, groupSettings);
-          if (eff.spending > 0) {
-            countedRows.push({ currency: 'VND', signedAmount: -eff.spending, counted: true });
-          }
-          if (eff.income > 0) {
-            countedRows.push({ currency: 'VND', signedAmount: eff.income, counted: true });
-          }
-          continue;
-        }
-      }
-      countedRows.push(toCountedRow(row));
-    }
+    const countedRows: CountedRow[] = filteredRows.map(toCountedRow);
 
     for (const row of groupRows) {
       const eff = groupRowEffect(row, groupSettings, paybacks.get(row.id));

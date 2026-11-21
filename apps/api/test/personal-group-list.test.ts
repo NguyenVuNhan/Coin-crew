@@ -234,14 +234,12 @@ describe('personal transaction list with group rows', () => {
     expect(res.status).toBe(200);
     const body = await json<ListResponse>(res);
 
-    // Direct-group expense stays as PersonRow in rows; personal entry is in rows
-    expect(body.rows.map((r) => (r.kind === 'entry' ? r.entry.id : r.id))).toEqual([
-      'e-direct',
-      entry.id,
-    ]);
+    // Part 2 (owner bug report 2026-11-21): with groups=show the direct-group expense comes as a group row, not a PersonRow
+    expect(body.rows.map((r) => (r.kind === 'entry' ? r.entry.id : r.id))).toEqual([entry.id]);
+    expect(body.groupRows?.find((r) => r.id === 'e-direct')?.isDirect).toBe(true);
 
-    // Group rows are newest first, exclude direct-group expense and out-of-month row
-    expect(body.groupRows?.map((r) => r.id)).toEqual([
+    // Group rows are newest first and exclude the out-of-month row
+    expect(body.groupRows?.filter((r) => r.id !== 'e-direct').map((r) => r.id)).toEqual([
       'pay-group',
       'e-i-paid',
       'inc-fund',
@@ -637,8 +635,9 @@ describe('personal transaction list with group rows', () => {
     expect(res.status).toBe(200);
     const body = await json<ListResponse>(res);
 
-    expect(body.rows.map((r) => (r.kind === 'entry' ? r.entry.id : r.id))).toEqual(['e-loan']);
-    expect(body.groupRows?.map((r) => r.id)).toEqual(['pay-repay']);
+    // Part 2: the direct-group loan comes as a group row with groups=show
+    expect(body.rows).toEqual([]);
+    expect(body.groupRows?.map((r) => r.id).sort()).toEqual(['e-loan', 'pay-repay']);
     expect(body.totals).toEqual([{ currency: 'VND', spent: 50_000, income: 50_000 }]);
   });
 });
