@@ -10,6 +10,7 @@ import {
   isLotAsset,
   parseQuantity,
   quantityInputDecimals,
+  quickExpenseDescription,
   type AssetView,
   type CurrencyCode,
   type EntryInput,
@@ -22,7 +23,9 @@ import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
 import { useIsMousePointer } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
 import { ApiClientError } from '@cc/web-data-access/client';
+import { useTripView } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
+import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -62,6 +65,11 @@ import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypad
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
 import { showUndo } from '../components/UndoSnackbarHost';
+import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
+import { PeopleChips } from '../components/quickShare/PeopleChips';
+import { SplitFold } from '../components/quickShare/SplitFold';
+import { useCategoryGuess } from '../components/quickShare/useCategoryGuess';
+import { entriesForSave, useQuickSplit } from '../components/quickShare/useQuickSplit';
 import { useBack } from '../lib/navHistory';
 import { QuickExpenseEmbed } from './ExpenseForm';
 
@@ -158,6 +166,10 @@ export function EntryPage(): JSX.Element {
   const queryClient = useQueryClient();
   const { goBack } = useBack('/trips');
   const { ledger, isLoading: ledgerLoading } = useLedger({ enabled: !isEdit });
+  const { view: directView } = useTripView(ledger?.tripId ?? '', 20_000, {
+    stopAfterMs: 15 * 60_000,
+  });
+  const quickShare = useSaveQuickShare();
 
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
@@ -259,6 +271,7 @@ export function EntryPage(): JSX.Element {
   const [walletId, setWalletId] = useState('');
   const [otherWalletId, setOtherWalletId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryPicked, setCategoryPicked] = useState(false);
   const [assetId, setAssetId] = useState<string | null>(null);
   const [pickedAsset, setPickedAsset] = useState<AssetView | null>(null);
   const [quantityText, setQuantityText] = useState('');
@@ -294,6 +307,7 @@ export function EntryPage(): JSX.Element {
   const categoryGridRef = useRef<HTMLDivElement>(null);
   const categoryRingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const lastQuickShareMetaRef = useRef<{ walletId: string; savedMessage: string } | null>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
@@ -616,6 +630,66 @@ export function EntryPage(): JSX.Element {
       : primaryMinor
     : null;
 
+  const canShareChi =
+    !isEdit &&
+    activeTab === 'expense' &&
+    !isTransferMode &&
+    !isTradeMode &&
+    selectedWallet?.currency === 'VND' &&
+    Boolean(ledger && directView);
+
+  const quickSplit = useQuickSplit({
+    view: directView ?? null,
+    me: ledger?.ownerPid ?? null,
+    kind: 'shared',
+    amount: primaryMinor,
+  });
+
+  const quickSplitNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of quickSplit.people) {
+      map.set(p.id, p.id === ledger?.ownerPid ? t('entry.me') : p.name);
+    }
+    return map;
+  }, [quickSplit.people, ledger?.ownerPid, t]);
+
+  const chosenPersonNames = useMemo(() => {
+    if (!canShareChi || quickSplit.chosen.size === 0) return [];
+    const byId = new Map(quickSplit.people.map((p) => [p.id, p.name]));
+    const names: string[] = [];
+    for (const pid of quickSplit.chosen) {
+      if (pid === ledger?.ownerPid) continue;
+      const name = byId.get(pid);
+      if (name) names.push(name);
+    }
+    return names;
+  }, [canShareChi, quickSplit.chosen, quickSplit.people, ledger?.ownerPid]);
+
+  const guessEnabled =
+    !isEdit &&
+    activeTab === 'expense' &&
+    !isTransferMode &&
+    !isTradeMode &&
+    !categoryPicked;
+
+  const rawGuessedCategoryId = useCategoryGuess({
+    personNames: chosenPersonNames,
+    amount: primaryMinor,
+    enabled: guessEnabled,
+  });
+
+  const guessedCategoryId = useMemo(() => {
+    if (!rawGuessedCategoryId) return null;
+    const cats = categoriesQuery.data?.categories;
+    if (!cats) return rawGuessedCategoryId;
+    return cats.some((c) => c.id === rawGuessedCategoryId && c.type === 'expense' && !c.hidden)
+      ? rawGuessedCategoryId
+      : null;
+  }, [rawGuessedCategoryId, categoriesQuery.data?.categories]);
+
+  const effectiveCategoryId = categoryId ?? guessedCategoryId;
+  const activeGuessedId = !categoryPicked && !categoryId ? guessedCategoryId : null;
+
   useEffect(() => {
     if (
       isMousePointer ||
@@ -732,6 +806,7 @@ export function EntryPage(): JSX.Element {
       setIsTradeMode(false);
       setActiveTransferField('primary');
       setCategoryId(null);
+      setCategoryPicked(false);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -792,6 +867,7 @@ export function EntryPage(): JSX.Element {
       setIsTransferMode(true);
       setIsTradeMode(false);
       setCategoryId(null);
+      setCategoryPicked(false);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -811,6 +887,7 @@ export function EntryPage(): JSX.Element {
       setIsTradeMode(false);
       setActiveTransferField('primary');
       setCategoryId(cid);
+      setCategoryPicked(true);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -829,6 +906,7 @@ export function EntryPage(): JSX.Element {
       setIsTransferMode(false);
       setActiveTransferField('primary');
       setCategoryId(null);
+      setCategoryPicked(false);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -925,7 +1003,30 @@ export function EntryPage(): JSX.Element {
     (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
   };
 
-  const isSaving = createEntry.isPending || updateEntry.isPending;
+  const isSaving = createEntry.isPending || updateEntry.isPending || quickShare.isSaving;
+
+  const handleRetryQuickShareLink = async () => {
+    if (isSaving || savingRef.current) return;
+    savingRef.current = true;
+    setValidationError(null);
+    try {
+      await quickShare.retryLink();
+      const lastSaved = lastQuickShareMetaRef.current;
+      if (lastSaved) {
+        writeLastWallet(lastSaved.walletId);
+        showUndo({
+          message: lastSaved.savedMessage,
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
+      }
+      goBack();
+    } catch (err) {
+      setValidationError(err);
+    } finally {
+      savingRef.current = false;
+    }
+  };
 
   const handleSave = async (
     doneMinor: number,
@@ -1091,7 +1192,7 @@ export function EntryPage(): JSX.Element {
       );
     } else {
       if (!selectedWallet) return;
-      if (!categoryId) {
+      if (!effectiveCategoryId) {
         triggerCategoryError();
         return;
       }
@@ -1115,20 +1216,8 @@ export function EntryPage(): JSX.Element {
         return;
       }
 
-      input = {
-        type: entryType,
-        walletId: selectedWallet.id,
-        amount: amountToSave,
-        categoryId,
-        date,
-        time,
-        note: note.trim() ? note.trim() : null,
-        tags: isEdit ? tags : [],
-        excludeFromReports,
-      };
-      lastUsedWalletId = selectedWallet.id;
       const categoryName =
-        categoriesQuery.data?.categories.find((c) => c.id === categoryId)?.name ?? '';
+        categoriesQuery.data?.categories.find((c) => c.id === effectiveCategoryId)?.name ?? '';
       savedMessage = t(
         entryType === 'expense' ? 'personalEntry.savedExpense' : 'personalEntry.savedIncome',
         {
@@ -1136,6 +1225,58 @@ export function EntryPage(): JSX.Element {
           category: categoryName,
         },
       );
+
+      if (canShareChi && quickSplit.chosen.size > 0 && ledger) {
+        if (quickSplit.result && !quickSplit.result.ok) return;
+        const description = quickExpenseDescription({ note, fallback: categoryName });
+        lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
+        savingRef.current = true;
+        try {
+          await quickShare.save({
+            tripId: ledger.tripId,
+            expense: {
+              description,
+              amount: amountToSave,
+              spentOn: date,
+              payerId: quickSplit.payerId,
+              mode: quickSplit.mode,
+              entries: entriesForSave(quickSplit),
+            },
+            link: {
+              intent: 'shared',
+              categoryId: effectiveCategoryId,
+              walletId: selectedWallet.id,
+              tagIds: tags,
+              excludeFromReports,
+            },
+          });
+          writeLastWallet(selectedWallet.id);
+          showUndo({
+            message: savedMessage,
+            actionLabel: t('common.close'),
+            onAction: () => {},
+          });
+          goBack();
+        } catch (err) {
+          setValidationError(err);
+        } finally {
+          savingRef.current = false;
+        }
+        return;
+      }
+
+      input = {
+        type: entryType,
+        walletId: selectedWallet.id,
+        amount: amountToSave,
+        categoryId: effectiveCategoryId,
+        date,
+        time,
+        note: note.trim() ? note.trim() : null,
+        tags: isEdit ? tags : [],
+        excludeFromReports,
+      };
+      lastUsedWalletId = selectedWallet.id;
     }
 
     savingRef.current = true;
@@ -1188,7 +1329,8 @@ export function EntryPage(): JSX.Element {
     activeTab !== 'loan-debt' &&
     (primaryExpr.trim().length > 0 ||
       (isDiffCurrencyTransfer && secondaryExpr.trim().length > 0) ||
-      (isTradeMode && quantityText.trim().length > 0));
+      (isTradeMode && quantityText.trim().length > 0) ||
+      quickSplit.isDirty);
 
   const handleBack = () => {
     if (hasUnsavedAmount) {
@@ -1423,7 +1565,14 @@ export function EntryPage(): JSX.Element {
               </div>
             )}
             {validationError !== null && (
-              <InlineError error={validationError} />
+              <InlineError
+                error={validationError}
+                onRetry={
+                  validationError instanceof QuickShareLinkError
+                    ? () => void handleRetryQuickShareLink()
+                    : undefined
+                }
+              />
             )}
 
             {/* Display amount */}
@@ -1633,7 +1782,8 @@ export function EntryPage(): JSX.Element {
                   categories={categoriesQuery.data?.categories ?? []}
                   recentIds={categoriesQuery.data?.recentIds ?? []}
                   walletKind={selectedWallet?.kind}
-                  value={categoryId}
+                  value={effectiveCategoryId}
+                  guessedId={activeGuessedId}
                   onChange={handleSelectCategory}
                   transferSelected={isTransferMode}
                   onSelectTransfer={handleSelectTransfer}
@@ -1695,7 +1845,7 @@ export function EntryPage(): JSX.Element {
                   ) : (
                     (() => {
                       const selectedCategory = (categoriesQuery.data?.categories ?? []).find(
-                        (c) => c.id === categoryId,
+                        (c) => c.id === effectiveCategoryId,
                       );
                       return (
                         <>
@@ -1722,6 +1872,27 @@ export function EntryPage(): JSX.Element {
                 </span>
               </FoldLine>
             ) : null}
+
+            {canShareChi && (isMousePointer || !fold.isOpen('amount')) && (
+              <>
+                <PeopleChips
+                  split={quickSplit}
+                  label={t('entry.shareWith')}
+                  me={ledger?.ownerPid ?? null}
+                />
+                <SplitFold
+                  split={quickSplit}
+                  amount={primaryMinor}
+                  names={quickSplitNames}
+                />
+                <OutcomeSentence
+                  split={quickSplit}
+                  kind="shared"
+                  names={quickSplitNames}
+                  onFlip={() => quickSplit.setFlipped(!quickSplit.flipped)}
+                />
+              </>
+            )}
 
             {/* Compact rows and details fold */}
             {(isMousePointer || !fold.isOpen('category')) &&
@@ -2027,11 +2198,13 @@ export function EntryPage(): JSX.Element {
                         : primaryMinor === null
                           ? t('loanDebt.enterAmount')
                           : null;
+                const splitInvalid =
+                  canShareChi && quickSplit.chosen.size > 0 && quickSplit.result?.ok === false;
                 const saveDisabled = isTransferMode
                   ? transferDisabledReason !== null || isSaving || hasArchivedWallet
                   : isTradeMode
                     ? tradeDisabledReason !== null || isSaving || hasArchivedWallet
-                    : activeMinor === null || isSaving || hasArchivedWallet;
+                    : activeMinor === null || isSaving || hasArchivedWallet || splitInvalid;
                 const saveWhat = isMousePointer
                   ? null
                   : isTransferMode
@@ -2049,8 +2222,9 @@ export function EntryPage(): JSX.Element {
                             { asset: selectedAsset.name },
                           )
                         : null
-                      : (categoriesQuery.data?.categories ?? []).find((c) => c.id === categoryId)
-                          ?.name ?? null;
+                      : (categoriesQuery.data?.categories ?? []).find(
+                          (c) => c.id === effectiveCategoryId,
+                        )?.name ?? null;
                 const saveLabel =
                   !isMousePointer && activeMinor !== null && saveWhat
                     ? t('personalEntry.saveSummary', {

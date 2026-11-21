@@ -25,6 +25,8 @@ export interface CategoryPickerProps {
   walletKind?: WalletKind;
   /** Enable fold view-transition names and tile stagger animation (touch mode). */
   transitionEnabled?: boolean;
+  /** Category id currently pre-selected by the local guess; drawn with a dashed ring. */
+  guessedId?: string | null;
 }
 
 /** Tags a tapped tile's icon and label right before a View Transition snapshot is captured. */
@@ -64,6 +66,7 @@ export function CategoryPicker({
   gridRef,
   walletKind,
   transitionEnabled = false,
+  guessedId = null,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -227,11 +230,13 @@ export function CategoryPicker({
         )}
         {tiles.map((cat, idx) => {
           const selected = !transferSelected && !tradeSelected && value === cat.id;
+          const isGuess = selected && guessedId === cat.id;
           return (
             <button
               key={cat.id}
               type="button"
               data-testid={`category-tile-${cat.id}`}
+              data-guess={isGuess ? 'true' : undefined}
               aria-pressed={selected}
               aria-disabled={disableNonTrade || undefined}
               disabled={disableNonTrade}
@@ -253,7 +258,7 @@ export function CategoryPicker({
               <span
                 className={cn(
                   'size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center transition-shadow',
-                  selected && 'ring-2 ring-primary',
+                  selected && (isGuess ? 'border-2 border-dashed border-primary' : 'ring-2 ring-primary'),
                 )}
               >
                 <Icon name={categoryIconName(cat.icon, type)} size={20} />
