@@ -498,6 +498,23 @@ export const personalWalletSettings = sqliteTable('personal_wallet_settings', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const personalWalletOptions = sqliteTable(
+  'personal_wallet_options',
+  {
+    walletId: text('wallet_id')
+      .primaryKey()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    excludeFromReports: integer('exclude_from_reports').notNull().default(0),
+    enableNotification: integer('enable_notification').notNull().default(0),
+    linkedBankCode: text('linked_bank_code'),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('personal_wallet_options_user_id_idx').on(t.userId)],
+);
+
 export const personalCategories = sqliteTable(
   'personal_categories',
   {
@@ -676,6 +693,48 @@ export const personalAssets = sqliteTable(
     index('personal_assets_user_sort_idx').on(t.userId, t.sortOrder),
     uniqueIndex('personal_assets_user_name_uq').on(t.userId, sql`lower(${t.name})`),
     check('personal_assets_decimals_check', sql`${t.decimals} BETWEEN 0 AND 8`),
+  ],
+);
+
+export const personalCategoryVisibility = sqliteTable(
+  'personal_category_visibility',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    categoryId: text('category_id')
+      .notNull()
+      .references(() => personalCategories.id, { onDelete: 'cascade' }),
+    visible: integer('visible').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.walletId, t.categoryId] }),
+    index('personal_cat_vis_user_idx').on(t.userId),
+    check('personal_cat_vis_visible_check', sql`${t.visible} IN (0, 1)`),
+  ],
+);
+
+export const personalAssetVisibility = sqliteTable(
+  'personal_asset_visibility',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    assetId: text('asset_id')
+      .notNull()
+      .references(() => personalAssets.id, { onDelete: 'cascade' }),
+    visible: integer('visible').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.walletId, t.assetId] }),
+    index('personal_asset_vis_user_idx').on(t.userId),
+    check('personal_asset_vis_visible_check', sql`${t.visible} IN (0, 1)`),
   ],
 );
 

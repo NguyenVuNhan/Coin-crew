@@ -19,18 +19,18 @@ export const STARTER_CATEGORIES: readonly StarterCategory[] = [
   { key: 'bills', parentKey: null, type: 'expense', name: 'Hóa đơn', icon: 'receipt', sortOrder: 3 },
   { key: 'health', parentKey: null, type: 'expense', name: 'Sức khỏe', icon: 'heart-pulse', sortOrder: 4 },
   { key: 'invest', parentKey: null, type: 'expense', name: 'Đầu tư', icon: 'trending-up', sortOrder: 5 },
-  { key: 'tax', parentKey: null, type: 'expense', name: 'Thuế', icon: 'landmark', sortOrder: 6 },
-  { key: 'fee', parentKey: null, type: 'expense', name: 'Phí', icon: 'badge-percent', sortOrder: 7 },
+  { key: 'fees', parentKey: null, type: 'expense', name: 'Phí & lệ phí', icon: 'receipt-text', sortOrder: 6 },
 
-  // Expense (Đầu tư sub-categories)
-  { key: 'invest-stock', parentKey: 'invest', type: 'expense', name: 'Cổ phiếu', icon: 'candlestick-chart', sortOrder: 0 },
-  { key: 'invest-crypto', parentKey: 'invest', type: 'expense', name: 'Crypto', icon: 'coins', sortOrder: 1 },
-  { key: 'invest-etf', parentKey: 'invest', type: 'expense', name: 'ETF', icon: 'pie-chart', sortOrder: 2 },
-  { key: 'invest-gold', parentKey: 'invest', type: 'expense', name: 'Vàng', icon: 'gem', sortOrder: 3 },
+  // Expense (Phí & lệ phí sub-categories)
+  { key: 'tax', parentKey: 'fees', type: 'expense', name: 'Thuế', icon: 'landmark', sortOrder: 0 },
+  { key: 'fee', parentKey: 'fees', type: 'expense', name: 'Phí', icon: 'badge-percent', sortOrder: 1 },
 
   // Income (top-level)
   { key: 'salary', parentKey: null, type: 'income', name: 'Lương', icon: 'wallet', sortOrder: 0 },
   { key: 'interest', parentKey: null, type: 'income', name: 'Lãi', icon: 'piggy-bank', sortOrder: 1 },
   { key: 'dividend', parentKey: null, type: 'income', name: 'Cổ tức', icon: 'coins', sortOrder: 2 },
   { key: 'other-income', parentKey: null, type: 'income', name: 'Thu nhập khác', icon: 'gift', sortOrder: 3 },
+
+  // Income (Thu nhập khác sub-categories)
+  { key: 'other-income-reward', parentKey: 'other-income', type: 'income', name: 'Thưởng / Staking', icon: 'gift', sortOrder: 0 },
 ];

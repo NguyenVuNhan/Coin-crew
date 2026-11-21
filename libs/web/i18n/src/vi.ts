@@ -1336,7 +1336,20 @@ export const vi: Record<MessageKey, string> = {
   'walletForm.startDate': 'Ngày bắt đầu', // REVIEW
   'walletForm.startCostVnd': 'Giá trị quy đổi (VND)', // REVIEW
   'walletForm.startCostVndHint': 'Để trống nếu chưa biết tỷ giá.', // REVIEW
-  'walletForm.icon': 'Màu biểu tượng', // REVIEW
+  'walletForm.icon': 'Biểu tượng', // REVIEW
+  'walletForm.changeIcon': 'Đổi biểu tượng ví', // REVIEW
+  'walletForm.pickCurrency': 'Chọn tiền tệ', // REVIEW
+  'walletForm.searchCurrency': 'Tìm mã hoặc tên tiền tệ...', // REVIEW
+  'walletForm.popularCurrencies': 'Phổ biến', // REVIEW
+  'walletForm.allCurrencies': 'Tất cả tiền tệ', // REVIEW
+  'walletForm.noCurrencyMatch': 'Không tìm thấy tiền tệ phù hợp', // REVIEW
+  'walletForm.pickIcon': 'Chọn biểu tượng', // REVIEW
+  'walletForm.searchIcon': 'Tìm biểu tượng hoặc nhóm...', // REVIEW
+  'walletForm.noIconMatch': 'Không tìm thấy biểu tượng phù hợp', // REVIEW
+  'walletForm.iconTone': 'Màu nền biểu tượng', // REVIEW
+  'walletForm.options': 'Tùy chọn', // REVIEW
+  'walletForm.excludeFromReports': 'Không tính vào báo cáo tổng', // REVIEW
+  'walletForm.excludeFromReportsHint': 'Bỏ qua giao dịch của ví này ở tổng quan và báo cáo', // REVIEW
   'walletForm.save': 'Lưu', // REVIEW
   'walletForm.lockedHint': 'Không thể đổi loại ví và tiền tệ khi đã có giao dịch.', // REVIEW
   'addMenu.expense': 'Khoản chi', // REVIEW
@@ -1641,4 +1654,18 @@ export const vi: Record<MessageKey, string> = {
   'wallet.cashRow': 'Tiền mặt', // REVIEW
   'wallet.balanceLabel': 'Số dư', // REVIEW
   'wallet.totalInclAssets': 'Tổng gồm tài sản', // REVIEW
+  'visibility.walletSheetTitle': 'Hiện trong ví này', // REVIEW
+  'visibility.categories': 'Danh mục', // REVIEW
+  'visibility.expense': 'Chi', // REVIEW
+  'visibility.income': 'Thu', // REVIEW
+  'visibility.assets': 'Tài sản', // REVIEW
+  'visibility.itemRowLabel': 'Hiện ở ví', // REVIEW
+  'visibility.allWallets': 'Tất cả ví', // REVIEW
+  'visibility.onlyWallet': 'Chỉ {wallet}', // REVIEW
+  'visibility.nWallets': '{n} ví', // REVIEW
+  'visibility.noWallets': 'Không ví nào', // REVIEW
+  'visibility.saveFailed': 'Chưa lưu được thay đổi. Hãy thử lại.', // REVIEW
+  'visibility.expand': 'Mở rộng {name}', // REVIEW
+  'visibility.collapse': 'Thu gọn {name}', // REVIEW
+  'visibility.save': 'Lưu', // REVIEW
 };

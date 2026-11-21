@@ -23,3 +23,4 @@ export * from './assets';
 export * from './listFilter';
 export * from './copyRows';
 export * from './groupShares';
+export * from './visibility';

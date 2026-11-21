@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { categoryIconName, filterCategoryIcons } from '../components/categoryIcon';
+import { ItemWalletsRow } from '../components/visibility/ItemWalletsRow';
 
 interface CategoryFormSheetProps {
   open: boolean;
@@ -146,6 +147,8 @@ function CategoryFormSheet({
             <Icon name="chevronRight" size={18} className="text-muted-foreground shrink-0" />
           </button>
         </div>
+
+        {editing && <ItemWalletsRow kind="category" item={editing} />}
 
         {error && <InlineError error={error} />}
 
