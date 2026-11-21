@@ -30,6 +30,8 @@ export type Env = {
   VAPID_PRIVATE_KEY?: string;
   /** `mailto:` address or the app origin. */
   VAPID_SUBJECT?: string;
+  /** Server-wide saved-copy epoch (#133); raise it to make every browser download again. Default "1". */
+  PERSONAL_SYNC_EPOCH?: string;
   TEST_MIGRATIONS?: D1Migration[];
 };
 

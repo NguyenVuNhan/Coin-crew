@@ -3,6 +3,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import { personalAssets, personalTransactions } from '@cc/api-db/schema';
+import { commitPersonalWrite } from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
@@ -328,10 +329,10 @@ export function assetRoutes(): Hono<AppBindings> {
       }
 
       const now = nowIso();
-      await db.batch([
+      await commitPersonalWrite(db, user.id, (v) => [
         db
           .update(personalTransactions)
-          .set({ assetId: moveTo, updatedAt: now })
+          .set({ assetId: moveTo, updatedAt: now, syncVersion: v })
           .where(and(eq(personalTransactions.assetId, id), eq(personalTransactions.userId, user.id))),
         db
           .delete(personalAssets)

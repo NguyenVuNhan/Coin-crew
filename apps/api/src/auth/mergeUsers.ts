@@ -4,6 +4,7 @@ import { and, asc, eq, exists, inArray, ne, notExists, or, sql } from 'drizzle-o
 import { alias } from 'drizzle-orm/sqlite-core';
 import type { ResolvedActor } from '@cc/api-auth/actor';
 import type { Db } from '@cc/api-db/client';
+import { bumpPersonalEpoch } from '@cc/api-db/personalSync';
 import {
   accountMergeRequests,
   activity,
@@ -185,7 +186,10 @@ export async function mergeUsers(
   const aNick = alias(nicknames, 'a_nick');
 
   const phase1: BatchItem<'sqlite'>[] = [
-    // 0. B's push devices first: their foreign key to `users` would block B's delete.
+    // 0. Bump personal sync epochs for both users before B is deleted (FK on users.id).
+    bumpPersonalEpoch(db, aId),
+    bumpPersonalEpoch(db, bId),
+    // 0b. B's push devices first: their foreign key to `users` would block B's delete.
     db.update(pushSubscriptions).set({ userId: aId }).where(eq(pushSubscriptions.userId, bId)),
     // 1. B first, so its identities free the unique indexes A takes next.
     db.delete(users).where(eq(users.id, bId)),

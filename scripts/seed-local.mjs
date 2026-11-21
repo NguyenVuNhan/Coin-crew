@@ -85,6 +85,9 @@ export function seedCounts(sqlitePath) {
       shares: count("SELECT count(*) c FROM transaction_shares WHERE transaction_id LIKE 'seed-%'"),
       person_links: count("SELECT count(*) c FROM person_links WHERE participant_id LIKE 'seed-%'"),
       users: count("SELECT count(*) c FROM users WHERE id LIKE 'seed-%'"),
+      ...(hasTable(db, 'personal_transactions')
+        ? { personal_entries: count("SELECT count(*) c FROM personal_transactions WHERE id LIKE 'seed-%'") }
+        : {}),
     };
   } finally {
     db.close();
@@ -378,8 +381,227 @@ export function buildAttendanceSeedSql(owners, now) {
   return out;
 }
 
+// Starter category keys (apps/api/src/personal/starterCategories.ts). The server creates them
+// lazily as `<userId>:<key>`; the seed creates the same rows so either side can go first.
+const STARTER_CATEGORIES = [
+  ['food', null, 'expense', 'Ăn uống', 'utensils', 0],
+  ['transport', null, 'expense', 'Di chuyển', 'bus', 1],
+  ['shopping', null, 'expense', 'Mua sắm', 'shopping-bag', 2],
+  ['bills', null, 'expense', 'Hóa đơn', 'receipt', 3],
+  ['health', null, 'expense', 'Sức khỏe', 'heart-pulse', 4],
+  ['invest', null, 'expense', 'Đầu tư', 'trending-up', 5],
+  ['tax', null, 'expense', 'Thuế', 'landmark', 6],
+  ['fee', null, 'expense', 'Phí', 'badge-percent', 7],
+  ['invest-stock', 'invest', 'expense', 'Cổ phiếu', 'candlestick-chart', 0],
+  ['invest-crypto', 'invest', 'expense', 'Crypto', 'coins', 1],
+  ['invest-etf', 'invest', 'expense', 'ETF', 'pie-chart', 2],
+  ['invest-gold', 'invest', 'expense', 'Vàng', 'gem', 3],
+  ['salary', null, 'income', 'Lương', 'wallet', 0],
+  ['interest', null, 'income', 'Lãi', 'piggy-bank', 1],
+  ['dividend', null, 'income', 'Cổ tức', 'coins', 2],
+  ['other-income', null, 'income', 'Thu nhập khác', 'gift', 3],
+];
+
+/** A raw SQL expression for `insert()` values (a sub-select), never user data. */
+const raw = (sql) => ({ raw: sql });
+
+function personalLit(v) {
+  return v && typeof v === 'object' && 'raw' in v ? v.raw : lit(v);
+}
+
+function personalInsert(table, row) {
+  const cols = Object.keys(row);
+  return `INSERT OR IGNORE INTO ${table} (${cols.join(', ')}) VALUES (${cols.map((c) => personalLit(row[c])).join(', ')});`;
+}
+
+/** Deterministic 0..1 numbers so a re-seed builds the same rows. */
+function rng(seedText) {
+  let a = [...seedText].reduce((h, ch) => (Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0), 2166136261);
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Pure: Sổ chi tiêu fixtures for /transactions search and date picks (#133 / PR #139), per owner.
+ * Turns the personal area on, adds 4 wallets (one archived), a custom sub-category, 6 tags,
+ * 3 assets and ~18 months of entries (with 3 empty months 8–10 months back and one entry 26
+ * months back), then bumps the owner's sync epoch so every browser copy downloads afresh.
+ */
+export function buildPersonalSeedSql(owners, now) {
+  const VN = 7 * 3600000;
+  const todayMs = Date.parse(now) + VN;
+  const dayStr = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const today = dayStr(todayMs);
+  const out = [];
+
+  for (const owner of owners) {
+    const o = ownerTag(owner.id);
+    const uid = owner.id;
+    const pid = (s) => `seed-${o}-p-${s}`;
+    const rand = rng(o);
+    const pick = (list) => list[Math.floor(rand() * list.length)];
+    const between = (lo, hi, stepK = 1000) => Math.round((lo + rand() * (hi - lo)) / stepK) * stepK;
+    const setup = new Date(todayMs - 800 * DAY).toISOString();
+    const nowIso = new Date(Date.parse(now)).toISOString();
+
+    out.push(`INSERT INTO user_personal_settings (user_id, enabled, updated_at) VALUES (${lit(uid)}, 1, ${lit(nowIso)}) ON CONFLICT(user_id) DO UPDATE SET enabled = 1, updated_at = excluded.updated_at;`);
+
+    // --- Categories: starters (same ids as the server makes) + one seeded sub-category.
+    const cat = (key) => `${uid}:${key}`;
+    for (const [key, parent, type, name, icon, sort] of STARTER_CATEGORIES) {
+      out.push(personalInsert('personal_categories', {
+        id: cat(key), user_id: uid, parent_id: parent ? cat(parent) : null, type, name, icon, hidden: 0,
+        sort_order: sort, created_at: setup, updated_at: setup,
+      }));
+    }
+    const coffeeCat = pid('cat-coffee');
+    out.push(personalInsert('personal_categories', {
+      id: coffeeCat, user_id: uid, parent_id: cat('food'), type: 'expense', name: 'Cà phê', icon: 'coffee',
+      hidden: 0, sort_order: 0, created_at: setup, updated_at: setup,
+    }));
+
+    // --- Wallets. The cash wallet becomes the default only when the owner has none.
+    const startDate = dayStr(todayMs - 800 * DAY);
+    const wallet = (slug, name, startAmount, kind, sort, extra = {}) => {
+      const wid = pid(`w-${slug}`);
+      out.push(personalInsert('personal_wallets', {
+        id: wid, user_id: uid, name, currency: 'VND', start_amount: startAmount, start_date: startDate,
+        is_default: 0, created_at: setup, updated_at: setup,
+      }));
+      out.push(personalInsert('personal_wallet_settings', {
+        wallet_id: wid, user_id: uid, kind, start_cost_vnd: null, icon: null, sort_order: sort,
+        archived_at: extra.archivedAt ?? null, updated_at: setup,
+      }));
+      return wid;
+    };
+    const cash = wallet('cash', 'Tiền mặt (seed)', 2000000, 'everyday', 100);
+    const bank = wallet('bank', 'Techcombank (seed)', 30000000, 'everyday', 101);
+    const invest = wallet('invest', 'Ví đầu tư (seed)', 0, 'investment', 102);
+    const momo = wallet('momo', 'MoMo cũ (seed)', 500000, 'everyday', 103, { archivedAt: new Date(todayMs - 330 * DAY).toISOString() });
+    out.push(`UPDATE personal_wallets SET is_default = 1 WHERE id = ${lit(cash)} AND NOT EXISTS (SELECT 1 FROM personal_wallets WHERE user_id = ${lit(uid)} AND is_default = 1);`);
+
+    // --- Tags and assets: linked by name, so an owner's own same-named tag/asset is reused.
+    for (const name of ['congtac', 'giadinh', 'dulich-dalat', 'Tết', 'sinhnhat', 'hoàn-tiền']) {
+      out.push(personalInsert('personal_tags', { id: pid(`tag-${normalizeName(name)}`), user_id: uid, name, created_at: setup }));
+    }
+    const assets = [['btc', 'BTC', 'BTC', 'Crypto', 8], ['fpt', 'FPT', 'cp', 'Cổ phiếu', 0], ['sjc', 'Vàng SJC', 'chỉ', 'Vàng', 1]];
+    assets.forEach(([slug, name, unit, group, decimals], i) => out.push(personalInsert('personal_assets', {
+      id: pid(`a-${slug}`), user_id: uid, name, unit, group_name: group, decimals, hidden: 0, sort_order: 100 + i,
+      created_at: setup, updated_at: setup,
+    })));
+    const assetRef = (name) => raw(`(SELECT id FROM personal_assets WHERE user_id = ${lit(uid)} AND lower(name) = lower(${lit(name)}))`);
+
+    // --- Entries.
+    let n = 0;
+    const entry = (date, type, walletId, amount, fields = {}) => {
+      if (date > today) return null;
+      const id = pid(`e${String(++n).padStart(4, '0')}`);
+      const time = fields.time ?? null;
+      const stamp = `${date}T${time ?? '12:00'}:00.000Z`;
+      out.push(personalInsert('personal_transactions', {
+        id, user_id: uid, wallet_id: walletId, type, amount, category_id: fields.category ?? null,
+        transfer_id: fields.transferId ?? null, asset_id: fields.asset ?? null, quantity: fields.quantity ?? null,
+        date, time, note: fields.note ?? null, exclude_from_reports: fields.exclude ? 1 : 0, source: 'manual',
+        external_ref: null, created_at: stamp, updated_at: stamp, sync_version: 0,
+      }));
+      for (const tag of fields.tags ?? []) {
+        out.push(`INSERT OR IGNORE INTO personal_transaction_tags (transaction_id, tag_id) SELECT ${lit(id)}, id FROM personal_tags WHERE user_id = ${lit(uid)} AND lower(name) = lower(${lit(tag)});`);
+      }
+      return id;
+    };
+    const transfer = (date, from, to, amount, note) => {
+      if (date > today) return;
+      const tid = pid(`x${String(n + 1).padStart(4, '0')}`);
+      entry(date, 'transfer_out', from, amount, { transferId: tid, note, exclude: true });
+      entry(date, 'transfer_in', to, amount, { transferId: tid, note, exclude: true });
+    };
+    const time = () => `${String(7 + Math.floor(rand() * 15)).padStart(2, '0')}:${String(Math.floor(rand() * 60)).padStart(2, '0')}`;
+
+    const coffees = ['Cà phê sữa đá', 'Cà phê muối', 'Bạc xỉu', 'Cà phê đen Highlands', null];
+    const meals = ['Phở bò', 'Bún chả Hà Nội', 'Cơm tấm sườn', 'Bánh mì', 'Bún bò Huế', 'Lẩu với bạn'];
+    const rides = ['Grab đi làm', 'Grab về nhà', 'Đổ xăng', 'Gửi xe'];
+    const shops = ['Shopee: áo khoác', 'Tiki: sách', 'Giày chạy bộ', 'Đồ gia dụng'];
+
+    const base = new Date(todayMs);
+    for (let back = 17; back >= 0; back--) {
+      if (back >= 8 && back <= 10) continue; // three empty months in a row
+      const y = base.getUTCFullYear();
+      const m = base.getUTCMonth() - back;
+      const first = Date.UTC(y, m, 1);
+      const daysIn = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+      const on = (d) => dayStr(first + (Math.min(d, daysIn) - 1) * DAY);
+      const label = `${new Date(first).getUTCMonth() + 1}/${new Date(first).getUTCFullYear()}`;
+      const isTet = new Date(first).getUTCMonth() === 1; // February
+
+      entry(on(1), 'expense', bank, 6500000, { category: cat('bills'), note: 'Tiền nhà', tags: ['giadinh'] });
+      entry(on(5), 'income', bank, 25000000, { category: cat('salary'), note: `Lương tháng ${label}`, time: '09:00' });
+      entry(on(10), 'expense', bank, between(500000, 1200000), { category: cat('bills'), note: 'Tiền điện', tags: ['giadinh'] });
+      entry(on(12), 'expense', bank, 220000, { category: cat('bills'), note: 'Internet FPT' });
+      entry(on(28), 'income', bank, between(80000, 150000), { category: cat('interest'), note: 'Lãi tiết kiệm' });
+      transfer(on(6), bank, cash, 3000000, 'Rút tiền mặt');
+      transfer(on(7), bank, invest, 5000000, 'Nạp ví đầu tư');
+      entry(on(8), 'buy', invest, 2000000, { asset: assetRef('BTC'), quantity: between(80000, 160000, 1), note: 'Mua BTC định kỳ' });
+      entry(on(9), 'buy', invest, between(2400000, 2800000, 10000), { asset: assetRef('FPT'), quantity: 20, note: 'Mua FPT' });
+      for (let i = 0; i < 12; i++) {
+        entry(on(1 + Math.floor(rand() * daysIn)), 'expense', cash, between(25000, 65000), { category: coffeeCat, note: pick(coffees), time: time() });
+      }
+      for (let i = 0; i < 7; i++) {
+        entry(on(1 + Math.floor(rand() * daysIn)), 'expense', pick([cash, bank]), between(35000, 450000), { category: cat('food'), note: pick(meals), time: time(), tags: rand() < 0.2 ? ['congtac'] : [] });
+      }
+      for (let i = 0; i < 5; i++) {
+        entry(on(1 + Math.floor(rand() * daysIn)), 'expense', cash, between(20000, 120000), { category: cat('transport'), note: pick(rides) });
+      }
+      entry(on(15 + Math.floor(rand() * 10)), 'expense', bank, between(300000, 1500000), { category: cat('shopping'), note: pick(shops) });
+      if (isTet) {
+        entry(on(8), 'expense', cash, 5000000, { category: cat('shopping'), note: 'Lì xì Tết', tags: ['Tết', 'giadinh'] });
+        entry(on(9), 'expense', bank, 2500000, { category: cat('shopping'), note: 'Đồ cúng Tết', tags: ['Tết'] });
+        entry(on(10), 'income', cash, 2000000, { category: cat('other-income'), note: 'Tiền mừng tuổi', tags: ['Tết'] });
+      }
+      if (back >= 11 && back <= 15) { // the archived wallet's history
+        entry(on(14), 'expense', momo, between(50000, 200000), { category: cat('bills'), note: 'Nạp điện thoại MoMo' });
+        entry(on(18), 'expense', momo, between(30000, 90000), { category: coffeeCat, note: 'Cà phê qua MoMo' });
+      }
+    }
+
+    // A trip two months back, a birthday, a lent amount kept out of reports, a sale, a refund.
+    const ago = (days) => dayStr(todayMs - days * DAY);
+    for (const [d, note, amount, category] of [[62, 'Vé xe Đà Lạt', 600000, 'transport'], [61, 'Homestay Đà Lạt', 1800000, 'bills'], [61, 'Bánh tráng nướng', 60000, 'food'], [60, 'Dâu tây Đà Lạt', 150000, 'food'], [59, 'Cà phê Túi Mơ To', 90000, 'food']]) {
+      entry(ago(d), 'expense', cash, amount, { category: cat(category), note, tags: ['dulich-dalat'] });
+    }
+    entry(ago(45), 'expense', bank, 850000, { category: cat('shopping'), note: 'Quà sinh nhật mẹ', tags: ['sinhnhat', 'giadinh'] });
+    entry(ago(33), 'expense', bank, 3000000, { note: 'Cho Minh mượn', exclude: true });
+    entry(ago(95), 'sell', invest, 3200000, { asset: assetRef('FPT'), quantity: 25, note: 'Bán FPT chốt lời' });
+    entry(ago(120), 'buy', invest, 8500000, { asset: assetRef('Vàng SJC'), quantity: 10, note: 'Mua 1 chỉ vàng' });
+    entry(ago(18), 'income', bank, 250000, { category: cat('other-income'), note: 'Hoàn tiền Shopee', tags: ['hoàn-tiền'] });
+    entry(ago(790), 'expense', bank, 12000000, { category: cat('shopping'), note: 'Mua laptop cũ' });
+
+    // One entry on every quick-pick boundary: today, yesterday, this/last week, last 30 days.
+    entry(ago(0), 'expense', cash, 45000, { category: coffeeCat, note: 'Cà phê sáng nay', time: '07:45' });
+    entry(ago(0), 'expense', cash, 55000, { category: cat('food'), note: 'Bún chả trưa nay', time: '12:10', tags: ['congtac'] });
+    entry(ago(1), 'expense', bank, 320000, { category: cat('health'), note: 'Thuốc cảm', time: '20:30' });
+    entry(ago(7), 'expense', cash, 150000, { category: cat('food'), note: 'Ăn tối tuần trước', tags: ['congtac'] });
+    entry(ago(29), 'expense', bank, 499000, { category: cat('fee'), note: 'Phí thường niên thẻ' });
+
+    // Every browser copy downloads afresh (new epoch) on its next sync.
+    out.push(`INSERT INTO personal_sync_state (user_id, version, epoch, purged_version, updated_at) VALUES (${lit(uid)}, 1, 1, 0, ${lit(nowIso)}) ON CONFLICT(user_id) DO UPDATE SET version = version + 1, epoch = epoch + 1, updated_at = excluded.updated_at;`);
+  }
+  return out;
+}
+
 // Rows that hang off seeded trips or mock users; deleted by --reset when the table exists.
 const RESET_SQL = [
+  ['personal_transaction_tags', "DELETE FROM personal_transaction_tags WHERE transaction_id LIKE 'seed-%' OR tag_id LIKE 'seed-%';"],
+  ['personal_transactions', "DELETE FROM personal_transactions WHERE id LIKE 'seed-%' OR wallet_id LIKE 'seed-%';"],
+  ['personal_tags', "DELETE FROM personal_tags WHERE id LIKE 'seed-%';"],
+  ['personal_assets', "DELETE FROM personal_assets WHERE id LIKE 'seed-%';"],
+  ['personal_categories', "DELETE FROM personal_categories WHERE id LIKE 'seed-%';"],
+  ['personal_wallet_settings', "DELETE FROM personal_wallet_settings WHERE wallet_id LIKE 'seed-%';"],
+  ['personal_wallets', "DELETE FROM personal_wallets WHERE id LIKE 'seed-%';"],
   ['attendance_scores', "DELETE FROM attendance_scores WHERE trip_id LIKE 'seed-%';"],
   ['attendance_counted', "DELETE FROM attendance_counted WHERE trip_id LIKE 'seed-%';"],
   ['attendance_state', "DELETE FROM attendance_state WHERE trip_id LIKE 'seed-%';"],
@@ -454,7 +676,8 @@ function main() {
 
   const now = new Date().toISOString();
   const resetSql = args.reset ? RESET_SQL.filter(([t]) => tables.has(t)).map(([, s]) => s) : [];
-  const seedSql = [...buildSeedSql(owners, now), ...buildAttendanceSeedSql(owners, now)];
+  const personalSql = tables.has('personal_sync_state') ? buildPersonalSeedSql(owners, now) : [];
+  const seedSql = [...buildSeedSql(owners, now), ...buildAttendanceSeedSql(owners, now), ...personalSql];
 
   if (args.dryRun) {
     // Copied rows and owner names are real account data: never print them.

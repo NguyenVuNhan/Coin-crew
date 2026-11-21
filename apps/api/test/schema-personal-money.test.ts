@@ -76,6 +76,7 @@ describe('personal money tables (0027)', () => {
       'external_ref',
       'created_at',
       'updated_at',
+      'sync_version',
     ]);
 
     expect(await colsOf('personal_transaction_tags')).toEqual(['transaction_id', 'tag_id']);

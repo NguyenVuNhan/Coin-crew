@@ -3,10 +3,11 @@ import type { Env } from '@cc/api-db/env';
 
 export const GOOGLE_SCOPES = ['openid', 'email', 'profile'];
 
-export function googleClient(env: Env): Google {
+/** `origin` is where the browser started sign-in (see `requestOrigin`); start and callback must agree. */
+export function googleClient(env: Env, origin: string = env.APP_ORIGIN): Google {
   return new Google(
     env.GOOGLE_CLIENT_ID,
     env.GOOGLE_CLIENT_SECRET,
-    `${env.APP_ORIGIN}/api/auth/google/callback`,
+    `${origin}/api/auth/google/callback`,
   );
 }

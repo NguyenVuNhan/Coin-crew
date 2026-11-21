@@ -9,6 +9,7 @@ import { useIsWide } from '@cc/web-util/media';
 import { apiSend } from '@cc/web-data-access/client';
 import { useMe, usePersonalArea } from '@cc/web-data-access/hooks';
 import { useSetPersonalArea } from '@cc/web-data-access/personal';
+import { resetTxCopy } from '@cc/web-data-access/txCopy/hooks';
 import { useSetMyTheme } from '@cc/web-data-access/theme';
 import { signOut as signOutHere } from '@cc/web-data-access/signOut';
 import { usePlatform } from '@cc/web-platform';
@@ -73,6 +74,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
 
   const [open, setOpen] = useState(false);
   const [acceptedJoin, setAcceptedJoin] = useState(false);
+  const [reloadStarted, setReloadStarted] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -147,6 +149,12 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
     const timer = setTimeout(() => setAcceptedJoin(false), 4000);
     return () => clearTimeout(timer);
   }, [acceptedJoin]);
+
+  useEffect(() => {
+    if (!reloadStarted) return;
+    const timer = setTimeout(() => setReloadStarted(false), 4000);
+    return () => clearTimeout(timer);
+  }, [reloadStarted]);
 
   const close = () => {
     setOpen(false);
@@ -498,6 +506,30 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
           <InlineError error={setPersonalArea.error} className="fsl-account-menu__book-error m-1" />
         ) : null}
 
+        {personalArea && (
+          <button
+            type="button"
+            data-testid="account-reload-data"
+            className={cn(
+              'fsl-account-menu__row fsl-account-menu__link fsl-account-menu__reload-data flex items-start gap-2 min-h-11 rounded-lg px-3 py-2 text-base text-foreground bg-transparent hover:bg-accent transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left',
+            )}
+            onClick={() => {
+              void resetTxCopy();
+              setReloadStarted(true);
+            }}
+          >
+            <Icon name="rotateCcw" size={20} className="shrink-0 mt-0.5" />
+            <div className="flex flex-col min-w-0">
+              <span className="font-normal text-foreground text-base leading-snug">
+                {t('account.reloadData')}
+              </span>
+              <p className="m-0 text-sm text-muted-foreground leading-normal">
+                {t('account.reloadDataHint')}
+              </p>
+            </div>
+          </button>
+        )}
+
         {menuRow && (
           <button
             ref={installRowRef}
@@ -538,6 +570,7 @@ export function AccountMenu({ user: propUser, variant = 'auto' }: AccountMenuPro
       )}
 
       {acceptedJoin && <Snackbar message={t('join.accepted')} />}
+      {reloadStarted && <Snackbar message={t('account.reloadDataStarted')} />}
 
       <Button
         variant="secondary"

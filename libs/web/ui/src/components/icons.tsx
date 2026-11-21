@@ -65,12 +65,14 @@ import {
   Receipt,
   RotateCcw,
   Search,
+  SearchX,
   Settings,
   Share,
   Share2,
   Shield,
   Shirt,
   ShoppingBag,
+  SlidersHorizontal,
   Smartphone,
   SquarePlus,
   Star,
@@ -102,7 +104,7 @@ export type IconName =
   | 'candlestick-chart' | 'coins' | 'pie-chart' | 'gem' | 'piggy-bank' | 'gift'
   | 'coffee' | 'car' | 'plane' | 'gamepad-2' | 'graduation-cap' | 'dumbbell' | 'briefcase'
   | 'laptop' | 'shirt' | 'zap' | 'wifi' | 'stethoscope' | 'music' | 'film' | 'book-open'
-  | 'fuel' | 'wrench' | 'eye' | 'eye-off';
+  | 'fuel' | 'wrench' | 'eye' | 'eye-off' | 'sliders' | 'searchX';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -197,6 +199,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   wrench: Wrench,
   eye: Eye,
   'eye-off': EyeOff,
+  sliders: SlidersHorizontal,
+  searchX: SearchX,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */

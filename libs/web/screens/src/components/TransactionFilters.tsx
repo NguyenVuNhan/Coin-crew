@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type {
   AssetView,
   CategoryView,
@@ -11,9 +11,8 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
-import { Input } from '@cc/web-ui/components/ui/input';
-import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
+import { FilterPickView } from './transactions/FilterPickView';
 
 export type TransactionFilterValues = Omit<ListQuery, 'month'>;
 
@@ -28,10 +27,40 @@ export interface TransactionFiltersProps {
   tags: TagView[];
 }
 
+type PickKind = 'wallet' | 'category' | 'asset' | 'tag';
+
 const CHIP_CLASS =
-  'min-h-9 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer';
+  'min-h-11 px-3.5 py-2 rounded-full text-sm font-medium border transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const CHIP_ACTIVE = 'bg-primary text-primary-foreground border-primary';
 const CHIP_IDLE = 'bg-card text-foreground border-border hover:bg-muted';
+
+const PICK_ROW_CLASS =
+  'flex w-full min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none cursor-pointer';
+
+/** Orders visible categories so each parent is immediately followed by its sub-categories. */
+function orderCategories(categories: CategoryView[]): CategoryView[] {
+  const byId = new Set(categories.map((c) => c.id));
+  const childrenByParent = new Map<string, CategoryView[]>();
+  const roots: CategoryView[] = [];
+
+  for (const cat of categories) {
+    if (cat.parentId && byId.has(cat.parentId)) {
+      const list = childrenByParent.get(cat.parentId) ?? [];
+      list.push(cat);
+      childrenByParent.set(cat.parentId, list);
+    } else {
+      roots.push(cat);
+    }
+  }
+
+  const ordered: CategoryView[] = [];
+  for (const root of roots) {
+    ordered.push(root);
+    const children = childrenByParent.get(root.id);
+    if (children) ordered.push(...children);
+  }
+  return ordered;
+}
 
 export function TransactionFilters({
   open,
@@ -45,269 +74,278 @@ export function TransactionFilters({
 }: TransactionFiltersProps): JSX.Element {
   const t = useT();
   const [draft, setDraft] = useState<TransactionFilterValues>(value);
+  const [pick, setPick] = useState<PickKind | null>(null);
+  const rowRefs = useRef<Partial<Record<PickKind, HTMLButtonElement | null>>>({});
+  const prevPickRef = useRef<PickKind | null>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(value);
+      setPick(null);
+      prevPickRef.current = null;
     }
   }, [open, value]);
 
-  const activeWallets = wallets.filter((w) => !w.archived);
-  const visibleCategories = categories.filter((c) => !c.hidden);
+  useEffect(() => {
+    if (open && prevPickRef.current && pick === null) {
+      rowRefs.current[prevPickRef.current]?.focus();
+    }
+    prevPickRef.current = pick;
+  }, [open, pick]);
+
+  const activeWallets = useMemo(() => wallets.filter((w) => !w.archived), [wallets]);
+  const visibleCategories = useMemo(
+    () => orderCategories(categories.filter((c) => !c.hidden)),
+    [categories],
+  );
+  const tagItems = useMemo(
+    () => tags.map((tag) => ({ id: tag.id, name: `#${tag.name}` })),
+    [tags],
+  );
 
   const handleReset = () => {
-    setDraft({});
+    setDraft((prev) => ({
+      q: prev.q,
+      from: prev.from,
+      to: prev.to,
+    }));
   };
 
   const handleApply = () => {
     const cleaned: TransactionFilterValues = {};
-    if (draft.q?.trim()) cleaned.q = draft.q.trim();
+    if (value.q?.trim()) cleaned.q = value.q.trim();
     if (draft.type) cleaned.type = draft.type;
     if (draft.walletId) cleaned.walletId = draft.walletId;
     if (draft.categoryId) cleaned.categoryId = draft.categoryId;
     if (draft.assetId) cleaned.assetId = draft.assetId;
     if (draft.tagId) cleaned.tagId = draft.tagId;
-    if (draft.from) cleaned.from = draft.from;
-    if (draft.to) cleaned.to = draft.to;
+    if (value.from) cleaned.from = value.from;
+    if (value.to) cleaned.to = value.to;
     onApply(cleaned);
     onClose();
   };
 
+  const walletLabel = draft.walletId
+    ? (wallets.find((w) => w.id === draft.walletId)?.name ?? draft.walletId)
+    : t('transactions.allWallets');
+  const categoryLabel = draft.categoryId
+    ? (categories.find((c) => c.id === draft.categoryId)?.name ?? draft.categoryId)
+    : t('transactions.allCategories');
+  const assetLabel = draft.assetId
+    ? (assets.find((a) => a.id === draft.assetId)?.name ?? draft.assetId)
+    : t('transactions.allAssets');
+  const tagLabel = draft.tagId
+    ? `#${tags.find((tg) => tg.id === draft.tagId)?.name ?? draft.tagId}`
+    : t('transactions.allTags');
+
+  const hasRows =
+    activeWallets.length > 0 ||
+    visibleCategories.length > 0 ||
+    assets.length > 0 ||
+    tags.length > 0;
+
   return (
     <Sheet open={open} onClose={onClose} title={t('transactions.filterTitle')}>
-      <div className="fsl-tx-filters flex flex-col gap-5 pb-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="tx-filter-search">{t('transactions.searchLabel')}</Label>
-          <Input
-            id="tx-filter-search"
-            data-testid="tx-filter-search"
-            type="search"
-            value={draft.q ?? ''}
-            onChange={(e) => setDraft((prev) => ({ ...prev, q: e.target.value }))}
-            placeholder={t('transactions.searchPlaceholder')}
-            className="text-base min-h-11"
-          />
-        </div>
+      {pick === 'wallet' && (
+        <FilterPickView
+          title={t('personalEntry.wallet')}
+          allLabel={t('transactions.allWallets')}
+          items={activeWallets}
+          selectedId={draft.walletId}
+          testIdPrefix="tx-filter-wallet"
+          onPick={(id) => {
+            setDraft((prev) => ({ ...prev, walletId: id }));
+            setPick(null);
+          }}
+          onBack={() => setPick(null)}
+        />
+      )}
 
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-foreground">
-            {t('personalEntry.tabs')}
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {(
-              [
-                { key: undefined, label: t('transactions.typeAll') },
-                { key: 'expense', label: t('personalEntry.expense') },
-                { key: 'income', label: t('personalEntry.income') },
-                { key: 'transfer', label: t('personalEntry.transfer') },
-                { key: 'trade', label: t('transactions.typeTrade') },
-                { key: 'person', label: t('transactions.typePerson') },
-              ] as const
-            ).map((opt) => {
-              const active = draft.type === opt.key;
-              return (
+      {pick === 'category' && (
+        <FilterPickView
+          title={t('transactions.categoryLabel')}
+          allLabel={t('transactions.allCategories')}
+          items={visibleCategories}
+          selectedId={draft.categoryId}
+          indentOf={(c) => (c.parentId ? 1 : 0)}
+          testIdPrefix="tx-filter-category"
+          onPick={(id) => {
+            setDraft((prev) => ({ ...prev, categoryId: id }));
+            setPick(null);
+          }}
+          onBack={() => setPick(null)}
+        />
+      )}
+
+      {pick === 'asset' && (
+        <FilterPickView
+          title={t('personalEntry.asset')}
+          allLabel={t('transactions.allAssets')}
+          items={assets}
+          selectedId={draft.assetId}
+          testIdPrefix="tx-filter-asset"
+          onPick={(id) => {
+            setDraft((prev) => ({ ...prev, assetId: id }));
+            setPick(null);
+          }}
+          onBack={() => setPick(null)}
+        />
+      )}
+
+      {pick === 'tag' && (
+        <FilterPickView
+          title={t('personalEntry.tags')}
+          allLabel={t('transactions.allTags')}
+          items={tagItems}
+          selectedId={draft.tagId}
+          testIdPrefix="tx-filter-tag"
+          onPick={(id) => {
+            setDraft((prev) => ({ ...prev, tagId: id }));
+            setPick(null);
+          }}
+          onBack={() => setPick(null)}
+        />
+      )}
+
+      {pick === null && (
+        <div className="fsl-tx-filters flex flex-col gap-5 pb-4">
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-foreground">
+              {t('personalEntry.tabs')}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { key: undefined, label: t('transactions.typeAll') },
+                  { key: 'expense', label: t('personalEntry.expense') },
+                  { key: 'income', label: t('personalEntry.income') },
+                  { key: 'transfer', label: t('personalEntry.transfer') },
+                  { key: 'trade', label: t('transactions.typeTrade') },
+                  { key: 'person', label: t('transactions.typePerson') },
+                ] as const
+              ).map((opt) => {
+                const active = draft.type === opt.key;
+                return (
+                  <button
+                    key={opt.key ?? 'all'}
+                    type="button"
+                    data-testid={`tx-filter-type-${opt.key ?? 'all'}`}
+                    onClick={() => setDraft((prev) => ({ ...prev, type: opt.key }))}
+                    className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {hasRows && (
+            <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
+              {activeWallets.length > 0 && (
                 <button
-                  key={opt.key ?? 'all'}
+                  ref={(el) => {
+                    rowRefs.current.wallet = el;
+                  }}
                   type="button"
-                  data-testid={`tx-filter-type-${opt.key ?? 'all'}`}
-                  onClick={() => setDraft((prev) => ({ ...prev, type: opt.key }))}
-                  className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
+                  data-testid="tx-filter-row-wallet"
+                  onClick={() => setPick('wallet')}
+                  className={PICK_ROW_CLASS}
                 >
-                  {opt.label}
+                  <span className="shrink-0 font-medium text-foreground">
+                    {t('personalEntry.wallet')}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                    <span className="truncate">{walletLabel}</span>
+                    <Icon name="chevronRight" size={16} className="shrink-0" />
+                  </span>
                 </button>
-              );
-            })}
+              )}
+
+              {visibleCategories.length > 0 && (
+                <button
+                  ref={(el) => {
+                    rowRefs.current.category = el;
+                  }}
+                  type="button"
+                  data-testid="tx-filter-row-category"
+                  onClick={() => setPick('category')}
+                  className={PICK_ROW_CLASS}
+                >
+                  <span className="shrink-0 font-medium text-foreground">
+                    {t('transactions.categoryLabel')}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                    <span className="truncate">{categoryLabel}</span>
+                    <Icon name="chevronRight" size={16} className="shrink-0" />
+                  </span>
+                </button>
+              )}
+
+              {assets.length > 0 && (
+                <button
+                  ref={(el) => {
+                    rowRefs.current.asset = el;
+                  }}
+                  type="button"
+                  data-testid="tx-filter-row-asset"
+                  onClick={() => setPick('asset')}
+                  className={PICK_ROW_CLASS}
+                >
+                  <span className="shrink-0 font-medium text-foreground">
+                    {t('personalEntry.asset')}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                    <span className="truncate">{assetLabel}</span>
+                    <Icon name="chevronRight" size={16} className="shrink-0" />
+                  </span>
+                </button>
+              )}
+
+              {tags.length > 0 && (
+                <button
+                  ref={(el) => {
+                    rowRefs.current.tag = el;
+                  }}
+                  type="button"
+                  data-testid="tx-filter-row-tag"
+                  onClick={() => setPick('tag')}
+                  className={PICK_ROW_CLASS}
+                >
+                  <span className="shrink-0 font-medium text-foreground">
+                    {t('personalEntry.tags')}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                    <span className="truncate">{tagLabel}</span>
+                    <Icon name="chevronRight" size={16} className="shrink-0" />
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleReset}
+              data-testid="tx-filter-reset"
+              className="flex-1"
+            >
+              {t('transactions.resetFilters')}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleApply}
+              data-testid="tx-filter-apply"
+              className="flex-1"
+            >
+              {t('transactions.applyFilters')}
+            </Button>
           </div>
         </div>
-
-        {activeWallets.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {t('personalEntry.wallet')}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setDraft((prev) => ({ ...prev, walletId: undefined }))}
-                className={cn(CHIP_CLASS, !draft.walletId ? CHIP_ACTIVE : CHIP_IDLE)}
-              >
-                {t('transactions.allWallets')}
-              </button>
-              {activeWallets.map((w) => {
-                const active = draft.walletId === w.id;
-                return (
-                  <button
-                    key={w.id}
-                    type="button"
-                    data-testid={`tx-filter-wallet-${w.id}`}
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        walletId: active ? undefined : w.id,
-                      }))
-                    }
-                    className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
-                  >
-                    {w.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {visibleCategories.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {t('personalEntry.pickCategory')}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setDraft((prev) => ({ ...prev, categoryId: undefined }))}
-                className={cn(CHIP_CLASS, !draft.categoryId ? CHIP_ACTIVE : CHIP_IDLE)}
-              >
-                {t('transactions.allCategories')}
-              </button>
-              {visibleCategories.map((c) => {
-                const active = draft.categoryId === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    data-testid={`tx-filter-category-${c.id}`}
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        categoryId: active ? undefined : c.id,
-                      }))
-                    }
-                    className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
-                  >
-                    {c.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {assets.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {t('personalEntry.asset')}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setDraft((prev) => ({ ...prev, assetId: undefined }))}
-                className={cn(CHIP_CLASS, !draft.assetId ? CHIP_ACTIVE : CHIP_IDLE)}
-              >
-                {t('transactions.allAssets')}
-              </button>
-              {assets.map((a) => {
-                const active = draft.assetId === a.id;
-                return (
-                  <button
-                    key={a.id}
-                    type="button"
-                    data-testid={`tx-filter-asset-${a.id}`}
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        assetId: active ? undefined : a.id,
-                      }))
-                    }
-                    className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
-                  >
-                    {a.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {tags.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {t('personalEntry.tags')}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setDraft((prev) => ({ ...prev, tagId: undefined }))}
-                className={cn(CHIP_CLASS, !draft.tagId ? CHIP_ACTIVE : CHIP_IDLE)}
-              >
-                {t('transactions.allTags')}
-              </button>
-              {tags.map((tag) => {
-                const active = draft.tagId === tag.id;
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    data-testid={`tx-filter-tag-${tag.id}`}
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        tagId: active ? undefined : tag.id,
-                      }))
-                    }
-                    className={cn(CHIP_CLASS, active ? CHIP_ACTIVE : CHIP_IDLE)}
-                  >
-                    #{tag.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tx-filter-from">{t('transactions.fromDate')}</Label>
-            <Input
-              id="tx-filter-from"
-              type="date"
-              value={draft.from ?? ''}
-              onChange={(e) => setDraft((prev) => ({ ...prev, from: e.target.value || undefined }))}
-              className="text-base min-h-11"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tx-filter-to">{t('transactions.toDate')}</Label>
-            <Input
-              id="tx-filter-to"
-              type="date"
-              value={draft.to ?? ''}
-              onChange={(e) => setDraft((prev) => ({ ...prev, to: e.target.value || undefined }))}
-              className="text-base min-h-11"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleReset}
-            data-testid="tx-filter-reset"
-            className="flex-1"
-          >
-            {t('transactions.resetFilters')}
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleApply}
-            data-testid="tx-filter-apply"
-            className="flex-1"
-          >
-            {t('transactions.applyFilters')}
-          </Button>
-        </div>
-      </div>
+      )}
     </Sheet>
   );
 }
@@ -317,8 +355,10 @@ export interface ActiveFilterPillsProps {
   wallets: WalletDetailView[];
   categories: CategoryView[];
   assets?: AssetView[];
-  tags: TagView[];
+  tags?: TagView[];
+  hasAnyFilter: boolean;
   onRemove(key: keyof TransactionFilterValues): void;
+  onClearAll(): void;
 }
 
 export function ActiveFilterPills({
@@ -326,15 +366,13 @@ export function ActiveFilterPills({
   wallets,
   categories,
   assets = [],
-  tags,
+  hasAnyFilter,
   onRemove,
+  onClearAll,
 }: ActiveFilterPillsProps): JSX.Element | null {
   const t = useT();
   const items: { key: keyof TransactionFilterValues; label: string }[] = [];
 
-  if (filters.q) {
-    items.push({ key: 'q', label: `"${filters.q}"` });
-  }
   if (filters.type) {
     const typeLabel =
       filters.type === 'expense'
@@ -360,18 +398,8 @@ export function ActiveFilterPills({
     const a = assets.find((x) => x.id === filters.assetId);
     items.push({ key: 'assetId', label: a?.name ?? filters.assetId });
   }
-  if (filters.tagId) {
-    const tag = tags.find((x) => x.id === filters.tagId);
-    items.push({ key: 'tagId', label: `#${tag?.name ?? filters.tagId}` });
-  }
-  if (filters.from) {
-    items.push({ key: 'from', label: `${t('transactions.fromDate')}: ${filters.from}` });
-  }
-  if (filters.to) {
-    items.push({ key: 'to', label: `${t('transactions.toDate')}: ${filters.to}` });
-  }
 
-  if (items.length === 0) return null;
+  if (!hasAnyFilter && items.length === 0) return null;
 
   return (
     <div
@@ -385,14 +413,26 @@ export function ActiveFilterPills({
           onClick={() => onRemove(item.key)}
           aria-label={t('transactions.removeFilter', { label: item.label })}
           data-testid={`tx-filter-pill-${item.key}`}
-          className="inline-flex items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
+          className="inline-flex min-h-11 items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
         >
           <Pill tone="accent" className="gap-1 pr-1.5 py-1 text-xs">
-            <span>{item.label}</span>
+            <span className="max-w-48 truncate">{item.label}</span>
             <Icon name="x" size={12} />
           </Pill>
         </button>
       ))}
+      {hasAnyFilter && (
+        <Button
+          type="button"
+          variant="ghost"
+          data-testid="tx-clear-all"
+          onClick={onClearAll}
+          className="text-xs text-muted-foreground px-3 motion-reduce:transition-none"
+        >
+          <Icon name="x" size={14} />
+          <span>{t('transactions.clearAll')}</span>
+        </Button>
+      )}
     </div>
   );
 }

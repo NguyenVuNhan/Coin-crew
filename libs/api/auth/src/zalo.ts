@@ -28,10 +28,15 @@ export async function zaloPkce(): Promise<{ verifier: string; challenge: string 
   return { verifier, challenge };
 }
 
-export function zaloAuthorizeUrl(env: Env, state: string, challenge: string): URL {
+export function zaloAuthorizeUrl(
+  env: Env,
+  state: string,
+  challenge: string,
+  origin: string = env.APP_ORIGIN,
+): URL {
   const url = new URL('https://oauth.zaloapp.com/v4/permission');
   url.searchParams.set('app_id', env.ZALO_APP_ID ?? '');
-  url.searchParams.set('redirect_uri', `${env.APP_ORIGIN}/api/auth/zalo/callback`);
+  url.searchParams.set('redirect_uri', `${origin}/api/auth/zalo/callback`);
   url.searchParams.set('code_challenge', challenge);
   url.searchParams.set('state', state);
   return url;
