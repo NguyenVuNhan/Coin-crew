@@ -14,6 +14,7 @@ import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import {
   findOversell,
+  groupWalletEntries,
   isCurrencyCode,
   isValidAmount,
   walletBalance,
@@ -25,6 +26,7 @@ import {
   type WalletDetailView,
   type WalletKind,
 } from '@cc/core';
+import { loadGroupRows, loadGroupSettings } from './groupShares';
 import { name1to40, parseJson, requireDate } from './validate';
 
 export interface LoadedCalcWallet extends CalcWallet {
@@ -115,6 +117,13 @@ export async function loadCalc(
     assetId: e.assetId ?? null,
     quantity: e.quantity ?? null,
   }));
+
+  const [groupRows, groupSettings] = await Promise.all([
+    loadGroupRows(db, userId),
+    loadGroupSettings(db, userId),
+  ]);
+  const defaultWalletId = wallets.find((w) => w.isDefault)?.id ?? null;
+  entries.push(...groupWalletEntries(groupRows, wallets, defaultWalletId, groupSettings));
 
   return { wallets, entries };
 }
