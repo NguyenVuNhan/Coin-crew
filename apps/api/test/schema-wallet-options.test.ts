@@ -13,7 +13,7 @@ async function seedWallet(id: string, userId: string): Promise<void> {
     .run();
 }
 
-describe('personal_wallet_options (0030)', () => {
+describe('personal_wallet_options (0031)', () => {
   it('has the six columns, in order', async () => {
     expect(personalWalletOptions.walletId).toBeDefined();
     const cols = await env.DB.prepare('PRAGMA table_info(personal_wallet_options)').all<{
