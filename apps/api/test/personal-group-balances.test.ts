@@ -199,7 +199,7 @@ describe('personal wallet balances with group money', () => {
     expect(wallets.find((w) => w.id === wallet.id)!.balance).toBe(1_050_000);
   });
 
-  it('row before start date leaves balance unchanged', async () => {
+  it('row before start date counts toward balance (startDate cutoff dropped)', async () => {
     const { sid, wallet } = await setupMinh(1_000_000, '2026-10-10');
     await seedTx({
       id: 'e-before-start',
@@ -216,10 +216,10 @@ describe('personal wallet balances with group money', () => {
     });
 
     const wallets = await getWallets(sid);
-    expect(wallets.find((w) => w.id === wallet.id)!.balance).toBe(1_000_000);
+    expect(wallets.find((w) => w.id === wallet.id)!.balance).toBe(700_000);
   });
 
-  it('date moved across start date', async () => {
+  it('date moved across start date still counts toward balance', async () => {
     const { sid, wallet } = await setupMinh(1_000_000, '2026-10-10');
     await seedTx({
       id: 'e-move-v1',
@@ -238,7 +238,7 @@ describe('personal wallet balances with group money', () => {
     });
 
     const before = await getWallets(sid);
-    expect(before.find((w) => w.id === wallet.id)!.balance).toBe(1_000_000);
+    expect(before.find((w) => w.id === wallet.id)!.balance).toBe(750_000);
 
     // New version moves spent_on on/after the wallet's start date
     await runSql("UPDATE transactions SET is_latest = 0, status = 'superseded' WHERE id = 'e-move-v1'");
