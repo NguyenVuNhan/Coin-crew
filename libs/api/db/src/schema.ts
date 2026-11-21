@@ -591,6 +591,71 @@ export const personalTransactionTags = sqliteTable(
   ],
 );
 
+export const personalGroupLinks = sqliteTable(
+  'personal_group_links',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    rootId: text('root_id').notNull(),
+    tripId: text('trip_id').notNull(),
+    walletId: text('wallet_id').references(() => personalWallets.id),
+    categoryId: text('category_id').references(() => personalCategories.id),
+    intent: text('intent'),
+    excludeFromReports: integer('exclude_from_reports').notNull().default(0),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    syncVersion: integer('sync_version').notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.rootId] }),
+    index('personal_group_links_user_trip_idx').on(t.userId, t.tripId),
+    check('personal_group_links_intent_check', sql`${t.intent} IS NULL OR ${t.intent} IN ('shared', 'loan')`),
+  ],
+);
+
+export const personalGroupLinkTags = sqliteTable(
+  'personal_group_link_tags',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    rootId: text('root_id').notNull(),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => personalTags.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.rootId, t.tagId] }),
+    index('personal_group_link_tags_tag_idx').on(t.tagId),
+  ],
+);
+
+export const personalGroupSettings = sqliteTable('personal_group_settings', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  defaultGroupCategoryId: text('default_group_category_id'),
+  countLoans: integer('count_loans').notNull().default(0),
+  disabledAt: text('disabled_at'),
+  reenabledAt: text('reenabled_at'),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const personalBalanceChecks = sqliteTable(
+  'personal_balance_checks',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    answeredAt: text('answered_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.walletId] })],
+);
+
 export const personalAssets = sqliteTable(
   'personal_assets',
   {
