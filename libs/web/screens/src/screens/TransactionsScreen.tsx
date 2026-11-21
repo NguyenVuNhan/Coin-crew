@@ -307,6 +307,14 @@ export function TransactionsScreen(): JSX.Element {
     { from: '0000-01-01', to: '9999-12-31', groups: 'show' },
     { settings: groupSettings },
   );
+  const searchGroupQuery: ListQuery =
+    filters.from || filters.to
+      ? { ...filters, groups: filters.groups ?? 'show' }
+      : { ...filters, from: '0000-01-01', to: '9999-12-31', groups: filters.groups ?? 'show' };
+  const searchGroupCopy = useCopyGroupRows(searchGroupQuery, {
+    enabled: allTimeSearch && copyReady,
+    settings: groupSettings,
+  });
   const [seenGroupRows, setSeenGroupRows] = useState<GroupRow[]>([]);
   const handleGroupRows = useCallback((incoming: GroupRow[]) => {
     setSeenGroupRows((prev) => {
@@ -424,7 +432,10 @@ export function TransactionsScreen(): JSX.Element {
               wallets={wallets}
               categories={categories}
               assets={assets}
+              groupRows={searchGroupCopy.ready ? (searchGroupCopy.groupRows ?? []) : undefined}
+              settings={groupSettings}
               onOpenEntry={onOpenEntry}
+              onOpenGroup={setSelectedGroupRow}
               onClear={clearAll}
             />
           ) : hasRange ? (

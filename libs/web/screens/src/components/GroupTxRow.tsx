@@ -48,11 +48,14 @@ export function GroupTxRow({
         ? categoryIconName(category.icon, 'expense')
         : 'users';
 
-  const resolveWalletId = createGroupWalletResolver(wallets, null);
+  const defaultWalletId = wallets.find((w) => w.isDefault)?.id ?? null;
+  const resolveWalletId = createGroupWalletResolver(wallets, defaultWalletId);
   const resolvedWalletId = resolveWalletId(row);
-  const walletName = resolvedWalletId
-    ? (wallets.find((w) => w.id === resolvedWalletId)?.name ?? '')
-    : '';
+  const resolvedWallet = resolvedWalletId
+    ? wallets.find((w) => w.id === resolvedWalletId)
+    : undefined;
+  const walletName = resolvedWallet?.name ?? '';
+  const beforeStart = resolvedWallet !== undefined && row.date < resolvedWallet.startDate;
 
   const counterpart = row.counterpartName ?? '';
   const title =
@@ -147,6 +150,11 @@ export function GroupTxRow({
           >
             {title}
           </span>
+          {beforeStart && (
+            <Pill tone="neutral" className="text-[11px] px-2 py-0 shrink-0">
+              {t('wallet.beforeStart')}
+            </Pill>
+          )}
           <Pill tone="accent" className="text-[11px] px-2 py-0 shrink-0">
             {tripLabel}
           </Pill>
