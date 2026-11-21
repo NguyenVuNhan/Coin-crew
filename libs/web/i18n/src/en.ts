@@ -407,6 +407,8 @@ export const en = {
   'split.captionExactNothingOne': 'Exact amounts · {n} people · {name} owes nothing',
   'splitBetween.label': 'Split between · {n} of {total}',
   'splitBetween.everyone': 'Split between · Everyone ({n})',
+  'splitBetween.empty': 'Split between',
+  'splitBetween.count': 'Split between {n} people',
   'splitBetween.none': 'No one yet',
   'splitBetween.change': 'Change',
   'splitBetween.you': 'You',

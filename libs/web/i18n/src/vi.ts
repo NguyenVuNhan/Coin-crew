@@ -411,6 +411,8 @@ export const vi: Record<MessageKey, string> = {
   'split.captionExactNothingOne': 'Theo số tiền · {n} người · {name} không phải trả',
   'splitBetween.label': 'Chia cho · {n}/{total} người',
   'splitBetween.everyone': 'Chia cho · Mọi người ({n})',
+  'splitBetween.empty': 'Chia cho', // REVIEW
+  'splitBetween.count': 'Chia cho {n} người', // REVIEW
   'splitBetween.none': 'Chưa chọn ai',
   'splitBetween.change': 'Đổi',
   'splitBetween.you': 'Bạn',

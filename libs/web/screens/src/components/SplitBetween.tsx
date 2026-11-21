@@ -20,7 +20,13 @@ export function SplitBetween({ people, chosen, me, onOpen, optional = false }: S
   const n = inGroup.length;
   const total = people.length;
   const names = inGroup.map((p) => (p.id === me ? t('splitBetween.you') : p.name)).join(', ');
-  const label = n > 0 && n === total ? t('splitBetween.everyone', { n }) : t('splitBetween.label', { n, total });
+  const label = optional
+    ? n > 0
+      ? t('splitBetween.count', { n })
+      : t('splitBetween.empty')
+    : n > 0 && n === total
+      ? t('splitBetween.everyone', { n })
+      : t('splitBetween.label', { n, total });
 
   return (
     <div className={cn('fsl-split-between mb-3')}>

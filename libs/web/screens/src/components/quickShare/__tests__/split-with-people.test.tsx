@@ -50,8 +50,9 @@ function makeSplit(overrides: Partial<QuickSplit> = {}): QuickSplit {
 }
 
 describe('SplitWithPeople', () => {
-  // Owner, 2026-11-21: the entry page picks people with the group form's "Chia cho" line, not chips.
-  it('shows the group "Chia cho" line with no error when nobody is chosen', () => {
+  // Owner, 2026-11-21: the entry page picks people with the group form's "Chia cho" line, not chips,
+  // and shows "Chia cho" when empty or "Chia cho N người" when picked (without "0/4 người").
+  it('shows "Chia cho" without "0/4 người" and with no error when nobody is chosen', () => {
     renderAt(<SplitWithPeople split={makeSplit()} label="Chia với ai? (không bắt buộc)" me={ME} kind="shared" />);
     act(() => {
       setLang('vi');
@@ -60,11 +61,13 @@ describe('SplitWithPeople', () => {
     const section = screen.getByTestId('entry-people');
     expect(section).toHaveTextContent('Chia với ai? (không bắt buộc)');
     expect(section.querySelector('.fsl-split-between')).not.toBeNull();
+    expect(section.querySelector('.fsl-split-between__label')).toHaveTextContent(/^Chia cho$/);
+    expect(section).not.toHaveTextContent('0/4 người');
     expect(section).toHaveTextContent('Chưa chọn ai');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('on Chi counts you in once someone is picked, and picking from the sheet never stores you', async () => {
+  it('on Chi counts you in once someone is picked, shows "Chia cho 2 người", and never stores you', async () => {
     const user = userEvent.setup();
 
     function Controlled() {
@@ -87,11 +90,13 @@ describe('SplitWithPeople', () => {
     await user.click(await screen.findByRole('button', { name: 'Thêm Minh' }));
     await user.click(screen.getByRole('button', { name: 'Xong' }));
 
-    expect(screen.getByTestId('entry-people')).toHaveTextContent('Bạn, Minh');
+    const section = screen.getByTestId('entry-people');
+    expect(section.querySelector('.fsl-split-between__label')).toHaveTextContent(/^Chia cho 2 người$/);
+    expect(section).toHaveTextContent('Bạn, Minh');
     expect(screen.getByTestId('stored')).toHaveTextContent(/^p-minh$/);
   });
 
-  it('on Vay/Nợ shows only the people picked', () => {
+  it('on Vay/Nợ shows "Chia cho 1 người" and only the people picked', () => {
     renderAt(
       <SplitWithPeople split={makeSplit({ chosen: new Set([MINH]) })} label="Với ai?" me={ME} kind="loan" />,
     );
@@ -100,6 +105,7 @@ describe('SplitWithPeople', () => {
     });
 
     const section = screen.getByTestId('entry-people');
+    expect(section.querySelector('.fsl-split-between__label')).toHaveTextContent(/^Chia cho 1 người$/);
     expect(section).toHaveTextContent('Minh');
     expect(section).not.toHaveTextContent('Bạn');
   });

@@ -2004,6 +2004,23 @@ export function EntryPage(): JSX.Element {
               </FoldLine>
             ) : null)}
 
+            {(isMousePointer || !fold.isOpen('amount')) && (
+              <div className="w-full min-h-11 px-4 py-2 rounded-xl bg-card flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-muted-foreground shrink-0">
+                  {t('personalEntry.note')}
+                </span>
+                <Input
+                  type="text"
+                  maxLength={200}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={isLoanDebt ? undefined : t('personalEntry.notePlaceholder')}
+                  data-testid="entry-note-input"
+                  className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
+                />
+              </div>
+            )}
+
             {(canShareChi || (isLoanDebt && Boolean(ledger && directView))) &&
               (isMousePointer || !fold.isOpen('amount')) && (
                 <>
@@ -2240,21 +2257,6 @@ export function EntryPage(): JSX.Element {
                         showTime={!isLoanDebt}
                         onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
                       />
-
-                      <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-muted-foreground shrink-0">
-                          {t('personalEntry.note')}
-                        </span>
-                        <Input
-                          type="text"
-                          maxLength={200}
-                          value={note}
-                          onChange={(e) => setNote(e.target.value)}
-                          placeholder={isLoanDebt ? undefined : t('personalEntry.notePlaceholder')}
-                          data-testid="entry-note-input"
-                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
-                        />
-                      </div>
 
                       {isTransferMode && excludeRow}
                     </div>

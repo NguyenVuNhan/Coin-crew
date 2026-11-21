@@ -317,18 +317,27 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     expect(noteInput).not.toHaveAttribute('placeholder');
   });
 
-  it('(e) inside opened details, Ngày comes before Ghi chú in DOM order', async () => {
+  it('(e) on Vay/Nợ, Ghi chú sits right under Số tiền (before Với ai? and Ngày) in DOM order', async () => {
     const user = userEvent.setup();
     mockApi(baseRoutes());
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await openDetails(user);
 
-    const dateRow = screen.getByTestId('entry-date-row');
+    const amountFold = screen.getByTestId('entry-fold-amount');
     const noteInput = screen.getByTestId('entry-note-input');
+    const people = await screen.findByTestId('entry-people');
     expect(
-      dateRow.compareDocumentPosition(noteInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+      amountFold.compareDocumentPosition(noteInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      noteInput.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await openDetails(user);
+    const dateRow = screen.getByTestId('entry-date-row');
+    expect(
+      people.compareDocumentPosition(dateRow) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

@@ -387,6 +387,9 @@ Each case runs on the existing `MATRIX`, uses `setupDaLatScenario` or `setupNhan
 - Owner, after testing: picking people reuses the group form's "Chia cho" line (`SplitBetween`, now with an
   `optional` prop) and its people sheet, on both Chi and Vay/Nợ, instead of recent-people chips. You are listed
   first, then recent people. The split modes stay folded. Lending Minh is now Xong, Đổi, Minh, Xong, Lưu.
+- Owner, after testing: "Ghi chú" sits right under Danh mục on Chi/Thu and right under Số tiền on Vay/Nợ (outside
+  "Thêm chi tiết" on all tabs), and the entry page's "Chia cho" line shows "Chia cho" when empty or
+  "Chia cho N người" when picked (removing "0/N người").
 
 ### Task 11 (planner): Gate and handoff
 
