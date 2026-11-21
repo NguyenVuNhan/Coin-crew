@@ -344,4 +344,25 @@ describe('GroupRowSheet', () => {
     expect(sheet.querySelector('input[inputmode="numeric"]')).toBeNull();
     expect(within(sheet).queryByLabelText(/amount|số tiền/i)).toBeNull();
   });
+
+  it('for a direct quick expense, hides editInGroup notice and links Edit to /entries/:rootId/edit?group=1', async () => {
+    setupApi();
+    const directRow = makeRow({
+      id: 'exp-head-2',
+      rootId: 'exp-root-1',
+      tripId: 't-led',
+      tripName: 'Quick expenses',
+      isDirect: true,
+      source: 'expense',
+    });
+
+    renderAt(<GroupRowSheet row={directRow} open onClose={vi.fn()} />);
+
+    const sheet = await screen.findByTestId('group-row-sheet');
+    expect(sheet).not.toHaveTextContent('Amount and people are edited in the group.');
+
+    const editLink = await screen.findByTestId('group-row-open-in-group');
+    expect(editLink).toHaveTextContent(/^Edit$/);
+    expect(editLink).toHaveAttribute('href', '/entries/exp-root-1/edit?group=1');
+  });
 });

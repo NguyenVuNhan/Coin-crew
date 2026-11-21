@@ -232,4 +232,31 @@ describe('useSaveQuickShare', () => {
       unsubscribe();
     }
   });
+
+  it('PATCHes the expense when expenseId is set, then PUTs the link on rootId', async () => {
+    const { calls } = mockFetch({
+      'PATCH /api/trips/t-led/expenses/exp-v1': { expenseId: 'exp-v2', rootId: 'root-1' },
+      'PUT /api/me/personal/group-links/root-1': { link: sampleLinkView },
+    });
+
+    const queryClient = makeQueryClient();
+    const { result } = renderHook(() => useSaveQuickShare(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.save({
+        ...sampleInput,
+        expenseId: 'exp-v1',
+        rootId: 'root-1',
+      });
+    });
+
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+      'PATCH /api/trips/t-led/expenses/exp-v1',
+      'PUT /api/me/personal/group-links/root-1',
+    ]);
+    expect(calls[0]!.body).toEqual(sampleInput.expense);
+    expect(calls[1]!.body).toEqual(sampleInput.link);
+  });
 });

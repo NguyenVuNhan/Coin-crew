@@ -45,6 +45,7 @@ function makeSplit(overrides: Partial<QuickSplit> = {}): QuickSplit {
     splitExtra: undefined,
     isDirty: false,
     reset: vi.fn(),
+    loadExpense: vi.fn(),
     ...overrides,
   };
 }

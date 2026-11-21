@@ -297,9 +297,12 @@ export function GroupRowSheet({
     : '';
   const dateLabel = row ? formatEntryDayLabel(row.date, t) : '';
   const outcomeSentence = row ? buildOutcomeSentence(row, lang, t) : '';
-  const openInGroupHref = row
-    ? ledgerDetailsPath(row.tripId, detailKindFor(row.source), row.id)
-    : '';
+  const isDirectExpense = Boolean(row?.isDirect && row.source === 'expense');
+  const openInGroupHref = !row
+    ? ''
+    : isDirectExpense
+      ? `/entries/${encodeURIComponent(row.rootId)}/edit?group=1`
+      : ledgerDetailsPath(row.tripId, detailKindFor(row.source), row.id);
 
   return (
     <Sheet open={open && row !== null} onClose={onClose} title={sheetTitle}>
@@ -319,9 +322,11 @@ export function GroupRowSheet({
             {outcomeSentence}
           </div>
 
-          <p className="m-0 text-xs text-muted-foreground">
-            {t('groupRow.editInGroup')}
-          </p>
+          {!isDirectExpense && (
+            <p className="m-0 text-xs text-muted-foreground">
+              {t('groupRow.editInGroup')}
+            </p>
+          )}
 
           <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
             <div>
@@ -490,7 +495,7 @@ export function GroupRowSheet({
             data-testid="group-row-open-in-group"
             className="mt-1"
           >
-            {t('groupRow.openInGroup')}
+            {isDirectExpense ? t('transactions.edit') : t('groupRow.openInGroup')}
           </Button>
         </div>
       )}

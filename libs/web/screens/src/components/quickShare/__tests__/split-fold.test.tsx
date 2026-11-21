@@ -47,6 +47,7 @@ function makeFakeSplit(overrides: Partial<QuickSplit> = {}): QuickSplit {
     splitExtra: undefined,
     isDirty: true,
     reset: vi.fn(),
+    loadExpense: vi.fn(),
     ...overrides,
   };
 }

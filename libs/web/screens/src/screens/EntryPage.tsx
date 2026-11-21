@@ -163,9 +163,10 @@ export function EntryPage(): JSX.Element {
   const isEdit = Boolean(id);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isDirectEdit = isEdit && searchParams.get('group') === '1';
   const queryClient = useQueryClient();
   const { goBack } = useBack('/trips');
-  const { ledger, isLoading: ledgerLoading } = useLedger({ enabled: !isEdit });
+  const { ledger, isLoading: ledgerLoading } = useLedger({ enabled: !isEdit || isDirectEdit });
   const {
     view: directView,
     error: directViewError,
@@ -179,7 +180,7 @@ export function EntryPage(): JSX.Element {
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
   const cachedEntry = useMemo(() => {
-    if (!id || stateEntry) return stateEntry ?? null;
+    if (!id || isDirectEdit || stateEntry) return stateEntry ?? null;
     const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
     for (const [, data] of cachedLists) {
       if (!data) continue;
@@ -190,7 +191,26 @@ export function EntryPage(): JSX.Element {
       }
     }
     return null;
-  }, [id, stateEntry, queryClient]);
+  }, [id, isDirectEdit, stateEntry, queryClient]);
+
+  const cachedGroupRow = useMemo(() => {
+    if (!id || !isDirectEdit) return null;
+    const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
+    for (const [, data] of cachedLists) {
+      if (!data?.groupRows) continue;
+      for (const row of data.groupRows) {
+        if (row.rootId === id || row.id === id) {
+          return row;
+        }
+      }
+    }
+    return null;
+  }, [id, isDirectEdit, queryClient]);
+
+  const directExpense = useMemo(() => {
+    if (!isDirectEdit || !id || !directView) return null;
+    return directView.expenses.find((e) => e.id === id || e.rootId === id) ?? null;
+  }, [isDirectEdit, id, directView]);
 
   const preEntry = useMemo(() => {
     if (cachedEntry) return cachedEntry;
@@ -215,12 +235,28 @@ export function EntryPage(): JSX.Element {
     return null;
   }, [preEntry, queryClient]);
 
-  const monthParam = preEntry?.date.slice(0, 7) ?? searchParams.get('month') ?? currentMonthLocal();
-  const needsCounterpartFetch = isEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
+  const monthParam =
+    preEntry?.date.slice(0, 7) ??
+    cachedGroupRow?.date.slice(0, 7) ??
+    directExpense?.spentOn.slice(0, 7) ??
+    searchParams.get('month') ??
+    currentMonthLocal();
+  const needsCounterpartFetch = isEdit && !isDirectEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
   const listQuery = usePersonalList(
-    { month: monthParam },
-    { enabled: isEdit && (!cachedEntry || needsCounterpartFetch) },
+    { month: monthParam, ...(isDirectEdit ? { groups: 'show' as const } : {}) },
+    {
+      enabled:
+        isEdit &&
+        (isDirectEdit ? !cachedGroupRow : !cachedEntry || needsCounterpartFetch),
+    },
   );
+
+  const directGroupRow = useMemo(() => {
+    if (!isDirectEdit) return null;
+    if (cachedGroupRow) return cachedGroupRow;
+    if (!id || !listQuery.data?.groupRows) return null;
+    return listQuery.data.groupRows.find((r) => r.rootId === id || r.id === id) ?? null;
+  }, [isDirectEdit, cachedGroupRow, id, listQuery.data]);
 
   const entry = useMemo(() => {
     if (cachedEntry) return cachedEntry;
@@ -274,9 +310,9 @@ export function EntryPage(): JSX.Element {
     isEdit ? null : searchParams.get('tile'),
   );
   const [activeTab, setActiveTab] = useState<TabValue>(initial.tab);
-  const isLoanDebt = !isEdit && activeTab === 'loan-debt';
+  const isLoanDebt = (!isEdit || isDirectEdit) && activeTab === 'loan-debt';
   // Reading group settings is what creates the "Cho vay" / "Đi vay" starters on a new account.
-  const groupSettingsQuery = useGroupSettings({ enabled: isLoanDebt });
+  const groupSettingsQuery = useGroupSettings({ enabled: isLoanDebt || isDirectEdit });
   const [entryType, setEntryType] = useState<FormEntryType>(initial.type);
   const [isTransferMode, setIsTransferMode] = useState<boolean>(initial.transfer);
   const [isTradeMode, setIsTradeMode] = useState<boolean>(initial.trade);
@@ -648,7 +684,7 @@ export function EntryPage(): JSX.Element {
     : null;
 
   const canShareChi =
-    !isEdit &&
+    (!isEdit || isDirectEdit) &&
     activeTab === 'expense' &&
     !isTransferMode &&
     !isTradeMode &&
@@ -661,6 +697,64 @@ export function EntryPage(): JSX.Element {
     kind: isLoanDebt ? 'loan' : 'shared',
     amount: primaryMinor,
   });
+
+  // Initialize form from a direct quick expense in edit mode (/entries/:id/edit?group=1)
+  useEffect(() => {
+    if (
+      !isDirectEdit ||
+      !directExpense ||
+      !ledger ||
+      (!directGroupRow && !listQuery.isFetched) ||
+      initializedId === directExpense.id
+    ) {
+      return;
+    }
+    const link = directGroupRow?.link ?? null;
+    const isLoan = link?.intent === 'loan';
+    const nextKind = isLoan ? 'loan' : 'shared';
+
+    setActiveTab(isLoan ? 'loan-debt' : 'expense');
+    setEntryType('expense');
+    setIsTransferMode(false);
+    setIsTradeMode(false);
+
+    const defVndId = (vndWallets.find((w) => w.isDefault) ?? vndWallets[0])?.id ?? '';
+    setWalletId(link?.walletId ?? defVndId);
+
+    const fallbackGroupCatId =
+      (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && c.name === 'Nhóm')?.id ??
+      (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && !c.hidden)?.id ??
+      null;
+    const resolvedCatId =
+      link?.categoryId ??
+      groupSettingsQuery.data?.settings.defaultGroupCategoryId ??
+      fallbackGroupCatId;
+    setCategoryId(isLoan ? null : resolvedCatId);
+    setCategoryPicked(!isLoan && Boolean(resolvedCatId));
+
+    setPrimaryExpr(formatKeypadValue(directExpense.amount, 'VND'));
+    setDateTime(`${directExpense.spentOn}T00:00`);
+    setNote(directExpense.description);
+    setTags(link?.tagIds ?? []);
+    setExcludeFromReports(link?.excludeFromReports ?? false);
+    setExcludeTouched(true);
+    if (link?.excludeFromReports) {
+      setShowMore(true);
+    }
+    quickSplit.loadExpense(directExpense, ledger.ownerPid, nextKind);
+    setInitializedId(directExpense.id);
+  }, [
+    isDirectEdit,
+    directExpense,
+    ledger,
+    directGroupRow,
+    listQuery.isFetched,
+    initializedId,
+    vndWallets,
+    categoriesQuery.data?.categories,
+    groupSettingsQuery.data?.settings.defaultGroupCategoryId,
+    quickSplit,
+  ]);
 
   const lendCategory = useMemo(
     () =>
@@ -829,12 +923,12 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleTabChange = (next: TabValue) => {
-    const currentTab = isEdit ? entryType : activeTab;
+    const currentTab = isEdit && !isDirectEdit ? entryType : activeTab;
     // Radix Tabs fires onValueChange on mousedown and again on focus if value has not updated yet
     // (because document.startViewTransition runs its callback asynchronously on the next frame).
     if (next === currentTab || next === pendingTabRef.current) return;
     if (next === 'loan-debt') {
-      if (isEdit) return;
+      if (isEdit && !isDirectEdit) return;
       pendingTabRef.current = next;
       runTransition(() => {
         pendingTabRef.current = null;
@@ -1134,6 +1228,12 @@ export function EntryPage(): JSX.Element {
       try {
         await quickShare.save({
           tripId: ledger.tripId,
+          ...(isDirectEdit && directExpense
+            ? {
+                expenseId: directExpense.id,
+                rootId: directExpense.rootId ?? directExpense.id,
+              }
+            : {}),
           expense: {
             description,
             amount: amountToSave,
@@ -1351,6 +1451,12 @@ export function EntryPage(): JSX.Element {
         try {
           await quickShare.save({
             tripId: ledger.tripId,
+            ...(isDirectEdit && directExpense
+              ? {
+                  expenseId: directExpense.id,
+                  rootId: directExpense.rootId ?? directExpense.id,
+                }
+              : {}),
             expense: {
               description,
               amount: amountToSave,
@@ -1360,7 +1466,7 @@ export function EntryPage(): JSX.Element {
               entries: entriesForSave(quickSplit),
             },
             link: {
-              intent: 'shared',
+              intent: isDirectEdit ? (directGroupRow?.link?.intent ?? 'shared') : 'shared',
               categoryId: effectiveCategoryId,
               walletId: selectedWallet.id,
               tagIds: tags,
@@ -1565,11 +1671,21 @@ export function EntryPage(): JSX.Element {
     }
   };
 
-  const isLoading = walletsQuery.isPending || (isEdit && !entry && listQuery.isPending);
+  const isDirectEditLoading =
+    isDirectEdit &&
+    (ledgerLoading ||
+      (Boolean(ledger) && directViewLoading && !directView) ||
+      (!cachedGroupRow && listQuery.isPending));
+  const isLoading =
+    walletsQuery.isPending ||
+    (isEdit && !isDirectEdit && !entry && listQuery.isPending) ||
+    isDirectEditLoading;
   const isLoanLoading =
     isLoanDebt && (ledgerLoading || (Boolean(ledger) && directViewLoading && !directView));
-  const isLoanLedgerError = isLoanDebt && !ledgerLoading && !ledger;
-  const isLoanViewError = isLoanDebt && Boolean(ledger) && !directViewLoading && !directView;
+  const isLoanLedgerError = (isLoanDebt || isDirectEdit) && !ledgerLoading && !ledger;
+  const isLoanViewError =
+    (isLoanDebt || isDirectEdit) && Boolean(ledger) && !directViewLoading && !directView;
+  const isEditMissing = isEdit && (isDirectEdit ? !directExpense : !entry);
   const noActiveWallet = !isEdit && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
 
   useEffect(() => {
@@ -1616,7 +1732,7 @@ export function EntryPage(): JSX.Element {
           </button>
 
           <Tabs
-            value={isEdit ? entryType : activeTab}
+            value={isEdit && !isDirectEdit ? entryType : activeTab}
             onValueChange={(v) => handleTabChange(v as TabValue)}
             className="flex-1 min-w-0 gap-0"
           >
@@ -1628,25 +1744,25 @@ export function EntryPage(): JSX.Element {
                 value="expense"
                 disabled={editLockedTrade && entryType !== 'expense'}
                 data-testid="entry-tab-expense"
-                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
+                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.expense')}
               </TabsTrigger>
               <TabsTrigger
                 value="income"
-                disabled={editLockedTransfer || (editLockedTrade && entryType !== 'income')}
+                disabled={isDirectEdit || editLockedTransfer || (editLockedTrade && entryType !== 'income')}
                 data-testid="entry-tab-income"
-                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
+                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.income')}
               </TabsTrigger>
               <TabsTrigger
                 value="loan-debt"
-                disabled={isEdit}
+                disabled={isEdit && !isDirectEdit}
                 data-testid="entry-tab-loan-debt"
-                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
+                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.loanDebt')}
@@ -1674,9 +1790,9 @@ export function EntryPage(): JSX.Element {
             error={directViewError ?? { code: 'UNKNOWN' }}
             onRetry={() => refetchDirectView()}
           />
-        ) : isEdit && !entry && listQuery.isError ? (
+        ) : isEditMissing && listQuery.isError ? (
           <InlineError error={listQuery.error} onRetry={() => listQuery.refetch()} />
-        ) : isEdit && !entry ? (
+        ) : isEditMissing ? (
           <EmptyState icon="receipt" title={t('personalEntry.notFound')} />
         ) : noActiveWallet ? (
           <EmptyState
@@ -2294,7 +2410,7 @@ export function EntryPage(): JSX.Element {
         !walletsQuery.isError &&
         !isLoanLedgerError &&
         !isLoanViewError &&
-        !(isEdit && !entry) &&
+        !isEditMissing &&
         !noActiveWallet && (
         effectiveKeypadOpen ? (
           <DockedAmountKeypad

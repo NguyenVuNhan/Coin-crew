@@ -4,6 +4,7 @@ import {
   computeShares,
   owedLines,
   recentDirectPeopleIds,
+  type ExpenseView,
   type PersonView,
   type SplitEntry,
   type SplitMode,
@@ -11,7 +12,7 @@ import {
   type TripView,
 } from '@cc/core';
 import { importPerson, useGroupPeople } from '@cc/web-data-access/people';
-import { readSplitInput } from '@cc/web-util/splitInput';
+import { fromEntryValue, readSplitInput } from '@cc/web-util/splitInput';
 import type { SplitPeopleSheetProps } from '../SplitPeopleSheet';
 
 export type QuickSplitKind = 'shared' | 'loan';
@@ -37,6 +38,7 @@ export interface QuickSplit {
   splitExtra: SplitPeopleSheetProps['extra'];
   isDirty: boolean;
   reset(): void;
+  loadExpense(expense: ExpenseView, meId: string | null, nextKind: QuickSplitKind): void;
 }
 
 type InputsByMode = Record<SplitMode, Record<string, string>>;
@@ -285,6 +287,44 @@ export function useQuickSplit(args: {
     setInputsByMode(emptyInputsByMode());
   }, []);
 
+  const loadExpense = useCallback(
+    (expense: ExpenseView, meId: string | null, nextKind: QuickSplitKind) => {
+      setPrevKind(nextKind);
+      setModeState(expense.mode);
+      const nextInputs = emptyInputsByMode();
+      if (expense.mode !== 'equal') {
+        const modeMap: Record<string, string> = {};
+        for (const s of expense.shares) {
+          modeMap[s.participantId] = fromEntryValue(expense.mode, s.inputValue);
+        }
+        nextInputs[expense.mode] = modeMap;
+      }
+      setInputsByMode(nextInputs);
+
+      const isFlipped = Boolean(meId && expense.payerId !== meId);
+      if (nextKind === 'loan') {
+        if (isFlipped) {
+          setChosenState(new Set([expense.payerId]));
+          setFlippedState(true);
+          setCustomPayerId(null);
+        } else {
+          setChosenState(new Set(expense.shares.map((s) => s.participantId)));
+          setFlippedState(false);
+          setCustomPayerId(null);
+        }
+      } else {
+        const others = new Set(
+          expense.shares.map((s) => s.participantId).filter((pid) => pid !== meId),
+        );
+        if (isFlipped) others.add(expense.payerId);
+        setChosenState(others);
+        setFlippedState(isFlipped);
+        setCustomPayerId(isFlipped ? expense.payerId : null);
+      }
+    },
+    [],
+  );
+
   return {
     people,
     chipIds,
@@ -306,5 +346,6 @@ export function useQuickSplit(args: {
     splitExtra,
     isDirty: chosen.size > 0,
     reset,
+    loadExpense,
   };
 }

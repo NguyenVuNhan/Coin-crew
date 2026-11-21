@@ -501,4 +501,235 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
       categoryId: 'cat-coffee',
     });
   });
+
+  it('(h) editing a direct shared expense inside Sổ chi tiêu (/entries/:id/edit?group=1) loads amount, note, people and PATCHes expense + PUTs link on save', async () => {
+    const user = userEvent.setup();
+    const viewWithExpense: TripView = {
+      ...directTripView(),
+      expenses: [
+        {
+          id: 'exp-shared-1',
+          rootId: 'exp-shared-1',
+          description: 'Bún chả trưa',
+          amount: 80_000,
+          spentOn: '2026-11-20',
+          payerId: 'p-me',
+          mode: 'equal',
+          status: 'approved',
+          rejectReason: null,
+          disabledByName: null,
+          createdById: 'p-me',
+          shares: [
+            { participantId: 'p-me', amount: 40_000, inputValue: 1 },
+            { participantId: 'p-minh', amount: 40_000, inputValue: 1 },
+          ],
+        },
+      ],
+    };
+
+    const { calls } = mockApi(
+      baseRoutes({
+        'GET /api/trips/t-led': viewWithExpense,
+        'GET /api/me/personal/transactions': {
+          rows: [],
+          groupRows: [
+            {
+              kind: 'group',
+              id: 'exp-shared-1',
+              rootId: 'exp-shared-1',
+              tripId: 't-led',
+              tripName: 'Quick expenses',
+              isDirect: true,
+              source: 'expense',
+              date: '2026-11-20',
+              title: 'Bún chả trưa',
+              total: 80_000,
+              myShare: 40_000,
+              iPaid: true,
+              payerName: 'An',
+              counterpartName: null,
+              people: ['Minh'],
+              pending: false,
+              link: {
+                walletId: 'w-bank',
+                categoryId: 'cat-food',
+                tagIds: [],
+                intent: 'shared',
+                excludeFromReports: false,
+              },
+              createdAt: '2026-11-20T05:00:00Z',
+              activityAt: '2026-11-20T05:00:00Z',
+            },
+          ],
+        },
+        'PATCH /api/trips/t-led/expenses/exp-shared-1': () =>
+          Response.json({ expenseId: 'exp-shared-2', rootId: 'exp-shared-1' }),
+        'PUT /api/me/personal/group-links/exp-shared-1': () =>
+          Response.json({
+            link: {
+              walletId: 'w-bank',
+              categoryId: 'cat-coffee',
+              tagIds: [],
+              intent: 'shared',
+              excludeFromReports: false,
+            },
+          }),
+      }),
+    );
+
+    renderAt(<App />, { route: '/entries/exp-shared-1/edit?group=1' });
+    act(() => {
+      setLang('vi');
+    });
+
+    expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('80.000₫');
+    expect(screen.getByTestId('entry-note-input')).toHaveValue('Bún chả trưa');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Chia cho 2 người');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Bạn, Minh');
+    expect(screen.getByTestId('entry-outcome')).toHaveTextContent(
+      'Phần bạn 40.000₫ · Minh nợ bạn 40.000₫',
+    );
+
+    // Edit note and save
+    await user.clear(screen.getByTestId('entry-note-input'));
+    await user.type(screen.getByTestId('entry-note-input'), 'Bún chả chiều');
+    await user.click(screen.getByTestId('entry-save-btn'));
+
+    await waitFor(() => {
+      expect(
+        calls.some(
+          (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-shared-1',
+        ),
+      ).toBe(true);
+    });
+
+    const patchCall = calls.find(
+      (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-shared-1',
+    );
+    expect(patchCall?.body).toMatchObject({
+      description: 'Bún chả chiều',
+      amount: 80_000,
+      payerId: 'p-me',
+      mode: 'equal',
+      entries: [
+        { participantId: 'p-me', value: 1 },
+        { participantId: 'p-minh', value: 1 },
+      ],
+    });
+    const putCall = calls.find(
+      (c) => c.method === 'PUT' && c.path === '/api/me/personal/group-links/exp-shared-1',
+    );
+    expect(putCall?.body).toMatchObject({
+      intent: 'shared',
+      categoryId: 'cat-food',
+      walletId: 'w-bank',
+    });
+  });
+
+  it('(i) editing a direct loan inside Sổ chi tiêu (/entries/:id/edit?group=1) opens on Vay/Nợ with the loan split and PATCHes on save', async () => {
+    const user = userEvent.setup();
+    const viewWithLoan: TripView = {
+      ...directTripView(),
+      expenses: [
+        {
+          id: 'exp-loan-1',
+          rootId: 'exp-loan-1',
+          description: 'Cho vay',
+          amount: 50_000,
+          spentOn: '2026-11-20',
+          payerId: 'p-me',
+          mode: 'equal',
+          status: 'approved',
+          rejectReason: null,
+          disabledByName: null,
+          createdById: 'p-me',
+          shares: [{ participantId: 'p-minh', amount: 50_000, inputValue: 1 }],
+        },
+      ],
+    };
+
+    const { calls } = mockApi(
+      baseRoutes({
+        'GET /api/trips/t-led': viewWithLoan,
+        'GET /api/me/personal/transactions': {
+          rows: [],
+          groupRows: [
+            {
+              kind: 'group',
+              id: 'exp-loan-1',
+              rootId: 'exp-loan-1',
+              tripId: 't-led',
+              tripName: 'Quick expenses',
+              isDirect: true,
+              source: 'expense',
+              date: '2026-11-20',
+              title: 'Cho vay',
+              total: 50_000,
+              myShare: 0,
+              iPaid: true,
+              payerName: 'An',
+              counterpartName: null,
+              people: ['Minh'],
+              pending: false,
+              link: {
+                walletId: 'w-bank',
+                categoryId: null,
+                tagIds: [],
+                intent: 'loan',
+                excludeFromReports: false,
+              },
+              createdAt: '2026-11-20T05:00:00Z',
+              activityAt: '2026-11-20T05:00:00Z',
+            },
+          ],
+        },
+        'PATCH /api/trips/t-led/expenses/exp-loan-1': () =>
+          Response.json({ expenseId: 'exp-loan-2', rootId: 'exp-loan-1' }),
+        'PUT /api/me/personal/group-links/exp-loan-1': () =>
+          Response.json({
+            link: {
+              walletId: 'w-bank',
+              categoryId: null,
+              tagIds: [],
+              intent: 'loan',
+              excludeFromReports: false,
+            },
+          }),
+      }),
+    );
+
+    renderAt(<App />, { route: '/entries/exp-loan-1/edit?group=1' });
+    act(() => {
+      setLang('vi');
+    });
+
+    expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('50.000₫');
+    expect(screen.getByTestId('entry-tab-loan-debt')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Với ai?');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Chia cho 1 người');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Minh');
+    expect(screen.getByTestId('entry-outcome')).toHaveTextContent('Minh nợ bạn 50.000₫');
+
+    // Flip to borrowed and save
+    await user.click(screen.getByTestId('entry-flip'));
+    expect(screen.getByTestId('entry-outcome')).toHaveTextContent('Bạn nợ Minh 50.000₫');
+    await user.click(screen.getByTestId('entry-save-btn'));
+
+    await waitFor(() => {
+      expect(
+        calls.some(
+          (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-loan-1',
+        ),
+      ).toBe(true);
+    });
+
+    const patchCall = calls.find(
+      (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-loan-1',
+    );
+    expect(patchCall?.body).toMatchObject({
+      amount: 50_000,
+      payerId: 'p-minh',
+      entries: [{ participantId: 'p-me', value: 1 }],
+    });
+  });
 });

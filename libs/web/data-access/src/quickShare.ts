@@ -16,6 +16,10 @@ import { requestTxCopySync } from './txCopy/hooks';
 
 export interface QuickShareInput {
   tripId: string;
+  /** Present when editing an existing quick expense (PATCH instead of POST). */
+  expenseId?: string;
+  /** Stable rootId for the personal group link (defaults to the expenseId returned by the server). */
+  rootId?: string;
   expense: {
     description: string;
     amount: number;
@@ -24,7 +28,7 @@ export interface QuickShareInput {
     mode: SplitMode;
     entries: { participantId: string; value: number }[];
   };
-  link: UpdateGroupLinkInput & { intent: 'shared' | 'loan' };
+  link: UpdateGroupLinkInput & { intent?: 'shared' | 'loan' | null };
 }
 
 export class QuickShareLinkError extends Error {
@@ -91,24 +95,33 @@ export function useSaveQuickShare(): {
       pendingLinkRef.current = null;
 
       let expenseId: string;
+      let linkRootId: string;
       try {
-        const res = await apiSend<{ expenseId: string }>(
-          `/api/trips/${encodeURIComponent(input.tripId)}/expenses`,
-          'POST',
-          input.expense,
-          input.tripId,
-        );
+        const res = input.expenseId
+          ? await apiSend<{ expenseId: string; rootId?: string }>(
+              `/api/trips/${encodeURIComponent(input.tripId)}/expenses/${encodeURIComponent(input.expenseId)}`,
+              'PATCH',
+              input.expense,
+              input.tripId,
+            )
+          : await apiSend<{ expenseId: string; rootId?: string }>(
+              `/api/trips/${encodeURIComponent(input.tripId)}/expenses`,
+              'POST',
+              input.expense,
+              input.tripId,
+            );
         expenseId = res.expenseId;
+        linkRootId = input.rootId ?? res.rootId ?? res.expenseId;
       } catch (err) {
         setError(err);
         setIsSaving(false);
         throw err;
       }
 
-      pendingLinkRef.current = { tripId: input.tripId, expenseId, link: input.link };
+      pendingLinkRef.current = { tripId: input.tripId, expenseId: linkRootId, link: input.link };
 
       try {
-        await putGroupLink(expenseId, input.link);
+        await putGroupLink(linkRootId, input.link);
       } catch (err) {
         setError(err);
         setIsSaving(false);
