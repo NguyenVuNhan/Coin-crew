@@ -3,8 +3,6 @@ import { and, asc, eq, gt, inArray, or, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
-  participants,
-  personalGroupLinks,
   personalSyncDeletions,
   personalSyncState,
   personalTransactions,
@@ -23,20 +21,11 @@ import type {
   SyncResponse,
 } from '@cc/core';
 import { findLedger } from '../me/ledger';
-import { loadGroupRows } from './groupShares';
+import { computeGroupsKey, loadGroupRows } from './groupShares';
 import { loadLedgerRows } from './personRows';
 
 const PAGE_SIZE = 500;
 const TAG_CHUNK = 90;
-
-function fnv1aHex(input: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
 
 function parseOptionalInt(val: string | undefined): number | undefined {
   if (val === undefined) return undefined;
@@ -102,34 +91,7 @@ export function syncRoutes(): Hono<AppBindings> {
 
     let currentGroupsKey: string | null = null;
     if (isFirstPage && wantGroups) {
-      const [groupVersionRows, linkVerRow] = await Promise.all([
-        db
-          .select({
-            tripId: trips.id,
-            version: trips.version,
-          })
-          .from(participants)
-          .innerJoin(trips, eq(trips.id, participants.tripId))
-          .where(and(eq(participants.userId, user.id), eq(participants.status, 'active')))
-          .all(),
-        db
-          .select({
-            maxSyncVersion: sql<number | null>`max(${personalGroupLinks.syncVersion})`,
-          })
-          .from(personalGroupLinks)
-          .where(eq(personalGroupLinks.userId, user.id))
-          .get(),
-      ]);
-
-      const versionByTrip = new Map<string, number>();
-      for (const row of groupVersionRows) {
-        versionByTrip.set(row.tripId, row.version);
-      }
-      const pairs = Array.from(versionByTrip.entries())
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([tripId, version]) => `${tripId}:${version}`);
-      const maxLinkSyncVersion = linkVerRow?.maxSyncVersion ?? 0;
-      currentGroupsKey = fnv1aHex(`${pairs.join(',')}|${maxLinkSyncVersion}`);
+      currentGroupsKey = await computeGroupsKey(db, user.id);
     }
 
     if (

@@ -196,6 +196,18 @@ class TxCopyController {
 
 const controllers = new Map<string, TxCopyController>();
 let activeUserId: string | null = null;
+const txCopySyncListeners = new Set<() => Promise<void> | void>();
+
+/**
+ * Registers a listener called whenever `requestTxCopySync()` runs.
+ * Returns an unsubscribe function.
+ */
+export function onTxCopySync(listener: () => Promise<void> | void): () => void {
+  txCopySyncListeners.add(listener);
+  return () => {
+    txCopySyncListeners.delete(listener);
+  };
+}
 
 function getOrCreateController(userId: string): TxCopyController {
   let controller = controllers.get(userId);
@@ -299,8 +311,19 @@ export function useCopyList(
  */
 export function requestTxCopySync(): Promise<void> {
   const controller = getActiveController();
-  if (!controller) return Promise.resolve();
-  return controller.sync();
+  const tasks: Promise<void>[] = [];
+  if (controller) {
+    tasks.push(controller.sync());
+  }
+  for (const listener of txCopySyncListeners) {
+    const result = listener();
+    if (result) {
+      tasks.push(result);
+    }
+  }
+  if (tasks.length === 0) return Promise.resolve();
+  if (tasks.length === 1) return tasks[0]!;
+  return Promise.all(tasks).then(() => undefined);
 }
 
 /**
@@ -328,3 +351,18 @@ export async function forgetTxCopy(userId: string): Promise<void> {
   }
   await deleteTxCopy(userId);
 }
+
+export {
+  deleteGroupCopy,
+  forgetGroupCopy,
+  openGroupCopyStore,
+  requestGroupCopySync,
+  syncGroupCopy,
+  useCopyGroupRows,
+  useGroupCopy,
+  type FetchGroupRows,
+  type GroupCopySnapshot,
+  type GroupCopyStatus,
+  type GroupCopyStore,
+  type GroupRowsSyncResponse,
+} from './groupCopy';

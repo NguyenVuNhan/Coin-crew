@@ -22,7 +22,7 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { walletBalance, type GroupLinkView, type GroupSettingsView } from '@cc/core';
-import { loadGroupSettings } from './groupShares';
+import { computeGroupsKey, loadGroupRows, loadGroupSettings } from './groupShares';
 import { parseJson } from './validate';
 import { loadCalc } from './wallets';
 
@@ -146,6 +146,20 @@ function parseTagIds(v: unknown): string[] | undefined {
 
 export function groupLinkRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
+
+  app.get('/me/personal/group-rows', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const db = getDb(c.env);
+    const clientKey = c.req.query('key');
+    const currentKey = await computeGroupsKey(db, user.id);
+
+    if (clientKey !== undefined && clientKey === currentKey) {
+      return c.json({ status: 'current' as const }, 200);
+    }
+
+    const rows = await loadGroupRows(db, user.id);
+    return c.json({ status: 'rows' as const, key: currentKey, rows }, 200);
+  });
 
   app.put('/me/personal/group-links/:rootId', requirePersonal, async (c) => {
     const user = (await getSessionUser(c))!;

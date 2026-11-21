@@ -105,6 +105,8 @@ export function compareBookRows(a: BookRow, b: BookRow): number; // date desc, t
 
 ### Task 3: Data access — saved copy and hooks (Neon)
 
+> **As built (2026-11-21):** opt-in and separate, so the existing txCopy tests stay exact. `usePersonalList(query, { groups: true })` adds `groups=show`; group rows live in their own IndexedDB copy (`libs/web/data-access/src/txCopy/groupCopy.ts`: `useGroupCopy`, `useCopyGroupRows(query) → { groupRows, ready }`, `requestGroupCopySync`, `forgetGroupCopy`) refreshed from the new `GET /api/me/personal/group-rows?key=` (`{ status: 'current' } | { status: 'rows', key, rows }`, key from `computeGroupsKey`). The txCopy store/sync/`useCopyList` shapes are unchanged. The text below is the original plan.
+
 **Files:** Modify `libs/web/data-access/src/txCopy/store.ts`, `sync.ts`, `hooks.ts`, `libs/web/data-access/src/personalMoney.ts`. Test: `libs/web/data-access/src/__tests__/group-shares-hooks.test.tsx` (new).
 
 **Interfaces:**
