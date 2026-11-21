@@ -26,6 +26,7 @@ import { TransactionRow } from '../components/TransactionRow';
 import { WalletForm } from '../components/WalletForm';
 import { HoldingsPie } from '../components/HoldingsPie';
 import { WalletSummary } from '../components/WalletSummary';
+import { WalletVisibilitySheet } from '../components/visibility/WalletVisibilitySheet';
 
 export function WalletScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +54,7 @@ export function WalletScreen(): JSX.Element {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,13 @@ export function WalletScreen(): JSX.Element {
       label: t('wallet.edit'),
       icon: 'edit',
       onSelect: () => setEditOpen(true),
+    });
+    actions.push({
+      id: 'visibility',
+      testId: 'wallet-menu-visibility',
+      label: t('visibility.walletSheetTitle'),
+      icon: 'sliders',
+      onSelect: () => setVisibilityOpen(true),
     });
     if (!wallet.isDefault && !wallet.archived) {
       actions.push({
@@ -208,6 +217,12 @@ export function WalletScreen(): JSX.Element {
               onClose={() => setMenuOpen(false)}
               title={t('wallet.actions')}
               actions={actions}
+            />
+
+            <WalletVisibilitySheet
+              open={visibilityOpen}
+              onClose={() => setVisibilityOpen(false)}
+              wallet={wallet}
             />
 
             <WalletForm

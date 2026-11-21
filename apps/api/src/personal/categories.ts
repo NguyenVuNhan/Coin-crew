@@ -4,6 +4,7 @@ import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
   personalCategories,
+  personalCategoryVisibility,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -13,7 +14,7 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import type { CategoryView, TagView } from '@cc/core';
+import type { CategoryView, TagView, WalletOverride } from '@cc/core';
 import { STARTER_CATEGORIES } from './starterCategories';
 import { name1to40, parseJson } from './validate';
 
@@ -32,15 +33,24 @@ function requireIcon(v: unknown): string {
   return trimmed;
 }
 
-function toCategoryView(row: {
-  id: string;
-  parentId: string | null;
-  type: string;
-  name: string;
-  icon: string;
-  hidden: number;
-  sortOrder: number;
-}): CategoryView {
+function starterKeyOf(userId: string, id: string): string | null {
+  const prefix = `${userId}:`;
+  return id.startsWith(prefix) ? id.slice(prefix.length) : null;
+}
+
+function toCategoryView(
+  row: {
+    id: string;
+    parentId: string | null;
+    type: string;
+    name: string;
+    icon: string;
+    hidden: number;
+    sortOrder: number;
+  },
+  userId: string,
+  walletOverrides: WalletOverride[] = [],
+): CategoryView {
   return {
     id: row.id,
     parentId: row.parentId ?? null,
@@ -49,6 +59,8 @@ function toCategoryView(row: {
     icon: row.icon,
     hidden: Boolean(row.hidden),
     sortOrder: row.sortOrder,
+    starterKey: starterKeyOf(userId, row.id),
+    walletOverrides,
   };
 }
 
@@ -136,9 +148,27 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       .limit(6)
       .all();
 
+    const overrideRows = await db
+      .select({
+        categoryId: personalCategoryVisibility.categoryId,
+        walletId: personalCategoryVisibility.walletId,
+        visible: personalCategoryVisibility.visible,
+      })
+      .from(personalCategoryVisibility)
+      .where(eq(personalCategoryVisibility.userId, user.id))
+      .all();
+
+    const overridesByCategory = new Map<string, WalletOverride[]>();
+    for (const r of overrideRows) {
+      const ov: WalletOverride = { walletId: r.walletId, visible: Boolean(r.visible) };
+      const list = overridesByCategory.get(r.categoryId);
+      if (list) list.push(ov);
+      else overridesByCategory.set(r.categoryId, [ov]);
+    }
+
     return c.json(
       {
-        categories: rows.map(toCategoryView),
+        categories: rows.map((r) => toCategoryView(r, user.id, overridesByCategory.get(r.id) ?? [])),
         recentIds: recentRows.map((r) => r.categoryId!),
       },
       200,
@@ -170,6 +200,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
 
     const db = getDb(c.env);
 
+    let inheritedOverrides: WalletOverride[] = [];
     if (parentId !== null) {
       const parent = await db
         .select({
@@ -184,6 +215,25 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       if (!parent || parent.parentId !== null || parent.type !== type) {
         throw new ApiError('VALIDATION', 422, 'Invalid parent category');
       }
+
+      const parentOverrides = await db
+        .select({
+          walletId: personalCategoryVisibility.walletId,
+          visible: personalCategoryVisibility.visible,
+        })
+        .from(personalCategoryVisibility)
+        .where(
+          and(
+            eq(personalCategoryVisibility.userId, user.id),
+            eq(personalCategoryVisibility.categoryId, parentId),
+          ),
+        )
+        .all();
+
+      inheritedOverrides = parentOverrides.map((r) => ({
+        walletId: r.walletId,
+        visible: Boolean(r.visible),
+      }));
     }
 
     const maxRow = await db
@@ -198,18 +248,32 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
     const id = newId();
     const now = nowIso();
 
-    await db.insert(personalCategories).values({
-      id,
-      userId: user.id,
-      parentId,
-      type,
-      name,
-      icon,
-      hidden: 0,
-      sortOrder,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await commitPersonalWrite(db, user.id, () => [
+      db.insert(personalCategories).values({
+        id,
+        userId: user.id,
+        parentId,
+        type,
+        name,
+        icon,
+        hidden: 0,
+        sortOrder,
+        createdAt: now,
+        updatedAt: now,
+      }),
+      ...(inheritedOverrides.length > 0
+        ? [
+            db.insert(personalCategoryVisibility).values(
+              inheritedOverrides.map((ov) => ({
+                userId: user.id,
+                walletId: ov.walletId,
+                categoryId: id,
+                visible: ov.visible ? 1 : 0,
+              })),
+            ),
+          ]
+        : []),
+    ]);
 
     const category: CategoryView = {
       id,
@@ -219,6 +283,8 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       icon,
       hidden: false,
       sortOrder,
+      starterKey: starterKeyOf(user.id, id),
+      walletOverrides: inheritedOverrides,
     };
 
     return c.json({ category }, 201);
@@ -283,6 +349,20 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       })
       .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)));
 
+    const overrideRows = await db
+      .select({
+        walletId: personalCategoryVisibility.walletId,
+        visible: personalCategoryVisibility.visible,
+      })
+      .from(personalCategoryVisibility)
+      .where(
+        and(
+          eq(personalCategoryVisibility.userId, user.id),
+          eq(personalCategoryVisibility.categoryId, existing.id),
+        ),
+      )
+      .all();
+
     const category: CategoryView = {
       id: existing.id,
       parentId: existing.parentId ?? null,
@@ -291,6 +371,11 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       icon: nextIcon,
       hidden: nextHidden,
       sortOrder: nextSortOrder,
+      starterKey: starterKeyOf(user.id, existing.id),
+      walletOverrides: overrideRows.map((r) => ({
+        walletId: r.walletId,
+        visible: Boolean(r.visible),
+      })),
     };
 
     return c.json({ category }, 200);

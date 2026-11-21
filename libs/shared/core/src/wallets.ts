@@ -39,10 +39,10 @@ export interface Holding {
 }
 
 export function isBeforeStart(
-  entry: Pick<CalcEntry, 'date'>,
-  wallet: Pick<CalcWallet, 'startDate'>,
+  _entry: Pick<CalcEntry, 'date'>,
+  _wallet: Pick<CalcWallet, 'startDate'>,
 ): boolean {
-  return entry.date < wallet.startDate;
+  return false;
 }
 
 export function walletBalance(wallet: CalcWallet, entries: CalcEntry[]): number {

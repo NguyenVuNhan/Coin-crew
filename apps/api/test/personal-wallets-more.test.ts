@@ -1,6 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { WalletDetailResponse, WalletDetailsResponse } from '@cc/core';
+import type {
+  CategoriesResponse,
+  PersonalSummary,
+  WalletDetailResponse,
+  WalletDetailsResponse,
+} from '@cc/core';
 import { isBeforeStart } from '@cc/core';
 import { call, json, memberSid } from './helpers';
 import { addWallet, postJson, switchOn } from './personal-helpers';
@@ -21,6 +26,14 @@ const deleteWallet = (id: string, sid: string | null) =>
 
 const reorderWallets = (sid: string | null, body: unknown) =>
   postJson('/api/me/personal/wallets/reorder', sid, body);
+
+const getCategories = (sid: string) => call('/api/me/personal/categories', as(sid));
+
+const createEntry = (sid: string, body: unknown) =>
+  postJson('/api/me/personal/transactions', sid, body);
+
+const getSummary = (sid: string, query = '') =>
+  call(`/api/me/personal/summary${query}`, as(sid));
 
 afterEach(async () => {
   await env.DB.prepare('DELETE FROM personal_transactions').run();
@@ -132,7 +145,7 @@ describe('personal wallets — more wallets, kinds, currencies, archive, reorder
     expect(defaults).toHaveLength(1);
   });
 
-  it('moving startDate after an entry flips its beforeStart and the balance', async () => {
+  it('moving startDate after an entry still counts it in balance and beforeStart is false', async () => {
     const sid = await memberSid('u-startdate', 'StartDate');
     await switchOn('u-startdate');
 
@@ -159,12 +172,12 @@ describe('personal wallets — more wallets, kinds, currencies, archive, reorder
     expect(patchRes.status).toBe(200);
     const patched = (await json<WalletDetailResponse>(patchRes)).wallet;
     expect(patched.startDate).toBe('2026-11-13');
-    expect(BeforeStartOf('2026-11-12', patched.startDate)).toBe(true);
-    expect(patched.balance).toBe(500_000);
+    expect(BeforeStartOf('2026-11-12', patched.startDate)).toBe(false);
+    expect(patched.balance).toBe(380_000);
     expect(patched.entryCount).toBe(1);
 
     const afterPatch = await json<WalletDetailsResponse>(await getWallets(sid));
-    expect(afterPatch.wallets[0]?.balance).toBe(500_000);
+    expect(afterPatch.wallets[0]?.balance).toBe(380_000);
   });
 
   it('archiving the default is 409 DEFAULT_WALLET; after making another default it works and the wallet shows archived: true', async () => {
@@ -314,6 +327,146 @@ describe('personal wallets — more wallets, kinds, currencies, archive, reorder
     expect((await patchWallet(w.id, sid, { name: 'Đổi tên' })).status).toBe(403);
     expect((await reorderWallets(sid, { ids: [w.id] })).status).toBe(403);
     expect((await deleteWallet(w.id, sid)).status).toBe(403);
+  });
+
+  it('JPY wallet with excludeFromReports: true persists option and returns excludeFromReports: true', async () => {
+    const sid = await memberSid('u-jpy-excl', 'JpyExcl');
+    await switchOn('u-jpy-excl');
+
+    const res = await addWallet(sid, {
+      name: 'Yen Wallet',
+      currency: 'JPY',
+      startAmount: 10_000,
+      startCostVnd: 1_700_000,
+      excludeFromReports: true,
+    });
+    expect(res.status).toBe(201);
+    const { wallet } = await json<WalletDetailResponse>(res);
+    expect(wallet.currency).toBe('JPY');
+    expect(wallet.startAmount).toBe(10_000);
+    expect(wallet.startCostVnd).toBe(1_700_000);
+    expect(wallet.excludeFromReports).toBe(true);
+
+    const list = await json<WalletDetailsResponse>(await getWallets(sid));
+    expect(list.wallets[0]).toEqual(wallet);
+  });
+
+  it('non-boolean excludeFromReports returns 422 on create and patch', async () => {
+    const sid = await memberSid('u-excl-422', 'Excl422');
+    await switchOn('u-excl-422');
+
+    const badFirst = await postJson('/api/me/personal/wallets', sid, {
+      name: 'Ví 1',
+      startAmount: 100_000,
+      excludeFromReports: 'yes',
+    });
+    expect(badFirst.status).toBe(422);
+
+    const badAdd = await addWallet(sid, {
+      name: 'Ví 1',
+      startAmount: 100_000,
+      excludeFromReports: 'yes',
+    });
+    expect(badAdd.status).toBe(422);
+
+    const ok = await addWallet(sid, { name: 'Ví 1', startAmount: 100_000 });
+    expect(ok.status).toBe(201);
+    const w = (await json<WalletDetailResponse>(ok)).wallet;
+    expect(w.excludeFromReports).toBe(false);
+
+    const badPatch = await patchWallet(w.id, sid, { excludeFromReports: 'yes' });
+    expect(badPatch.status).toBe(422);
+  });
+
+  it('excludeFromReports wallet stays in summary totalVnd/perCurrency while skipping spent/income, and can toggle back when entryCount > 0', async () => {
+    const sid = await memberSid('u-excl-sum', 'ExclSum');
+    await switchOn('u-excl-sum');
+
+    const mainWallet = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, {
+          name: 'Ví chính',
+          startAmount: 5_000_000,
+          startDate: '2026-11-01',
+        }),
+      )
+    ).wallet;
+    const exclWallet = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, {
+          name: 'Ví ẩn báo cáo',
+          startAmount: 2_000_000,
+          startDate: '2026-11-01',
+          excludeFromReports: true,
+        }),
+      )
+    ).wallet;
+
+    const cats = (await json<CategoriesResponse>(await getCategories(sid))).categories;
+    const food = cats.find((c) => c.type === 'expense')!;
+    const salary = cats.find((c) => c.type === 'income')!;
+
+    await createEntry(sid, {
+      type: 'expense',
+      walletId: mainWallet.id,
+      amount: 100_000,
+      categoryId: food.id,
+      date: '2026-11-10',
+      note: 'Main expense',
+    });
+    await createEntry(sid, {
+      type: 'expense',
+      walletId: exclWallet.id,
+      amount: 300_000,
+      categoryId: food.id,
+      date: '2026-11-11',
+      note: 'Excluded wallet expense',
+    });
+    await createEntry(sid, {
+      type: 'income',
+      walletId: exclWallet.id,
+      amount: 800_000,
+      categoryId: salary.id,
+      date: '2026-11-12',
+      note: 'Excluded wallet income',
+    });
+
+    const summaryExcl = await json<PersonalSummary>(await getSummary(sid, '?month=2026-11'));
+    // Balances: main = 4_900_000, excl = 2_500_000 -> totalVnd = 7_400_000
+    expect(summaryExcl.totalVnd).toBe(7_400_000);
+    expect(summaryExcl.perCurrency).toEqual([{ currency: 'VND', balance: 7_400_000 }]);
+    expect(summaryExcl.spent).toEqual([{ currency: 'VND', amount: 100_000 }]);
+    expect(summaryExcl.income).toEqual([]);
+
+    // Patch excludeFromReports: false on a wallet with entryCount > 0 succeeds
+    const patchRes = await patchWallet(exclWallet.id, sid, { excludeFromReports: false });
+    expect(patchRes.status).toBe(200);
+    const patched = (await json<WalletDetailResponse>(patchRes)).wallet;
+    expect(patched.excludeFromReports).toBe(false);
+    expect(patched.entryCount).toBe(2);
+
+    const summaryIncl = await json<PersonalSummary>(await getSummary(sid, '?month=2026-11'));
+    expect(summaryIncl.totalVnd).toBe(7_400_000);
+    expect(summaryIncl.perCurrency).toEqual([{ currency: 'VND', balance: 7_400_000 }]);
+    expect(summaryIncl.spent).toEqual([{ currency: 'VND', amount: 400_000 }]);
+    expect(summaryIncl.income).toEqual([{ currency: 'VND', amount: 800_000 }]);
+  });
+
+  it('another account gets 404 when patching excludeFromReports', async () => {
+    const sidOwner = await memberSid('u-excl-owner', 'ExclOwner');
+    await switchOn('u-excl-owner');
+    const w = (
+      await json<WalletDetailResponse>(
+        await addWallet(sidOwner, { name: 'Ví Owner', startAmount: 100_000 }),
+      )
+    ).wallet;
+
+    const sidOther = await memberSid('u-excl-other', 'ExclOther');
+    await switchOn('u-excl-other');
+
+    const res = await patchWallet(w.id, sidOther, { excludeFromReports: true });
+    expect(res.status).toBe(404);
+    expect((await json<{ error: { code: string } }>(res)).error.code).toBe('NOT_FOUND');
   });
 });
 

@@ -189,7 +189,8 @@ describe('Wallets', () => {
     await userEvent.click(await screen.findByTestId('wallets-add'));
     const form = await screen.findByTestId('wallet-form');
     await userEvent.type(within(form).getByTestId('wallet-form-name'), 'Travel USD');
-    await userEvent.click(within(form).getByTestId('wallet-form-currency-USD'));
+    await userEvent.click(within(form).getByTestId('wallet-form-currency-trigger'));
+    await userEvent.click(await screen.findByTestId('currency-option-USD'));
     await userEvent.type(within(form).getByTestId('wallet-form-amount'), '200');
     await userEvent.type(within(form).getByTestId('wallet-form-cost-vnd'), '5.000.000');
     await userEvent.click(within(form).getByTestId('wallet-form-submit'));
@@ -200,6 +201,7 @@ describe('Wallets', () => {
         currency: 'USD',
         startAmount: 20000,
         startCostVnd: 5_000_000,
+        excludeFromReports: false,
       }),
     );
     expect(await screen.findByTestId('wallet-row-w-2')).toBeInTheDocument();

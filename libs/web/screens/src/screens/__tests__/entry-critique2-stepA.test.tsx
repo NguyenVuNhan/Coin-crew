@@ -62,6 +62,11 @@ const foodCat: CategoryView = {
   parentId: null,
   sortOrder: 0,
   hidden: false,
+  // Shown on the Binance wallets on purpose: these tests are about currency, not visibility (#130).
+  walletOverrides: [
+    { walletId: 'w-bin', visible: true },
+    { walletId: 'w-bin2', visible: true },
+  ],
 };
 const categoriesResp: CategoriesResponse = { categories: [foodCat], recentIds: ['cat-food'] };
 

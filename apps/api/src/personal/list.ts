@@ -415,6 +415,7 @@ export function listRoutes(): Hono<AppBindings> {
     const vnd = vndTotal(wallets, entries);
 
     const walletCurrency = new Map(wallets.map((w) => [w.id, w.currency]));
+    const excludedWalletIds = new Set(wallets.filter((w) => w.excludeFromReports).map((w) => w.id));
     const defaultWalletId = wallets.find((w) => w.isDefault)?.id ?? null;
 
     const personRows = await loadPersonRows(db, {
@@ -427,6 +428,7 @@ export function listRoutes(): Hono<AppBindings> {
     const counted: CountedRow[] = [];
     for (const e of entries) {
       if (e.date < from || e.date > to) continue;
+      if (excludedWalletIds.has(e.walletId)) continue;
       const currency = walletCurrency.get(e.walletId);
       if (!currency) continue;
       const isTrade = e.type === 'buy' || e.type === 'sell';
