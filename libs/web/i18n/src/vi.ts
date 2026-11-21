@@ -1649,4 +1649,5 @@ export const vi: Record<MessageKey, string> = {
   'outcome.eachOwesMe': '{names} mỗi người nợ bạn {amount}', // REVIEW
   'outcome.iOwe': 'Bạn nợ {name} {amount}', // REVIEW
   'outcome.paidBy': '{name} trả', // REVIEW
+  'loanDebt.withWhoQ': 'Với ai?', // REVIEW
 };

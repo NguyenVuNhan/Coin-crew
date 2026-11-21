@@ -28,7 +28,7 @@ export function OutcomeSentence({
   const nameOf = (id: string) => names.get(id) ?? id;
   const parts: string[] = [];
 
-  if (split.flipped) {
+  if (split.flipped && kind === 'shared') {
     parts.push(t('outcome.paidBy', { name: nameOf(split.payerId) }));
   } else if (kind === 'shared' && split.outcome.myShare > 0) {
     parts.push(t('outcome.myShare', { amount: formatMoney(split.outcome.myShare, 'VND') }));

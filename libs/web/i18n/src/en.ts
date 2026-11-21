@@ -1648,6 +1648,7 @@ export const en = {
   'outcome.eachOwesMe': '{names} each owe you {amount}',
   'outcome.iOwe': 'You owe {name} {amount}',
   'outcome.paidBy': '{name} paid',
+  'loanDebt.withWhoQ': 'With whom?',
 } as const;
 
 export type MessageKey = keyof typeof en;
