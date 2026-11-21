@@ -11,6 +11,7 @@ import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { AppNav } from '../../components/AppNav';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
+import { finishAmount, openDetails } from '../../test/entry';
 
 beforeEach(() => {
   localStorage.clear();
@@ -117,6 +118,7 @@ function renderEntryPage(initialEntries: string[]) {
   );
 }
 
+// Owner approved 2026-11-21 (Part 3): Vay/Nợ is the entry page's own loan form, not the embedded group form.
 describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', () => {
   it('Vay/Nợ tab shows quick-expense form under tabs with no "Thêm khoản chi" heading and no navigation away', async () => {
     const user = userEvent.setup();
@@ -133,8 +135,10 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
 
     await user.click(screen.getByTestId('entry-tab-loan-debt'));
 
-    // Critique step 2: the embedded form leads with the shared keypad and the "Với ai" row.
-    expect(await screen.findByTestId('loan-debt-with-row')).toBeInTheDocument();
+    // Part 3: Vay/Nợ leads with the shared keypad; the "Với ai?" chips follow once the amount is in.
+    await waitFor(() => {
+      expect(screen.getByTestId('entry-tab-loan-debt')).toHaveAttribute('aria-selected', 'true');
+    });
     expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
     expect(screen.queryByTestId('quick-expense-route')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Thêm khoản chi' })).toBeNull();
@@ -151,7 +155,7 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
     });
 
     renderEntryPage(['/entries/new?type=loan-debt']);
-    expect(await screen.findByTestId('loan-debt-with-row')).toBeInTheDocument();
+    expect(await screen.findByTestId('amount-keypad')).toBeInTheDocument();
     expect(screen.getByTestId('entry-tab-loan-debt')).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('heading', { name: 'Thêm khoản chi' })).toBeNull();
   });
@@ -165,22 +169,21 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
       'GET /api/trips/t-led': directTripView(),
       'GET /api/me/people/candidates': [],
       'POST /api/trips/t-led/expenses': () => Response.json({ expenseId: 'exp-1' }, { status: 201 }),
+      'GET /api/me/personal/group-settings': {
+        settings: { defaultGroupCategoryId: null, countLoans: false },
+      },
+      'PUT /api/me/personal/group-links/exp-1': () =>
+        Response.json({
+          link: { walletId: 'w-vnd', categoryId: null, tagIds: [], intent: 'loan', excludeFromReports: false },
+        }),
     });
 
-    const { container } = renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
-    await screen.findByTestId('amount-keypad');
+    renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('entry-person-led-m'));
 
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
-
-    await user.click(screen.getByTestId('loan-debt-with-row'));
-    await user.click(await screen.findByRole('button', { name: /Minh/ }));
-    await user.click(screen.getByRole('button', { name: 'Xong' }));
-
-    const descInput = container.querySelector('#expense-what-for') as HTMLInputElement;
-    expect(descInput).toBeTruthy();
-    await user.type(descInput, 'Trà sữa');
+    await openDetails(user);
+    await user.type(screen.getByTestId('entry-note-input'), 'Trà sữa');
 
     const saveBtn = await screen.findByTestId('entry-save-btn');
     expect(saveBtn).toBeEnabled();
@@ -196,6 +199,9 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
       description: 'Trà sữa',
       amount: 50000,
     });
+    expect(
+      calls.some((c) => c.method === 'PUT' && c.path === '/api/me/personal/group-links/exp-1'),
+    ).toBe(true);
     expect(screen.getByText('Đã lưu')).toBeInTheDocument();
   });
 
@@ -210,12 +216,12 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
     });
 
     renderEntryPage(['/entries/new?type=loan-debt']);
-    await screen.findByTestId('loan-debt-with-row');
+    await screen.findByTestId('amount-keypad');
 
     await user.click(screen.getByTestId('entry-tab-expense'));
 
     await waitFor(() => {
-      expect(screen.queryByTestId('loan-debt-with-row')).toBeNull();
+      expect(screen.getByTestId('entry-tab-expense')).toHaveAttribute('aria-selected', 'true');
     });
     expect(screen.getByTestId('amount-display')).toBeInTheDocument();
     expect(screen.getByTestId('key-done')).toBeInTheDocument();

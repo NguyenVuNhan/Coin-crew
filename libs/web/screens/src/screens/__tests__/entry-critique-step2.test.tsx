@@ -11,6 +11,7 @@ import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { ExpenseForm } from '../ExpenseForm';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
+import { finishAmount, openDetails } from '../../test/entry';
 
 beforeEach(() => {
   localStorage.clear();
@@ -77,8 +78,9 @@ function directTripView(): TripView {
     people: [
       { id: 'led-o', name: 'An', status: 'active', isMember: true, bank: 'none' },
       { id: 'led-m', name: 'Minh', status: 'active', isMember: false, bank: 'none' },
+      { id: 'led-l', name: 'Lan', status: 'active', isMember: false, bank: 'none' },
     ],
-    balances: { 'led-o': 0, 'led-m': 0 },
+    balances: { 'led-o': 0, 'led-m': 0, 'led-l': 0 },
     suggestions: [],
     expenses: [],
     payments: [],
@@ -109,55 +111,63 @@ function renderEntryPage(initialEntries: string[]) {
   );
 }
 
+const loanRoutes = (extra: Record<string, unknown> = {}) => ({
+  'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
+  'GET /api/me/personal/wallets': { wallets: [vndCash] },
+  'GET /api/me/personal/categories': categoriesResp,
+  'GET /api/trips/t-led': directTripView(),
+  'GET /api/me/people/candidates': [],
+  'GET /api/me/personal/group-settings': {
+    settings: { defaultGroupCategoryId: null, countLoans: false },
+  },
+  ...extra,
+});
+
+const loanLink = (expenseId: string) => ({
+  [`PUT /api/me/personal/group-links/${expenseId}`]: () =>
+    Response.json({
+      link: { walletId: 'w-vnd', categoryId: null, tagIds: [], intent: 'loan', excludeFromReports: false },
+    }),
+});
+
 describe('EntryPage critique step 2 — Vay/Nợ form', () => {
-  it('uses AmountKeypad (no amount <input>) and orders Với ai -> Người trả -> Ghi chú in DOM order', async () => {
-    mockApi({
-      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
-      'GET /api/me/personal/wallets': { wallets: [vndCash] },
-      'GET /api/me/personal/categories': categoriesResp,
-      'GET /api/trips/t-led': directTripView(),
-      'GET /api/me/people/candidates': [],
-    });
+  // Owner approved 2026-11-21 (Part 3): Vay/Nợ is the entry page's own loan form; people chips replace the
+  // "Với ai" and "Người trả" rows, and the note sits in the folded details.
+  it('uses AmountKeypad (no amount <input>) and orders amount -> Với ai? chips -> folded details in DOM order', async () => {
+    const user = userEvent.setup();
+    mockApi(loanRoutes());
 
     const { container } = renderEntryPage(['/entries/new?type=loan-debt']);
 
-    const amountDisplay = await screen.findByTestId('amount-display');
-    expect(amountDisplay).toBeInTheDocument();
-    expect(screen.getByTestId('amount-keypad')).toBeInTheDocument();
+    expect(await screen.findByTestId('amount-keypad')).toBeInTheDocument();
     expect(container.querySelector('#expense-amount')).toBeNull();
+    await finishAmount(user, '50000');
+    const amountDisplay = screen.getByTestId('entry-fold-amount');
 
-    const withRow = screen.getByTestId('loan-debt-with-row');
-    const payerRow = screen.getByTestId('loan-debt-payer-row');
-    const noteInput = container.querySelector('#expense-what-for') as HTMLElement;
-    expect(noteInput).toBeTruthy();
+    const people = await screen.findByTestId('entry-people');
+    const details = screen.getByTestId('entry-fold-details');
+    expect(screen.queryByTestId('loan-debt-payer-row')).toBeNull();
 
     expect(
-      amountDisplay.compareDocumentPosition(withRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+      amountDisplay.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      withRow.compareDocumentPosition(payerRow) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      payerRow.compareDocumentPosition(noteInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+      people.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it('hides split segment until "Chia khác" is tapped, then shows the five word labels', async () => {
+  it('hides the split modes until "Cách chia" is tapped, then shows the five word labels', async () => {
     const user = userEvent.setup();
-    mockApi({
-      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
-      'GET /api/me/personal/wallets': { wallets: [vndCash] },
-      'GET /api/me/personal/categories': categoriesResp,
-      'GET /api/trips/t-led': directTripView(),
-      'GET /api/me/people/candidates': [],
-    });
+    mockApi(loanRoutes());
 
     renderEntryPage(['/entries/new?type=loan-debt']);
-    await screen.findByTestId('loan-debt-split-toggle');
+    await finishAmount(user, '100000');
+    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await user.click(screen.getByTestId('entry-person-led-l'));
 
     expect(screen.queryByRole('radiogroup', { name: 'Cách chia' })).toBeNull();
 
-    await user.click(screen.getByTestId('loan-debt-split-toggle'));
+    await user.click(screen.getByTestId('entry-split-fold'));
 
     const picker = await screen.findByRole('radiogroup', { name: 'Cách chia' });
     expect(within(picker).getByText('Đều')).toBeInTheDocument();
@@ -167,69 +177,39 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
     expect(within(picker).getByText('Cộng/trừ')).toBeInTheDocument();
   });
 
-  it('shows disabled reason text for no amount and for no other person', async () => {
+  // The keypad stays open on a phone until there is an amount, so only the "no person" reason can show here.
+  it('shows disabled reason text when no other person is chosen', async () => {
     const user = userEvent.setup();
-    mockApi({
-      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
-      'GET /api/me/personal/wallets': { wallets: [vndCash] },
-      'GET /api/me/personal/categories': categoriesResp,
-      'GET /api/trips/t-led': directTripView(),
-      'GET /api/me/people/candidates': [],
-    });
+    mockApi(loanRoutes());
 
     renderEntryPage(['/entries/new?type=loan-debt']);
-    await screen.findByTestId('amount-keypad');
-
-    // Close keypad by tapping outside (on the header or note label)
-    await user.click(screen.getByText('Ghi chú'));
-
-    const saveBtn = await screen.findByTestId('entry-save-btn');
-    expect(saveBtn).toBeDisabled();
-    expect(screen.getByTestId('loan-debt-disabled-reason')).toHaveTextContent('Nhập số tiền');
-
-    // Enter amount via keypad -> closes keypad -> now missing other person
-    await user.click(screen.getByTestId('amount-display'));
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
-    await user.click(screen.getByText('Ghi chú'));
+    await finishAmount(user, '50000');
 
     expect(await screen.findByTestId('entry-save-btn')).toBeDisabled();
     expect(screen.getByTestId('loan-debt-disabled-reason')).toHaveTextContent(
       'Chọn ít nhất một người',
     );
+
+    await user.click(await screen.findByTestId('entry-person-led-m'));
+    expect(screen.queryByTestId('loan-debt-disabled-reason')).toBeNull();
   });
 
-  it('saves via the quick-expense API with the same payload and returns with the snackbar', async () => {
+  it('saves via the quick-expense API over the people picked, then the loan link, and returns with the snackbar', async () => {
     const user = userEvent.setup();
-    const { calls } = mockApi({
-      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
-      'GET /api/me/personal/wallets': { wallets: [vndCash] },
-      'GET /api/me/personal/categories': categoriesResp,
-      'GET /api/trips/t-led': directTripView(),
-      'GET /api/me/people/candidates': [],
-      'POST /api/trips/t-led/expenses': () => Response.json({ expenseId: 'exp-1' }, { status: 201 }),
-    });
+    const { calls } = mockApi(
+      loanRoutes({
+        'POST /api/trips/t-led/expenses': () => Response.json({ expenseId: 'exp-1' }, { status: 201 }),
+        ...loanLink('exp-1'),
+      }),
+    );
 
-    const { container } = renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
-    await screen.findByTestId('amount-keypad');
+    renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('entry-person-led-m'));
 
-    // Enter 50.000
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
+    await openDetails(user);
+    await user.type(screen.getByTestId('entry-note-input'), 'Trà sữa');
 
-    // Pick Minh in "Với ai"
-    await user.click(screen.getByTestId('loan-debt-with-row'));
-    const minhBtn = await screen.findByRole('button', { name: /Minh/ });
-    await user.click(minhBtn);
-    await user.click(screen.getByRole('button', { name: 'Xong' }));
-
-    // Enter note
-    const noteInput = container.querySelector('#expense-what-for') as HTMLInputElement;
-    await user.type(noteInput, 'Trà sữa');
-
-    // Save
     const saveBtn = await screen.findByTestId('entry-save-btn');
     expect(saveBtn).toBeEnabled();
     await user.click(saveBtn);
@@ -241,55 +221,35 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
     const postCall = calls.find(
       (c) => c.method === 'POST' && c.path.includes('/api/trips/t-led/expenses'),
     );
-    expect(postCall).toBeDefined();
     expect(postCall?.body).toMatchObject({
       description: 'Trà sữa',
       amount: 50_000,
       payerId: 'led-o',
       mode: 'equal',
-      entries: [
-        { participantId: 'led-o', value: 1 },
-        { participantId: 'led-m', value: 1 },
-      ],
+      entries: [{ participantId: 'led-m', value: 1 }],
     });
+    const putCall = calls.find(
+      (c) => c.method === 'PUT' && c.path === '/api/me/personal/group-links/exp-1',
+    );
+    expect(putCall?.body).toMatchObject({ intent: 'loan', walletId: 'w-vnd' });
     expect(screen.getByText('Đã lưu')).toBeInTheDocument();
   });
 
-  it('opens Payer sheet with you first and triggers small-amount guard for VND 1..999', async () => {
+  it('⇄ makes Minh the payer over you, and the small-amount guard still applies for VND 1..999', async () => {
     const user = userEvent.setup();
-    const { calls } = mockApi({
-      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
-      'GET /api/me/personal/wallets': { wallets: [vndCash] },
-      'GET /api/me/personal/categories': categoriesResp,
-      'GET /api/trips/t-led': directTripView(),
-      'GET /api/me/people/candidates': [],
-      'POST /api/trips/t-led/expenses': () => Response.json({ expenseId: 'exp-2' }, { status: 201 }),
-    });
+    const { calls } = mockApi(
+      loanRoutes({
+        'POST /api/trips/t-led/expenses': () => Response.json({ expenseId: 'exp-2' }, { status: 201 }),
+        ...loanLink('exp-2'),
+      }),
+    );
 
-    const { container } = renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
-    await screen.findByTestId('amount-keypad');
+    renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
+    await finishAmount(user, '85');
+    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await user.click(screen.getByTestId('entry-flip'));
+    expect(screen.getByTestId('entry-outcome')).toHaveTextContent('Bạn nợ Minh');
 
-    // Type 85 (1..999 VND)
-    await user.click(screen.getByTestId('key-8'));
-    await user.click(screen.getByTestId('key-5'));
-
-    // Pick Minh in "Với ai"
-    await user.click(screen.getByTestId('loan-debt-with-row'));
-    await user.click(await screen.findByRole('button', { name: /Minh/ }));
-    await user.click(screen.getByRole('button', { name: 'Xong' }));
-
-    // Open Payer sheet: "An (tôi)" comes before "Minh", switch to Minh
-    await user.click(screen.getByTestId('loan-debt-payer-row'));
-    const payerList = await screen.findByTestId('payer-picker-list');
-    const payerButtons = within(payerList).getAllByRole('button');
-    expect(payerButtons[0]).toHaveTextContent('An (tôi)');
-    expect(payerButtons[1]).toHaveTextContent('Minh');
-    await user.click(payerButtons[1]!);
-    expect(screen.getByTestId('loan-debt-payer-row')).toHaveTextContent('Minh');
-
-    // Enter note & save -> triggers small-amount guard
-    const noteInput = container.querySelector('#expense-what-for') as HTMLInputElement;
-    await user.type(noteInput, 'Cà phê');
     await user.click(await screen.findByTestId('entry-save-btn'));
 
     expect(await screen.findByText('Số tiền này đúng chưa?')).toBeInTheDocument();
@@ -302,9 +262,9 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
       (c) => c.method === 'POST' && c.path.includes('/api/trips/t-led/expenses'),
     );
     expect(postCall?.body).toMatchObject({
-      description: 'Cà phê',
       amount: 85_000,
       payerId: 'led-m',
+      entries: [{ participantId: 'led-o', value: 1 }],
     });
   });
 

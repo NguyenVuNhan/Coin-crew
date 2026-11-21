@@ -284,6 +284,7 @@ export function EntryPage(): JSX.Element {
   const [otherWalletId, setOtherWalletId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [categoryPicked, setCategoryPicked] = useState(false);
+  const [focusFirstChipPending, setFocusFirstChipPending] = useState(false);
   const [assetId, setAssetId] = useState<string | null>(null);
   const [pickedAsset, setPickedAsset] = useState<AssetView | null>(null);
   const [quantityText, setQuantityText] = useState('');
@@ -332,7 +333,7 @@ export function EntryPage(): JSX.Element {
   const foldCategoryRef = useRef<HTMLButtonElement>(null);
   const walletRowRef = useRef<HTMLButtonElement>(null);
   const detailsCardRef = useRef<HTMLDivElement>(null);
-  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'save' | null>(null);
+  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'people' | 'save' | null>(null);
   const pendingFoldFocusRef = useRef<'fold-category' | 'category-grid' | 'asset' | 'details' | null>(null);
   const pendingTabRef = useRef<TabValue | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
@@ -402,6 +403,8 @@ export function EntryPage(): JSX.Element {
     } else if (target === 'quantity') {
       quantityInputRef.current?.focus();
       quantityInputRef.current?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'people') {
+      setFocusFirstChipPending(true);
     } else {
       saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
     }
@@ -673,6 +676,15 @@ export function EntryPage(): JSX.Element {
       ) ?? null,
     [categoriesQuery.data?.categories],
   );
+
+  // ✓ on Vay/Nợ with nobody chosen: focus the first "Với ai?" chip as soon as the chips are on screen.
+  useEffect(() => {
+    if (!focusFirstChipPending) return;
+    const firstChip = document.querySelector<HTMLButtonElement>('[data-testid="entry-people"] button');
+    if (!firstChip) return;
+    firstChip.focus();
+    setFocusFirstChipPending(false);
+  });
 
   const quickSplitNames = useMemo(() => {
     const map = new Map<string, string>();
@@ -952,7 +964,13 @@ export function EntryPage(): JSX.Element {
       return;
     }
     if (isLoanDebt) {
-      saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+      // Nobody picked yet: the next step is choosing a person, so focus the first chip once the chips appear
+      // (they render after the keypad has folded away).
+      if (quickSplit.chosen.size === 0) {
+        setFocusFirstChipPending(true);
+      } else {
+        saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+      }
       return;
     }
     if (!isTransferMode && !categoryId) {
@@ -982,6 +1000,8 @@ export function EntryPage(): JSX.Element {
       }
     } else if (!isLoanDebt && !isTransferMode && !categoryId) {
       pendingFocusTargetRef.current = 'category';
+    } else if (isLoanDebt && quickSplit.chosen.size === 0) {
+      pendingFocusTargetRef.current = 'people';
     } else if (waitingForSecondary) {
       pendingFocusTargetRef.current = 'secondary';
     } else {
@@ -2304,6 +2324,15 @@ export function EntryPage(): JSX.Element {
                     primaryMinor <= 0 ||
                     quickSplit.chosen.size === 0 ||
                     quickSplit.result?.ok === false);
+                const loanDisabledReason = !isLoanDebt
+                  ? null
+                  : primaryMinor === null || primaryMinor <= 0
+                    ? t('loanDebt.enterAmount')
+                    : quickSplit.chosen.size === 0
+                      ? t('loanDebt.chooseOnePerson')
+                      : quickSplit.result?.ok === false
+                        ? t('loanDebt.splitMismatch')
+                        : null;
                 const splitInvalid =
                   canShareChi && quickSplit.chosen.size > 0 && quickSplit.result?.ok === false;
                 const saveDisabled = isTransferMode
@@ -2352,6 +2381,14 @@ export function EntryPage(): JSX.Element {
                         className="m-0 text-center text-sm text-muted-foreground"
                       >
                         {transferDisabledReason}
+                      </p>
+                    )}
+                    {loanDisabledReason && !isSaving && !hasArchivedWallet && (
+                      <p
+                        data-testid="loan-debt-disabled-reason"
+                        className="m-0 text-center text-sm text-muted-foreground"
+                      >
+                        {loanDisabledReason}
                       </p>
                     )}
                     {tradeDisabledReason && !isSaving && !hasArchivedWallet && (

@@ -243,7 +243,8 @@ describe('EntryPage critique 2 step B — one save button (✓ means Xong)', () 
     expect(screen.getByTestId('entry-save-btn')).toHaveFocus();
   });
 
-  it('Vay/Nợ: ✓ never posts and focuses Với ai when nobody is chosen', async () => {
+  // Owner approved 2026-11-21 (Part 3): the "Với ai?" chips replace the "Với ai" row.
+  it('Vay/Nợ: ✓ never posts and focuses the first Với ai? chip when nobody is chosen', async () => {
     const posts: unknown[] = [];
     mockApi({
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
@@ -266,6 +267,8 @@ describe('EntryPage critique 2 step B — one save button (✓ means Xong)', () 
 
     expect(posts).toHaveLength(0);
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
-    expect(screen.getByTestId('loan-debt-with-row')).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByTestId('entry-people').querySelector('button')).toHaveFocus();
+    });
   });
 });

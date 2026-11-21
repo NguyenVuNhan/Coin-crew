@@ -146,9 +146,17 @@ describe('EntryPage critique step 3 — date row', () => {
     expect(post?.body).toMatchObject({ date: '2026-11-16', time: '08:20' });
   });
 
+  // Owner approved 2026-11-21 (Part 3): on Vay/Nợ the date row sits inside the folded details.
   it('Vay/Nợ shows the row without time and posts the chosen date', async () => {
     const user = userEvent.setup();
     const { calls } = mockApi({
+      'GET /api/me/personal/group-settings': {
+        settings: { defaultGroupCategoryId: null, countLoans: false },
+      },
+      'PUT /api/me/personal/group-links/exp-1': () =>
+        Response.json({
+          link: { walletId: 'w-vnd', categoryId: null, tagIds: [], intent: 'loan', excludeFromReports: false },
+        }),
       'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'led-o' },
       'GET /api/me/personal/wallets': { wallets: [vndCash] },
       'GET /api/me/personal/categories': categoriesResp,
@@ -156,21 +164,15 @@ describe('EntryPage critique step 3 — date row', () => {
       'GET /api/me/people/candidates': [],
       'POST /api/trips/t-led/expenses': () => Response.json({ expenseId: 'exp-1' }, { status: 201 }),
     });
-    const { container } = renderEntryPage('/entries/new?type=loan-debt');
-    await screen.findByTestId('amount-keypad');
+    renderEntryPage('/entries/new?type=loan-debt');
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await openDetails(user);
 
     const row = screen.getByTestId('entry-date-row');
     expect(row).toHaveTextContent('Hôm nay');
     expect(row).not.toHaveTextContent('08:20');
     expect(screen.queryByRole('button', { name: 'Đổi giờ' })).toBeNull();
-
-    await user.click(screen.getByTestId('key-5'));
-    await user.click(screen.getByTestId('key-0'));
-    await user.click(screen.getByTestId('key-000'));
-    await user.click(screen.getByTestId('loan-debt-with-row'));
-    await user.click(await screen.findByRole('button', { name: /Minh/ }));
-    await user.click(screen.getByRole('button', { name: 'Xong' }));
-    await user.type(container.querySelector('#expense-what-for') as HTMLInputElement, 'Trà sữa');
 
     fireEvent.change(screen.getByTestId('entry-date-picker'), { target: { value: '2026-11-12' } });
     expect(screen.getByTestId('entry-date-row')).toHaveTextContent('Thứ Năm, 12/11');
