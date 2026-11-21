@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import {
   createGroupWalletResolver,
   formatMoney,
@@ -155,7 +155,23 @@ export function GroupRowSheet({
   const rowExclude = row?.link?.excludeFromReports ?? false;
   const rowTagKey = row?.link?.tagIds.join(',') ?? '';
 
+  // Which open sheet the state belongs to, and whether the user has saved anything in it since.
+  const syncedForRef = useRef<string | null>(null);
+  const savedSinceOpenRef = useRef(false);
+
   useEffect(() => {
+    const sheetKey = `${open}:${rowRootId}`;
+    const reopened = syncedForRef.current !== sheetKey;
+    syncedForRef.current = sheetKey;
+    if (reopened) {
+      savedSinceOpenRef.current = false;
+      setExpanded(null);
+      setSaveError(null);
+    } else if (savedSinceOpenRef.current) {
+      // A list reload started by an earlier save can land after a later one: the sheet's own state, set from
+      // each save's answer, is newer, so the reload must not overwrite it or close the open field.
+      return;
+    }
     setLinkState({
       walletId: rowWalletId,
       categoryId: rowCategoryId,
@@ -163,8 +179,6 @@ export function GroupRowSheet({
       intent: rowIntent,
       excludeFromReports: rowExclude,
     });
-    setExpanded(null);
-    setSaveError(null);
   }, [open, rowRootId, rowWalletId, rowCategoryId, rowIntent, rowExclude, rowTagKey]);
 
   const wallets = walletsQuery.data?.wallets ?? [];
@@ -231,6 +245,7 @@ export function GroupRowSheet({
   ) => {
     if (!row) return;
     const prev = linkState;
+    savedSinceOpenRef.current = true;
     setSaveError(null);
     setLinkState((curr) => ({ ...curr, ...optimistic }));
     updateLink.mutate(
