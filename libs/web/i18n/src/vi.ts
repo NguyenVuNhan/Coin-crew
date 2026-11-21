@@ -1488,6 +1488,27 @@ export const vi: Record<MessageKey, string> = {
   'transactions.buyAssetTitle': 'Mua {asset}', // REVIEW
   'transactions.sellAssetTitle': 'Bán {asset}', // REVIEW
   'transactions.pricePerUnit': 'Giá mỗi {unit}', // REVIEW
+
+  'groupRow.yourShare': 'phần của bạn', // REVIEW
+  'groupRow.youPaid': 'Bạn trả {total} · {rest} mọi người nợ bạn', // REVIEW
+  'groupRow.paidBy': '{name} trả', // REVIEW
+  'groupRow.fund': 'Vào quỹ nhóm', // REVIEW
+  'groupRow.payment': 'Thanh toán', // REVIEW
+  'groupRow.paymentTo': 'Bạn trả {name}', // REVIEW
+  'groupRow.paymentFrom': '{name} trả bạn', // REVIEW
+  'groupRow.pending': 'Chờ duyệt · chưa tính', // REVIEW
+  'groupRow.openInGroup': 'Xem trong nhóm', // REVIEW
+  'groupRow.sheetTitle': 'Khoản từ nhóm', // REVIEW
+  'groupRow.editInGroup': 'Số tiền và người chia chỉ sửa được trong nhóm.', // REVIEW
+  'filters.group': 'Nhóm', // REVIEW
+  'filters.showGroupRows': 'Hiện khoản từ nhóm', // REVIEW
+  'settings.groupCategory': 'Danh mục cho khoản nhóm', // REVIEW
+  'settings.countLoans': 'Tính khoản vay vào chi tiêu', // REVIEW
+  'balanceCheck.question': 'Số dư có khớp với ngân hàng không?', // REVIEW
+  'balanceCheck.enter': 'Nhập số dư thật', // REVIEW
+  'balanceCheck.skip': 'Bỏ qua', // REVIEW
+  'balanceCheck.saved': 'Đã điều chỉnh số dư', // REVIEW
+
   'personalSettings.title': 'Cài đặt sổ chi tiêu', // REVIEW
   'personalSettings.wallets': 'Ví', // REVIEW
   'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
