@@ -123,7 +123,7 @@ export function groupWalletEntries(
 export function groupNetFor(rows: GroupRow[], tripId: string): number;
 ```
 
-- `api-types.ts`: `ListRow = { kind: 'entry'; entry: EntryView } | PersonRow | GroupRow`; `ListQuery` adds `tripId?: string; groups?: 'show' | 'hide'`; `SyncResponse` adds `groups: { key: string; rows: GroupRow[] } | null`.
+- `api-types.ts` (as merged): `ListRow` is **unchanged** (widening it breaks today's web screens); `ListResponse` adds `groupRows?: GroupRow[]`; `ListQuery` adds `tripId?: string; groups?: 'show' | 'hide'`; `SyncResponse` adds `groups?: { key: string; rows: GroupRow[] } | null`. Core tests live in `libs/shared/core/test/` (`test/groupShares.test.ts`).
 
 Rules `groupRowEffect` implements (spec 4.1, 5), pending rows → all zero:
 
@@ -203,11 +203,11 @@ Replace the W14 "no balance effect" for direct-group rows (the existing `PersonR
 
 **Interfaces:**
 - Consumes: `loadGroupRows(db, userId, { from, to })`, `groupRowEffect`, `loanPaybacks`.
-- Produces: `GET` list returns `GroupRow` items (`kind: 'group'`) merged by date/createdAt with entries. **Direct-group expenses keep coming as `PersonRow`** exactly as today (existing tests `personal-list.test.ts`, `personal-sync-parity.test.ts` and the current web UI rely on it; Part 2 switches the UI). Every other group row — other groups' expenses, fund contributions, all payments including direct-group ones — comes as `GroupRow`. A transaction never appears as both.
+- Produces: with `groups=show` the list response carries `groupRows: GroupRow[]` (newest first) next to `rows`; without it (the default, today's web UI) the response is exactly as today. **Direct-group expenses keep coming as `PersonRow` in `rows`** exactly as today (existing tests `personal-list.test.ts`, `personal-sync-parity.test.ts` and the current web UI rely on it; Part 2 switches the UI). Every other group row — other groups' expenses, fund contributions, all payments including direct-group ones — comes as `GroupRow`. A transaction never appears as both.
 - Totals: for `GroupRow` items add `groupRowEffect(...)` spending/income (VND) to the per-currency totals; for `PersonRow` items keep today's figure (myShare as spending), which equals `groupRowEffect` for `intent` null, and use `groupRowEffect` when the row has a link. Paybacks come from `loanPaybacks` over all loaded rows (direct expenses included, converted internally).
-- Query params: `tripId` (only that group's rows; entries still filtered by other params), `groups=hide` (no group rows), `type=group` (only group rows). `q` matches title, trip name and link tags' names, accent-insensitive like existing search.
+- Totals include group effects only when `groups=show`. Query params: `groups=show` (opt in), `tripId` (only that group's group rows), `type=group` (only group rows; `rows` empty). `q` matches title, trip name and link tags' names, accent-insensitive like existing search.
 
-- [ ] **Step 1: Write failing tests**: month list contains group rows with correct totals (spending counts myShare, not total); pending rows listed but not in totals; `groups=hide`; `tripId`; `q` by trip name; `no wallet yet` (rows present, no throw); a second account gets none of my rows.
+- [ ] **Step 1: Write failing tests**: month list contains group rows with correct totals (spending counts myShare, not total); pending rows listed but not in totals; without `groups=show` the response equals today's; `tripId`; `q` by trip name; `no wallet yet` (rows present, no throw); a second account gets none of my rows.
 - [ ] **Step 2–4:** run → FAIL, implement, run this file and `personal-list*.test.ts` → PASS.
 - [ ] **Step 5: Commit** `feat(api): group rows in the transaction list`.
 

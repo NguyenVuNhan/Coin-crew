@@ -22,3 +22,4 @@ export * from './wallets';
 export * from './assets';
 export * from './listFilter';
 export * from './copyRows';
+export * from './groupShares';
