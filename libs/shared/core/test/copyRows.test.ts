@@ -88,7 +88,7 @@ function makeTag(overrides: Partial<TagView> = {}): TagView {
 }
 
 describe('listFromCopy', () => {
-  it('fills currency, beforeStart and tag names', () => {
+  it('fills currency, beforeStart: false and tag names', () => {
     const lookups: CopyLookups = {
       wallets: [makeWallet({ id: 'w-usd', currency: 'USD', startDate: '2026-11-05' })],
       categories: [],
@@ -138,7 +138,7 @@ describe('listFromCopy', () => {
           tags: ['Meal', 'Travel'],
           excludeFromReports: false,
           source: 'manual',
-          beforeStart: true,
+          beforeStart: false,
           createdAt: '2026-11-10T12:00:00.000Z',
         },
       },
