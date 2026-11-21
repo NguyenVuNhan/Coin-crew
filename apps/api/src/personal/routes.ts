@@ -14,6 +14,7 @@ import { listRoutes } from './list';
 import { assetRoutes } from './assets';
 import { holdingsRoutes } from './holdings';
 import { syncRoutes } from './sync';
+import { groupLinkRoutes } from './groupLinks';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -63,6 +64,7 @@ export function personalRoutes(): Hono<AppBindings> {
   app.route('/', assetRoutes());
   app.route('/', holdingsRoutes());
   app.route('/', syncRoutes());
+  app.route('/', groupLinkRoutes());
 
   return app;
 }
