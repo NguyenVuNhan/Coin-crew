@@ -236,4 +236,34 @@ describe('WalletIconPickerSheet', () => {
     expect(onSelect).toHaveBeenCalledWith('inv:stocks');
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('highlights matching basic/legacy icon and preserves active tone when picking another basic glyph', async () => {
+    const user = userEvent.setup();
+    const onSelectLegacy = vi.fn();
+    const onCloseLegacy = vi.fn();
+
+    const first = renderAt(
+      <WalletIconPickerSheet open onClose={onCloseLegacy} value="bg-avatar-1" onSelect={onSelectLegacy} />,
+    );
+
+    expect(screen.getByTestId('wallet-icon-tone-1')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('wallet-icon-option-basic:wallet:1')).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByTestId('wallet-icon-option-basic:cash:1'));
+    expect(onSelectLegacy).toHaveBeenCalledWith('basic:cash:1');
+    expect(onCloseLegacy).toHaveBeenCalled();
+
+    first.unmount();
+
+    const onSelectBasic = vi.fn();
+    const onCloseBasic = vi.fn();
+    renderAt(
+      <WalletIconPickerSheet open onClose={onCloseBasic} value="basic:cash:2" onSelect={onSelectBasic} />,
+    );
+
+    expect(screen.getByTestId('wallet-icon-tone-2')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('wallet-icon-option-basic:cash:2')).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByTestId('wallet-icon-option-basic:card:2'));
+    expect(onSelectBasic).toHaveBeenCalledWith('basic:card:2');
+    expect(onCloseBasic).toHaveBeenCalled();
+  });
 });

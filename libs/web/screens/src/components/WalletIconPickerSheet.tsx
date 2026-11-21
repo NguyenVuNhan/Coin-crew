@@ -97,10 +97,11 @@ export function WalletIconPickerSheet({
 
   const activePackage =
     WALLET_ICON_PACKAGES.find((pkg) => pkg.id === activeTab) ?? WALLET_ICON_PACKAGES[0]!;
-  const effectiveTone = toneOverride ?? toneFromIcon(value) ?? '5';
+  const activeTone = toneOverride ?? toneFromIcon(value);
+  const effectiveTone = activeTone ?? '5';
 
   const renderTile = (item: WalletIconEntry, useToneOverride: boolean) => {
-    const effectiveId = useToneOverride ? applyToneToBasicId(item.id, toneOverride) : item.id;
+    const effectiveId = useToneOverride ? applyToneToBasicId(item.id, activeTone) : item.id;
     const selected = isIconMatch(effectiveId, value);
     const label = lang === 'vi' ? item.labelVi : item.labelEn;
 
