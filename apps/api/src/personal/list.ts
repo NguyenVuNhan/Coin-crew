@@ -4,10 +4,12 @@ import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
   personalAssets,
+  personalCategories,
   personalTags,
   personalTransactions,
   personalTransactionTags,
   personalWallets,
+  personalWalletSettings,
 } from '@cc/api-db/schema';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
@@ -15,7 +17,10 @@ import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import {
   compareListRows,
+  createGroupWalletResolver,
+  filterGroupRows,
   groupRowEffect,
+  groupRowsTotals,
   isBeforeStart,
   loanPaybacks,
   matchesNote,
@@ -155,8 +160,11 @@ export function listRoutes(): Hono<AppBindings> {
         currency: personalWallets.currency,
         startDate: personalWallets.startDate,
         isDefault: personalWallets.isDefault,
+        kind: personalWalletSettings.kind,
+        archivedAt: personalWalletSettings.archivedAt,
       })
       .from(personalWallets)
+      .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
       .where(eq(personalWallets.userId, user.id))
       .all();
 
@@ -328,53 +336,89 @@ export function listRoutes(): Hono<AppBindings> {
       ? loanPaybacks(await loadGroupRows(db, user.id))
       : new Map<string, number>();
 
-    let groupRows: GroupRow[] = [];
-    if (!assetId && (type === undefined || type === 'group')) {
-      groupRows = allGroupRows;
-      if (tripId) {
-        groupRows = groupRows.filter((r) => r.tripId === tripId);
+    // Part 2 Task 1: every group row, direct-group expenses included (they no longer come as PersonRow).
+    const groupCandidates = allGroupRows;
+
+    const tagNameById = new Map<string, string>();
+    if (qTerm !== undefined && groupCandidates.length > 0) {
+      const neededTagIds = new Set<string>();
+      for (const r of groupCandidates) {
+        for (const tid of r.link?.tagIds ?? []) {
+          neededTagIds.add(tid);
+        }
       }
-      if (qTerm !== undefined) {
-        const neededTagIds = new Set<string>();
-        for (const r of groupRows) {
-          for (const tid of r.link?.tagIds ?? []) {
-            neededTagIds.add(tid);
-          }
+      if (neededTagIds.size > 0) {
+        const linkTagRows = await db
+          .select({ id: personalTags.id, name: personalTags.name })
+          .from(personalTags)
+          .where(and(eq(personalTags.userId, user.id), inArray(personalTags.id, [...neededTagIds])))
+          .all();
+        for (const t of linkTagRows) {
+          tagNameById.set(t.id, t.name);
         }
-        const tagNameById = new Map<string, string>();
-        if (neededTagIds.size > 0) {
-          const linkTagRows = await db
-            .select({ id: personalTags.id, name: personalTags.name })
-            .from(personalTags)
-            .where(and(eq(personalTags.userId, user.id), inArray(personalTags.id, [...neededTagIds])))
-            .all();
-          for (const t of linkTagRows) {
-            tagNameById.set(t.id, t.name);
-          }
-        }
-        groupRows = groupRows.filter(
-          (r) =>
-            matchesNote(r.title, qTerm) ||
-            matchesNote(r.tripName, qTerm) ||
-            (r.link?.tagIds.some((tid) => {
-              const name = tagNameById.get(tid);
-              return name !== undefined && matchesNote(name, qTerm);
-            }) ??
-              false),
-        );
       }
     }
 
+    const categoryParentById = new Map<string, string | null>();
+    if (categoryId !== undefined) {
+      const catRows = await db
+        .select({ id: personalCategories.id, parentId: personalCategories.parentId })
+        .from(personalCategories)
+        .where(eq(personalCategories.userId, user.id))
+        .all();
+      for (const cat of catRows) {
+        categoryParentById.set(cat.id, cat.parentId ?? null);
+      }
+    }
+
+    const resolveWalletId = createGroupWalletResolver(
+      walletRows.map((w) => ({
+        id: w.id,
+        currency: w.currency as CurrencyCode,
+        startAmount: 0,
+        startDate: w.startDate,
+        startCostVnd: null,
+        archived: w.archivedAt !== null && w.archivedAt !== undefined,
+        kind: w.kind ?? 'everyday',
+        isDefault: w.isDefault === 1,
+      })),
+      defaultWalletId,
+    );
+
+    const groupRows = filterGroupRows(
+      groupCandidates,
+      {
+        from,
+        to,
+        walletId,
+        categoryId,
+        assetId,
+        tagId,
+        type,
+        tripId,
+        groups,
+        q: qTerm,
+      },
+      tagNameById,
+      resolveWalletId,
+      {
+        settings: groupSettings,
+        paybacks,
+        fallbackGroupCategoryId: null,
+        categoryParentOf:
+          categoryId !== undefined ? (id) => categoryParentById.get(id) ?? null : undefined,
+        period: { from, to },
+      },
+    );
+
     const countedRows: CountedRow[] = filteredRows.map(toCountedRow);
 
-    for (const row of groupRows) {
-      const eff = groupRowEffect(row, groupSettings, paybacks.get(row.id));
-      if (eff.spending > 0) {
-        countedRows.push({ currency: 'VND', signedAmount: -eff.spending, counted: true });
-      }
-      if (eff.income > 0) {
-        countedRows.push({ currency: 'VND', signedAmount: eff.income, counted: true });
-      }
+    const groupTotals = groupRowsTotals(groupRows, groupSettings, paybacks);
+    if (groupTotals.spent > 0) {
+      countedRows.push({ currency: 'VND', signedAmount: -groupTotals.spent, counted: true });
+    }
+    if (groupTotals.income > 0) {
+      countedRows.push({ currency: 'VND', signedAmount: groupTotals.income, counted: true });
     }
 
     const totals = sumCounted(countedRows);

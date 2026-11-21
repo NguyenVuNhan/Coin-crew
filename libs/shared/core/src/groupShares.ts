@@ -1,3 +1,5 @@
+import type { ListQuery, ListRow } from './api-types';
+import { matchesNote, monthBounds } from './listFilter';
 import type { CalcEntry, CalcWallet } from './wallets';
 
 export type GroupRowSource = 'expense' | 'fund' | 'payment';
@@ -186,16 +188,33 @@ function pickFallbackVndWallet(
   return null;
 }
 
+export function createGroupWalletResolver(
+  wallets: (CalcWallet & { kind?: string; isDefault?: boolean })[],
+  defaultWalletId: string | null,
+): (row: GroupRow) => string | null {
+  const byId = new Map<string, GroupWalletCandidate>();
+  for (const w of wallets) byId.set(w.id, w);
+  const chosen = pickFallbackVndWallet(wallets, defaultWalletId);
+
+  return (row: GroupRow): string | null => {
+    const linkedId = row.link?.walletId ?? null;
+    if (linkedId !== null) {
+      const linked = byId.get(linkedId);
+      if (linked && linked.currency === 'VND') {
+        return linked.id;
+      }
+    }
+    return chosen;
+  };
+}
+
 export function groupWalletEntries(
   rows: GroupRow[],
   wallets: (CalcWallet & { kind?: string; isDefault?: boolean })[],
   defaultWalletId: string | null,
   settings: GroupSettingsView,
 ): CalcEntry[] {
-  const byId = new Map<string, GroupWalletCandidate>();
-  for (const w of wallets) byId.set(w.id, w);
-
-  const chosen = pickFallbackVndWallet(wallets, defaultWalletId);
+  const resolveWalletId = createGroupWalletResolver(wallets, defaultWalletId);
   const entries: CalcEntry[] = [];
 
   for (const row of rows) {
@@ -203,17 +222,7 @@ export function groupWalletEntries(
     const { walletDelta } = groupRowEffect(row, settings);
     if (walletDelta === 0) continue;
 
-    let walletId: string | null = null;
-    const linkedId = row.link?.walletId ?? null;
-    if (linkedId !== null) {
-      const linked = byId.get(linkedId);
-      if (linked && linked.currency === 'VND') {
-        walletId = linked.id;
-      }
-    }
-    if (walletId === null) {
-      walletId = chosen;
-    }
+    const walletId = resolveWalletId(row);
     if (walletId === null) continue;
 
     entries.push({
@@ -247,4 +256,154 @@ export function groupNetFor(rows: GroupRow[], tripId: string): number {
     }
   }
   return normZero(net);
+}
+
+export type BookRow = ListRow | GroupRow;
+
+export type GroupListQuery = Omit<ListQuery, 'type'> & {
+  type?: ListQuery['type'] | 'group';
+};
+
+export interface FilterGroupRowsOptions {
+  settings?: GroupSettingsView;
+  paybacks?: Map<string, number>;
+  fallbackGroupCategoryId?: string | null;
+  categoryParentOf?: (categoryId: string) => string | null;
+  period?: { from: string; to: string };
+}
+
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
+
+export function groupRowCategoryId(
+  row: GroupRow,
+  settings: GroupSettingsView,
+  fallbackGroupCategoryId: string | null,
+): string | null {
+  return row.link?.categoryId ?? settings.defaultGroupCategoryId ?? fallbackGroupCategoryId;
+}
+
+export function groupRowsTotals(
+  rows: GroupRow[],
+  settings: GroupSettingsView,
+  paybacks: Map<string, number>,
+): { spent: number; income: number } {
+  let spent = 0;
+  let income = 0;
+  for (const row of rows) {
+    const eff = groupRowEffect(row, settings, paybacks.get(row.id));
+    spent += eff.spending;
+    income += eff.income;
+  }
+  return { spent: normZero(spent), income: normZero(income) };
+}
+
+function bookRowSortFields(row: BookRow): { date: string; createdAt: string; id: string } {
+  if (row.kind === 'entry') {
+    return { date: row.entry.date, createdAt: row.entry.createdAt, id: row.entry.id };
+  }
+  return { date: row.date, createdAt: row.createdAt, id: row.id };
+}
+
+export function compareBookRows(a: BookRow, b: BookRow): number {
+  const ka = bookRowSortFields(a);
+  const kb = bookRowSortFields(b);
+  if (ka.date !== kb.date) return ka.date > kb.date ? -1 : 1;
+  if (ka.createdAt !== kb.createdAt) return ka.createdAt > kb.createdAt ? -1 : 1;
+  if (ka.id !== kb.id) return ka.id < kb.id ? -1 : 1;
+  return 0;
+}
+
+export function filterGroupRows(
+  rows: GroupRow[],
+  query: GroupListQuery,
+  tagNames: Map<string, string>,
+  resolveWalletId?: (row: GroupRow) => string | null,
+  opts?: FilterGroupRowsOptions,
+): GroupRow[] {
+  if (query.groups !== 'show') return [];
+  if (query.assetId) return [];
+  if (
+    query.type !== undefined &&
+    query.type !== 'group' &&
+    query.type !== 'expense' &&
+    query.type !== 'income'
+  ) {
+    return [];
+  }
+
+  const settings = opts?.settings ?? DEFAULT_GROUP_SETTINGS;
+  const paybacks = opts?.paybacks;
+  const fallbackGroupCategoryId = opts?.fallbackGroupCategoryId ?? null;
+  const categoryParentOf = opts?.categoryParentOf;
+
+  let from: string | undefined;
+  let to: string | undefined;
+  if (opts?.period) {
+    from = opts.period.from;
+    to = opts.period.to;
+  } else if (query.month !== undefined) {
+    const bounds = monthBounds(query.month);
+    if (bounds) {
+      from = bounds.from;
+      to = bounds.to;
+    }
+  } else {
+    from = query.from;
+    to = query.to;
+  }
+
+  const q = query.q?.trim();
+  const hasQ = q !== undefined && q.length > 0;
+
+  return rows.filter((row) => {
+    if (from !== undefined && row.date < from) return false;
+    if (to !== undefined && row.date > to) return false;
+
+    if (query.type === 'expense' || query.type === 'income') {
+      const eff = groupRowEffect(row, settings, paybacks?.get(row.id));
+      if (query.type === 'expense' && eff.spending <= 0) return false;
+      if (query.type === 'income' && eff.income <= 0) return false;
+    }
+
+    if (query.tripId && row.tripId !== query.tripId) return false;
+
+    if (query.walletId) {
+      const rowWalletId = resolveWalletId
+        ? resolveWalletId(row)
+        : (row.link?.walletId ?? null);
+      if (rowWalletId !== query.walletId) return false;
+    }
+
+    if (query.categoryId) {
+      const catId = groupRowCategoryId(row, settings, fallbackGroupCategoryId);
+      if (!catId) return false;
+      const matchesCategory =
+        catId === query.categoryId ||
+        (categoryParentOf !== undefined && categoryParentOf(catId) === query.categoryId);
+      if (!matchesCategory) return false;
+    }
+
+    if (query.tagId) {
+      if (!(row.link?.tagIds.includes(query.tagId) ?? false)) return false;
+    }
+
+    if (hasQ) {
+      const matchesText =
+        matchesNote(row.title, q) ||
+        matchesNote(row.tripName, q) ||
+        (row.counterpartName !== null && matchesNote(row.counterpartName, q)) ||
+        (row.payerName !== null && matchesNote(row.payerName, q)) ||
+        (row.link?.tagIds.some((tid) => {
+          const name = tagNames.get(tid);
+          return name !== undefined && matchesNote(name, q);
+        }) ??
+          false);
+      if (!matchesText) return false;
+    }
+
+    return true;
+  });
 }

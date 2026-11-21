@@ -8,6 +8,15 @@ import type {
   TagView,
   WalletDetailView,
 } from './api-types';
+import {
+  compareBookRows,
+  createGroupWalletResolver,
+  filterGroupRows,
+  loanPaybacks,
+  type GroupListQuery,
+  type GroupRow,
+  type GroupSettingsView,
+} from './groupShares';
 import { compareListRows, matchesListQuery, resolveListPeriod } from './listFilter';
 import { isBeforeStart } from './wallets';
 
@@ -111,5 +120,53 @@ export function listFromCopy(
 
   const filtered = candidates.filter((row) => matchesListQuery(row, query, ctx));
   filtered.sort(compareListRows);
+  return filtered;
+}
+
+export interface GroupCopyLookups extends CopyLookups {
+  today?: string;
+  settings?: GroupSettingsView;
+  paybacks?: Map<string, number>;
+  fallbackGroupCategoryId?: string | null;
+}
+
+/**
+ * Filters raw `GroupRow[]` from a local copy using the shared `filterGroupRows`
+ * logic so the browser's saved copy agrees with `/me/personal/transactions`.
+ */
+export function groupRowsFromCopy(
+  groupRows: GroupRow[],
+  query: GroupListQuery,
+  ctx: GroupCopyLookups,
+  resolveWalletId?: (row: GroupRow) => string | null,
+): GroupRow[] {
+  const defaultWalletId = ctx.wallets.find((w) => w.isDefault)?.id ?? null;
+  const categoryParentById = new Map<string, string | null>(
+    ctx.categories.map((c) => [c.id, c.parentId ?? null]),
+  );
+  const tagNameById = new Map<string, string>(
+    ctx.tags.map((t) => [t.id, t.name]),
+  );
+
+  const walletResolver =
+    resolveWalletId ?? createGroupWalletResolver(ctx.wallets, defaultWalletId);
+
+  const period =
+    ctx.today !== undefined
+      ? resolveListPeriod({ month: query.month, from: query.from, to: query.to }, ctx.today)
+      : undefined;
+
+  const paybacks =
+    ctx.paybacks ?? (ctx.settings?.countLoans ? loanPaybacks(groupRows) : undefined);
+
+  const filtered = filterGroupRows(groupRows, query, tagNameById, walletResolver, {
+    settings: ctx.settings,
+    paybacks,
+    fallbackGroupCategoryId: ctx.fallbackGroupCategoryId,
+    categoryParentOf: (categoryId: string) => categoryParentById.get(categoryId) ?? null,
+    period,
+  });
+
+  filtered.sort(compareBookRows);
   return filtered;
 }
