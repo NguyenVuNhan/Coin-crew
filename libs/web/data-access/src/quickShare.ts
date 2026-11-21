@@ -12,7 +12,7 @@ import {
   type GroupLinkResponse,
   type UpdateGroupLinkInput,
 } from './personalMoney';
-import { requestTxCopySync } from './txCopy/hooks';
+import { requestGroupCopySync, requestTxCopySync } from './txCopy/hooks';
 
 export interface QuickShareInput {
   tripId: string;
@@ -51,6 +51,7 @@ async function invalidateAfterQuickShare(queryClient: QueryClient, tripId: strin
     queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
     queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
     requestTxCopySync(),
+    requestGroupCopySync(),
   ]);
 }
 
@@ -75,6 +76,7 @@ async function putGroupLink(
 
 export function useSaveQuickShare(): {
   save(input: QuickShareInput): Promise<{ expenseId: string }>;
+  deleteExpense(input: { tripId: string; expenseId: string }): Promise<void>;
   retryLink(): Promise<void>;
   isSaving: boolean;
   error: unknown;
@@ -156,8 +158,22 @@ export function useSaveQuickShare(): {
     setIsSaving(false);
   }, [queryClient]);
 
+  const deleteExpense = useCallback(
+    async (input: { tripId: string; expenseId: string }): Promise<void> => {
+      const basePath = `/api/trips/${encodeURIComponent(input.tripId)}/expenses/${encodeURIComponent(input.expenseId)}`;
+      try {
+        await apiSend(basePath, 'DELETE', undefined, input.tripId);
+      } catch {
+        await apiSend(`${basePath}/disable`, 'POST', {}, input.tripId);
+      }
+      await invalidateAfterQuickShare(queryClient, input.tripId);
+    },
+    [queryClient],
+  );
+
   return {
     save,
+    deleteExpense,
     retryLink,
     isSaving,
     error,

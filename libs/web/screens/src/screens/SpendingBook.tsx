@@ -5,6 +5,7 @@ import {
   formatMoney,
   formatVnd,
   type BookRow,
+  type EntryView,
   type GroupRow,
   type GroupSettingsView,
 } from "@cc/core";
@@ -25,9 +26,11 @@ import { Card } from "@cc/web-ui/components/ui/card";
 import { Avatar } from "@cc/web-ui/components/Avatar";
 import { Amount } from "@cc/web-ui/components/Amount";
 import { Icon } from "@cc/web-ui/components/icons";
+import { Sheet } from "@cc/web-ui/components/Sheet";
 import { SkeletonList } from "@cc/web-ui/components/Skeleton";
 import { InlineError } from "@cc/web-ui/components/InlineError";
 import { Home } from "./Home";
+import { TransactionDetailContent } from "./TransactionDetail";
 import { usePeopleTotals } from "../components/PeopleSummary";
 import { FirstWalletSheet } from "../components/FirstWalletSheet";
 import { GroupRowSheet } from "../components/GroupRowSheet";
@@ -245,6 +248,7 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
     { recent: limit },
     { enabled: hasWallet, groups: true },
   );
+  const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
   const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(
     null,
   );
@@ -294,6 +298,7 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
               categories={categoriesQuery.data?.categories ?? []}
               assets={assetsQuery.data?.assets ?? []}
               settings={groupSettings}
+              onOpenEntry={setSelectedEntry}
               onOpenGroup={setSelectedGroupRow}
             />
           ))}
@@ -303,6 +308,21 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
           {t("wallet.noEntries")}
         </div>
       )}
+      <Sheet
+        open={Boolean(selectedEntry)}
+        onClose={() => setSelectedEntry(null)}
+        title={t("transactions.detailTitle")}
+      >
+        {selectedEntry && (
+          <TransactionDetailContent
+            entry={selectedEntry}
+            wallets={list ?? []}
+            categories={categoriesQuery.data?.categories ?? []}
+            assets={assetsQuery.data?.assets ?? []}
+            onDone={() => setSelectedEntry(null)}
+          />
+        )}
+      </Sheet>
       <GroupRowSheet
         row={selectedGroupRow}
         open={selectedGroupRow !== null}

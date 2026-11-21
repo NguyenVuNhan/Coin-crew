@@ -4,6 +4,7 @@ import {
   compareBookRows,
   createGroupWalletResolver,
   type BookRow,
+  type EntryView,
   type GroupRow,
   type GroupSettingsView,
 } from '@cc/core';
@@ -28,6 +29,7 @@ import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { GroupRowSheet } from '../components/GroupRowSheet';
 import { Screen } from '../components/Screen';
@@ -36,6 +38,7 @@ import { WalletForm } from '../components/WalletForm';
 import { HoldingsPie } from '../components/HoldingsPie';
 import { WalletSummary } from '../components/WalletSummary';
 import { BalanceCheckPrompt } from '../components/BalanceCheckPrompt';
+import { TransactionDetailContent } from './TransactionDetail';
 
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
@@ -71,6 +74,7 @@ export function WalletScreen(): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
   const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(null);
 
   useEffect(() => {
@@ -232,6 +236,7 @@ export function WalletScreen(): JSX.Element {
                       categories={categoriesQuery.data?.categories ?? []}
                       assets={assets}
                       settings={groupSettings}
+                      onOpenEntry={setSelectedEntry}
                       onOpenGroup={setSelectedGroupRow}
                     />
                   ))}
@@ -286,6 +291,21 @@ export function WalletScreen(): JSX.Element {
                 </div>
               </div>
             </Modal>
+            <Sheet
+              open={Boolean(selectedEntry)}
+              onClose={() => setSelectedEntry(null)}
+              title={t('transactions.detailTitle')}
+            >
+              {selectedEntry && (
+                <TransactionDetailContent
+                  entry={selectedEntry}
+                  wallets={wallets}
+                  categories={categoriesQuery.data?.categories ?? []}
+                  assets={assets}
+                  onDone={() => setSelectedEntry(null)}
+                />
+              )}
+            </Sheet>
             <GroupRowSheet
               row={selectedGroupRow}
               open={selectedGroupRow !== null}

@@ -36,6 +36,7 @@ import {
   useGroupSettings,
   useHoldings,
   usePersonalList,
+  useTags,
   useUpdateEntry,
   useWalletDetails,
   writeLastWallet,
@@ -166,7 +167,7 @@ export function EntryPage(): JSX.Element {
   const isDirectEdit = isEdit && searchParams.get('group') === '1';
   const queryClient = useQueryClient();
   const { goBack } = useBack('/trips');
-  const { ledger, isLoading: ledgerLoading } = useLedger({ enabled: !isEdit || isDirectEdit });
+  const { ledger, isLoading: ledgerLoading } = useLedger();
   const {
     view: directView,
     error: directViewError,
@@ -288,6 +289,7 @@ export function EntryPage(): JSX.Element {
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
+  const tagsQuery = useTags({ enabled: isDirectEdit });
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
@@ -684,7 +686,6 @@ export function EntryPage(): JSX.Element {
     : null;
 
   const canShareChi =
-    (!isEdit || isDirectEdit) &&
     activeTab === 'expense' &&
     !isTransferMode &&
     !isTradeMode &&
@@ -1443,15 +1444,9 @@ export function EntryPage(): JSX.Element {
         },
       );
 
-      if (canShareChi && ledger && (quickSplit.chosen.size > 0 || isDirectEdit)) {
-        if (quickSplit.chosen.size > 0 && quickSplit.result && !quickSplit.result.ok) return;
+      if (canShareChi && quickSplit.chosen.size > 0 && ledger) {
+        if (quickSplit.result && !quickSplit.result.ok) return;
         const description = quickExpenseDescription({ note, fallback: categoryName });
-        const hasChosen = quickSplit.chosen.size > 0;
-        const expenseEntries = hasChosen
-          ? entriesForSave(quickSplit)
-          : [{ participantId: ledger.ownerPid, value: 1 }];
-        const expensePayerId = hasChosen ? quickSplit.payerId : ledger.ownerPid;
-        const expenseMode = hasChosen ? quickSplit.mode : 'equal';
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
         try {
@@ -1467,9 +1462,9 @@ export function EntryPage(): JSX.Element {
               description,
               amount: amountToSave,
               spentOn: date,
-              payerId: expensePayerId,
-              mode: expenseMode,
-              entries: expenseEntries,
+              payerId: quickSplit.payerId,
+              mode: quickSplit.mode,
+              entries: entriesForSave(quickSplit),
             },
             link: {
               intent: isDirectEdit ? (directGroupRow?.link?.intent ?? 'shared') : 'shared',
@@ -1479,9 +1474,12 @@ export function EntryPage(): JSX.Element {
               excludeFromReports,
             },
           });
+          if (isEdit && !isDirectEdit && id) {
+            await deleteEntry.mutateAsync(id);
+          }
           writeLastWallet(selectedWallet.id);
           showUndo({
-            message: savedMessage,
+            message: isEdit ? t('personalEntry.saved') : savedMessage,
             actionLabel: t('common.close'),
             onAction: () => {},
           });
@@ -1494,6 +1492,13 @@ export function EntryPage(): JSX.Element {
         return;
       }
 
+      const tagNameById = new Map((tagsQuery.data?.tags ?? []).map((tg) => [tg.id, tg.name]));
+      const resolvedEntryTags = isDirectEdit
+        ? tags.map((tid) => tagNameById.get(tid)).filter((n): n is string => Boolean(n))
+        : isEdit
+          ? tags
+          : [];
+
       input = {
         type: entryType,
         walletId: selectedWallet.id,
@@ -1502,7 +1507,7 @@ export function EntryPage(): JSX.Element {
         date,
         time,
         note: note.trim() ? note.trim() : null,
-        tags: isEdit ? tags : [],
+        tags: resolvedEntryTags,
         excludeFromReports,
       };
       lastUsedWalletId = selectedWallet.id;
@@ -1510,7 +1515,19 @@ export function EntryPage(): JSX.Element {
 
     savingRef.current = true;
     try {
-      if (isEdit && id) {
+      if (isDirectEdit && ledger && directExpense) {
+        await createEntry.mutateAsync(input);
+        await quickShare.deleteExpense({
+          tripId: ledger.tripId,
+          expenseId: directExpense.id,
+        });
+        if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
+        showUndo({
+          message: t('personalEntry.saved'),
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
+      } else if (isEdit && id) {
         await updateEntry.mutateAsync({ id, input });
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
         showUndo({

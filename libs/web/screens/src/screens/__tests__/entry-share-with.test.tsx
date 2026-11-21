@@ -595,7 +595,7 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     });
   });
 
-  it('(j) clearing all "Chia cho" when editing a direct shared expense shows no error and PATCHes solo share on save', async () => {
+  it('(j) clearing all "Chia cho" when editing a direct shared expense converts it to a personal transaction (POST /api/me/personal/transactions + DELETE /api/trips/t-led/expenses/:id)', async () => {
     const user = userEvent.setup();
     const viewWithExpense: TripView = {
       ...directTripView(),
@@ -655,18 +655,23 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
             },
           ],
         },
-        'PATCH /api/trips/t-led/expenses/exp-shared-clear': () =>
-          Response.json({ expenseId: 'exp-shared-clear-2', rootId: 'exp-shared-clear' }),
-        'PUT /api/me/personal/group-links/exp-shared-clear': () =>
-          Response.json({
-            link: {
-              walletId: 'w-bank',
-              categoryId: 'cat-food',
-              tagIds: [],
-              intent: 'shared',
-              excludeFromReports: false,
+        'POST /api/me/personal/transactions': () =>
+          Response.json(
+            {
+              entries: [
+                makeEntry({
+                  id: 'e-converted-1',
+                  amount: 40_000,
+                  categoryId: 'cat-food',
+                  date: '2026-11-20',
+                  note: 'Cà phê',
+                }),
+              ],
             },
-          }),
+            { status: 201 },
+          ),
+        'DELETE /api/trips/t-led/expenses/exp-shared-clear': () =>
+          new Response(null, { status: 204 }),
       }),
     );
 
@@ -691,19 +696,28 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     await waitFor(() => {
       expect(
         calls.some(
-          (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-shared-clear',
+          (c) =>
+            c.method === 'DELETE' && c.path === '/api/trips/t-led/expenses/exp-shared-clear',
         ),
       ).toBe(true);
     });
     expect(screen.queryByRole('alert')).toBeNull();
-    const patchCall = calls.find(
-      (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-shared-clear',
+    const postCall = calls.find(
+      (c) => c.method === 'POST' && c.path === '/api/me/personal/transactions',
     );
-    expect(patchCall?.body).toMatchObject({
+    expect(postCall?.body).toMatchObject({
+      type: 'expense',
+      walletId: 'w-bank',
       amount: 40_000,
-      payerId: 'p-me',
-      entries: [{ participantId: 'p-me', value: 1 }],
+      categoryId: 'cat-food',
+      date: '2026-11-20',
+      note: 'Cà phê',
     });
+    expect(
+      calls.some(
+        (c) => c.method === 'PATCH' && c.path.includes('/api/trips/t-led/expenses/'),
+      ),
+    ).toBe(false);
   });
 
   it('(i) editing a direct loan inside Sổ chi tiêu (/entries/:id/edit?group=1) opens on Vay/Nợ with the loan split and PATCHes on save', async () => {

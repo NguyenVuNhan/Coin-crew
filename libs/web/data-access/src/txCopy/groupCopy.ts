@@ -190,6 +190,7 @@ class GroupCopyController {
 
   constructor(userId: string) {
     this.userId = userId;
+    this.unsubTxSync = onTxCopySync(() => this.sync());
   }
 
   getSnapshot(): GroupCopyHookState {
@@ -203,7 +204,6 @@ class GroupCopyController {
       if (typeof window !== 'undefined') {
         window.addEventListener('focus', this.onFocus);
       }
-      this.unsubTxSync = onTxCopySync(() => this.sync());
     }
     if (!this.started) {
       this.started = true;
@@ -218,8 +218,6 @@ class GroupCopyController {
         if (typeof window !== 'undefined') {
           window.removeEventListener('focus', this.onFocus);
         }
-        this.unsubTxSync?.();
-        this.unsubTxSync = null;
       }
     };
   }

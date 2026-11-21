@@ -544,6 +544,40 @@ describe("Group shares wired into Sổ chi tiêu screens", () => {
     await user.click(await screen.findByTestId("tx-row-g-g-tap"));
     expect(await screen.findByTestId("group-row-sheet")).toBeInTheDocument();
   });
+
+  it("tapping a personal entry row opens a Sheet in place on BookRecent, /transactions, and WalletScreen without navigating to /entries/:id", async () => {
+    mockMedia();
+    const user = userEvent.setup();
+    const pEntry = makeEntry({
+      id: "e-tap",
+      walletId: "w-cash",
+      amount: 65_000,
+      note: "Bánh mì sáng",
+    });
+
+    // 1. BookRecent
+    setupMock({ rows: [{ kind: "entry", entry: pEntry }], groupRows: [] });
+    const recentView = renderAt(<App />, { route: "/trips" });
+    await user.click(await screen.findByTestId("tx-row-e-tap"));
+    expect(await screen.findByTestId("tx-detail-amount")).toHaveTextContent("65.000₫");
+    expect(screen.getByTestId("location")).toHaveTextContent("/trips");
+    recentView.unmount();
+
+    // 2. TransactionsScreen (on phone)
+    setupMock({ rows: [{ kind: "entry", entry: pEntry }], groupRows: [] });
+    const txView = renderAt(<App />, { route: "/transactions?month=2026-11" });
+    await user.click(await screen.findByTestId("tx-row-e-tap"));
+    expect(await screen.findByTestId("tx-detail-amount")).toHaveTextContent("65.000₫");
+    expect(screen.getByTestId("location")).toHaveTextContent("/transactions");
+    txView.unmount();
+
+    // 3. WalletScreen
+    setupMock({ rows: [{ kind: "entry", entry: pEntry }], groupRows: [] });
+    renderAt(<App />, { route: "/wallets/w-cash" });
+    await user.click(await screen.findByTestId("tx-row-e-tap"));
+    expect(await screen.findByTestId("tx-detail-amount")).toHaveTextContent("65.000₫");
+    expect(screen.getByTestId("location")).toHaveTextContent("/wallets/w-cash");
+  });
 });
 
 describe("Giao dịch gần đây: newest activity first", () => {
