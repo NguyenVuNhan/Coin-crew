@@ -147,6 +147,7 @@ const sampleTag: TagView = {
 function makeGroupRow(id: string, overrides: Partial<GroupRow> = {}): GroupRow {
   return {
     kind: 'group',
+    activityAt: '2026-11-01T00:00:00.000Z',
     id,
     rootId: id,
     tripId: 'trip-dalat',

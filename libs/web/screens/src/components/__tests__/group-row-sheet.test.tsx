@@ -102,6 +102,7 @@ const TAGS: TagView[] = [
 function makeRow(overrides: Partial<GroupRow> = {}): GroupRow {
   return {
     kind: 'group',
+    activityAt: '2026-11-01T00:00:00.000Z',
     id: 'tx-1',
     rootId: 'root-1',
     tripId: 'trip-dl',

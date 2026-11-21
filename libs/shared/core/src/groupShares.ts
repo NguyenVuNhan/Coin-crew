@@ -31,6 +31,7 @@ export interface GroupRow {
   pending: boolean;
   link: GroupLinkView | null;
   createdAt: string;
+  activityAt: string;
 }
 
 export interface GroupSettingsView {
@@ -312,6 +313,24 @@ export function compareBookRows(a: BookRow, b: BookRow): number {
   const kb = bookRowSortFields(b);
   if (ka.date !== kb.date) return ka.date > kb.date ? -1 : 1;
   if (ka.createdAt !== kb.createdAt) return ka.createdAt > kb.createdAt ? -1 : 1;
+  if (ka.id !== kb.id) return ka.id < kb.id ? -1 : 1;
+  return 0;
+}
+
+function recentRowSortFields(row: BookRow): { activityAt: string; id: string } {
+  if (row.kind === 'entry') {
+    return { activityAt: row.entry.createdAt, id: row.entry.id };
+  }
+  if (row.kind === 'group') {
+    return { activityAt: row.activityAt, id: row.id };
+  }
+  return { activityAt: row.createdAt, id: row.id };
+}
+
+export function compareRecentRows(a: BookRow, b: BookRow): number {
+  const ka = recentRowSortFields(a);
+  const kb = recentRowSortFields(b);
+  if (ka.activityAt !== kb.activityAt) return ka.activityAt > kb.activityAt ? -1 : 1;
   if (ka.id !== kb.id) return ka.id < kb.id ? -1 : 1;
   return 0;
 }

@@ -263,5 +263,6 @@ Actors: **Nhan** (owner; Sổ chi tiêu on; VND wallet "Techcombank", default, s
 | G-25 | Minh with the book on sees only Minh's own shares, never Nhan's extras (category, tags, wallet) | API and screen |
 | G-26 | Nhan turns the book off, `off-since { days: 2 }`, turns it on | Balance-check line on each everyday wallet; enter the real balance → one adjustment, not in spending; the line goes; "Bỏ qua" on another wallet removes its line |
 | G-27 | Off then on within an hour | No balance-check line |
+| G-28 | Payment just recorded; entry just added for last month | "Giao dịch gần đây" shows the payment first, then the late entry, then older activity (server `recent=N`, newest `createdAt` / group `activityAt`) |
 
 Left to unit/API tests (already covered or cheaper there): query counts, rounding-on groups, `says_paid` greying, payback matching across months, privacy 404s.

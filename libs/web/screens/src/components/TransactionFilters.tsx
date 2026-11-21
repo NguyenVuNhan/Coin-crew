@@ -16,7 +16,7 @@ import { Switch } from '@cc/web-ui/components/ui/switch';
 import { cn } from '@cc/web-ui/lib/utils';
 import { FilterPickView } from './transactions/FilterPickView';
 
-export type TransactionFilterValues = Omit<ListQuery, 'month'>;
+export type TransactionFilterValues = Omit<ListQuery, 'month' | 'recent'>;
 
 export interface GroupFilterOption {
   id: string;

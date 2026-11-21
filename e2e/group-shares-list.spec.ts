@@ -10,6 +10,7 @@ import {
   createPersonalEntry,
   createTrip,
   currentMonth,
+  firstOfLastMonth,
   getCategories,
   getDirectLedger,
   getPersonalList,
@@ -430,6 +431,56 @@ for (const variant of MATRIX) {
 
         await ctx.nhan.getByTestId('book-recent-all').click();
         await expect(ctx.nhan).toHaveURL(/\/transactions/);
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    test('G-28: Giao dịch gần đây puts the newest activity on top — a payment just made, then an entry just added for last month', async ({ browser }, testInfo) => {
+      const ctx = await setupDaLatScenario(browser, variant, 'g28');
+      try {
+        const { expenseId: taxiId } = await addTripExpense(ctx.hung, ctx.tripId, {
+          description: 'Taxi',
+          amount: 240_000,
+          spentOn: todayIso(),
+          payerId: ctx.hungPid,
+          mode: 'equal',
+          entries: [ctx.nhanPid, ctx.hungPid, ctx.minhPid].map((participantId) => ({ participantId, value: 1 })),
+        });
+        const cats = await getCategories(ctx.nhan);
+        const foodCat = cats.find((c) => c.type === 'expense' && c.name === 'Ăn uống')!;
+        const lastMonth = await createPersonalEntry(ctx.nhan, {
+          type: 'expense',
+          walletId: ctx.wallets.tcb.id,
+          categoryId: foodCat.id,
+          amount: 30_000,
+          date: firstOfLastMonth(),
+          note: 'Quên ghi tháng trước',
+        });
+
+        const recentIds = async () => {
+          await ctx.nhan.goto('/trips');
+          const recent = ctx.nhan.getByTestId('book-recent');
+          await expect(recent.getByTestId(`tx-row-g-${taxiId}`)).toBeVisible();
+          return recent
+            .locator('[data-testid^="tx-row-"]')
+            .evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
+        };
+
+        expect((await recentIds()).slice(0, 2)).toEqual([`tx-row-${lastMonth.id}`, `tx-row-g-${taxiId}`]);
+
+        const { paymentId } = await recordPayment(ctx.minh, ctx.tripId, {
+          fromId: ctx.minhPid,
+          toId: ctx.nhanPid,
+          amount: 50_000,
+        });
+        expect((await recentIds()).slice(0, 3)).toEqual([
+          `tx-row-g-${paymentId}`,
+          `tx-row-${lastMonth.id}`,
+          `tx-row-g-${taxiId}`,
+        ]);
+
+        await saveShot(ctx.nhan, testInfo, 'G-28', variant);
       } finally {
         await ctx.close();
       }

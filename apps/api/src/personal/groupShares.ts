@@ -175,6 +175,7 @@ export async function loadGroupRows(
             status: transactions.status,
             metaJson: transactions.metaJson,
             createdAt: transactions.createdAt,
+            updatedAt: transactions.updatedAt,
           })
           .from(transactions)
           .where(and(...conds))
@@ -293,6 +294,7 @@ export async function loadGroupRows(
 
     const isDirect = trip.preset === 'direct';
     const link = linkByRootId.get(tx.rootId) ?? null;
+    const activityAt = tx.updatedAt > tx.createdAt ? tx.updatedAt : tx.createdAt;
 
     if (tx.type === 'expense') {
       if (tx.status !== 'approved' && tx.status !== 'pending') continue;
@@ -345,6 +347,7 @@ export async function loadGroupRows(
         pending: tx.status === 'pending',
         link,
         createdAt: tx.createdAt,
+        activityAt,
       });
     } else if (tx.type === 'income') {
       if (tx.status !== 'approved') continue;
@@ -369,6 +372,7 @@ export async function loadGroupRows(
         pending: false,
         link,
         createdAt: tx.createdAt,
+        activityAt,
       });
     } else if (tx.type === 'payment') {
       if (tx.status !== 'confirmed' && tx.status !== 'says_paid') continue;
@@ -397,6 +401,7 @@ export async function loadGroupRows(
         pending: tx.status === 'says_paid',
         link,
         createdAt: tx.createdAt,
+        activityAt,
       });
     }
   }

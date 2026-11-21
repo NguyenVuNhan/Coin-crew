@@ -27,6 +27,7 @@ function makeRow(overrides: Partial<GroupRow> = {}): GroupRow {
   const id = overrides.id ?? `g-${seq++}`;
   return {
     kind: 'group',
+    activityAt: '2026-11-01T00:00:00.000Z',
     id,
     rootId: overrides.rootId ?? id,
     tripId: 'trip-1',

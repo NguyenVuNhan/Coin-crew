@@ -71,6 +71,7 @@ function makeEntryRow(id: string, overrides: Partial<EntryView> = {}): ListRow {
 function makeGroupRow(overrides: Partial<GroupRow> = {}): GroupRow {
   return {
     kind: 'group',
+    activityAt: '2026-11-01T00:00:00.000Z',
     id: 'g-1',
     rootId: 'r-1',
     tripId: 'trip-1',

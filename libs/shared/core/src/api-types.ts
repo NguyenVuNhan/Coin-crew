@@ -850,6 +850,8 @@ export interface ListQuery {
   tripId?: string;
   groups?: 'show' | 'hide';
   q?: string;
+  /** "Giao dịch gần đây": the newest activity across all months, at most this many of each kind (1–20). */
+  recent?: number;
 }
 
 export interface ListResponse {

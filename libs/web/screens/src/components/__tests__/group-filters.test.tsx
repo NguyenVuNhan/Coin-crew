@@ -88,6 +88,7 @@ function makeEntry(id: string, note: string): EntryView {
 function makeGroupRow(over: Partial<GroupRow> & { id: string }): GroupRow {
   return {
     kind: 'group',
+    activityAt: '2026-11-01T00:00:00.000Z',
     rootId: over.id,
     tripId: 'trip-dalat',
     tripName: 'Đà Lạt',
