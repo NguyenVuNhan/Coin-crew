@@ -108,6 +108,10 @@ Remove "Khoản chi của bạn" and "Các khoản đã trả của bạn" (the 
 
 Extend `TransactionRow` for group rows: category icon, title (expense name), the group's name as a small label, a meta line that says the rest ("Bạn trả 300.000₫ · 200.000₫ mọi người nợ bạn", "Hùng trả", "Vào quỹ nhóm · Techcombank", "Thanh toán · Techcombank"), amount = your share with − / colour by type, "phần của bạn" under it when it differs from the bill; movements in neutral ink; pending rows at reduced emphasis with "Chờ duyệt · chưa tính", still AA contrast. Keep `fsl-tx-row*` classes.
 
+### 6.2a Approved look (owner, 2026-11-21)
+
+Mockup `docs/superpowers/mockups/v8-group-shares-part2.html`, approved as is: the group name is a Jade Mist pill after the title ("Với người khác" for quick expenses); payments are Ink with ⇄, never Leaf or Lychee; waiting rows carry the Turmeric "Chờ duyệt" pill under the amount and keep AA text; the row sheet is the `Sheet` wrapper (bottom on phones, dialog from 640px) with the outcome sentence, "Số tiền và người chia chỉ sửa được trong nhóm.", then category, wallet, tags, the report switch and a secondary "Xem trong nhóm" button, each field saving on its own; filters add "Nhóm" and "Hiện khoản từ nhóm"; the gear menu adds "Danh mục cho khoản nhóm" and "Tính khoản vay vào chi tiêu" with one muted line each; the balance check is a card at the top of the wallets page with "Nhập số dư thật" / "Bỏ qua", and its sheet shows the difference before saving.
+
 ### 6.3 Filters (my calls)
 
 The `/transactions` filter sheet gains "Nhóm" (pick one group, the direct group listed as "Với người khác") and a switch "Hiện khoản từ nhóm" (on by default). Active filters show as removable pills like the others. Search covers group rows by name, group name and the owner's note/tags.
