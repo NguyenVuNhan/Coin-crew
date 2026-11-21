@@ -383,23 +383,22 @@ describe('walletIcon registry, WalletIcon, and CurrencyBadge', () => {
     expect(WALLET_PASTEL_TONES).toEqual(['1', '2', '3', '4', '5', '6', 't', 'n']);
   });
 
-  it('resolves every icon across all 7 packages without broken img src', () => {
+  it('resolves every icon across all 7 packages without broken img src or silent fallback', () => {
     for (const pkg of WALLET_ICON_PACKAGES) {
       expect(pkg.items.length).toBeGreaterThan(0);
+      const expectedKind = pkg.id === 'basic' ? 'basic' : pkg.id === 'bank' ? 'bank' : 'svg';
       for (const item of pkg.items) {
         const resolved = resolveWalletIcon(item.id);
-        if (resolved.kind === 'basic') {
-          expect(resolved.toneClass).toBeTruthy();
-        } else {
-          expect(resolved.src).toBeTruthy();
-        }
+        expect(resolved.kind, `${item.id} must resolve as ${expectedKind}`).toBe(expectedKind);
 
         const { container } = render(<WalletIcon icon={item.id} size="md" />);
         const img = container.querySelector('img');
         if (resolved.kind === 'basic') {
+          expect(resolved.toneClass).toBeTruthy();
           expect(img).toBeNull();
           expect(container.querySelector('svg')).not.toBeNull();
         } else {
+          expect(resolved.src).toBeTruthy();
           expect(img?.getAttribute('src')).toBeTruthy();
         }
       }
