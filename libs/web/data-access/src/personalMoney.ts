@@ -419,6 +419,11 @@ export function useDeleteAsset() {
   });
 }
 
+export interface VisibilityChange {
+  id: string;
+  visible: boolean;
+}
+
 export function useHoldings(walletId?: string, opts?: { enabled?: boolean }) {
   const path = walletId
     ? `/api/me/personal/holdings?walletId=${encodeURIComponent(walletId)}`
@@ -428,5 +433,58 @@ export function useHoldings(walletId?: string, opts?: { enabled?: boolean }) {
     queryKey: [...PERSONAL_HOLDINGS_KEY, walletId ?? 'all'],
     queryFn: () => apiFetch<HoldingsResponse>(path),
     enabled: opts?.enabled ?? true,
+  });
+}
+
+async function invalidateVisibility(queryClient: QueryClient): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
+  ]);
+}
+
+export function useSetWalletVisibility() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { ok: true },
+    ApiClientError,
+    { walletId: string; categories?: VisibilityChange[]; assets?: VisibilityChange[] }
+  >({
+    mutationFn: ({ walletId, categories, assets }) =>
+      apiSend<{ ok: true }>(
+        `/api/me/personal/wallets/${encodeURIComponent(walletId)}/visibility`,
+        'PUT',
+        { categories, assets },
+      ),
+    onSuccess: () => invalidateVisibility(queryClient),
+  });
+}
+
+export function useSetCategoryWallets() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ ok: true }, ApiClientError, { id: string; walletIds: string[] }>({
+    mutationFn: ({ id, walletIds }) =>
+      apiSend<{ ok: true }>(
+        `/api/me/personal/categories/${encodeURIComponent(id)}/wallets`,
+        'PUT',
+        { walletIds },
+      ),
+    onSuccess: () => invalidateVisibility(queryClient),
+  });
+}
+
+export function useSetAssetWallets() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ ok: true }, ApiClientError, { id: string; walletIds: string[] }>({
+    mutationFn: ({ id, walletIds }) =>
+      apiSend<{ ok: true }>(
+        `/api/me/personal/assets/${encodeURIComponent(id)}/wallets`,
+        'PUT',
+        { walletIds },
+      ),
+    onSuccess: () => invalidateVisibility(queryClient),
   });
 }
