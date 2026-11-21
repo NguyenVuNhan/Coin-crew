@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from 'react';
-import { assetUnitText, normalizeName, type AssetView } from '@cc/core';
+import { assetUnitText, isAssetVisibleIn, normalizeName, type AssetView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -15,6 +15,7 @@ export interface AssetPickerProps {
   assets: AssetView[];
   value: string | null;
   onSelect(asset: AssetView): void;
+  walletId?: string;
 }
 
 export function AssetPicker({
@@ -23,6 +24,7 @@ export function AssetPicker({
   assets,
   value,
   onSelect,
+  walletId,
 }: AssetPickerProps): JSX.Element {
   const t = useT();
   const [search, setSearch] = useState('');
@@ -31,10 +33,14 @@ export function AssetPicker({
   const nonHidden = useMemo(
     () =>
       assets
-        .filter((a) => !a.hidden)
+        .filter(
+          (a) =>
+            a.id === value ||
+            (!a.hidden && (!walletId || isAssetVisibleIn(a, walletId))),
+        )
         .slice()
         .sort((a, b) => a.sortOrder - b.sortOrder),
-    [assets],
+    [assets, value, walletId],
   );
 
   const groups = useMemo(() => {

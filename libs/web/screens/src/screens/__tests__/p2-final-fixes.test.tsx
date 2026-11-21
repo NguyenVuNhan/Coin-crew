@@ -78,7 +78,8 @@ const invWalletUsd: WalletDetailView = {
 };
 
 const categoriesList: CategoryView[] = [
-  { id: 'c-food', type: 'expense', name: 'Ăn uống', icon: 'utensils', parentId: null, hidden: false, sortOrder: 0 },
+  // Shown on both investment wallets on purpose: these tests are about trade editing, not visibility (#130).
+  { id: 'c-food', type: 'expense', name: 'Ăn uống', icon: 'utensils', parentId: null, hidden: false, sortOrder: 0, walletOverrides: [{ walletId: 'w-inv', visible: true }, { walletId: 'w-usd-inv', visible: true }] },
   { id: 'c-shop', type: 'expense', name: 'Mua sắm', icon: 'shopping-bag', parentId: null, hidden: false, sortOrder: 1 },
   { id: 'c-bill', type: 'expense', name: 'Hóa đơn', icon: 'receipt', parentId: null, hidden: false, sortOrder: 2 },
   { id: 'c-move', type: 'expense', name: 'Di chuyển', icon: 'car', parentId: null, hidden: false, sortOrder: 3 },

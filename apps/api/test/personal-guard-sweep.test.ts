@@ -15,7 +15,7 @@ import { addWallet, postJson, switchOn } from './personal-helpers';
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
 function request(
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   sid: string | null,
   body?: unknown,
@@ -156,7 +156,7 @@ describe('personal money guard sweep — auth, switch, and cross-account privacy
     // --- 1. Signed out (401) and Switch off (403) across every route ---
     const authAndSwitchCases: Array<{
       label: string;
-      method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+      method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
       path: string;
       body?: unknown;
     }> = [
@@ -282,6 +282,24 @@ describe('personal money guard sweep — auth, switch, and cross-account privacy
         label: 'GET /summary',
         method: 'GET',
         path: '/api/me/personal/summary?month=2026-11',
+      },
+      {
+        label: 'PUT /wallets/:id/visibility',
+        method: 'PUT',
+        path: `/api/me/personal/wallets/${walletVnd.id}/visibility`,
+        body: { categories: [{ id: catA.id, visible: false }] },
+      },
+      {
+        label: 'PUT /categories/:id/wallets',
+        method: 'PUT',
+        path: `/api/me/personal/categories/${catA.id}/wallets`,
+        body: { walletIds: [walletVnd.id] },
+      },
+      {
+        label: 'PUT /assets/:id/wallets',
+        method: 'PUT',
+        path: '/api/me/personal/assets/any-asset/wallets',
+        body: { walletIds: [walletVnd.id] },
       },
     ];
 

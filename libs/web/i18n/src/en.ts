@@ -1630,6 +1630,20 @@ export const en = {
   'wallet.cashRow': 'Cash',
   'wallet.balanceLabel': 'Balance',
   'wallet.totalInclAssets': 'Total incl. assets',
+  'visibility.walletSheetTitle': 'Shown in this wallet',
+  'visibility.categories': 'Categories',
+  'visibility.expense': 'Expense',
+  'visibility.income': 'Income',
+  'visibility.assets': 'Assets',
+  'visibility.itemRowLabel': 'Shown in wallets',
+  'visibility.allWallets': 'All wallets',
+  'visibility.onlyWallet': 'Only {wallet}',
+  'visibility.nWallets': '{n} wallets',
+  'visibility.noWallets': 'No wallets',
+  'visibility.saveFailed': 'Could not save change. Please try again.',
+  'visibility.expand': 'Expand {name}',
+  'visibility.collapse': 'Collapse {name}',
+  'visibility.save': 'Save',
 } as const;
 
 export type MessageKey = keyof typeof en;

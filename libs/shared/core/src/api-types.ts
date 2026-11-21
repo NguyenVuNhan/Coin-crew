@@ -104,6 +104,7 @@ import type { HistoryGap, HistoryLine, PairHistory } from './history';
 import type { AttendanceLabel, AttendanceScore } from './attendance';
 import type { CurrencyCode } from './currency';
 import type { PersonalEntryType } from './wallets';
+import type { WalletOverride } from './visibility';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -750,6 +751,10 @@ export interface CategoryView {
   icon: string;
   hidden: boolean;
   sortOrder: number;
+  /** Starter key (`food`, `fees`…) for seeded categories, null for the owner's own. Optional: older responses lack it. */
+  starterKey?: string | null;
+  /** Per-wallet overrides of the kind default (#130). Optional: older responses lack it. */
+  walletOverrides?: WalletOverride[];
 }
 
 export interface CategoriesResponse {
@@ -866,6 +871,8 @@ export interface AssetView {
   hidden: boolean;
   sortOrder: number;
   entryCount: number;
+  /** Per-wallet overrides (#130). Optional: older responses lack it. */
+  walletOverrides?: WalletOverride[];
 }
 
 export interface AssetsResponse {

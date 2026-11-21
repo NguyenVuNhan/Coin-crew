@@ -13,6 +13,7 @@ import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
+import { ItemWalletsRow } from './visibility/ItemWalletsRow';
 
 export interface AssetFormProps {
   asset?: AssetView;
@@ -244,6 +245,8 @@ export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps):
           />
         )}
       </div>
+
+      {asset && <ItemWalletsRow kind="asset" item={asset} />}
 
       {otherError && <InlineError error={otherError} />}
 

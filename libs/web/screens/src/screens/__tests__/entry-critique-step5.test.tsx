@@ -139,27 +139,31 @@ describe('EntryPage critique step 5 — polish', () => {
     expect(box.querySelector('[aria-hidden="true"]')).toHaveTextContent('Số tiền');
   });
 
-  it('recent tiles skip investing categories on an everyday wallet and re-filter on switch', async () => {
+  it('tiles follow the wallet: everyday offers Đầu tư, investment hides it, and the pick survives a switch (#130)', async () => {
     const user = userEvent.setup();
     setup([vndCash, investWallet]);
     renderEntryPage('/entries/new?type=expense');
     await finishAmount(user, '50000');
     await screen.findByTestId('category-tile-cat-food');
-    expect(screen.queryByTestId('category-tile-cat-stock')).toBeNull();
-    expect(screen.queryByTestId('category-tile-cat-invest')).toBeNull();
+    expect(screen.getByTestId('category-tile-cat-stock')).toBeInTheDocument();
+    expect(screen.getByTestId('category-tile-cat-invest')).toBeInTheDocument();
 
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await openDetails(user);
     await user.click(screen.getByTestId('entry-wallet-row'));
     await user.click(await screen.findByTestId('wallet-option-w-inv'));
     await user.click(screen.getByTestId('entry-fold-category'));
-    expect(await screen.findByTestId('category-tile-cat-stock')).toBeInTheDocument();
+    // Investment wallet default hides every expense category outside Phí & lệ phí,
+    // but the category already picked stays as a tile.
+    expect(await screen.findByTestId('category-tile-cat-food')).toBeInTheDocument();
+    expect(screen.queryByTestId('category-tile-cat-stock')).toBeNull();
+    expect(screen.queryByTestId('category-tile-cat-invest')).toBeNull();
 
     await user.click(screen.getByTestId('category-tile-cat-food'));
     await user.click(screen.getByTestId('entry-wallet-row'));
     await user.click(await screen.findByTestId('wallet-option-w-vnd'));
     await user.click(screen.getByTestId('entry-fold-category'));
-    expect(screen.queryByTestId('category-tile-cat-stock')).toBeNull();
+    expect(await screen.findByTestId('category-tile-cat-stock')).toBeInTheDocument();
   });
 
   it('transfer shows the exclude switch inline without "Thêm chi tiết"; a category keeps it', async () => {

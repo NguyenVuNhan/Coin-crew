@@ -1631,4 +1631,18 @@ export const vi: Record<MessageKey, string> = {
   'wallet.cashRow': 'Tiền mặt', // REVIEW
   'wallet.balanceLabel': 'Số dư', // REVIEW
   'wallet.totalInclAssets': 'Tổng gồm tài sản', // REVIEW
+  'visibility.walletSheetTitle': 'Hiện trong ví này', // REVIEW
+  'visibility.categories': 'Danh mục', // REVIEW
+  'visibility.expense': 'Chi', // REVIEW
+  'visibility.income': 'Thu', // REVIEW
+  'visibility.assets': 'Tài sản', // REVIEW
+  'visibility.itemRowLabel': 'Hiện ở ví', // REVIEW
+  'visibility.allWallets': 'Tất cả ví', // REVIEW
+  'visibility.onlyWallet': 'Chỉ {wallet}', // REVIEW
+  'visibility.nWallets': '{n} ví', // REVIEW
+  'visibility.noWallets': 'Không ví nào', // REVIEW
+  'visibility.saveFailed': 'Chưa lưu được thay đổi. Hãy thử lại.', // REVIEW
+  'visibility.expand': 'Mở rộng {name}', // REVIEW
+  'visibility.collapse': 'Thu gọn {name}', // REVIEW
+  'visibility.save': 'Lưu', // REVIEW
 };

@@ -631,6 +631,48 @@ export const personalAssets = sqliteTable(
   ],
 );
 
+export const personalCategoryVisibility = sqliteTable(
+  'personal_category_visibility',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    categoryId: text('category_id')
+      .notNull()
+      .references(() => personalCategories.id, { onDelete: 'cascade' }),
+    visible: integer('visible').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.walletId, t.categoryId] }),
+    index('personal_cat_vis_user_idx').on(t.userId),
+    check('personal_cat_vis_visible_check', sql`${t.visible} IN (0, 1)`),
+  ],
+);
+
+export const personalAssetVisibility = sqliteTable(
+  'personal_asset_visibility',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    assetId: text('asset_id')
+      .notNull()
+      .references(() => personalAssets.id, { onDelete: 'cascade' }),
+    visible: integer('visible').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.walletId, t.assetId] }),
+    index('personal_asset_vis_user_idx').on(t.userId),
+    check('personal_asset_vis_visible_check', sql`${t.visible} IN (0, 1)`),
+  ],
+);
+
 export const notificationLogs = sqliteTable(
   'notification_logs',
   {

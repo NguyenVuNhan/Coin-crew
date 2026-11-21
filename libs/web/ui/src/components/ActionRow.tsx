@@ -17,6 +17,8 @@ export type RowAction = {
   label: string;
   icon: IconName;
   tone?: 'default' | 'danger' | 'success';
+  /** Optional `data-testid` for the action's button in an ActionSheet. */
+  testId?: string;
   onSelect: () => void;
 };
 
