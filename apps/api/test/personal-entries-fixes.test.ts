@@ -174,8 +174,8 @@ describe('personal entries and list fixes', () => {
       )
     ).wallet;
     const cats = (await json<CategoriesResponse>(await getCategories(sid))).categories;
-    const invest = cats.find((c) => c.name === 'Đầu tư' && c.parentId === null)!;
-    const stock = cats.find((c) => c.name === 'Cổ phiếu' && c.parentId === invest.id)!;
+    const invest = cats.find((c) => c.name === 'Phí & lệ phí' && c.parentId === null)!;
+    const stock = cats.find((c) => c.name === 'Thuế' && c.parentId === invest.id)!;
 
     await createEntry(sid, {
       walletId: wallet.id,
@@ -183,7 +183,7 @@ describe('personal entries and list fixes', () => {
       amount: 100_000,
       categoryId: stock.id,
       date: '2026-11-16',
-      note: 'Mua cổ phiếu',
+      note: 'Thuế TNCN',
     });
 
     const res = await listTransactions(sid, `month=2026-11&categoryId=${encodeURIComponent(invest.id)}`);
