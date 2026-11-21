@@ -813,7 +813,7 @@ export interface EntryView {
   note: string | null;
   tags: string[];
   excludeFromReports: boolean;
-  source: 'manual';
+  source: 'manual' | 'adjustment';
   beforeStart: boolean;
   createdAt: string;
 }

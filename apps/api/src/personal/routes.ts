@@ -14,7 +14,7 @@ import { listRoutes } from './list';
 import { assetRoutes } from './assets';
 import { holdingsRoutes } from './holdings';
 import { syncRoutes } from './sync';
-import { groupLinkRoutes } from './groupLinks';
+import { groupLinkRoutes, recordPersonalToggle } from './groupLinks';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -53,6 +53,8 @@ export function personalRoutes(): Hono<AppBindings> {
           updatedAt: now,
         },
       });
+
+    await recordPersonalToggle(db, user.id, body.enabled, now);
 
     return c.json({ enabled: body.enabled }, 200);
   });

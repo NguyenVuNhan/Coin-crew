@@ -1,15 +1,18 @@
 import { Hono } from 'hono';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import {
   participants,
+  personalBalanceChecks,
   personalCategories,
   personalGroupLinkTags,
   personalGroupLinks,
   personalGroupSettings,
   personalTags,
+  personalTransactions,
+  personalWalletSettings,
   personalWallets,
   transactions,
 } from '@cc/api-db/schema';
@@ -17,10 +20,54 @@ import { commitPersonalWrite } from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
-import { nowIso } from '@cc/api-util/ids';
-import type { GroupLinkView, GroupSettingsView } from '@cc/core';
+import { newId, nowIso } from '@cc/api-util/ids';
+import { walletBalance, type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { loadGroupSettings } from './groupShares';
 import { parseJson } from './validate';
+import { loadCalc } from './wallets';
+
+const BALANCE_CHECK_GAP_MS = 24 * 60 * 60 * 1000;
+
+export async function recordPersonalToggle(
+  db: Db,
+  userId: string,
+  enabled: boolean,
+  now: string,
+): Promise<void> {
+  if (!enabled) {
+    await db
+      .insert(personalGroupSettings)
+      .values({
+        userId,
+        disabledAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: personalGroupSettings.userId,
+        set: {
+          disabledAt: now,
+          updatedAt: now,
+        },
+      });
+    return;
+  }
+
+  await db
+    .insert(personalGroupSettings)
+    .values({
+      userId,
+      disabledAt: null,
+      reenabledAt: null,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: personalGroupSettings.userId,
+      set: {
+        reenabledAt: sql`CASE WHEN ${personalGroupSettings.disabledAt} IS NOT NULL THEN ${now} ELSE ${personalGroupSettings.reenabledAt} END`,
+        updatedAt: now,
+      },
+    });
+}
 
 /** Categories for group rows and loans, added to every user's own list on first use (spec section 5). */
 const GROUP_STARTERS = [
@@ -368,6 +415,172 @@ export function groupLinkRoutes(): Hono<AppBindings> {
     };
 
     return c.json({ settings }, 200);
+  });
+
+  app.get('/me/personal/balance-checks', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const db = getDb(c.env);
+
+    const settings = await db
+      .select({
+        disabledAt: personalGroupSettings.disabledAt,
+        reenabledAt: personalGroupSettings.reenabledAt,
+      })
+      .from(personalGroupSettings)
+      .where(eq(personalGroupSettings.userId, user.id))
+      .get();
+
+    if (!settings?.disabledAt || !settings.reenabledAt) {
+      return c.json({ walletIds: [] }, 200);
+    }
+
+    const gapMs = Date.parse(settings.reenabledAt) - Date.parse(settings.disabledAt);
+    if (!(gapMs > BALANCE_CHECK_GAP_MS)) {
+      return c.json({ walletIds: [] }, 200);
+    }
+
+    const [wallets, checks] = await Promise.all([
+      db
+        .select({ id: personalWallets.id })
+        .from(personalWallets)
+        .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+        .where(
+          and(
+            eq(personalWallets.userId, user.id),
+            isNull(personalWalletSettings.archivedAt),
+            or(isNull(personalWalletSettings.kind), eq(personalWalletSettings.kind, 'everyday')),
+          ),
+        )
+        .orderBy(sql`coalesce(${personalWalletSettings.sortOrder}, 0) asc`, asc(personalWallets.createdAt))
+        .all(),
+      db
+        .select({
+          walletId: personalBalanceChecks.walletId,
+          answeredAt: personalBalanceChecks.answeredAt,
+        })
+        .from(personalBalanceChecks)
+        .where(eq(personalBalanceChecks.userId, user.id))
+        .all(),
+    ]);
+
+    const reenabledMs = Date.parse(settings.reenabledAt);
+    const answered = new Set<string>();
+    for (const ch of checks) {
+      const answeredMs = Date.parse(ch.answeredAt);
+      if (
+        Number.isFinite(answeredMs) && Number.isFinite(reenabledMs)
+          ? answeredMs >= reenabledMs
+          : ch.answeredAt >= settings.reenabledAt
+      ) {
+        answered.add(ch.walletId);
+      }
+    }
+
+    const walletIds = wallets.filter((w) => !answered.has(w.id)).map((w) => w.id);
+    return c.json({ walletIds }, 200);
+  });
+
+  app.post('/me/personal/wallets/:id/balance-check', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const walletId = c.req.param('id');
+    const body = await parseJson<Record<string, unknown>>(c);
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const hasSkip = body.skip === true;
+    const hasActual = body.actual !== undefined;
+
+    if (body.skip !== undefined && body.skip !== true) {
+      throw new ApiError('VALIDATION', 422, 'Invalid skip');
+    }
+    if (hasSkip === hasActual) {
+      throw new ApiError('VALIDATION', 422, 'Provide either actual or skip: true');
+    }
+
+    let actual: number | null = null;
+    if (hasActual) {
+      if (typeof body.actual !== 'number' || !Number.isSafeInteger(body.actual)) {
+        throw new ApiError('VALIDATION', 422, 'actual must be an integer');
+      }
+      actual = body.actual;
+    }
+
+    const db = getDb(c.env);
+    const now = nowIso();
+
+    const upsertCheck = () =>
+      db
+        .insert(personalBalanceChecks)
+        .values({
+          userId: user.id,
+          walletId,
+          answeredAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [personalBalanceChecks.userId, personalBalanceChecks.walletId],
+          set: { answeredAt: now },
+        }) as unknown as BatchItem<'sqlite'>;
+
+    if (hasSkip) {
+      const walletRow = await db
+        .select({ id: personalWallets.id })
+        .from(personalWallets)
+        .where(and(eq(personalWallets.id, walletId), eq(personalWallets.userId, user.id)))
+        .get();
+
+      if (!walletRow) {
+        throw new ApiError('NOT_FOUND', 404, 'Wallet not found');
+      }
+
+      await commitPersonalWrite(db, user.id, () => [upsertCheck()]);
+      return c.json({ entryId: null }, 200);
+    }
+
+    const { wallets, entries } = await loadCalc(db, user.id);
+    const wallet = wallets.find((w) => w.id === walletId);
+    if (!wallet) {
+      throw new ApiError('NOT_FOUND', 404, 'Wallet not found');
+    }
+
+    const currentBalance = walletBalance(wallet, entries);
+    const diff = actual! - currentBalance;
+
+    if (diff === 0) {
+      await commitPersonalWrite(db, user.id, () => [upsertCheck()]);
+      return c.json({ entryId: null }, 200);
+    }
+
+    const entryId = newId();
+    const today = now.slice(0, 10);
+    const type = diff > 0 ? 'income' : 'expense';
+    const amount = Math.abs(diff);
+
+    await commitPersonalWrite(db, user.id, (v) => [
+      db.insert(personalTransactions).values({
+        id: entryId,
+        userId: user.id,
+        walletId: wallet.id,
+        type,
+        amount,
+        categoryId: null,
+        transferId: null,
+        assetId: null,
+        quantity: null,
+        date: today,
+        time: null,
+        note: 'Điều chỉnh số dư', // REVIEW
+        excludeFromReports: 1,
+        source: 'adjustment',
+        createdAt: now,
+        updatedAt: now,
+        syncVersion: v as unknown as number,
+      }) as unknown as BatchItem<'sqlite'>,
+      upsertCheck(),
+    ]);
+
+    return c.json({ entryId }, 200);
   });
 
   return app;
