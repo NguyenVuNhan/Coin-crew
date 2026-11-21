@@ -1640,6 +1640,14 @@ export const en = {
   'wallet.cashRow': 'Cash',
   'wallet.balanceLabel': 'Balance',
   'wallet.totalInclAssets': 'Total incl. assets',
+  'entry.shareWith': 'Split with? (optional)',
+  'entry.me': 'You',
+  'entry.flip': 'Change payer',
+  'outcome.myShare': 'Your share {amount}',
+  'outcome.owesMe': '{name} owes you {amount}',
+  'outcome.eachOwesMe': '{names} each owe you {amount}',
+  'outcome.iOwe': 'You owe {name} {amount}',
+  'outcome.paidBy': '{name} paid',
 } as const;
 
 export type MessageKey = keyof typeof en;

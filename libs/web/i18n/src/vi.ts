@@ -1641,4 +1641,12 @@ export const vi: Record<MessageKey, string> = {
   'wallet.cashRow': 'Tiền mặt', // REVIEW
   'wallet.balanceLabel': 'Số dư', // REVIEW
   'wallet.totalInclAssets': 'Tổng gồm tài sản', // REVIEW
+  'entry.shareWith': 'Chia với ai? (không bắt buộc)', // REVIEW
+  'entry.me': 'Bạn', // REVIEW
+  'entry.flip': 'Đổi người trả', // REVIEW
+  'outcome.myShare': 'Phần bạn {amount}', // REVIEW
+  'outcome.owesMe': '{name} nợ bạn {amount}', // REVIEW
+  'outcome.eachOwesMe': '{names} mỗi người nợ bạn {amount}', // REVIEW
+  'outcome.iOwe': 'Bạn nợ {name} {amount}', // REVIEW
+  'outcome.paidBy': '{name} trả', // REVIEW
 };
