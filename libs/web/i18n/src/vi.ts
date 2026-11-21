@@ -1504,6 +1504,8 @@ export const vi: Record<MessageKey, string> = {
   'filters.showGroupRows': 'Hiện khoản từ nhóm', // REVIEW
   'settings.groupCategory': 'Danh mục cho khoản nhóm', // REVIEW
   'settings.countLoans': 'Tính khoản vay vào chi tiêu', // REVIEW
+  'settings.groupCategoryHint': 'Dùng khi khoản từ nhóm chưa có danh mục riêng', // REVIEW
+  'settings.countLoansHint': 'Cho vay tính là chi, được trả lại tính là thu', // REVIEW
   'balanceCheck.question': 'Số dư có khớp với ngân hàng không?', // REVIEW
   'balanceCheck.enter': 'Nhập số dư thật', // REVIEW
   'balanceCheck.skip': 'Bỏ qua', // REVIEW

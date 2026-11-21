@@ -1503,6 +1503,8 @@ export const en = {
   'filters.showGroupRows': 'Show group items',
   'settings.groupCategory': 'Category for group items',
   'settings.countLoans': 'Count loans in spending',
+  'settings.groupCategoryHint': 'Used when a group item has no category of its own',
+  'settings.countLoansHint': 'Lending counts as spending, being paid back as income',
   'balanceCheck.question': 'Does the balance match your bank?',
   'balanceCheck.enter': 'Enter the real balance',
   'balanceCheck.skip': 'Skip',
