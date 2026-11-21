@@ -182,8 +182,10 @@ describe('Spending book (Sổ chi tiêu)', () => {
       expect(screen.queryByTestId('book-empty')).not.toBeInTheDocument();
       expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument();
       expect(screen.queryByTestId('home-total')).not.toBeInTheDocument();
-      // Today's quick expenses are still there.
-      expect(await screen.findByText('Taxi')).toBeInTheDocument();
+      // #114 Part 2 (owner-approved): with a wallet the quick-expense list gives way to Giao dịch gần đây.
+      // (the total above has loaded, so the wallet list has too)
+      await waitFor(() => expect(document.querySelector('.fsl-expense-list')).toBeNull());
+      expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
     });
 
     it('the people row shows the total and opens the people page', async () => {
