@@ -72,7 +72,6 @@ import { SplitFold } from '../components/quickShare/SplitFold';
 import { useCategoryGuess } from '../components/quickShare/useCategoryGuess';
 import { entriesForSave, useQuickSplit } from '../components/quickShare/useQuickSplit';
 import { useBack } from '../lib/navHistory';
-import { QuickExpenseEmbed } from './ExpenseForm';
 
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
