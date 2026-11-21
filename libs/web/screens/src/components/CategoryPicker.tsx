@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties, type JSX, type RefObject } from 'react';
-import type { CategoryView, WalletKind } from '@cc/core';
+import { isCategoryVisibleIn, type CategoryView, type VisibilityWallet } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
@@ -21,8 +21,8 @@ export interface CategoryPickerProps {
   error?: string | null;
   highlightError?: boolean;
   gridRef?: RefObject<HTMLDivElement | null>;
-  /** Kind of the wallet the entry goes to; everyday wallets don't get investing tiles up front. */
-  walletKind?: WalletKind;
+  /** Wallet the entry goes to; filters offered categories by per-wallet visibility. */
+  wallet?: VisibilityWallet;
   /** Enable fold view-transition names and tile stagger animation (touch mode). */
   transitionEnabled?: boolean;
 }
@@ -33,16 +33,6 @@ function tagTappedTile(button: HTMLButtonElement | null): void {
   const spans = button.querySelectorAll<HTMLElement>(':scope > span');
   if (spans[0]) spans[0].style.viewTransitionName = 'entry-cat-ic';
   if (spans[1]) spans[1].style.viewTransitionName = 'entry-cat-name';
-}
-
-/** Ids of the Đầu tư parent and its sub-categories (the parent carries the trending-up icon). */
-function investingIds(categories: CategoryView[]): Set<string> {
-  const parents = new Set(
-    categories.filter((c) => c.parentId === null && c.icon === 'trending-up').map((c) => c.id),
-  );
-  const ids = new Set(parents);
-  for (const c of categories) if (c.parentId && parents.has(c.parentId)) ids.add(c.id);
-  return ids;
 }
 
 import { categoryIconName } from './categoryIcon';
@@ -62,15 +52,21 @@ export function CategoryPicker({
   error,
   highlightError = false,
   gridRef,
-  walletKind,
+  wallet,
   transitionEnabled = false,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const visible = useMemo(
-    () => categories.filter((c) => c.type === type && !c.hidden),
-    [categories, type],
+    () =>
+      categories.filter(
+        (c) =>
+          c.type === type &&
+          !c.hidden &&
+          (!wallet || isCategoryVisibleIn(c, categories, wallet)),
+      ),
+    [categories, type, wallet],
   );
 
   const maxTiles = showTrade && onTradeSelect ? 5 : 6;
@@ -79,13 +75,11 @@ export function CategoryPicker({
     const byId = new Map(visible.map((c) => [c.id, c]));
     const picked: CategoryView[] = [];
     const seen = new Set<string>();
-    // Investing tiles are for investment wallets; on an everyday wallet they stay in "Thêm".
-    const blocked = walletKind === 'everyday' ? investingIds(categories) : new Set<string>();
 
     for (const id of recentIds) {
       if (picked.length >= maxTiles) break;
       const cat = byId.get(id);
-      if (cat && !seen.has(cat.id) && !blocked.has(cat.id)) {
+      if (cat && !seen.has(cat.id)) {
         seen.add(cat.id);
         picked.push(cat);
       }
@@ -93,7 +87,7 @@ export function CategoryPicker({
 
     for (const cat of visible) {
       if (picked.length >= maxTiles) break;
-      if (!seen.has(cat.id) && !blocked.has(cat.id)) {
+      if (!seen.has(cat.id)) {
         seen.add(cat.id);
         picked.push(cat);
       }
@@ -111,7 +105,7 @@ export function CategoryPicker({
     }
 
     return picked;
-  }, [visible, recentIds, value, categories, type, walletKind, maxTiles]);
+  }, [visible, recentIds, value, categories, type, maxTiles]);
 
   const tree = useMemo(() => {
     const parents = visible

@@ -2,13 +2,27 @@ import { Hono } from 'hono';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
-import { personalAssets, personalTransactions } from '@cc/api-db/schema';
+import {
+  personalAssets,
+  personalAssetVisibility,
+  personalTransactions,
+  personalWallets,
+  personalWalletSettings,
+} from '@cc/api-db/schema';
 import { commitPersonalWrite } from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import { MAX_ASSET_DECIMALS, type AssetView, type AssetsResponse } from '@cc/core';
+import {
+  inheritedAssetOverrides,
+  MAX_ASSET_DECIMALS,
+  type AssetView,
+  type AssetsResponse,
+  type VisibilityWallet,
+  type WalletKind,
+  type WalletOverride,
+} from '@cc/core';
 import { name1to40, parseJson } from './validate';
 
 function trimmedString(
@@ -34,16 +48,19 @@ function requireDecimals(v: unknown): number {
   return v;
 }
 
-function toAssetView(row: {
-  id: string;
-  name: string;
-  unit: string;
-  groupName: string;
-  decimals: number;
-  hidden: number;
-  sortOrder: number;
-  entryCount: number | string;
-}): AssetView {
+function toAssetView(
+  row: {
+    id: string;
+    name: string;
+    unit: string;
+    groupName: string;
+    decimals: number;
+    hidden: number;
+    sortOrder: number;
+    entryCount: number | string;
+  },
+  walletOverrides: WalletOverride[] = [],
+): AssetView {
   return {
     id: row.id,
     name: row.name,
@@ -53,6 +70,7 @@ function toAssetView(row: {
     hidden: Boolean(row.hidden),
     sortOrder: row.sortOrder,
     entryCount: Number(row.entryCount),
+    walletOverrides,
   };
 }
 
@@ -115,8 +133,26 @@ export function assetRoutes(): Hono<AppBindings> {
       .orderBy(asc(personalAssets.sortOrder), asc(personalAssets.createdAt))
       .all();
 
+    const overrideRows = await db
+      .select({
+        assetId: personalAssetVisibility.assetId,
+        walletId: personalAssetVisibility.walletId,
+        visible: personalAssetVisibility.visible,
+      })
+      .from(personalAssetVisibility)
+      .where(eq(personalAssetVisibility.userId, user.id))
+      .all();
+
+    const overridesByAsset = new Map<string, WalletOverride[]>();
+    for (const r of overrideRows) {
+      const ov: WalletOverride = { walletId: r.walletId, visible: Boolean(r.visible) };
+      const list = overridesByAsset.get(r.assetId);
+      if (list) list.push(ov);
+      else overridesByAsset.set(r.assetId, [ov]);
+    }
+
     const body: AssetsResponse = {
-      assets: rows.map(toAssetView),
+      assets: rows.map((r) => toAssetView(r, overridesByAsset.get(r.id) ?? [])),
     };
     return c.json(body, 200);
   });
@@ -137,31 +173,91 @@ export function assetRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     await assertUniqueAssetName(db, user.id, name);
 
-    const maxRow = await db
+    const existingAssetRows = await db
       .select({
-        maxOrder: sql<number | null>`max(${personalAssets.sortOrder})`,
+        id: personalAssets.id,
+        name: personalAssets.name,
+        unit: personalAssets.unit,
+        groupName: personalAssets.groupName,
+        decimals: personalAssets.decimals,
+        hidden: personalAssets.hidden,
+        sortOrder: personalAssets.sortOrder,
       })
       .from(personalAssets)
       .where(eq(personalAssets.userId, user.id))
-      .get();
+      .all();
 
-    const sortOrder = (maxRow?.maxOrder ?? -1) + 1;
+    const existingOverrideRows = await db
+      .select({
+        assetId: personalAssetVisibility.assetId,
+        walletId: personalAssetVisibility.walletId,
+        visible: personalAssetVisibility.visible,
+      })
+      .from(personalAssetVisibility)
+      .where(eq(personalAssetVisibility.userId, user.id))
+      .all();
+
+    const overridesByAsset = new Map<string, WalletOverride[]>();
+    for (const r of existingOverrideRows) {
+      const ov: WalletOverride = { walletId: r.walletId, visible: Boolean(r.visible) };
+      const list = overridesByAsset.get(r.assetId);
+      if (list) list.push(ov);
+      else overridesByAsset.set(r.assetId, [ov]);
+    }
+
+    const existingAssets: AssetView[] = existingAssetRows.map((r) =>
+      toAssetView({ ...r, entryCount: 0 }, overridesByAsset.get(r.id) ?? []),
+    );
+
+    const walletRows = await db
+      .select({
+        id: personalWallets.id,
+        kind: personalWalletSettings.kind,
+      })
+      .from(personalWallets)
+      .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+      .where(eq(personalWallets.userId, user.id))
+      .all();
+
+    const visibilityWallets: VisibilityWallet[] = walletRows.map((w) => ({
+      id: w.id,
+      kind: (w.kind ?? 'everyday') as WalletKind,
+    }));
+
+    const inheritedOverrides = inheritedAssetOverrides(groupName, existingAssets, visibilityWallets);
+
+    const sortOrder =
+      existingAssetRows.reduce((max, r) => (r.sortOrder > max ? r.sortOrder : max), -1) + 1;
     const id = newId();
     const now = nowIso();
 
     try {
-      await db.insert(personalAssets).values({
-        id,
-        userId: user.id,
-        name,
-        unit,
-        groupName,
-        decimals,
-        hidden: 0,
-        sortOrder,
-        createdAt: now,
-        updatedAt: now,
-      });
+      await commitPersonalWrite(db, user.id, () => [
+        db.insert(personalAssets).values({
+          id,
+          userId: user.id,
+          name,
+          unit,
+          groupName,
+          decimals,
+          hidden: 0,
+          sortOrder,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        ...(inheritedOverrides.length > 0
+          ? [
+              db.insert(personalAssetVisibility).values(
+                inheritedOverrides.map((ov) => ({
+                  userId: user.id,
+                  walletId: ov.walletId,
+                  assetId: id,
+                  visible: ov.visible ? 1 : 0,
+                })),
+              ),
+            ]
+          : []),
+      ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
         throw duplicateAssetNameError();
@@ -178,6 +274,7 @@ export function assetRoutes(): Hono<AppBindings> {
       hidden: false,
       sortOrder,
       entryCount: 0,
+      walletOverrides: inheritedOverrides,
     };
 
     return c.json({ asset }, 201);
@@ -266,6 +363,20 @@ export function assetRoutes(): Hono<AppBindings> {
       throw err;
     }
 
+    const overrideRows = await db
+      .select({
+        walletId: personalAssetVisibility.walletId,
+        visible: personalAssetVisibility.visible,
+      })
+      .from(personalAssetVisibility)
+      .where(
+        and(
+          eq(personalAssetVisibility.userId, user.id),
+          eq(personalAssetVisibility.assetId, existing.id),
+        ),
+      )
+      .all();
+
     const asset: AssetView = {
       id: existing.id,
       name: nextName,
@@ -275,6 +386,10 @@ export function assetRoutes(): Hono<AppBindings> {
       hidden: nextHidden,
       sortOrder: existing.sortOrder,
       entryCount,
+      walletOverrides: overrideRows.map((r) => ({
+        walletId: r.walletId,
+        visible: Boolean(r.visible),
+      })),
     };
 
     return c.json({ asset }, 200);

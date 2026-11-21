@@ -61,8 +61,8 @@ describe('personal categories and tags', () => {
     const b1 = await json<CategoriesResponse>(r1);
     const b2 = await json<CategoriesResponse>(r2);
 
-    expect(b1.categories).toHaveLength(16);
-    expect(b2.categories).toHaveLength(16);
+    expect(b1.categories).toHaveLength(14);
+    expect(b2.categories).toHaveLength(14);
     expect(b1.recentIds).toEqual([]);
 
     const invest = b1.categories.find((c) => c.name === 'Đầu tư');
@@ -70,20 +70,24 @@ describe('personal categories and tags', () => {
     expect(invest?.type).toBe('expense');
     expect(invest?.parentId).toBeNull();
 
-    const investSubs = b1.categories
-      .filter((c) => c.parentId === invest!.id)
+    expect(b1.categories.filter((c) => c.parentId === invest!.id)).toEqual([]);
+
+    const fees = b1.categories.find((c) => c.name === 'Phí & lệ phí');
+    expect(fees?.parentId).toBeNull();
+    const feeSubs = b1.categories
+      .filter((c) => c.parentId === fees!.id)
       .map((c) => c.name)
       .sort();
-    expect(investSubs).toEqual(['Crypto', 'Cổ phiếu', 'ETF', 'Vàng']);
+    expect(feeSubs).toEqual(['Phí', 'Thuế']);
 
     const incomeNames = b1.categories
       .filter((c) => c.type === 'income')
       .map((c) => c.name)
       .sort();
-    expect(incomeNames).toEqual(['Cổ tức', 'Lãi', 'Lương', 'Thu nhập khác']);
+    expect(incomeNames).toEqual(['Cổ tức', 'Lãi', 'Lương', 'Thu nhập khác', 'Thưởng / Staking']);
 
     const r3 = await getCategories(sid);
-    expect((await json<CategoriesResponse>(r3)).categories).toHaveLength(16);
+    expect((await json<CategoriesResponse>(r3)).categories).toHaveLength(14);
   });
 
   it("a sub-category must share its parent's type and cannot nest two deep", async () => {
@@ -92,8 +96,8 @@ describe('personal categories and tags', () => {
 
     const seedRes = await json<CategoriesResponse>(await getCategories(sid));
     const food = seedRes.categories.find((c) => c.name === 'Ăn uống')!;
-    const invest = seedRes.categories.find((c) => c.name === 'Đầu tư')!;
-    const investSub = seedRes.categories.find((c) => c.parentId === invest.id)!;
+    const fees = seedRes.categories.find((c) => c.name === 'Phí & lệ phí')!;
+    const investSub = seedRes.categories.find((c) => c.parentId === fees.id)!;
 
     // Wrong type under expense parent
     const wrongType = await createCategory(sid, {
@@ -135,13 +139,13 @@ describe('personal categories and tags', () => {
     ).wallet;
 
     const seeded = await json<CategoriesResponse>(await getCategories(sid));
-    const invest = seeded.categories.find((c) => c.name === 'Đầu tư')!;
+    const fees = seeded.categories.find((c) => c.name === 'Phí & lệ phí')!;
     const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
     const transport = seeded.categories.find((c) => c.name === 'Di chuyển')!;
     const shopping = seeded.categories.find((c) => c.name === 'Mua sắm')!;
 
     // Parent with children -> 409 IN_USE with reason HAS_CHILDREN
-    const hasKids = await deleteCategory(invest.id, sid);
+    const hasKids = await deleteCategory(fees.id, sid);
     expect(hasKids.status).toBe(409);
     expect(await json<{ error: { code: string; reason: string } }>(hasKids)).toMatchObject({
       error: { code: 'IN_USE', reason: 'HAS_CHILDREN' },

@@ -89,7 +89,8 @@ export function ResponsiveSheet({
               </Button>
             )}
           </div>
-          <div className="-mx-6 min-h-0 overflow-y-auto px-6">{children}</div>
+          {/* pb-1/-mb-1: room for a pressed button's 1px drop and its focus ring, so a bottom button never makes the body scroll. */}
+          <div className="-mx-6 -mb-1 min-h-0 overflow-y-auto px-6 pb-1">{children}</div>
         </DialogContent>
       </Dialog>
     )

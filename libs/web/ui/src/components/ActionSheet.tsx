@@ -18,6 +18,7 @@ export function ActionSheet(props: {
           <button
             key={action.id}
             type="button"
+            data-testid={action.testId}
             className={cn(
               'fsl-action-sheet__action',
               `fsl-action-sheet__action--${action.tone ?? 'default'}`,

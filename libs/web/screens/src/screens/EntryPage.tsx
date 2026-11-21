@@ -1632,7 +1632,11 @@ export function EntryPage(): JSX.Element {
                   type={entryType}
                   categories={categoriesQuery.data?.categories ?? []}
                   recentIds={categoriesQuery.data?.recentIds ?? []}
-                  walletKind={selectedWallet?.kind}
+                  wallet={
+                    selectedWallet
+                      ? { id: selectedWallet.id, kind: selectedWallet.kind }
+                      : undefined
+                  }
                   value={categoryId}
                   onChange={handleSelectCategory}
                   transferSelected={isTransferMode}
@@ -2145,6 +2149,7 @@ export function EntryPage(): JSX.Element {
         onClose={() => setAssetPickerOpen(false)}
         assets={allAssets}
         value={assetId}
+        walletId={selectedWallet?.id}
         onSelect={(asset) => {
           setAssetId(asset.id);
           setPickedAsset(asset);
