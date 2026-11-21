@@ -57,6 +57,7 @@ export function SplitWithPeople({
         onChange={handleChange}
         me={me}
         recent={[]}
+        optional
         extra={split.splitExtra}
       />
     </div>

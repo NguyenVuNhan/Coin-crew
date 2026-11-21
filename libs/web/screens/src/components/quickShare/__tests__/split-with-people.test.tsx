@@ -52,19 +52,38 @@ function makeSplit(overrides: Partial<QuickSplit> = {}): QuickSplit {
 
 describe('SplitWithPeople', () => {
   // Owner, 2026-11-21: the entry page picks people with the group form's "Chia cho" line, not chips,
-  // and shows "Chia cho" when empty or "Chia cho N người" when picked (without "0/4 người").
-  it('shows "Chia cho" without "0/4 người" and with no error when nobody is chosen', () => {
+  // and shows only "Chưa chọn ai" (no "Chia cho" label) when empty, or "Chia cho N người" when picked.
+  it('shows only "Chưa chọn ai" without a "Chia cho" label or error when nobody is chosen, including after clearing all in the sheet', async () => {
+    const user = userEvent.setup();
+    renderAt(
+      <SplitWithPeople
+        split={makeSplit({ chosen: new Set([MINH]) })}
+        label="Chia với ai? (không bắt buộc)"
+        me={ME}
+        kind="shared"
+      />,
+    );
+    act(() => {
+      setLang('vi');
+    });
+
+    await user.click(screen.getByRole('button', { name: /Chia cho/ }));
+    await user.click(await screen.findByRole('button', { name: 'Bỏ chọn hết' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Xong' }));
+
     renderAt(<SplitWithPeople split={makeSplit()} label="Chia với ai? (không bắt buộc)" me={ME} kind="shared" />);
     act(() => {
       setLang('vi');
     });
 
-    const section = screen.getByTestId('entry-people');
-    expect(section).toHaveTextContent('Chia với ai? (không bắt buộc)');
-    expect(section.querySelector('.fsl-split-between')).not.toBeNull();
-    expect(section.querySelector('.fsl-split-between__label')).toHaveTextContent(/^Chia cho$/);
-    expect(section).not.toHaveTextContent('0/4 người');
-    expect(section).toHaveTextContent('Chưa chọn ai');
+    const sections = screen.getAllByTestId('entry-people');
+    const emptySection = sections[1]!;
+    expect(emptySection).toHaveTextContent('Chia với ai? (không bắt buộc)');
+    expect(emptySection.querySelector('.fsl-split-between')).not.toBeNull();
+    expect(emptySection.querySelector('.fsl-split-between__label')).toBeNull();
+    expect(emptySection).not.toHaveTextContent('Chia cho');
+    expect(emptySection).toHaveTextContent('Chưa chọn ai');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 

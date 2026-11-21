@@ -1443,9 +1443,15 @@ export function EntryPage(): JSX.Element {
         },
       );
 
-      if (canShareChi && quickSplit.chosen.size > 0 && ledger) {
-        if (quickSplit.result && !quickSplit.result.ok) return;
+      if (canShareChi && ledger && (quickSplit.chosen.size > 0 || isDirectEdit)) {
+        if (quickSplit.chosen.size > 0 && quickSplit.result && !quickSplit.result.ok) return;
         const description = quickExpenseDescription({ note, fallback: categoryName });
+        const hasChosen = quickSplit.chosen.size > 0;
+        const expenseEntries = hasChosen
+          ? entriesForSave(quickSplit)
+          : [{ participantId: ledger.ownerPid, value: 1 }];
+        const expensePayerId = hasChosen ? quickSplit.payerId : ledger.ownerPid;
+        const expenseMode = hasChosen ? quickSplit.mode : 'equal';
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
         try {
@@ -1461,9 +1467,9 @@ export function EntryPage(): JSX.Element {
               description,
               amount: amountToSave,
               spentOn: date,
-              payerId: quickSplit.payerId,
-              mode: quickSplit.mode,
-              entries: entriesForSave(quickSplit),
+              payerId: expensePayerId,
+              mode: expenseMode,
+              entries: expenseEntries,
             },
             link: {
               intent: isDirectEdit ? (directGroupRow?.link?.intent ?? 'shared') : 'shared',
@@ -2139,7 +2145,7 @@ export function EntryPage(): JSX.Element {
 
             {(canShareChi || (isLoanDebt && Boolean(ledger && directView))) &&
               (isMousePointer || !fold.isOpen('amount')) && (
-                <>
+                <div className="flex flex-col gap-1">
                   <SplitWithPeople
                     split={quickSplit}
                     label={isLoanDebt ? t('loanDebt.withWhoQ') : t('entry.shareWith')}
@@ -2151,13 +2157,15 @@ export function EntryPage(): JSX.Element {
                     amount={primaryMinor}
                     names={quickSplitNames}
                   />
-                  <OutcomeSentence
-                    split={quickSplit}
-                    kind={isLoanDebt ? 'loan' : 'shared'}
-                    names={quickSplitNames}
-                    onFlip={() => quickSplit.setFlipped(!quickSplit.flipped)}
-                  />
-                </>
+                  {isLoanDebt && (
+                    <OutcomeSentence
+                      split={quickSplit}
+                      kind="loan"
+                      names={quickSplitNames}
+                      onFlip={() => quickSplit.setFlipped(!quickSplit.flipped)}
+                    />
+                  )}
+                </div>
               )}
 
             {/* Compact rows and details fold */}

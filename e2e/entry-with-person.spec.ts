@@ -183,11 +183,11 @@ for (const variant of MATRIX) {
       }
     });
 
-    test('E-03: Chi 50k, Minh, ⇄', async ({ browser }, testInfo) => {
+    test('E-03: Chi 50k, Minh, hides outcome box and saves shared expense', async ({ browser }, testInfo) => {
       const user = await setupBookUser(browser, variant, 'e03');
       try {
         const ledger = await getDirectLedger(user.page);
-        const minhPid = await addLedgerPerson(user.page, 'Minh');
+        await addLedgerPerson(user.page, 'Minh');
         const cats = await getCategories(user.page);
         const foodCat = cats.find((c) => c.type === 'expense' && c.name === 'Ăn uống')!;
 
@@ -195,13 +195,10 @@ for (const variant of MATRIX) {
         await typeAmount(user.page, variant, '50000');
         await pickCategoryInPicker(user.page, foodCat.id);
         await pickPeople(user.page, ['Minh']);
-        await user.page.getByTestId('entry-flip').click();
 
-        await expect(user.page.getByTestId('entry-outcome')).toContainText(
-          variant.lang === 'vi' ? 'Minh trả · Bạn nợ Minh 25.000₫' : 'Minh paid · You owe Minh 25.000₫',
-        );
+        await expect(user.page.getByTestId('entry-split-fold')).toBeVisible();
+        await expect(user.page.getByTestId('entry-outcome')).toHaveCount(0);
 
-        // Taps after amount (phone): (1) key-done, (2) category, (3) Minh, (4) flip, (5) save -> 5 taps.
         await Promise.all([
           user.page.waitForResponse(
             (res) =>
@@ -213,12 +210,12 @@ for (const variant of MATRIX) {
         ]);
 
         const view = await directView(user.page);
-        expect(view.expenses[0]?.payerId).toBe(minhPid);
-        expect(view.balances[ledger.ownerPid]).toBe(-25_000);
+        expect(view.expenses[0]?.payerId).toBe(ledger.ownerPid);
+        expect(view.balances[ledger.ownerPid]).toBe(25_000);
 
         const wallets = await getWallets(user.page);
         const tcb = wallets.find((w) => w.id === user.wallets.tcb.id)!;
-        expect(tcb.balance).toBe(1_000_000);
+        expect(tcb.balance).toBe(950_000);
 
         const list = await getPersonalList(user.page, { month: currentMonth(), groups: 'show' });
         expect(list.totals.find((t) => t.currency === 'VND')?.spent).toBe(25_000);

@@ -355,23 +355,22 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     expect(within(list).queryByTestId('wallet-option-w-usd')).toBeNull();
   });
 
-  it('(g) Chi → Vay/Nợ → Chi keeps 50k and Minh chosen, with ⇄ reset off', async () => {
+  it('(g) Vay/Nợ → Chi → Vay/Nợ keeps 50k and Minh chosen, with ⇄ reset off', async () => {
     const user = userEvent.setup();
     mockApi(baseRoutes());
 
-    renderEntry('/entries/new');
+    renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('category-tile-cat-food'));
     await pickPeople(user, ['Minh']);
     await user.click(await screen.findByTestId('entry-flip'));
     expect(screen.getByTestId('entry-flip')).toHaveAttribute('aria-pressed', 'true');
 
-    await user.click(screen.getByTestId('entry-tab-loan-debt'));
+    await user.click(screen.getByTestId('entry-tab-expense'));
     expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('50.000₫');
     expect(screen.getByTestId('entry-people')).toHaveTextContent('Minh');
-    expect(screen.getByTestId('entry-flip')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByTestId('entry-outcome')).toBeNull();
 
-    await user.click(screen.getByTestId('entry-tab-expense'));
+    await user.click(screen.getByTestId('entry-tab-loan-debt'));
     expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('50.000₫');
     expect(screen.getByTestId('entry-people')).toHaveTextContent('Minh');
     expect(screen.getByTestId('entry-flip')).toHaveAttribute('aria-pressed', 'false');

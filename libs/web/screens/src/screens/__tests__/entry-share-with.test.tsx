@@ -279,46 +279,17 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     });
   });
 
-  it('(c) ⇄ makes payerId p-minh and shows "Minh trả · Bạn nợ Minh 25.000₫"', async () => {
+  it('(c) Chi with people hides the "Phần bạn …" outcome sentence box', async () => {
     const user = userEvent.setup();
-    const { calls } = mockApi(
-      baseRoutes({
-        'POST /api/trips/t-led/expenses': () =>
-          Response.json({ expenseId: 'exp-99' }, { status: 201 }),
-        'PUT /api/me/personal/group-links/exp-99': () =>
-          Response.json({
-            link: {
-              walletId: 'w-bank',
-              categoryId: 'cat-food',
-              tagIds: [],
-              intent: 'shared',
-              excludeFromReports: false,
-            },
-          }),
-      }),
-    );
+    mockApi(baseRoutes());
 
     renderNewEntry();
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
     await pickPeople(user, ['Minh']);
 
-    await user.click(await screen.findByTestId('entry-flip'));
-    expect(screen.getByTestId('entry-outcome')).toHaveTextContent(
-      'Minh trả · Bạn nợ Minh 25.000₫',
-    );
-
-    await user.click(screen.getByTestId('entry-save-btn'));
-
-    await waitFor(() => {
-      expect(
-        calls.some((c) => c.method === 'POST' && c.path === '/api/trips/t-led/expenses'),
-      ).toBe(true);
-    });
-    const postCall = calls.find(
-      (c) => c.method === 'POST' && c.path === '/api/trips/t-led/expenses',
-    );
-    expect(postCall?.body).toMatchObject({ payerId: 'p-minh' });
+    expect(screen.getByTestId('entry-split-fold')).toBeInTheDocument();
+    expect(screen.queryByTestId('entry-outcome')).toBeNull();
   });
 
   it('(d) link PUT 500 shows alert; "Thử lại" PUTs again with exactly one POST to expenses', async () => {
@@ -586,9 +557,7 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     expect(screen.getByTestId('entry-note-input')).toHaveValue('Bún chả trưa');
     expect(screen.getByTestId('entry-people')).toHaveTextContent('Chia cho 2 người');
     expect(screen.getByTestId('entry-people')).toHaveTextContent('Bạn, Minh');
-    expect(screen.getByTestId('entry-outcome')).toHaveTextContent(
-      'Phần bạn 40.000₫ · Minh nợ bạn 40.000₫',
-    );
+    expect(screen.queryByTestId('entry-outcome')).toBeNull();
 
     // Edit note and save
     await user.clear(screen.getByTestId('entry-note-input'));
@@ -623,6 +592,117 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
       intent: 'shared',
       categoryId: 'cat-food',
       walletId: 'w-bank',
+    });
+  });
+
+  it('(j) clearing all "Chia cho" when editing a direct shared expense shows no error and PATCHes solo share on save', async () => {
+    const user = userEvent.setup();
+    const viewWithExpense: TripView = {
+      ...directTripView(),
+      expenses: [
+        {
+          id: 'exp-shared-clear',
+          rootId: 'exp-shared-clear',
+          description: 'Cà phê',
+          amount: 40_000,
+          spentOn: '2026-11-20',
+          payerId: 'p-me',
+          mode: 'equal',
+          status: 'approved',
+          rejectReason: null,
+          disabledByName: null,
+          createdById: 'p-me',
+          shares: [
+            { participantId: 'p-me', amount: 20_000, inputValue: 1 },
+            { participantId: 'p-minh', amount: 20_000, inputValue: 1 },
+          ],
+        },
+      ],
+    };
+
+    const { calls } = mockApi(
+      baseRoutes({
+        'GET /api/trips/t-led': viewWithExpense,
+        'GET /api/me/personal/transactions': {
+          rows: [],
+          groupRows: [
+            {
+              kind: 'group',
+              id: 'exp-shared-clear',
+              rootId: 'exp-shared-clear',
+              tripId: 't-led',
+              tripName: 'Quick expenses',
+              isDirect: true,
+              source: 'expense',
+              date: '2026-11-20',
+              title: 'Cà phê',
+              total: 40_000,
+              myShare: 20_000,
+              iPaid: true,
+              payerName: 'An',
+              counterpartName: null,
+              people: ['Minh'],
+              pending: false,
+              link: {
+                walletId: 'w-bank',
+                categoryId: 'cat-food',
+                tagIds: [],
+                intent: 'shared',
+                excludeFromReports: false,
+              },
+              createdAt: '2026-11-20T05:00:00Z',
+              activityAt: '2026-11-20T05:00:00Z',
+            },
+          ],
+        },
+        'PATCH /api/trips/t-led/expenses/exp-shared-clear': () =>
+          Response.json({ expenseId: 'exp-shared-clear-2', rootId: 'exp-shared-clear' }),
+        'PUT /api/me/personal/group-links/exp-shared-clear': () =>
+          Response.json({
+            link: {
+              walletId: 'w-bank',
+              categoryId: 'cat-food',
+              tagIds: [],
+              intent: 'shared',
+              excludeFromReports: false,
+            },
+          }),
+      }),
+    );
+
+    renderAt(<App />, { route: '/entries/exp-shared-clear/edit?group=1' });
+    act(() => {
+      setLang('vi');
+    });
+
+    const peopleSection = await screen.findByTestId('entry-people');
+    expect(peopleSection).toHaveTextContent('Bạn, Minh');
+
+    await user.click(within(peopleSection).getAllByRole('button')[0]!);
+    await user.click(await screen.findByRole('button', { name: 'Bỏ chọn hết' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Xong' }));
+
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Chưa chọn ai');
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await user.click(screen.getByTestId('entry-save-btn'));
+
+    await waitFor(() => {
+      expect(
+        calls.some(
+          (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-shared-clear',
+        ),
+      ).toBe(true);
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    const patchCall = calls.find(
+      (c) => c.method === 'PATCH' && c.path === '/api/trips/t-led/expenses/exp-shared-clear',
+    );
+    expect(patchCall?.body).toMatchObject({
+      amount: 40_000,
+      payerId: 'p-me',
+      entries: [{ participantId: 'p-me', value: 1 }],
     });
   });
 
