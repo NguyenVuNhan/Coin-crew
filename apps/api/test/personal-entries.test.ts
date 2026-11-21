@@ -771,7 +771,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
     expect(w1.id).toBeTruthy();
   });
 
-  it('an entry dated before the wallet start is stored with beforeStart: true and leaves the balance', async () => {
+  it('an entry dated before the wallet start is stored with beforeStart: false and counts toward balance', async () => {
     const sid = await memberSid('u-ent-before', 'EntBefore');
     await switchOn('u-ent-before');
 
@@ -792,10 +792,10 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
     });
     expect(res.status).toBe(201);
     const { entries } = await json<EntriesResponse>(res);
-    expect(entries[0]?.beforeStart).toBe(true);
+    expect(entries[0]?.beforeStart).toBe(false);
 
     const wallets = (await json<WalletDetailsResponse>(await getWallets(sid))).wallets;
-    expect(wallets[0]?.balance).toBe(500_000);
+    expect(wallets[0]?.balance).toBe(400_000);
     expect(wallets[0]?.entryCount).toBe(1);
   });
 
