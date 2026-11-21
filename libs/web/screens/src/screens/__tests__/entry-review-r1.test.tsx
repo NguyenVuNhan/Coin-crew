@@ -521,7 +521,8 @@ describe('Review Round 1 — EntryPage, AddMenu, WalletForm', () => {
 
     expect(screen.queryByTestId('first-wallet-negative')).toBeNull();
     await user.click(screen.getByTestId('first-wallet-kind-investment'));
-    await user.click(screen.getByTestId('first-wallet-currency-USD'));
+    await user.click(screen.getByTestId('first-wallet-currency-trigger'));
+    await user.click(await screen.findByTestId('currency-option-USD'));
     await user.type(screen.getByTestId('first-wallet-amount'), '-100');
     await user.type(screen.getByTestId('first-wallet-cost-vnd'), '2500000');
     await user.click(screen.getByTestId('first-wallet-create'));
