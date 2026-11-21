@@ -3,6 +3,8 @@ import { and, asc, eq, gt, inArray, or, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
+  participants,
+  personalGroupLinks,
   personalSyncDeletions,
   personalSyncState,
   personalTransactions,
@@ -13,6 +15,7 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import type {
+  GroupRow,
   PersonalEntryType,
   SyncCursor,
   SyncEntryRow,
@@ -20,10 +23,20 @@ import type {
   SyncResponse,
 } from '@cc/core';
 import { findLedger } from '../me/ledger';
+import { loadGroupRows } from './groupShares';
 import { loadLedgerRows } from './personRows';
 
 const PAGE_SIZE = 500;
 const TAG_CHUNK = 90;
+
+function fnv1aHex(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
 
 function parseOptionalInt(val: string | undefined): number | undefined {
   if (val === undefined) return undefined;
@@ -47,6 +60,9 @@ export function syncRoutes(): Hono<AppBindings> {
     const epochParam = c.req.query('epoch');
     const since = parseOptionalInt(c.req.query('since'));
     const ledgerVersion = parseOptionalInt(c.req.query('ledgerVersion'));
+    // Group rows are opt-in (`groups=show`) so today's clients get exactly today's responses.
+    const wantGroups = c.req.query('groups') === 'show';
+    const groupsKey = c.req.query('groupsKey');
     const cursorV = parseOptionalInt(c.req.query('cursorV'));
     const cursorId = c.req.query('cursorId');
 
@@ -84,7 +100,45 @@ export function syncRoutes(): Hono<AppBindings> {
       ledgerTripVersion = tripRow?.version ?? 0;
     }
 
-    if (!isReset && since === state.version && Number(ledgerVersion) === ledgerTripVersion && isFirstPage) {
+    let currentGroupsKey: string | null = null;
+    if (isFirstPage && wantGroups) {
+      const [groupVersionRows, linkVerRow] = await Promise.all([
+        db
+          .select({
+            tripId: trips.id,
+            version: trips.version,
+          })
+          .from(participants)
+          .innerJoin(trips, eq(trips.id, participants.tripId))
+          .where(and(eq(participants.userId, user.id), eq(participants.status, 'active')))
+          .all(),
+        db
+          .select({
+            maxSyncVersion: sql<number | null>`max(${personalGroupLinks.syncVersion})`,
+          })
+          .from(personalGroupLinks)
+          .where(eq(personalGroupLinks.userId, user.id))
+          .get(),
+      ]);
+
+      const versionByTrip = new Map<string, number>();
+      for (const row of groupVersionRows) {
+        versionByTrip.set(row.tripId, row.version);
+      }
+      const pairs = Array.from(versionByTrip.entries())
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([tripId, version]) => `${tripId}:${version}`);
+      const maxLinkSyncVersion = linkVerRow?.maxSyncVersion ?? 0;
+      currentGroupsKey = fnv1aHex(`${pairs.join(',')}|${maxLinkSyncVersion}`);
+    }
+
+    if (
+      !isReset &&
+      since === state.version &&
+      Number(ledgerVersion) === ledgerTripVersion &&
+      isFirstPage &&
+      (!wantGroups || groupsKey === currentGroupsKey)
+    ) {
       const currentResponse: SyncResponse = {
         status: 'current',
         epoch: serverEpoch,
@@ -93,6 +147,7 @@ export function syncRoutes(): Hono<AppBindings> {
         removedIds: [],
         cursor: null,
         ledger: null,
+        ...(wantGroups ? { groups: null } : {}),
       };
       return c.json(currentResponse, 200);
     }
@@ -212,6 +267,14 @@ export function syncRoutes(): Hono<AppBindings> {
       };
     }
 
+    let groupsField: { key: string; rows: GroupRow[] } | null = null;
+    if (isFirstPage && currentGroupsKey !== null && (isReset || groupsKey !== currentGroupsKey)) {
+      groupsField = {
+        key: currentGroupsKey,
+        rows: await loadGroupRows(db, user.id),
+      };
+    }
+
     const response: SyncResponse = {
       status: isReset ? 'reset' : 'delta',
       epoch: serverEpoch,
@@ -220,6 +283,7 @@ export function syncRoutes(): Hono<AppBindings> {
       removedIds,
       cursor,
       ledger: ledgerField,
+      ...(wantGroups ? { groups: groupsField } : {}),
     };
 
     return c.json(response, 200);
