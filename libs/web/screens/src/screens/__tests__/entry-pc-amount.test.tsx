@@ -10,6 +10,7 @@ import { mockApi } from '../../test/render';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
+import { pickPeople } from '../../test/entry';
 
 function mockMousePointerMatchMedia() {
   vi.stubGlobal(
@@ -324,7 +325,7 @@ describe('EntryPage PC (mouse-pointer) amount field', () => {
     await user.type(amountInput, '50000');
 
     // Pick Minh in "Với ai?" (owner approved 2026-11-21, Part 3: chips replace the row; the note is optional)
-    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await pickPeople(user, ['Minh']);
 
     await user.click(screen.getByTestId('entry-save-btn'));
 

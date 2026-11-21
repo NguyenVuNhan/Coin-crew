@@ -11,7 +11,7 @@ import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { AppNav } from '../../components/AppNav';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
-import { finishAmount, openDetails } from '../../test/entry';
+import { finishAmount, openDetails, pickPeople } from '../../test/entry';
 
 beforeEach(() => {
   localStorage.clear();
@@ -180,7 +180,7 @@ describe('Review Round 2 — R9 embedded Vay/Nợ quick-expense in EntryPage', (
 
     renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await pickPeople(user, ['Minh']);
 
     await openDetails(user);
     await user.type(screen.getByTestId('entry-note-input'), 'Trà sữa');

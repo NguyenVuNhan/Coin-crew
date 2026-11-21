@@ -9,10 +9,12 @@ export interface SplitBetweenProps {
   chosen: ReadonlySet<string>;
   me: string | null;
   onOpen(): void;
+  /** Nobody chosen is allowed (the entry page's "Chia với ai?"): no error under the line. */
+  optional?: boolean;
 }
 
 /** The line above the split picker that says who the bill is split between; tapping it opens the sheet. */
-export function SplitBetween({ people, chosen, me, onOpen }: SplitBetweenProps): JSX.Element {
+export function SplitBetween({ people, chosen, me, onOpen, optional = false }: SplitBetweenProps): JSX.Element {
   const t = useT();
   const inGroup = people.filter((p) => chosen.has(p.id));
   const n = inGroup.length;
@@ -45,7 +47,7 @@ export function SplitBetween({ people, chosen, me, onOpen }: SplitBetweenProps):
           {t('splitBetween.change')}
         </span>
       </button>
-      {n === 0 && (
+      {n === 0 && !optional && (
         <p role="alert" className={cn('fsl-split-between__error mt-2 text-sm text-danger')}>
           {t('splitError.NO_PARTICIPANTS')}
         </p>

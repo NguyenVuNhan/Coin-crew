@@ -569,3 +569,12 @@ export async function directView(page: Page): Promise<DirectLedgerView> {
   expect(res.ok(), `directView(${tripId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as DirectLedgerView;
 }
+
+/** Picks people on the entry page the way a group expense does: open the "Chia cho" line, add each, Xong. */
+export async function pickPeople(page: Page, names: readonly string[]): Promise<void> {
+  await page.getByTestId('entry-people').getByRole('button').first().click();
+  for (const name of names) {
+    await page.getByRole('button', { name: new RegExp(`^(Thêm|Add) ${name}$`) }).click();
+  }
+  await page.getByRole('button', { name: /^(Xong|Done)$/ }).click();
+}

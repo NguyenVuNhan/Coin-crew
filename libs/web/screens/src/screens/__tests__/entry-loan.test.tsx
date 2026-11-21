@@ -9,7 +9,7 @@ import type {
 } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
 import { mockApi, renderAt } from '../../test/render';
-import { finishAmount, openDetails } from '../../test/entry';
+import { finishAmount, openDetails, pickPeople } from '../../test/entry';
 import { hideUndo } from '../../components/UndoSnackbarHost';
 import { App } from '../../App';
 
@@ -194,7 +194,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     await finishAmount(user, '50000');
     expect(screen.getByTestId('entry-save-btn')).toBeDisabled();
 
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     expect(screen.getByTestId('entry-outcome')).toHaveTextContent('Minh nợ bạn 50.000₫');
     expect(screen.getByTestId('entry-save-btn')).toBeEnabled();
 
@@ -250,7 +250,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     await user.click(await screen.findByTestId('entry-flip'));
 
     expect(screen.getByTestId('entry-outcome')).toHaveTextContent('Bạn nợ Minh 50.000₫');
@@ -290,8 +290,8 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '100000');
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
-    await user.click(screen.getByTestId('entry-person-p-lan'));
+    await pickPeople(user, ['Minh']);
+    await pickPeople(user, ['Lan']);
 
     const outcome = await screen.findByTestId('entry-outcome');
     expect(outcome).toHaveTextContent('Minh, Lan mỗi người nợ bạn 50.000₫');
@@ -309,7 +309,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     expect(screen.queryByTestId('category-tile-cat-food')).toBeNull();
     expect(await screen.findByTestId('entry-people')).toHaveTextContent('Với ai?');
 
-    await user.click(screen.getByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     expect(screen.getByTestId('entry-save-btn')).toBeEnabled();
 
     await openDetails(user);
@@ -353,18 +353,18 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     renderEntry('/entries/new');
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     await user.click(await screen.findByTestId('entry-flip'));
     expect(screen.getByTestId('entry-flip')).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(screen.getByTestId('entry-tab-loan-debt'));
     expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('50.000₫');
-    expect(screen.getByTestId('entry-person-p-minh')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Minh');
     expect(screen.getByTestId('entry-flip')).toHaveAttribute('aria-pressed', 'false');
 
     await user.click(screen.getByTestId('entry-tab-expense'));
     expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('50.000₫');
-    expect(screen.getByTestId('entry-person-p-minh')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Minh');
     expect(screen.getByTestId('entry-flip')).toHaveAttribute('aria-pressed', 'false');
   });
 
@@ -374,7 +374,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
 
     await user.click(screen.getByTestId('entry-back'));
     expect(await screen.findByTestId('leave-guard-discard')).toBeInTheDocument();
@@ -403,7 +403,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => {
@@ -463,7 +463,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     await user.click(screen.getByTestId('entry-flip'));
     await user.click(screen.getByTestId('entry-save-btn'));
 

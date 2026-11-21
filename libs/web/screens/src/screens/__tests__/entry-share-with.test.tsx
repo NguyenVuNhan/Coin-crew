@@ -13,7 +13,7 @@ import { setLang } from '@cc/web-i18n';
 import type { TxCopyStatus } from '@cc/web-data-access/txCopy/hooks';
 import type { TxCopySnapshot } from '@cc/web-data-access/txCopy/store';
 import { mockApi, renderAt } from '../../test/render';
-import { finishAmount, openDetails } from '../../test/entry';
+import { finishAmount, openDetails, pickPeople } from '../../test/entry';
 import { hideUndo } from '../../components/UndoSnackbarHost';
 import { App } from '../../App';
 
@@ -222,7 +222,7 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     expect(calls.some((c) => c.method === 'POST' && c.path.includes('/expenses'))).toBe(false);
   });
 
-  it('(b) 50k, tap entry-person-p-minh, Lưu posts expense then puts group link', async () => {
+  it('(b) 50k, pick Minh, Lưu posts expense then puts group link', async () => {
     const user = userEvent.setup();
     const { calls } = mockApi(
       baseRoutes({
@@ -244,7 +244,7 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     renderNewEntry();
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => {
@@ -301,7 +301,7 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     renderNewEntry();
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
 
     await user.click(await screen.findByTestId('entry-flip'));
     expect(screen.getByTestId('entry-outcome')).toHaveTextContent(
@@ -352,7 +352,7 @@ describe('EntryPage — Chi with Chia với ai? and category guess', () => {
     renderNewEntry();
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
-    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await pickPeople(user, ['Minh']);
     await user.click(screen.getByTestId('entry-save-btn'));
 
     const alert = await screen.findByRole('alert');

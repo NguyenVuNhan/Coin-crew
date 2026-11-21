@@ -11,7 +11,7 @@ import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { ExpenseForm } from '../ExpenseForm';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
-import { finishAmount, openDetails } from '../../test/entry';
+import { finishAmount, openDetails, pickPeople } from '../../test/entry';
 
 beforeEach(() => {
   localStorage.clear();
@@ -162,8 +162,8 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
 
     renderEntryPage(['/entries/new?type=loan-debt']);
     await finishAmount(user, '100000');
-    await user.click(await screen.findByTestId('entry-person-led-m'));
-    await user.click(screen.getByTestId('entry-person-led-l'));
+    await pickPeople(user, ['Minh']);
+    await pickPeople(user, ['Lan']);
 
     expect(screen.queryByRole('radiogroup', { name: 'Cách chia' })).toBeNull();
 
@@ -190,7 +190,7 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
       'Chọn ít nhất một người',
     );
 
-    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await pickPeople(user, ['Minh']);
     expect(screen.queryByTestId('loan-debt-disabled-reason')).toBeNull();
   });
 
@@ -205,7 +205,7 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
 
     renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await pickPeople(user, ['Minh']);
 
     await openDetails(user);
     await user.type(screen.getByTestId('entry-note-input'), 'Trà sữa');
@@ -246,7 +246,7 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
 
     renderEntryPage(['/trips', '/entries/new?type=loan-debt']);
     await finishAmount(user, '85');
-    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await pickPeople(user, ['Minh']);
     await user.click(screen.getByTestId('entry-flip'));
     expect(screen.getByTestId('entry-outcome')).toHaveTextContent('Bạn nợ Minh');
 

@@ -384,6 +384,9 @@ Each case runs on the existing `MATRIX`, uses `setupDaLatScenario` or `setupNhan
   - ✓ with nobody chosen focuses the first "Với ai?" chip.
 - A loan's flipped sentence has no "Minh trả ·" prefix.
 - The outcome sentence stays green in both directions.
+- Owner, after testing: picking people reuses the group form's "Chia cho" line (`SplitBetween`, now with an
+  `optional` prop) and its people sheet, on both Chi and Vay/Nợ, instead of recent-people chips. You are listed
+  first, then recent people. The split modes stay folded. Lending Minh is now Xong, Đổi, Minh, Xong, Lưu.
 
 ### Task 11 (planner): Gate and handoff
 

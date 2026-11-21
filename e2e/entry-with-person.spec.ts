@@ -13,6 +13,7 @@ import {
   getPersonalList,
   getWallets,
   openEntry,
+  pickPeople,
   recordPayment,
   saveShot,
   setupDaLatScenario,
@@ -130,7 +131,7 @@ for (const variant of MATRIX) {
         await openEntry(ctx.nhan);
         await typeAmount(ctx.nhan, variant, '50000');
         await pickCategoryInPicker(ctx.nhan, foodCat.id);
-        await ctx.nhan.getByTestId(`entry-person-${minhPid}`).click();
+        await pickPeople(ctx.nhan, ['Minh']);
 
         // Taps after amount (phone): (1) key-done, (2) category, (3) Minh, (4) entry-save-btn -> 4 taps.
         await Promise.all([
@@ -193,7 +194,7 @@ for (const variant of MATRIX) {
         await openEntry(user.page);
         await typeAmount(user.page, variant, '50000');
         await pickCategoryInPicker(user.page, foodCat.id);
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
+        await pickPeople(user.page, ['Minh']);
         await user.page.getByTestId('entry-flip').click();
 
         await expect(user.page.getByTestId('entry-outcome')).toContainText(
@@ -236,7 +237,7 @@ for (const variant of MATRIX) {
 
         await openEntry(user.page, 'loan-debt');
         await typeAmount(user.page, variant, '50000');
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
+        await pickPeople(user.page, ['Minh']);
 
         // Taps after amount (phone): (1) key-done, (2) Minh, (3) entry-save-btn -> 3 taps.
         await Promise.all([
@@ -282,7 +283,7 @@ for (const variant of MATRIX) {
 
         await openEntry(user.page, 'loan-debt');
         await typeAmount(user.page, variant, '50000');
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
+        await pickPeople(user.page, ['Minh']);
         await user.page.getByTestId('entry-flip').click();
 
         // Taps after amount (phone): (1) key-done, (2) Minh, (3) flip, (4) entry-save-btn -> 4 taps.
@@ -324,8 +325,7 @@ for (const variant of MATRIX) {
 
         await openEntry(user.page, 'loan-debt');
         await typeAmount(user.page, variant, '100000');
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
-        await user.page.getByTestId(`entry-person-${lanPid}`).click();
+        await pickPeople(user.page, ['Minh', 'Lan']);
 
         await expect(user.page.getByTestId('entry-outcome')).toContainText(
           variant.lang === 'vi'
@@ -370,8 +370,7 @@ for (const variant of MATRIX) {
         await openEntry(user.page);
         await typeAmount(user.page, variant, '120000');
         await pickCategoryInPicker(user.page, foodCat.id);
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
-        await user.page.getByTestId(`entry-person-${lanPid}`).click();
+        await pickPeople(user.page, ['Minh', 'Lan']);
 
         await user.page.getByTestId('entry-split-fold').click();
         await user.page
@@ -534,7 +533,7 @@ for (const variant of MATRIX) {
         await openEntry(user.page);
         await typeAmount(user.page, variant, '50000');
         await pickCategoryInPicker(user.page, foodCat.id);
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
+        await pickPeople(user.page, ['Minh']);
         await user.page.getByTestId('entry-save-btn').click();
 
         const retryBtn = user.page.getByRole('button', {
@@ -605,7 +604,7 @@ for (const variant of MATRIX) {
 
         await openEntry(user.page, 'loan-debt');
         await typeAmount(user.page, variant, '50000');
-        await user.page.getByTestId(`entry-person-${minhPid}`).click();
+        await pickPeople(user.page, ['Minh']);
 
         // Taps after amount (phone): (1) key-done, (2) Minh, (3) entry-save-btn -> 3 taps.
         await Promise.all([

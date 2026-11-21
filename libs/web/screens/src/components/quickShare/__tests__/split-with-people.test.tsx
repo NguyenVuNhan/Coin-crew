@@ -6,7 +6,7 @@ import type { PersonView } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
 import { renderAt } from '../../../test/render';
 import { OutcomeSentence } from '../OutcomeSentence';
-import { PeopleChips } from '../PeopleChips';
+import { SplitWithPeople } from '../SplitWithPeople';
 import type { QuickSplit } from '../useQuickSplit';
 
 const ME = 'p-me';
@@ -49,89 +49,76 @@ function makeSplit(overrides: Partial<QuickSplit> = {}): QuickSplit {
   };
 }
 
-describe('PeopleChips', () => {
-  it('renders chips in chipIds order', () => {
-    const split = makeSplit({ chipIds: [LAN, MINH, HUNG] });
-
-    renderAt(<PeopleChips split={split} label="Split with?" me={ME} testId="entry-people" />);
-
-    const container = screen.getByTestId('entry-people');
-    const chipButtons = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('[data-testid^="entry-person-"]'),
-    );
-    expect(chipButtons.map((b) => b.dataset.testid)).toEqual([
-      `entry-person-${LAN}`,
-      `entry-person-${MINH}`,
-      `entry-person-${HUNG}`,
-    ]);
-  });
-
-  it('tapping a chip toggles aria-pressed', async () => {
-    const user = userEvent.setup();
-
-    function ControlledChips() {
-      const [chosen, setChosen] = useState<Set<string>>(() => new Set());
-      const split = makeSplit({
-        chosen,
-        toggle: (id) => {
-          setChosen((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-          });
-        },
-        setChosen: (next) => setChosen(new Set(next)),
-      });
-      return <PeopleChips split={split} label="Split with?" me={ME} />;
-    }
-
-    renderAt(<ControlledChips />);
-
-    const minhChip = screen.getByTestId(`entry-person-${MINH}`);
-    expect(minhChip).toHaveAttribute('aria-pressed', 'false');
-
-    await user.click(minhChip);
-    expect(minhChip).toHaveAttribute('aria-pressed', 'true');
-
-    await user.click(minhChip);
-    expect(minhChip).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  it('choosing me from the sheet shows the Bạn chip', async () => {
-    const user = userEvent.setup();
-
-    function ControlledChips() {
-      const [chosen, setChosen] = useState<Set<string>>(() => new Set());
-      const split = makeSplit({
-        chosen,
-        toggle: (id) => {
-          setChosen((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-          });
-        },
-        setChosen: (next) => setChosen(new Set(next)),
-      });
-      return <PeopleChips split={split} label="Chia với ai?" me={ME} />;
-    }
-
-    renderAt(<ControlledChips />);
+describe('SplitWithPeople', () => {
+  // Owner, 2026-11-21: the entry page picks people with the group form's "Chia cho" line, not chips.
+  it('shows the group "Chia cho" line with no error when nobody is chosen', () => {
+    renderAt(<SplitWithPeople split={makeSplit()} label="Chia với ai? (không bắt buộc)" me={ME} kind="shared" />);
     act(() => {
       setLang('vi');
     });
 
-    expect(screen.queryByTestId(`entry-person-${ME}`)).not.toBeInTheDocument();
+    const section = screen.getByTestId('entry-people');
+    expect(section).toHaveTextContent('Chia với ai? (không bắt buộc)');
+    expect(section.querySelector('.fsl-split-between')).not.toBeNull();
+    expect(section).toHaveTextContent('Chưa chọn ai');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 
-    await user.click(screen.getByTestId('entry-people-more'));
-    await user.click(await screen.findByRole('button', { name: 'Thêm Nhân' }));
+  it('on Chi counts you in once someone is picked, and picking from the sheet never stores you', async () => {
+    const user = userEvent.setup();
+
+    function Controlled() {
+      const [chosen, setChosen] = useState<Set<string>>(() => new Set());
+      const split = makeSplit({ chosen, setChosen: (next) => setChosen(new Set(next)) });
+      return (
+        <>
+          <SplitWithPeople split={split} label="Chia với ai?" me={ME} kind="shared" />
+          <output data-testid="stored">{[...chosen].join(',')}</output>
+        </>
+      );
+    }
+
+    renderAt(<Controlled />);
+    act(() => {
+      setLang('vi');
+    });
+
+    await user.click(screen.getByRole('button', { name: /Chia cho/ }));
+    await user.click(await screen.findByRole('button', { name: 'Thêm Minh' }));
     await user.click(screen.getByRole('button', { name: 'Xong' }));
 
-    const meChip = screen.getByTestId(`entry-person-${ME}`);
-    expect(meChip).toHaveTextContent('Bạn');
-    expect(meChip).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('entry-people')).toHaveTextContent('Bạn, Minh');
+    expect(screen.getByTestId('stored')).toHaveTextContent(/^p-minh$/);
+  });
+
+  it('on Vay/Nợ shows only the people picked', () => {
+    renderAt(
+      <SplitWithPeople split={makeSplit({ chosen: new Set([MINH]) })} label="Với ai?" me={ME} kind="loan" />,
+    );
+    act(() => {
+      setLang('vi');
+    });
+
+    const section = screen.getByTestId('entry-people');
+    expect(section).toHaveTextContent('Minh');
+    expect(section).not.toHaveTextContent('Bạn');
+  });
+
+  it('lists you first, then the most recently used people, in the sheet', async () => {
+    const user = userEvent.setup();
+    renderAt(<SplitWithPeople split={makeSplit()} label="Chia với ai?" me={ME} kind="shared" />);
+    act(() => {
+      setLang('vi');
+    });
+
+    await user.click(screen.getByRole('button', { name: /Chia cho/ }));
+    const adds = await screen.findAllByRole('button', { name: /^Thêm / });
+    expect(adds.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Thêm Nhân',
+      'Thêm Lan',
+      'Thêm Minh',
+      'Thêm Hùng',
+    ]);
   });
 });
 

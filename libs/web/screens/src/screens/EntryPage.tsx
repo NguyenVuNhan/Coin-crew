@@ -67,7 +67,7 @@ import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
-import { PeopleChips } from '../components/quickShare/PeopleChips';
+import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
 import { SplitFold } from '../components/quickShare/SplitFold';
 import { useCategoryGuess } from '../components/quickShare/useCategoryGuess';
 import { entriesForSave, useQuickSplit } from '../components/quickShare/useQuickSplit';
@@ -2007,10 +2007,11 @@ export function EntryPage(): JSX.Element {
             {(canShareChi || (isLoanDebt && Boolean(ledger && directView))) &&
               (isMousePointer || !fold.isOpen('amount')) && (
                 <>
-                  <PeopleChips
+                  <SplitWithPeople
                     split={quickSplit}
                     label={isLoanDebt ? t('loanDebt.withWhoQ') : t('entry.shareWith')}
                     me={ledger?.ownerPid ?? null}
+                    kind={isLoanDebt ? 'loan' : 'shared'}
                   />
                   <SplitFold
                     split={quickSplit}

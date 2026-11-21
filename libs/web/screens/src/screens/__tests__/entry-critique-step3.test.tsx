@@ -7,7 +7,7 @@ import type { CategoriesResponse, CategoryView, TripView, WalletDetailView } fro
 import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { mockApi } from '../../test/render';
-import { finishAmount, openDetails } from '../../test/entry';
+import { finishAmount, openDetails, pickPeople } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
@@ -166,7 +166,7 @@ describe('EntryPage critique step 3 — date row', () => {
     });
     renderEntryPage('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
-    await user.click(await screen.findByTestId('entry-person-led-m'));
+    await pickPeople(user, ['Minh']);
     await openDetails(user);
 
     const row = screen.getByTestId('entry-date-row');
