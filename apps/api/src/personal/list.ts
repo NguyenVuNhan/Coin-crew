@@ -15,19 +15,23 @@ import { ApiError } from '@cc/api-util/errors';
 import { nowIso } from '@cc/api-util/ids';
 import {
   compareListRows,
+  groupRowEffect,
   isBeforeStart,
+  loanPaybacks,
   matchesNote,
   sumCounted,
   vndTotal,
   type CountedRow,
   type CurrencyCode,
   type EntryView,
+  type GroupRow,
   type ListQuery,
   type ListResponse,
   type ListRow,
   type PersonalEntryType,
   type PersonalSummary,
 } from '@cc/core';
+import { loadGroupRows, loadGroupSettings } from './groupShares';
 import { loadCalc } from './wallets';
 import { loadPersonRows } from './personRows';
 import { requireDate } from './validate';
@@ -74,18 +78,27 @@ function parseListPeriod(query: {
   return { from, to };
 }
 
-function parseListType(raw: string | undefined): ListQuery['type'] {
+type ListTypeParam = NonNullable<ListQuery['type']> | 'group';
+
+function parseListType(raw: string | undefined): ListTypeParam | undefined {
   if (raw === undefined) return undefined;
   if (
     raw === 'expense' ||
     raw === 'income' ||
     raw === 'transfer' ||
     raw === 'person' ||
-    raw === 'trade'
+    raw === 'trade' ||
+    raw === 'group'
   ) {
     return raw;
   }
   throw new ApiError('VALIDATION', 422, 'Invalid type');
+}
+
+function parseGroupsParam(raw: string | undefined): ListQuery['groups'] {
+  if (raw === undefined) return undefined;
+  if (raw === 'show' || raw === 'hide') return raw;
+  throw new ApiError('VALIDATION', 422, 'Invalid groups');
 }
 
 function toCountedRow(row: ListRow): CountedRow {
@@ -116,6 +129,9 @@ export function listRoutes(): Hono<AppBindings> {
     const categoryId = c.req.query('categoryId') || undefined;
     const assetId = c.req.query('assetId') || undefined;
     const tagId = c.req.query('tagId') || undefined;
+    const tripId = c.req.query('tripId') || undefined;
+    const groups = parseGroupsParam(c.req.query('groups'));
+    const showGroups = groups === 'show';
     const type = parseListType(c.req.query('type'));
     const rawQ = c.req.query('q');
     const qTerm = rawQ !== undefined && rawQ.trim().length > 0 ? rawQ.trim() : undefined;
@@ -159,7 +175,7 @@ export function listRoutes(): Hono<AppBindings> {
 
     const rows: ListRow[] = [];
 
-    if (type !== 'person') {
+    if (type !== 'person' && type !== 'group') {
       const conditions = [
         eq(personalTransactions.userId, user.id),
         gte(personalTransactions.date, from),
@@ -296,9 +312,96 @@ export function listRoutes(): Hono<AppBindings> {
         : rows;
 
     filteredRows.sort(compareListRows);
-    const totals = sumCounted(filteredRows.map(toCountedRow));
 
-    return c.json<ListResponse>({ rows: filteredRows, totals }, 200);
+    if (!showGroups) {
+      const totals = sumCounted(filteredRows.map(toCountedRow));
+      return c.json<ListResponse>({ rows: filteredRows, totals }, 200);
+    }
+
+    const [allGroupRows, groupSettings] = await Promise.all([
+      loadGroupRows(db, user.id, { from, to }),
+      loadGroupSettings(db, user.id),
+    ]);
+    // A payback can repay a loan from an earlier month, so paybacks walk all history (only needed when loans count).
+    const paybacks = groupSettings.countLoans
+      ? loanPaybacks(await loadGroupRows(db, user.id))
+      : new Map<string, number>();
+
+    const directExpenseById = new Map<string, GroupRow>();
+    for (const r of allGroupRows) {
+      if (r.isDirect && r.source === 'expense') {
+        directExpenseById.set(r.id, r);
+      }
+    }
+
+    let groupRows: GroupRow[] = [];
+    if (!assetId && (type === undefined || type === 'group')) {
+      groupRows = allGroupRows.filter((r) => !(r.isDirect && r.source === 'expense'));
+      if (tripId) {
+        groupRows = groupRows.filter((r) => r.tripId === tripId);
+      }
+      if (qTerm !== undefined) {
+        const neededTagIds = new Set<string>();
+        for (const r of groupRows) {
+          for (const tid of r.link?.tagIds ?? []) {
+            neededTagIds.add(tid);
+          }
+        }
+        const tagNameById = new Map<string, string>();
+        if (neededTagIds.size > 0) {
+          const linkTagRows = await db
+            .select({ id: personalTags.id, name: personalTags.name })
+            .from(personalTags)
+            .where(and(eq(personalTags.userId, user.id), inArray(personalTags.id, [...neededTagIds])))
+            .all();
+          for (const t of linkTagRows) {
+            tagNameById.set(t.id, t.name);
+          }
+        }
+        groupRows = groupRows.filter(
+          (r) =>
+            matchesNote(r.title, qTerm) ||
+            matchesNote(r.tripName, qTerm) ||
+            (r.link?.tagIds.some((tid) => {
+              const name = tagNameById.get(tid);
+              return name !== undefined && matchesNote(name, qTerm);
+            }) ??
+              false),
+        );
+      }
+    }
+
+    const countedRows: CountedRow[] = [];
+    for (const row of filteredRows) {
+      if (row.kind === 'person') {
+        const directRow = directExpenseById.get(row.id);
+        if (directRow && directRow.link !== null) {
+          const eff = groupRowEffect(directRow, groupSettings);
+          if (eff.spending > 0) {
+            countedRows.push({ currency: 'VND', signedAmount: -eff.spending, counted: true });
+          }
+          if (eff.income > 0) {
+            countedRows.push({ currency: 'VND', signedAmount: eff.income, counted: true });
+          }
+          continue;
+        }
+      }
+      countedRows.push(toCountedRow(row));
+    }
+
+    for (const row of groupRows) {
+      const eff = groupRowEffect(row, groupSettings, paybacks.get(row.id));
+      if (eff.spending > 0) {
+        countedRows.push({ currency: 'VND', signedAmount: -eff.spending, counted: true });
+      }
+      if (eff.income > 0) {
+        countedRows.push({ currency: 'VND', signedAmount: eff.income, counted: true });
+      }
+    }
+
+    const totals = sumCounted(countedRows);
+
+    return c.json<ListResponse>({ rows: filteredRows, totals, groupRows }, 200);
   });
 
   app.get('/me/personal/summary', requirePersonal, async (c) => {
