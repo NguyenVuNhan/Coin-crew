@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import {
   compareBookRows,
   type AssetView,
@@ -34,6 +34,7 @@ import { Screen } from '../components/Screen';
 import {
   ActiveFilterPills,
   TransactionFilters,
+  type GroupFilterOption,
   type TransactionFilterValues,
 } from '../components/TransactionFilters';
 import { TransactionRow } from '../components/TransactionRow';
@@ -89,6 +90,7 @@ interface MonthBlockProps {
   onClearFilters(): void;
   onOpenEntry?: (entry: EntryView) => void;
   onOpenGroup?: (row: GroupRow) => void;
+  onGroupRows?: (rows: GroupRow[]) => void;
   onLoaded?: (month: string, isEmpty: boolean) => void;
 }
 
@@ -106,6 +108,7 @@ function MonthBlock({
   onClearFilters,
   onOpenEntry,
   onOpenGroup,
+  onGroupRows,
   onLoaded,
 }: MonthBlockProps): JSX.Element | null {
   const t = useT();
@@ -140,6 +143,12 @@ function MonthBlock({
       onLoaded(month, rows.length === 0);
     }
   }, [month, rows, onLoaded]);
+
+  useEffect(() => {
+    if (extraGroupRows.length > 0 && onGroupRows) {
+      onGroupRows(extraGroupRows);
+    }
+  }, [extraGroupRows, onGroupRows]);
 
   const grouped = useMemo(
     () => (rows ? groupRows(rows, viewMode, categories, lang, t, undefined, settings) : []),
@@ -294,6 +303,44 @@ export function TransactionsScreen(): JSX.Element {
   const tags = tagsQuery.data?.tags ?? [];
   const groupSettings = groupSettingsQuery.data?.settings ?? DEFAULT_GROUP_SETTINGS;
 
+  const allGroupCopy = useCopyGroupRows(
+    { from: '0000-01-01', to: '9999-12-31', groups: 'show' },
+    { settings: groupSettings },
+  );
+  const [seenGroupRows, setSeenGroupRows] = useState<GroupRow[]>([]);
+  const handleGroupRows = useCallback((incoming: GroupRow[]) => {
+    setSeenGroupRows((prev) => {
+      const existing = new Set(prev.map((r) => r.tripId));
+      const next = [...prev];
+      let changed = false;
+      for (const r of incoming) {
+        if (!existing.has(r.tripId)) {
+          existing.add(r.tripId);
+          next.push(r);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
+  const groupOptions = useMemo<GroupFilterOption[]>(() => {
+    const source =
+      allGroupCopy.ready && allGroupCopy.groupRows
+        ? allGroupCopy.groupRows
+        : seenGroupRows;
+    const byTripId = new Map<string, GroupFilterOption>();
+    for (const row of source) {
+      if (!byTripId.has(row.tripId)) {
+        byTripId.set(row.tripId, {
+          id: row.tripId,
+          name: row.isDirect ? t('transactions.typePerson') : row.tripName,
+        });
+      }
+    }
+    return [...byTripId.values()];
+  }, [allGroupCopy.ready, allGroupCopy.groupRows, seenGroupRows, t]);
+
   /** Applies a change and commits whatever is typed in the search box with it (spec: the box is what's searched). */
   const apply = (change: Partial<TransactionFilterValues> & { month?: string }) => {
     const typed = draftRef.current?.text.trim() || undefined;
@@ -363,6 +410,7 @@ export function TransactionsScreen(): JSX.Element {
           categories={categories}
           assets={assets}
           tags={tags}
+          groups={groupOptions}
           hasAnyFilter={hasAnyFilter}
           onRemove={(key) => apply({ [key]: undefined })}
           onClearAll={clearAll}
@@ -394,6 +442,7 @@ export function TransactionsScreen(): JSX.Element {
               onClearFilters={clearAll}
               onOpenEntry={onOpenEntry}
               onOpenGroup={setSelectedGroupRow}
+              onGroupRows={handleGroupRows}
             />
           ) : (
             loadedMonths.map((month, idx) => (
@@ -411,6 +460,7 @@ export function TransactionsScreen(): JSX.Element {
                 onClearFilters={clearAll}
                 onOpenEntry={onOpenEntry}
                 onOpenGroup={setSelectedGroupRow}
+                onGroupRows={handleGroupRows}
                 onLoaded={(m, isEmpty) =>
                   setEmptyMonths((prev) => (prev[m] === isEmpty ? prev : { ...prev, [m]: isEmpty }))
                 }
@@ -439,6 +489,7 @@ export function TransactionsScreen(): JSX.Element {
         categories={categories}
         assets={assets}
         tags={tags}
+        groups={groupOptions}
       />
 
       <WhenSheet
