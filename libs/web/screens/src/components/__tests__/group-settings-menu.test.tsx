@@ -75,7 +75,7 @@ describe('PersonalSettingsMenu - group settings', () => {
     const { calls } = mockApi({
       'GET /api/me/personal/group-settings': () => Response.json({ settings }),
       'GET /api/me/personal/categories': { categories: CATEGORIES },
-      'PUT /api/me/personal/group-settings': async (init) => {
+      'PUT /api/me/personal/group-settings': async (init?: RequestInit) => {
         const body = init?.body ? (JSON.parse(String(init.body)) as Partial<GroupSettingsView>) : {};
         settings = { ...settings, ...body };
         return Response.json({ settings });
@@ -120,7 +120,7 @@ describe('PersonalSettingsMenu - group settings', () => {
     const { calls } = mockApi({
       'GET /api/me/personal/group-settings': () => Response.json({ settings }),
       'GET /api/me/personal/categories': { categories: CATEGORIES },
-      'PUT /api/me/personal/group-settings': async (init) => {
+      'PUT /api/me/personal/group-settings': async (init?: RequestInit) => {
         await held;
         const body = init?.body ? (JSON.parse(String(init.body)) as Partial<GroupSettingsView>) : {};
         settings = { ...settings, ...body };
