@@ -126,6 +126,12 @@ Mocks: `entry-with-person.html` (A/B/C), `entry-c-fewer-taps.html`, `entry-c-spl
 - Note becomes optional; Ngày before Ghi chú; "Chia cho" → "Với ai"; drop "trong nhóm" and the "Bánh tráng nướng, chợ đêm" placeholder (issue comment).
 - Saved with `intent = 'loan'` (section 5).
 
+**Old quick expenses stay as they are (owner, 2026-11-21: "this will break the old expenses").** The "only the people in Với ai" rule is a default for **new** Vay/Nợ entries, nothing more:
+- Stored shares are never rewritten. An old quick expense that split 50k between you and Minh keeps you at 25k; with `intent` null it counts as a shared expense (your share as spending), exactly as today.
+- **Editing** an old one starts from its stored shares (as `ExpenseForm` already does: `included = expense.shares`). Because the "Với ai" row hides you today, the form must show you as a **"Bạn"** chip whenever you are in the split, so the owner can see it and take themselves out. Saving an edit keeps `intent` as it was (null stays null) unless the owner flips it with ⇄.
+- The new default (you not in the split) applies only to the Sổ chi tiêu entry page's Vay/Nợ tab when creating. The group-only quick-expense page (`isDirect` without the embed) keeps today's default of you included.
+- Tests: an old 50/50 quick expense shows −25k "phần của bạn" before and after Part 3; opening it on Vay/Nợ shows "Bạn" and Minh chips; saving without changes keeps the shares and `intent` null.
+
 **Thu** is unchanged.
 
 **Shared by both:**
