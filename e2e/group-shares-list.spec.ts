@@ -6,7 +6,6 @@ import {
   addLedgerPerson,
   addTripExpense,
   beforeStartDate,
-  confirmPayment,
   createActorContext,
   createPersonalEntry,
   createTrip,
@@ -194,12 +193,13 @@ for (const variant of MATRIX) {
           entries: [ctx.nhanPid, ctx.minhPid, ctx.hungPid].map((participantId) => ({ participantId, value: 1 })),
         });
 
-        const { paymentId } = await recordPayment(ctx.minh, ctx.tripId, {
+        // A member who records their own payment to a member is confirmed at once (statusForNewPayment).
+        const { paymentId, status } = await recordPayment(ctx.minh, ctx.tripId, {
           fromId: ctx.minhPid,
           toId: ctx.nhanPid,
           amount: 200_000,
         });
-        await confirmPayment(ctx.nhan, ctx.tripId, paymentId);
+        expect(status).toBe('confirmed');
 
         await ctx.nhan.goto('/transactions');
         const payRow = ctx.nhan.getByTestId(`tx-row-g-${paymentId}`);
@@ -247,14 +247,12 @@ for (const variant of MATRIX) {
         const view = (await viewRes.json()) as {
           payments: Array<{ id: string; status: string; fromId: string; toId: string }>;
         };
-        const pendingPay = view.payments.find(
-          (p) => p.status === 'says_paid' && p.fromId === ctx.nhanPid && p.toId === ctx.hungPid,
-        );
-        expect(pendingPay).toBeTruthy();
-        await confirmPayment(ctx.hung, ctx.tripId, pendingPay!.id);
+        // Nhan is a member, so "I've paid" is confirmed at once; Hùng has nothing left to confirm.
+        const paid = view.payments.find((p) => p.fromId === ctx.nhanPid && p.toId === ctx.hungPid);
+        expect(paid?.status).toBe('confirmed');
 
         await ctx.nhan.goto('/transactions');
-        const payRow = ctx.nhan.getByTestId(`tx-row-g-${pendingPay!.id}`);
+        const payRow = ctx.nhan.getByTestId(`tx-row-g-${paid!.id}`);
         await expect(payRow).toBeVisible();
         await expect(payRow).toContainText(variant.lang === 'vi' ? 'Bạn trả Hùng' : 'You paid Hùng');
         await expect(payRow).toContainText(`${MINUS}80.000₫`);

@@ -288,6 +288,7 @@ export function useCopyList(
     query.tagId,
     query.type,
     query.q,
+    query.tripId,
   ]);
 
   // Also wait while a ready copy's lookup lists are still loading, so a fresh page doesn't spend a server read.

@@ -183,7 +183,8 @@ export function listRoutes(): Hono<AppBindings> {
 
     const rows: ListRow[] = [];
 
-    if (type !== 'person' && type !== 'group') {
+    // Filtering by a group shows that group's rows only: personal entries belong to no group.
+    if (type !== 'person' && type !== 'group' && !tripId) {
       const conditions = [
         eq(personalTransactions.userId, user.id),
         gte(personalTransactions.date, from),

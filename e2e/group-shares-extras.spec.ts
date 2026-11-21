@@ -119,7 +119,8 @@ for (const variant of MATRIX) {
         const { tags } = (await tagsRes.json()) as { tags: Array<{ id: string; name: string }> };
         const dalatTag = tags.find((t) => t.name === 'dalat')!;
 
-        const { expenseId } = await addTripExpense(ctx.nhan, ctx.tripId, {
+        // Only whoever added an expense may edit it, so Minh adds the dinner Nhan paid and later edits it.
+        const { expenseId } = await addTripExpense(ctx.minh, ctx.tripId, {
           description: 'Ăn tối',
           amount: 300_000,
           spentOn: todayIso(),

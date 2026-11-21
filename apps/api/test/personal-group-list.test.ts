@@ -427,7 +427,9 @@ describe('personal transaction list with group rows', () => {
       await getList(sid, '?month=2026-10&groups=show&tripId=t-2'),
     );
     expect(byTrip.groupRows?.map((r) => r.id)).toEqual(['e-t2']);
-    expect(byTrip.totals).toEqual([{ currency: 'VND', spent: 175_000, income: 0 }]);
+    // Part 2 (G-20): a group filter shows that group's rows only, so personal entries drop out of rows and totals.
+    expect(byTrip.rows).toEqual([]);
+    expect(byTrip.totals).toEqual([{ currency: 'VND', spent: 150_000, income: 0 }]);
 
     const onlyGroup = await json<ListResponse>(
       await getList(sid, '?month=2026-10&groups=show&type=group'),

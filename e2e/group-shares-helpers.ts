@@ -84,7 +84,7 @@ export async function signIn(
 
 export async function setBookEnabled(page: Page, enabled: boolean): Promise<void> {
   const res = await page.request.patch('/api/me/personal', { data: { enabled } });
-  expect(res.ok(), `setBookEnabled(${enabled}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `setBookEnabled(${enabled}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
 }
 
 export interface WalletRecord {
@@ -162,7 +162,7 @@ export async function setupNhanBook(
 
 export async function getWallets(page: Page): Promise<WalletRecord[]> {
   const res = await page.request.get('/api/me/personal/wallets');
-  expect(res.ok(), `getWallets failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `getWallets failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   const data = (await res.json()) as { wallets: WalletRecord[] };
   return data.wallets;
 }
@@ -178,7 +178,7 @@ export interface CategoryRecord {
 
 export async function getCategories(page: Page): Promise<CategoryRecord[]> {
   const res = await page.request.get('/api/me/personal/categories');
-  expect(res.ok(), `getCategories failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `getCategories failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   const data = (await res.json()) as { categories: CategoryRecord[] };
   return data.categories;
 }
@@ -190,7 +190,7 @@ export async function createCategory(
   const res = await page.request.post('/api/me/personal/categories', {
     data: { name: data.name, type: data.type, icon: data.icon ?? 'plane' },
   });
-  expect(res.ok(), `createCategory failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `createCategory failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   const json = (await res.json()) as { category: CategoryRecord };
   return json.category;
 }
@@ -208,9 +208,9 @@ export async function createPersonalEntry(
   },
 ): Promise<{ id: string }> {
   const res = await page.request.post('/api/me/personal/transactions', { data });
-  expect(res.ok(), `createPersonalEntry failed: ${res.status()}`).toBe(true);
-  const json = (await res.json()) as { entry: { id: string } };
-  return json.entry;
+  expect(res.ok(), `createPersonalEntry failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
+  const json = (await res.json()) as { entries: Array<{ id: string }> };
+  return json.entries[0]!;
 }
 
 export interface ListTotals {
@@ -241,7 +241,7 @@ export async function getPersonalList(
 ): Promise<PersonalListData> {
   const qs = new URLSearchParams(params);
   const res = await page.request.get(`/api/me/personal/transactions?${qs.toString()}`);
-  expect(res.ok(), `getPersonalList failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `getPersonalList failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as PersonalListData;
 }
 
@@ -257,7 +257,7 @@ export async function updateGroupLink(
   },
 ): Promise<void> {
   const res = await page.request.put(`/api/me/personal/group-links/${rootId}`, { data: input });
-  expect(res.ok(), `updateGroupLink(${rootId}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `updateGroupLink(${rootId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
 }
 
 export interface CreatedTrip {
@@ -323,7 +323,7 @@ export async function joinTrip(
     headers: { 'X-Link-Token': groupToken },
     data: opts ?? {},
   });
-  expect(res.ok(), `joinTrip(${tripId}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `joinTrip(${tripId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   const { participantId } = (await res.json()) as { participantId: string };
   return participantId;
 }
@@ -346,7 +346,7 @@ export async function addTripExpense(
     ...(groupToken ? { headers: { 'X-Link-Token': groupToken } } : {}),
     data,
   });
-  expect(res.ok(), `addTripExpense(${data.description}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `addTripExpense(${data.description}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as { expenseId: string };
 }
 
@@ -364,23 +364,23 @@ export async function editTripExpense(
   },
 ): Promise<{ expenseId: string; rootId: string }> {
   const res = await page.request.patch(`/api/trips/${tripId}/expenses/${expenseId}`, { data });
-  expect(res.ok(), `editTripExpense(${expenseId}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `editTripExpense(${expenseId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as { expenseId: string; rootId: string };
 }
 
 export async function disableTripExpense(page: Page, tripId: string, expenseId: string): Promise<void> {
   const res = await page.request.post(`/api/trips/${tripId}/expenses/${expenseId}/disable`);
-  expect(res.ok(), `disableTripExpense(${expenseId}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `disableTripExpense(${expenseId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
 }
 
 export async function enableTripExpense(page: Page, tripId: string, expenseId: string): Promise<void> {
   const res = await page.request.post(`/api/trips/${tripId}/expenses/${expenseId}/enable`);
-  expect(res.ok(), `enableTripExpense(${expenseId}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `enableTripExpense(${expenseId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
 }
 
 export async function approveTripExpense(page: Page, tripId: string, expenseId: string): Promise<void> {
   const res = await page.request.post(`/api/trips/${tripId}/expenses/${expenseId}/approve`);
-  expect(res.ok(), `approveTripExpense(${expenseId}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `approveTripExpense(${expenseId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
 }
 
 export async function addFundIncome(
@@ -389,7 +389,7 @@ export async function addFundIncome(
   data: { description: string; amount: number; spentOn: string },
 ): Promise<{ incomeId: string }> {
   const res = await page.request.post(`/api/trips/${tripId}/fund/incomes`, { data });
-  expect(res.ok(), `addFundIncome failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `addFundIncome failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as { incomeId: string };
 }
 
@@ -399,24 +399,24 @@ export async function recordPayment(
   data: { fromId: string; toId: string; amount: number },
 ): Promise<{ paymentId: string; status: string }> {
   const res = await page.request.post(`/api/trips/${tripId}/payments`, { data });
-  expect(res.ok(), `recordPayment failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `recordPayment failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as { paymentId: string; status: string };
 }
 
 export async function confirmPayment(page: Page, tripId: string, paymentId: string): Promise<void> {
   const res = await page.request.post(`/api/trips/${tripId}/payments/${paymentId}/confirm`);
-  expect(res.ok(), `confirmPayment failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `confirmPayment failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
 }
 
 export async function getDirectLedger(page: Page): Promise<{ tripId: string; ownerPid: string }> {
   const res = await page.request.get('/api/me/ledger');
-  expect(res.ok(), `getDirectLedger failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `getDirectLedger failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   return (await res.json()) as { tripId: string; ownerPid: string };
 }
 
 export async function addLedgerPerson(page: Page, name: string): Promise<string> {
   const res = await page.request.post('/api/me/ledger/people', { data: { name } });
-  expect(res.ok(), `addLedgerPerson(${name}) failed: ${res.status()}`).toBe(true);
+  expect(res.ok(), `addLedgerPerson(${name}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
   const { participantId } = (await res.json()) as { participantId: string };
   return participantId;
 }
@@ -494,8 +494,8 @@ export async function setupDaLatScenario(
   const lanPid = trip.pidByName('Lan');
 
   if (opts?.hungBank) {
-    const bankRes = await hung.request.put('/api/me/bank', { data: opts.hungBank });
-    expect(bankRes.ok(), `set Hùng bank failed: ${bankRes.status()}`).toBe(true);
+    const bankRes = await hung.request.put('/api/me/bank', { data: { ...opts.hungBank, consent: true } });
+    expect(bankRes.ok(), `set Hùng bank failed: ${bankRes.status()} ${bankRes.ok() ? '' : await bankRes.text()}`).toBe(true);
   }
 
   return {

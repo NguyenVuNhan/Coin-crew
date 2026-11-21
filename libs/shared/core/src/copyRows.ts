@@ -47,6 +47,8 @@ export function listFromCopy(
   lookups: CopyLookups,
   today: string,
 ): ListRow[] {
+  // Filtering by a group shows that group's rows only: personal entries belong to no group.
+  if (query.tripId) return [];
   const period = resolveListPeriod(query, today);
   const walletById = new Map<string, WalletDetailView>(
     lookups.wallets.map((w) => [w.id, w]),

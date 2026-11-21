@@ -723,3 +723,16 @@ describe('copy and server agree', () => {
     expect(entryList.map((r) => (r.kind === 'entry' ? r.entry.id : r.id))).toEqual(['e-nov']);
   });
 });
+
+describe('filtering by a group', () => {
+  it('listFromCopy returns no personal entries when a tripId is set', async () => {
+    const { listFromCopy } = await import('../src/copyRows');
+    const rows = listFromCopy(
+      { entries: [], ledger: [] } as unknown as Parameters<typeof listFromCopy>[0],
+      { month: '2026-11', tripId: 'trip-1' },
+      { wallets: [], categories: [], tags: [] } as unknown as Parameters<typeof listFromCopy>[2],
+      '2026-11-21',
+    );
+    expect(rows).toEqual([]);
+  });
+});

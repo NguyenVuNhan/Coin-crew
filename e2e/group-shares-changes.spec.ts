@@ -60,7 +60,7 @@ for (const variant of MATRIX) {
       }
     });
 
-    test('G-12: guest adds a 60k pending expense — greyed and uncounted until Minh approves', async ({ browser }, testInfo) => {
+    test('G-12: guest adds a 60k pending expense — greyed and uncounted until a member approves', async ({ browser }, testInfo) => {
       const ctx = await setupDaLatScenario(browser, variant, 'g12');
       const guestContext = await createActorContext(browser, variant);
       const guest = await guestContext.newPage();
@@ -97,7 +97,8 @@ for (const variant of MATRIX) {
 
         await saveShot(ctx.nhan, testInfo, 'G-12', variant);
 
-        await approveTripExpense(ctx.minh, ctx.tripId, expenseId);
+        // Approving needs an admin or someone in the expense: Nhan organises the trip.
+        await approveTripExpense(ctx.nhan, ctx.tripId, expenseId);
         await ctx.nhan.reload();
         await expect(row).toBeVisible();
         await expect(row).not.toContainText(
