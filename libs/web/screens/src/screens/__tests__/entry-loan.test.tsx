@@ -436,4 +436,43 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     const alert = await screen.findByRole('alert');
     expect(within(alert).getByRole('button', { name: 'Thử lại' })).toBeInTheDocument();
   });
+
+  it('a new account saves the borrow category even when the first category list predates the loan starters', async () => {
+    const user = userEvent.setup();
+    // The server creates "Cho vay" / "Đi vay" when group settings are first read; a category list loaded
+    // before that has neither.
+    let settingsRead = false;
+    const { calls } = mockApi(
+      baseRoutes({
+        'GET /api/me/personal/group-settings': () => {
+          settingsRead = true;
+          return Response.json({ settings: { defaultGroupCategoryId: null, countLoans: false } });
+        },
+        'GET /api/me/personal/categories': () =>
+          Response.json(
+            settingsRead ? categoriesResp : { categories: [foodCat], recentIds: ['cat-food'] },
+          ),
+        'POST /api/trips/t-led/expenses': () =>
+          Response.json({ expenseId: 'exp-new-acct' }, { status: 201 }),
+        'PUT /api/me/personal/group-links/exp-new-acct': () =>
+          Response.json({
+            link: { walletId: 'w-bank', categoryId: 'u-1:borrow', tagIds: [], intent: 'loan', excludeFromReports: false },
+          }),
+      }),
+    );
+
+    renderEntry('/entries/new?type=loan-debt');
+    await finishAmount(user, '50000');
+    await user.click(await screen.findByTestId('entry-person-p-minh'));
+    await user.click(screen.getByTestId('entry-flip'));
+    await user.click(screen.getByTestId('entry-save-btn'));
+
+    await waitFor(() => {
+      expect(
+        calls.some((c) => c.method === 'PUT' && c.path === '/api/me/personal/group-links/exp-new-acct'),
+      ).toBe(true);
+    });
+    const put = calls.find((c) => c.method === 'PUT' && c.path === '/api/me/personal/group-links/exp-new-acct');
+    expect(put?.body).toMatchObject({ intent: 'loan', categoryId: 'u-1:borrow' });
+  });
 });

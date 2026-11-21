@@ -275,7 +275,8 @@ export function EntryPage(): JSX.Element {
   );
   const [activeTab, setActiveTab] = useState<TabValue>(initial.tab);
   const isLoanDebt = !isEdit && activeTab === 'loan-debt';
-  useGroupSettings({ enabled: isLoanDebt });
+  // Reading group settings is what creates the "Cho vay" / "Đi vay" starters on a new account.
+  const groupSettingsQuery = useGroupSettings({ enabled: isLoanDebt });
   const [entryType, setEntryType] = useState<FormEntryType>(initial.type);
   const [isTransferMode, setIsTransferMode] = useState<boolean>(initial.transfer);
   const [isTradeMode, setIsTradeMode] = useState<boolean>(initial.trade);
@@ -675,6 +676,16 @@ export function EntryPage(): JSX.Element {
       ) ?? null,
     [categoriesQuery.data?.categories],
   );
+
+  // A category list loaded before group settings created the loan starters lacks them: load it again once.
+  const loanStartersRefetchedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoanDebt || !groupSettingsQuery.isSuccess || !categoriesQuery.data) return;
+    if (lendCategory && borrowCategory) return;
+    if (loanStartersRefetchedRef.current) return;
+    loanStartersRefetchedRef.current = true;
+    void categoriesQuery.refetch();
+  }, [isLoanDebt, groupSettingsQuery.isSuccess, categoriesQuery, lendCategory, borrowCategory]);
 
   // ✓ on Vay/Nợ with nobody chosen: focus the first "Với ai?" chip as soon as the chips are on screen.
   useEffect(() => {
@@ -1104,7 +1115,16 @@ export function EntryPage(): JSX.Element {
         return;
       }
 
-      const loanCategory = quickSplit.flipped ? borrowCategory : lendCategory;
+      let loanCategory = quickSplit.flipped ? borrowCategory : lendCategory;
+      if (!loanCategory) {
+        // Saved before the starters reached this page: make sure they exist, then read the list again.
+        await groupSettingsQuery.refetch();
+        const fresh = await categoriesQuery.refetch();
+        const suffix = quickSplit.flipped ? ':borrow' : ':lend';
+        const type = quickSplit.flipped ? 'income' : 'expense';
+        loanCategory =
+          fresh.data?.categories.find((c) => c.type === type && !c.hidden && c.id.endsWith(suffix)) ?? null;
+      }
       const fallbackDesc = loanCategory?.name || (quickSplit.flipped ? 'Đi vay' : 'Cho vay');
       const description = quickExpenseDescription({ note, fallback: fallbackDesc });
       const loanWalletId = selectedWallet?.id ?? null;
