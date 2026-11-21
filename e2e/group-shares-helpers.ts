@@ -519,3 +519,53 @@ export async function setupDaLatScenario(
     },
   };
 }
+
+export interface DirectLedgerView {
+  trip: { id: string; name: string; currency: string; preset: string };
+  me: { participantId: string };
+  people: Array<{ id: string; name: string; status: string }>;
+  balances: Record<string, number>;
+  expenses: Array<{
+    id: string;
+    description: string;
+    amount: number;
+    payerId: string;
+    mode: string;
+    shares: Array<{ participantId: string; amount: number }>;
+  }>;
+  payments: Array<{ id: string; fromId: string; toId: string; amount: number; status: string }>;
+}
+
+/** Opens `/entries/new` (optionally with `?type=...`) and waits for the amount field or keypad. */
+export async function openEntry(
+  page: Page,
+  type?: 'expense' | 'income' | 'loan-debt',
+): Promise<void> {
+  const path = type ? `/entries/new?type=${type}` : '/entries/new';
+  await page.goto(path);
+  await expect(page.getByTestId('amount-input').or(page.getByTestId('amount-keypad'))).toBeVisible();
+}
+
+/** Enters `digits` into the desktop amount textbox or phone keypad (clicking `key-done` on phone). */
+export async function typeAmount(page: Page, _variant: Variant, digits: string): Promise<void> {
+  const input = page.getByTestId('amount-input');
+  const keypad = page.getByTestId('amount-keypad');
+  await expect(input.or(keypad)).toBeVisible();
+  if (await input.isVisible()) {
+    await input.fill(digits);
+    return;
+  }
+  for (const ch of digits) {
+    const testId = ch === ',' ? 'key-comma' : `key-${ch}`;
+    await page.getByTestId(testId).click();
+  }
+  await page.getByTestId('key-done').click();
+}
+
+/** Fetches the current user's direct-ledger trip view (`GET /api/trips/<direct>`). */
+export async function directView(page: Page): Promise<DirectLedgerView> {
+  const { tripId } = await getDirectLedger(page);
+  const res = await page.request.get(`/api/trips/${tripId}`);
+  expect(res.ok(), `directView(${tripId}) failed: ${res.status()} ${res.ok() ? '' : await res.text()}`).toBe(true);
+  return (await res.json()) as DirectLedgerView;
+}

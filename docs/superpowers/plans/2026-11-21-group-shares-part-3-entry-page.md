@@ -375,6 +375,16 @@ Each case runs on the existing `MATRIX`, uses `setupDaLatScenario` or `setupNhan
 - [ ] **Step 3:** Add the E-01…E-12 table to this plan under "As built" if anything changed.
 - [ ] **Step 4:** Commit `test(e2e): entry page with a person (E-01…E-12)`.
 
+**As built (2026-11-21):**
+- Shares come back from the server with `inputValue`, so E-02, E-06…E-09 match shares with `expect.objectContaining`.
+- E-01 uses the starter "Mua sắm" (there is no "Cà phê" starter).
+- On a phone the details line shows only after a category is picked.
+- Task 7 review added two things the old form had:
+  - Vay/Nợ shows why Lưu is disabled (`loan-debt-disabled-reason`).
+  - ✓ with nobody chosen focuses the first "Với ai?" chip.
+- A loan's flipped sentence has no "Minh trả ·" prefix.
+- The outcome sentence stays green in both directions.
+
 ### Task 11 (planner): Gate and handoff
 
 - [ ] Run `npm test`, `npm run typecheck`, `npm run lint`, then `WALKTHROUGH=1 npm run e2e`. Expected: all green, `golden-path` and `walkthrough` included.
