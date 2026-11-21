@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { onTxCopySync, txCopySyncListeners } from './syncEvents';
 import {
   listFromCopy,
   type ListQuery,
@@ -196,18 +197,8 @@ class TxCopyController {
 
 const controllers = new Map<string, TxCopyController>();
 let activeUserId: string | null = null;
-const txCopySyncListeners = new Set<() => Promise<void> | void>();
 
-/**
- * Registers a listener called whenever `requestTxCopySync()` runs.
- * Returns an unsubscribe function.
- */
-export function onTxCopySync(listener: () => Promise<void> | void): () => void {
-  txCopySyncListeners.add(listener);
-  return () => {
-    txCopySyncListeners.delete(listener);
-  };
-}
+export { onTxCopySync };
 
 function getOrCreateController(userId: string): TxCopyController {
   let controller = controllers.get(userId);

@@ -1,14 +1,26 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { AssetView, CategoryView, EntryView, ListQuery, WalletDetailView } from '@cc/core';
+import {
+  compareBookRows,
+  type AssetView,
+  type BookRow,
+  type CategoryView,
+  type EntryView,
+  type GroupRow,
+  type GroupSettingsView,
+  type ListQuery,
+  type WalletDetailView,
+} from '@cc/core';
 import { getLang, useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import {
   useAssets,
   useCategories,
+  useGroupSettings,
   usePersonalList,
   useTags,
   useWalletDetails,
 } from '@cc/web-data-access/personalMoney';
+import { useCopyGroupRows } from '@cc/web-data-access/txCopy/groupCopy';
 import { useCopyList, useTxCopy } from '@cc/web-data-access/txCopy/hooks';
 import { useIsWide } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
@@ -17,6 +29,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Badge } from '@cc/web-ui/components/ui/badge';
+import { GroupRowSheet } from '../components/GroupRowSheet';
 import { Screen } from '../components/Screen';
 import {
   ActiveFilterPills,
@@ -57,6 +70,11 @@ function formatMonthLabel(ym: string, lang: 'vi' | 'en'): string {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
+
 interface MonthBlockProps {
   month?: string;
   range?: { from: string; to: string };
@@ -65,10 +83,12 @@ interface MonthBlockProps {
   wallets: WalletDetailView[];
   categories: CategoryView[];
   assets: AssetView[];
+  settings: GroupSettingsView;
   isPrimaryMonth: boolean;
   hasActiveFilters: boolean;
   onClearFilters(): void;
   onOpenEntry?: (entry: EntryView) => void;
+  onOpenGroup?: (row: GroupRow) => void;
   onLoaded?: (month: string, isEmpty: boolean) => void;
 }
 
@@ -80,10 +100,12 @@ function MonthBlock({
   wallets,
   categories,
   assets,
+  settings,
   isPrimaryMonth,
   hasActiveFilters,
   onClearFilters,
   onOpenEntry,
+  onOpenGroup,
   onLoaded,
 }: MonthBlockProps): JSX.Element | null {
   const t = useT();
@@ -93,9 +115,25 @@ function MonthBlock({
     ? { ...restFilters, from: range.from, to: range.to }
     : { ...restFilters, month };
   const copy = useCopyList(query);
+  const groupCopy = useCopyGroupRows(query, { settings });
   // While the copy is still opening (a few ms), wait for it rather than spending a server read.
-  const server = usePersonalList(query, { enabled: !copy.ready && !copy.opening });
-  const rows = copy.ready ? (copy.rows ?? []) : server.data?.rows;
+  const server = usePersonalList(query, {
+    enabled: !copy.ready && !copy.opening,
+    groups: true,
+  });
+  const baseRows = copy.ready
+    ? groupCopy.ready
+      ? (copy.rows ?? []).filter((r) => r.kind !== 'person')
+      : (copy.rows ?? [])
+    : server.data?.rows;
+  const extraGroupRows = groupCopy.ready
+    ? (groupCopy.groupRows ?? [])
+    : (server.data?.groupRows ?? []);
+  const rows = useMemo<BookRow[] | undefined>(() => {
+    if (baseRows === undefined) return undefined;
+    if (extraGroupRows.length === 0) return baseRows;
+    return [...baseRows, ...extraGroupRows].sort(compareBookRows);
+  }, [baseRows, extraGroupRows]);
 
   useEffect(() => {
     if (month && rows !== undefined && onLoaded) {
@@ -104,8 +142,8 @@ function MonthBlock({
   }, [month, rows, onLoaded]);
 
   const grouped = useMemo(
-    () => (rows ? groupRows(rows, viewMode, categories, lang, t) : []),
-    [rows, viewMode, categories, lang, t],
+    () => (rows ? groupRows(rows, viewMode, categories, lang, t, undefined, settings) : []),
+    [rows, viewMode, categories, lang, t, settings],
   );
 
   const isPending = !copy.ready && (copy.opening || server.isPending);
@@ -164,7 +202,9 @@ function MonthBlock({
                 wallets={wallets}
                 categories={categories}
                 assets={assets}
+                settings={settings}
                 onOpenEntry={onOpenEntry}
+                onOpenGroup={onOpenGroup}
               />
             ))}
           </div>
@@ -191,6 +231,7 @@ export function TransactionsScreen(): JSX.Element {
   const [loadedMonths, setLoadedMonths] = useState<string[]>([selectedMonth]);
   const [emptyMonths, setEmptyMonths] = useState<Record<string, boolean>>({});
   const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
+  const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   /** The search box's current text, so every list update also searches what is typed there. */
   const draftRef = useRef<{ text: string } | null>(null);
@@ -245,11 +286,13 @@ export function TransactionsScreen(): JSX.Element {
   const categoriesQuery = useCategories();
   const assetsQuery = useAssets();
   const tagsQuery = useTags();
+  const groupSettingsQuery = useGroupSettings();
 
   const wallets = walletsQuery.data?.wallets ?? [];
   const categories = categoriesQuery.data?.categories ?? [];
   const assets = assetsQuery.data?.assets ?? [];
   const tags = tagsQuery.data?.tags ?? [];
+  const groupSettings = groupSettingsQuery.data?.settings ?? DEFAULT_GROUP_SETTINGS;
 
   /** Applies a change and commits whatever is typed in the search box with it (spec: the box is what's searched). */
   const apply = (change: Partial<TransactionFilterValues> & { month?: string }) => {
@@ -345,10 +388,12 @@ export function TransactionsScreen(): JSX.Element {
               wallets={wallets}
               categories={categories}
               assets={assets}
+              settings={groupSettings}
               isPrimaryMonth
               hasActiveFilters={hasAnyFilter}
               onClearFilters={clearAll}
               onOpenEntry={onOpenEntry}
+              onOpenGroup={setSelectedGroupRow}
             />
           ) : (
             loadedMonths.map((month, idx) => (
@@ -360,10 +405,12 @@ export function TransactionsScreen(): JSX.Element {
                 wallets={wallets}
                 categories={categories}
                 assets={assets}
+                settings={groupSettings}
                 isPrimaryMonth={idx === 0}
                 hasActiveFilters={hasAnyFilter}
                 onClearFilters={clearAll}
                 onOpenEntry={onOpenEntry}
+                onOpenGroup={setSelectedGroupRow}
                 onLoaded={(m, isEmpty) =>
                   setEmptyMonths((prev) => (prev[m] === isEmpty ? prev : { ...prev, [m]: isEmpty }))
                 }
@@ -421,6 +468,12 @@ export function TransactionsScreen(): JSX.Element {
           />
         )}
       </Modal>
+
+      <GroupRowSheet
+        row={selectedGroupRow}
+        open={selectedGroupRow !== null}
+        onClose={() => setSelectedGroupRow(null)}
+      />
     </Screen>
   );
 }

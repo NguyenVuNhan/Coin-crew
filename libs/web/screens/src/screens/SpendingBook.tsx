@@ -1,12 +1,20 @@
-import { useState, useEffect, type JSX } from 'react';
+import { useState, useEffect, useMemo, type JSX } from 'react';
 import { Link } from 'react-router';
-import { formatMoney, formatVnd } from '@cc/core';
+import {
+  compareBookRows,
+  formatMoney,
+  formatVnd,
+  type BookRow,
+  type GroupRow,
+  type GroupSettingsView,
+} from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useIsWide } from '@cc/web-util/media';
 import { useT } from '@cc/web-i18n';
 import {
   useAssets,
   useCategories,
+  useGroupSettings,
   usePersonalList,
   usePersonalSummary,
   useWalletDetails,
@@ -22,9 +30,15 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Home } from './Home';
 import { usePeopleTotals } from '../components/PeopleSummary';
 import { FirstWalletSheet } from '../components/FirstWalletSheet';
+import { GroupRowSheet } from '../components/GroupRowSheet';
 import { TransactionRow } from '../components/TransactionRow';
 import { WalletPie } from '../components/WalletPie';
 import { PersonalSettingsMenu } from '../components/PersonalSettingsMenu';
+
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
 
 function BookTotal(): JSX.Element {
   const t = useT();
@@ -195,9 +209,23 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   const hasWallet = (list?.length ?? 0) > 0;
   const hasInvestmentWallet = list?.some((w) => w.kind === 'investment') ?? false;
   const currentMonth = currentMonthLocal();
-  const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
+  const recentList = usePersonalList(
+    { month: currentMonth },
+    { enabled: hasWallet, groups: true },
+  );
   const categoriesQuery = useCategories({ enabled: hasWallet });
   const assetsQuery = useAssets({ enabled: hasInvestmentWallet });
+  const groupSettingsQuery = useGroupSettings({ enabled: hasWallet });
+  const groupSettings = groupSettingsQuery.data?.settings ?? DEFAULT_GROUP_SETTINGS;
+  const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(null);
+
+  const mergedRows = useMemo<BookRow[]>(() => {
+    if (!recentList.data) return [];
+    const baseRows = recentList.data.rows;
+    const grpRows = recentList.data.groupRows ?? [];
+    if (grpRows.length === 0) return baseRows;
+    return [...baseRows, ...grpRows].sort(compareBookRows);
+  }, [recentList.data]);
 
   if (!hasWallet || !recentList.isSuccess) {
     return null;
@@ -221,15 +249,23 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
           <Icon name="chevronRight" size={16} />
         </Link>
       </div>
-      {recentList.data.rows.length > 0 ? (
+      {mergedRows.length > 0 ? (
         <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-          {recentList.data.rows.slice(0, limit).map((row) => (
+          {mergedRows.slice(0, limit).map((row) => (
             <TransactionRow
-              key={row.kind === 'entry' ? row.entry.id : `person-${row.id}`}
+              key={
+                row.kind === 'entry'
+                  ? row.entry.id
+                  : row.kind === 'group'
+                    ? `g-${row.id}`
+                    : `person-${row.id}`
+              }
               row={row}
               wallets={list ?? []}
               categories={categoriesQuery.data?.categories ?? []}
               assets={assetsQuery.data?.assets ?? []}
+              settings={groupSettings}
+              onOpenGroup={setSelectedGroupRow}
             />
           ))}
         </div>
@@ -238,6 +274,11 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
           {t('wallet.noEntries')}
         </div>
       )}
+      <GroupRowSheet
+        row={selectedGroupRow}
+        open={selectedGroupRow !== null}
+        onClose={() => setSelectedGroupRow(null)}
+      />
     </section>
   );
 }
@@ -260,8 +301,13 @@ function BookSummary(): JSX.Element {
 export function MainScreen({ book }: { book: boolean }): JSX.Element {
   const t = useT();
   const wide = useIsWide();
+  // The quick-expense lists give way to "Giao dịch gần đây" once there is a wallet to show it in;
+  // before the first wallet they stay, as DESIGN.md's empty state promises.
+  const wallets = useWalletDetails({ enabled: book });
+  const hasWallet = (wallets.data?.wallets.length ?? 0) > 0;
   return (
     <Home
+      book={book && hasWallet}
       title={book ? t('book.title') : undefined}
       summary={book ? (wide ? <BookPeople /> : <BookSummary />) : undefined}
       wideMain={

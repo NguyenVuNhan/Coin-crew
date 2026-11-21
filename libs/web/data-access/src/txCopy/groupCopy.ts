@@ -11,7 +11,7 @@ import { todayLocal } from '@cc/web-util/localDate';
 import { apiFetch } from '../client';
 import { useMe } from '../hooks';
 import { useCategories, useTags, useWalletDetails } from '../personalMoney';
-import { onTxCopySync } from './hooks';
+import { onTxCopySync } from './syncEvents';
 
 export type GroupCopyStatus = 'unavailable' | 'opening' | 'loading' | 'ready';
 

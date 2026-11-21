@@ -1,5 +1,12 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import {
+  compareBookRows,
+  createGroupWalletResolver,
+  type BookRow,
+  type GroupRow,
+  type GroupSettingsView,
+} from '@cc/core';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useMe } from '@cc/web-data-access/hooks';
@@ -8,6 +15,7 @@ import {
   useAssets,
   useCategories,
   useDeleteWallet,
+  useGroupSettings,
   useHoldings,
   usePersonalList,
   useUpdateWallet,
@@ -21,12 +29,18 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { GroupRowSheet } from '../components/GroupRowSheet';
 import { Screen } from '../components/Screen';
 import { TransactionRow } from '../components/TransactionRow';
 import { WalletForm } from '../components/WalletForm';
 import { HoldingsPie } from '../components/HoldingsPie';
 import { WalletSummary } from '../components/WalletSummary';
 import { BalanceCheckPrompt } from '../components/BalanceCheckPrompt';
+
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
 
 export function WalletScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -46,8 +60,10 @@ export function WalletScreen(): JSX.Element {
   const currentMonth = currentMonthLocal();
   const listQuery = usePersonalList(
     { month: currentMonth, walletId: id },
-    { enabled: Boolean(wallet && id) },
+    { enabled: Boolean(wallet && id), groups: true },
   );
+  const groupSettingsQuery = useGroupSettings({ enabled: Boolean(wallet && id) });
+  const groupSettings = groupSettingsQuery.data?.settings ?? DEFAULT_GROUP_SETTINGS;
 
   const updateWallet = useUpdateWallet();
   const deleteWallet = useDeleteWallet();
@@ -55,6 +71,7 @@ export function WalletScreen(): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(null);
 
   useEffect(() => {
     if (meQuery.isSuccess && user === null) {
@@ -106,7 +123,16 @@ export function WalletScreen(): JSX.Element {
   }
 
   const mutationError = updateWallet.error ?? deleteWallet.error;
-  const rows = listQuery.data?.rows ?? [];
+  const wallets = walletsQuery.data?.wallets ?? [];
+  const rows = useMemo<BookRow[]>(() => {
+    const entryRows = listQuery.data?.rows ?? [];
+    const rawGroupRows = listQuery.data?.groupRows ?? [];
+    if (rawGroupRows.length === 0 || !id) return entryRows;
+    const resolveWalletId = createGroupWalletResolver(wallets, null);
+    const matchingGroupRows = rawGroupRows.filter((r) => resolveWalletId(r) === id);
+    if (matchingGroupRows.length === 0) return entryRows;
+    return [...entryRows, ...matchingGroupRows].sort(compareBookRows);
+  }, [listQuery.data, wallets, id]);
   const assets = assetsQuery.data?.assets ?? [];
   const assetMap = new Map(assets.map((a) => [a.id, a]));
   const holdings = holdingsQuery.data?.holdings ?? [];
@@ -194,11 +220,19 @@ export function WalletScreen(): JSX.Element {
                 >
                   {rows.map((row) => (
                     <TransactionRow
-                      key={row.kind === 'entry' ? row.entry.id : row.id}
+                      key={
+                        row.kind === 'entry'
+                          ? row.entry.id
+                          : row.kind === 'group'
+                            ? `g-${row.id}`
+                            : row.id
+                      }
                       row={row}
-                      wallets={walletsQuery.data?.wallets ?? []}
+                      wallets={wallets}
                       categories={categoriesQuery.data?.categories ?? []}
                       assets={assets}
+                      settings={groupSettings}
+                      onOpenGroup={setSelectedGroupRow}
                     />
                   ))}
                 </div>
@@ -252,6 +286,11 @@ export function WalletScreen(): JSX.Element {
                 </div>
               </div>
             </Modal>
+            <GroupRowSheet
+              row={selectedGroupRow}
+              open={selectedGroupRow !== null}
+              onClose={() => setSelectedGroupRow(null)}
+            />
           </>
         )}
       </div>
