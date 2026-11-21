@@ -41,7 +41,7 @@ export function categoryDefaultVisible(
   if (cat.type === 'income') return true;
   const root = categoryRoot(cat, all);
   return (
-    root.starterKey !== null &&
+    root.starterKey != null &&
     INVESTMENT_VISIBLE_ROOT_KEYS.includes(root.starterKey)
   );
 }
@@ -52,14 +52,14 @@ export function isCategoryVisibleIn(
   all: CategoryView[],
   wallet: VisibilityWallet,
 ): boolean {
-  const override = cat.walletOverrides.find((o) => o.walletId === wallet.id);
+  const override = (cat.walletOverrides ?? []).find((o) => o.walletId === wallet.id);
   if (override !== undefined) return override.visible;
   return categoryDefaultVisible(cat, all, wallet.kind);
 }
 
 /** Effective visibility of an asset in `walletId`, defaulting to true. */
 export function isAssetVisibleIn(asset: AssetView, walletId: string): boolean {
-  const override = asset.walletOverrides.find((o) => o.walletId === walletId);
+  const override = (asset.walletOverrides ?? []).find((o) => o.walletId === walletId);
   return override !== undefined ? override.visible : true;
 }
 

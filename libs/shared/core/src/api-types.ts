@@ -748,8 +748,10 @@ export interface CategoryView {
   icon: string;
   hidden: boolean;
   sortOrder: number;
-  starterKey: string | null;
-  walletOverrides: WalletOverride[];
+  /** Starter key (`food`, `fees`…) for seeded categories, null for the owner's own. Optional: older responses lack it. */
+  starterKey?: string | null;
+  /** Per-wallet overrides of the kind default (#130). Optional: older responses lack it. */
+  walletOverrides?: WalletOverride[];
 }
 
 export interface CategoriesResponse {
@@ -866,7 +868,8 @@ export interface AssetView {
   hidden: boolean;
   sortOrder: number;
   entryCount: number;
-  walletOverrides: WalletOverride[];
+  /** Per-wallet overrides (#130). Optional: older responses lack it. */
+  walletOverrides?: WalletOverride[];
 }
 
 export interface AssetsResponse {

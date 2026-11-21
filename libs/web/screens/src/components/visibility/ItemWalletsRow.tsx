@@ -17,7 +17,8 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Sheet } from '@cc/web-ui/components/Sheet';
-import { cn } from '@cc/web-ui/lib/utils';
+import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
+import { Label } from '@cc/web-ui/components/ui/label';
 
 export interface ItemWalletsRowProps {
   kind: 'category' | 'asset';
@@ -130,28 +131,20 @@ export function ItemWalletsRow({ kind, item }: ItemWalletsRowProps): JSX.Element
             {wallets.map((w) => {
               const checked = selectedIds.includes(w.id);
               return (
-                <button
+                <Label
                   key={w.id}
-                  type="button"
-                  role="checkbox"
-                  aria-checked={checked}
-                  data-testid={`item-wallet-option-${w.id}`}
-                  onClick={() => toggleWallet(w.id)}
-                  className="min-h-11 w-full px-4 py-2.5 flex items-center justify-between gap-3 text-left text-base text-foreground hover:bg-muted/50 cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  htmlFor={`item-wallet-${w.id}`}
+                  className="min-h-11 w-full px-4 py-2.5 flex items-center justify-between gap-3 text-base font-medium text-foreground hover:bg-muted/50 cursor-pointer"
                 >
-                  <span className="truncate font-medium">{w.name}</span>
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'size-6 rounded-full border grid place-items-center shrink-0 transition-colors motion-reduce:transition-none',
-                      checked
-                        ? 'bg-primary border-primary text-primary-foreground'
-                        : 'bg-card border-input text-transparent',
-                    )}
-                  >
-                    <Icon name="check" size={14} />
-                  </span>
-                </button>
+                  <span className="truncate">{w.name}</span>
+                  <Checkbox
+                    id={`item-wallet-${w.id}`}
+                    data-testid={`item-wallet-option-${w.id}`}
+                    checked={checked}
+                    onCheckedChange={() => toggleWallet(w.id)}
+                    className="cursor-pointer"
+                  />
+                </Label>
               );
             })}
           </div>
