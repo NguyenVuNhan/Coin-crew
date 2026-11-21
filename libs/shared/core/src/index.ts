@@ -24,3 +24,4 @@ export * from './listFilter';
 export * from './copyRows';
 export * from './groupShares';
 export * from './quickEntry';
+export * from './visibility';

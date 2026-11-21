@@ -5,6 +5,7 @@ import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import {
   personalTransactions,
+  personalWalletOptions,
   personalWallets,
   personalWalletSettings,
 } from '@cc/api-db/schema';
@@ -37,6 +38,7 @@ export interface LoadedCalcWallet extends CalcWallet {
   icon: string | null;
   sortOrder: number;
   archivedAt: string | null;
+  excludeFromReports: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,9 +63,11 @@ export async function loadCalc(
       icon: personalWalletSettings.icon,
       sortOrder: personalWalletSettings.sortOrder,
       archivedAt: personalWalletSettings.archivedAt,
+      excludeFromReports: personalWalletOptions.excludeFromReports,
     })
     .from(personalWallets)
     .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+    .leftJoin(personalWalletOptions, eq(personalWalletOptions.walletId, personalWallets.id))
     .where(eq(personalWallets.userId, userId))
     .orderBy(sql`coalesce(${personalWalletSettings.sortOrder}, 0) asc`, asc(personalWallets.createdAt))
     .all();
@@ -100,6 +104,7 @@ export async function loadCalc(
     sortOrder: r.sortOrder ?? 0,
     archived: r.archivedAt !== null && r.archivedAt !== undefined,
     archivedAt: r.archivedAt ?? null,
+    excludeFromReports: Boolean(r.excludeFromReports),
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
@@ -156,6 +161,7 @@ function validateCreateWallet(
   startDate: string;
   startCostVnd: number | null;
   icon: string | null;
+  excludeFromReports: boolean;
 } {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw new ApiError('VALIDATION', 422, 'Invalid request');
@@ -200,7 +206,15 @@ function validateCreateWallet(
 
   const icon = parseOptionalIcon(input.icon);
 
-  return { name, currency, kind, startAmount, startDate, startCostVnd, icon };
+  let excludeFromReports = false;
+  if (input.excludeFromReports !== undefined) {
+    if (typeof input.excludeFromReports !== 'boolean') {
+      throw new ApiError('VALIDATION', 422, 'Invalid excludeFromReports');
+    }
+    excludeFromReports = input.excludeFromReports;
+  }
+
+  return { name, currency, kind, startAmount, startDate, startCostVnd, icon, excludeFromReports };
 }
 
 function toWalletView(
@@ -224,6 +238,7 @@ function toWalletView(
     sortOrder: w.sortOrder,
     archived: w.archived,
     entryCount,
+    excludeFromReports: Boolean(w.excludeFromReports),
   };
 }
 
@@ -300,6 +315,12 @@ export function walletRoutes(): Hono<AppBindings> {
           archivedAt: null,
           updatedAt: now,
         }),
+        db.insert(personalWalletOptions).values({
+          walletId,
+          userId: user.id,
+          excludeFromReports: validated.excludeFromReports ? 1 : 0,
+          updatedAt: now,
+        }),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
@@ -322,6 +343,7 @@ export function walletRoutes(): Hono<AppBindings> {
       sortOrder: 0,
       archived: false,
       archivedAt: null,
+      excludeFromReports: validated.excludeFromReports,
       createdAt: now,
       updatedAt: now,
     };
@@ -381,6 +403,12 @@ export function walletRoutes(): Hono<AppBindings> {
           archivedAt: null,
           updatedAt: now,
         }),
+        db.insert(personalWalletOptions).values({
+          walletId,
+          userId: user.id,
+          excludeFromReports: validated.excludeFromReports ? 1 : 0,
+          updatedAt: now,
+        }),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
@@ -403,6 +431,7 @@ export function walletRoutes(): Hono<AppBindings> {
       sortOrder,
       archived: false,
       archivedAt: null,
+      excludeFromReports: validated.excludeFromReports,
       createdAt: now,
       updatedAt: now,
     };
@@ -505,9 +534,11 @@ export function walletRoutes(): Hono<AppBindings> {
         icon: personalWalletSettings.icon,
         sortOrder: personalWalletSettings.sortOrder,
         archivedAt: personalWalletSettings.archivedAt,
+        excludeFromReports: personalWalletOptions.excludeFromReports,
       })
       .from(personalWallets)
       .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+      .leftJoin(personalWalletOptions, eq(personalWalletOptions.walletId, personalWallets.id))
       .where(and(eq(personalWallets.id, walletId), eq(personalWallets.userId, user.id)))
       .get();
 
@@ -524,6 +555,7 @@ export function walletRoutes(): Hono<AppBindings> {
     const currentSortOrder = existing.sortOrder ?? 0;
     const currentArchivedAt = existing.archivedAt ?? null;
     const currentIsDefault = Boolean(existing.isDefault);
+    const currentExcludeFromReports = Boolean(existing.excludeFromReports);
 
     const nextName = body.name !== undefined ? name1to40(body.name) : existing.name;
 
@@ -577,6 +609,14 @@ export function walletRoutes(): Hono<AppBindings> {
         throw new ApiError('VALIDATION', 422, 'Invalid archived');
       }
       nextArchived = body.archived;
+    }
+
+    let nextExcludeFromReports = currentExcludeFromReports;
+    if (body.excludeFromReports !== undefined) {
+      if (typeof body.excludeFromReports !== 'boolean') {
+        throw new ApiError('VALIDATION', 422, 'Invalid excludeFromReports');
+      }
+      nextExcludeFromReports = body.excludeFromReports;
     }
 
     if (body.isDefault !== undefined && body.isDefault !== true) {
@@ -704,6 +744,21 @@ export function walletRoutes(): Hono<AppBindings> {
             updatedAt: now,
           },
         }),
+      db
+        .insert(personalWalletOptions)
+        .values({
+          walletId,
+          userId: user.id,
+          excludeFromReports: nextExcludeFromReports ? 1 : 0,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: personalWalletOptions.walletId,
+          set: {
+            excludeFromReports: nextExcludeFromReports ? 1 : 0,
+            updatedAt: now,
+          },
+        }),
     );
 
     try {
@@ -764,6 +819,7 @@ export function walletRoutes(): Hono<AppBindings> {
     }
 
     await db.batch([
+      db.delete(personalWalletOptions).where(eq(personalWalletOptions.walletId, walletId)),
       db.delete(personalWalletSettings).where(eq(personalWalletSettings.walletId, walletId)),
       db
         .delete(personalWallets)

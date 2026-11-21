@@ -16,11 +16,14 @@ const LOGOS = import.meta.glob('../assets/bank-apps/*.webp', {
 }) as Record<string, string>;
 
 export function bankAppLogo(appId: string): string | undefined {
-  const platform = isIosDevice() ? 'ios' : 'android';
-  const suffix = `/${platform}-${appId}.webp`;
-  for (const [key, url] of Object.entries(LOGOS)) {
-    if (key.replace(/\\/g, '/').endsWith(suffix)) {
-      return url;
+  const primary = isIosDevice() ? 'ios' : 'android';
+  const fallback = primary === 'ios' ? 'android' : 'ios';
+  const entries = Object.entries(LOGOS).map(([key, url]) => [key.replace(/\\/g, '/'), url] as const);
+  for (const platform of [primary, fallback]) {
+    const suffix = `/${platform}-${appId}.webp`;
+    const match = entries.find(([key]) => key.endsWith(suffix));
+    if (match) {
+      return match[1];
     }
   }
   return undefined;

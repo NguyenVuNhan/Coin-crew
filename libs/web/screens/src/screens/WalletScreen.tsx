@@ -39,6 +39,7 @@ import { HoldingsPie } from '../components/HoldingsPie';
 import { WalletSummary } from '../components/WalletSummary';
 import { BalanceCheckPrompt } from '../components/BalanceCheckPrompt';
 import { TransactionDetailContent } from './TransactionDetail';
+import { WalletVisibilitySheet } from '../components/visibility/WalletVisibilitySheet';
 
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
@@ -73,6 +74,7 @@ export function WalletScreen(): JSX.Element {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
   const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(null);
@@ -90,6 +92,13 @@ export function WalletScreen(): JSX.Element {
       label: t('wallet.edit'),
       icon: 'edit',
       onSelect: () => setEditOpen(true),
+    });
+    actions.push({
+      id: 'visibility',
+      testId: 'wallet-menu-visibility',
+      label: t('visibility.walletSheetTitle'),
+      icon: 'sliders',
+      onSelect: () => setVisibilityOpen(true),
     });
     if (!wallet.isDefault && !wallet.archived) {
       actions.push({
@@ -249,6 +258,12 @@ export function WalletScreen(): JSX.Element {
               onClose={() => setMenuOpen(false)}
               title={t('wallet.actions')}
               actions={actions}
+            />
+
+            <WalletVisibilitySheet
+              open={visibilityOpen}
+              onClose={() => setVisibilityOpen(false)}
+              wallet={wallet}
             />
 
             <WalletForm

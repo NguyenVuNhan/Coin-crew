@@ -66,6 +66,7 @@ import { runFoldTransition } from '../components/foldTransition';
 import { DockedAmountKeypad, useLiveAnnouncer } from '../components/AmountKeypadDock';
 import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
+import { WalletIcon } from '../components/WalletIcon';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
 import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
@@ -2051,7 +2052,11 @@ export function EntryPage(): JSX.Element {
                   type={entryType}
                   categories={categoriesQuery.data?.categories ?? []}
                   recentIds={categoriesQuery.data?.recentIds ?? []}
-                  walletKind={selectedWallet?.kind}
+                  wallet={
+                    selectedWallet
+                      ? { id: selectedWallet.id, kind: selectedWallet.kind }
+                      : undefined
+                  }
                   value={effectiveCategoryId}
                   guessedId={activeGuessedId}
                   onChange={handleSelectCategory}
@@ -2203,7 +2208,8 @@ export function EntryPage(): JSX.Element {
                           : t('personalEntry.toWallet')
                         : t('personalEntry.wallet')}
                     </span>
-                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                    <span className="flex items-center gap-2 text-base font-medium text-foreground">
+                      {selectedWallet && <WalletIcon icon={selectedWallet.icon} size="xs" />}
                       <span>
                         {selectedWallet ? `${selectedWallet.name} (${selectedWallet.currency})` : '—'}
                       </span>
@@ -2226,7 +2232,8 @@ export function EntryPage(): JSX.Element {
                         ? t('personalEntry.toWallet')
                         : t('personalEntry.fromWallet')}
                     </span>
-                    <span className="flex items-center gap-1 text-base font-medium text-foreground">
+                    <span className="flex items-center gap-2 text-base font-medium text-foreground">
+                      {otherWallet && <WalletIcon icon={otherWallet.icon} size="xs" />}
                       <span>
                         {otherWallet ? `${otherWallet.name} (${otherWallet.currency})` : '—'}
                       </span>
@@ -2610,11 +2617,14 @@ export function EntryPage(): JSX.Element {
                 onClick={() => handleWalletPick(w.id)}
                 className="min-h-11 px-2 py-3 flex items-center justify-between gap-3 bg-transparent border-x-0 border-t-0 text-left cursor-pointer hover:bg-muted rounded-xl"
               >
-                <div className="flex flex-col">
-                  <span className="text-base font-medium text-foreground">{w.name}</span>
-                  <span className="text-xs text-muted-foreground">{w.currency}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <WalletIcon icon={w.icon} size="sm" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-base font-medium text-foreground truncate">{w.name}</span>
+                    <span className="text-xs text-muted-foreground">{w.currency}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Amount value={w.balance} currency={w.currency} size="sm" tone="neutral" />
                   {isSelected && <Icon name="check" size={18} className="text-primary" />}
                 </div>
@@ -2629,6 +2639,7 @@ export function EntryPage(): JSX.Element {
         onClose={() => setAssetPickerOpen(false)}
         assets={allAssets}
         value={assetId}
+        walletId={selectedWallet?.id}
         onSelect={(asset) => {
           setAssetId(asset.id);
           setPickedAsset(asset);

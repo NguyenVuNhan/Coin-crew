@@ -18,9 +18,9 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Card } from '@cc/web-ui/components/ui/card';
-import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
-import { WalletForm, walletIconClass } from '../components/WalletForm';
+import { WalletForm } from '../components/WalletForm';
+import { WalletIcon } from '../components/WalletIcon';
 import { BalanceCheckPrompt } from '../components/BalanceCheckPrompt';
 
 function computePerCurrency(wallets: WalletDetailView[]): { currency: CurrencyCode; balance: number }[] {
@@ -53,14 +53,7 @@ function WalletRow({
 
   const content = (
     <>
-      <div
-        className={cn(
-          'size-10 rounded-xl grid place-items-center shrink-0',
-          walletIconClass(wallet.icon),
-        )}
-      >
-        <Icon name="wallet" size={18} />
-      </div>
+      <WalletIcon icon={wallet.icon} size="md" />
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm font-semibold text-foreground truncate">{wallet.name}</span>

@@ -531,7 +531,7 @@ describe('personal trades — buy/sell entries and oversell checks', () => {
     expect((await json<EntriesResponse>(restoreSell)).entries[0]?.quantity).toBe(600);
   });
 
-  it('PATCHing wallet startDate past a buy whose sell stays after it -> 422 OVERSELL', async () => {
+  it('PATCHing wallet startDate past a buy keeps the buy counted and succeeds (200)', async () => {
     const { sid, invWallet, btc } = await setupInvestmentFixture('u-trade-9');
 
     await createEntry(sid, {
@@ -552,17 +552,14 @@ describe('personal trades — buy/sell entries and oversell checks', () => {
     });
 
     const patchRes = await patchWallet(invWallet.id, sid, { startDate: '2026-11-10' });
-    expect(patchRes.status).toBe(422);
-    const err = await json<{ error: { code: string; details: { assetId: string; date: string } } }>(
-      patchRes,
-    );
-    expect(err.error.code).toBe('OVERSELL');
-    expect(err.error.details).toEqual({ assetId: btc.id, date: '2026-11-15' });
+    expect(patchRes.status).toBe(200);
+    const patched = await json<WalletDetailResponse>(patchRes);
+    expect(patched.wallet.startDate).toBe('2026-11-10');
 
     const row = await env.DB.prepare('SELECT start_date FROM personal_wallets WHERE id = ?')
       .bind(invWallet.id)
       .first<{ start_date: string }>();
-    expect(row?.start_date).toBe('2026-11-01');
+    expect(row?.start_date).toBe('2026-11-10');
   });
 
   it('enforces 401/403/404 guards for trade routes and keeps create query count <= 50', async () => {
