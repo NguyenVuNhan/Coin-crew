@@ -7,9 +7,9 @@ import { SplitFold } from '../SplitFold';
 import type { QuickSplit } from '../useQuickSplit';
 
 const PEOPLE: PersonView[] = [
-  { id: 'me', name: 'Bạn', avatarUrl: null, status: 'active' },
-  { id: 'minh', name: 'Minh', avatarUrl: null, status: 'active' },
-  { id: 'lan', name: 'Lan', avatarUrl: null, status: 'active' },
+  { id: 'me', name: 'Bạn', avatarUrl: null, status: 'active', isMember: true, bank: 'none' },
+  { id: 'minh', name: 'Minh', avatarUrl: null, status: 'active', isMember: true, bank: 'none' },
+  { id: 'lan', name: 'Lan', avatarUrl: null, status: 'active', isMember: true, bank: 'none' },
 ];
 
 const NAMES = new Map<string, string>([
