@@ -104,6 +104,7 @@ import type { HistoryGap, HistoryLine, PairHistory } from './history';
 import type { AttendanceLabel, AttendanceScore } from './attendance';
 import type { CurrencyCode } from './currency';
 import type { PersonalEntryType } from './wallets';
+import type { WalletOverride } from './visibility';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -747,6 +748,8 @@ export interface CategoryView {
   icon: string;
   hidden: boolean;
   sortOrder: number;
+  starterKey: string | null;
+  walletOverrides: WalletOverride[];
 }
 
 export interface CategoriesResponse {
@@ -863,6 +866,7 @@ export interface AssetView {
   hidden: boolean;
   sortOrder: number;
   entryCount: number;
+  walletOverrides: WalletOverride[];
 }
 
 export interface AssetsResponse {
