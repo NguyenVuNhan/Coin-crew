@@ -474,6 +474,7 @@ export async function buildSnapshot(
       theme: isThemeId(trip.theme) ? trip.theme : null,
       defaultLang: trip.defaultLang === 'en' ? 'en' : 'vi',
       archived: trip.archivedAt !== null,
+      deleteAfter: trip.deleteAfter ?? null,
       version: trip.version,
       total,
     },
@@ -731,6 +732,7 @@ export async function loadTripList(db: Db, userId: string): Promise<TripListItem
       name: row.trip.name,
       preset: (row.trip.preset as 'trip' | 'sport') ?? 'trip',
       archived: row.trip.archivedAt !== null,
+      ...(row.trip.deleteAfter ? { deleteAfter: row.trip.deleteAfter } : {}),
       myBalance: myBalanceIn(row.trip, money, row.participantId),
     });
   }

@@ -75,11 +75,15 @@ export const trips = sqliteTable(
     version: integer('version').notNull().default(0),
     createdAt: text('created_at').notNull(),
     archivedAt: text('archived_at'),
+    deleteAfter: text('delete_after'),
   },
   (t) => [
     uniqueIndex('trips_organiser_direct_idx')
       .on(t.organiserUserId)
       .where(sql`${t.preset} = 'direct'`),
+    index('trips_delete_after_idx')
+      .on(t.deleteAfter)
+      .where(sql`${t.deleteAfter} IS NOT NULL`),
   ],
 );
 
