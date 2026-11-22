@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
-import { and, eq, sql } from 'drizzle-orm';
-import { pairItems, type MergePlace, type PaymentView, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type TripPairInput } from '@cc/core';
+import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { pairItems, type MergePlace, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type Transfer, type TripPairInput } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
-import { nicknames, participants, personLinks, trips, tripViews } from '@cc/api-db/schema';
+import { nicknames, participants, personLinks, tripBalanceCache, trips, tripViews } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
-import { getSnapshot, type TripSnapshot } from '../trips/snapshot';
+import { getSnapshot, loadLedgerSourcesBatch, settleLedger, type TripSnapshot } from '../trips/snapshot';
+import { buildTripBalanceCachePayload, upsertTripBalanceCacheBatch, type TripBalanceCachePayload, type WaitingPaymentItem } from '../trips/balanceCache';
 import type { TripRow } from '@cc/api-auth/actor';
 import { ApiError } from '@cc/api-util/errors';
+import { nowIso } from '@cc/api-util/ids';
 
 /** A participant in one of the caller's trips, with its account's identity when signed in. */
 export interface OtherRow {
@@ -58,14 +60,6 @@ function cachedSnapshot(trip: TripRow, viewVersion: number | null, viewJson: str
   }
 }
 
-/** True when the caller has no suggested transfer and no payment waiting in this snapshot. */
-function nothingOpen(snapshot: TripSnapshot, me: string): boolean {
-  return (
-    !snapshot.suggestions.some((s) => s.fromId === me || s.toId === me) &&
-    !snapshot.payments.some((p) => p.status === 'says_paid' && (p.fromId === me || p.toId === me))
-  );
-}
-
 /** createdAt of the oldest approved expense that involves both people. */
 function oldestShared(snapshot: TripSnapshot, a: string, b: string): string | null {
   let oldest: string | null = null;
@@ -77,13 +71,15 @@ function oldestShared(snapshot: TripSnapshot, a: string, b: string): string | nu
   return oldest;
 }
 
-/** One of the caller's active participations, with the trip and its cached view. */
+/** One of the caller's active participations, with the trip and its cached balance summary. */
 export interface MyTripRow {
   trip: TripRow;
   myPid: string;
   myIsAdmin: number;
-  viewVersion: number | null;
-  viewJson: string | null;
+  cacheVersion: number | null;
+  suggestionsJson: string | null;
+  waitingJson: string | null;
+  oldestSharedJson: string | null;
 }
 
 /** A place of a person, with the participant's own name and account there. */
@@ -123,10 +119,18 @@ export interface PeopleIndex {
  */
 export async function loadPeopleIndex(db: Db, userId: string): Promise<PeopleIndex> {
   const mine: MyTripRow[] = await db
-    .select({ trip: trips, myPid: participants.id, myIsAdmin: participants.isAdmin, viewVersion: tripViews.version, viewJson: tripViews.json })
+    .select({
+      trip: trips,
+      myPid: participants.id,
+      myIsAdmin: participants.isAdmin,
+      cacheVersion: tripBalanceCache.tripVersion,
+      suggestionsJson: tripBalanceCache.suggestionsJson,
+      waitingJson: tripBalanceCache.waitingJson,
+      oldestSharedJson: tripBalanceCache.oldestSharedJson,
+    })
     .from(participants)
     .innerJoin(trips, eq(trips.id, participants.tripId))
-    .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
+    .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
     .where(and(eq(participants.userId, userId), eq(participants.status, 'active')));
 
   const [others, links, nicks] = mine.length === 0
@@ -200,12 +204,25 @@ export async function loadPeopleIndex(db: Db, userId: string): Promise<PeopleInd
   return { people, adminTripIds, keyOfPid, mine, byPid, links, nicknameOf, resolve };
 }
 
+interface WarmTripCache {
+  row: MyTripRow;
+  suggestions: Transfer[];
+  waiting: WaitingPaymentItem[];
+  oldestShared: Record<string, string>;
+}
+
+function hasNothingOpen(suggestions: Transfer[], waiting: WaitingPaymentItem[], me: string): boolean {
+  return (
+    !suggestions.some((s) => s.fromId === me || s.toId === me) &&
+    !waiting.some((p) => p.fromId === me || p.toId === me)
+  );
+}
+
 /**
  * Everyone the caller has money open with, across their groups (archived ones too) and
  * their personal ledger. Four fixed queries, one more only when a payment waits on the caller
- * (to find its settlement), plus at most MAX_COLD_REBUILDS snapshot rebuilds; groups past that
- * cap are left out and `incomplete` is true. Every query binds
- * only the caller's id (D1 allows 100 bound parameters).
+ * (to find its settlement), plus 3 batch queries + batch cache upsert when any trips are stale.
+ * Every query binds only the caller's id (D1 allows 100 bound parameters).
  */
 export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleSummaryResponse> {
   const index = await loadPeopleIndex(db, userId);
@@ -213,39 +230,96 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
   if (mine.length === 0) return { people: [], incomplete: false };
   const people = new Map<PersonKey, Person>();
 
-  const warm: { row: (typeof mine)[number]; snapshot: TripSnapshot }[] = [];
-  const cold: (typeof mine)[number][] = [];
+  const warm: WarmTripCache[] = [];
+  const cold: MyTripRow[] = [];
   for (const row of mine) {
-    const snapshot = cachedSnapshot(row.trip, row.viewVersion, row.viewJson);
-    if (!snapshot) cold.push(row);
-    // An archived group with nothing open for the caller adds nothing.
-    else if (row.trip.archivedAt === null || !nothingOpen(snapshot, row.myPid)) warm.push({ row, snapshot });
+    if (
+      row.cacheVersion === row.trip.version &&
+      row.suggestionsJson !== null &&
+      row.waitingJson !== null &&
+      row.oldestSharedJson !== null
+    ) {
+      try {
+        const suggestions = JSON.parse(row.suggestionsJson) as Transfer[];
+        const waiting = JSON.parse(row.waitingJson) as WaitingPaymentItem[];
+        const oldest = JSON.parse(row.oldestSharedJson) as Record<string, string>;
+        if (row.trip.archivedAt === null || !hasNothingOpen(suggestions, waiting, row.myPid)) {
+          warm.push({ row, suggestions, waiting, oldestShared: oldest });
+        }
+        continue;
+      } catch {
+        // Recomputed below like any other stale cache.
+      }
+    }
+    cold.push(row);
   }
 
-  // Rebuild the caller's ledger first, then open groups, newest first; archived ones last.
-  const rank = (r: (typeof mine)[number]) =>
-    r.trip.preset === 'direct' && r.trip.organiserUserId === userId ? 0 : r.trip.archivedAt === null ? 1 : 2;
-  cold.sort((a, b) => rank(a) - rank(b) || b.trip.createdAt.localeCompare(a.trip.createdAt));
-  for (const row of cold.slice(0, MAX_COLD_REBUILDS)) {
-    const cache = row.viewJson !== null && row.viewVersion !== null ? { version: row.viewVersion, json: row.viewJson } : null;
-    warm.push({ row, snapshot: await getSnapshot(db, row.trip, cache) });
+  if (cold.length > 0) {
+    const staleTripIds = db
+      .select({ id: trips.id })
+      .from(participants)
+      .innerJoin(trips, eq(participants.tripId, trips.id))
+      .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
+      .where(
+        and(
+          eq(participants.userId, userId),
+          eq(participants.status, 'active'),
+          or(isNull(tripBalanceCache.tripVersion), ne(tripBalanceCache.tripVersion, trips.version)),
+        ),
+      );
+    const sources = await loadLedgerSourcesBatch(db, staleTripIds);
+    const payloads: TripBalanceCachePayload[] = [];
+
+    for (const row of cold) {
+      let previous: Transfer[] | undefined;
+      if (row.suggestionsJson !== null) {
+        try {
+          previous = JSON.parse(row.suggestionsJson) as Transfer[];
+        } catch {
+          previous = undefined;
+        }
+      }
+      const source = sources.get(row.trip.id);
+      let payload: TripBalanceCachePayload;
+      if (source && source.people.length > 0) {
+        const settled = settleLedger(row.trip, source, previous);
+        payload = buildTripBalanceCachePayload(row.trip, source, settled);
+        payloads.push(payload);
+      } else {
+        const snap = await getSnapshot(db, row.trip);
+        payload = buildTripBalanceCachePayload(
+          row.trip,
+          { people: snap.people, expenses: snap.expenses, payments: snap.payments },
+          { balances: snap.balances, suggestions: snap.suggestions },
+        );
+      }
+      if (row.trip.archivedAt === null || !hasNothingOpen(payload.suggestions, payload.waiting, row.myPid)) {
+        warm.push({
+          row,
+          suggestions: payload.suggestions,
+          waiting: payload.waiting,
+          oldestShared: payload.oldestShared,
+        });
+      }
+    }
+
+    await upsertTripBalanceCacheBatch(db, payloads, nowIso());
   }
-  const incomplete = cold.length > MAX_COLD_REBUILDS;
+
   const waitingParts: WaitingPart[] = [];
 
-  for (const { row, snapshot } of warm) {
+  for (const { row, suggestions, waiting, oldestShared: oldestMap } of warm) {
     const trip = row.trip;
     const me = row.myPid;
     const isDirect = trip.preset === 'direct';
 
     const otherPids = new Set<string>();
-    for (const s of snapshot.suggestions) {
+    for (const s of suggestions) {
       if (s.fromId === me) otherPids.add(s.toId);
       else if (s.toId === me) otherPids.add(s.fromId);
     }
-    const waitingWith = new Map<string, PaymentView[]>();
-    for (const p of snapshot.payments) {
-      if (p.status !== 'says_paid') continue;
+    const waitingWith = new Map<string, WaitingPaymentItem[]>();
+    for (const p of waiting) {
       const other = p.fromId === me ? p.toId : p.toId === me ? p.fromId : null;
       if (other) {
         otherPids.add(other);
@@ -277,14 +351,15 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
           waitingParts.push({ paymentId: p.id, key, signed: toMe ? p.amountClaimed : -p.amountClaimed, toMe });
         }
       }
+      const pairKey = me < pid ? `${me}~${pid}` : `${pid}~${me}`;
       person.inputs.push({
         tripId: trip.id,
         tripName: trip.name,
         kind: isDirect ? 'direct' : 'group',
         ownerPid: me,
         otherPid: pid,
-        suggestions: snapshot.suggestions,
-        oldestOpenAt: oldestShared(snapshot, me, pid) ?? trip.createdAt,
+        suggestions,
+        oldestOpenAt: oldestMap[pairKey] ?? trip.createdAt,
         writable: true,
       });
     }
@@ -324,7 +399,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     out.push({ ...person.summary, items, total, waiting: waitingOf.get(person.summary.key) ?? [], linked });
   }
   out.sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.name.localeCompare(b.name));
-  return { people: out, incomplete };
+  return { people: out, incomplete: false };
 }
 
 /**
