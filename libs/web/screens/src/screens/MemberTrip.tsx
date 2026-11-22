@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { can, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
@@ -10,6 +11,8 @@ import { actorOf } from '../lib/rowActions';
 import { useEntryState } from '../lib/navHistory';
 import { Screen } from '../components/Screen';
 import { Icon } from '@cc/web-ui/components/icons';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
+import { DeletePendingBanner } from '../components/DeletePendingBanner';
 import { ApprovalQueue } from '../components/ApprovalQueue';
 import { BalanceCard } from '../components/BalanceCard';
 import { FundPill } from '../components/FundPill';
@@ -41,6 +44,15 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   const meSettled = !meQuery.isPending;
 
   const archived = view.trip.archived;
+  const deleteAfter = view.trip.deleteAfter ?? null;
+  const [cancelNotice, setCancelNotice] = useState(false);
+
+  useEffect(() => {
+    if (!cancelNotice) return;
+    const id = setTimeout(() => setCancelNotice(false), 4000);
+    return () => clearTimeout(id);
+  }, [cancelNotice]);
+
   // An archived group takes no new expenses: its "+" adds a quick expense, as on view-only pages.
   const { ledger } = useLedger({ enabled: signedIn && archived });
   const navAddHref = !archived ? `/t/${tripId}/expenses/new` : ledger ? `/t/${ledger.tripId}/expenses/new` : '/trips';
@@ -74,11 +86,20 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
   // While the invite card shows (no expenses yet) its Share is the one primary button, so every add steps back.
   const addVariant = !hasExpenses && canInvite ? 'secondary' : 'primary';
 
-  const notice = archived ? (
-    <p className="fsl-member__notice m-0 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-      {t('settings.archived')}
-    </p>
-  ) : null;
+  const notice =
+    archived && deleteAfter ? (
+      <DeletePendingBanner
+        tripId={view.trip.id}
+        deleteAfter={deleteAfter}
+        canCancel={view.me.isOrganiser}
+        showSpendingBookNote
+        onCancelled={() => setCancelNotice(true)}
+      />
+    ) : archived ? (
+      <p className="fsl-member__notice m-0 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+        {t('settings.archived')}
+      </p>
+    ) : null;
   const awardsEntry =
     view.trip.preset === 'sport' && can(actorOf(view), 'plan_session') ? (
       <Link
@@ -181,6 +202,7 @@ export function MemberTrip({ view, selection = null }: { view: TripView; selecti
         </div>
       )}
       <TransfersSnackbar view={view} state={transfersState} />
+      {cancelNotice && <Snackbar message={t('settings.cancelDeleteSuccess')} />}
     </Screen>
   );
 }

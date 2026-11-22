@@ -100,6 +100,47 @@ describe('MyTrips', () => {
     await userEvent.click(go);
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/me/consent')).toBe(true));
   });
+
+  it('shows pending-delete countdown flag alongside archived and Deletes today when deleteAfter <= now', async () => {
+    const in29Days = new Date(Date.now() + 29 * 86_400_000 - 3600_000).toISOString();
+    const past = new Date(Date.now() - 60_000).toISOString();
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/trips': [
+        { id: 't-1', name: 'Hội An', archived: true, deleteAfter: in29Days, myBalance: 0 },
+        { id: 't-2', name: 'Sa Pa', archived: true, deleteAfter: past, myBalance: 0 },
+      ],
+    });
+    renderAt(<MyTrips />);
+
+    const hoiAn = within(await screen.findByRole('link', { name: /Hội An/ }));
+    expect(hoiAn.getByText('· archived')).toBeInTheDocument();
+    const flag29 = hoiAn.getByText('Deletes in 29 days');
+    expect(flag29).toBeInTheDocument();
+    expect(flag29.closest('.fsl-my-trips__delete-flag')).toHaveClass('fsl-pill--danger');
+
+    const saPa = within(screen.getByRole('link', { name: /Sa Pa/ }));
+    expect(saPa.getByText('· archived')).toBeInTheDocument();
+    const flagToday = saPa.getByText('Deletes today');
+    expect(flagToday).toBeInTheDocument();
+    expect(flagToday.closest('.fsl-my-trips__delete-flag')).toHaveClass('fsl-pill--danger');
+  });
+
+  it('renders no deletion countdown pill for an ordinary archived trip without deleteAfter', async () => {
+    mockApi({
+      'GET /api/me': me(),
+      'GET /api/trips': [
+        { id: 't-1', name: 'Hội An', archived: true, deleteAfter: null, myBalance: 0 },
+        { id: 't-2', name: 'Đà Lạt', archived: false, myBalance: 50000 },
+      ],
+    });
+    renderAt(<MyTrips />);
+
+    const hoiAn = within(await screen.findByRole('link', { name: /Hội An/ }));
+    expect(hoiAn.getByText('· archived')).toBeInTheDocument();
+    expect(hoiAn.queryByText(/Deletes/)).toBeNull();
+    expect(document.querySelector('.fsl-my-trips__delete-flag')).toBeNull();
+  });
 });
 
 describe('CreateTrip', () => {

@@ -30,6 +30,7 @@ import { SignInButtons } from '../components/SignInButtons';
 import { buttonVariants } from '@cc/web-ui/components/ui/button';
 import { cn } from '@cc/web-ui/lib/utils';
 import { FeedbackButton } from '../components/FeedbackButton';
+import { DeletePendingBanner } from '../components/DeletePendingBanner';
 
 export function GuestTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
@@ -124,11 +125,20 @@ export function GuestTrip({ view, selection = null }: { view: TripView; selectio
       </Link>
     );
 
-  const notice = archived ? (
-    <p className="fsl-guest__notice m-0 px-4 py-3 bg-muted rounded-xl text-sm text-muted-foreground">
-      {t('settings.archived')}
-    </p>
-  ) : null;
+  const deleteAfter = view.trip.deleteAfter ?? null;
+  const notice =
+    archived && deleteAfter ? (
+      <DeletePendingBanner
+        tripId={view.trip.id}
+        deleteAfter={deleteAfter}
+        canCancel={false}
+        showSpendingBookNote={false}
+      />
+    ) : archived ? (
+      <p className="fsl-guest__notice m-0 px-4 py-3 bg-muted rounded-xl text-sm text-muted-foreground">
+        {t('settings.archived')}
+      </p>
+    ) : null;
 
   const banner = (
     <div className="fsl-guest__banner bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">

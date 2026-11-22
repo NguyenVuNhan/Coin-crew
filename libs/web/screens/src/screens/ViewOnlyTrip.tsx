@@ -19,6 +19,7 @@ import { TripLayout } from '../components/TripLayout';
 import type { Selection } from './TripRoute';
 import { DetailsPanel, useDetailsSelection } from './DetailsPanel';
 import { TripTabs } from '../components/TripTabs';
+import { DeletePendingBanner } from '../components/DeletePendingBanner';
 
 export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selection?: Selection | null }) {
   const t = useT();
@@ -80,9 +81,19 @@ export function ViewOnlyTrip({ view, selection = null }: { view: TripView; selec
     />
   );
 
+  const deleteAfter = view.trip.archived ? (view.trip.deleteAfter ?? null) : null;
+
   return (
     <Screen title={view.trip.name} right={<LanguageButton />} wide nav={nav} backInApp>
       <div className="fsl-view-only flex flex-col gap-4 py-4">
+        {deleteAfter && (
+          <DeletePendingBanner
+            tripId={view.trip.id}
+            deleteAfter={deleteAfter}
+            canCancel={false}
+            showSpendingBookNote={false}
+          />
+        )}
         {banner}
         {!wide ? (
           <>
