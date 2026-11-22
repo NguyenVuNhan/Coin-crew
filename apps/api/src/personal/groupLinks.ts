@@ -15,6 +15,7 @@ import {
   personalWalletSettings,
   personalWallets,
   transactions,
+  trips,
 } from '@cc/api-db/schema';
 import { commitPersonalWrite } from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
@@ -189,11 +190,13 @@ export function groupLinkRoutes(): Hono<AppBindings> {
       .select({ tripId: transactions.tripId })
       .from(transactions)
       .innerJoin(participants, eq(participants.tripId, transactions.tripId))
+      .innerJoin(trips, eq(trips.id, transactions.tripId))
       .where(
         and(
           eq(transactions.rootId, rootId),
           eq(participants.userId, user.id),
           eq(participants.status, 'active'),
+          isNull(trips.deleteAfter),
         ),
       )
       .limit(1)

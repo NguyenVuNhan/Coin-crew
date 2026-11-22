@@ -181,7 +181,7 @@ describe('cross-group settlements', () => {
     expect(res.status).toBe(404);
   });
 
-  it('the part for an archived group goes to the ledger', async () => {
+  it('the part for an archived group lands in that archived group', async () => {
     ownerSid = null;
     await seedMinhEverywhere();
     await run("UPDATE trips SET archived_at = ? WHERE id = 't-bad'", NOW);
@@ -189,8 +189,9 @@ describe('cross-group settlements', () => {
     expect((await settle('u:u-minh', { paid: 270, direction: 'toOwner' })).status).toBe(201);
     const rows = await payments();
     expect(rows.map((r) => [r.trip_id, r.payer_id, r.to_id, r.amount])).toEqual([
+      ['t-bad', 'bad-m', 'bad-o', 200],
       ['t-din', 'din-o', 'din-m', 50],
-      ['t-led', 'led-m', 'led-o', 320],
+      ['t-led', 'led-m', 'led-o', 120],
     ]);
     expect((await minh())?.total ?? 0).toBe(0);
   });
