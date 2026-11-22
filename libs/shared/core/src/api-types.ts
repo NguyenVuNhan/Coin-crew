@@ -72,6 +72,8 @@ export type ActivityAction =
   | 'links_regenerated'
   | 'trip_archived'
   | 'trip_unarchived'
+  | 'trip_delete_scheduled'
+  | 'trip_delete_cancelled'
   | 'fewest_changed'
   | 'round_transfers_changed'
   | 'membership_requested'
@@ -403,7 +405,7 @@ export interface RatingsView {
   myAllocations: Record<string, number>;
 }
 export interface TripView {
-  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean; theme?: ThemeId | null };
+  trip: { id: string; name: string; currency: 'VND'; fewestTransfers: boolean; roundTransfers?: boolean; archived: boolean; deleteAfter?: string | null; version: number; total: number; preset?: GroupPreset; defaultLang?: 'en' | 'vi'; ratingsEnabled?: boolean; theme?: ThemeId | null };
   me: {
     kind: ActorKind;
     participantId: string | null;
@@ -430,7 +432,7 @@ export interface TripView {
   locations?: TripLocationView[];
   aiBookingExtract?: boolean;
 }
-export interface TripListItem { id: string; name: string; archived: boolean; myBalance: number; preset?: GroupPreset }
+export interface TripListItem { id: string; name: string; archived: boolean; deleteAfter?: string | null; myBalance: number; preset?: GroupPreset }
 export interface ActivityItem {
   id: string; action: ActivityAction; actorName: string | null; deviceShort: string | null;
   details: Record<string, unknown>; createdAt: string;

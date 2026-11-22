@@ -42,3 +42,18 @@ export function formatExpiry(iso: string): string {
   if (Number.isNaN(date.getTime())) return iso;
   return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit' }).format(date);
 }
+
+/** Whole days left until scheduled deletion (rounded up; 0 once target passes or on invalid input). */
+export function deleteDaysLeft(deleteAfter: string, nowMs = Date.now()): number {
+  const target = Date.parse(deleteAfter);
+  if (!Number.isFinite(target) || target <= nowMs) return 0;
+  return Math.ceil((target - nowMs) / 86_400_000);
+}
+
+/** "22/12" (vi) or "Dec 22" (en) for an ISO timestamp, read in Vietnam time. */
+export function formatDeleteDate(iso: string, lang: 'vi' | 'en'): string {
+  if (lang === 'vi') return formatExpiry(iso);
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Ho_Chi_Minh', month: 'short', day: 'numeric' }).format(date);
+}

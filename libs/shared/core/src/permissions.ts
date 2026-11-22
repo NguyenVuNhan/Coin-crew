@@ -3,7 +3,8 @@ import type { ExpenseStatus, PaymentStatus } from './balances';
 export type ActorKind = 'member' | 'guest' | 'viewer';
 export interface Actor { kind: ActorKind; participantId: string | null; participantPending: boolean; isOrganiser: boolean; isAdmin?: boolean }
 export type Action = 'view' | 'add_expense' | 'edit_expense' | 'delete_expense' | 'approve' | 'disable' | 'merge'
-  | 'remove_person' | 'regenerate_links' | 'archive' | 'unarchive' | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank'
+  | 'remove_person' | 'regenerate_links' | 'archive' | 'unarchive' | 'delete_group' | 'cancel_delete_group'
+  | 'set_fewest' | 'set_own_bank' | 'record_payment' | 'view_bank' | 'manage_bank'
   | 'approve_expense' | 'add_person' | 'promote_admin' | 'demote_admin' | 'leave' | 'restore_person' | 'manage_fund' | 'manage_ratings' | 'rate_player' | 'set_theme'
   | 'plan_session';
 export interface ActionContext {
@@ -37,6 +38,8 @@ export function can(actor: Actor, action: Action, ctx: ActionContext = {}): bool
       return me !== null && ctx.expenseCreatedById === me && (isMember || ctx.expenseStatus === 'pending');
     case 'archive':
     case 'unarchive':
+    case 'delete_group':
+    case 'cancel_delete_group':
     case 'demote_admin':
       return isMember && actor.isOrganiser;
     case 'set_own_bank':
