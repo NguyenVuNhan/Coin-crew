@@ -12,6 +12,8 @@ export const ALLOWED: Record<string, string> = {
     'Builds BatchItem queries only; all callers commit them via commitTripWrite.',
   '../src/auth/mergeUsers.ts':
     "Account merge folds ledgers in one batch that also bumps both users' personal epoch, so their saved copies download again.",
+  '../src/trips/purge.ts':
+    'Pending-delete trips are already excluded from computeGroupsKey/loadGroupRows via isNull(trips.deleteAfter), and Guard 1 rolls back the batch if deleteAfter was concurrently cleared.',
 };
 
 describe('personal sync write guards', () => {

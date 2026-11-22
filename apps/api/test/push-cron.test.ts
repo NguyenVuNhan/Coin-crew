@@ -11,6 +11,8 @@ import * as usage from '../src/ops/usage';
 import * as feedback from '../src/feedback/deliver';
 import * as loanReminders from '../src/notifications/cron/loanReminders';
 import * as monthlyNotice from '../src/notifications/cron/monthlyNotice';
+import * as syncPurge from '../src/personal/syncPurge';
+import * as tripPurge from '../src/trips/purge';
 
 function b64url(bytes: Uint8Array): string {
   let bin = '';
@@ -294,6 +296,64 @@ describe('Push reminder cron (sendDueReminders)', () => {
     expect(feedbackSpy).toHaveBeenCalled();
     expect(loanSpy).toHaveBeenCalled();
     expect(monthlySpy).toHaveBeenCalled();
+  });
+
+  it('scheduled handler routes 30 * * * * exclusively to purgeDeletedGroups', async () => {
+    const usageSpy = vi.spyOn(usage, 'checkUsage').mockResolvedValue(undefined as any);
+    const feedbackSpy = vi.spyOn(feedback, 'retryUndeliveredFeedback').mockResolvedValue(undefined as any);
+    const loanSpy = vi.spyOn(loanReminders, 'sendWeeklyLoanReminders').mockResolvedValue(undefined as any);
+    const monthlySpy = vi.spyOn(monthlyNotice, 'sendMonthlyNotices').mockResolvedValue(undefined as any);
+    const syncPurgeSpy = vi.spyOn(syncPurge, 'purgeSyncDeletions').mockResolvedValue(undefined);
+    const pushSpy = vi.spyOn(pushCron, 'sendDueReminders').mockResolvedValue(undefined);
+    const purgeSpy = vi.spyOn(tripPurge, 'purgeDeletedGroups').mockResolvedValue(undefined);
+
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const ctx = {
+      waitUntil: vi.fn((p: Promise<unknown>) => {
+        waitUntilPromises.push(p);
+      }),
+    } as unknown as ExecutionContext;
+
+    // Trigger :30 purge cron
+    await worker.scheduled({ cron: '30 * * * *' } as ScheduledController, env, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(purgeSpy).toHaveBeenCalledTimes(1);
+    expect(purgeSpy).toHaveBeenCalledWith(env, expect.any(Date));
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(usageSpy).not.toHaveBeenCalled();
+    expect(feedbackSpy).not.toHaveBeenCalled();
+    expect(loanSpy).not.toHaveBeenCalled();
+    expect(monthlySpy).not.toHaveBeenCalled();
+    expect(syncPurgeSpy).not.toHaveBeenCalled();
+
+    // Verify 0 * * * * does NOT call purgeDeletedGroups
+    purgeSpy.mockClear();
+    waitUntilPromises.length = 0;
+    await worker.scheduled({ cron: '0 * * * *' } as ScheduledController, env, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(purgeSpy).not.toHaveBeenCalled();
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(usageSpy).toHaveBeenCalled();
+    expect(loanSpy).toHaveBeenCalled();
+    expect(monthlySpy).toHaveBeenCalled();
+    expect(syncPurgeSpy).toHaveBeenCalled();
+
+    // Verify */5 * * * * does NOT call purgeDeletedGroups
+    purgeSpy.mockClear();
+    usageSpy.mockClear();
+    loanSpy.mockClear();
+    monthlySpy.mockClear();
+    syncPurgeSpy.mockClear();
+    waitUntilPromises.length = 0;
+    await worker.scheduled({ cron: '*/5 * * * *' } as ScheduledController, env, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(purgeSpy).not.toHaveBeenCalled();
+    expect(pushSpy).toHaveBeenCalled();
+    expect(loanSpy).not.toHaveBeenCalled();
+    expect(monthlySpy).not.toHaveBeenCalled();
   });
 
   it('processes backlogs above 90 in batches without exceeding D1 param limits', async () => {
