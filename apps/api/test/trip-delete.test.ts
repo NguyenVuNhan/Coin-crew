@@ -308,7 +308,7 @@ describe('delete archived group routes', () => {
       }
     });
 
-    it('concurrent unarchive vs delete returns 409 CONFLICT to delete and leaves delete_after NULL', async () => {
+    it('concurrent unarchive vs delete lets only one win and returns 409 CONFLICT to the loser', async () => {
       const mHeaders = await minh();
       expect((await post(`${base}/archive`, mHeaders)).status).toBe(204);
 
@@ -317,14 +317,53 @@ describe('delete archived group routes', () => {
         post(`${base}/delete`, mHeaders),
       ]);
 
-      expect([unarchRes.status, delRes.status].sort()).toEqual([204, 409]);
+      const statuses = [unarchRes.status, delRes.status].sort();
+      expect([200, 204]).toContain(statuses[0]);
+      expect(statuses[1]).toBe(409);
 
       const row = await env.DB.prepare('SELECT archived_at, delete_after FROM trips WHERE id = ?')
         .bind(T.tripId)
         .first<{ archived_at: string | null; delete_after: string | null }>();
-      if (row?.archived_at === null) {
-        expect(row.delete_after).toBeNull();
+      // Invariant: delete_after is NEVER set when archived_at is NULL
+      if (unarchRes.status === 204) {
+        expect(delRes.status).toBe(409);
+        expect(row?.archived_at).toBeNull();
+        expect(row?.delete_after).toBeNull();
+      } else {
+        expect(delRes.status).toBe(200);
+        expect(unarchRes.status).toBe(409);
+        expect(row?.archived_at).toBeTruthy();
+        expect(row?.delete_after).toBeTruthy();
       }
+    });
+
+    it('cancel-delete returns 204 without bumping version or logging activity when GuardMissError fires and trip still exists', async () => {
+      const mHeaders = await minh();
+      expect((await post(`${base}/archive`, mHeaders)).status).toBe(204);
+      const { deleteAfter } = await json<{ deleteAfter: string }>(post(`${base}/delete`, mHeaders));
+      const versionBefore = (await view(mHeaders)).trip.version;
+      const actsBefore = await json<ActivityItem[]>(call(`${base}/activity`, { headers: mHeaders }));
+
+      await env.DB.prepare(
+        `CREATE TRIGGER sneak_concurrent_cancel BEFORE UPDATE OF delete_after ON trips
+         WHEN NEW.delete_after IS NULL AND OLD.delete_after IS NOT NULL
+         BEGIN
+           UPDATE trips SET delete_after = NULL WHERE id = NEW.id;
+           SELECT RAISE(IGNORE);
+         END`,
+      ).run();
+
+      try {
+        expect((await post(`${base}/cancel-delete`, mHeaders)).status).toBe(204);
+      } finally {
+        await env.DB.prepare('DROP TRIGGER sneak_concurrent_cancel').run();
+      }
+
+      const after = await view(mHeaders);
+      expect(after.trip.deleteAfter).toBe(deleteAfter);
+      expect(after.trip.version).toBe(versionBefore);
+      const actsAfter = await json<ActivityItem[]>(call(`${base}/activity`, { headers: mHeaders }));
+      expect(actsAfter).toHaveLength(actsBefore.length);
     });
   });
 

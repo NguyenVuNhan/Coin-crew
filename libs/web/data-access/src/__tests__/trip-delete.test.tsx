@@ -83,6 +83,7 @@ describe('trip delete mutation hooks', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ method: 'POST', path: '/api/trips/t-1/delete' });
 
+    expect(invalidateSpy).toHaveBeenCalledTimes(6);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trip', 't-1'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trips'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: WALLETS_KEY });
@@ -110,6 +111,7 @@ describe('trip delete mutation hooks', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ method: 'POST', path: '/api/trips/t-1/cancel-delete' });
 
+    expect(invalidateSpy).toHaveBeenCalledTimes(6);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trip', 't-1'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['trips'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: WALLETS_KEY });

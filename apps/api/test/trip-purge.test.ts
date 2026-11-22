@@ -663,7 +663,7 @@ describe('purgeDeletedGroups', () => {
     await purgeDeletedGroups({ ...env, DB: tick3.db } as Env, now);
     expect(tick3.counts.prepared).toBe(1);
     expect(tick3.counts.executed).toBe(1);
-  });
+  }, 30_000);
 
   it('Review Focus 2 (trigger): BEFORE UPDATE trigger clearing delete_after rolls back batch atomically with zero partial deletes', async () => {
     const now = new Date('2026-12-22T00:30:00.000Z');

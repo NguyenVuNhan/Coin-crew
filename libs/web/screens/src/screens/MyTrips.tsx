@@ -169,7 +169,7 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
                         <span className="fsl-my-trips__archived text-muted-foreground"> · {t('trips.archived')}</span>
                       )}
                     </span>
-                    {trip.deleteAfter && (() => {
+                    {trip.archived && trip.deleteAfter && (() => {
                       const days = deleteDaysLeft(trip.deleteAfter);
                       return (
                         <Pill tone="danger" className="fsl-my-trips__delete-flag mt-1 w-fit inline-flex items-center gap-1">

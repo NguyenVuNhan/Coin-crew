@@ -101,14 +101,16 @@ describe('MyTrips', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/me/consent')).toBe(true));
   });
 
-  it('shows pending-delete countdown flag alongside archived and Deletes today when deleteAfter <= now', async () => {
+  it('shows pending-delete countdown flag alongside archived (plural, singular 1 day, and Deletes today when deleteAfter <= now)', async () => {
     const in29Days = new Date(Date.now() + 29 * 86_400_000 - 3600_000).toISOString();
+    const in1Day = new Date(Date.now() + 12 * 3600_000).toISOString();
     const past = new Date(Date.now() - 60_000).toISOString();
     mockApi({
       'GET /api/me': me(),
       'GET /api/trips': [
         { id: 't-1', name: 'Hội An', archived: true, deleteAfter: in29Days, myBalance: 0 },
-        { id: 't-2', name: 'Sa Pa', archived: true, deleteAfter: past, myBalance: 0 },
+        { id: 't-2', name: 'Nha Trang', archived: true, deleteAfter: in1Day, myBalance: 0 },
+        { id: 't-3', name: 'Sa Pa', archived: true, deleteAfter: past, myBalance: 0 },
       ],
     });
     renderAt(<MyTrips />);
@@ -119,6 +121,12 @@ describe('MyTrips', () => {
     expect(flag29).toBeInTheDocument();
     expect(flag29.closest('.fsl-my-trips__delete-flag')).toHaveClass('fsl-pill--danger');
 
+    const nhaTrang = within(screen.getByRole('link', { name: /Nha Trang/ }));
+    expect(nhaTrang.getByText('· archived')).toBeInTheDocument();
+    const flag1 = nhaTrang.getByText('Deletes in 1 day');
+    expect(flag1).toBeInTheDocument();
+    expect(flag1.closest('.fsl-my-trips__delete-flag')).toHaveClass('fsl-pill--danger');
+
     const saPa = within(screen.getByRole('link', { name: /Sa Pa/ }));
     expect(saPa.getByText('· archived')).toBeInTheDocument();
     const flagToday = saPa.getByText('Deletes today');
@@ -126,12 +134,14 @@ describe('MyTrips', () => {
     expect(flagToday.closest('.fsl-my-trips__delete-flag')).toHaveClass('fsl-pill--danger');
   });
 
-  it('renders no deletion countdown pill for an ordinary archived trip without deleteAfter', async () => {
+  it('renders no deletion countdown pill for an ordinary archived trip or a non-archived trip', async () => {
+    const in29Days = new Date(Date.now() + 29 * 86_400_000 - 3600_000).toISOString();
     mockApi({
       'GET /api/me': me(),
       'GET /api/trips': [
         { id: 't-1', name: 'Hội An', archived: true, deleteAfter: null, myBalance: 0 },
         { id: 't-2', name: 'Đà Lạt', archived: false, myBalance: 50000 },
+        { id: 't-3', name: 'Phú Quốc', archived: false, deleteAfter: in29Days, myBalance: 0 },
       ],
     });
     renderAt(<MyTrips />);

@@ -28,17 +28,20 @@ function archivedOrganiserView(overrides: Partial<TripView> = {}, tripOverrides:
   };
 }
 
-function archivedAdminView(tripOverrides: Partial<TripView['trip']> = {}): TripView {
+function archivedNonOrganiserView(
+  isAdmin: boolean,
+  tripOverrides: Partial<TripView['trip']> = {},
+): TripView {
   const base = archivedOrganiserView({}, tripOverrides);
   return {
     ...base,
-    me: { kind: 'member', participantId: PIDS.A, participantPending: false, isOrganiser: false, isAdmin: true },
-    people: base.people.map((p) => (p.id === PIDS.A ? { ...p, isMember: true, isAdmin: true } : p)),
+    me: { kind: 'member', participantId: PIDS.A, participantPending: false, isOrganiser: false, isAdmin },
+    people: base.people.map((p) => (p.id === PIDS.A ? { ...p, isMember: true, isAdmin } : p)),
   };
 }
 
 describe('Deleting an archived group in Settings', () => {
-  it('organiser sees Unarchive group and Danger zone Delete group (without calling window.confirm); non-organiser admin does not see Delete group', async () => {
+  it('organiser sees Unarchive group and Danger zone Delete group (without calling window.confirm); non-organiser admin and plain member do not see Delete group', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
     mockApi({ 'GET /api/trips/t-1': archivedOrganiserView() });
     const first = renderAt(<Settings />, at);
@@ -51,11 +54,14 @@ describe('Deleting an archived group in Settings', () => {
 
     first.unmount();
 
-    mockApi({ 'GET /api/trips/t-1': archivedAdminView() });
-    renderAt(<Settings />, at);
-    await screen.findByText('This trip is archived. You can still look at it.');
-    expect(screen.queryByRole('button', { name: 'Delete group' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Unarchive group' })).toBeNull();
+    for (const isAdmin of [true, false]) {
+      mockApi({ 'GET /api/trips/t-1': archivedNonOrganiserView(isAdmin) });
+      const viewRender = renderAt(<Settings />, at);
+      await screen.findByText('This trip is archived. You can still look at it.');
+      expect(screen.queryByRole('button', { name: 'Delete group' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Unarchive group' })).toBeNull();
+      viewRender.unmount();
+    }
   });
 
   it('non-archived direct personal ledger group never shows archive or delete controls', async () => {
@@ -184,21 +190,24 @@ describe('Deleting an archived group in Settings', () => {
     expect(await screen.findByRole('button', { name: 'Unarchive group' })).toBeInTheDocument();
   });
 
-  it('pending-delete group + non-organiser shows countdown notice without Cancel deletion or Unarchive', async () => {
+  it('pending-delete group + non-organiser (admin and plain member) shows countdown notice without Cancel deletion or Unarchive', async () => {
     const deleteAfter = new Date(Date.now() + 5 * 86_400_000).toISOString();
     const expectedDate = formatDeleteDate(deleteAfter, 'en');
-    mockApi({
-      'GET /api/trips/t-1': archivedAdminView({ deleteAfter }),
-    });
+    for (const isAdmin of [true, false]) {
+      mockApi({
+        'GET /api/trips/t-1': archivedNonOrganiserView(isAdmin, { deleteAfter }),
+      });
 
-    renderAt(<Settings />, at);
+      const viewRender = renderAt(<Settings />, at);
 
-    expect(
-      await screen.findByText(`Permanently deletes in 5 days (${expectedDate})`),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Cancel deletion' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Unarchive group' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Delete group' })).toBeNull();
+      expect(
+        await screen.findByText(`Permanently deletes in 5 days (${expectedDate})`),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel deletion' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Unarchive group' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Delete group' })).toBeNull();
+      viewRender.unmount();
+    }
   });
 });
 

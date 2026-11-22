@@ -1,4 +1,4 @@
-import type { JSX } from 'react';
+import { useMemo, type JSX } from 'react';
 import { useT, useLang } from '@cc/web-i18n';
 import { formatDeleteDate } from '@cc/web-util/time';
 import { useScheduleTripDelete } from '@cc/web-data-access/tripDelete';
@@ -28,7 +28,10 @@ export function DeleteGroupSheet({
   const t = useT();
   const [lang] = useLang();
   const mutation = useScheduleTripDelete(tripId);
-  const previewDate = formatDeleteDate(new Date(Date.now() + GRACE_DAYS_MS).toISOString(), lang);
+  const previewDate = useMemo(
+    () => formatDeleteDate(new Date(Date.now() + GRACE_DAYS_MS).toISOString(), lang),
+    [open, lang],
+  );
 
   const handleClose = () => {
     if (mutation.isPending) return;
