@@ -22,12 +22,13 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import { walletBalance, type GroupLinkView, type GroupSettingsView } from '@cc/core';
+import { type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { ensureFixedCategories } from './fixedCategories';
-import { computeGroupsKey, loadGroupRows, loadGroupSettings } from './groupShares';
+import { computeGroupsKey, loadGroupSettings } from './groupShares';
+import { loadCachedGroupRows } from './tripCache';
 import { signedPersonalAmount, walletBalanceDeltaStmts } from './balanceCache';
 import { parseJson } from './validate';
-import { loadCalc } from './wallets';
+import { loadCachedWalletsSummary } from './wallets';
 
 const BALANCE_CHECK_GAP_MS = 24 * 60 * 60 * 1000;
 
@@ -115,7 +116,7 @@ export function groupLinkRoutes(): Hono<AppBindings> {
       return c.json({ status: 'current' as const }, 200);
     }
 
-    const rows = await loadGroupRows(db, user.id);
+    const rows = await loadCachedGroupRows(db, user.id);
     return c.json({ status: 'rows' as const, key: currentKey, rows }, 200);
   });
 
@@ -512,13 +513,13 @@ export function groupLinkRoutes(): Hono<AppBindings> {
       return c.json({ entryId: null }, 200);
     }
 
-    const { wallets, entries } = await loadCalc(db, user.id);
+    const { wallets, walletBalances } = await loadCachedWalletsSummary(db, user.id);
     const wallet = wallets.find((w) => w.id === walletId);
     if (!wallet) {
       throw new ApiError('NOT_FOUND', 404, 'Wallet not found');
     }
 
-    const currentBalance = walletBalance(wallet, entries);
+    const currentBalance = walletBalances.get(wallet.id) ?? wallet.startAmount;
     const diff = actual! - currentBalance;
 
     if (diff === 0) {

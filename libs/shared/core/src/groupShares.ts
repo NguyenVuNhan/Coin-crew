@@ -166,7 +166,7 @@ export function loanPaybacks(rows: GroupRow[]): Map<string, number> {
 
 type GroupWalletCandidate = CalcWallet & { kind?: string; isDefault?: boolean };
 
-function pickFallbackVndWallet(
+export function pickFallbackVndWallet(
   wallets: GroupWalletCandidate[],
   defaultWalletId: string | null,
 ): string | null {

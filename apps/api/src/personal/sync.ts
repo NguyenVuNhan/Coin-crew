@@ -21,7 +21,8 @@ import type {
   SyncResponse,
 } from '@cc/core';
 import { findLedger } from '../me/ledger';
-import { computeGroupsKey, loadGroupRows } from './groupShares';
+import { computeGroupsKey } from './groupShares';
+import { loadCachedGroupRows } from './tripCache';
 import { loadLedgerRows } from './personRows';
 
 const PAGE_SIZE = 500;
@@ -233,7 +234,7 @@ export function syncRoutes(): Hono<AppBindings> {
     if (isFirstPage && currentGroupsKey !== null && (isReset || groupsKey !== currentGroupsKey)) {
       groupsField = {
         key: currentGroupsKey,
-        rows: await loadGroupRows(db, user.id),
+        rows: await loadCachedGroupRows(db, user.id),
       };
     }
 
