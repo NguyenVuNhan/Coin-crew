@@ -1,6 +1,6 @@
 import { createRef } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TagView } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
@@ -33,6 +33,10 @@ function renderBar(overrides: Partial<TransactionSearchBarProps> = {}) {
 
 beforeEach(() => {
   setLang('en');
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('TransactionSearchBar', () => {
@@ -225,5 +229,37 @@ describe('TransactionSearchBar', () => {
     expect(screen.getByTestId('tx-filter-count')).toHaveTextContent('3');
     await user.click(screen.getByTestId('tx-filter-btn'));
     expect(onOpenAdvanced).toHaveBeenCalledTimes(1);
+  });
+
+  it('liveSearch debounces submission after typing stops and pauses while typing #tag', () => {
+    vi.useFakeTimers();
+    const onSubmit = vi.fn();
+    render(
+      <TransactionSearchBar
+        q={undefined}
+        tagId={undefined}
+        tags={TAGS}
+        advancedCount={0}
+        liveSearch
+        onSubmit={onSubmit}
+        onOpenAdvanced={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByTestId('tx-filter-search');
+    fireEvent.change(input, { target: { value: 'pho', selectionStart: 3 } });
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(onSubmit).toHaveBeenCalledWith({ q: 'pho', tagId: undefined });
+
+    onSubmit.mockClear();
+    fireEvent.change(input, { target: { value: 'pho #an', selectionStart: 7 } });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

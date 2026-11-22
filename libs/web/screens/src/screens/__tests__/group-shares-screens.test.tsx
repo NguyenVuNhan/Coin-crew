@@ -388,12 +388,12 @@ describe("Group shares wired into Sổ chi tiêu screens", () => {
       within(day15).getAllByText("−80.000₫").length,
     ).toBeGreaterThanOrEqual(2);
 
-    // Switch to "by category"
+    // Switch to "by category": URL persists view=category and rows display compact dates
     await user.click(screen.getByTestId("tx-view-toggle"));
 
     const foodGroup = await screen.findByTestId("tx-group-cat:cat-food");
-    expect(within(foodGroup).getByTestId("tx-row-e-pho")).toBeInTheDocument();
-    expect(within(foodGroup).getByTestId("tx-row-g-g-lau")).toBeInTheDocument();
+    expect(within(foodGroup).getByTestId("tx-row-e-pho")).toHaveTextContent("16/11");
+    expect(within(foodGroup).getByTestId("tx-row-g-g-lau")).toHaveTextContent("16/11");
     expect(within(foodGroup).getByText("−150.000₫")).toBeInTheDocument();
 
     const nhomGroup = screen.getByTestId("tx-group-cat:cat-group");
@@ -403,6 +403,37 @@ describe("Group shares wired into Sổ chi tiêu screens", () => {
     expect(
       within(nhomGroup).getByRole("heading", { name: "Nhóm" }),
     ).toBeInTheDocument();
+  });
+
+  it("day header labels net total as Spending when repayments are excluded from daily spending", async () => {
+    mockMedia();
+    const dayExpense = makeGroupRow({
+      id: "g-exp-1",
+      date: "2026-11-14",
+      title: "Badminton",
+      total: 120_000,
+      myShare: 40_000,
+      iPaid: false,
+      payerName: "Thủy",
+    });
+    const dayPayment = makeGroupRow({
+      id: "g-pay-1",
+      source: "payment",
+      date: "2026-11-14",
+      title: "Thanh toán",
+      total: 300_000,
+      myShare: 0,
+      iPaid: false,
+      counterpartName: "Minh",
+    });
+    setupMock({ rows: [], groupRows: [dayExpense, dayPayment] });
+
+    renderAt(<App />, { route: "/transactions?month=2026-11" });
+
+    const day14 = await screen.findByTestId("tx-group-2026-11-14");
+    expect(within(day14).getByText("Spending")).toBeInTheDocument();
+    expect(within(day14).getAllByText("−40.000₫").length).toBeGreaterThanOrEqual(2);
+    expect(within(day14).getByTestId("tx-row-g-g-pay-1")).toHaveTextContent("Group repayment");
   });
 
   it("/transactions uses useCopyGroupRows when the local copy is ready", async () => {

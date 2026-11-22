@@ -245,7 +245,9 @@ export function TransactionFilters({
                   { key: 'expense', label: t('personalEntry.expense') },
                   { key: 'income', label: t('personalEntry.income') },
                   { key: 'transfer', label: t('personalEntry.transfer') },
-                  { key: 'trade', label: t('transactions.typeTrade') },
+                  ...(assets.length > 0 || draft.type === 'trade'
+                    ? [{ key: 'trade', label: t('transactions.typeTrade') } as const]
+                    : []),
                   { key: 'person', label: t('transactions.typePerson') },
                 ] as const
               ).map((opt) => {
@@ -346,7 +348,7 @@ export function TransactionFilters({
                 </button>
               )}
 
-              {groups.length > 0 && (
+              {groups.length > 0 && draft.groups !== 'hide' && (
                 <button
                   ref={(el) => {
                     rowRefs.current.trip = el;
@@ -380,6 +382,7 @@ export function TransactionFilters({
                     setDraft((prev) => ({
                       ...prev,
                       groups: checked ? undefined : 'hide',
+                      tripId: checked ? prev.tripId : undefined,
                     }))
                   }
                   aria-label={t('filters.showGroupRows')}
@@ -472,7 +475,7 @@ export function ActiveFilterPills({
     });
   }
   if (filters.groups === 'hide') {
-    items.push({ key: 'groups', label: t('filters.showGroupRows') });
+    items.push({ key: 'groups', label: t('filters.hidingGroupRows') });
   }
 
   if (!hasAnyFilter && items.length === 0) return null;

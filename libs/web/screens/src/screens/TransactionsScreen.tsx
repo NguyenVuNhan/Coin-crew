@@ -24,10 +24,10 @@ import { useCopyGroupRows } from '@cc/web-data-access/txCopy/groupCopy';
 import { useCopyList, useTxCopy } from '@cc/web-data-access/txCopy/hooks';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
-import { Badge } from '@cc/web-ui/components/ui/badge';
 import { GroupRowSheet } from '../components/GroupRowSheet';
 import { Screen } from '../components/Screen';
 import {
@@ -36,18 +36,17 @@ import {
   type GroupFilterOption,
   type TransactionFilterValues,
 } from '../components/TransactionFilters';
-import { TransactionRow } from '../components/TransactionRow';
-import { CurrencyNetList, groupRows, rowKey } from '../components/transactions/groupRows';
+import { groupRows } from '../components/transactions/groupRows';
 import { NoMatch } from '../components/transactions/NoMatch';
 import { PeriodRow } from '../components/transactions/PeriodRow';
+import { isRowBeforeStart } from '../components/transactions/rowHelpers';
 import { SearchResults } from '../components/transactions/SearchResults';
+import { TransactionGroupList } from '../components/transactions/TransactionGroupList';
 import { TransactionSearchBar } from '../components/transactions/TransactionSearchBar';
-import { useTxParams } from '../components/transactions/useTxParams';
+import { useTxParams, type TxViewMode } from '../components/transactions/useTxParams';
 import { WhenSheet } from '../components/transactions/WhenSheet';
 import { BackToTop } from '../components/transactions/BackToTop';
 import { TransactionDetailContent } from './TransactionDetail';
-
-type ViewMode = 'day' | 'category';
 
 const MIN_MONTH = '2000-01';
 
@@ -79,18 +78,21 @@ interface MonthBlockProps {
   month?: string;
   range?: { from: string; to: string };
   filters: TransactionFilterValues;
-  viewMode: ViewMode;
+  viewMode: TxViewMode;
   wallets: WalletDetailView[];
   categories: CategoryView[];
   assets: AssetView[];
   settings: GroupSettingsView;
   isPrimaryMonth: boolean;
+  currentMonth: string;
+  suppressBoundaryDivider?: boolean;
   hasActiveFilters: boolean;
   onClearFilters(): void;
+  onBackToCurrentMonth?: () => void;
   onOpenEntry?: (entry: EntryView) => void;
   onOpenGroup?: (row: GroupRow) => void;
   onGroupRows?: (rows: GroupRow[]) => void;
-  onLoaded?: (month: string, isEmpty: boolean) => void;
+  onLoaded?: (month: string, isEmpty: boolean, hasPreStart: boolean) => void;
 }
 
 function MonthBlock({
@@ -103,8 +105,11 @@ function MonthBlock({
   assets,
   settings,
   isPrimaryMonth,
+  currentMonth,
+  suppressBoundaryDivider = false,
   hasActiveFilters,
   onClearFilters,
+  onBackToCurrentMonth,
   onOpenEntry,
   onOpenGroup,
   onGroupRows,
@@ -139,9 +144,10 @@ function MonthBlock({
 
   useEffect(() => {
     if (month && rows !== undefined && onLoaded) {
-      onLoaded(month, rows.length === 0);
+      const hasPreStart = rows.some((r) => isRowBeforeStart(r, wallets));
+      onLoaded(month, rows.length === 0, hasPreStart);
     }
-  }, [month, rows, onLoaded]);
+  }, [month, rows, wallets, onLoaded]);
 
   useEffect(() => {
     if (extraGroupRows.length > 0 && onGroupRows) {
@@ -179,6 +185,28 @@ function MonthBlock({
         icon="receipt"
         title={t('transactions.emptyTitle')}
         body={t('transactions.emptyBody')}
+        action={
+          month && month !== currentMonth && onBackToCurrentMonth ? (
+            <Button
+              type="button"
+              variant="secondary"
+              block
+              data-testid="tx-empty-back-current"
+              onClick={onBackToCurrentMonth}
+            >
+              {t('transactions.backToThisMonth')}
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              block
+              href="/entries/new"
+              data-testid="tx-empty-add"
+            >
+              {t('transactions.addEntry')}
+            </Button>
+          )
+        }
       />
     );
   }
@@ -186,38 +214,22 @@ function MonthBlock({
   return (
     <div className="fsl-tx-month flex flex-col gap-4" data-month={month ?? 'range'}>
       {!isPrimaryMonth && month && (
-        <h2 className="m-0 px-1 text-sm font-semibold text-muted-foreground">
+        <h2 className="m-0 px-1 text-base font-semibold text-foreground">
           {formatMonthLabel(month, lang)}
         </h2>
       )}
-      {grouped.map((group) => (
-        <section
-          key={group.id}
-          data-testid={`tx-group-${group.id}`}
-          className="fsl-tx-group flex flex-col gap-1.5"
-        >
-          <div className="fsl-tx-group__header flex items-center justify-between gap-2 px-1">
-            <h3 className="m-0 text-xs font-semibold text-muted-foreground">
-              {group.title}
-            </h3>
-            <CurrencyNetList nets={group.nets} />
-          </div>
-          <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-            {group.rows.map((row) => (
-              <TransactionRow
-                key={rowKey(row)}
-                row={row}
-                wallets={wallets}
-                categories={categories}
-                assets={assets}
-                settings={settings}
-                onOpenEntry={onOpenEntry}
-                onOpenGroup={onOpenGroup}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      <TransactionGroupList
+        groups={grouped}
+        viewMode={viewMode}
+        wallets={wallets}
+        categories={categories}
+        assets={assets}
+        settings={settings}
+        headingLevel={isPrimaryMonth ? 'h2' : 'h3'}
+        suppressBoundaryDivider={suppressBoundaryDivider}
+        onOpenEntry={onOpenEntry}
+        onOpenGroup={onOpenGroup}
+      />
     </div>
   );
 }
@@ -225,18 +237,19 @@ function MonthBlock({
 export function TransactionsScreen(): JSX.Element {
   const t = useT();
   const today = todayLocal();
-  const { month: selectedMonth, filters, hasRange, isSearching, advancedCount, hasAnyFilter, set, clearAll } =
+  const currentMonth = today.slice(0, 7);
+  const { month: selectedMonth, viewMode, filters, hasRange, isSearching, advancedCount, hasAnyFilter, set, clearAll } =
     useTxParams();
   const copyStatus = useTxCopy().status;
   const copyReady = copyStatus === 'ready';
   /** Searching with no date range covers all history, which only the saved copy can answer for free. */
   const allTimeSearch = isSearching && !hasRange;
 
-  const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [filterOpen, setFilterOpen] = useState(false);
   const [whenOpen, setWhenOpen] = useState(false);
   const [loadedMonths, setLoadedMonths] = useState<string[]>([selectedMonth]);
   const [emptyMonths, setEmptyMonths] = useState<Record<string, boolean>>({});
+  const [preStartMonths, setPreStartMonths] = useState<Record<string, boolean>>({});
   const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
   const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -249,6 +262,7 @@ export function TransactionsScreen(): JSX.Element {
   useEffect(() => {
     setLoadedMonths([selectedMonth]);
     setEmptyMonths({});
+    setPreStartMonths({});
   }, [selectedMonth, filters]);
 
   const trailingEmpty = useMemo(() => {
@@ -348,10 +362,17 @@ export function TransactionsScreen(): JSX.Element {
   }, [allGroupCopy.ready, allGroupCopy.groupRows, seenGroupRows, t]);
 
   /** Applies a change and commits whatever is typed in the search box with it (spec: the box is what's searched). */
-  const apply = (change: Partial<TransactionFilterValues> & { month?: string }) => {
+  const apply = (
+    change: Partial<TransactionFilterValues> & { month?: string; view?: TxViewMode },
+  ) => {
     const typed = draftRef.current?.text.trim() || undefined;
     set({ q: typed, ...change });
   };
+
+  const handleSearchSubmit = useCallback(
+    (next: { q?: string; tagId?: string }) => set({ q: next.q, tagId: next.tagId }),
+    [set],
+  );
 
   const handleLoadOlder = () => {
     setLoadedMonths((prev) => {
@@ -373,8 +394,9 @@ export function TransactionsScreen(): JSX.Element {
             tagId={filters.tagId}
             tags={tags}
             advancedCount={advancedCount}
+            liveSearch={copyReady && !filterOpen}
             draftRef={draftRef}
-            onSubmit={(next) => set({ q: next.q, tagId: next.tagId })}
+            onSubmit={handleSearchSubmit}
             onOpenAdvanced={() => setFilterOpen(true)}
           />
           {allTimeSearch && !copyReady && copyStatus === 'loading' && (
@@ -397,15 +419,25 @@ export function TransactionsScreen(): JSX.Element {
             <button
               type="button"
               data-testid="tx-view-toggle"
-              onClick={() => setViewMode((prev) => (prev === 'day' ? 'category' : 'day'))}
+              aria-pressed={viewMode === 'category'}
+              aria-label={
+                viewMode === 'day'
+                  ? t('transactions.switchToCategory')
+                  : t('transactions.switchToDay')
+              }
+              onClick={() => apply({ view: viewMode === 'day' ? 'category' : 'day' })}
               className="fsl-list-chip group inline-flex min-h-11 min-w-11 items-center justify-end pl-2 m-0 border-0 bg-transparent cursor-pointer font-inherit text-foreground focus-visible:outline-none"
             >
-              <Badge
-                variant="outline"
-                className="fsl-list-chip__pill inline-flex min-h-7 items-center rounded-full border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors group-hover:bg-muted group-focus-visible:ring-2 group-focus-visible:ring-ring"
-              >
-                {viewMode === 'day' ? t('transactions.byDay') : t('transactions.byCategory')}
-              </Badge>
+              <span className="fsl-list-chip__pill inline-flex min-h-7 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm font-medium text-foreground whitespace-nowrap transition-colors motion-reduce:transition-none group-hover:bg-muted group-focus-visible:ring-2 group-focus-visible:ring-ring">
+                <Icon
+                  name={viewMode === 'day' ? 'calendar' : 'pie'}
+                  size={14}
+                  className="text-muted-foreground shrink-0"
+                />
+                <span>
+                  {viewMode === 'day' ? t('transactions.byDay') : t('transactions.byCategory')}
+                </span>
+              </span>
             </button>
           }
         />
@@ -447,8 +479,10 @@ export function TransactionsScreen(): JSX.Element {
               assets={assets}
               settings={groupSettings}
               isPrimaryMonth
+              currentMonth={currentMonth}
               hasActiveFilters={hasAnyFilter}
               onClearFilters={clearAll}
+              onBackToCurrentMonth={() => apply({ month: currentMonth, from: undefined, to: undefined })}
               onOpenEntry={onOpenEntry}
               onOpenGroup={setSelectedGroupRow}
               onGroupRows={handleGroupRows}
@@ -465,14 +499,20 @@ export function TransactionsScreen(): JSX.Element {
                 assets={assets}
                 settings={groupSettings}
                 isPrimaryMonth={idx === 0}
+                currentMonth={currentMonth}
+                suppressBoundaryDivider={loadedMonths.slice(0, idx).some((m) => preStartMonths[m] === true)}
                 hasActiveFilters={hasAnyFilter}
                 onClearFilters={clearAll}
+                onBackToCurrentMonth={() => apply({ month: currentMonth, from: undefined, to: undefined })}
                 onOpenEntry={onOpenEntry}
                 onOpenGroup={setSelectedGroupRow}
                 onGroupRows={handleGroupRows}
-                onLoaded={(m, isEmpty) =>
-                  setEmptyMonths((prev) => (prev[m] === isEmpty ? prev : { ...prev, [m]: isEmpty }))
-                }
+                onLoaded={(m, isEmpty, hasPreStart) => {
+                  setEmptyMonths((prev) => (prev[m] === isEmpty ? prev : { ...prev, [m]: isEmpty }));
+                  setPreStartMonths((prev) =>
+                    prev[m] === hasPreStart ? prev : { ...prev, [m]: hasPreStart },
+                  );
+                }}
               />
             ))
           )}

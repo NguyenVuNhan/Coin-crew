@@ -155,4 +155,26 @@ describe('useTxParams', () => {
     );
     expect(four.current.advancedCount).toBe(4);
   });
+
+  it('persists viewMode in URL (?view=category) and keeps default day view clean', () => {
+    const def = mountTxParams('/transactions?month=2026-11');
+    expect(def.current.viewMode).toBe('day');
+
+    act(() => {
+      def.current.set({ view: 'category' });
+    });
+    expect(def.current.viewMode).toBe('category');
+    expect(new URLSearchParams(def.getSearch()).get('view')).toBe('category');
+
+    act(() => {
+      def.current.set({ q: 'pho' });
+    });
+    expect(new URLSearchParams(def.getSearch()).get('view')).toBe('category');
+
+    act(() => {
+      def.current.set({ view: 'day' });
+    });
+    expect(def.current.viewMode).toBe('day');
+    expect(new URLSearchParams(def.getSearch()).has('view')).toBe(false);
+  });
 });

@@ -21,6 +21,7 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
+import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { Switch } from '@cc/web-ui/components/ui/switch';
@@ -325,6 +326,20 @@ export function GroupRowSheet({
     : '';
   const dateLabel = row ? formatEntryDayLabel(row.date, t) : '';
   const outcomeSentence = row ? buildOutcomeSentence(row, lang, t) : '';
+  const beforeStart = Boolean(row && resolvedWallet && row.date < resolvedWallet.startDate);
+  const outcomeToneClass = !row
+    ? 'bg-secondary text-secondary-foreground'
+    : row.pending
+      ? 'bg-warning-soft text-warning-foreground'
+      : row.source === 'expense'
+        ? row.iPaid && row.total - row.myShare > 0
+          ? 'bg-success-soft text-success'
+          : !row.iPaid && row.myShare > 0
+            ? 'bg-danger-soft text-danger'
+            : 'bg-secondary text-secondary-foreground'
+        : row.source === 'payment'
+          ? 'bg-muted text-foreground'
+          : 'bg-secondary text-secondary-foreground';
   const isDirectExpense = Boolean(row?.isDirect && row.source === 'expense');
   const openInGroupHref = !row
     ? ''
@@ -343,9 +358,18 @@ export function GroupRowSheet({
             {`${tripLabel} · ${dateLabel}`}
           </p>
 
+          {beforeStart && (
+            <Pill tone="neutral" className="w-fit">
+              {t('wallet.beforeStart')}
+            </Pill>
+          )}
+
           <div
             data-testid="group-row-outcome"
-            className="rounded-xl bg-success-soft px-3 py-2.5 text-sm font-semibold text-success tabular-nums"
+            className={cn(
+              'rounded-xl px-3 py-2.5 text-sm font-semibold tabular-nums',
+              outcomeToneClass,
+            )}
           >
             {outcomeSentence}
           </div>
@@ -557,7 +581,7 @@ export function GroupRowSheet({
             >
               <div className="flex flex-col gap-4">
                 <p className="m-0 text-sm text-muted-foreground">
-                  {t('transactions.deleteConfirmBody')}
+                  {t('groupRow.deleteConfirmBody')}
                 </p>
                 <div className="flex justify-end gap-2">
                   <Button

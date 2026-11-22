@@ -14,12 +14,12 @@ import {
 import { useT } from '@cc/web-i18n';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
-import { Pill } from '@cc/web-ui/components/Pill';
 import { cn } from '@cc/web-ui/lib/utils';
 import { ledgerDetailsPath } from '../lib/detailsNav';
 
 import { categoryIconName } from './categoryIcon';
 import { GroupTxRow } from './GroupTxRow';
+import { formatCompactRowDate, shouldShowWalletName } from './transactions/rowHelpers';
 
 export { categoryIconName as resolveCategoryIcon };
 
@@ -29,6 +29,9 @@ export interface TransactionRowProps {
   wallets?: WalletDetailView[];
   assets?: AssetView[];
   settings?: GroupSettingsView;
+  showDate?: boolean;
+  showBeforeStartCue?: boolean;
+  hideWalletName?: boolean;
   onOpenEntry?: (entry: EntryView) => void;
   onOpenGroup?: (row: GroupRow) => void;
 }
@@ -42,6 +45,9 @@ export function TransactionRow({
   wallets = [],
   assets = [],
   settings,
+  showDate = false,
+  showBeforeStartCue = true,
+  hideWalletName = false,
   onOpenEntry,
   onOpenGroup,
 }: TransactionRowProps): JSX.Element {
@@ -53,33 +59,57 @@ export function TransactionRow({
         wallets={wallets}
         categories={categories}
         settings={settings}
+        showDate={showDate}
+        showBeforeStartCue={showBeforeStartCue}
+        hideWalletName={hideWalletName}
         onOpen={onOpenGroup}
       />
     );
   }
-  const walletMap = new Map(wallets.map((w) => [w.id, w.name]));
+  const walletById = new Map(wallets.map((w) => [w.id, w]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const assetMap = new Map(assets.map((a) => [a.id, a]));
 
   if (row.kind === 'person') {
-    const walletName = walletMap.get(row.walletId) ?? '';
-    const metaParts = [row.note, walletName, t('transactions.yourShare')].filter(Boolean);
+    const personWallet = walletById.get(row.walletId);
+    const walletName = personWallet?.name ?? '';
+    const showWallet = Boolean(
+      walletName && shouldShowWalletName(wallets, personWallet, hideWalletName),
+    );
+    const beforeStart =
+      personWallet !== undefined && row.date < personWallet.startDate;
+    const metaParts = [
+      showDate ? formatCompactRowDate(row.date, t) : '',
+      row.note,
+      showWallet ? walletName : '',
+      beforeStart && showBeforeStartCue ? t('wallet.beforeStart') : '',
+    ].filter(Boolean);
     const title = t('transactions.withPeople', { names: row.people.join(', ') });
     const href = ledgerDetailsPath(row.tripId, 'expense', row.id);
+    const amountText = `\u2212${formatMoney(Math.abs(row.share), row.currency)}`;
+    const ariaLabel = [
+      title,
+      amountText,
+      t('transactions.yourShare'),
+      ...metaParts,
+    ]
+      .filter(Boolean)
+      .join('. ');
 
     return (
       <Link
         to={href}
         data-testid={`tx-row-${row.id}`}
+        aria-label={ariaLabel}
         className={cn(ROW_BASE_CLASS, 'no-underline')}
       >
         <span
           aria-hidden="true"
-          className="size-10 rounded-xl bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+          className="size-10 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
         >
           <Icon name="users" size={18} />
         </span>
-        <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+        <div className="min-w-0 flex-1 overflow-hidden flex flex-col gap-0.5">
           <span className="text-sm font-semibold text-foreground truncate">{title}</span>
           {metaParts.length > 0 && (
             <span className="text-xs text-muted-foreground truncate">
@@ -87,9 +117,14 @@ export function TransactionRow({
             </span>
           )}
         </div>
-        <span className="fsl-tx-row__amount text-sm font-semibold tabular-nums whitespace-nowrap text-danger shrink-0">
-          {`\u2212${formatMoney(Math.abs(row.share), row.currency)}`}
-        </span>
+        <div className="flex flex-col items-end gap-0.5 shrink-0">
+          <span className="fsl-tx-row__amount text-sm font-semibold tabular-nums whitespace-nowrap text-danger">
+            {`\u2212${formatMoney(Math.abs(row.share), row.currency)}`}
+          </span>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {t('transactions.yourShare')}
+          </span>
+        </div>
       </Link>
     );
   }
@@ -102,9 +137,13 @@ export function TransactionRow({
   const category = entry.categoryId ? categoryMap.get(entry.categoryId) : undefined;
   const asset = entry.assetId ? assetMap.get(entry.assetId) : undefined;
   const assetName = asset?.name ?? entry.assetId ?? '';
-  const walletName = walletMap.get(entry.walletId) ?? '';
+  const entryWallet = walletById.get(entry.walletId);
+  const walletName = entryWallet?.name ?? '';
+  const showWallet = Boolean(
+    walletName && shouldShowWalletName(wallets, entryWallet, hideWalletName),
+  );
   const counterpartName = entry.counterpartWalletId
-    ? walletMap.get(entry.counterpartWalletId) ?? ''
+    ? walletById.get(entry.counterpartWalletId)?.name ?? ''
     : '';
 
   const title = isTransfer
@@ -122,14 +161,17 @@ export function TransactionRow({
       ? 'trending-up'
       : categoryIconName(category?.icon, isExpense ? 'expense' : 'income');
 
+  const datePart = showDate ? formatCompactRowDate(entry.date, t) : '';
+  const beforeStartPart =
+    entry.beforeStart && showBeforeStartCue ? t('wallet.beforeStart') : '';
   const tagText = entry.tags.length > 0 ? entry.tags.map((tag) => `#${tag}`).join(' ') : '';
   const qtyPart =
     isTrade && asset && entry.quantity != null
       ? assetQuantityLabel(entry.quantity, asset)
       : '';
   const metaParts = isTrade
-    ? [qtyPart, walletName, entry.note ?? '', tagText].filter(Boolean)
-    : [entry.note ?? '', walletName, tagText].filter(Boolean);
+    ? [datePart, qtyPart, showWallet ? walletName : '', entry.note ?? '', tagText, beforeStartPart].filter(Boolean)
+    : [datePart, entry.note ?? '', showWallet ? walletName : '', tagText, beforeStartPart].filter(Boolean);
 
   const formattedAmount = formatMoney(Math.abs(entry.amount), entry.currency);
   const signedText = isTransfer
@@ -144,30 +186,36 @@ export function TransactionRow({
       ? 'text-danger'
       : 'text-success';
 
+  const directionText =
+    isTransfer && counterpartName
+      ? entry.type === 'transfer_in'
+        ? t('transactions.directionFrom', { wallet: counterpartName })
+        : t('transactions.directionTo', { wallet: counterpartName })
+      : '';
+  const ariaAmountText = isTrade
+    ? `${isBuy ? '\u2212' : '+'}${formattedAmount}`
+    : signedText;
+  const ariaLabel = [title, ariaAmountText, directionText, ...metaParts]
+    .filter(Boolean)
+    .join('. ');
+
   const content = (
     <>
       <span
         aria-hidden="true"
-        className="size-10 rounded-xl bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+        className="size-10 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
       >
         <Icon name={iconName} size={18} />
       </span>
-      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm font-semibold text-foreground truncate">{title}</span>
-          {entry.beforeStart && (
-            <Pill tone="neutral" className="text-[11px] px-2 py-0 shrink-0">
-              {t('wallet.beforeStart')}
-            </Pill>
-          )}
-        </div>
+      <div className="min-w-0 flex-1 overflow-hidden flex flex-col gap-0.5">
+        <span className="text-sm font-semibold text-foreground truncate">{title}</span>
         {metaParts.length > 0 && (
           <span className="text-xs text-muted-foreground truncate">
             {metaParts.join(' · ')}
           </span>
         )}
       </div>
-      <div className="flex flex-col items-end shrink-0">
+      <div className="flex flex-col items-end gap-0.5 shrink-0">
         {isTrade ? (
           <span className="fsl-tx-row__amount inline-flex items-baseline text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">
             <span>{isBuy ? '\u2212' : '+'}</span>
@@ -183,9 +231,9 @@ export function TransactionRow({
             {signedText}
           </span>
         )}
-        {isTransfer && counterpartName && (
-          <span className="text-xs text-foreground tabular-nums whitespace-nowrap">
-            {t('transactions.directionTo', { wallet: counterpartName })}
+        {directionText && (
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap max-w-28 truncate">
+            {directionText}
           </span>
         )}
       </div>
@@ -197,6 +245,7 @@ export function TransactionRow({
       <button
         type="button"
         data-testid={`tx-row-${entry.id}`}
+        aria-label={ariaLabel}
         onClick={() => onOpenEntry(entry)}
         className={ROW_BASE_CLASS}
       >
@@ -210,6 +259,7 @@ export function TransactionRow({
       to={`/entries/${encodeURIComponent(entry.id)}`}
       state={{ entry }}
       data-testid={`tx-row-${entry.id}`}
+      aria-label={ariaLabel}
       className={cn(ROW_BASE_CLASS, 'no-underline')}
     >
       {content}

@@ -213,7 +213,7 @@ export function WalletScreen(): JSX.Element {
                 <Link
                   to={`/transactions?walletId=${encodeURIComponent(wallet.id)}`}
                   data-testid="wallet-see-all"
-                  className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline"
+                  className="inline-flex min-h-11 items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 -my-2 -mr-2"
                 >
                   <span>{t('wallet.seeAll')}</span>
                   <Icon name="chevronRight" size={16} />
@@ -229,7 +229,7 @@ export function WalletScreen(): JSX.Element {
               ) : (
                 <div
                   data-testid="wallet-entries"
-                  className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden"
+                  className="bg-card rounded-xl divide-y divide-border overflow-hidden"
                 >
                   {rows.map((row) => (
                     <TransactionRow
@@ -245,6 +245,8 @@ export function WalletScreen(): JSX.Element {
                       categories={categoriesQuery.data?.categories ?? []}
                       assets={assets}
                       settings={groupSettings}
+                      showDate
+                      hideWalletName
                       onOpenEntry={setSelectedEntry}
                       onOpenGroup={setSelectedGroupRow}
                     />

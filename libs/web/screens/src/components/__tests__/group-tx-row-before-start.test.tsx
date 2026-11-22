@@ -65,8 +65,8 @@ function makeRow(date: string, overrides: Partial<GroupRow> = {}): GroupRow {
   };
 }
 
-describe('GroupTxRow before-start pill', () => {
-  it('shows the neutral before-start pill when row.date < resolved wallet startDate', () => {
+describe('GroupTxRow before-start cue', () => {
+  it('shows before-start as quiet Line-2 text without any Line-1 pill when row.date < resolved wallet startDate', () => {
     renderAt(
       <GroupTxRow
         row={makeRow('2026-05-31')}
@@ -77,12 +77,25 @@ describe('GroupTxRow before-start pill', () => {
     );
 
     const btn = screen.getByTestId('tx-row-g-g-1');
-    const pill = btn.querySelector('.fsl-pill--neutral');
-    expect(pill).toBeInTheDocument();
-    expect(pill).toHaveTextContent('Before wallet start date');
+    expect(btn.querySelector('.fsl-pill--neutral')).toBeNull();
+    expect(btn).toHaveTextContent('Before wallet start date');
   });
 
-  it('does not show the before-start pill when row.date is on or after resolved wallet startDate', () => {
+  it('suppresses the per-row cue when showBeforeStartCue is false', () => {
+    renderAt(
+      <GroupTxRow
+        row={makeRow('2026-05-31')}
+        wallets={WALLETS}
+        categories={CATEGORIES}
+        settings={DEFAULT_SETTINGS}
+        showBeforeStartCue={false}
+      />,
+    );
+
+    expect(screen.queryByText(/Before wallet start date/)).not.toBeInTheDocument();
+  });
+
+  it('does not show the before-start text when row.date is on or after resolved wallet startDate', () => {
     const { unmount } = renderAt(
       <GroupTxRow
         row={makeRow('2026-06-01')}

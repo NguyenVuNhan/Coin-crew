@@ -392,6 +392,9 @@ describe('GroupRowSheet', () => {
 
     await screen.findByTestId('group-row-sheet');
     await user.click(screen.getByTestId('group-row-delete'));
+    expect(
+      await screen.findByText('This expense will be deleted right away and cannot be undone.'),
+    ).toBeInTheDocument();
     const confirmBtn = await screen.findByTestId('group-row-delete-confirm');
     await user.click(confirmBtn);
 
@@ -403,5 +406,53 @@ describe('GroupRowSheet', () => {
       }),
     );
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('colors outcome banner by direction (danger when you owe, success when owed, muted for payment, warning when pending) and shows before-start pill', async () => {
+    setupApi();
+
+    const { unmount: u1 } = renderAt(
+      <GroupRowSheet
+        row={makeRow({ iPaid: false, payerName: 'Thủy', myShare: 41_669, total: 125_000 })}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    const owedBanner = await screen.findByTestId('group-row-outcome');
+    expect(owedBanner).toHaveClass('bg-danger-soft', 'text-danger');
+    u1();
+
+    const { unmount: u2 } = renderAt(
+      <GroupRowSheet
+        row={makeRow({ iPaid: true, myShare: 100_000, total: 300_000 })}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    const oweMeBanner = await screen.findByTestId('group-row-outcome');
+    expect(oweMeBanner).toHaveClass('bg-success-soft', 'text-success');
+    u2();
+
+    const { unmount: u3 } = renderAt(
+      <GroupRowSheet
+        row={makeRow({ source: 'payment', iPaid: false, counterpartName: 'Minh', total: 200_000, myShare: 0 })}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    const payBanner = await screen.findByTestId('group-row-outcome');
+    expect(payBanner).toHaveClass('bg-muted', 'text-foreground');
+    u3();
+
+    renderAt(
+      <GroupRowSheet
+        row={makeRow({ pending: true, date: '2025-12-15' })}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    const pendingBanner = await screen.findByTestId('group-row-outcome');
+    expect(pendingBanner).toHaveClass('bg-warning-soft', 'text-warning-foreground');
+    expect(await screen.findByText('Before wallet start date')).toBeInTheDocument();
   });
 });

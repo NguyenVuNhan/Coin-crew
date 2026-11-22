@@ -14,10 +14,11 @@ import { getLang, useT } from '@cc/web-i18n';
 import { useCopyList } from '@cc/web-data-access/txCopy/hooks';
 import { todayLocal } from '@cc/web-util/localDate';
 import { Button } from '@cc/web-ui/components/Button';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import type { TransactionFilterValues } from '../TransactionFilters';
-import { TransactionRow } from '../TransactionRow';
-import { CurrencyNetList, groupRows, rowKey } from './groupRows';
+import { groupRows } from './groupRows';
 import { NoMatch } from './NoMatch';
+import { TransactionGroupList } from './TransactionGroupList';
 
 const PAGE_SIZE = 50;
 const ALL_FROM = '0000-01-01';
@@ -109,6 +110,10 @@ export function SearchResults({
     [visibleRows, viewMode, categories, lang, t, currentYear, settings],
   );
 
+  if (copy.opening) {
+    return <SkeletonList rows={3} />;
+  }
+
   if (!copy.ready || !rows) {
     return <></>;
   }
@@ -119,34 +124,17 @@ export function SearchResults({
 
   return (
     <div className="fsl-tx-search-results flex flex-col gap-4" data-testid="tx-search-results">
-      {grouped.map((group) => (
-        <section
-          key={group.id}
-          data-testid={`tx-group-${group.id}`}
-          className="fsl-tx-group flex flex-col gap-1.5"
-        >
-          <div className="fsl-tx-group__header flex items-center justify-between gap-2 px-1">
-            <h3 className="m-0 text-xs font-semibold text-muted-foreground">
-              {group.title}
-            </h3>
-            <CurrencyNetList nets={group.nets} />
-          </div>
-          <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-            {group.rows.map((row) => (
-              <TransactionRow
-                key={rowKey(row)}
-                row={row}
-                wallets={wallets}
-                categories={categories}
-                assets={assets}
-                settings={settings}
-                onOpenEntry={onOpenEntry}
-                onOpenGroup={onOpenGroup}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      <TransactionGroupList
+        groups={grouped}
+        viewMode={viewMode}
+        wallets={wallets}
+        categories={categories}
+        assets={assets}
+        settings={settings}
+        headingLevel="h2"
+        onOpenEntry={onOpenEntry}
+        onOpenGroup={onOpenGroup}
+      />
       {hasMore && (
         <div ref={sentinelRef} className="flex justify-center pt-1">
           <Button
