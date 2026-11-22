@@ -7,6 +7,7 @@ import type {
 import { apiFetch, apiSend, type ApiClientError } from './client';
 import { writePersonalHint } from './personalHint';
 import { forgetTxCopy } from './txCopy/hooks';
+import { forgetGroupCopy } from './txCopy/groupCopy';
 
 export function useSetPersonalArea() {
   const queryClient = useQueryClient();
@@ -20,6 +21,7 @@ export function useSetPersonalArea() {
         const me = queryClient.getQueryData<{ user?: { id: string } | null }>(['me']);
         if (me?.user?.id) {
           await forgetTxCopy(me.user.id);
+          await forgetGroupCopy(me.user.id);
         }
       }
       await queryClient.invalidateQueries({ queryKey: ['me'], exact: true });

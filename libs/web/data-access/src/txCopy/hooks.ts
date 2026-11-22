@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { onTxCopySync, txCopySyncListeners } from './syncEvents';
 import {
   listFromCopy,
   type ListQuery,
@@ -197,6 +198,8 @@ class TxCopyController {
 const controllers = new Map<string, TxCopyController>();
 let activeUserId: string | null = null;
 
+export { onTxCopySync };
+
 function getOrCreateController(userId: string): TxCopyController {
   let controller = controllers.get(userId);
   if (!controller) {
@@ -285,6 +288,7 @@ export function useCopyList(
     query.tagId,
     query.type,
     query.q,
+    query.tripId,
   ]);
 
   // Also wait while a ready copy's lookup lists are still loading, so a fresh page doesn't spend a server read.
@@ -299,8 +303,19 @@ export function useCopyList(
  */
 export function requestTxCopySync(): Promise<void> {
   const controller = getActiveController();
-  if (!controller) return Promise.resolve();
-  return controller.sync();
+  const tasks: Promise<void>[] = [];
+  if (controller) {
+    tasks.push(controller.sync());
+  }
+  for (const listener of txCopySyncListeners) {
+    const result = listener();
+    if (result) {
+      tasks.push(result);
+    }
+  }
+  if (tasks.length === 0) return Promise.resolve();
+  if (tasks.length === 1) return tasks[0]!;
+  return Promise.all(tasks).then(() => undefined);
 }
 
 /**
@@ -328,3 +343,18 @@ export async function forgetTxCopy(userId: string): Promise<void> {
   }
   await deleteTxCopy(userId);
 }
+
+export {
+  deleteGroupCopy,
+  forgetGroupCopy,
+  openGroupCopyStore,
+  requestGroupCopySync,
+  syncGroupCopy,
+  useCopyGroupRows,
+  useGroupCopy,
+  type FetchGroupRows,
+  type GroupCopySnapshot,
+  type GroupCopyStatus,
+  type GroupCopyStore,
+  type GroupRowsSyncResponse,
+} from './groupCopy';

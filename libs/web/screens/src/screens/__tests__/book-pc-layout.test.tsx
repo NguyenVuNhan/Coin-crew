@@ -157,7 +157,7 @@ function mockBookApp(me: unknown) {
 }
 
 describe('Spending book PC wide layout', () => {
-  it('on wide screens with book on, puts book-total and book-recent (up to 8 rows) in main and book-people-row + group lists in side', async () => {
+  it('on wide screens with book on, puts book-total and book-recent (up to 8 rows) in main and only book-people-row in side', async () => {
     mockMedia({ wide: true });
     mockBookApp(meOn);
     renderAt(<App />, { route: '/trips' });
@@ -174,23 +174,24 @@ describe('Spending book PC wide layout', () => {
     expect(mainCol).toContainElement(total);
     expect(mainCol).toContainElement(recent);
     expect(sideCol).toContainElement(peopleRow);
-    expect(within(sideCol).getByText('Taxi')).toBeInTheDocument();
+    // #114 Part 2 (owner-approved): with a wallet, the quick-expense lists give way to Giao dịch gần đây.
+    expect(within(sideCol).queryByText('Taxi')).not.toBeInTheDocument();
 
     const rows = within(recent).getAllByTestId(/^tx-row-/);
     expect(rows).toHaveLength(8);
   });
 
-  it('on wide screens with book on, selecting a group item shows DetailsPanel in side while keeping total and recent in main', async () => {
+  it('on wide screens with book on, the side column has no quick-expense list to open while total and recent stay in main', async () => {
     mockMedia({ wide: true });
     mockBookApp(meOn);
     renderAt(<App />, { route: '/trips' });
 
     await screen.findByTestId('book-total');
+    await screen.findByTestId('book-people-row');
     const sideCol = document.querySelector('.fsl-trip-layout__side') as HTMLElement;
-    const taxiBtn = await within(sideCol).findByRole('button', { name: /^Taxi/ });
-    await userEvent.click(taxiBtn);
-
-    expect(await within(sideCol).findByRole('region', { name: 'Expense' })).toBeInTheDocument();
+    // #114 Part 2 (owner-approved): quick expenses are opened from Giao dịch gần đây now, not from a side list.
+    expect(within(sideCol).queryByRole('button', { name: /^Taxi/ })).not.toBeInTheDocument();
+    expect(sideCol.querySelector('.fsl-expense-list')).toBeNull();
     const mainCol = document.querySelector('.fsl-trip-layout__main') as HTMLElement;
     expect(mainCol).toContainElement(screen.getByTestId('book-total'));
     expect(mainCol).toContainElement(screen.getByTestId('book-recent'));

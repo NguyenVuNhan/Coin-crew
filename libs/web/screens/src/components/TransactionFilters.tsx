@@ -11,11 +11,18 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { Switch } from '@cc/web-ui/components/ui/switch';
 import { cn } from '@cc/web-ui/lib/utils';
 import { FilterPickView } from './transactions/FilterPickView';
 import { WalletIcon } from './WalletIcon';
 
-export type TransactionFilterValues = Omit<ListQuery, 'month'>;
+export type TransactionFilterValues = Omit<ListQuery, 'month' | 'recent'>;
+
+export interface GroupFilterOption {
+  id: string;
+  name: string;
+}
 
 export interface TransactionFiltersProps {
   open: boolean;
@@ -26,9 +33,10 @@ export interface TransactionFiltersProps {
   categories: CategoryView[];
   assets?: AssetView[];
   tags: TagView[];
+  groups?: GroupFilterOption[];
 }
 
-type PickKind = 'wallet' | 'category' | 'asset' | 'tag';
+type PickKind = 'wallet' | 'category' | 'asset' | 'tag' | 'trip';
 
 const CHIP_CLASS =
   'min-h-11 px-3.5 py-2 rounded-full text-sm font-medium border transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -72,6 +80,7 @@ export function TransactionFilters({
   categories,
   assets = [],
   tags,
+  groups = [],
 }: TransactionFiltersProps): JSX.Element {
   const t = useT();
   const [draft, setDraft] = useState<TransactionFilterValues>(value);
@@ -120,6 +129,8 @@ export function TransactionFilters({
     if (draft.categoryId) cleaned.categoryId = draft.categoryId;
     if (draft.assetId) cleaned.assetId = draft.assetId;
     if (draft.tagId) cleaned.tagId = draft.tagId;
+    if (draft.tripId) cleaned.tripId = draft.tripId;
+    if (draft.groups === 'hide') cleaned.groups = 'hide';
     if (value.from) cleaned.from = value.from;
     if (value.to) cleaned.to = value.to;
     onApply(cleaned);
@@ -138,12 +149,9 @@ export function TransactionFilters({
   const tagLabel = draft.tagId
     ? `#${tags.find((tg) => tg.id === draft.tagId)?.name ?? draft.tagId}`
     : t('transactions.allTags');
-
-  const hasRows =
-    activeWallets.length > 0 ||
-    visibleCategories.length > 0 ||
-    assets.length > 0 ||
-    tags.length > 0;
+  const tripLabel = draft.tripId
+    ? (groups.find((g) => g.id === draft.tripId)?.name ?? draft.tripId)
+    : t('transactions.allLink');
 
   return (
     <Sheet open={open} onClose={onClose} title={t('transactions.filterTitle')}>
@@ -209,6 +217,21 @@ export function TransactionFilters({
         />
       )}
 
+      {pick === 'trip' && (
+        <FilterPickView
+          title={t('filters.group')}
+          allLabel={t('transactions.allLink')}
+          items={groups}
+          selectedId={draft.tripId}
+          testIdPrefix="tx-filter-trip"
+          onPick={(id) => {
+            setDraft((prev) => ({ ...prev, tripId: id }));
+            setPick(null);
+          }}
+          onBack={() => setPick(null)}
+        />
+      )}
+
       {pick === null && (
         <div className="fsl-tx-filters flex flex-col gap-5 pb-4">
           <div className="flex flex-col gap-2">
@@ -242,8 +265,7 @@ export function TransactionFilters({
             </div>
           </div>
 
-          {hasRows && (
-            <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
+          <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
               {activeWallets.length > 0 && (
                 <button
                   ref={(el) => {
@@ -323,8 +345,48 @@ export function TransactionFilters({
                   </span>
                 </button>
               )}
+
+              {groups.length > 0 && (
+                <button
+                  ref={(el) => {
+                    rowRefs.current.trip = el;
+                  }}
+                  type="button"
+                  data-testid="tx-filter-row-trip"
+                  onClick={() => setPick('trip')}
+                  className={PICK_ROW_CLASS}
+                >
+                  <span className="shrink-0 font-medium text-foreground">
+                    {t('filters.group')}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                    <span className="truncate">{tripLabel}</span>
+                    <Icon name="chevronRight" size={16} className="shrink-0" />
+                  </span>
+                </button>
+              )}
+
+              <div className="flex w-full min-h-12 items-center justify-between gap-3 px-4 py-2">
+                <Label
+                  htmlFor="tx-filter-show-groups-switch"
+                  className="flex-1 min-h-11 flex items-center text-sm font-medium text-foreground cursor-pointer"
+                >
+                  {t('filters.showGroupRows')}
+                </Label>
+                <Switch
+                  id="tx-filter-show-groups-switch"
+                  checked={draft.groups !== 'hide'}
+                  onCheckedChange={(checked) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      groups: checked ? undefined : 'hide',
+                    }))
+                  }
+                  aria-label={t('filters.showGroupRows')}
+                  data-testid="tx-filter-show-groups"
+                />
+              </div>
             </div>
-          )}
 
           <div className="flex items-center gap-2 pt-2">
             <Button
@@ -358,6 +420,7 @@ export interface ActiveFilterPillsProps {
   categories: CategoryView[];
   assets?: AssetView[];
   tags?: TagView[];
+  groups?: GroupFilterOption[];
   hasAnyFilter: boolean;
   onRemove(key: keyof TransactionFilterValues): void;
   onClearAll(): void;
@@ -368,6 +431,7 @@ export function ActiveFilterPills({
   wallets,
   categories,
   assets = [],
+  groups = [],
   hasAnyFilter,
   onRemove,
   onClearAll,
@@ -399,6 +463,16 @@ export function ActiveFilterPills({
   if (filters.assetId) {
     const a = assets.find((x) => x.id === filters.assetId);
     items.push({ key: 'assetId', label: a?.name ?? filters.assetId });
+  }
+  if (filters.tripId) {
+    const g = groups.find((x) => x.id === filters.tripId);
+    items.push({
+      key: 'tripId',
+      label: `${t('filters.group')}: ${g?.name ?? filters.tripId}`,
+    });
+  }
+  if (filters.groups === 'hide') {
+    items.push({ key: 'groups', label: t('filters.showGroupRows') });
   }
 
   if (!hasAnyFilter && items.length === 0) return null;

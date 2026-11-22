@@ -13,6 +13,7 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import type {
+  GroupRow,
   PersonalEntryType,
   SyncCursor,
   SyncEntryRow,
@@ -20,6 +21,7 @@ import type {
   SyncResponse,
 } from '@cc/core';
 import { findLedger } from '../me/ledger';
+import { computeGroupsKey, loadGroupRows } from './groupShares';
 import { loadLedgerRows } from './personRows';
 
 const PAGE_SIZE = 500;
@@ -47,6 +49,9 @@ export function syncRoutes(): Hono<AppBindings> {
     const epochParam = c.req.query('epoch');
     const since = parseOptionalInt(c.req.query('since'));
     const ledgerVersion = parseOptionalInt(c.req.query('ledgerVersion'));
+    // Group rows are opt-in (`groups=show`) so today's clients get exactly today's responses.
+    const wantGroups = c.req.query('groups') === 'show';
+    const groupsKey = c.req.query('groupsKey');
     const cursorV = parseOptionalInt(c.req.query('cursorV'));
     const cursorId = c.req.query('cursorId');
 
@@ -73,7 +78,7 @@ export function syncRoutes(): Hono<AppBindings> {
     const isReset = since === undefined || epochParam !== serverEpoch || since < state.purgedVersion;
     const isFirstPage = cursorV === undefined && cursorId === undefined;
 
-    const ledger = await findLedger(db, user.id);
+    const ledger = wantGroups ? null : await findLedger(db, user.id);
     let ledgerTripVersion = 0;
     if (ledger) {
       const tripRow = await db
@@ -84,7 +89,18 @@ export function syncRoutes(): Hono<AppBindings> {
       ledgerTripVersion = tripRow?.version ?? 0;
     }
 
-    if (!isReset && since === state.version && Number(ledgerVersion) === ledgerTripVersion && isFirstPage) {
+    let currentGroupsKey: string | null = null;
+    if (isFirstPage && wantGroups) {
+      currentGroupsKey = await computeGroupsKey(db, user.id);
+    }
+
+    if (
+      !isReset &&
+      since === state.version &&
+      (wantGroups || Number(ledgerVersion) === ledgerTripVersion) &&
+      isFirstPage &&
+      (!wantGroups || groupsKey === currentGroupsKey)
+    ) {
       const currentResponse: SyncResponse = {
         status: 'current',
         epoch: serverEpoch,
@@ -93,6 +109,7 @@ export function syncRoutes(): Hono<AppBindings> {
         removedIds: [],
         cursor: null,
         ledger: null,
+        ...(wantGroups ? { groups: null } : {}),
       };
       return c.json(currentResponse, 200);
     }
@@ -205,10 +222,18 @@ export function syncRoutes(): Hono<AppBindings> {
     }
 
     let ledgerField: { version: number; rows: SyncLedgerRow[] } | null = null;
-    if (isFirstPage && (isReset || Number(ledgerVersion) !== ledgerTripVersion)) {
+    if (!wantGroups && isFirstPage && (isReset || Number(ledgerVersion) !== ledgerTripVersion)) {
       ledgerField = {
         version: ledgerTripVersion,
         rows: ledger ? await loadLedgerRows(db, ledger) : [],
+      };
+    }
+
+    let groupsField: { key: string; rows: GroupRow[] } | null = null;
+    if (isFirstPage && currentGroupsKey !== null && (isReset || groupsKey !== currentGroupsKey)) {
+      groupsField = {
+        key: currentGroupsKey,
+        rows: await loadGroupRows(db, user.id),
       };
     }
 
@@ -220,6 +245,7 @@ export function syncRoutes(): Hono<AppBindings> {
       removedIds,
       cursor,
       ledger: ledgerField,
+      ...(wantGroups ? { groups: groupsField } : {}),
     };
 
     return c.json(response, 200);

@@ -14,6 +14,7 @@ import { listRoutes } from './list';
 import { assetRoutes } from './assets';
 import { holdingsRoutes } from './holdings';
 import { syncRoutes } from './sync';
+import { groupLinkRoutes, recordPersonalToggle } from './groupLinks';
 import { visibilityRoutes } from './visibility';
 
 export function personalRoutes(): Hono<AppBindings> {
@@ -54,6 +55,8 @@ export function personalRoutes(): Hono<AppBindings> {
         },
       });
 
+    await recordPersonalToggle(db, user.id, body.enabled, now);
+
     return c.json({ enabled: body.enabled }, 200);
   });
 
@@ -64,6 +67,7 @@ export function personalRoutes(): Hono<AppBindings> {
   app.route('/', assetRoutes());
   app.route('/', holdingsRoutes());
   app.route('/', syncRoutes());
+  app.route('/', groupLinkRoutes());
   app.route('/', visibilityRoutes());
 
   return app;

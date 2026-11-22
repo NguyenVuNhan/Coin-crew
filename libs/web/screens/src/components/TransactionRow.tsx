@@ -4,9 +4,11 @@ import {
   assetQuantityLabel,
   formatMoney,
   type AssetView,
+  type BookRow,
   type CategoryView,
   type EntryView,
-  type ListRow,
+  type GroupRow,
+  type GroupSettingsView,
   type WalletDetailView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
@@ -17,18 +19,21 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { ledgerDetailsPath } from '../lib/detailsNav';
 
 import { categoryIconName } from './categoryIcon';
+import { GroupTxRow } from './GroupTxRow';
 
 export { categoryIconName as resolveCategoryIcon };
 
 export interface TransactionRowProps {
-  row: ListRow;
+  row: BookRow;
   categories?: CategoryView[];
   wallets?: WalletDetailView[];
   assets?: AssetView[];
+  settings?: GroupSettingsView;
   onOpenEntry?: (entry: EntryView) => void;
+  onOpenGroup?: (row: GroupRow) => void;
 }
 
-const ROW_BASE_CLASS =
+export const ROW_BASE_CLASS =
   'fsl-tx-row w-full text-left flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0';
 
 export function TransactionRow({
@@ -36,9 +41,22 @@ export function TransactionRow({
   categories = [],
   wallets = [],
   assets = [],
+  settings,
   onOpenEntry,
+  onOpenGroup,
 }: TransactionRowProps): JSX.Element {
   const t = useT();
+  if (row.kind === 'group') {
+    return (
+      <GroupTxRow
+        row={row}
+        wallets={wallets}
+        categories={categories}
+        settings={settings}
+        onOpen={onOpenGroup}
+      />
+    );
+  }
   const walletMap = new Map(wallets.map((w) => [w.id, w.name]));
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const assetMap = new Map(assets.map((a) => [a.id, a]));

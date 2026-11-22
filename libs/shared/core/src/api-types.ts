@@ -104,6 +104,7 @@ import type { HistoryGap, HistoryLine, PairHistory } from './history';
 import type { AttendanceLabel, AttendanceScore } from './attendance';
 import type { CurrencyCode } from './currency';
 import type { PersonalEntryType } from './wallets';
+import type { GroupRow } from './groupShares';
 import type { WalletOverride } from './visibility';
 
 export type AuthProvider = 'google' | 'zalo';
@@ -820,7 +821,7 @@ export interface EntryView {
   note: string | null;
   tags: string[];
   excludeFromReports: boolean;
-  source: 'manual';
+  source: 'manual' | 'adjustment';
   beforeStart: boolean;
   createdAt: string;
 }
@@ -854,12 +855,18 @@ export interface ListQuery {
   assetId?: string;
   tagId?: string;
   type?: 'expense' | 'income' | 'transfer' | 'person' | 'trade';
+  tripId?: string;
+  groups?: 'show' | 'hide';
   q?: string;
+  /** "Giao dịch gần đây": the newest activity across all months, at most this many of each kind (1–20). */
+  recent?: number;
 }
 
 export interface ListResponse {
   rows: ListRow[];
   totals: { currency: CurrencyCode; spent: number; income: number }[];
+  /** Present only when the request asks for group rows (`groups=show`); Part 2's screens opt in. */
+  groupRows?: GroupRow[];
 }
 
 export interface AssetView {
@@ -934,5 +941,6 @@ export interface SyncResponse {
   removedIds: string[];
   cursor: SyncCursor | null;
   ledger: { version: number; rows: SyncLedgerRow[] } | null;
+  groups?: { key: string; rows: GroupRow[] } | null;
 }
 

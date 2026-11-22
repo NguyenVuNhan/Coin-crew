@@ -1,30 +1,47 @@
-import { useState, useEffect, type JSX } from 'react';
-import { Link } from 'react-router';
-import { formatMoney, formatVnd } from '@cc/core';
-import { currentMonthLocal } from '@cc/web-util/localDate';
-import { useIsWide } from '@cc/web-util/media';
-import { useT } from '@cc/web-i18n';
+import { useState, useEffect, useMemo, type JSX } from "react";
+import { Link } from "react-router";
+import {
+  compareRecentRows,
+  formatMoney,
+  formatVnd,
+  type BookRow,
+  type EntryView,
+  type GroupRow,
+  type GroupSettingsView,
+} from "@cc/core";
+import { currentMonthLocal } from "@cc/web-util/localDate";
+import { useIsWide } from "@cc/web-util/media";
+import { useT } from "@cc/web-i18n";
 import {
   useAssets,
   useCategories,
+  useGroupSettings,
   usePersonalList,
   usePersonalSummary,
   useWalletDetails,
-} from '@cc/web-data-access/personalMoney';
-import { EmptyState } from '@cc/web-ui/components/EmptyState';
-import { Button } from '@cc/web-ui/components/Button';
-import { Card } from '@cc/web-ui/components/ui/card';
-import { Avatar } from '@cc/web-ui/components/Avatar';
-import { Amount } from '@cc/web-ui/components/Amount';
-import { Icon } from '@cc/web-ui/components/icons';
-import { SkeletonList } from '@cc/web-ui/components/Skeleton';
-import { InlineError } from '@cc/web-ui/components/InlineError';
-import { Home } from './Home';
-import { usePeopleTotals } from '../components/PeopleSummary';
-import { FirstWalletSheet } from '../components/FirstWalletSheet';
-import { TransactionRow } from '../components/TransactionRow';
-import { WalletPie } from '../components/WalletPie';
-import { PersonalSettingsMenu } from '../components/PersonalSettingsMenu';
+} from "@cc/web-data-access/personalMoney";
+import { EmptyState } from "@cc/web-ui/components/EmptyState";
+import { Button } from "@cc/web-ui/components/Button";
+import { Card } from "@cc/web-ui/components/ui/card";
+import { Avatar } from "@cc/web-ui/components/Avatar";
+import { Amount } from "@cc/web-ui/components/Amount";
+import { Icon } from "@cc/web-ui/components/icons";
+import { Sheet } from "@cc/web-ui/components/Sheet";
+import { SkeletonList } from "@cc/web-ui/components/Skeleton";
+import { InlineError } from "@cc/web-ui/components/InlineError";
+import { Home } from "./Home";
+import { TransactionDetailContent } from "./TransactionDetail";
+import { usePeopleTotals } from "../components/PeopleSummary";
+import { FirstWalletSheet } from "../components/FirstWalletSheet";
+import { GroupRowSheet } from "../components/GroupRowSheet";
+import { TransactionRow } from "../components/TransactionRow";
+import { WalletPie } from "../components/WalletPie";
+import { PersonalSettingsMenu } from "../components/PersonalSettingsMenu";
+
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
 
 function BookTotal(): JSX.Element {
   const t = useT();
@@ -50,21 +67,34 @@ function BookTotal(): JSX.Element {
 
   const activeWallets = list ? list.filter((w) => !w.archived) : [];
   const fallbackTotal = activeWallets.reduce(
-    (sum, w) => sum + (w.vndValue !== undefined ? (w.vndValue ?? 0) : w.currency === 'VND' ? w.balance : 0),
+    (sum, w) =>
+      sum +
+      (w.vndValue !== undefined
+        ? (w.vndValue ?? 0)
+        : w.currency === "VND"
+          ? w.balance
+          : 0),
     0,
   );
   const fallbackCash = activeWallets.reduce(
-    (sum, w) => sum + (w.currency === 'VND' ? w.balance : (w.vndValue ?? 0)),
+    (sum, w) => sum + (w.currency === "VND" ? w.balance : (w.vndValue ?? 0)),
     0,
   );
   const totalVnd = summary.data ? summary.data.totalVnd : fallbackTotal;
-  const cashVnd = summary.data ? (summary.data.cashVnd ?? summary.data.totalVnd) : fallbackCash;
+  const cashVnd = summary.data
+    ? (summary.data.cashVnd ?? summary.data.totalVnd)
+    : fallbackCash;
   const approximate = summary.data ? summary.data.approximate : false;
   const pieSlices = activeWallets.map((w) => ({
     id: w.id,
     name: w.name,
-    vndValue: w.vndValue !== undefined ? (w.vndValue ?? 0) : w.currency === 'VND' ? w.balance : 0,
-    approximate: w.currency !== 'VND',
+    vndValue:
+      w.vndValue !== undefined
+        ? (w.vndValue ?? 0)
+        : w.currency === "VND"
+          ? w.balance
+          : 0,
+    approximate: w.currency !== "VND",
   }));
 
   return (
@@ -80,24 +110,31 @@ function BookTotal(): JSX.Element {
         >
           <div className="flex items-center justify-between w-full gap-2">
             <p className="fsl-book__total-label m-0 text-sm font-medium text-muted-foreground">
-              {t('book.total')}
+              {t("book.total")}
             </p>
             <Link
               to="/wallets"
               data-testid="book-wallets-link"
               className="fsl-book__wallets-link inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
             >
-              <span>{t('wallets.viewAll')}</span>
+              <span>{t("wallets.viewAll")}</span>
               <Icon name="chevronRight" size={16} />
             </Link>
           </div>
-          <Amount value={cashVnd} approximate={approximate} tone="neutral" size="xl" />
+          <Amount
+            value={cashVnd}
+            approximate={approximate}
+            tone="neutral"
+            size="xl"
+          />
           {totalVnd !== cashVnd && (
             <p
               data-testid="wallets-total-with-assets"
               className="m-0 text-sm text-muted-foreground tabular-nums"
             >
-              {t('wallets.totalWithAssets', { total: formatMoney(totalVnd, 'VND') })}
+              {t("wallets.totalWithAssets", {
+                total: formatMoney(totalVnd, "VND"),
+              })}
             </p>
           )}
           <WalletPie slices={pieSlices} />
@@ -106,8 +143,8 @@ function BookTotal(): JSX.Element {
         <div data-testid="book-empty" className="fsl-book__empty">
           <EmptyState
             icon="wallet"
-            title={t('book.emptyTitle')}
-            body={t('book.emptyBody')}
+            title={t("book.emptyTitle")}
+            body={t("book.emptyBody")}
             action={
               <Button
                 variant="primary"
@@ -115,7 +152,7 @@ function BookTotal(): JSX.Element {
                 data-testid="book-create-wallet"
                 onClick={() => setSheetOpen(true)}
               >
-                {t('book.createWallet')}
+                {t("book.createWallet")}
               </Button>
             }
           />
@@ -140,9 +177,11 @@ function BookPeople(): JSX.Element {
   } = usePeopleTotals();
 
   // Read out as one sentence, with each amount next to what it means.
-  const owedLine = `${t('book.peopleOwe')}: ${formatVnd(sumPositive)}`;
+  const owedLine = `${t("book.peopleOwe")}: ${formatVnd(sumPositive)}`;
   const peopleRowName =
-    sumNegative > 0 ? `${owedLine}. ${t('home.totalOwe', { amount: formatVnd(sumNegative) })}` : owedLine;
+    sumNegative > 0
+      ? `${owedLine}. ${t("home.totalOwe", { amount: formatVnd(sumNegative) })}`
+      : owedLine;
 
   if (isLoading || !hasData) {
     return <SkeletonList rows={1} />;
@@ -173,15 +212,18 @@ function BookPeople(): JSX.Element {
         )}
         <div className="flex-1 flex flex-col min-w-0">
           <span className="text-sm font-semibold text-foreground leading-snug">
-            {t('book.peopleOwe')}
+            {t("book.peopleOwe")}
           </span>
           {sumNegative > 0 && (
             <span className="text-sm text-muted-foreground tabular-nums leading-snug">
-              {t('home.totalOwe', { amount: formatVnd(sumNegative) })}
+              {t("home.totalOwe", { amount: formatVnd(sumNegative) })}
             </span>
           )}
         </div>
-        <Amount value={sumPositive} tone={sumPositive > 0 ? 'success' : 'neutral'} />
+        <Amount
+          value={sumPositive}
+          tone={sumPositive > 0 ? "success" : "neutral"}
+        />
         <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
       </Link>
     </div>
@@ -193,11 +235,30 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   const wallets = useWalletDetails();
   const list = wallets.data?.wallets;
   const hasWallet = (list?.length ?? 0) > 0;
-  const hasInvestmentWallet = list?.some((w) => w.kind === 'investment') ?? false;
+  const hasInvestmentWallet =
+    list?.some((w) => w.kind === "investment") ?? false;
   const currentMonth = currentMonthLocal();
-  const recentList = usePersonalList({ month: currentMonth }, { enabled: hasWallet });
   const categoriesQuery = useCategories({ enabled: hasWallet });
   const assetsQuery = useAssets({ enabled: hasInvestmentWallet });
+  const groupSettingsQuery = useGroupSettings({ enabled: hasWallet });
+  const groupSettings =
+    groupSettingsQuery.data?.settings ?? DEFAULT_GROUP_SETTINGS;
+  // Newest activity first, across all months: a payment just marked paid or an entry just added sits on top.
+  const recentList = usePersonalList(
+    { recent: limit },
+    { enabled: hasWallet, groups: true },
+  );
+  const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
+  const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(
+    null,
+  );
+
+  const mergedRows = useMemo<BookRow[]>(() => {
+    if (!recentList.data) return [];
+    const baseRows = recentList.data.rows;
+    const grpRows = recentList.data.groupRows ?? [];
+    return [...baseRows, ...grpRows].sort(compareRecentRows);
+  }, [recentList.data]);
 
   if (!hasWallet || !recentList.isSuccess) {
     return null;
@@ -210,34 +271,63 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
     >
       <div className="flex items-center justify-between px-1">
         <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-          {t('transactions.recentTitle')}
+          {t("transactions.recentTitle")}
         </h2>
         <Link
           to="/transactions"
           data-testid="book-recent-all"
           className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
         >
-          <span>{t('transactions.allLink')}</span>
+          <span>{t("transactions.allLink")}</span>
           <Icon name="chevronRight" size={16} />
         </Link>
       </div>
-      {recentList.data.rows.length > 0 ? (
+      {mergedRows.length > 0 ? (
         <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-          {recentList.data.rows.slice(0, limit).map((row) => (
+          {mergedRows.slice(0, limit).map((row) => (
             <TransactionRow
-              key={row.kind === 'entry' ? row.entry.id : `person-${row.id}`}
+              key={
+                row.kind === "entry"
+                  ? row.entry.id
+                  : row.kind === "group"
+                    ? `g-${row.id}`
+                    : `person-${row.id}`
+              }
               row={row}
               wallets={list ?? []}
               categories={categoriesQuery.data?.categories ?? []}
               assets={assetsQuery.data?.assets ?? []}
+              settings={groupSettings}
+              onOpenEntry={setSelectedEntry}
+              onOpenGroup={setSelectedGroupRow}
             />
           ))}
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl px-4 py-4 text-sm text-muted-foreground">
-          {t('wallet.noEntries')}
+          {t("wallet.noEntries")}
         </div>
       )}
+      <Sheet
+        open={Boolean(selectedEntry)}
+        onClose={() => setSelectedEntry(null)}
+        title={t("transactions.detailTitle")}
+      >
+        {selectedEntry && (
+          <TransactionDetailContent
+            entry={selectedEntry}
+            wallets={list ?? []}
+            categories={categoriesQuery.data?.categories ?? []}
+            assets={assetsQuery.data?.assets ?? []}
+            onDone={() => setSelectedEntry(null)}
+          />
+        )}
+      </Sheet>
+      <GroupRowSheet
+        row={selectedGroupRow}
+        open={selectedGroupRow !== null}
+        onClose={() => setSelectedGroupRow(null)}
+      />
     </section>
   );
 }
@@ -260,10 +350,15 @@ function BookSummary(): JSX.Element {
 export function MainScreen({ book }: { book: boolean }): JSX.Element {
   const t = useT();
   const wide = useIsWide();
+  // The quick-expense lists give way to "Giao dịch gần đây" once there is a wallet to show it in;
+  // before the first wallet they stay, as DESIGN.md's empty state promises.
+  const wallets = useWalletDetails({ enabled: book });
+  const hasWallet = (wallets.data?.wallets.length ?? 0) > 0;
   return (
     <Home
-      title={book ? t('book.title') : undefined}
-      summary={book ? (wide ? <BookPeople /> : <BookSummary />) : undefined}
+      book={book && hasWallet}
+      title={book ? t("book.title") : undefined}
+      summary={book ? wide ? <BookPeople /> : <BookSummary /> : undefined}
       wideMain={
         book && wide ? (
           <>

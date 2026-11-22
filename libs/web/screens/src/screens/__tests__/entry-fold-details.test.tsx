@@ -168,20 +168,27 @@ describe('EntryPage — details folding on phones (Task 4)', () => {
     expect(screen.queryByTestId('entry-date-row')).toBeNull();
     expect(screen.queryByTestId('entry-wallet-row')).toBeNull();
 
-    // Step 2 (amount folded, category open): still absent
+    // Step 2 (amount folded, category open): note is visible under category; details line and compact rows remain absent
     await enterAmountAndFold(user);
     expect(screen.queryByTestId('entry-fold-details')).toBeNull();
-    expect(screen.queryByTestId('entry-note-input')).toBeNull();
+    expect(screen.getByTestId('entry-note-input')).toBeInTheDocument();
     expect(screen.queryByTestId('entry-date-row')).toBeNull();
     expect(screen.queryByTestId('entry-wallet-row')).toBeNull();
 
-    // Step 3 (category folded): entry-fold-details appears; compact rows remain absent
+    // Step 3 (category folded): entry-fold-details appears below note; compact rows remain absent
     await user.click(screen.getByTestId('category-tile-cat-food'));
+    const categoryFold = screen.getByTestId('entry-fold-category');
+    const noteInput = screen.getByTestId('entry-note-input');
     const detailsFold = await screen.findByTestId('entry-fold-details');
     expect(detailsFold).toHaveTextContent('Thêm chi tiết');
     expect(detailsFold).toHaveTextContent('Hôm nay · Tiền mặt · Không ghi chú');
+    expect(
+      categoryFold.compareDocumentPosition(noteInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      noteInput.compareDocumentPosition(detailsFold) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
-    expect(screen.queryByTestId('entry-note-input')).toBeNull();
     expect(screen.queryByTestId('entry-date-row')).toBeNull();
     expect(screen.queryByTestId('entry-date-value')).toBeNull();
     expect(screen.queryByTestId('entry-date-picker')).toBeNull();
@@ -263,7 +270,7 @@ describe('EntryPage — details folding on phones (Task 4)', () => {
     ).toBe('Hôm nay · Tiền mặt · 123456789012345678901234…');
   });
 
-  it('keeps wallet rows visible for transfer and folds date + note behind entry-fold-details', async () => {
+  it('keeps wallet rows and note visible for transfer and folds date behind entry-fold-details', async () => {
     const user = userEvent.setup();
     mockEntryApi();
 
@@ -278,7 +285,7 @@ describe('EntryPage — details folding on phones (Task 4)', () => {
     expect(detailsFold).toHaveTextContent('Thêm chi tiết');
     expect(detailsFold).toHaveTextContent('Hôm nay · Không ghi chú');
     expect(screen.queryByTestId('entry-date-row')).toBeNull();
-    expect(screen.queryByTestId('entry-note-input')).toBeNull();
+    expect(screen.getByTestId('entry-note-input')).toBeInTheDocument();
   });
 
   it('opens details when hasArchivedWallet is true so entry-wallet-row is visible and entry-fold-details is absent', async () => {

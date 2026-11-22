@@ -10,6 +10,7 @@ import {
   isLotAsset,
   parseQuantity,
   quantityInputDecimals,
+  quickExpenseDescription,
   type AssetView,
   type CurrencyCode,
   type EntryInput,
@@ -22,7 +23,9 @@ import { currentMonthLocal, todayLocal } from '@cc/web-util/localDate';
 import { useIsMousePointer } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
 import { ApiClientError } from '@cc/web-data-access/client';
+import { useTripView } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
+import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -30,8 +33,10 @@ import {
   useCategories,
   useCreateEntry,
   useDeleteEntry,
+  useGroupSettings,
   useHoldings,
   usePersonalList,
+  useTags,
   useUpdateEntry,
   useWalletDetails,
   writeLastWallet,
@@ -63,8 +68,12 @@ import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
 import { WalletIcon } from '../components/WalletIcon';
 import { showUndo } from '../components/UndoSnackbarHost';
+import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
+import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
+import { SplitFold } from '../components/quickShare/SplitFold';
+import { useCategoryGuess } from '../components/quickShare/useCategoryGuess';
+import { entriesForSave, useQuickSplit } from '../components/quickShare/useQuickSplit';
 import { useBack } from '../lib/navHistory';
-import { QuickExpenseEmbed } from './ExpenseForm';
 
 type FormEntryType = 'expense' | 'income';
 type TabValue = FormEntryType | 'loan-debt';
@@ -156,14 +165,24 @@ export function EntryPage(): JSX.Element {
   const isEdit = Boolean(id);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isDirectEdit = isEdit && searchParams.get('group') === '1';
   const queryClient = useQueryClient();
   const { goBack } = useBack('/trips');
-  const { ledger, isLoading: ledgerLoading } = useLedger({ enabled: !isEdit });
+  const { ledger, isLoading: ledgerLoading } = useLedger();
+  const {
+    view: directView,
+    error: directViewError,
+    isLoading: directViewLoading,
+    refetch: refetchDirectView,
+  } = useTripView(ledger?.tripId ?? '', 20_000, {
+    stopAfterMs: 15 * 60_000,
+  });
+  const quickShare = useSaveQuickShare();
 
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
   const cachedEntry = useMemo(() => {
-    if (!id || stateEntry) return stateEntry ?? null;
+    if (!id || isDirectEdit || stateEntry) return stateEntry ?? null;
     const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
     for (const [, data] of cachedLists) {
       if (!data) continue;
@@ -174,7 +193,26 @@ export function EntryPage(): JSX.Element {
       }
     }
     return null;
-  }, [id, stateEntry, queryClient]);
+  }, [id, isDirectEdit, stateEntry, queryClient]);
+
+  const cachedGroupRow = useMemo(() => {
+    if (!id || !isDirectEdit) return null;
+    const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
+    for (const [, data] of cachedLists) {
+      if (!data?.groupRows) continue;
+      for (const row of data.groupRows) {
+        if (row.rootId === id || row.id === id) {
+          return row;
+        }
+      }
+    }
+    return null;
+  }, [id, isDirectEdit, queryClient]);
+
+  const directExpense = useMemo(() => {
+    if (!isDirectEdit || !id || !directView) return null;
+    return directView.expenses.find((e) => e.id === id || e.rootId === id) ?? null;
+  }, [isDirectEdit, id, directView]);
 
   const preEntry = useMemo(() => {
     if (cachedEntry) return cachedEntry;
@@ -199,12 +237,28 @@ export function EntryPage(): JSX.Element {
     return null;
   }, [preEntry, queryClient]);
 
-  const monthParam = preEntry?.date.slice(0, 7) ?? searchParams.get('month') ?? currentMonthLocal();
-  const needsCounterpartFetch = isEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
+  const monthParam =
+    preEntry?.date.slice(0, 7) ??
+    cachedGroupRow?.date.slice(0, 7) ??
+    directExpense?.spentOn.slice(0, 7) ??
+    searchParams.get('month') ??
+    currentMonthLocal();
+  const needsCounterpartFetch = isEdit && !isDirectEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
   const listQuery = usePersonalList(
-    { month: monthParam },
-    { enabled: isEdit && (!cachedEntry || needsCounterpartFetch) },
+    { month: monthParam, ...(isDirectEdit ? { groups: 'show' as const } : {}) },
+    {
+      enabled:
+        isEdit &&
+        (isDirectEdit ? !cachedGroupRow : !cachedEntry || needsCounterpartFetch),
+    },
   );
+
+  const directGroupRow = useMemo(() => {
+    if (!isDirectEdit) return null;
+    if (cachedGroupRow) return cachedGroupRow;
+    if (!id || !listQuery.data?.groupRows) return null;
+    return listQuery.data.groupRows.find((r) => r.rootId === id || r.id === id) ?? null;
+  }, [isDirectEdit, cachedGroupRow, id, listQuery.data]);
 
   const entry = useMemo(() => {
     if (cachedEntry) return cachedEntry;
@@ -236,6 +290,7 @@ export function EntryPage(): JSX.Element {
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
+  const tagsQuery = useTags({ enabled: isDirectEdit });
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
@@ -248,18 +303,27 @@ export function EntryPage(): JSX.Element {
     () => allWallets.filter((w) => !w.archived),
     [allWallets],
   );
+  const vndWallets = useMemo(
+    () => activeWallets.filter((w) => w.currency === 'VND'),
+    [activeWallets],
+  );
 
   const initial = parseInitialType(
     isEdit ? null : searchParams.get('type'),
     isEdit ? null : searchParams.get('tile'),
   );
   const [activeTab, setActiveTab] = useState<TabValue>(initial.tab);
+  const isLoanDebt = (!isEdit || isDirectEdit) && activeTab === 'loan-debt';
+  // Reading group settings is what creates the "Cho vay" / "Đi vay" starters on a new account.
+  const groupSettingsQuery = useGroupSettings({ enabled: isLoanDebt || isDirectEdit });
   const [entryType, setEntryType] = useState<FormEntryType>(initial.type);
   const [isTransferMode, setIsTransferMode] = useState<boolean>(initial.transfer);
   const [isTradeMode, setIsTradeMode] = useState<boolean>(initial.trade);
   const [walletId, setWalletId] = useState('');
   const [otherWalletId, setOtherWalletId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryPicked, setCategoryPicked] = useState(false);
+  const [focusFirstChipPending, setFocusFirstChipPending] = useState(false);
   const [assetId, setAssetId] = useState<string | null>(null);
   const [pickedAsset, setPickedAsset] = useState<AssetView | null>(null);
   const [quantityText, setQuantityText] = useState('');
@@ -295,6 +359,7 @@ export function EntryPage(): JSX.Element {
   const categoryGridRef = useRef<HTMLDivElement>(null);
   const categoryRingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const lastQuickShareMetaRef = useRef<{ walletId: string | null; savedMessage: string } | null>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
@@ -307,7 +372,7 @@ export function EntryPage(): JSX.Element {
   const foldCategoryRef = useRef<HTMLButtonElement>(null);
   const walletRowRef = useRef<HTMLButtonElement>(null);
   const detailsCardRef = useRef<HTMLDivElement>(null);
-  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'save' | null>(null);
+  const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'people' | 'save' | null>(null);
   const pendingFoldFocusRef = useRef<'fold-category' | 'category-grid' | 'asset' | 'details' | null>(null);
   const pendingTabRef = useRef<TabValue | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
@@ -377,6 +442,8 @@ export function EntryPage(): JSX.Element {
     } else if (target === 'quantity') {
       quantityInputRef.current?.focus();
       quantityInputRef.current?.scrollIntoView?.({ block: 'nearest' });
+    } else if (target === 'people') {
+      setFocusFirstChipPending(true);
     } else {
       saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
     }
@@ -476,13 +543,15 @@ export function EntryPage(): JSX.Element {
     setCounterpartAppliedId(entry.id);
   }, [isEdit, entry, counterpartEntry, counterpartAppliedId]);
 
-  const selectedWallet = useMemo(
-    () =>
-      isEdit
-        ? allWallets.find((w) => w.id === walletId)
-        : (activeWallets.find((w) => w.id === walletId) ?? activeWallets[0]),
-    [isEdit, allWallets, activeWallets, walletId],
-  );
+  const selectedWallet = useMemo(() => {
+    if (isEdit) return allWallets.find((w) => w.id === walletId);
+    if (isLoanDebt) {
+      const current = vndWallets.find((w) => w.id === walletId);
+      if (current) return current;
+      return vndWallets.find((w) => w.isDefault) ?? vndWallets[0];
+    }
+    return activeWallets.find((w) => w.id === walletId) ?? activeWallets[0];
+  }, [isEdit, isLoanDebt, allWallets, activeWallets, vndWallets, walletId]);
   const otherWallet = useMemo(
     () =>
       isEdit
@@ -575,7 +644,7 @@ export function EntryPage(): JSX.Element {
     isTransferMode &&
     Boolean(fromWallet && toWallet && fromWallet.currency !== toWallet.currency);
 
-  const primaryCurrency: CurrencyCode = selectedWallet?.currency ?? 'VND';
+  const primaryCurrency: CurrencyCode = isLoanDebt ? 'VND' : (selectedWallet?.currency ?? 'VND');
   const secondaryCurrency: CurrencyCode = otherWallet?.currency ?? 'VND';
 
   const activeCurrency: CurrencyCode =
@@ -616,6 +685,157 @@ export function EntryPage(): JSX.Element {
       ? secondaryMinor
       : primaryMinor
     : null;
+
+  const canShareChi =
+    activeTab === 'expense' &&
+    !isTransferMode &&
+    !isTradeMode &&
+    selectedWallet?.currency === 'VND' &&
+    Boolean(ledger && directView);
+
+  const quickSplit = useQuickSplit({
+    view: directView ?? null,
+    me: ledger?.ownerPid ?? null,
+    kind: isLoanDebt ? 'loan' : 'shared',
+    amount: primaryMinor,
+  });
+
+  // Initialize form from a direct quick expense in edit mode (/entries/:id/edit?group=1)
+  useEffect(() => {
+    if (
+      !isDirectEdit ||
+      !directExpense ||
+      !ledger ||
+      (!directGroupRow && !listQuery.isFetched) ||
+      initializedId === directExpense.id
+    ) {
+      return;
+    }
+    const link = directGroupRow?.link ?? null;
+    const isLoan = link?.intent === 'loan';
+    const nextKind = isLoan ? 'loan' : 'shared';
+
+    setActiveTab(isLoan ? 'loan-debt' : 'expense');
+    setEntryType('expense');
+    setIsTransferMode(false);
+    setIsTradeMode(false);
+
+    const defVndId = (vndWallets.find((w) => w.isDefault) ?? vndWallets[0])?.id ?? '';
+    setWalletId(link?.walletId ?? defVndId);
+
+    const fallbackGroupCatId =
+      (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && c.name === 'Nhóm')?.id ??
+      (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && !c.hidden)?.id ??
+      null;
+    const resolvedCatId =
+      link?.categoryId ??
+      groupSettingsQuery.data?.settings.defaultGroupCategoryId ??
+      fallbackGroupCatId;
+    setCategoryId(isLoan ? null : resolvedCatId);
+    setCategoryPicked(!isLoan && Boolean(resolvedCatId));
+
+    setPrimaryExpr(formatKeypadValue(directExpense.amount, 'VND'));
+    setDateTime(`${directExpense.spentOn}T00:00`);
+    setNote(directExpense.description);
+    setTags(link?.tagIds ?? []);
+    setExcludeFromReports(link?.excludeFromReports ?? false);
+    setExcludeTouched(true);
+    if (link?.excludeFromReports) {
+      setShowMore(true);
+    }
+    quickSplit.loadExpense(directExpense, ledger.ownerPid, nextKind);
+    setInitializedId(directExpense.id);
+  }, [
+    isDirectEdit,
+    directExpense,
+    ledger,
+    directGroupRow,
+    listQuery.isFetched,
+    initializedId,
+    vndWallets,
+    categoriesQuery.data?.categories,
+    groupSettingsQuery.data?.settings.defaultGroupCategoryId,
+    quickSplit,
+  ]);
+
+  const lendCategory = useMemo(
+    () =>
+      (categoriesQuery.data?.categories ?? []).find(
+        (c) => c.type === 'expense' && !c.hidden && c.id.endsWith(':lend'),
+      ) ?? null,
+    [categoriesQuery.data?.categories],
+  );
+  const borrowCategory = useMemo(
+    () =>
+      (categoriesQuery.data?.categories ?? []).find(
+        (c) => c.type === 'income' && !c.hidden && c.id.endsWith(':borrow'),
+      ) ?? null,
+    [categoriesQuery.data?.categories],
+  );
+
+  // A category list loaded before group settings created the loan starters lacks them: load it again once.
+  const loanStartersRefetchedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoanDebt || !groupSettingsQuery.isSuccess || !categoriesQuery.data) return;
+    if (lendCategory && borrowCategory) return;
+    if (loanStartersRefetchedRef.current) return;
+    loanStartersRefetchedRef.current = true;
+    void categoriesQuery.refetch();
+  }, [isLoanDebt, groupSettingsQuery.isSuccess, categoriesQuery, lendCategory, borrowCategory]);
+
+  // ✓ on Vay/Nợ with nobody chosen: focus the first "Với ai?" chip as soon as the chips are on screen.
+  useEffect(() => {
+    if (!focusFirstChipPending) return;
+    const firstChip = document.querySelector<HTMLButtonElement>('[data-testid="entry-people"] button');
+    if (!firstChip) return;
+    firstChip.focus();
+    setFocusFirstChipPending(false);
+  });
+
+  const quickSplitNames = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of quickSplit.people) {
+      map.set(p.id, p.id === ledger?.ownerPid ? t('entry.me') : p.name);
+    }
+    return map;
+  }, [quickSplit.people, ledger?.ownerPid, t]);
+
+  const chosenPersonNames = useMemo(() => {
+    if (!canShareChi || quickSplit.chosen.size === 0) return [];
+    const byId = new Map(quickSplit.people.map((p) => [p.id, p.name]));
+    const names: string[] = [];
+    for (const pid of quickSplit.chosen) {
+      if (pid === ledger?.ownerPid) continue;
+      const name = byId.get(pid);
+      if (name) names.push(name);
+    }
+    return names;
+  }, [canShareChi, quickSplit.chosen, quickSplit.people, ledger?.ownerPid]);
+
+  const guessEnabled =
+    !isEdit &&
+    activeTab === 'expense' &&
+    !isTransferMode &&
+    !isTradeMode &&
+    !categoryPicked;
+
+  const rawGuessedCategoryId = useCategoryGuess({
+    personNames: chosenPersonNames,
+    amount: primaryMinor,
+    enabled: guessEnabled,
+  });
+
+  const guessedCategoryId = useMemo(() => {
+    if (!rawGuessedCategoryId) return null;
+    const cats = categoriesQuery.data?.categories;
+    if (!cats) return rawGuessedCategoryId;
+    return cats.some((c) => c.id === rawGuessedCategoryId && c.type === 'expense' && !c.hidden)
+      ? rawGuessedCategoryId
+      : null;
+  }, [rawGuessedCategoryId, categoriesQuery.data?.categories]);
+
+  const effectiveCategoryId = categoryId ?? guessedCategoryId;
+  const activeGuessedId = !categoryPicked && !categoryId ? guessedCategoryId : null;
 
   useEffect(() => {
     if (
@@ -705,16 +925,19 @@ export function EntryPage(): JSX.Element {
   };
 
   const handleTabChange = (next: TabValue) => {
-    const currentTab = isEdit ? entryType : activeTab;
+    const currentTab = isEdit && !isDirectEdit ? entryType : activeTab;
     // Radix Tabs fires onValueChange on mousedown and again on focus if value has not updated yet
     // (because document.startViewTransition runs its callback asynchronously on the next frame).
     if (next === currentTab || next === pendingTabRef.current) return;
     if (next === 'loan-debt') {
-      if (isEdit) return;
+      if (isEdit && !isDirectEdit) return;
       pendingTabRef.current = next;
       runTransition(() => {
         pendingTabRef.current = null;
         setActiveTab('loan-debt');
+        setIsTransferMode(false);
+        setIsTradeMode(false);
+        setActiveTransferField('primary');
         setValidationError(null);
         clearCategoryError();
         const params = new URLSearchParams(searchParams);
@@ -733,6 +956,7 @@ export function EntryPage(): JSX.Element {
       setIsTradeMode(false);
       setActiveTransferField('primary');
       setCategoryId(null);
+      setCategoryPicked(false);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -756,15 +980,6 @@ export function EntryPage(): JSX.Element {
         setSearchParams(params, { replace: true });
       }
     });
-  };
-
-  const handleLoanDebtSaved = () => {
-    showUndo({
-      message: t('personalEntry.saved'),
-      actionLabel: t('common.close'),
-      onAction: () => {},
-    });
-    goBack();
   };
 
   const isWaitingForSecondary = () =>
@@ -793,6 +1008,7 @@ export function EntryPage(): JSX.Element {
       setIsTransferMode(true);
       setIsTradeMode(false);
       setCategoryId(null);
+      setCategoryPicked(false);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -812,6 +1028,7 @@ export function EntryPage(): JSX.Element {
       setIsTradeMode(false);
       setActiveTransferField('primary');
       setCategoryId(cid);
+      setCategoryPicked(true);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -830,6 +1047,7 @@ export function EntryPage(): JSX.Element {
       setIsTransferMode(false);
       setActiveTransferField('primary');
       setCategoryId(null);
+      setCategoryPicked(false);
       setServerOversellError(null);
       setValidationError(null);
       clearCategoryError();
@@ -846,6 +1064,16 @@ export function EntryPage(): JSX.Element {
       } else if (!quantityText.trim()) {
         quantityInputRef.current?.focus();
         quantityInputRef.current?.scrollIntoView?.({ block: 'nearest' });
+      } else {
+        saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
+      }
+      return;
+    }
+    if (isLoanDebt) {
+      // Nobody picked yet: the next step is choosing a person, so focus the first chip once the chips appear
+      // (they render after the keypad has folded away).
+      if (quickSplit.chosen.size === 0) {
+        setFocusFirstChipPending(true);
       } else {
         saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
       }
@@ -876,8 +1104,10 @@ export function EntryPage(): JSX.Element {
       } else {
         pendingFocusTargetRef.current = 'save';
       }
-    } else if (!isTransferMode && !categoryId) {
+    } else if (!isLoanDebt && !isTransferMode && !categoryId) {
       pendingFocusTargetRef.current = 'category';
+    } else if (isLoanDebt && quickSplit.chosen.size === 0) {
+      pendingFocusTargetRef.current = 'people';
     } else if (waitingForSecondary) {
       pendingFocusTargetRef.current = 'secondary';
     } else {
@@ -895,7 +1125,7 @@ export function EntryPage(): JSX.Element {
         (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
       }
     }
-    const hasCategoryChoice = Boolean(categoryId || isTransferMode || isTradeMode);
+    const hasCategoryChoice = Boolean(categoryId || isTransferMode || isTradeMode || isLoanDebt);
     runTransition(() => {
       if (willFold) {
         fold.finish('amount');
@@ -918,7 +1148,7 @@ export function EntryPage(): JSX.Element {
   const handleKeypadEscape = () => {
     const hasValidAmount = activeMinor !== null && activeMinor > 0 && !isWaitingForSecondary();
     runTransition(() => {
-      if (hasValidAmount) {
+      if (hasValidAmount && !isLoanDebt) {
         fold.open('category');
       }
       setKeypadOpen(false);
@@ -926,7 +1156,30 @@ export function EntryPage(): JSX.Element {
     (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
   };
 
-  const isSaving = createEntry.isPending || updateEntry.isPending;
+  const isSaving = createEntry.isPending || updateEntry.isPending || quickShare.isSaving;
+
+  const handleRetryQuickShareLink = async () => {
+    if (isSaving || savingRef.current) return;
+    savingRef.current = true;
+    setValidationError(null);
+    try {
+      await quickShare.retryLink();
+      const lastSaved = lastQuickShareMetaRef.current;
+      if (lastSaved) {
+        if (lastSaved.walletId) writeLastWallet(lastSaved.walletId);
+        showUndo({
+          message: lastSaved.savedMessage,
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
+      }
+      goBack();
+    } catch (err) {
+      setValidationError(err);
+    } finally {
+      savingRef.current = false;
+    }
+  };
 
   const handleSave = async (
     doneMinor: number,
@@ -947,6 +1200,72 @@ export function EntryPage(): JSX.Element {
       confirmedOverride?.target === 'primary' ? confirmedOverride.minor : primaryMinor;
     const effectiveSecondaryMinor =
       confirmedOverride?.target === 'secondary' ? confirmedOverride.minor : secondaryMinor;
+
+    if (isLoanDebt) {
+      if (!ledger || quickSplit.chosen.size === 0) return;
+      if (quickSplit.result && !quickSplit.result.ok) return;
+      const amountToSave =
+        confirmedOverride?.target === 'primary' ? confirmedOverride.minor : doneMinor;
+      if (!confirmedOverride && amountToSave >= 1 && amountToSave <= 999) {
+        setSmallAmountConfirm({ minor: amountToSave, target: 'primary' });
+        return;
+      }
+
+      let loanCategory = quickSplit.flipped ? borrowCategory : lendCategory;
+      if (!loanCategory) {
+        // Saved before the starters reached this page: make sure they exist, then read the list again.
+        await groupSettingsQuery.refetch();
+        const fresh = await categoriesQuery.refetch();
+        const suffix = quickSplit.flipped ? ':borrow' : ':lend';
+        const type = quickSplit.flipped ? 'income' : 'expense';
+        loanCategory =
+          fresh.data?.categories.find((c) => c.type === type && !c.hidden && c.id.endsWith(suffix)) ?? null;
+      }
+      const fallbackDesc = loanCategory?.name || (quickSplit.flipped ? 'Đi vay' : 'Cho vay');
+      const description = quickExpenseDescription({ note, fallback: fallbackDesc });
+      const loanWalletId = selectedWallet?.id ?? null;
+      const loanSavedMessage = t('personalEntry.saved');
+      lastQuickShareMetaRef.current = { walletId: loanWalletId, savedMessage: loanSavedMessage };
+      savingRef.current = true;
+      try {
+        await quickShare.save({
+          tripId: ledger.tripId,
+          ...(isDirectEdit && directExpense
+            ? {
+                expenseId: directExpense.id,
+                rootId: directExpense.rootId ?? directExpense.id,
+              }
+            : {}),
+          expense: {
+            description,
+            amount: amountToSave,
+            spentOn: date,
+            payerId: quickSplit.payerId,
+            mode: quickSplit.mode,
+            entries: entriesForSave(quickSplit),
+          },
+          link: {
+            intent: 'loan',
+            categoryId: loanCategory?.id ?? null,
+            walletId: loanWalletId,
+            tagIds: tags,
+            excludeFromReports,
+          },
+        });
+        if (loanWalletId) writeLastWallet(loanWalletId);
+        showUndo({
+          message: loanSavedMessage,
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
+        goBack();
+      } catch (err) {
+        setValidationError(err);
+      } finally {
+        savingRef.current = false;
+      }
+      return;
+    }
 
     if (isTransferMode) {
       if (!fromWallet || !toWallet || fromWallet.id === toWallet.id) {
@@ -1092,7 +1411,7 @@ export function EntryPage(): JSX.Element {
       );
     } else {
       if (!selectedWallet) return;
-      if (!categoryId) {
+      if (!effectiveCategoryId) {
         triggerCategoryError();
         return;
       }
@@ -1116,20 +1435,8 @@ export function EntryPage(): JSX.Element {
         return;
       }
 
-      input = {
-        type: entryType,
-        walletId: selectedWallet.id,
-        amount: amountToSave,
-        categoryId,
-        date,
-        time,
-        note: note.trim() ? note.trim() : null,
-        tags: isEdit ? tags : [],
-        excludeFromReports,
-      };
-      lastUsedWalletId = selectedWallet.id;
       const categoryName =
-        categoriesQuery.data?.categories.find((c) => c.id === categoryId)?.name ?? '';
+        categoriesQuery.data?.categories.find((c) => c.id === effectiveCategoryId)?.name ?? '';
       savedMessage = t(
         entryType === 'expense' ? 'personalEntry.savedExpense' : 'personalEntry.savedIncome',
         {
@@ -1137,11 +1444,91 @@ export function EntryPage(): JSX.Element {
           category: categoryName,
         },
       );
+
+      if (canShareChi && quickSplit.chosen.size > 0 && ledger) {
+        if (quickSplit.result && !quickSplit.result.ok) return;
+        const description = quickExpenseDescription({ note, fallback: categoryName });
+        lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
+        savingRef.current = true;
+        try {
+          await quickShare.save({
+            tripId: ledger.tripId,
+            ...(isDirectEdit && directExpense
+              ? {
+                  expenseId: directExpense.id,
+                  rootId: directExpense.rootId ?? directExpense.id,
+                }
+              : {}),
+            expense: {
+              description,
+              amount: amountToSave,
+              spentOn: date,
+              payerId: quickSplit.payerId,
+              mode: quickSplit.mode,
+              entries: entriesForSave(quickSplit),
+            },
+            link: {
+              intent: isDirectEdit ? (directGroupRow?.link?.intent ?? 'shared') : 'shared',
+              categoryId: effectiveCategoryId,
+              walletId: selectedWallet.id,
+              tagIds: tags,
+              excludeFromReports,
+            },
+          });
+          if (isEdit && !isDirectEdit && id) {
+            await deleteEntry.mutateAsync(id);
+          }
+          writeLastWallet(selectedWallet.id);
+          showUndo({
+            message: isEdit ? t('personalEntry.saved') : savedMessage,
+            actionLabel: t('common.close'),
+            onAction: () => {},
+          });
+          goBack();
+        } catch (err) {
+          setValidationError(err);
+        } finally {
+          savingRef.current = false;
+        }
+        return;
+      }
+
+      const tagNameById = new Map((tagsQuery.data?.tags ?? []).map((tg) => [tg.id, tg.name]));
+      const resolvedEntryTags = isDirectEdit
+        ? tags.map((tid) => tagNameById.get(tid)).filter((n): n is string => Boolean(n))
+        : isEdit
+          ? tags
+          : [];
+
+      input = {
+        type: entryType,
+        walletId: selectedWallet.id,
+        amount: amountToSave,
+        categoryId: effectiveCategoryId,
+        date,
+        time,
+        note: note.trim() ? note.trim() : null,
+        tags: resolvedEntryTags,
+        excludeFromReports,
+      };
+      lastUsedWalletId = selectedWallet.id;
     }
 
     savingRef.current = true;
     try {
-      if (isEdit && id) {
+      if (isDirectEdit && ledger && directExpense) {
+        await createEntry.mutateAsync(input);
+        await quickShare.deleteExpense({
+          tripId: ledger.tripId,
+          expenseId: directExpense.id,
+        });
+        if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
+        showUndo({
+          message: t('personalEntry.saved'),
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
+      } else if (isEdit && id) {
         await updateEntry.mutateAsync({ id, input });
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
         showUndo({
@@ -1186,10 +1573,10 @@ export function EntryPage(): JSX.Element {
 
   const hasUnsavedAmount =
     !isEdit &&
-    activeTab !== 'loan-debt' &&
     (primaryExpr.trim().length > 0 ||
       (isDiffCurrencyTransfer && secondaryExpr.trim().length > 0) ||
-      (isTradeMode && quantityText.trim().length > 0));
+      (isTradeMode && quantityText.trim().length > 0) ||
+      quickSplit.isDirty);
 
   const handleBack = () => {
     if (hasUnsavedAmount) {
@@ -1234,9 +1621,13 @@ export function EntryPage(): JSX.Element {
 
   const displayTone = isTransferMode
     ? 'neutral'
-    : entryType === 'expense'
-      ? 'danger'
-      : 'success';
+    : isLoanDebt
+      ? quickSplit.flipped
+        ? 'success'
+        : 'danger'
+      : entryType === 'expense'
+        ? 'danger'
+        : 'success';
 
   const excludeRow = (
     <div className="w-full min-h-11 flex items-center justify-between gap-3">
@@ -1304,16 +1695,32 @@ export function EntryPage(): JSX.Element {
     }
   };
 
-  const isLoading = walletsQuery.isPending || (isEdit && !entry && listQuery.isPending);
+  const isDirectEditLoading =
+    isDirectEdit &&
+    (ledgerLoading ||
+      (Boolean(ledger) && directViewLoading && !directView) ||
+      (!cachedGroupRow && listQuery.isPending));
+  const isLoading =
+    walletsQuery.isPending ||
+    (isEdit && !isDirectEdit && !entry && listQuery.isPending) ||
+    isDirectEditLoading;
+  const isLoanLoading =
+    isLoanDebt && (ledgerLoading || (Boolean(ledger) && directViewLoading && !directView));
+  const isLoanLedgerError = (isLoanDebt || isDirectEdit) && !ledgerLoading && !ledger;
+  const isLoanViewError =
+    (isLoanDebt || isDirectEdit) && Boolean(ledger) && !directViewLoading && !directView;
+  const isEditMissing = isEdit && (isDirectEdit ? !directExpense : !entry);
   const noActiveWallet = !isEdit && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
 
   useEffect(() => {
     if (
       !isMousePointer ||
       isEdit ||
-      activeTab === 'loan-debt' ||
       isLoading ||
+      isLoanLoading ||
       walletsQuery.isError ||
+      isLoanLedgerError ||
+      isLoanViewError ||
       noActiveWallet ||
       didAutoFocusRef.current
     ) {
@@ -1321,7 +1728,16 @@ export function EntryPage(): JSX.Element {
     }
     didAutoFocusRef.current = true;
     primaryInputRef.current?.focus();
-  }, [isMousePointer, isEdit, activeTab, isLoading, walletsQuery.isError, noActiveWallet]);
+  }, [
+    isMousePointer,
+    isEdit,
+    isLoading,
+    isLoanLoading,
+    walletsQuery.isError,
+    isLoanLedgerError,
+    isLoanViewError,
+    noActiveWallet,
+  ]);
 
   return (
     <div className="fsl-entry-page min-h-screen min-h-dvh bg-background flex flex-col">
@@ -1340,7 +1756,7 @@ export function EntryPage(): JSX.Element {
           </button>
 
           <Tabs
-            value={isEdit ? entryType : activeTab}
+            value={isEdit && !isDirectEdit ? entryType : activeTab}
             onValueChange={(v) => handleTabChange(v as TabValue)}
             className="flex-1 min-w-0 gap-0"
           >
@@ -1352,25 +1768,25 @@ export function EntryPage(): JSX.Element {
                 value="expense"
                 disabled={editLockedTrade && entryType !== 'expense'}
                 data-testid="entry-tab-expense"
-                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
+                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.expense')}
               </TabsTrigger>
               <TabsTrigger
                 value="income"
-                disabled={editLockedTransfer || (editLockedTrade && entryType !== 'income')}
+                disabled={isDirectEdit || editLockedTransfer || (editLockedTrade && entryType !== 'income')}
                 data-testid="entry-tab-income"
-                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
+                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.income')}
               </TabsTrigger>
               <TabsTrigger
                 value="loan-debt"
-                disabled={isEdit}
+                disabled={isEdit && !isDirectEdit}
                 data-testid="entry-tab-loan-debt"
-                style={!isMousePointer && (isEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
+                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
                 className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
               >
                 {t('personalEntry.loanDebt')}
@@ -1380,31 +1796,27 @@ export function EntryPage(): JSX.Element {
         </div>
       </header>
 
-      {!isEdit && activeTab === 'loan-debt' ? (
-        ledger ? (
-          <QuickExpenseEmbed tripId={ledger.tripId} onSaved={handleLoanDebtSaved} />
-        ) : (
-          <main className="flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4">
-            {ledgerLoading ? (
-              <SkeletonList rows={4} />
-            ) : (
-              <InlineError error={{ code: 'UNKNOWN' }} />
-            )}
-          </main>
-        )
-      ) : (
-        <>
-          {liveRegion}
-          <main
-            className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !effectiveKeypadOpen && 'pb-24')}
-          >
-        {isLoading ? (
+      {liveRegion}
+      <main
+        className={cn('flex-1 mx-auto w-full max-w-[480px] px-4 py-4 flex flex-col gap-4', !effectiveKeypadOpen && 'pb-24')}
+      >
+        {isLoading || isLoanLoading ? (
           <SkeletonList rows={4} />
         ) : walletsQuery.isError ? (
           <InlineError error={walletsQuery.error} onRetry={() => walletsQuery.refetch()} />
-        ) : isEdit && !entry && listQuery.isError ? (
+        ) : isLoanLedgerError ? (
+          <InlineError
+            error={{ code: 'UNKNOWN' }}
+            onRetry={() => void queryClient.refetchQueries({ queryKey: ['me', 'ledger'] })}
+          />
+        ) : isLoanViewError ? (
+          <InlineError
+            error={directViewError ?? { code: 'UNKNOWN' }}
+            onRetry={() => refetchDirectView()}
+          />
+        ) : isEditMissing && listQuery.isError ? (
           <InlineError error={listQuery.error} onRetry={() => listQuery.refetch()} />
-        ) : isEdit && !entry ? (
+        ) : isEditMissing ? (
           <EmptyState icon="receipt" title={t('personalEntry.notFound')} />
         ) : noActiveWallet ? (
           <EmptyState
@@ -1424,7 +1836,14 @@ export function EntryPage(): JSX.Element {
               </div>
             )}
             {validationError !== null && (
-              <InlineError error={validationError} />
+              <InlineError
+                error={validationError}
+                onRetry={
+                  validationError instanceof QuickShareLinkError
+                    ? () => void handleRetryQuickShareLink()
+                    : undefined
+                }
+              />
             )}
 
             {/* Display amount */}
@@ -1620,7 +2039,7 @@ export function EntryPage(): JSX.Element {
             )}
 
             {/* Category tiles (with fixed transfer and trade tiles) */}
-            {fold.isOpen('category') ? (
+            {!isLoanDebt && (fold.isOpen('category') ? (
               <div className="flex flex-col gap-2">
                 {!isMousePointer && (
                   <p className="m-0 text-sm text-muted-foreground">
@@ -1638,7 +2057,8 @@ export function EntryPage(): JSX.Element {
                       ? { id: selectedWallet.id, kind: selectedWallet.kind }
                       : undefined
                   }
-                  value={categoryId}
+                  value={effectiveCategoryId}
+                  guessedId={activeGuessedId}
                   onChange={handleSelectCategory}
                   transferSelected={isTransferMode}
                   onSelectTransfer={handleSelectTransfer}
@@ -1700,7 +2120,7 @@ export function EntryPage(): JSX.Element {
                   ) : (
                     (() => {
                       const selectedCategory = (categoriesQuery.data?.categories ?? []).find(
-                        (c) => c.id === categoryId,
+                        (c) => c.id === effectiveCategoryId,
                       );
                       return (
                         <>
@@ -1726,10 +2146,52 @@ export function EntryPage(): JSX.Element {
                   )}
                 </span>
               </FoldLine>
-            ) : null}
+            ) : null)}
+
+            {(isMousePointer || !fold.isOpen('amount')) && (
+              <div className="w-full min-h-11 px-4 py-2 rounded-xl bg-card flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-muted-foreground shrink-0">
+                  {t('personalEntry.note')}
+                </span>
+                <Input
+                  type="text"
+                  maxLength={200}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={isLoanDebt ? undefined : t('personalEntry.notePlaceholder')}
+                  data-testid="entry-note-input"
+                  className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
+                />
+              </div>
+            )}
+
+            {(canShareChi || (isLoanDebt && Boolean(ledger && directView))) &&
+              (isMousePointer || !fold.isOpen('amount')) && (
+                <div className="flex flex-col gap-1">
+                  <SplitWithPeople
+                    split={quickSplit}
+                    label={isLoanDebt ? t('loanDebt.withWhoQ') : t('entry.shareWith')}
+                    me={ledger?.ownerPid ?? null}
+                    kind={isLoanDebt ? 'loan' : 'shared'}
+                  />
+                  <SplitFold
+                    split={quickSplit}
+                    amount={primaryMinor}
+                    names={quickSplitNames}
+                  />
+                  {isLoanDebt && (
+                    <OutcomeSentence
+                      split={quickSplit}
+                      kind="loan"
+                      names={quickSplitNames}
+                      onFlip={() => quickSplit.setFlipped(!quickSplit.flipped)}
+                    />
+                  )}
+                </div>
+              )}
 
             {/* Compact rows and details fold */}
-            {(isMousePointer || !fold.isOpen('category')) &&
+            {(isMousePointer || isLoanDebt || !fold.isOpen('category')) &&
               (() => {
                 const walletRow = (
                   <button
@@ -1940,23 +2402,9 @@ export function EntryPage(): JSX.Element {
                       <EntryDateRow
                         date={dateTime.split('T')[0] ?? ''}
                         time={dateTime.split('T')[1]?.slice(0, 5) || null}
+                        showTime={!isLoanDebt}
                         onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
                       />
-
-                      <div className="w-full min-h-11 px-4 py-2 flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-muted-foreground shrink-0">
-                          {t('personalEntry.note')}
-                        </span>
-                        <Input
-                          type="text"
-                          maxLength={200}
-                          value={note}
-                          onChange={(e) => setNote(e.target.value)}
-                          placeholder={t('personalEntry.notePlaceholder')}
-                          data-testid="entry-note-input"
-                          className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11"
-                        />
-                      </div>
 
                       {isTransferMode && excludeRow}
                     </div>
@@ -1989,7 +2437,13 @@ export function EntryPage(): JSX.Element {
       </main>
 
       {/* Docked keypad when amount is focused, or BottomBar Save when keypad is closed */}
-      {!isLoading && !walletsQuery.isError && !(isEdit && !entry) && !noActiveWallet && (
+      {!isLoading &&
+        !isLoanLoading &&
+        !walletsQuery.isError &&
+        !isLoanLedgerError &&
+        !isLoanViewError &&
+        !isEditMissing &&
+        !noActiveWallet && (
         effectiveKeypadOpen ? (
           <DockedAmountKeypad
             open={keypadOpen}
@@ -2034,11 +2488,30 @@ export function EntryPage(): JSX.Element {
                         : primaryMinor === null
                           ? t('loanDebt.enterAmount')
                           : null;
+                const loanDisabled =
+                  isLoanDebt &&
+                  (primaryMinor === null ||
+                    primaryMinor <= 0 ||
+                    quickSplit.chosen.size === 0 ||
+                    quickSplit.result?.ok === false);
+                const loanDisabledReason = !isLoanDebt
+                  ? null
+                  : primaryMinor === null || primaryMinor <= 0
+                    ? t('loanDebt.enterAmount')
+                    : quickSplit.chosen.size === 0
+                      ? t('loanDebt.chooseOnePerson')
+                      : quickSplit.result?.ok === false
+                        ? t('loanDebt.splitMismatch')
+                        : null;
+                const splitInvalid =
+                  canShareChi && quickSplit.chosen.size > 0 && quickSplit.result?.ok === false;
                 const saveDisabled = isTransferMode
                   ? transferDisabledReason !== null || isSaving || hasArchivedWallet
                   : isTradeMode
                     ? tradeDisabledReason !== null || isSaving || hasArchivedWallet
-                    : activeMinor === null || isSaving || hasArchivedWallet;
+                    : isLoanDebt
+                      ? loanDisabled || isSaving || hasArchivedWallet
+                      : activeMinor === null || isSaving || hasArchivedWallet || splitInvalid;
                 const saveWhat = isMousePointer
                   ? null
                   : isTransferMode
@@ -2056,8 +2529,13 @@ export function EntryPage(): JSX.Element {
                             { asset: selectedAsset.name },
                           )
                         : null
-                      : (categoriesQuery.data?.categories ?? []).find((c) => c.id === categoryId)
-                          ?.name ?? null;
+                      : isLoanDebt
+                        ? quickSplit.flipped
+                          ? (borrowCategory?.name ?? 'Đi vay')
+                          : (lendCategory?.name ?? 'Cho vay')
+                        : (categoriesQuery.data?.categories ?? []).find(
+                            (c) => c.id === effectiveCategoryId,
+                          )?.name ?? null;
                 const saveLabel =
                   !isMousePointer && activeMinor !== null && saveWhat
                     ? t('personalEntry.saveSummary', {
@@ -2073,6 +2551,14 @@ export function EntryPage(): JSX.Element {
                         className="m-0 text-center text-sm text-muted-foreground"
                       >
                         {transferDisabledReason}
+                      </p>
+                    )}
+                    {loanDisabledReason && !isSaving && !hasArchivedWallet && (
+                      <p
+                        data-testid="loan-debt-disabled-reason"
+                        className="m-0 text-center text-sm text-muted-foreground"
+                      >
+                        {loanDisabledReason}
                       </p>
                     )}
                     {tradeDisabledReason && !isSaving && !hasArchivedWallet && (
@@ -2108,8 +2594,6 @@ export function EntryPage(): JSX.Element {
             </BottomBar>
           </div>
         )
-        )}
-        </>
       )}
 
       {/* Wallet picker Sheet */}
@@ -2119,7 +2603,7 @@ export function EntryPage(): JSX.Element {
         title={t('personalEntry.pickWallet')}
       >
         <div data-testid="wallet-picker-list" className="flex flex-col divide-y divide-border">
-          {activeWallets.map((w) => {
+          {(isLoanDebt ? vndWallets : activeWallets).map((w) => {
             const currentId =
               walletSheetTarget === 'other'
                 ? otherWallet?.id
