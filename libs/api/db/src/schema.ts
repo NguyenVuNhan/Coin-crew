@@ -892,3 +892,71 @@ export const personalSyncDeletions = sqliteTable(
     index('personal_sync_del_deleted_at_idx').on(t.deletedAt),
   ],
 );
+
+/** Cached count of personal_transactions referencing each asset (0033, #109). */
+export const personalAssetCounts = sqliteTable(
+  'personal_asset_counts',
+  {
+    assetId: text('asset_id')
+      .primaryKey()
+      .references(() => personalAssets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    entryCount: integer('entry_count').notNull().default(0),
+  },
+  (t) => [index('personal_asset_counts_user_idx').on(t.userId)],
+);
+
+/** Cached per-wallet personal balance & replay state for O(1) wallet/summary reads (0033, #109). */
+export const personalWalletBalances = sqliteTable(
+  'personal_wallet_balances',
+  {
+    walletId: text('wallet_id')
+      .primaryKey()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personalNet: integer('personal_net').notNull().default(0),
+    entryCount: integer('entry_count').notNull().default(0),
+    vndValue: integer('vnd_value'),
+    cashVnd: integer('cash_vnd'),
+    holdingsJson: text('holdings_json'),
+    needsReplay: integer('needs_replay').notNull().default(0),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('personal_wallet_balances_user_idx').on(t.userId)],
+);
+
+/** Cached per-(user, trip) group-share projection & wallet deltas (0033, #109). */
+export const personalTripCache = sqliteTable(
+  'personal_trip_cache',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tripId: text('trip_id').notNull(),
+    tripVersion: integer('trip_version').notNull(),
+    linksVersion: integer('links_version').notNull(),
+    walletDeltasJson: text('wallet_deltas_json').notNull(),
+    rowsJson: text('rows_json').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.tripId] }),
+    index('personal_trip_cache_trip_idx').on(t.tripId),
+  ],
+);
+
+/** Consolidated per-trip balance cache for GET /trips and GET /me/people/summary (0033, #109). */
+export const tripBalanceCache = sqliteTable('trip_balance_cache', {
+  tripId: text('trip_id').primaryKey(),
+  tripVersion: integer('trip_version').notNull(),
+  balancesJson: text('balances_json').notNull(),
+  roundedBalancesJson: text('rounded_balances_json').notNull(),
+  suggestionsJson: text('suggestions_json').notNull(),
+  waitingJson: text('waiting_json').notNull(),
+  oldestSharedJson: text('oldest_shared_json').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
