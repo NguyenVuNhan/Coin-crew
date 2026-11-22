@@ -54,56 +54,30 @@ export function walletBalanceDeltaStmts(
   deltas: WalletBalanceDelta[],
   now: string,
 ): BatchItem<'sqlite'>[] {
-  const byWallet = new Map<
-    string,
-    { walletId: string; netDelta: number; countDelta: number; needsReplay: boolean }
-  >();
+  // Triggers maintain personal_net and entry_count on personal_transactions writes;
+  // only emit needs_replay updates when a caller flags a wallet for replay.
+  const replayWalletIds = new Set<string>();
   for (const d of deltas) {
-    const existing = byWallet.get(d.walletId);
-    if (existing) {
-      existing.netDelta += d.netDelta;
-      existing.countDelta += d.countDelta;
-      existing.needsReplay = existing.needsReplay || Boolean(d.needsReplay);
-    } else {
-      byWallet.set(d.walletId, {
-        walletId: d.walletId,
-        netDelta: d.netDelta,
-        countDelta: d.countDelta,
-        needsReplay: Boolean(d.needsReplay),
-      });
+    if (d.needsReplay) {
+      replayWalletIds.add(d.walletId);
     }
   }
 
   const stmts: BatchItem<'sqlite'>[] = [];
-  for (const d of byWallet.values()) {
-    if (d.netDelta === 0 && d.countDelta === 0 && !d.needsReplay) {
-      continue;
-    }
+  for (const walletId of replayWalletIds) {
     stmts.push(
       db
-        .insert(personalWalletBalances)
-        .values({
-          walletId: d.walletId,
-          userId,
-          personalNet: d.netDelta,
-          entryCount: d.countDelta,
-          vndValue: null,
-          cashVnd: null,
-          holdingsJson: null,
-          needsReplay: d.needsReplay ? 1 : 0,
+        .update(personalWalletBalances)
+        .set({
+          needsReplay: 1,
           updatedAt: now,
         })
-        .onConflictDoUpdate({
-          target: personalWalletBalances.walletId,
-          set: {
-            personalNet: sql`${personalWalletBalances.personalNet} + ${d.netDelta}`,
-            entryCount: sql`${personalWalletBalances.entryCount} + ${d.countDelta}`,
-            needsReplay: d.needsReplay
-              ? 1
-              : sql`${personalWalletBalances.needsReplay}`,
-            updatedAt: now,
-          },
-        }) as unknown as BatchItem<'sqlite'>,
+        .where(
+          and(
+            eq(personalWalletBalances.walletId, walletId),
+            eq(personalWalletBalances.userId, userId),
+          ),
+        ) as unknown as BatchItem<'sqlite'>,
     );
   }
   return stmts;

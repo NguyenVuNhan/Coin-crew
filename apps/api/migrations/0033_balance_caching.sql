@@ -92,3 +92,87 @@ LEFT JOIN `personal_transactions` AS pt
   ON pt.`asset_id` = pa.`id`
  AND pt.`user_id` = pa.`user_id`
 GROUP BY pa.`id`, pa.`user_id`;
+--> statement-breakpoint
+CREATE TRIGGER `personal_tx_balance_ai`
+AFTER INSERT ON `personal_transactions`
+BEGIN
+  INSERT INTO `personal_wallet_balances` (
+    `wallet_id`,
+    `user_id`,
+    `personal_net`,
+    `entry_count`,
+    `needs_replay`,
+    `updated_at`
+  )
+  VALUES (
+    NEW.`wallet_id`,
+    NEW.`user_id`,
+    CASE WHEN NEW.`type` IN ('income', 'transfer_in', 'sell') THEN NEW.`amount` ELSE -NEW.`amount` END,
+    1,
+    0,
+    NEW.`updated_at`
+  )
+  ON CONFLICT(`wallet_id`) DO UPDATE SET
+    `personal_net` = `personal_net` + excluded.`personal_net`,
+    `entry_count` = `entry_count` + 1,
+    `updated_at` = excluded.`updated_at`;
+END;
+--> statement-breakpoint
+CREATE TRIGGER `personal_tx_balance_au`
+AFTER UPDATE OF `wallet_id`, `type`, `amount` ON `personal_transactions`
+BEGIN
+  UPDATE `personal_wallet_balances`
+  SET
+    `personal_net` = `personal_net` - (CASE WHEN OLD.`type` IN ('income', 'transfer_in', 'sell') THEN OLD.`amount` ELSE -OLD.`amount` END),
+    `entry_count` = `entry_count` - 1,
+    `updated_at` = NEW.`updated_at`
+  WHERE `wallet_id` = OLD.`wallet_id`;
+  INSERT INTO `personal_wallet_balances` (
+    `wallet_id`,
+    `user_id`,
+    `personal_net`,
+    `entry_count`,
+    `needs_replay`,
+    `updated_at`
+  )
+  VALUES (
+    NEW.`wallet_id`,
+    NEW.`user_id`,
+    CASE WHEN NEW.`type` IN ('income', 'transfer_in', 'sell') THEN NEW.`amount` ELSE -NEW.`amount` END,
+    1,
+    0,
+    NEW.`updated_at`
+  )
+  ON CONFLICT(`wallet_id`) DO UPDATE SET
+    `personal_net` = `personal_net` + excluded.`personal_net`,
+    `entry_count` = `entry_count` + 1,
+    `updated_at` = excluded.`updated_at`;
+END;
+--> statement-breakpoint
+CREATE TRIGGER `personal_tx_balance_ad`
+AFTER DELETE ON `personal_transactions`
+BEGIN
+  UPDATE `personal_wallet_balances`
+  SET
+    `personal_net` = `personal_net` - (CASE WHEN OLD.`type` IN ('income', 'transfer_in', 'sell') THEN OLD.`amount` ELSE -OLD.`amount` END),
+    `entry_count` = `entry_count` - 1
+  WHERE `wallet_id` = OLD.`wallet_id`;
+END;
+--> statement-breakpoint
+CREATE TRIGGER `transactions_personal_trip_cache_ai`
+AFTER INSERT ON `transactions`
+BEGIN
+  DELETE FROM `personal_trip_cache` WHERE `trip_id` = NEW.`trip_id`;
+END;
+--> statement-breakpoint
+CREATE TRIGGER `transactions_personal_trip_cache_au`
+AFTER UPDATE ON `transactions`
+BEGIN
+  DELETE FROM `personal_trip_cache` WHERE `trip_id` = NEW.`trip_id`;
+END;
+--> statement-breakpoint
+CREATE TRIGGER `transactions_personal_trip_cache_ad`
+AFTER DELETE ON `transactions`
+BEGIN
+  DELETE FROM `personal_trip_cache` WHERE `trip_id` = OLD.`trip_id`;
+END;

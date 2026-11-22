@@ -149,6 +149,9 @@ describe('balance caching schema and migration 0033', () => {
       )
       .run();
 
+    // Clear trigger-populated balance rows so backfillQueries0033() runs against pre-migration state
+    await env.DB.prepare('DELETE FROM personal_wallet_balances WHERE user_id = ?').bind(uid).run();
+
     const queries = backfillQueries0033();
     for (const q of queries) {
       await env.DB.prepare(q).run();
