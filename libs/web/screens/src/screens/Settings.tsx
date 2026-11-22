@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useState, useId, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { can, isThemeId, type ThemeId } from '@cc/core';
@@ -8,17 +8,24 @@ import { useBack } from '../lib/navHistory';
 import { actorOf } from '../lib/rowActions';
 import { useTripView } from '@cc/web-data-access/hooks';
 import { useSetGroupTheme } from '@cc/web-data-access/theme';
+import { useCancelTripDelete } from '@cc/web-data-access/tripDelete';
 import { apiSend, type ApiClientError } from '@cc/web-data-access/client';
 import { Screen } from '../components/Screen';
 import { ThemePicker } from '../components/ThemePicker';
+import { DeleteGroupSheet } from '../components/DeleteGroupSheet';
+import { DeletePendingBanner } from '../components/DeletePendingBanner';
 import { Button } from '@cc/web-ui/components/Button';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Icon } from '@cc/web-ui/components/icons';
 import { FewestSwitch } from '../components/FewestSwitch';
 import { RoundTransfersSwitch } from '../components/RoundTransfersSwitch';
 import { RatingsSwitch } from '../components/RatingsSwitch';
 import { cn } from '@cc/web-ui/lib/utils';
+
+const DANGER_OUTLINE_CLASS =
+  'min-h-11 bg-card text-danger border border-danger hover:bg-danger-soft hover:border-danger hover:text-danger transition-colors duration-150 ease-out motion-reduce:transition-none';
 
 export function Settings() {
   const { tripId, href } = useTrip();
@@ -34,7 +41,16 @@ export function Settings() {
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<ApiClientError | null>(null);
   const [coloursOpen, setColoursOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState(false);
   const setGroupTheme = useSetGroupTheme(tripId ?? '');
+  const cancelDelete = useCancelTripDelete(tripId ?? '');
+
+  useEffect(() => {
+    if (!cancelSuccess) return;
+    const id = setTimeout(() => setCancelSuccess(false), 4000);
+    return () => clearTimeout(id);
+  }, [cancelSuccess]);
 
   if (isLoading) {
     return (
@@ -57,7 +73,15 @@ export function Settings() {
   if (!view) return null;
 
   const archived = view.trip.archived;
-  const canSetTheme = can(actorOf(view), 'set_theme') && !view.trip.archived;
+  const deleteAfter = view.trip.deleteAfter ?? null;
+  const pendingDelete = Boolean(deleteAfter);
+  const isDirect = view.trip.preset === 'direct';
+  const hasUnsettled =
+    view.suggestions.length > 0 || view.payments.some((p) => p.status === 'says_paid');
+  const actor = actorOf(view);
+  const canDelete = !isDirect && can(actor, 'delete_group');
+  const canCancelDelete = !isDirect && can(actor, 'cancel_delete_group');
+  const canSetTheme = can(actor, 'set_theme') && !view.trip.archived;
   const groupTheme: ThemeId | null = isThemeId(view.trip.theme) ? view.trip.theme : null;
   const groupThemeLabel = groupTheme ? t(`theme.name.${groupTheme}`) : t('theme.useOwnShort');
 
@@ -173,21 +197,80 @@ export function Settings() {
           <RatingsSwitch view={view} />
         )}
 
-        {archived ? (
+        {archived && pendingDelete && deleteAfter ? (
+          <>
+            <DeletePendingBanner
+              tripId={tripId ?? ''}
+              deleteAfter={deleteAfter}
+              canCancel={false}
+              showSpendingBookNote={view.me.kind === 'member'}
+            />
+            {canCancelDelete && (
+              <div className={cn('fsl-settings__restore flex flex-col gap-2 mt-4')}>
+                {cancelDelete.error && <InlineError error={cancelDelete.error} />}
+                <Button
+                  variant="secondary"
+                  block
+                  loading={cancelDelete.isPending}
+                  onClick={() => {
+                    setCancelSuccess(false);
+                    cancelDelete.mutate(undefined, {
+                      onSuccess: () => setCancelSuccess(true),
+                    });
+                  }}
+                >
+                  {t('settings.cancelDelete')}
+                </Button>
+                <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>
+                  {t('settings.cancelDeleteHint')}
+                </p>
+              </div>
+            )}
+          </>
+        ) : archived ? (
           <>
             <div className={cn('fsl-notice fsl-notice--muted p-3 text-sm rounded-xl text-center bg-muted text-muted-foreground')}>
               {t('settings.archived')}
             </div>
-            {view.me.isOrganiser && (
-              <div className={cn('fsl-settings__restore flex flex-col gap-2 mt-4')}>
-                <Button variant="secondary" block loading={archiving} onClick={handleArchive}>
-                  {t('settings.unarchive')}
-                </Button>
-                <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>{t('settings.unarchiveHint')}</p>
-              </div>
+            {view.me.isOrganiser && !isDirect && (
+              <>
+                <div className={cn('fsl-settings__restore flex flex-col gap-2 mt-4')}>
+                  <Button variant="secondary" block loading={archiving} onClick={handleArchive}>
+                    {t('settings.unarchive')}
+                  </Button>
+                  <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>{t('settings.unarchiveHint')}</p>
+                </div>
+                {canDelete && (
+                  <section className={cn('fsl-settings__danger flex flex-col gap-2 mt-4')} aria-labelledby={headingId}>
+                    <h2 className={cn('fsl-settings__heading m-0 text-sm font-semibold text-muted-foreground')} id={headingId}>
+                      {t('settings.dangerZone')}
+                    </h2>
+                    <Button
+                      variant="secondary"
+                      block
+                      className={cn('fsl-settings__delete', DANGER_OUTLINE_CLASS)}
+                      onClick={() => {
+                        setCancelSuccess(false);
+                        setDeleteOpen(true);
+                      }}
+                    >
+                      {t('settings.deleteGroup')}
+                    </Button>
+                    <p className={cn('fsl-settings__hint m-0 text-sm text-muted-foreground')}>{t('settings.deleteGroupHint')}</p>
+                    <DeleteGroupSheet
+                      open={deleteOpen}
+                      onClose={() => setDeleteOpen(false)}
+                      tripId={tripId ?? ''}
+                      tripName={view.trip.name}
+                      hasUnsettled={hasUnsettled}
+                      onScheduled={goBack}
+                    />
+                  </section>
+                )}
+              </>
             )}
           </>
-        ) : view.me.isOrganiser ? (
+        ) : view.me.isOrganiser && !isDirect ? (
           <section className={cn('fsl-settings__danger flex flex-col gap-2 mt-4')} aria-labelledby={headingId}>
             <h2 className={cn('fsl-settings__heading m-0 text-sm font-semibold text-muted-foreground')} id={headingId}>
               {t('settings.dangerZone')}
@@ -196,7 +279,7 @@ export function Settings() {
               variant="secondary"
               block
               loading={archiving}
-              className={cn('fsl-settings__archive bg-card text-danger border border-danger hover:bg-danger-soft hover:border-danger hover:text-danger transition-colors duration-150 ease-out motion-reduce:transition-none')}
+              className={cn('fsl-settings__archive', DANGER_OUTLINE_CLASS)}
               onClick={handleArchive}
             >
               {t('settings.archive')}
@@ -212,7 +295,7 @@ export function Settings() {
               variant="secondary"
               block
               loading={leaving}
-              className={cn('fsl-settings__archive bg-card text-danger border border-danger hover:bg-danger-soft hover:border-danger hover:text-danger transition-colors duration-150 ease-out motion-reduce:transition-none')}
+              className={cn('fsl-settings__archive', DANGER_OUTLINE_CLASS)}
               onClick={handleLeave}
             >
               {t('settings.leave')}
@@ -221,6 +304,7 @@ export function Settings() {
           </section>
         ) : null}
       </div>
+      {cancelSuccess && <Snackbar message={t('settings.cancelDeleteSuccess')} />}
     </Screen>
   );
 }
