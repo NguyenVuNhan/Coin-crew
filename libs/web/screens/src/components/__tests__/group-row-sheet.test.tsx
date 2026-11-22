@@ -344,4 +344,64 @@ describe('GroupRowSheet', () => {
     expect(sheet.querySelector('input[inputmode="numeric"]')).toBeNull();
     expect(within(sheet).queryByLabelText(/amount|số tiền/i)).toBeNull();
   });
+
+  it('for a direct quick expense, hides editInGroup notice and links Edit to /entries/:rootId/edit?group=1', async () => {
+    setupApi();
+    const directRow = makeRow({
+      id: 'exp-head-2',
+      rootId: 'exp-root-1',
+      tripId: 't-led',
+      tripName: 'Quick expenses',
+      isDirect: true,
+      source: 'expense',
+    });
+
+    renderAt(<GroupRowSheet row={directRow} open onClose={vi.fn()} />);
+
+    const sheet = await screen.findByTestId('group-row-sheet');
+    expect(sheet).not.toHaveTextContent('Amount and people are edited in the group.');
+
+    const editLink = await screen.findByTestId('group-row-open-in-group');
+    expect(editLink).toHaveTextContent(/^Edit$/);
+    expect(editLink).toHaveAttribute('href', '/entries/exp-root-1/edit?group=1');
+    expect(screen.getByTestId('group-row-delete')).toHaveTextContent(/^Delete$/);
+  });
+
+  it('deletes a direct quick expense after confirmation and hides delete for regular group rows', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const { calls } = setupApi({
+      'DELETE /api/trips/t-led/expenses/exp-head-2': () => new Response(null, { status: 204 }),
+    });
+
+    const regularRow = makeRow({ id: 'exp-reg', tripId: 'trip-a', isDirect: false, source: 'expense' });
+    const { unmount } = renderAt(<GroupRowSheet row={regularRow} open onClose={onClose} />);
+    await screen.findByTestId('group-row-sheet');
+    expect(screen.queryByTestId('group-row-delete')).not.toBeInTheDocument();
+    unmount();
+
+    const directRow = makeRow({
+      id: 'exp-head-2',
+      rootId: 'exp-root-1',
+      tripId: 't-led',
+      tripName: 'Quick expenses',
+      isDirect: true,
+      source: 'expense',
+    });
+    renderAt(<GroupRowSheet row={directRow} open onClose={onClose} />);
+
+    await screen.findByTestId('group-row-sheet');
+    await user.click(screen.getByTestId('group-row-delete'));
+    const confirmBtn = await screen.findByTestId('group-row-delete-confirm');
+    await user.click(confirmBtn);
+
+    await waitFor(() =>
+      expect(calls).toContainEqual({
+        method: 'DELETE',
+        path: '/api/trips/t-led/expenses/exp-head-2',
+        body: undefined,
+      }),
+    );
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
 });

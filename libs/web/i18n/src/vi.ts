@@ -411,6 +411,8 @@ export const vi: Record<MessageKey, string> = {
   'split.captionExactNothingOne': 'Theo số tiền · {n} người · {name} không phải trả',
   'splitBetween.label': 'Chia cho · {n}/{total} người',
   'splitBetween.everyone': 'Chia cho · Mọi người ({n})',
+  'splitBetween.empty': 'Chia cho', // REVIEW
+  'splitBetween.count': 'Chia cho {n} người', // REVIEW
   'splitBetween.none': 'Chưa chọn ai',
   'splitBetween.change': 'Đổi',
   'splitBetween.you': 'Bạn',
@@ -1654,6 +1656,15 @@ export const vi: Record<MessageKey, string> = {
   'wallet.cashRow': 'Tiền mặt', // REVIEW
   'wallet.balanceLabel': 'Số dư', // REVIEW
   'wallet.totalInclAssets': 'Tổng gồm tài sản', // REVIEW
+  'entry.shareWith': 'Chia với ai? (không bắt buộc)', // REVIEW
+  'entry.me': 'Bạn', // REVIEW
+  'entry.flip': 'Đổi người trả', // REVIEW
+  'outcome.myShare': 'Phần bạn {amount}', // REVIEW
+  'outcome.owesMe': '{name} nợ bạn {amount}', // REVIEW
+  'outcome.eachOwesMe': '{names} mỗi người nợ bạn {amount}', // REVIEW
+  'outcome.iOwe': 'Bạn nợ {name} {amount}', // REVIEW
+  'outcome.paidBy': '{name} trả', // REVIEW
+  'loanDebt.withWhoQ': 'Với ai?', // REVIEW
   'visibility.walletSheetTitle': 'Hiện trong ví này', // REVIEW
   'visibility.categories': 'Danh mục', // REVIEW
   'visibility.expense': 'Chi', // REVIEW

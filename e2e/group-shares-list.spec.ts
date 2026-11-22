@@ -363,7 +363,7 @@ for (const variant of MATRIX) {
       }
     });
 
-    test('G-09: trip expense dated before Techcombank start date is listed and leaves balance unchanged', async ({ browser }, testInfo) => {
+    test('G-09: trip expense dated before Techcombank start date is listed and counts toward balance', async ({ browser }, testInfo) => {
       const ctx = await setupDaLatScenario(browser, variant, 'g09');
       try {
         const oldDate = beforeStartDate();
@@ -384,7 +384,7 @@ for (const variant of MATRIX) {
 
         const wallets = await getWallets(ctx.nhan);
         const tcb = wallets.find((w) => w.id === ctx.wallets.tcb.id)!;
-        expect(tcb.balance).toBe(1_000_000);
+        expect(tcb.balance).toBe(700_000);
 
         await saveShot(ctx.nhan, testInfo, 'G-09', variant);
       } finally {

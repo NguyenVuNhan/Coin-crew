@@ -37,7 +37,6 @@ import { EntryTypeSwitch, type EntryType } from '../components/EntryTypeSwitch';
 import { IncomeForm } from '../components/IncomeForm';
 import { FundPaidPanel } from '../components/FundPaidPanel';
 import { SplitModePicker } from '../components/SplitModePicker';
-import { LoanDebtEmbedForm } from '../components/LoanDebtEmbedForm';
 import { Screen } from '../components/Screen';
 import { Button } from '@cc/web-ui/components/Button';
 import { Avatar } from '@cc/web-ui/components/Avatar';
@@ -279,7 +278,6 @@ interface ExpenseFormContentProps {
   switcher?: ReactNode;
   isPlanningMode?: boolean;
   isCompleteMode?: boolean;
-  embedded?: boolean;
   leave: () => void;
 }
 
@@ -303,7 +301,6 @@ function ExpenseFormContent({
   switcher,
   isPlanningMode = false,
   isCompleteMode = false,
-  embedded = false,
   leave,
 }: ExpenseFormContentProps) {
   const t = useT();
@@ -578,9 +575,6 @@ function ExpenseFormContent({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
-  const [embeddedAmountExpr, setEmbeddedAmountExpr] = useState('');
-  const [embeddedKeypadOpen, setEmbeddedKeypadOpen] = useState(embedded);
-  const [embeddedSmallAmountMinor, setEmbeddedSmallAmountMinor] = useState<number | null>(null);
 
   const parsedAmount = useMemo(() => parseVnd(amountText), [amountText]);
   const isAmountInvalid = amountText.trim() !== '' && parsedAmount === null;
@@ -829,12 +823,9 @@ function ExpenseFormContent({
 
   const overallRangeText = useMemo(() => formatSlotsRange(courtSlots), [courtSlots]);
 
-  const hasOtherPerson = !embedded || formPeople.some((p) => p.id !== me && included.has(p.id));
-
   const canSubmit =
     isDescriptionValid &&
     isPayerValid &&
-    hasOtherPerson &&
     (fromFund
       ? isFundAmountValid
       : isPlanningMode
@@ -842,19 +833,6 @@ function ExpenseFormContent({
         : sportSelected
           ? isLocationValid && isSportAmountValid && isSportSplitValid
           : isAmountValid && isSplitValid);
-
-  const embeddedDisabledReason = useMemo(() => {
-    if (!embedded || canSubmit) return null;
-    if (!isAmountValid) return t('loanDebt.enterAmount');
-    if (!hasOtherPerson) return t('loanDebt.chooseOnePerson');
-    if (!isSplitValid) {
-      return splitResult && !splitResult.ok
-        ? t(`splitError.${splitResult.error}` as MessageKey)
-        : t('loanDebt.splitMismatch');
-    }
-    if (!isDescriptionValid) return t('loanDebt.enterNote');
-    return null;
-  }, [embedded, canSubmit, isAmountValid, hasOtherPerson, isSplitValid, splitResult, isDescriptionValid, t]);
 
   async function handleBookingImageSelect(ev: React.ChangeEvent<HTMLInputElement>) {
     const file = ev.target.files?.[0];
@@ -1109,29 +1087,6 @@ function ExpenseFormContent({
     void submitExpense();
   }
 
-  const handleEmbeddedAmountChange = (nextExpr: string) => {
-    setEmbeddedAmountExpr(nextExpr);
-    if (/^\d+$/.test(nextExpr)) {
-      const n = Number(nextExpr);
-      setAmountText(Number.isSafeInteger(n) && n > 0 && n <= CURRENCIES.VND.max ? String(n) : '');
-    } else {
-      setAmountText('');
-    }
-  };
-
-  const handleEmbeddedSaveAttempt = (minorOverride?: number) => {
-    const amount = minorOverride ?? parsedAmount;
-    if (!canSubmit || amount === null) {
-      setEmbeddedKeypadOpen(false);
-      return;
-    }
-    if (amount >= 1 && amount <= 999) {
-      setEmbeddedSmallAmountMinor(amount);
-      return;
-    }
-    void submitExpense(amount);
-  };
-
   const submitText = isPlanningMode
     ? t('sport.savePlanning')
     : isEdit
@@ -1140,75 +1095,10 @@ function ExpenseFormContent({
         ? t('expense.sendForApproval')
         : t('expenseForm.add');
 
-  if (embedded) {
-    return (
-      <LoanDebtEmbedForm
-        amountExpr={embeddedAmountExpr}
-        evaluatedMinor={parsedAmount}
-        onAmountExprChange={handleEmbeddedAmountChange}
-        keypadOpen={embeddedKeypadOpen}
-        onKeypadOpenChange={setEmbeddedKeypadOpen}
-        onKeypadDone={(minor) => handleEmbeddedSaveAttempt(minor)}
-        formPeople={formPeople}
-        me={me}
-        included={included}
-        onIncludedChange={setIncluded}
-        peopleSheetOpen={peopleSheetOpen}
-        onPeopleSheetOpenChange={setPeopleSheetOpen}
-        recent={recent}
-        splitExtra={splitExtra}
-        payerId={payer}
-        onPayerChange={setPayerId}
-        description={description}
-        onDescriptionChange={setDescription}
-        spentOn={spentOn}
-        onSpentOnChange={setSpentOn}
-        mode={mode}
-        onModeChange={(m) => {
-          setSportSelected(false);
-          setMode(m);
-        }}
-        caption={caption}
-        liveShares={liveShares}
-        displayShare={displayShare}
-        placeholderFor={placeholderFor}
-        inputErrors={inputErrors}
-        amountsInputs={amountsInputs}
-        onAmountsInputsChange={setAmountsInputs}
-        percentInputs={percentInputs}
-        onPercentInputsChange={setPercentInputs}
-        sharesInputs={sharesInputs}
-        onSharesInputsChange={setSharesInputs}
-        adjustInputs={adjustInputs}
-        onAdjustInputsChange={setAdjustInputs}
-        splitResult={splitResult}
-        canSubmit={canSubmit}
-        isSubmitting={isSubmitting}
-        disabledReason={embeddedDisabledReason}
-        submitError={submitError}
-        formatSubmitError={formatSubmitError}
-        goneNames={goneNames}
-        onSave={() => handleEmbeddedSaveAttempt()}
-        smallAmountMinor={embeddedSmallAmountMinor}
-        onSmallAmountClose={() => setEmbeddedSmallAmountMinor(null)}
-        onSmallAmountKeep={(minor) => {
-          setEmbeddedSmallAmountMinor(null);
-          void submitExpense(minor);
-        }}
-        onSmallAmountMultiply={(multiplied) => {
-          handleEmbeddedAmountChange(String(multiplied));
-          setEmbeddedSmallAmountMinor(null);
-          void submitExpense(multiplied);
-        }}
-      />
-    );
-  }
-
   return (
     <Screen
       title={isDirect && !isEdit ? t('home.newExpense') : title}
       onBack={leave}
-      hideHeader={embedded}
       bottomBar={
         <>
           {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
@@ -2544,68 +2434,6 @@ export function ExpenseForm() {
       isPlanningMode={isPlanningMode}
       isCompleteMode={isCompleteMode}
       leave={leave}
-    />
-  );
-}
-
-export function QuickExpenseEmbed({
-  tripId,
-  onSaved,
-}: {
-  tripId: string;
-  onSaved: () => void;
-}) {
-  const t = useT();
-  const { view, error: tripError, isLoading, refetch } = useTripView(tripId, 20000, { stopAfterMs: 15 * 60_000 });
-
-  if (isLoading || !view) {
-    return (
-      <Screen title="" hideHeader>
-        <div className={cn('fsl-expense-form flex flex-col gap-4 w-full')}>
-          <div className={cn('fsl-field flex flex-col gap-1.5')}>
-            <Skeleton width="30%" height={14} />
-            <Skeleton width="100%" height={44} radius="md" />
-          </div>
-          <div className={cn('fsl-field flex flex-col gap-1.5')}>
-            <Skeleton width="20%" height={14} />
-            <Skeleton width="100%" height={56} radius="md" />
-          </div>
-          <div className={cn('fsl-field flex flex-col gap-1.5')}>
-            <Skeleton width="20%" height={14} />
-            <Skeleton width="100%" height={44} radius="md" />
-          </div>
-          <div className={cn('fsl-field flex flex-col gap-1.5')}>
-            <Skeleton width="25%" height={14} />
-            <Skeleton width="100%" height={44} radius="md" />
-          </div>
-          <div className={cn('fsl-expense-form__split-section flex flex-col gap-2')}>
-            <Skeleton width="20%" height={14} />
-            <Skeleton width="100%" height={44} radius="md" />
-            <SkeletonList rows={4} />
-          </div>
-          <Skeleton width="100%" height={48} radius="md" />
-        </div>
-      </Screen>
-    );
-  }
-
-  if (tripError) {
-    return (
-      <Screen title="" hideHeader>
-        <div className={cn('fsl-expense-form flex flex-col gap-4 w-full')}>
-          <InlineError error={tripError} onRetry={refetch} />
-        </div>
-      </Screen>
-    );
-  }
-
-  return (
-    <ExpenseFormContent
-      view={view}
-      tripId={tripId}
-      title={t('home.newExpense')}
-      leave={onSaved}
-      embedded
     />
   );
 }

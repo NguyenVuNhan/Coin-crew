@@ -22,11 +22,10 @@ import {
 } from '@cc/web-data-access/personalMoney';
 import { useCopyGroupRows } from '@cc/web-data-access/txCopy/groupCopy';
 import { useCopyList, useTxCopy } from '@cc/web-data-access/txCopy/hooks';
-import { useIsWide } from '@cc/web-util/media';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { InlineError } from '@cc/web-ui/components/InlineError';
-import { Modal } from '@cc/web-ui/components/Modal';
+import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Badge } from '@cc/web-ui/components/ui/badge';
 import { GroupRowSheet } from '../components/GroupRowSheet';
@@ -225,7 +224,6 @@ function MonthBlock({
 
 export function TransactionsScreen(): JSX.Element {
   const t = useT();
-  const wide = useIsWide();
   const today = todayLocal();
   const { month: selectedMonth, filters, hasRange, isSearching, advancedCount, hasAnyFilter, set, clearAll } =
     useTxParams();
@@ -364,7 +362,7 @@ export function TransactionsScreen(): JSX.Element {
     });
   };
 
-  const onOpenEntry = wide ? (entry: EntryView) => setSelectedEntry(entry) : undefined;
+  const onOpenEntry = (entry: EntryView) => setSelectedEntry(entry);
 
   return (
     <Screen title={t('transactions.title')} back="/trips">
@@ -515,7 +513,7 @@ export function TransactionsScreen(): JSX.Element {
         onPickRange={({ from, to }) => apply({ from, to })}
       />
 
-      <Modal
+      <Sheet
         open={Boolean(selectedEntry)}
         onClose={() => setSelectedEntry(null)}
         title={t('transactions.detailTitle')}
@@ -529,7 +527,7 @@ export function TransactionsScreen(): JSX.Element {
             onDone={() => setSelectedEntry(null)}
           />
         )}
-      </Modal>
+      </Sheet>
 
       <GroupRowSheet
         row={selectedGroupRow}

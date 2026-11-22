@@ -386,8 +386,10 @@ describe('EntryPage — amount folding on phones (Task 2)', () => {
     await user.click(screen.getByTestId('key-done'));
     await screen.findByTestId('entry-fold-amount');
 
+    // Owner approved 2026-11-21 (Part 3): Vay/Nợ shares the page's form, so the amount stays folded there too.
     await user.click(screen.getByTestId('entry-tab-loan-debt'));
-    expect(screen.queryByTestId('entry-fold-amount')).toBeNull();
+    expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('120.000₫');
+    expect(screen.queryByTestId('amount-keypad')).toBeNull();
 
     await user.click(screen.getByTestId('entry-tab-expense'));
     expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('120.000₫');
