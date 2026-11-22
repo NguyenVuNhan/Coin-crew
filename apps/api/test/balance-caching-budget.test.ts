@@ -45,11 +45,11 @@ function countingEnv() {
     }
   }
 
-  function wrapStmt(stmt: D1PreparedStatement): D1PreparedStatement {
+  function wrapStmt(stmt: D1PreparedStatement, querySql: string): D1PreparedStatement {
     const proxy = new Proxy(stmt, {
       get(target, prop) {
         if (prop === 'bind') {
-          return (...values: unknown[]) => wrapStmt(target.bind(...values));
+          return (...values: unknown[]) => wrapStmt(target.bind(...values), querySql);
         }
         if (prop === 'all') {
           return async (...args: unknown[]) => {
@@ -74,6 +74,10 @@ function countingEnv() {
         }
         if (prop === 'raw') {
           return async (...args: unknown[]) => {
+            if (/^\s*(SELECT|WITH)\b/i.test(querySql)) {
+              const metaRes = await target.all();
+              recordMeta(metaRes);
+            }
             return await (target.raw as (...a: unknown[]) => Promise<unknown>)(...args);
           };
         }
@@ -93,7 +97,7 @@ function countingEnv() {
         return (q: string) => {
           counter.queries += 1;
           counter.sql.push(q);
-          return wrapStmt(target.prepare(q));
+          return wrapStmt(target.prepare(q), q);
         };
       }
       if (prop === 'batch') {
@@ -231,9 +235,13 @@ async function seedHeavyAccount(): Promise<string> {
         const id = `ptx-${w.id}-${String(i).padStart(3, '0')}`;
         const type = i % 2 === 0 ? 'income' : 'expense';
         const catId = type === 'income' ? 'cat-inc' : 'cat-exp';
+        const monthOffset = i % 20; // spread across 20 months (100 tx in 2026-11)
+        const totalMonths = 2025 * 12 + 3 + monthOffset; // 2025-04 .. 2026-11
+        const year = Math.floor(totalMonths / 12);
+        const month = String((totalMonths % 12) + 1).padStart(2, '0');
         const day = String((i % 20) + 1).padStart(2, '0');
         values.push(
-          `('${id}', '${ME}', '${w.id}', '${type}', ${w.amount}, '${catId}', NULL, NULL, NULL, '2026-11-${day}', NULL, 'tx ${i}', '${NOW}', '${NOW}')`,
+          `('${id}', '${ME}', '${w.id}', '${type}', ${w.amount}, '${catId}', NULL, NULL, NULL, '${year}-${month}-${day}', NULL, 'tx ${i}', '${NOW}', '${NOW}')`,
         );
       }
       ptxStmts.push(
@@ -361,6 +369,17 @@ describe('heavy-account D1 budget and chunked backfill (#109)', () => {
     // Warm GET /api/me/personal/wallets
     const w1 = await measure('Warm GET /api/me/personal/wallets', '/api/me/personal/wallets');
     expect(w1.res.status).toBe(200);
+    const w1Data = (await w1.res.json()) as {
+      wallets: Array<{ id: string; balance: number; entryCount: number }>;
+    };
+    const w1ById = new Map(w1Data.wallets.map((w) => [w.id, w]));
+    // 333 expenses paid by ME * 10,000 = 3,330,000 cash out per group * 30 groups = -99,900,000 on default wallet
+    expect(w1ById.get('w-vnd-1')?.balance).toBe(1_000_000 - 99_900_000);
+    expect(w1ById.get('w-vnd-1')?.entryCount).toBe(PERSONAL_TX_PER_WALLET);
+    expect(w1ById.get('w-vnd-2')?.balance).toBe(500_000);
+    expect(w1ById.get('w-vnd-3')?.balance).toBe(250_000);
+    expect(w1ById.get('w-usd-1')?.balance).toBe(1_000);
+    expect(w1ById.get('w-inv-1')?.balance).toBe(5_000_000);
     expect(w1.counter.queries).toBeLessThanOrEqual(6);
     expect(w1.counter.rowsRead).toBeLessThanOrEqual(150);
     expect(w1.counter.rowsWritten).toBe(0);
@@ -380,17 +399,24 @@ describe('heavy-account D1 budget and chunked backfill (#109)', () => {
     expect(t1.res.status).toBe(200);
     const activeTrips = (await t1.res.json()) as TripListItem[];
     expect(activeTrips).toHaveLength(ACTIVE_GROUP_COUNT);
+    for (const trip of activeTrips) {
+      // 333 * 10,000 paid - 500 * 5,000 share = +830,000 per group
+      expect(trip.myBalance).toBe(830_000);
+    }
     expect(t1.counter.queries).toBeLessThanOrEqual(4);
-    expect(t1.counter.rowsRead).toBeLessThanOrEqual(100);
+    expect(t1.counter.rowsRead).toBeLessThanOrEqual(250);
     expect(t1.counter.rowsWritten).toBe(0);
 
     // Warm GET /api/me/people/summary
     const p1 = await measure('Warm GET /api/me/people/summary', '/api/me/people/summary');
     expect(p1.res.status).toBe(200);
     const peopleSummary = (await p1.res.json()) as PeopleSummaryResponse;
-    expect(peopleSummary.people.length).toBeGreaterThanOrEqual(1);
+    expect(peopleSummary.people).toHaveLength(1);
+    expect(peopleSummary.people[0]?.key).toBe(`u:${FRIEND}`);
+    expect(peopleSummary.people[0]?.total).toBe(GROUP_COUNT * 830_000);
+    expect(peopleSummary.people[0]?.items).toHaveLength(GROUP_COUNT);
     expect(p1.counter.queries).toBeLessThanOrEqual(6);
-    expect(p1.counter.rowsRead).toBeLessThanOrEqual(250);
+    expect(p1.counter.rowsRead).toBeLessThanOrEqual(400);
     expect(p1.counter.rowsWritten).toBe(0);
 
     // POST /api/me/personal/transactions (VND)
@@ -417,6 +443,12 @@ describe('heavy-account D1 budget and chunked backfill (#109)', () => {
       '/api/me/personal/wallets',
     );
     expect(w2.res.status).toBe(200);
+    const w2Data = (await w2.res.json()) as {
+      wallets: Array<{ id: string; balance: number; entryCount: number }>;
+    };
+    const w2Default = w2Data.wallets.find((w) => w.id === 'w-vnd-1');
+    expect(w2Default?.balance).toBe(1_000_000 - 99_900_000 - 25_000);
+    expect(w2Default?.entryCount).toBe(PERSONAL_TX_PER_WALLET + 1);
     expect(w2.counter.queries).toBeLessThanOrEqual(6);
     expect(w2.counter.rowsRead).toBeLessThanOrEqual(150);
     expect(w2.counter.rowsWritten).toBe(0);
@@ -446,7 +478,7 @@ describe('heavy-account D1 budget and chunked backfill (#109)', () => {
     );
     expect(tDirty.res.status).toBe(200);
     expect(tDirty.counter.queries).toBeLessThanOrEqual(8);
-    expect(tDirty.counter.rowsRead).toBeLessThan(3000); // small fraction of 15,000-tx corpus
+    expect(tDirty.counter.rowsRead).toBeLessThan(5000); // 1 changed group (~501 tx + 1,002 shares) vs 15,000-tx corpus
 
     // Dirty GET /api/me/personal/wallets (1 changed group)
     const wDirty = await measure(
@@ -455,7 +487,7 @@ describe('heavy-account D1 budget and chunked backfill (#109)', () => {
     );
     expect(wDirty.res.status).toBe(200);
     expect(wDirty.counter.queries).toBeLessThanOrEqual(15);
-    expect(wDirty.counter.rowsRead).toBeLessThan(3000);
+    expect(wDirty.counter.rowsRead).toBeLessThan(5000);
 
     // Following warm reads return to O(1)
     const tWarm2 = await measure(
@@ -464,7 +496,7 @@ describe('heavy-account D1 budget and chunked backfill (#109)', () => {
     );
     expect(tWarm2.res.status).toBe(200);
     expect(tWarm2.counter.queries).toBeLessThanOrEqual(4);
-    expect(tWarm2.counter.rowsRead).toBeLessThanOrEqual(100);
+    expect(tWarm2.counter.rowsRead).toBeLessThanOrEqual(250);
     expect(tWarm2.counter.rowsWritten).toBe(0);
 
     const wWarm2 = await measure(
