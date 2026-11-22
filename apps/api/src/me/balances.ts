@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { pairItems, type MergePlace, type PeopleSummaryResponse, type PersonItem, type PersonKey, type PersonSummary, type Transfer, type TripPairInput } from '@cc/core';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
@@ -254,23 +254,23 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     cold.push(row);
   }
 
+  const incomplete = cold.length > MAX_COLD_REBUILDS;
   if (cold.length > 0) {
+    // Rebuild the caller's ledger first, then open groups, newest first; archived ones last.
+    const rank = (r: MyTripRow) =>
+      r.trip.preset === 'direct' && r.trip.organiserUserId === userId ? 0 : r.trip.archivedAt === null ? 1 : 2;
+    cold.sort((a, b) => rank(a) - rank(b) || b.trip.createdAt.localeCompare(a.trip.createdAt));
+    const toRebuild = cold.slice(0, MAX_COLD_REBUILDS);
+    const rebuildIds = toRebuild.map((r) => r.trip.id);
+
     const staleTripIds = db
       .select({ id: trips.id })
-      .from(participants)
-      .innerJoin(trips, eq(participants.tripId, trips.id))
-      .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
-      .where(
-        and(
-          eq(participants.userId, userId),
-          eq(participants.status, 'active'),
-          or(isNull(tripBalanceCache.tripVersion), ne(tripBalanceCache.tripVersion, trips.version)),
-        ),
-      );
+      .from(trips)
+      .where(inArray(trips.id, rebuildIds));
     const sources = await loadLedgerSourcesBatch(db, staleTripIds);
     const payloads: TripBalanceCachePayload[] = [];
 
-    for (const row of cold) {
+    for (const row of toRebuild) {
       let previous: Transfer[] | undefined;
       if (row.suggestionsJson !== null) {
         try {
@@ -399,7 +399,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
     out.push({ ...person.summary, items, total, waiting: waitingOf.get(person.summary.key) ?? [], linked });
   }
   out.sort((a, b) => Math.abs(b.total) - Math.abs(a.total) || a.name.localeCompare(b.name));
-  return { people: out, incomplete: false };
+  return { people: out, incomplete };
 }
 
 /**
