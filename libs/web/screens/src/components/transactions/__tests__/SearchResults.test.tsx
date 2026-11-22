@@ -196,11 +196,19 @@ describe('SearchResults', () => {
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 
-  it('renders nothing when copy is not ready', () => {
+  it('renders nothing when copy is not ready and not opening', () => {
     mockedUseCopyList.mockReturnValue({ opening: false, ready: false, rows: null });
 
     const { container } = renderSearchResults();
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders skeleton while copy is opening', () => {
+    mockedUseCopyList.mockReturnValue({ opening: true, ready: false, rows: null });
+
+    const { container } = renderSearchResults();
+
+    expect(container.querySelector('.fsl-skeleton-list')).toBeInTheDocument();
   });
 });

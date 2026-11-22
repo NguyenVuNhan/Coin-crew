@@ -24,7 +24,7 @@ export function BackToTop(): JSX.Element {
   };
 
   return (
-    <div className="fsl-tx-top pointer-events-none fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom,0px)+12px)] lg:bottom-6 z-20 mx-auto flex w-full max-w-[480px] justify-end px-4">
+    <div className="fsl-tx-top pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] lg:bottom-6 z-20 mx-auto flex w-full max-w-[480px] justify-end px-4">
       <button
         type="button"
         data-testid="tx-back-to-top"

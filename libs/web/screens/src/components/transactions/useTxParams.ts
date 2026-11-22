@@ -3,9 +3,12 @@ import { useSearchParams } from 'react-router';
 import { currentMonthLocal } from '@cc/web-util/localDate';
 import type { TransactionFilterValues } from '../TransactionFilters';
 
+export type TxViewMode = 'day' | 'category';
+
 export interface TxParams {
   month: string;
   filters: TransactionFilterValues;
+  viewMode: TxViewMode;
 }
 
 const FILTER_KEYS: (keyof TransactionFilterValues)[] = [
@@ -40,12 +43,20 @@ function parseGroups(raw: string | null): 'hide' | undefined {
   return raw === 'hide' ? 'hide' : undefined;
 }
 
+function parseViewMode(raw: string | null): TxViewMode {
+  return raw === 'category' ? 'category' : 'day';
+}
+
 function buildSearchParams(
   month: string,
   filters: TransactionFilterValues,
+  viewMode: TxViewMode = 'day',
 ): URLSearchParams {
   const next = new URLSearchParams();
   next.set('month', month);
+  if (viewMode === 'category') {
+    next.set('view', 'category');
+  }
   for (const key of FILTER_KEYS) {
     const val = filters[key];
     if (!val) continue;
@@ -60,16 +71,17 @@ function buildSearchParams(
   return next;
 }
 
-/** Reads and updates transaction list month and filter state in URL search params. */
+/** Reads and updates transaction list month, view mode, and filter state in URL search params. */
 export function useTxParams(): {
   month: string;
+  viewMode: TxViewMode;
   filters: TransactionFilterValues;
   hasRange: boolean;
   isSearching: boolean;
   advancedCount: number;
   hasAnyFilter: boolean;
   set(
-    next: Partial<TxParams['filters']> & { month?: string },
+    next: Partial<TxParams['filters']> & { month?: string; view?: TxViewMode },
     opts?: { replaceFilters?: boolean },
   ): void;
   clearAll(): void;
@@ -77,6 +89,7 @@ export function useTxParams(): {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const month = searchParams.get('month') || currentMonthLocal();
+  const viewMode = parseViewMode(searchParams.get('view'));
 
   const filters: TransactionFilterValues = useMemo(
     () => ({
@@ -118,10 +131,11 @@ export function useTxParams(): {
 
   const set = useCallback(
     (
-      next: Partial<TxParams['filters']> & { month?: string },
+      next: Partial<TxParams['filters']> & { month?: string; view?: TxViewMode },
       opts?: { replaceFilters?: boolean },
     ) => {
       const nextMonth = next.month || month;
+      const nextView = next.view ?? viewMode;
       const base: TransactionFilterValues = opts?.replaceFilters
         ? {}
         : { ...filters };
@@ -140,17 +154,18 @@ export function useTxParams(): {
         }
       }
 
-      setSearchParams(buildSearchParams(nextMonth, base), { replace: true });
+      setSearchParams(buildSearchParams(nextMonth, base, nextView), { replace: true });
     },
-    [month, filters, setSearchParams],
+    [month, viewMode, filters, setSearchParams],
   );
 
   const clearAll = useCallback(() => {
-    setSearchParams(buildSearchParams(month, {}), { replace: true });
+    setSearchParams(buildSearchParams(month, {}, 'day'), { replace: true });
   }, [month, setSearchParams]);
 
   return {
     month,
+    viewMode,
     filters,
     hasRange,
     isSearching,

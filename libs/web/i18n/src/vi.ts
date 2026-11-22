@@ -1442,7 +1442,14 @@ export const vi: Record<MessageKey, string> = {
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW
   'transactions.byDay': 'Theo ngày', // REVIEW
-  'transactions.byCategory': 'Theo nhóm', // REVIEW
+  'transactions.byCategory': 'Theo danh mục', // REVIEW
+  'transactions.switchToCategory': 'Đang xem theo ngày. Nhấn để xem theo danh mục', // REVIEW
+  'transactions.switchToDay': 'Đang xem theo danh mục. Nhấn để xem theo ngày', // REVIEW
+  'transactions.beforeStartDivider': 'Trước ngày bắt đầu {wallet} ({date}) · không tính vào số dư', // REVIEW
+  'transactions.spendingNetLabel': 'Chi tiêu', // REVIEW
+  'transactions.netLabel': 'Thu chi', // REVIEW
+  'transactions.backToThisMonth': 'Về tháng này', // REVIEW
+  'transactions.addEntry': 'Thêm giao dịch', // REVIEW
   'transactions.withPeople': 'Với {names}', // REVIEW
   'transactions.yourShare': 'phần của bạn', // REVIEW
   'transactions.filters': 'Bộ lọc', // REVIEW
@@ -1506,17 +1513,23 @@ export const vi: Record<MessageKey, string> = {
 
   'groupRow.yourShare': 'phần của bạn', // REVIEW
   'groupRow.youPaid': 'Bạn trả {total} · {rest} mọi người nợ bạn', // REVIEW
+  'groupRow.youPaidShort': 'Trả trước {total}', // REVIEW
   'groupRow.paidBy': '{name} trả', // REVIEW
   'groupRow.fund': 'Vào quỹ nhóm', // REVIEW
   'groupRow.payment': 'Thanh toán', // REVIEW
+  'groupRow.paymentInMeta': 'Hoàn tiền nhóm', // REVIEW
+  'groupRow.paymentOutMeta': 'Trả nợ nhóm', // REVIEW
   'groupRow.paymentTo': 'Bạn trả {name}', // REVIEW
   'groupRow.paymentFrom': '{name} trả bạn', // REVIEW
   'groupRow.pending': 'Chờ duyệt · chưa tính', // REVIEW
+  'groupRow.pendingShort': 'Chưa tính', // REVIEW
   'groupRow.openInGroup': 'Xem trong nhóm', // REVIEW
   'groupRow.sheetTitle': 'Khoản từ nhóm', // REVIEW
   'groupRow.editInGroup': 'Số tiền và người chia chỉ sửa được trong nhóm.', // REVIEW
+  'groupRow.deleteConfirmBody': 'Khoản chi này sẽ bị xóa ngay và không thể hoàn tác.', // REVIEW
   'filters.group': 'Nhóm', // REVIEW
   'filters.showGroupRows': 'Hiện khoản từ nhóm', // REVIEW
+  'filters.hidingGroupRows': 'Đã ẩn khoản từ nhóm', // REVIEW
   'settings.groupCategory': 'Danh mục cho khoản nhóm', // REVIEW
   'settings.countLoans': 'Tính khoản vay vào chi tiêu', // REVIEW
   'settings.groupCategoryHint': 'Dùng khi khoản từ nhóm chưa có danh mục riêng', // REVIEW

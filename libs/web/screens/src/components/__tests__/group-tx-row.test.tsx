@@ -93,9 +93,11 @@ describe('GroupTxRow', () => {
     expect(btn).toHaveClass('fsl-tx-row', 'fsl-tx-row--group');
     expect(btn).toHaveTextContent('Taxi sân bay');
     expect(btn).toHaveTextContent('Đà Lạt');
-    expect(btn).toHaveTextContent('Hùng paid · Techcombank');
+    expect(btn).toHaveTextContent('Hùng paid');
+    expect(btn).not.toHaveTextContent('Techcombank');
     expect(btn).toHaveTextContent('\u221280.000₫');
     expect(btn).toHaveTextContent('your share');
+    expect(btn.querySelector('.fsl-pill--accent')).toBeNull();
 
     await userEvent.click(btn);
     expect(onOpen).toHaveBeenCalledWith(row);
@@ -123,7 +125,7 @@ describe('GroupTxRow', () => {
 
     const btn = screen.getByTestId('tx-row-g-exp-me');
     expect(btn).toHaveTextContent('Lẩu tối');
-    expect(btn).toHaveTextContent('You paid 300.000₫ · 200.000₫ owed to you');
+    expect(btn).toHaveTextContent('Paid 300.000₫');
     expect(btn).toHaveTextContent('\u2212100.000₫');
     expect(btn).toHaveTextContent('your share');
   });
@@ -149,7 +151,7 @@ describe('GroupTxRow', () => {
     );
 
     const btn = screen.getByTestId('tx-row-g-exp-notin');
-    expect(btn).toHaveTextContent('You paid 200.000₫ · 200.000₫ owed to you');
+    expect(btn).toHaveTextContent('Paid 200.000₫');
     expect(btn).toHaveTextContent('\u2212200.000₫');
     expect(btn).not.toHaveTextContent('your share');
     expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-foreground');
@@ -179,7 +181,7 @@ describe('GroupTxRow', () => {
     const btn = screen.getByTestId('tx-row-g-fund-1');
     expect(btn).toHaveTextContent('Đóng quỹ tháng 11');
     expect(btn).toHaveTextContent('Cầu lông T5');
-    expect(btn).toHaveTextContent('Into the group fund · Techcombank');
+    expect(btn).toHaveTextContent('Into the group fund');
     expect(btn).toHaveTextContent('\u2212500.000₫');
     expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-danger');
     expect(btn).not.toHaveTextContent('your share');
@@ -208,7 +210,7 @@ describe('GroupTxRow', () => {
 
     const btn = screen.getByTestId('tx-row-g-pay-out');
     expect(btn).toHaveTextContent('You paid Minh');
-    expect(btn).toHaveTextContent('Payment · Techcombank');
+    expect(btn).toHaveTextContent('Đà Lạt · Group settle-up');
     expect(btn).toHaveTextContent('\u2212150.000₫');
     expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-foreground');
   });
@@ -236,7 +238,7 @@ describe('GroupTxRow', () => {
 
     const btn = screen.getByTestId('tx-row-g-pay-in');
     expect(btn).toHaveTextContent('Minh paid you');
-    expect(btn).toHaveTextContent('Payment · Techcombank');
+    expect(btn).toHaveTextContent('Đà Lạt · Group repayment');
     expect(btn).toHaveTextContent('+200.000₫');
     expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-foreground');
   });
@@ -264,7 +266,7 @@ describe('GroupTxRow', () => {
 
     const btn = screen.getByTestId('tx-row-g-pend-exp');
     expect(btn).toHaveTextContent('Vé cáp treo');
-    expect(btn).toHaveTextContent('Waiting for approval · not counted');
+    expect(btn).toHaveTextContent('Đà Lạt · Not counted');
     expect(btn).toHaveTextContent('Waiting for approval');
     const amount = btn.querySelector('.fsl-tx-row__amount');
     expect(amount).toHaveTextContent('60.000₫');
@@ -297,7 +299,7 @@ describe('GroupTxRow', () => {
 
     const btn = screen.getByTestId('tx-row-g-says-paid');
     expect(btn).toHaveTextContent('You paid Lan');
-    expect(btn).toHaveTextContent('Waiting for approval · not counted');
+    expect(btn).toHaveTextContent('Đà Lạt · Not counted');
     const amount = btn.querySelector('.fsl-tx-row__amount');
     expect(amount).toHaveTextContent('120.000₫');
     expect(amount?.textContent).not.toMatch(/^[+\u2212]/);
@@ -385,7 +387,7 @@ describe('GroupTxRow', () => {
 
     let btn = screen.getByTestId('tx-row-g-loan-borrowed');
     expect(btn).toHaveTextContent('With others');
-    expect(btn).toHaveTextContent('Minh paid · Techcombank');
+    expect(btn).toHaveTextContent('Minh paid');
     expect(btn).toHaveTextContent('+300.000₫');
     expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-foreground');
     unmount();
@@ -423,5 +425,27 @@ describe('GroupTxRow', () => {
     expect(btn).toHaveClass('fsl-tx-row--group');
     await userEvent.click(btn);
     expect(onOpenGroup).toHaveBeenCalledWith(row);
+  });
+
+  it('shows resolved wallet name when user has 2+ active wallets and omits it with 1 active wallet', () => {
+    const secondWallet: WalletDetailView = {
+      ...WALLETS[0]!,
+      id: 'w-2',
+      name: 'Tiền mặt',
+      isDefault: false,
+      sortOrder: 1,
+    };
+    const row = makeRow({ id: 'multi-w', payerName: 'Hùng' });
+
+    renderAt(
+      <GroupTxRow
+        row={row}
+        wallets={[WALLETS[0]!, secondWallet]}
+        categories={CATEGORIES}
+        settings={DEFAULT_SETTINGS}
+      />,
+    );
+
+    expect(screen.getByTestId('tx-row-g-multi-w')).toHaveTextContent('Hùng paid · Techcombank');
   });
 });

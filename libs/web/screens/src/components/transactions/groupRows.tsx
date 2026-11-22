@@ -10,7 +10,7 @@ import {
   type GroupSettingsView,
 } from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
-import type { useT } from '@cc/web-i18n';
+import { useT } from '@cc/web-i18n';
 import { cn } from '@cc/web-ui/lib/utils';
 
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
@@ -26,6 +26,16 @@ export interface RowGroup {
   title: string;
   rows: BookRow[];
   nets: { currency: CurrencyCode; net: number }[];
+  hasExcludedMovements?: boolean;
+}
+
+function hasExcludedMovementRows(rows: BookRow[]): boolean {
+  return rows.some(
+    (row) =>
+      (row.kind === 'group' && row.source === 'payment') ||
+      (row.kind === 'entry' &&
+        (row.entry.type === 'transfer_in' || row.entry.type === 'transfer_out')),
+  );
 }
 
 function rowDate(row: BookRow): string {
@@ -85,12 +95,25 @@ function computeCurrencyNets(
 
 export function CurrencyNetList({
   nets,
+  hasExcludedMovements = false,
 }: {
   nets: { currency: CurrencyCode; net: number }[];
+  hasExcludedMovements?: boolean;
 }): JSX.Element | null {
+  const t = useT();
   if (nets.length === 0) return null;
+  const showPrefix = hasExcludedMovements;
+  const prefixLabel =
+    nets.length === 1 && nets[0]!.net < 0
+      ? t('transactions.spendingNetLabel')
+      : t('transactions.netLabel');
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
+      {showPrefix && (
+        <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
+          {prefixLabel}
+        </span>
+      )}
       {nets.map(({ currency, net }) => {
         const absText = formatMoney(Math.abs(net), currency);
         const text =
@@ -136,6 +159,7 @@ export function groupRows(
         title: formatDayHeader(date, lang, currentYear),
         rows: dayRows,
         nets: computeCurrencyNets(dayRows, settings),
+        hasExcludedMovements: hasExcludedMovementRows(dayRows),
       }));
   }
 
@@ -184,6 +208,7 @@ export function groupRows(
     title: group.title,
     rows: group.rows,
     nets: computeCurrencyNets(group.rows, settings),
+    hasExcludedMovements: hasExcludedMovementRows(group.rows),
   }));
 }
 

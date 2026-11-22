@@ -115,7 +115,7 @@ function BookTotal(): JSX.Element {
             <Link
               to="/wallets"
               data-testid="book-wallets-link"
-              className="fsl-book__wallets-link inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
+              className="fsl-book__wallets-link inline-flex min-h-11 items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 -my-2 -mr-2"
             >
               <span>{t("wallets.viewAll")}</span>
               <Icon name="chevronRight" size={16} />
@@ -191,7 +191,7 @@ function BookPeople(): JSX.Element {
   }
 
   return (
-    <div className="fsl-book__list bg-card border border-border rounded-xl overflow-hidden">
+    <div className="fsl-book__list bg-card rounded-xl overflow-hidden">
       <Link
         to="/people"
         data-testid="book-people-row"
@@ -237,7 +237,6 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   const hasWallet = (list?.length ?? 0) > 0;
   const hasInvestmentWallet =
     list?.some((w) => w.kind === "investment") ?? false;
-  const currentMonth = currentMonthLocal();
   const categoriesQuery = useCategories({ enabled: hasWallet });
   const assetsQuery = useAssets({ enabled: hasInvestmentWallet });
   const groupSettingsQuery = useGroupSettings({ enabled: hasWallet });
@@ -260,7 +259,7 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
     return [...baseRows, ...grpRows].sort(compareRecentRows);
   }, [recentList.data]);
 
-  if (!hasWallet || !recentList.isSuccess) {
+  if (!hasWallet) {
     return null;
   }
 
@@ -276,14 +275,21 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
         <Link
           to="/transactions"
           data-testid="book-recent-all"
-          className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
+          className="inline-flex min-h-11 items-center gap-0.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 -my-2 -mr-2"
         >
           <span>{t("transactions.allLink")}</span>
           <Icon name="chevronRight" size={16} />
         </Link>
       </div>
-      {mergedRows.length > 0 ? (
-        <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+      {recentList.isPending ? (
+        <SkeletonList rows={3} />
+      ) : recentList.error ? (
+        <InlineError
+          error={recentList.error}
+          onRetry={() => recentList.refetch()}
+        />
+      ) : mergedRows.length > 0 ? (
+        <div className="bg-card rounded-xl overflow-hidden divide-y divide-border">
           {mergedRows.slice(0, limit).map((row) => (
             <TransactionRow
               key={
@@ -298,15 +304,18 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
               categories={categoriesQuery.data?.categories ?? []}
               assets={assetsQuery.data?.assets ?? []}
               settings={groupSettings}
+              showDate
               onOpenEntry={setSelectedEntry}
               onOpenGroup={setSelectedGroupRow}
             />
           ))}
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl px-4 py-4 text-sm text-muted-foreground">
-          {t("wallet.noEntries")}
-        </div>
+        <EmptyState
+          icon="receipt"
+          title={t("transactions.emptyTitle")}
+          body={t("transactions.emptyBody")}
+        />
       )}
       <Sheet
         open={Boolean(selectedEntry)}

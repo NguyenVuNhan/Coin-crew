@@ -322,7 +322,7 @@ describe('Group filters in Sổ chi tiêu', () => {
     expect(screen.getByTestId('tx-row-e-solo')).toBeInTheDocument();
 
     const groupsPill = screen.getByTestId('tx-filter-pill-groups');
-    expect(groupsPill).toHaveTextContent('Show group items');
+    expect(groupsPill).toHaveTextContent('Group items hidden');
 
     await user.click(screen.getByTestId('tx-clear-all'));
     expect(await screen.findByTestId('tx-row-g-g-dalat')).toBeInTheDocument();

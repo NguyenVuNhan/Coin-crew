@@ -100,6 +100,7 @@ function mockApp(me: unknown | (() => unknown), routes: Routes = {}) {
     'GET /api/trips/t-led': ledgerView(),
     'GET /api/trips/t-led/version': { version: 1 },
     'GET /api/me/personal/wallets': { wallets: [cash] },
+    'GET /api/me/personal/transactions': { rows: [], totals: [] },
     ...routes,
   });
 }
@@ -271,6 +272,62 @@ describe('Spending book (Sổ chi tiêu)', () => {
       expect(await screen.findByRole('alert')).toBeInTheDocument();
       expect(screen.queryByTestId('first-wallet-form')).not.toBeInTheDocument();
       expect(await screen.findByTestId('book-people-row')).toBeInTheDocument();
+    });
+
+    it('recent list shows skeleton while loading, InlineError with retry on failure, empty state when empty, and dates on rows', async () => {
+      let failTx = true;
+      mockApp(meOn, {
+        'GET /api/me/personal/transactions': () => {
+          if (failTx) {
+            return Response.json({ error: { code: 'INTERNAL', message: 'Failed' } }, { status: 500 });
+          }
+          return Response.json({
+            rows: [
+              {
+                kind: 'entry',
+                entry: {
+                  id: 'e-recent-1',
+                  walletId: 'w-1',
+                  type: 'expense',
+                  amount: 45000,
+                  currency: 'VND',
+                  categoryId: null,
+                  transferId: null,
+                  counterpartWalletId: null,
+                  date: '2026-11-16',
+                  time: null,
+                  note: 'Bún bò',
+                  tags: [],
+                  excludeFromReports: false,
+                  source: 'manual',
+                  beforeStart: false,
+                  createdAt: '2026-11-16T09:00:00.000Z',
+                },
+              },
+            ],
+            totals: [],
+          });
+        },
+      });
+      renderAt(<App />, { route: '/trips' });
+
+      const recent = await screen.findByTestId('book-recent');
+      expect(await within(recent).findByRole('alert')).toBeInTheDocument();
+
+      failTx = false;
+      await userEvent.click(within(recent).getByRole('button', { name: 'Try again' }));
+
+      const row = await within(recent).findByTestId('tx-row-e-recent-1');
+      expect(row).toHaveTextContent('16/11');
+      expect(row).toHaveTextContent('Bún bò');
+    });
+
+    it('recent list with zero rows shows all-time empty state copy', async () => {
+      mockApp(meOn);
+      renderAt(<App />, { route: '/trips' });
+
+      const recent = await screen.findByTestId('book-recent');
+      expect(await within(recent).findByText('No transactions yet')).toBeInTheDocument();
     });
   });
 

@@ -94,7 +94,7 @@ export function PeriodRow({
     );
   } else {
     left = (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
           data-testid="month-prev"
@@ -108,7 +108,7 @@ export function PeriodRow({
           type="button"
           data-testid="tx-month-label"
           onClick={onOpenWhen}
-          className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-foreground whitespace-nowrap hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
+          className="inline-flex min-h-11 items-center rounded-full px-1.5 text-sm font-semibold text-foreground whitespace-nowrap hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer bg-transparent border-0"
         >
           <span>{formatMonthHeading(month, lang)}</span>
         </button>
@@ -126,9 +126,9 @@ export function PeriodRow({
   }
 
   return (
-    <div className="fsl-tx-period flex items-center justify-between gap-2">
+    <div className="fsl-tx-period flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
       {left}
-      {right}
+      <div className="ml-auto shrink-0">{right}</div>
     </div>
   );
 }

@@ -177,7 +177,7 @@ describe('Spending book PC wide layout', () => {
     // #114 Part 2 (owner-approved): with a wallet, the quick-expense lists give way to Giao dịch gần đây.
     expect(within(sideCol).queryByText('Taxi')).not.toBeInTheDocument();
 
-    const rows = within(recent).getAllByTestId(/^tx-row-/);
+    const rows = await within(recent).findAllByTestId(/^tx-row-/);
     expect(rows).toHaveLength(8);
   });
 
@@ -209,7 +209,7 @@ describe('Spending book PC wide layout', () => {
     expect(total.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(people.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    const rows = within(recent).getAllByTestId(/^tx-row-/);
+    const rows = await within(recent).findAllByTestId(/^tx-row-/);
     expect(rows).toHaveLength(5);
   });
 

@@ -296,7 +296,7 @@ describe('TransactionsScreen, Detail, Filters & SpendingBook widget', () => {
     expect(within(group16).getByText('+450.000₫')).toBeInTheDocument();
   });
 
-  it('expense shows "−" and text-danger, income "+" and text-success, transfer "→ wallet" in neutral ink', async () => {
+  it('expense shows "−" and text-danger, income "+" and text-success, transfers show directional arrow in muted ink', async () => {
     mockMedia();
     setupMock();
     renderAt(<App />, { route: '/transactions?month=2026-11' });
@@ -309,19 +309,27 @@ describe('TransactionsScreen, Detail, Filters & SpendingBook widget', () => {
     const incAmt = within(incRow).getByText('+500.000₫');
     expect(incAmt).toHaveClass('text-success');
 
-    const trRow = screen.getByTestId('tx-row-e-t-out');
-    const trAmt = within(trRow).getByText('250.000₫');
-    expect(trAmt).toHaveClass('text-foreground');
-    expect(within(trRow).getByText('→ USD Wallet')).toHaveClass('text-foreground');
+    const trOutRow = screen.getByTestId('tx-row-e-t-out');
+    const trOutAmt = within(trOutRow).getByText('250.000₫');
+    expect(trOutAmt).toHaveClass('text-foreground');
+    expect(within(trOutRow).getByText('→ USD Wallet')).toHaveClass('text-muted-foreground');
+
+    const trInRow = screen.getByTestId('tx-row-e-t-in');
+    expect(within(trInRow).getByText('← Tiền mặt')).toHaveClass('text-muted-foreground');
   });
 
-  it('before-start entries carry "Trước ngày bắt đầu ví"', async () => {
+  it('before-start entries show one timeline boundary divider instead of repeating on every row', async () => {
     mockMedia();
     setupMock();
     renderAt(<App />, { route: '/transactions?month=2026-11' });
 
     const oldRow = await screen.findByTestId('tx-row-e-3');
-    expect(within(oldRow).getByText('Before wallet start date')).toBeInTheDocument();
+    const divider = screen.getByTestId('tx-before-start-divider');
+    expect(divider).toHaveTextContent(
+      'Before USD Wallet start date (01/11) · excluded from balance',
+    );
+    expect(within(oldRow).queryByText(/Before wallet start date/)).not.toBeInTheDocument();
+    expect(oldRow.querySelector('.fsl-pill--neutral')).toBeNull();
   });
 
   it('quick expenses show "with Minh" and open the existing quick expense', async () => {
@@ -436,7 +444,7 @@ describe('TransactionsScreen, Detail, Filters & SpendingBook widget', () => {
     const allLink = within(recent).getByTestId('book-recent-all');
     expect(allLink).toHaveAttribute('href', '/transactions');
 
-    const rows = within(recent).getAllByTestId(/^tx-row-/);
+    const rows = await within(recent).findAllByTestId(/^tx-row-/);
     expect(rows).toHaveLength(5);
   });
 });

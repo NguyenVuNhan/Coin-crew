@@ -10,6 +10,7 @@ import type {
 import { renderAt } from '../../../test/render';
 import {
   TransactionFilters,
+  type GroupFilterOption,
   type TransactionFilterValues,
 } from '../../TransactionFilters';
 
@@ -92,6 +93,7 @@ function renderSheet(
     categories?: CategoryView[];
     assets?: AssetView[];
     tags?: TagView[];
+    groups?: GroupFilterOption[];
   } = {},
 ) {
   const onApply = overrides.onApply ?? vi.fn();
@@ -106,6 +108,7 @@ function renderSheet(
       categories={overrides.categories ?? baseCategories}
       assets={overrides.assets ?? baseAssets}
       tags={overrides.tags ?? baseTags}
+      groups={overrides.groups}
     />,
   );
   return { onApply, onClose };
@@ -269,5 +272,25 @@ describe('TransactionFilters', () => {
       from: '2026-11-01',
       to: '2026-11-15',
     });
+  });
+
+  it('hides trade type chip when assets are empty and hides/clears group picker when groups=hide', async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    renderSheet({
+      assets: [],
+      groups: [{ id: 'trip-1', name: 'Đà Lạt' }],
+      value: { tripId: 'trip-1' },
+      onApply,
+    });
+
+    expect(screen.queryByTestId('tx-filter-type-trade')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tx-filter-row-trip')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('tx-filter-show-groups'));
+    expect(screen.queryByTestId('tx-filter-row-trip')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('tx-filter-apply'));
+    expect(onApply).toHaveBeenCalledWith({ groups: 'hide' });
   });
 });

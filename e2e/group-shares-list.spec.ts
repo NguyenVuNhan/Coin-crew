@@ -77,9 +77,7 @@ for (const variant of MATRIX) {
         await expect(recentRow).toBeVisible();
         await expect(recentRow).toContainText(`${MINUS}100.000₫`);
         await expect(recentRow).toContainText(
-          variant.lang === 'vi'
-            ? 'Bạn trả 300.000₫ · 200.000₫ mọi người nợ bạn'
-            : 'You paid 300.000₫ · 200.000₫ owed to you',
+          variant.lang === 'vi' ? 'Trả trước 300.000₫' : 'Paid 300.000₫',
         );
 
         const peopleRow = ctx.nhan.getByTestId('book-people-row');
@@ -206,7 +204,9 @@ for (const variant of MATRIX) {
         const payRow = ctx.nhan.getByTestId(`tx-row-g-${paymentId}`);
         await expect(payRow).toBeVisible();
         await expect(payRow).toContainText(variant.lang === 'vi' ? 'Minh trả bạn' : 'Minh paid you');
-        await expect(payRow).toContainText(variant.lang === 'vi' ? 'Thanh toán' : 'Payment');
+        await expect(payRow).toContainText(
+          variant.lang === 'vi' ? 'Hoàn tiền nhóm' : 'Group repayment',
+        );
         await expect(payRow).toContainText('+200.000₫');
 
         const list = await getPersonalList(ctx.nhan, { month: currentMonth(), groups: 'show' });

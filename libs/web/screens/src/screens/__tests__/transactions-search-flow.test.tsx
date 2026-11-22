@@ -409,4 +409,25 @@ describe('TransactionsScreen search flow', () => {
     await userEvent.click(screen.getByTestId('tx-clear-filters'));
     expect(await screen.findByTestId('tx-row-e-nov-coffee')).toBeInTheDocument();
   });
+
+  it('empty past month offers Back to this month CTA, and empty current month offers Add transaction CTA', async () => {
+    mockMedia();
+    copyState.status = 'ready';
+    copyState.rows = [];
+    setupApi();
+
+    const currentYm = new Date().toISOString().slice(0, 7);
+    const pastView = renderScreen('/transactions?month=2025-01');
+    const backBtn = await screen.findByTestId('tx-empty-back-current');
+    expect(backBtn).toHaveTextContent('Back to this month');
+    await userEvent.click(backBtn);
+    const params = new URLSearchParams(screen.getByTestId('search-probe').textContent ?? '');
+    expect(params.get('month')).toBe(currentYm);
+    pastView.unmount();
+
+    renderScreen(`/transactions?month=${currentYm}`);
+    const addLink = await screen.findByTestId('tx-empty-add');
+    expect(addLink).toHaveTextContent('Add transaction');
+    expect(addLink).toHaveAttribute('href', '/entries/new');
+  });
 });

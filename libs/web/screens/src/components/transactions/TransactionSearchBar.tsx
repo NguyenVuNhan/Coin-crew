@@ -26,6 +26,7 @@ export interface TransactionSearchBarProps {
   tagId: string | undefined;
   tags: TagView[];
   advancedCount: number;
+  liveSearch?: boolean;
   onSubmit(next: { q?: string; tagId?: string }): void;
   onOpenAdvanced(): void;
   draftRef?: RefObject<{ text: string } | null>;
@@ -68,6 +69,7 @@ export function TransactionSearchBar({
   tagId,
   tags,
   advancedCount,
+  liveSearch = false,
   onSubmit,
   onOpenAdvanced,
   draftRef,
@@ -75,6 +77,14 @@ export function TransactionSearchBar({
   const t = useT();
   const listboxId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDebounce = () => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  };
 
   const [text, setText] = useState(q ?? '');
   const [caret, setCaret] = useState((q ?? '').length);
@@ -132,12 +142,14 @@ export function TransactionSearchBar({
   }, [tagId, tags]);
 
   const commitSearch = () => {
+    clearDebounce();
     const trimmed = text.trim();
     setDismissed(true);
     onSubmit({ q: trimmed || undefined, tagId });
   };
 
   const pickTag = (tag: TagView) => {
+    clearDebounce();
     const remaining = hashToken
       ? removeToken(text, hashToken.start, hashToken.end)
       : text.trim();
@@ -147,16 +159,31 @@ export function TransactionSearchBar({
   };
 
   const handleRemoveTag = () => {
+    clearDebounce();
     const trimmed = text.trim();
     onSubmit({ q: trimmed || undefined, tagId: undefined });
   };
 
   const handleClearText = () => {
+    clearDebounce();
     updateText('', 0);
     setDismissed(true);
     onSubmit({ q: undefined, tagId });
     inputRef.current?.focus();
   };
+
+  useEffect(() => {
+    clearDebounce();
+    if (!liveSearch || listOpen || hashToken !== null) return;
+    const trimmed = text.trim() || undefined;
+    const current = q?.trim() || undefined;
+    if (trimmed === current) return;
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      onSubmit({ q: trimmed, tagId });
+    }, 250);
+    return clearDebounce;
+  }, [liveSearch, listOpen, hashToken, text, q, tagId, onSubmit]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;
@@ -219,91 +246,96 @@ export function TransactionSearchBar({
 
   return (
     <div className="fsl-tx-search relative w-full">
-      <InputGroup className="h-11 bg-card">
-        {selectedTagName && (
-          <InputGroupAddon align="inline-start" className="py-0 pl-1.5 pr-0">
-            <button
-              type="button"
-              data-testid="tx-search-tag-chip"
-              onClick={handleRemoveTag}
-              aria-label={t('transactions.removeFilter', {
-                label: `#${selectedTagName}`,
-              })}
-              className="inline-flex min-h-11 items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
-            >
-              <Pill tone="accent" className="gap-1 pr-1.5 py-1 text-xs whitespace-nowrap">
-                <span>#{selectedTagName}</span>
-                <Icon name="x" size={12} />
-              </Pill>
-            </button>
-          </InputGroupAddon>
-        )}
-
-        <InputGroupInput
-          ref={inputRef}
-          type="search"
-          enterKeyHint="search"
-          data-testid="tx-filter-search"
-          value={text}
-          onChange={handleChange}
-          onClick={syncCaret}
-          onKeyUp={syncCaret}
-          onKeyDown={handleKeyDown}
-          placeholder={t('transactions.searchPlaceholder')}
-          aria-label={t('transactions.searchLabel')}
-          aria-autocomplete={tags.length > 0 ? 'list' : undefined}
-          aria-expanded={listOpen}
-          aria-controls={listOpen ? listboxId : undefined}
-          aria-activedescendant={
-            activeTag ? `tx-tag-option-${activeTag.id}` : undefined
-          }
-          className="text-base md:text-base h-11 min-w-0 [&::-webkit-search-cancel-button]:appearance-none"
-        />
-
-        <InputGroupAddon align="inline-end" className="gap-0 py-0 pr-0.5">
-          {text.length > 0 && (
-            <button
-              type="button"
-              data-testid="tx-search-clear"
-              onClick={handleClearText}
-              aria-label={t('transactions.clearSearch')}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Icon name="x" size={16} />
-            </button>
+      <div className="flex items-center gap-2">
+        <InputGroup className="h-11 flex-1 min-w-0 bg-card">
+          {selectedTagName && (
+            <InputGroupAddon align="inline-start" className="py-0 pl-1.5 pr-0">
+              <button
+                type="button"
+                data-testid="tx-search-tag-chip"
+                onClick={handleRemoveTag}
+                aria-label={t('transactions.removeFilter', {
+                  label: `#${selectedTagName}`,
+                })}
+                className="inline-flex min-h-11 items-center bg-transparent border-0 p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
+              >
+                <Pill tone="accent" className="gap-1 pr-1.5 py-1 text-xs whitespace-nowrap">
+                  <span>#{selectedTagName}</span>
+                  <Icon name="x" size={12} />
+                </Pill>
+              </button>
+            </InputGroupAddon>
           )}
 
-          <button
-            type="button"
-            data-testid="tx-search-submit"
-            onClick={commitSearch}
-            aria-label={t('transactions.searchSubmit')}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors motion-reduce:transition-none">
-              <Icon name="search" size={16} />
-            </span>
-          </button>
+          <InputGroupInput
+            ref={inputRef}
+            type="search"
+            enterKeyHint="search"
+            data-testid="tx-filter-search"
+            value={text}
+            onChange={handleChange}
+            onClick={syncCaret}
+            onKeyUp={syncCaret}
+            onKeyDown={handleKeyDown}
+            placeholder={t('transactions.searchPlaceholder')}
+            aria-label={t('transactions.searchLabel')}
+            aria-autocomplete={tags.length > 0 ? 'list' : undefined}
+            aria-expanded={listOpen}
+            aria-controls={listOpen ? listboxId : undefined}
+            aria-activedescendant={
+              activeTag ? `tx-tag-option-${activeTag.id}` : undefined
+            }
+            className="text-base md:text-base h-11 min-w-0 [&::-webkit-search-cancel-button]:appearance-none"
+          />
 
-          <button
-            type="button"
-            data-testid="tx-filter-btn"
-            onClick={onOpenAdvanced}
-            aria-label={t('transactions.advancedFilters')}
-            className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Icon name="sliders" size={18} />
-            {advancedCount > 0 && (
-              <span
-                data-testid="tx-filter-count"
-                className="absolute top-1.5 right-1.5 inline-flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-semibold tabular-nums leading-none"
+          <InputGroupAddon align="inline-end" className="gap-0 py-0 pr-0.5">
+            {text.length > 0 && (
+              <button
+                type="button"
+                data-testid="tx-search-clear"
+                onClick={handleClearText}
+                aria-label={t('transactions.clearSearch')}
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {advancedCount}
-              </span>
+                <Icon name="x" size={16} />
+              </button>
             )}
-          </button>
-        </InputGroupAddon>
-      </InputGroup>
+
+            <button
+              type="button"
+              data-testid="tx-search-submit"
+              onClick={commitSearch}
+              aria-label={t('transactions.searchSubmit')}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors motion-reduce:transition-none">
+                <Icon name="search" size={16} />
+              </span>
+            </button>
+          </InputGroupAddon>
+        </InputGroup>
+
+        <button
+          type="button"
+          data-testid="tx-filter-btn"
+          onClick={() => {
+            clearDebounce();
+            onOpenAdvanced();
+          }}
+          aria-label={t('transactions.advancedFilters')}
+          className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Icon name="sliders" size={18} />
+          {advancedCount > 0 && (
+            <span
+              data-testid="tx-filter-count"
+              className="absolute -top-1 -right-1 inline-flex min-w-5 h-5 px-1 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold tabular-nums leading-none"
+            >
+              {advancedCount}
+            </span>
+          )}
+        </button>
+      </div>
 
       {listOpen && (
         <div

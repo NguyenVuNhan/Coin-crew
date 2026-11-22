@@ -88,9 +88,8 @@ for (const variant of MATRIX) {
         await ctx.nhan.goto('/transactions');
         const row = ctx.nhan.getByTestId(`tx-row-g-${expenseId}`);
         await expect(row).toBeVisible();
-        await expect(row).toContainText(
-          variant.lang === 'vi' ? 'Chờ duyệt · chưa tính' : 'Waiting for approval · not counted',
-        );
+        await expect(row).toContainText(variant.lang === 'vi' ? 'Chưa tính' : 'Not counted');
+        await expect(row).toContainText(variant.lang === 'vi' ? 'Chờ duyệt' : 'Waiting for approval');
 
         const beforeApprove = await getPersonalList(ctx.nhan, { month: currentMonth(), groups: 'show' });
         expect(beforeApprove.totals.find((t) => t.currency === 'VND')?.spent ?? 0).toBe(0);
@@ -101,9 +100,8 @@ for (const variant of MATRIX) {
         await approveTripExpense(ctx.nhan, ctx.tripId, expenseId);
         await ctx.nhan.reload();
         await expect(row).toBeVisible();
-        await expect(row).not.toContainText(
-          variant.lang === 'vi' ? 'Chờ duyệt · chưa tính' : 'Waiting for approval · not counted',
-        );
+        await expect(row).not.toContainText(variant.lang === 'vi' ? 'Chưa tính' : 'Not counted');
+        await expect(row).not.toContainText(variant.lang === 'vi' ? 'Chờ duyệt' : 'Waiting for approval');
         await expect(row).toContainText(`${MINUS}30.000₫`);
 
         const afterApprove = await getPersonalList(ctx.nhan, { month: currentMonth(), groups: 'show' });

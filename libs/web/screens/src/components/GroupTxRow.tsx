@@ -16,6 +16,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 
 import { categoryIconName } from './categoryIcon';
 import { ROW_BASE_CLASS } from './TransactionRow';
+import { formatCompactRowDate, shouldShowWalletName } from './transactions/rowHelpers';
 
 const DEFAULT_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
@@ -27,6 +28,9 @@ export interface GroupTxRowProps {
   wallets?: WalletDetailView[];
   categories?: CategoryView[];
   settings?: GroupSettingsView;
+  showDate?: boolean;
+  showBeforeStartCue?: boolean;
+  hideWalletName?: boolean;
   onOpen?: (row: GroupRow) => void;
 }
 
@@ -35,6 +39,9 @@ export function GroupTxRow({
   wallets = [],
   categories = [],
   settings = DEFAULT_SETTINGS,
+  showDate = false,
+  showBeforeStartCue = true,
+  hideWalletName = false,
   onOpen,
 }: GroupTxRowProps): JSX.Element {
   const t = useT();
@@ -56,6 +63,9 @@ export function GroupTxRow({
     : undefined;
   const walletName = resolvedWallet?.name ?? '';
   const beforeStart = resolvedWallet !== undefined && row.date < resolvedWallet.startDate;
+  const showWallet = Boolean(
+    walletName && shouldShowWalletName(wallets, resolvedWallet, hideWalletName),
+  );
 
   const counterpart = row.counterpartName ?? '';
   const title =
@@ -68,29 +78,37 @@ export function GroupTxRow({
   const tripLabel = row.isDirect ? t('transactions.typePerson') : row.tripName;
 
   const metaParts: string[] = [];
+  if (showDate) {
+    metaParts.push(formatCompactRowDate(row.date, t));
+  }
+  metaParts.push(tripLabel);
   if (row.pending) {
-    metaParts.push(t('groupRow.pending'));
+    metaParts.push(t('groupRow.pendingShort'));
   } else if (row.source === 'fund') {
     metaParts.push(t('groupRow.fund'));
-    if (walletName) metaParts.push(walletName);
   } else if (row.source === 'payment') {
-    metaParts.push(t('groupRow.payment'));
-    if (walletName) metaParts.push(walletName);
+    metaParts.push(
+      row.iPaid ? t('groupRow.paymentOutMeta') : t('groupRow.paymentInMeta'),
+    );
   } else {
     if (row.iPaid) {
       const rest = row.total - row.myShare;
       if (rest > 0) {
         metaParts.push(
-          t('groupRow.youPaid', {
+          t('groupRow.youPaidShort', {
             total: formatMoney(row.total, 'VND'),
-            rest: formatMoney(rest, 'VND'),
           }),
         );
       }
     } else if (row.payerName) {
       metaParts.push(t('groupRow.paidBy', { name: row.payerName }));
     }
-    if (walletName) metaParts.push(walletName);
+  }
+  if (showWallet) {
+    metaParts.push(walletName);
+  }
+  if (beforeStart && showBeforeStartCue) {
+    metaParts.push(t('wallet.beforeStart'));
   }
 
   const eff = groupRowEffect(row, settings);
@@ -127,45 +145,47 @@ export function GroupTxRow({
     row.total !== row.myShare &&
     !(row.link?.intent === 'loan' && row.iPaid);
 
+  const amountText = `${sign}${formatMoney(Math.abs(displayAmount), 'VND')}`;
+  const ariaLabel = [
+    title,
+    amountText,
+    showYourShare ? t('groupRow.yourShare') : '',
+    row.pending ? t('history.notApproved') : '',
+    ...metaParts,
+  ]
+    .filter(Boolean)
+    .join('. ');
+
   return (
     <button
       type="button"
       data-testid={`tx-row-g-${row.id}`}
+      aria-label={ariaLabel}
       onClick={() => onOpen?.(row)}
       className={cn(ROW_BASE_CLASS, 'fsl-tx-row--group')}
     >
       <span
         aria-hidden="true"
-        className="size-10 rounded-xl bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+        className="size-10 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
       >
         <Icon name={iconName} size={18} />
       </span>
-      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className={cn(
-              'text-sm font-semibold truncate',
-              row.pending ? 'text-muted-foreground' : 'text-foreground',
-            )}
-          >
-            {title}
-          </span>
-          {beforeStart && (
-            <Pill tone="neutral" className="text-[11px] px-2 py-0 shrink-0">
-              {t('wallet.beforeStart')}
-            </Pill>
+      <div className="min-w-0 flex-1 overflow-hidden flex flex-col gap-0.5">
+        <span
+          className={cn(
+            'text-sm font-semibold truncate',
+            row.pending ? 'text-muted-foreground' : 'text-foreground',
           )}
-          <Pill tone="accent" className="text-[11px] px-2 py-0 shrink-0">
-            {tripLabel}
-          </Pill>
-        </div>
+        >
+          {title}
+        </span>
         {metaParts.length > 0 && (
           <span className="text-xs text-muted-foreground truncate">
             {metaParts.join(' · ')}
           </span>
         )}
       </div>
-      <div className="flex flex-col items-end shrink-0">
+      <div className="flex flex-col items-end gap-0.5 shrink-0">
         <span
           className={cn(
             'fsl-tx-row__amount text-sm font-semibold tabular-nums whitespace-nowrap',
@@ -175,12 +195,12 @@ export function GroupTxRow({
           {`${sign}${formatMoney(Math.abs(displayAmount), 'VND')}`}
         </span>
         {row.pending && (
-          <Pill tone="warning" className="text-[11px] px-2 py-0 mt-0.5">
+          <Pill tone="warning" className="px-2 py-0.5 text-xs">
             {t('history.notApproved')}
           </Pill>
         )}
         {showYourShare && (
-          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
             {t('groupRow.yourShare')}
           </span>
         )}
