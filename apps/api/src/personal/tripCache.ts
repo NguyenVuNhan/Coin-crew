@@ -1,4 +1,4 @@
-import { and, eq, inArray, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { Db } from '@cc/api-db/client';
 import {
@@ -203,7 +203,7 @@ async function ensureTripCache(
               rowsJson: sql`excluded.rows_json`,
               updatedAt: sql`excluded.updated_at`,
             },
-            setWhere: lte(personalTripCache.tripVersion, sql`excluded.trip_version`),
+            setWhere: sql`(${personalTripCache.tripVersion} < excluded.trip_version OR (${personalTripCache.tripVersion} = excluded.trip_version AND ${personalTripCache.linksVersion} <= excluded.links_version))`,
           }) as unknown as BatchItem<'sqlite'>,
       );
     }

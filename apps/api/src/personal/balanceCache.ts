@@ -30,6 +30,7 @@ export function initWalletBalanceStmt(
   userId: string,
   walletId: string,
   now: string,
+  initialVnd?: { vndValue?: number | null; cashVnd?: number | null },
 ): BatchItem<'sqlite'> {
   return db
     .insert(personalWalletBalances)
@@ -38,8 +39,8 @@ export function initWalletBalanceStmt(
       userId,
       personalNet: 0,
       entryCount: 0,
-      vndValue: null,
-      cashVnd: null,
+      vndValue: initialVnd?.vndValue ?? null,
+      cashVnd: initialVnd?.cashVnd ?? null,
       holdingsJson: null,
       needsReplay: 0,
       updatedAt: now,

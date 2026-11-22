@@ -75,12 +75,15 @@ export async function backfillTripBalanceCache(
   const sources = await loadLedgerSourcesBatch(db, staleTripIds);
   const payloads: TripBalanceCachePayload[] = [];
   for (const trip of rows) {
-    const source = sources.get(trip.id) ?? { people: [], expenses: [], payments: [] };
+    const source = sources.get(trip.id);
+    if (!source) continue;
     const settled = settleLedger(trip, source);
     payloads.push(buildTripBalanceCachePayload(trip, source, settled));
   }
 
-  await upsertTripBalanceCacheBatch(db, payloads, nowIso());
+  if (payloads.length > 0) {
+    await upsertTripBalanceCacheBatch(db, payloads, nowIso());
+  }
 
   const lastTripId = rows[rows.length - 1]!.id;
   return {

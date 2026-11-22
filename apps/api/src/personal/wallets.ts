@@ -221,7 +221,11 @@ export async function loadCachedWalletsSummary(
     (r) =>
       r.balWalletId === null ||
       r.needsReplay === 1 ||
-      ((r.kind ?? 'everyday') === 'investment' && r.holdingsJson === null),
+      ((r.kind ?? 'everyday') === 'investment' && r.holdingsJson === null) ||
+      (r.currency !== 'VND' &&
+        r.startCostVnd !== null &&
+        r.startAmount !== 0 &&
+        r.cachedVndValue === null),
   );
 
   if (needsFullReplay) {
@@ -522,6 +526,10 @@ export function walletRoutes(): Hono<AppBindings> {
     }
 
     const walletId = newId();
+    const initialVndValue =
+      validated.currency !== 'VND' && validated.startCostVnd !== null && validated.startAmount !== 0
+        ? validated.startCostVnd
+        : null;
 
     try {
       await db.batch([
@@ -552,7 +560,10 @@ export function walletRoutes(): Hono<AppBindings> {
           excludeFromReports: validated.excludeFromReports ? 1 : 0,
           updatedAt: now,
         }),
-        initWalletBalanceStmt(db, user.id, walletId, now),
+        initWalletBalanceStmt(db, user.id, walletId, now, {
+          vndValue: initialVndValue,
+          cashVnd: initialVndValue,
+        }),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
@@ -611,6 +622,10 @@ export function walletRoutes(): Hono<AppBindings> {
     const isDefault = !defaultRow;
     const sortOrder = (maxRow?.maxOrder ?? -1) + 1;
     const walletId = newId();
+    const initialVndValue =
+      validated.currency !== 'VND' && validated.startCostVnd !== null && validated.startAmount !== 0
+        ? validated.startCostVnd
+        : null;
 
     try {
       await db.batch([
@@ -641,7 +656,10 @@ export function walletRoutes(): Hono<AppBindings> {
           excludeFromReports: validated.excludeFromReports ? 1 : 0,
           updatedAt: now,
         }),
-        initWalletBalanceStmt(db, user.id, walletId, now),
+        initWalletBalanceStmt(db, user.id, walletId, now, {
+          vndValue: initialVndValue,
+          cashVnd: initialVndValue,
+        }),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {

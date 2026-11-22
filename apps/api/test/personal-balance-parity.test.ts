@@ -438,4 +438,27 @@ describe('personal balance caching parity & trip cache', () => {
     expect(row?.trip_version).toBe(5);
     expect(row?.wallet_deltas_json).toBe('{"__default__":-50000}');
   });
+
+  it('returns vndValue and totalVnd immediately for a newly created rated non-VND everyday wallet', async () => {
+    const uid = 'u-parity-rated-usd';
+    const sid = await memberSid(uid, 'Rated USD');
+    await enablePersonal(uid);
+
+    const wRes = await postJson(sid, '/api/me/personal/wallets', {
+      name: 'USD Wallet',
+      currency: 'USD',
+      startAmount: 10000,
+      startDate: '2026-11-01',
+      startCostVnd: 2_500_000,
+    });
+    expect(wRes.status).toBe(201);
+    const wId = (await json<{ wallet: { id: string } }>(wRes)).wallet.id;
+
+    const wallets = await getJson<WalletDetailsResponse>(sid, '/api/me/personal/wallets');
+    const summary = await getJson<PersonalSummary>(sid, '/api/me/personal/summary');
+
+    const usdWallet = wallets.wallets.find((w) => w.id === wId);
+    expect(usdWallet?.vndValue).toBe(2_500_000);
+    expect(summary.totalVnd).toBe(2_500_000);
+  });
 });
