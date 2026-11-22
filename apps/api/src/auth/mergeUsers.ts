@@ -18,10 +18,12 @@ import {
   participants,
   paymentRefs,
   personLinks,
+  personalTripCache,
   playerRatings,
   pushSubscriptions,
   sessions,
   transactions,
+  tripBalanceCache,
   tripViews,
   trips,
   users,
@@ -95,6 +97,7 @@ function foldLedger(db: Db, fromTrip: string, intoTrip: string): BatchItem<'sqli
       ),
     db.delete(deviceParticipants).where(eq(deviceParticipants.tripId, fromTrip)),
     db.delete(tripViews).where(eq(tripViews.tripId, fromTrip)),
+    db.delete(tripBalanceCache).where(eq(tripBalanceCache.tripId, fromTrip)),
     db.delete(trips).where(eq(trips.id, fromTrip)),
   ];
 }
@@ -320,6 +323,8 @@ export async function mergeUsers(
         ),
       ),
     // 6. Rebuild the snapshot of every group A is now in. A subquery, not a list of ids (D1's 100-parameter limit).
+    // Also clear A's personal_trip_cache so merged memberships and folded ledgers recompute cleanly (B's rows cascade on users delete).
+    db.delete(personalTripCache).where(eq(personalTripCache.userId, aId)),
     db
       .update(trips)
       .set({ version: sql`${trips.version} + 1` })
