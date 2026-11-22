@@ -106,6 +106,8 @@ export const vi: Record<MessageKey, string> = {
   'trips.deleteInOneDay': 'Xóa sau 1 ngày', // REVIEW
   'trips.deleteInDays': 'Xóa sau {days} ngày', // REVIEW
   'trips.deleteToday': 'Xóa trong hôm nay', // REVIEW
+  'trips.showHidden': 'Hiện nhóm đã ẩn',
+  'trips.hideHidden': 'Ẩn nhóm đã ẩn',
 
   'account.label': 'Tài khoản',
   'account.language': 'Ngôn ngữ',

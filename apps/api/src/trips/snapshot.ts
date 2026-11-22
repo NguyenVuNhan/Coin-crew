@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, lte, ne, or, sql, type SQLWrapper } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, ne, or, sql, type SQLWrapper } from 'drizzle-orm';
 import type {
   ExpenseHistoryItem,
   ExpenseStatus,
@@ -673,6 +673,8 @@ export async function loadLedgerSourcesBatch(
   return sources;
 }
 
+export type ArchivedFilter = 'all' | 'exclude' | 'only';
+
 /** The caller's groups for the list: active, and never the personal ('direct') ledger. */
 function myGroupsWhere(userId: string) {
   return and(
@@ -682,13 +684,28 @@ function myGroupsWhere(userId: string) {
   );
 }
 
+function myGroupsListWhere(userId: string, archivedFilter: ArchivedFilter) {
+  const base = myGroupsWhere(userId);
+  if (archivedFilter === 'exclude') return and(base, isNull(trips.archivedAt));
+  if (archivedFilter === 'only') return and(base, isNotNull(trips.archivedAt));
+  return base;
+}
+
 /**
  * The caller's group list with their balance in each group, in a fixed number of queries however
  * many groups they have (D1 allows 50 per request): one for the groups and their cached balances,
  * then, only when some caches are out of date, three that load the money rows of all those groups
  * at once and one batch upsert to `trip_balance_cache`. `trip_views` is never read or written.
+ * When `archivedFilter` is `'exclude'`, excluded archived groups are filtered in SQL so neither
+ * `trip_balance_cache` nor `transactions` are scanned for them, and `archivedCount` counts them.
  */
-export async function loadTripList(db: Db, userId: string): Promise<TripListItem[]> {
+export async function loadTripListFiltered(
+  db: Db,
+  userId: string,
+  archivedFilter: ArchivedFilter = 'all',
+): Promise<{ items: TripListItem[]; archivedCount: number }> {
+  const where = myGroupsListWhere(userId, archivedFilter);
+
   const rows = await db
     .select({
       participantId: participants.id,
@@ -700,8 +717,19 @@ export async function loadTripList(db: Db, userId: string): Promise<TripListItem
     .from(participants)
     .innerJoin(trips, eq(participants.tripId, trips.id))
     .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
-    .where(myGroupsWhere(userId))
+    .where(where)
     .orderBy(desc(trips.createdAt));
+
+  let archivedCount = 0;
+  if (archivedFilter === 'exclude') {
+    const countRow = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(participants)
+      .innerJoin(trips, eq(participants.tripId, trips.id))
+      .where(and(myGroupsWhere(userId), isNotNull(trips.archivedAt)))
+      .get();
+    archivedCount = Number(countRow?.count ?? 0);
+  }
 
   const fresh = new Map<string, Record<string, number>>();
   for (const row of rows) {
@@ -723,7 +751,7 @@ export async function loadTripList(db: Db, userId: string): Promise<TripListItem
       .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
       .where(
         and(
-          myGroupsWhere(userId),
+          where,
           or(isNull(tripBalanceCache.tripVersion), ne(tripBalanceCache.tripVersion, trips.version)),
         ),
       );
@@ -772,7 +800,18 @@ export async function loadTripList(db: Db, userId: string): Promise<TripListItem
     await upsertTripBalanceCacheBatch(db, payloads, nowIso());
   }
 
-  return list;
+  if (archivedFilter === 'only') {
+    archivedCount = list.length;
+  } else if (archivedFilter === 'all') {
+    archivedCount = rows.filter((r) => r.trip.archivedAt !== null).length;
+  }
+
+  return { items: list, archivedCount };
+}
+
+export async function loadTripList(db: Db, userId: string): Promise<TripListItem[]> {
+  const { items } = await loadTripListFiltered(db, userId, 'all');
+  return items;
 }
 
 /** A settlement part marked `{"offset":true}` in metaJson (settled through the People total). */
