@@ -622,14 +622,6 @@ export function tripRoutes(): Hono<AppBindings> {
       );
     } catch (err) {
       if (!(err instanceof GuardMissError)) throw err;
-      const latest = await db
-        .select({ id: trips.id })
-        .from(trips)
-        .where(eq(trips.id, tripId))
-        .get();
-      if (!latest) {
-        throw new ApiError('NOT_FOUND', 404, 'Trip not found');
-      }
       return c.body(null, 204);
     }
 
