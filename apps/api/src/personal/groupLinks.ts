@@ -25,6 +25,7 @@ import { newId, nowIso } from '@cc/api-util/ids';
 import { walletBalance, type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { ensureFixedCategories } from './fixedCategories';
 import { computeGroupsKey, loadGroupRows, loadGroupSettings } from './groupShares';
+import { signedPersonalAmount, walletBalanceDeltaStmts } from './balanceCache';
 import { parseJson } from './validate';
 import { loadCalc } from './wallets';
 
@@ -551,6 +552,19 @@ export function groupLinkRoutes(): Hono<AppBindings> {
         syncVersion: v as unknown as number,
       }) as unknown as BatchItem<'sqlite'>,
       upsertCheck(),
+      ...walletBalanceDeltaStmts(
+        db,
+        user.id,
+        [
+          {
+            walletId: wallet.id,
+            netDelta: signedPersonalAmount(type, amount),
+            countDelta: 1,
+            needsReplay: wallet.currency !== 'VND' || wallet.kind === 'investment',
+          },
+        ],
+        now,
+      ),
     ]);
 
     return c.json({ entryId }, 200);

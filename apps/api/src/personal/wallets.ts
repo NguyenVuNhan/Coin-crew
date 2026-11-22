@@ -28,6 +28,7 @@ import {
   type WalletKind,
 } from '@cc/core';
 import { loadGroupRows, loadGroupSettings } from './groupShares';
+import { initWalletBalanceStmt, walletBalanceDeltaStmts } from './balanceCache';
 import { name1to40, parseJson, requireDate } from './validate';
 
 export interface LoadedCalcWallet extends CalcWallet {
@@ -321,6 +322,7 @@ export function walletRoutes(): Hono<AppBindings> {
           excludeFromReports: validated.excludeFromReports ? 1 : 0,
           updatedAt: now,
         }),
+        initWalletBalanceStmt(db, user.id, walletId, now),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
@@ -409,6 +411,7 @@ export function walletRoutes(): Hono<AppBindings> {
           excludeFromReports: validated.excludeFromReports ? 1 : 0,
           updatedAt: now,
         }),
+        initWalletBalanceStmt(db, user.id, walletId, now),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
@@ -760,6 +763,27 @@ export function walletRoutes(): Hono<AppBindings> {
           },
         }),
     );
+
+    const isNonVndOrInv =
+      nextCurrency !== 'VND' ||
+      nextKind === 'investment' ||
+      currentCurrency !== 'VND' ||
+      currentKind === 'investment';
+    const replayAffectingChange =
+      nextStartAmount !== currentStartAmount ||
+      nextStartDate !== currentStartDate ||
+      nextStartCostVnd !== currentStartCostVnd ||
+      nextCurrency !== currentCurrency;
+    if (isNonVndOrInv && replayAffectingChange) {
+      stmts.push(
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          [{ walletId, netDelta: 0, countDelta: 0, needsReplay: true }],
+          now,
+        ),
+      );
+    }
 
     try {
       await db.batch([stmts[0]!, ...stmts.slice(1)]);
