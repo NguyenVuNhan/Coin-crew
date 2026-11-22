@@ -502,7 +502,8 @@ export function buildPersonalSeedSql(owners, now) {
       if (date > today) return null;
       const id = pid(`e${String(++n).padStart(4, '0')}`);
       const time = fields.time ?? null;
-      const stamp = `${date}T${time ?? '12:00'}:00.000Z`;
+      const rawMs = Date.parse(`${date}T${time ?? '12:00'}:00.000Z`) - VN;
+      const stamp = new Date(Math.min(rawMs, Date.parse(now))).toISOString();
       out.push(personalInsert('personal_transactions', {
         id, user_id: uid, wallet_id: walletId, type, amount, category_id: fields.category ?? null,
         transfer_id: fields.transferId ?? null, asset_id: fields.asset ?? null, quantity: fields.quantity ?? null,
@@ -595,6 +596,10 @@ export function buildPersonalSeedSql(owners, now) {
 
 // Rows that hang off seeded trips or mock users; deleted by --reset when the table exists.
 const RESET_SQL = [
+  ['personal_group_link_tags', "DELETE FROM personal_group_link_tags WHERE tag_id LIKE 'seed-%';"],
+  ['personal_group_links', "UPDATE personal_group_links SET wallet_id = NULL WHERE wallet_id LIKE 'seed-%';"],
+  ['personal_group_links', "UPDATE personal_group_links SET category_id = NULL WHERE category_id LIKE 'seed-%';"],
+  ['personal_balance_checks', "DELETE FROM personal_balance_checks WHERE wallet_id LIKE 'seed-%';"],
   ['personal_transaction_tags', "DELETE FROM personal_transaction_tags WHERE transaction_id LIKE 'seed-%' OR tag_id LIKE 'seed-%';"],
   ['personal_transactions', "DELETE FROM personal_transactions WHERE id LIKE 'seed-%' OR wallet_id LIKE 'seed-%';"],
   ['personal_tags', "DELETE FROM personal_tags WHERE id LIKE 'seed-%';"],

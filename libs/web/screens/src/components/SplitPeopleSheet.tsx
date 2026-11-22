@@ -20,6 +20,8 @@ export interface SplitPeopleSheetProps {
   onChange(next: Set<string>): void;
   me: string | null;
   recent: readonly RecentGroup[];
+  /** Nobody chosen is allowed (the entry page's "Chia với ai?"): hides the empty-selection alert inside the sheet. */
+  optional?: boolean;
   extra?: {
     candidates: readonly { id: string; name: string; meta: string }[];
     onPickCandidate(id: string): Promise<string>;
@@ -39,6 +41,7 @@ export function SplitPeopleSheet({
   onChange,
   me,
   recent,
+  optional = false,
   extra,
 }: SplitPeopleSheetProps): JSX.Element {
   const t = useT();
@@ -302,7 +305,7 @@ export function SplitPeopleSheet({
           />
         </div>
 
-        {n === 0 && (
+        {n === 0 && !optional && (
           <p role="alert" className={cn('fsl-split-sheet__error', 'mt-2 text-sm leading-5 text-danger')}>
             {t('splitError.NO_PARTICIPANTS')}
           </p>

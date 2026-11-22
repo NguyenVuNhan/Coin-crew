@@ -142,6 +142,7 @@ describe('loadGroupRows', () => {
       pending: false,
       link: null,
       createdAt: '2026-10-10T10:00:00.000Z',
+      activityAt: expect.any(String),
     });
   });
 
@@ -237,6 +238,7 @@ describe('loadGroupRows', () => {
       pending: false,
       link: null,
       createdAt: '2026-10-10T10:00:00.000Z',
+      activityAt: expect.any(String),
     });
   });
 

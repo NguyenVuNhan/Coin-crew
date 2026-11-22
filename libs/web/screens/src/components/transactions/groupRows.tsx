@@ -1,23 +1,41 @@
 import type { JSX } from 'react';
-import { formatMoney, type CategoryView, type CurrencyCode, type ListRow } from '@cc/core';
+import {
+  formatMoney,
+  groupRowCategoryId,
+  groupRowsTotals,
+  type BookRow,
+  type CategoryView,
+  type CurrencyCode,
+  type GroupRow,
+  type GroupSettingsView,
+} from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
 import type { useT } from '@cc/web-i18n';
 import { cn } from '@cc/web-ui/lib/utils';
+
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
+
+const EMPTY_PAYBACKS = new Map<string, number>();
 
 /** Day or category groups of /transactions rows, shared by the month list and the search results. */
 export interface RowGroup {
   id: string;
   title: string;
-  rows: ListRow[];
+  rows: BookRow[];
   nets: { currency: CurrencyCode; net: number }[];
 }
 
-function rowDate(row: ListRow): string {
+function rowDate(row: BookRow): string {
   return row.kind === 'entry' ? row.entry.date : row.date;
 }
 
-export function rowKey(row: ListRow): string {
-  return row.kind === 'entry' ? row.entry.id : `person-${row.id}`;
+export function rowKey(row: BookRow): string {
+  if (row.kind === 'entry') return row.entry.id;
+  if (row.kind === 'group') return `g-${row.id}`;
+  return `person-${row.id}`;
 }
 
 function formatDayHeader(dateStr: string, lang: 'vi' | 'en', currentYear: number): string {
@@ -35,10 +53,16 @@ function formatDayHeader(dateStr: string, lang: 'vi' | 'en', currentYear: number
 }
 
 function computeCurrencyNets(
-  rows: ListRow[],
+  rows: BookRow[],
+  settings: GroupSettingsView = DEFAULT_GROUP_SETTINGS,
 ): { currency: CurrencyCode; net: number }[] {
   const totals = new Map<CurrencyCode, number>();
+  const groupRowsList: GroupRow[] = [];
   for (const row of rows) {
+    if (row.kind === 'group') {
+      groupRowsList.push(row);
+      continue;
+    }
     if (row.kind === 'person') {
       totals.set(row.currency, (totals.get(row.currency) ?? 0) - Math.abs(row.share));
       continue;
@@ -48,6 +72,12 @@ function computeCurrencyNets(
       totals.set(e.currency, (totals.get(e.currency) ?? 0) - Math.abs(e.amount));
     } else if (e.type === 'income') {
       totals.set(e.currency, (totals.get(e.currency) ?? 0) + Math.abs(e.amount));
+    }
+  }
+  if (groupRowsList.length > 0) {
+    const { spent, income } = groupRowsTotals(groupRowsList, settings, EMPTY_PAYBACKS);
+    if (spent > 0 || income > 0) {
+      totals.set('VND', (totals.get('VND') ?? 0) + income - spent);
     }
   }
   return Array.from(totals.entries()).map(([currency, net]) => ({ currency, net }));
@@ -81,17 +111,18 @@ export function CurrencyNetList({
 }
 
 export function groupRows(
-  rows: ListRow[],
+  rows: BookRow[],
   viewMode: 'day' | 'category',
   categories: CategoryView[],
   lang: 'vi' | 'en',
   t: ReturnType<typeof useT>,
   currentYear: number = Number(todayLocal().slice(0, 4)),
+  settings: GroupSettingsView = DEFAULT_GROUP_SETTINGS,
 ): RowGroup[] {
   if (rows.length === 0) return [];
 
   if (viewMode === 'day') {
-    const byDay = new Map<string, ListRow[]>();
+    const byDay = new Map<string, BookRow[]>();
     for (const row of rows) {
       const d = rowDate(row);
       const list = byDay.get(d);
@@ -104,16 +135,29 @@ export function groupRows(
         id: date,
         title: formatDayHeader(date, lang, currentYear),
         rows: dayRows,
-        nets: computeCurrencyNets(dayRows),
+        nets: computeCurrencyNets(dayRows, settings),
       }));
   }
 
   const catMap = new Map(categories.map((c) => [c.id, c.name]));
-  const byCat = new Map<string, { title: string; rows: ListRow[] }>();
+  const fallbackGroupCat = categories.find((c) => c.type === 'expense' && c.name === 'Nhóm');
+  const byCat = new Map<string, { title: string; rows: BookRow[] }>();
   for (const row of rows) {
     let key: string;
     let title: string;
-    if (row.kind === 'person') {
+    if (row.kind === 'group') {
+      const catId = groupRowCategoryId(row, settings, null);
+      if (catId && catMap.has(catId)) {
+        key = `cat:${catId}`;
+        title = catMap.get(catId)!;
+      } else if (fallbackGroupCat) {
+        key = `cat:${fallbackGroupCat.id}`;
+        title = fallbackGroupCat.name;
+      } else {
+        key = 'cat:other';
+        title = t('transactions.otherCategory');
+      }
+    } else if (row.kind === 'person') {
       key = 'person';
       title = t('transactions.typePerson');
     } else if (
@@ -139,7 +183,7 @@ export function groupRows(
     id,
     title: group.title,
     rows: group.rows,
-    nets: computeCurrencyNets(group.rows),
+    nets: computeCurrencyNets(group.rows, settings),
   }));
 }
 

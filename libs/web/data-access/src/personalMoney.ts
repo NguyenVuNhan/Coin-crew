@@ -7,8 +7,10 @@ import type {
   CreateWalletInput,
   EntriesResponse,
   EntryInput,
+  GroupLinkView,
+  GroupListQuery,
+  GroupSettingsView,
   HoldingsResponse,
-  ListQuery,
   ListResponse,
   PersonalSummary,
   TagView,
@@ -26,6 +28,8 @@ export const PERSONAL_TAGS_KEY = ['me', 'personal', 'tags'] as const;
 export const PERSONAL_LIST_KEY = ['me', 'personal', 'list'] as const;
 export const PERSONAL_ASSETS_KEY = ['me', 'personal', 'assets'] as const;
 export const PERSONAL_HOLDINGS_KEY = ['me', 'personal', 'holdings'] as const;
+export const PERSONAL_GROUP_SETTINGS_KEY = ['me', 'personal', 'group-settings'] as const;
+export const PERSONAL_BALANCE_CHECKS_KEY = ['me', 'personal', 'balance-checks'] as const;
 
 const LAST_WALLET_STORAGE_KEY = 'cc.personal.lastWallet';
 
@@ -72,6 +76,37 @@ export interface UpdateAssetInput {
 
 export interface AssetResponse {
   asset: AssetView;
+}
+
+export interface GroupSettingsResponse {
+  settings: GroupSettingsView;
+}
+
+export interface UpdateGroupSettingsInput {
+  defaultGroupCategoryId?: string | null;
+  countLoans?: boolean;
+}
+
+export interface UpdateGroupLinkInput {
+  walletId?: string | null;
+  categoryId?: string | null;
+  tagIds?: string[];
+  intent?: 'shared' | 'loan' | null;
+  excludeFromReports?: boolean;
+}
+
+export interface GroupLinkResponse {
+  link: GroupLinkView;
+}
+
+export interface BalanceChecksResponse {
+  walletIds: string[];
+}
+
+export type AnswerBalanceCheckInput = { actual: number } | { skip: true };
+
+export interface AnswerBalanceCheckResponse {
+  entryId: string | null;
 }
 
 async function invalidateMoney(queryClient: QueryClient): Promise<void> {
@@ -131,10 +166,10 @@ export function writeLastWallet(id: string | null): void {
   }
 }
 
-/** Builds a URL query string from a ListQuery, skipping undefined or empty filters. */
-export function buildListQueryString(query: ListQuery): string {
+/** Builds a URL query string from a ListQuery/GroupListQuery, skipping undefined or empty filters. */
+export function buildListQueryString(query: GroupListQuery): string {
   const params = new URLSearchParams();
-  const pairs: [keyof ListQuery, string | undefined][] = [
+  const pairs: [keyof GroupListQuery, string | undefined][] = [
     ['month', query.month],
     ['from', query.from],
     ['to', query.to],
@@ -143,7 +178,10 @@ export function buildListQueryString(query: ListQuery): string {
     ['assetId', query.assetId],
     ['tagId', query.tagId],
     ['type', query.type],
+    ['tripId', query.tripId],
+    ['groups', query.groups],
     ['q', query.q],
+    ['recent', query.recent === undefined ? undefined : String(query.recent)],
   ];
   for (const [key, value] of pairs) {
     if (value !== undefined && value !== '') {
@@ -300,11 +338,16 @@ export function useDeleteTag() {
   });
 }
 
-export function usePersonalList(query: ListQuery, opts?: { enabled?: boolean }) {
+export function usePersonalList(
+  query: GroupListQuery,
+  opts?: { enabled?: boolean; groups?: boolean },
+) {
+  const effectiveQuery: GroupListQuery =
+    opts?.groups && query.groups === undefined ? { ...query, groups: 'show' } : query;
   return useQuery<ListResponse, ApiClientError>({
-    queryKey: [...PERSONAL_LIST_KEY, query],
+    queryKey: [...PERSONAL_LIST_KEY, effectiveQuery],
     queryFn: () =>
-      apiFetch<ListResponse>(`/api/me/personal/transactions${buildListQueryString(query)}`),
+      apiFetch<ListResponse>(`/api/me/personal/transactions${buildListQueryString(effectiveQuery)}`),
     enabled: opts?.enabled ?? true,
   });
 }
@@ -433,6 +476,87 @@ export function useHoldings(walletId?: string, opts?: { enabled?: boolean }) {
     queryKey: [...PERSONAL_HOLDINGS_KEY, walletId ?? 'all'],
     queryFn: () => apiFetch<HoldingsResponse>(path),
     enabled: opts?.enabled ?? true,
+  });
+}
+
+export function useGroupSettings(opts?: { enabled?: boolean }) {
+  return useQuery<GroupSettingsResponse, ApiClientError>({
+    queryKey: PERSONAL_GROUP_SETTINGS_KEY,
+    queryFn: () => apiFetch<GroupSettingsResponse>('/api/me/personal/group-settings'),
+    enabled: opts?.enabled ?? true,
+  });
+}
+
+export function useUpdateGroupSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation<GroupSettingsResponse, ApiClientError, UpdateGroupSettingsInput>({
+    mutationFn: (input: UpdateGroupSettingsInput) =>
+      apiSend<GroupSettingsResponse>('/api/me/personal/group-settings', 'PUT', input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: PERSONAL_GROUP_SETTINGS_KEY }),
+        invalidateMoney(queryClient),
+        requestTxCopySync(),
+      ]);
+    },
+  });
+}
+
+export function useUpdateGroupLink() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    GroupLinkResponse,
+    ApiClientError,
+    { rootId: string; input: UpdateGroupLinkInput }
+  >({
+    mutationFn: ({ rootId, input }) =>
+      apiSend<GroupLinkResponse>(
+        `/api/me/personal/group-links/${encodeURIComponent(rootId)}`,
+        'PUT',
+        input,
+      ),
+    onSuccess: async () => {
+      await Promise.all([
+        invalidateMoney(queryClient),
+        queryClient.invalidateQueries({ queryKey: PERSONAL_TAGS_KEY }),
+        queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
+        requestTxCopySync(),
+      ]);
+    },
+  });
+}
+
+export function useBalanceChecks(opts?: { enabled?: boolean }) {
+  return useQuery<BalanceChecksResponse, ApiClientError>({
+    queryKey: PERSONAL_BALANCE_CHECKS_KEY,
+    queryFn: () => apiFetch<BalanceChecksResponse>('/api/me/personal/balance-checks'),
+    enabled: opts?.enabled ?? true,
+  });
+}
+
+export function useAnswerBalanceCheck() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    AnswerBalanceCheckResponse,
+    ApiClientError,
+    { walletId: string; input: AnswerBalanceCheckInput }
+  >({
+    mutationFn: ({ walletId, input }) =>
+      apiSend<AnswerBalanceCheckResponse>(
+        `/api/me/personal/wallets/${encodeURIComponent(walletId)}/balance-check`,
+        'POST',
+        input,
+      ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: PERSONAL_BALANCE_CHECKS_KEY }),
+        invalidateMoney(queryClient),
+        requestTxCopySync(),
+      ]);
+    },
   });
 }
 

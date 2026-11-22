@@ -35,6 +35,24 @@
         "value": "vietnam pro\",system-ui,sans-serif",
         "createdAt": "2026-11-18T13:09:07.072Z",
         "reason": "agent: Be Vietnam Pro is the app's shipped font (live-mode computed styles on the entry page)"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/v8-group-shares-part2.html"
+        ],
+        "createdAt": "2026-11-21T06:21:14.550Z",
+        "reason": "Reference mockup, not shipped UI: the flagged text is white annotation over the dark scrim and wireframe chips; the real components follow DESIGN.md tokens (planner)"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/v8-group-shares-part2.html"
+        ],
+        "createdAt": "2026-11-21T06:21:14.683Z",
+        "reason": "Reference mockup, not shipped UI: the flagged text is white annotation over the dark scrim and wireframe chips; the real components follow DESIGN.md tokens (planner)"
       }
     ]
   }

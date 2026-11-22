@@ -21,6 +21,7 @@ import { Card } from '@cc/web-ui/components/ui/card';
 import { Screen } from '../components/Screen';
 import { WalletForm } from '../components/WalletForm';
 import { WalletIcon } from '../components/WalletIcon';
+import { BalanceCheckPrompt } from '../components/BalanceCheckPrompt';
 
 function computePerCurrency(wallets: WalletDetailView[]): { currency: CurrencyCode; balance: number }[] {
   const map = new Map<CurrencyCode, number>();
@@ -211,6 +212,7 @@ export function WalletsScreen(): JSX.Element {
           />
         ) : (
           <>
+            <BalanceCheckPrompt />
             <Card
               data-testid="wallets-total"
               className="fsl-wallets__total rounded-xl bg-card p-5 border border-border shadow-none ring-0 flex flex-col items-start gap-2 w-full text-card-foreground"

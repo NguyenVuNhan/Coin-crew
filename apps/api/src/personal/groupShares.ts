@@ -20,6 +20,47 @@ import {
 
 const TRIP_CHUNK_SIZE = 90;
 
+function fnv1aHex(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+/** Stable hash of every active group's version and the user's latest group-link write. Two queries. */
+export async function computeGroupsKey(db: Db, userId: string): Promise<string> {
+  const [groupVersionRows, linkVerRow] = await Promise.all([
+    db
+      .select({
+        tripId: trips.id,
+        version: trips.version,
+      })
+      .from(participants)
+      .innerJoin(trips, eq(trips.id, participants.tripId))
+      .where(and(eq(participants.userId, userId), eq(participants.status, 'active')))
+      .all(),
+    db
+      .select({
+        maxSyncVersion: sql<number | null>`max(${personalGroupLinks.syncVersion})`,
+      })
+      .from(personalGroupLinks)
+      .where(eq(personalGroupLinks.userId, userId))
+      .get(),
+  ]);
+
+  const versionByTrip = new Map<string, number>();
+  for (const row of groupVersionRows) {
+    versionByTrip.set(row.tripId, row.version);
+  }
+  const pairs = Array.from(versionByTrip.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([tripId, version]) => `${tripId}:${version}`);
+  const maxLinkSyncVersion = linkVerRow?.maxSyncVersion ?? 0;
+  return fnv1aHex(`${pairs.join(',')}|${maxLinkSyncVersion}`);
+}
+
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) {
@@ -134,6 +175,7 @@ export async function loadGroupRows(
             status: transactions.status,
             metaJson: transactions.metaJson,
             createdAt: transactions.createdAt,
+            updatedAt: transactions.updatedAt,
           })
           .from(transactions)
           .where(and(...conds))
@@ -252,6 +294,7 @@ export async function loadGroupRows(
 
     const isDirect = trip.preset === 'direct';
     const link = linkByRootId.get(tx.rootId) ?? null;
+    const activityAt = tx.updatedAt > tx.createdAt ? tx.updatedAt : tx.createdAt;
 
     if (tx.type === 'expense') {
       if (tx.status !== 'approved' && tx.status !== 'pending') continue;
@@ -304,6 +347,7 @@ export async function loadGroupRows(
         pending: tx.status === 'pending',
         link,
         createdAt: tx.createdAt,
+        activityAt,
       });
     } else if (tx.type === 'income') {
       if (tx.status !== 'approved') continue;
@@ -328,6 +372,7 @@ export async function loadGroupRows(
         pending: false,
         link,
         createdAt: tx.createdAt,
+        activityAt,
       });
     } else if (tx.type === 'payment') {
       if (tx.status !== 'confirmed' && tx.status !== 'says_paid') continue;
@@ -356,6 +401,7 @@ export async function loadGroupRows(
         pending: tx.status === 'says_paid',
         link,
         createdAt: tx.createdAt,
+        activityAt,
       });
     }
   }

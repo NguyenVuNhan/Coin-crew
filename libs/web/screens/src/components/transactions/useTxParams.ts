@@ -14,6 +14,8 @@ const FILTER_KEYS: (keyof TransactionFilterValues)[] = [
   'assetId',
   'tagId',
   'type',
+  'tripId',
+  'groups',
   'q',
   'from',
   'to',
@@ -34,6 +36,10 @@ function parseType(
   return undefined;
 }
 
+function parseGroups(raw: string | null): 'hide' | undefined {
+  return raw === 'hide' ? 'hide' : undefined;
+}
+
 function buildSearchParams(
   month: string,
   filters: TransactionFilterValues,
@@ -42,7 +48,14 @@ function buildSearchParams(
   next.set('month', month);
   for (const key of FILTER_KEYS) {
     const val = filters[key];
-    if (val) next.set(key, val);
+    if (!val) continue;
+    if (key === 'tripId') {
+      next.set('trip', val);
+    } else if (key === 'groups') {
+      if (val === 'hide') next.set('groups', 'hide');
+    } else {
+      next.set(key, val);
+    }
   }
   return next;
 }
@@ -72,6 +85,8 @@ export function useTxParams(): {
       assetId: searchParams.get('assetId') || undefined,
       tagId: searchParams.get('tagId') || undefined,
       type: parseType(searchParams.get('type')),
+      tripId: searchParams.get('trip') || undefined,
+      groups: parseGroups(searchParams.get('groups')),
       q: searchParams.get('q') || undefined,
       from: searchParams.get('from') || undefined,
       to: searchParams.get('to') || undefined,
@@ -85,13 +100,17 @@ export function useTxParams(): {
     (filters.type ? 1 : 0) +
     (filters.walletId ? 1 : 0) +
     (filters.categoryId ? 1 : 0) +
-    (filters.assetId ? 1 : 0);
+    (filters.assetId ? 1 : 0) +
+    (filters.tripId ? 1 : 0) +
+    (filters.groups === 'hide' ? 1 : 0);
   const hasAnyFilter = Boolean(
     filters.walletId ||
       filters.categoryId ||
       filters.assetId ||
       filters.tagId ||
       filters.type ||
+      filters.tripId ||
+      filters.groups === 'hide' ||
       filters.q ||
       filters.from ||
       filters.to,
@@ -110,7 +129,11 @@ export function useTxParams(): {
       for (const key of FILTER_KEYS) {
         if (!(key in next)) continue;
         const val = next[key];
-        if (val === undefined || val === '') {
+        if (
+          val === undefined ||
+          val === '' ||
+          (key === 'groups' && val !== 'hide')
+        ) {
           delete base[key];
         } else {
           (base as Record<string, string>)[key] = val;

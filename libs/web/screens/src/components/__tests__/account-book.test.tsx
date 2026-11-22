@@ -67,7 +67,7 @@ describe('AccountMenu - spending book setting', () => {
       }),
     );
     await waitFor(() => expect(screen.queryByTestId('account-book')).not.toBeInTheDocument());
-    expect(screen.getByTestId('location')).toHaveTextContent(/^\/trips$/);
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/trips$/));
     expect(localStorage.getItem('personalArea')).toBe('1');
   });
 

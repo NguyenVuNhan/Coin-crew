@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { AssetView, CategoryView, EntryView, ListQuery, WalletDetailView } from '@cc/core';
+import {
+  compareBookRows,
+  type AssetView,
+  type BookRow,
+  type CategoryView,
+  type EntryView,
+  type GroupRow,
+  type GroupSettingsView,
+  type ListQuery,
+  type WalletDetailView,
+} from '@cc/core';
 import { getLang, useT } from '@cc/web-i18n';
 import { useCopyList } from '@cc/web-data-access/txCopy/hooks';
 import { todayLocal } from '@cc/web-util/localDate';
@@ -12,6 +22,7 @@ import { NoMatch } from './NoMatch';
 const PAGE_SIZE = 50;
 const ALL_FROM = '0000-01-01';
 const ALL_TO = '9999-12-31';
+const EMPTY_GROUP_ROWS: GroupRow[] = [];
 
 export interface SearchResultsProps {
   filters: TransactionFilterValues;
@@ -19,7 +30,10 @@ export interface SearchResultsProps {
   wallets: WalletDetailView[];
   categories: CategoryView[];
   assets: AssetView[];
+  groupRows?: GroupRow[];
+  settings?: GroupSettingsView;
   onOpenEntry?(entry: EntryView): void;
+  onOpenGroup?(row: GroupRow): void;
   onClear(): void;
 }
 
@@ -29,7 +43,10 @@ export function SearchResults({
   wallets,
   categories,
   assets,
+  groupRows: extraGroupRows = EMPTY_GROUP_ROWS,
+  settings,
   onOpenEntry,
+  onOpenGroup,
   onClear,
 }: SearchResultsProps): JSX.Element {
   const t = useT();
@@ -51,10 +68,17 @@ export function SearchResults({
     filters.assetId,
     filters.from,
     filters.to,
+    filters.tripId,
+    filters.groups,
     viewMode,
   ]);
 
-  const rows = copy.rows;
+  const rows = useMemo<BookRow[] | null>(() => {
+    if (!copy.rows) return null;
+    if (extraGroupRows.length === 0) return copy.rows;
+    const base = copy.rows.filter((r) => r.kind !== 'person');
+    return [...base, ...extraGroupRows].sort(compareBookRows);
+  }, [copy.rows, extraGroupRows]);
   const totalRows = rows?.length ?? 0;
   const hasMore = copy.ready && visibleCount < totalRows;
 
@@ -81,8 +105,8 @@ export function SearchResults({
 
   const currentYear = Number(todayLocal().slice(0, 4));
   const grouped = useMemo(
-    () => groupRows(visibleRows, viewMode, categories, lang, t, currentYear),
-    [visibleRows, viewMode, categories, lang, t, currentYear],
+    () => groupRows(visibleRows, viewMode, categories, lang, t, currentYear, settings),
+    [visibleRows, viewMode, categories, lang, t, currentYear, settings],
   );
 
   if (!copy.ready || !rows) {
@@ -115,7 +139,9 @@ export function SearchResults({
                 wallets={wallets}
                 categories={categories}
                 assets={assets}
+                settings={settings}
                 onOpenEntry={onOpenEntry}
+                onOpenGroup={onOpenGroup}
               />
             ))}
           </div>

@@ -108,6 +108,10 @@ Remove "Khoản chi của bạn" and "Các khoản đã trả của bạn" (the 
 
 Extend `TransactionRow` for group rows: category icon, title (expense name), the group's name as a small label, a meta line that says the rest ("Bạn trả 300.000₫ · 200.000₫ mọi người nợ bạn", "Hùng trả", "Vào quỹ nhóm · Techcombank", "Thanh toán · Techcombank"), amount = your share with − / colour by type, "phần của bạn" under it when it differs from the bill; movements in neutral ink; pending rows at reduced emphasis with "Chờ duyệt · chưa tính", still AA contrast. Keep `fsl-tx-row*` classes.
 
+### 6.2a Approved look (owner, 2026-11-21)
+
+Mockup `docs/superpowers/mockups/v8-group-shares-part2.html`, approved as is: the group name is a Jade Mist pill after the title ("Với người khác" for quick expenses); payments are Ink with ⇄, never Leaf or Lychee; waiting rows carry the Turmeric "Chờ duyệt" pill under the amount and keep AA text; the row sheet is the `Sheet` wrapper (bottom on phones, dialog from 640px) with the outcome sentence, "Số tiền và người chia chỉ sửa được trong nhóm.", then category, wallet, tags, the report switch and a secondary "Xem trong nhóm" button, each field saving on its own; filters add "Nhóm" and "Hiện khoản từ nhóm"; the gear menu adds "Danh mục cho khoản nhóm" and "Tính khoản vay vào chi tiêu" with one muted line each; the balance check is a card at the top of the wallets page with "Nhập số dư thật" / "Bỏ qua", and its sheet shows the difference before saving.
+
 ### 6.3 Filters (my calls)
 
 The `/transactions` filter sheet gains "Nhóm" (pick one group, the direct group listed as "Với người khác") and a switch "Hiện khoản từ nhóm" (on by default). Active filters show as removable pills like the others. Search covers group rows by name, group name and the owner's note/tags.
@@ -125,6 +129,12 @@ Mocks: `entry-with-person.html` (A/B/C), `entry-c-fewer-taps.html`, `entry-c-spl
 - The "Người trả" row is replaced by one sentence, "Minh nợ bạn 50.000₫", with a ⇄ chip that flips it to "Bạn nợ Minh" (another person as payer). With several people the sentence names each.
 - Note becomes optional; Ngày before Ghi chú; "Chia cho" → "Với ai"; drop "trong nhóm" and the "Bánh tráng nướng, chợ đêm" placeholder (issue comment).
 - Saved with `intent = 'loan'` (section 5).
+
+**Old quick expenses stay as they are (owner, 2026-11-21: "this will break the old expenses").** The "only the people in Với ai" rule is a default for **new** Vay/Nợ entries, nothing more:
+- Stored shares are never rewritten. An old quick expense that split 50k between you and Minh keeps you at 25k; with `intent` null it counts as a shared expense (your share as spending), exactly as today.
+- **Editing** an old one starts from its stored shares (as `ExpenseForm` already does: `included = expense.shares`). Because the "Với ai" row hides you today, the form must show you as a **"Bạn"** chip whenever you are in the split, so the owner can see it and take themselves out. Saving an edit keeps `intent` as it was (null stays null) unless the owner flips it with ⇄.
+- The new default (you not in the split) applies only to the Sổ chi tiêu entry page's Vay/Nợ tab when creating. The group-only quick-expense page (`isDirect` without the embed) keeps today's default of you included.
+- Tests: an old 50/50 quick expense shows −25k "phần của bạn" before and after Part 3; opening it on Vay/Nợ shows "Bạn" and Minh chips; saving without changes keeps the shares and `intent` null.
 
 **Thu** is unchanged.
 

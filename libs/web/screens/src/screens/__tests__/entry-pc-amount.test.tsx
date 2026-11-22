@@ -10,6 +10,7 @@ import { mockApi } from '../../test/render';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { EntryPage } from '../EntryPage';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
+import { pickPeople } from '../../test/entry';
 
 function mockMousePointerMatchMedia() {
   vi.stubGlobal(
@@ -166,9 +167,9 @@ describe('EntryPage PC (mouse-pointer) amount field', () => {
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
     expect(screen.queryByTestId('amount-suggestions')).toBeNull();
 
-    // Switch to Vay/Nợ
+    // Switch to Vay/Nợ (owner approved 2026-11-21, Part 3: the loan form uses the page's own amount field)
     await user.click(screen.getByTestId('entry-tab-loan-debt'));
-    expect(await screen.findByTestId('loan-debt-with-row')).toBeInTheDocument();
+    expect(await screen.findByTestId('entry-people')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Số tiền' })).toBeInTheDocument();
     expect(screen.queryByTestId('amount-keypad')).toBeNull();
     expect(screen.queryByTestId('amount-suggestions')).toBeNull();
@@ -308,21 +309,23 @@ describe('EntryPage PC (mouse-pointer) amount field', () => {
         posted.push(JSON.parse(String(init?.body ?? '{}')));
         return Response.json({ expenseId: 'exp-1' }, { status: 201 });
       },
+      'GET /api/me/personal/group-settings': {
+        settings: { defaultGroupCategoryId: null, countLoans: false },
+      },
+      'PUT /api/me/personal/group-links/exp-1': () =>
+        Response.json({
+          link: { walletId: 'w-vnd', categoryId: null, tagIds: [], intent: 'loan', excludeFromReports: false },
+        }),
     });
 
-    const { container } = renderEntryPage('/entries/new?type=loan-debt');
+    renderEntryPage('/entries/new?type=loan-debt');
     const amountInput = await screen.findByRole('textbox', { name: 'Số tiền' });
     expect(amountInput).toHaveFocus();
 
     await user.type(amountInput, '50000');
 
-    // Pick Minh in "Với ai"
-    await user.click(screen.getByTestId('loan-debt-with-row'));
-    await user.click(await screen.findByRole('button', { name: /Minh/ }));
-    await user.click(screen.getByRole('button', { name: 'Xong' }));
-
-    const noteInput = container.querySelector('#expense-what-for') as HTMLInputElement;
-    await user.type(noteInput, 'Cà phê');
+    // Pick Minh in "Với ai?" (owner approved 2026-11-21, Part 3: chips replace the row; the note is optional)
+    await pickPeople(user, ['Minh']);
 
     await user.click(screen.getByTestId('entry-save-btn'));
 

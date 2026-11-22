@@ -27,6 +27,7 @@ export interface HomeProps {
   summary?: ReactNode;
   wideMain?: ReactNode;
   rightExtra?: ReactNode;
+  book?: boolean;
 }
 
 export function Home({
@@ -39,6 +40,7 @@ export function Home({
   ),
   wideMain,
   rightExtra,
+  book = false,
 }: HomeProps = {}): JSX.Element {
   const t = useT();
   const navigate = useNavigate();
@@ -107,7 +109,7 @@ export function Home({
     ? { section: 'home' as const, addHref: `/t/${ledger.tripId}/expenses/new` }
     : undefined;
 
-  const groupLists =
+  const groupLists = book ? null : (
     ledgerLoading || ledgerViewLoading ? (
       <SkeletonList rows={4} />
     ) : ledgerView ? (
@@ -126,7 +128,8 @@ export function Home({
           hintable={false}
         />
       </>
-    ) : null;
+    ) : null
+  );
 
   return (
     <Screen
@@ -153,7 +156,7 @@ export function Home({
             right={
               selection && ledgerView ? (
                 <DetailsPanel view={ledgerView} selection={selection} onClose={closeDetails} />
-              ) : wideMain !== undefined ? (
+              ) : wideMain !== undefined && !book ? (
                 <>
                   {summary}
                   {groupLists}
@@ -169,25 +172,29 @@ export function Home({
           <InstallPill />
           <PushPill />
           {summary}
-          <TripTabs activeTab={activeTab} onChange={setActiveTab} />
-          {ledgerLoading || ledgerViewLoading ? (
-            <SkeletonList rows={3} />
-          ) : ledgerView ? (
-            activeTab === 'expenses' ? (
-              <ExpenseList
-                view={ledgerView}
-                onOpen={handleOpenExpense}
-                onOpenIncome={handleOpenIncome}
-                hintable={true}
-              />
-            ) : (
-              <PaymentsList
-                view={ledgerView}
-                onOpen={handleOpenPayment}
-                hintable={true}
-              />
-            )
-          ) : null}
+          {!book && (
+            <>
+              <TripTabs activeTab={activeTab} onChange={setActiveTab} />
+              {ledgerLoading || ledgerViewLoading ? (
+                <SkeletonList rows={3} />
+              ) : ledgerView ? (
+                activeTab === 'expenses' ? (
+                  <ExpenseList
+                    view={ledgerView}
+                    onOpen={handleOpenExpense}
+                    onOpenIncome={handleOpenIncome}
+                    hintable={true}
+                  />
+                ) : (
+                  <PaymentsList
+                    view={ledgerView}
+                    onOpen={handleOpenPayment}
+                    hintable={true}
+                  />
+                )
+              ) : null}
+            </>
+          )}
         </div>
       )}
     </Screen>

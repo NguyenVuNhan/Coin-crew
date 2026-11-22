@@ -273,10 +273,13 @@ describe('EntryPage — category folding on phones (Task 3)', () => {
     expect(within(grid).queryByRole('button', { pressed: true })).toBeNull();
     expect(screen.queryByTestId('entry-fold-details')).toBeNull();
 
+    // Owner approved 2026-11-21 (Part 3): Vay/Nợ shares the page's form. The amount stays folded, there is no
+    // category on a loan, and the details line is there.
     await user.click(screen.getByTestId('entry-tab-loan-debt'));
-    expect(screen.queryByTestId('entry-fold-amount')).toBeNull();
+    expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('120.000₫');
     expect(screen.queryByTestId('entry-fold-category')).toBeNull();
-    expect(screen.queryByTestId('entry-fold-details')).toBeNull();
+    expect(screen.queryByTestId('category-grid')).toBeNull();
+    expect(screen.getByTestId('entry-fold-details')).toBeInTheDocument();
   });
 
   it('keeps category grid open with error state when saving expense with no category', async () => {

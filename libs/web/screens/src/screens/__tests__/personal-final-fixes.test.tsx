@@ -302,18 +302,18 @@ describe('Personal money final fixes', () => {
       });
     };
 
-    // Wait for initial month 2026-11 to settle
+    // Wait for initial month 2026-11 to settle and observer to attach
     await waitFor(() => expect(txUrls.some((u) => u.includes('month=2026-11'))).toBe(true));
-    await act(async () => {});
+    await waitFor(() => expect(observerCallback).not.toBeNull());
 
     // Trigger auto-load: 2026-10, 2026-09, and at 3 trailing empty months (2026-11, 2026-10, 2026-09) it must stop
     await triggerIntersection();
     await waitFor(() => expect(txUrls.some((u) => u.includes('month=2026-10'))).toBe(true));
-    await act(async () => {});
+    await waitFor(() => expect(observerCallback).not.toBeNull());
 
     await triggerIntersection();
     await waitFor(() => expect(txUrls.some((u) => u.includes('month=2026-09'))).toBe(true));
-    await act(async () => {});
+    await waitFor(() => expect(observerCallback).toBeNull());
 
     // Now 3 consecutive empty months are loaded -> further intersections must NOT auto-load 2026-08
     await triggerIntersection();
