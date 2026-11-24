@@ -118,4 +118,46 @@ describe('GroupRowSheet with a list reload landing late', () => {
     expect(screen.getByTestId('group-row-field-tags')).toHaveTextContent('#dalat');
     expect(screen.getByTestId('group-row-field-tags')).toHaveAttribute('aria-expanded', 'true');
   });
+
+  it('does not collapse a newly opened Tags field when an earlier category save settles', async () => {
+    const user = userEvent.setup();
+    let resolveCategoryPut!: (res: Response) => void;
+    mockApi({
+      'GET /api/me/personal/wallets': { wallets: [wallet] },
+      'GET /api/me/personal/categories': categories,
+      'GET /api/me/personal/tags': { tags },
+      'GET /api/me/personal/group-settings': {
+        settings: { defaultGroupCategoryId: null, countLoans: false },
+      },
+      'PUT /api/me/personal/group-links/root-1': () =>
+        new Promise<Response>((resolve) => {
+          resolveCategoryPut = resolve;
+        }),
+    });
+
+    renderAt(<GroupRowSheet row={row(null)} open onClose={vi.fn()} />);
+    await screen.findByTestId('group-row-sheet');
+
+    await user.click(screen.getByTestId('group-row-field-category'));
+    await user.click(await screen.findByTestId('category-tile-cat-food'));
+    await user.click(screen.getByTestId('group-row-field-tags'));
+    expect(await screen.findByTestId('tag-input-field')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveCategoryPut(
+        Response.json({
+          link: {
+            walletId: null,
+            categoryId: 'cat-food',
+            tagIds: [],
+            intent: null,
+            excludeFromReports: false,
+          },
+        }),
+      );
+    });
+
+    expect(screen.getByTestId('group-row-field-tags')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('tag-input-field')).toBeInTheDocument();
+  });
 });

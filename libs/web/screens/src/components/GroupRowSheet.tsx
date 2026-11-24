@@ -273,11 +273,15 @@ export function GroupRowSheet({
   };
 
   const handleCategoryChange = (categoryId: string) => {
-    saveField({ categoryId }, { categoryId }, () => setExpanded(null));
+    saveField({ categoryId }, { categoryId }, () =>
+      setExpanded((curr) => (curr === 'category' ? null : curr)),
+    );
   };
 
   const handleWalletChange = (walletId: string) => {
-    saveField({ walletId }, { walletId }, () => setExpanded(null));
+    saveField({ walletId }, { walletId }, () =>
+      setExpanded((curr) => (curr === 'wallet' ? null : curr)),
+    );
   };
 
   const handleTagsChange = (nextNames: string[]) => {
