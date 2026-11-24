@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import type { Db } from '@cc/api-db/client';
 import {
   participants,
@@ -39,7 +39,13 @@ export async function computeGroupsKey(db: Db, userId: string): Promise<string> 
       })
       .from(participants)
       .innerJoin(trips, eq(trips.id, participants.tripId))
-      .where(and(eq(participants.userId, userId), eq(participants.status, 'active')))
+      .where(
+        and(
+          eq(participants.userId, userId),
+          eq(participants.status, 'active'),
+          isNull(trips.deleteAfter),
+        ),
+      )
       .all(),
     db
       .select({
@@ -105,7 +111,13 @@ export async function loadGroupRows(
     })
     .from(participants)
     .innerJoin(trips, eq(trips.id, participants.tripId))
-    .where(and(eq(participants.userId, userId), eq(participants.status, 'active')))
+    .where(
+      and(
+        eq(participants.userId, userId),
+        eq(participants.status, 'active'),
+        isNull(trips.deleteAfter),
+      ),
+    )
     .all();
 
   if (mine.length === 0) return [];

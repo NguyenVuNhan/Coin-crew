@@ -285,7 +285,7 @@ export async function loadPeopleSummary(db: Db, userId: string): Promise<PeopleS
         otherPid: pid,
         suggestions: snapshot.suggestions,
         oldestOpenAt: oldestShared(snapshot, me, pid) ?? trip.createdAt,
-        writable: trip.archivedAt === null,
+        writable: true,
       });
     }
   }
@@ -522,9 +522,9 @@ export async function loadPersonItems(db: Db, userId: string, key: PersonKey): P
         otherPid: person.id,
         suggestions: snapshot.suggestions,
         oldestOpenAt: oldestShared(snapshot, row.myPid, person.id) ?? trip.createdAt,
-        writable: trip.archivedAt === null,
+        writable: true,
       }]);
-      if (item) items.push({ ...item, writable: trip.archivedAt === null, ownerPid: row.myPid, otherPid: person.id, personPid: person.id });
+      if (item) items.push({ ...item, writable: true, ownerPid: row.myPid, otherPid: person.id, personPid: person.id });
     }
   }
   queries += rebuilt * REBUILD_COST;

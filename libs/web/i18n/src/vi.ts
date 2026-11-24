@@ -103,6 +103,9 @@ export const vi: Record<MessageKey, string> = {
   'trips.youOwe': 'Bạn cần trả',
   'trips.settled': 'Đã thanh toán xong',
   'trips.archived': 'đã lưu trữ',
+  'trips.deleteInOneDay': 'Xóa sau 1 ngày', // REVIEW
+  'trips.deleteInDays': 'Xóa sau {days} ngày', // REVIEW
+  'trips.deleteToday': 'Xóa trong hôm nay', // REVIEW
 
   'account.label': 'Tài khoản',
   'account.language': 'Ngôn ngữ',
@@ -346,6 +349,10 @@ export const vi: Record<MessageKey, string> = {
   'trip.viewOnly': 'Chỉ xem',
   'trip.you': 'Bạn',
   'trip.allSettled': 'Mọi người đã thanh toán xong.',
+  'trip.deleteBannerHeadlineOneDay': 'Nhóm sẽ bị xóa vĩnh viễn sau 1 ngày ({date})', // REVIEW
+  'trip.deleteBannerHeadline': 'Nhóm sẽ bị xóa vĩnh viễn sau {days} ngày ({date})', // REVIEW
+  'trip.deleteBannerHeadlineToday': 'Xóa trong hôm nay', // REVIEW
+  'trip.deleteBannerBookNote': 'Giao dịch đã ngừng tính vào Sổ chi tiêu.', // REVIEW
 
   'expense.youPaid': 'Bạn đã trả',
   'expense.personPaid': '{name} đã trả',
@@ -652,6 +659,18 @@ export const vi: Record<MessageKey, string> = {
   'settings.language': 'Ngôn ngữ',
   'settings.dangerZone': 'Vùng nguy hiểm',
   'settings.archiveHint': 'Không ai thay đổi được nhóm đã lưu trữ cho đến khi trưởng nhóm bỏ lưu trữ.',
+  'settings.deleteGroup': 'Xóa nhóm', // REVIEW
+  'settings.deleteGroupHint': 'Bắt đầu chờ 30 ngày trước khi xóa vĩnh viễn. Bạn có thể hủy bất cứ lúc nào.', // REVIEW
+  'settings.deleteSheetTitle': 'Xóa nhóm "{group}"?', // REVIEW
+  'settings.deleteWarnBook': 'Các giao dịch trong nhóm này sẽ ngừng tính vào Sổ chi tiêu ngay lập tức.', // REVIEW
+  'settings.deleteWarnWait': 'Nhóm sẽ bị xóa vĩnh viễn vào {date}. Bạn có thể hủy bất cứ lúc nào trước ngày này.', // REVIEW
+  'settings.deleteWarnPeople': 'Số dư trong mục Mọi người vẫn giữ trong 30 ngày và sẽ mất khi nhóm bị xóa hẳn.', // REVIEW
+  'settings.deleteWarnUnsettled': 'Nhóm này vẫn còn khoản chưa thanh toán xong. Các số dư này — cùng các lần thanh toán trước đó trong mục Mọi người — sẽ bị xóa hẳn sau 30 ngày.', // REVIEW
+  'settings.deleteConfirm': 'Xóa sau 30 ngày', // REVIEW
+  'settings.cancelDelete': 'Hủy xóa nhóm', // REVIEW
+  'settings.cancelDeleteShort': 'Hủy xóa', // REVIEW
+  'settings.cancelDeleteHint': 'Đưa nhóm về trạng thái đã lưu trữ và khôi phục giao dịch trong Sổ chi tiêu.', // REVIEW
+  'settings.cancelDeleteSuccess': 'Đã hủy xóa nhóm. Nhóm đã quay lại trạng thái lưu trữ.', // REVIEW
   'settings.leave': 'Rời nhóm',
   'settings.leaveHint': 'Nhóm sẽ không còn trong danh sách của bạn. Các khoản chi trước đây vẫn được giữ, và bạn có thể vào lại bằng link nhóm.',
   'settings.leaveConfirm': 'Rời {group}?',
@@ -732,6 +751,8 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.links_regenerated': 'đã tạo link mới',
   'activity.action.trip_archived': 'đã lưu trữ nhóm',
   'activity.action.trip_unarchived': 'đã bỏ lưu trữ nhóm',
+  'activity.action.trip_delete_scheduled': 'đã hẹn xóa nhóm', // REVIEW
+  'activity.action.trip_delete_cancelled': 'đã hủy xóa nhóm', // REVIEW
   'activity.action.fewest_changed': 'đã đổi cài đặt Ít lần chuyển khoản nhất',
   'activity.action.round_transfers_changed': 'đã đổi cài đặt làm tròn số tiền chuyển khoản',
   'activity.action.membership_requested': 'đã xin trở thành thành viên',

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { TripListItem } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { deleteDaysLeft } from '@cc/web-util/time';
 import { useMe } from '@cc/web-data-access/hooks';
 import { apiFetch } from '@cc/web-data-access/client';
 import { Screen } from '../components/Screen';
@@ -13,6 +14,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { AccountMenu } from '../components/AccountMenu';
 import { Button } from '@cc/web-ui/components/Button';
+import { Pill } from '@cc/web-ui/components/Pill';
 import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { MergeRequestBanner } from '../components/MergeRequestBanner';
 import { ProposalBanner } from '../components/ProposalBanner';
@@ -167,6 +169,19 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
                         <span className="fsl-my-trips__archived text-muted-foreground"> · {t('trips.archived')}</span>
                       )}
                     </span>
+                    {trip.archived && trip.deleteAfter && (() => {
+                      const days = deleteDaysLeft(trip.deleteAfter);
+                      return (
+                        <Pill tone="danger" className="fsl-my-trips__delete-flag mt-1 w-fit inline-flex items-center gap-1">
+                          <Icon name="clock" size={12} />
+                          {days <= 0
+                            ? t('trips.deleteToday')
+                            : days === 1
+                              ? t('trips.deleteInOneDay')
+                              : t('trips.deleteInDays', { days })}
+                        </Pill>
+                      );
+                    })()}
                   </div>
                   <Icon
                     name="chevronRight"

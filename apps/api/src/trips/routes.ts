@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lt, ne, or } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type {
   ActivityAction,
@@ -19,19 +19,25 @@ import {
   activity as activityTable,
   bankDetails,
   participants,
+  pushReminders,
   trips,
   users,
 } from '@cc/api-db/schema';
 import { getSessionUser, requireUser } from '@cc/api-auth/session';
 import { assertWritable, resolveActor } from '@cc/api-auth/actor';
 import { ensure } from '@cc/api-auth/guard';
-import { commitTripWrite } from '@cc/api-db/commit';
+import { commitTripWrite, guardedTripWrite } from '@cc/api-db/commit';
 import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, newToken, nowIso } from '@cc/api-util/ids';
 import { loadRecentPeople } from '../me/people';
 import { actorName as actorNameOf, loadActivityNames } from '@cc/api-db/activityNames';
 import { getSnapshot, loadTripList } from './snapshot';
 import { toTripView } from './view';
+
+const DELETE_GRACE_DAYS = 30;
+const MS_PER_DAY = 86_400_000;
+
+class GuardMissError extends Error {}
 
 async function parseJson<T>(c: Context): Promise<T> {
   try {
@@ -456,8 +462,11 @@ export function tripRoutes(): Hono<AppBindings> {
       .update(trips)
       .set({ archivedAt: now })
       .where(eq(trips.id, tripId));
+    const clearReminders = db
+      .delete(pushReminders)
+      .where(and(eq(pushReminders.tripId, tripId), isNull(pushReminders.sentAt)));
 
-    await commitTripWrite(db, tripId, [updateQuery], {
+    await commitTripWrite(db, tripId, [updateQuery, clearReminders], {
       action: 'trip_archived',
       actorParticipantId: actor.participantId,
       actorUserId: actor.userId,
@@ -474,20 +483,147 @@ export function tripRoutes(): Hono<AppBindings> {
     const actor = await resolveActor(c, tripId);
     ensure(actor, 'unarchive');
     if (!actor.trip.archivedAt) return c.body(null, 204);
+    if (actor.trip.deleteAfter) {
+      throw new ApiError('CONFLICT', 409, 'Cancel deletion before unarchiving this group.');
+    }
 
     const db = getDb(c.env);
-    const updateQuery = db
+    const guard = db
       .update(trips)
       .set({ archivedAt: null })
-      .where(eq(trips.id, tripId));
+      .where(and(eq(trips.id, tripId), isNotNull(trips.archivedAt), isNull(trips.deleteAfter)));
 
-    await commitTripWrite(db, tripId, [updateQuery], {
-      action: 'trip_unarchived',
-      actorParticipantId: actor.participantId,
-      actorUserId: actor.userId,
-      actorDevice: actor.deviceHash,
-      details: {},
-    });
+    try {
+      await guardedTripWrite(
+        db,
+        tripId,
+        guard,
+        [],
+        {
+          action: 'trip_unarchived',
+          actorParticipantId: actor.participantId,
+          actorUserId: actor.userId,
+          actorDevice: actor.deviceHash,
+          details: {},
+        },
+        () => new GuardMissError(),
+      );
+    } catch (err) {
+      if (!(err instanceof GuardMissError)) throw err;
+      const latest = await db
+        .select({ archivedAt: trips.archivedAt, deleteAfter: trips.deleteAfter })
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .get();
+      if (latest && latest.deleteAfter === null && latest.archivedAt === null) {
+        return c.body(null, 204);
+      }
+      throw new ApiError('CONFLICT', 409, 'Cancel deletion before unarchiving this group.');
+    }
+
+    return c.body(null, 204);
+  });
+
+  // POST /trips/:id/delete: schedule 30-day delayed permanent deletion of an archived group.
+  app.post('/trips/:id/delete', async (c) => {
+    const tripId = c.req.param('id');
+    const actor = await resolveActor(c, tripId);
+    if (actor.trip.preset === 'direct') {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+    ensure(actor, 'delete_group');
+    if (!actor.trip.archivedAt) {
+      throw new ApiError('CONFLICT', 409, 'Archive the group before deleting it.');
+    }
+    if (actor.trip.deleteAfter) {
+      return c.json({ deleteAfter: actor.trip.deleteAfter }, 200);
+    }
+
+    const deleteAfter = new Date(Date.now() + DELETE_GRACE_DAYS * MS_PER_DAY).toISOString();
+    const db = getDb(c.env);
+    const guard = db
+      .update(trips)
+      .set({ deleteAfter })
+      .where(
+        and(
+          eq(trips.id, tripId),
+          isNotNull(trips.archivedAt),
+          isNull(trips.deleteAfter),
+          ne(trips.preset, 'direct'),
+        ),
+      );
+    const clearReminders = db
+      .delete(pushReminders)
+      .where(and(eq(pushReminders.tripId, tripId), isNull(pushReminders.sentAt)));
+
+    try {
+      await guardedTripWrite(
+        db,
+        tripId,
+        guard,
+        [clearReminders],
+        {
+          action: 'trip_delete_scheduled',
+          actorParticipantId: actor.participantId,
+          actorUserId: actor.userId,
+          actorDevice: actor.deviceHash,
+          details: { deleteAfter },
+        },
+        () => new GuardMissError(),
+      );
+    } catch (err) {
+      if (!(err instanceof GuardMissError)) throw err;
+      const latest = await db
+        .select({ deleteAfter: trips.deleteAfter })
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .get();
+      if (latest?.deleteAfter) {
+        return c.json({ deleteAfter: latest.deleteAfter }, 200);
+      }
+      throw new ApiError('CONFLICT', 409, 'Archive the group before deleting it.');
+    }
+
+    return c.json({ deleteAfter }, 200);
+  });
+
+  // POST /trips/:id/cancel-delete: restore a pending-delete group back to archived.
+  app.post('/trips/:id/cancel-delete', async (c) => {
+    const tripId = c.req.param('id');
+    const actor = await resolveActor(c, tripId);
+    if (actor.trip.preset === 'direct') {
+      throw new ApiError('FORBIDDEN', 403);
+    }
+    ensure(actor, 'cancel_delete_group');
+    if (!actor.trip.deleteAfter) {
+      return c.body(null, 204);
+    }
+
+    const db = getDb(c.env);
+    const guard = db
+      .update(trips)
+      .set({ deleteAfter: null })
+      .where(and(eq(trips.id, tripId), isNotNull(trips.deleteAfter)));
+
+    try {
+      await guardedTripWrite(
+        db,
+        tripId,
+        guard,
+        [],
+        {
+          action: 'trip_delete_cancelled',
+          actorParticipantId: actor.participantId,
+          actorUserId: actor.userId,
+          actorDevice: actor.deviceHash,
+          details: {},
+        },
+        () => new GuardMissError(),
+      );
+    } catch (err) {
+      if (!(err instanceof GuardMissError)) throw err;
+      return c.body(null, 204);
+    }
 
     return c.body(null, 204);
   });
