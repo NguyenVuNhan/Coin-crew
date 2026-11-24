@@ -3,6 +3,7 @@ import {
   createGroupWalletResolver,
   formatMoney,
   groupRowCategoryId,
+  groupRowEffect,
   type GroupLinkView,
   type GroupRow,
   type GroupSettingsView,
@@ -272,11 +273,15 @@ export function GroupRowSheet({
   };
 
   const handleCategoryChange = (categoryId: string) => {
-    saveField({ categoryId }, { categoryId }, () => setExpanded(null));
+    saveField({ categoryId }, { categoryId }, () =>
+      setExpanded((curr) => (curr === 'category' ? null : curr)),
+    );
   };
 
   const handleWalletChange = (walletId: string) => {
-    saveField({ walletId }, { walletId }, () => setExpanded(null));
+    saveField({ walletId }, { walletId }, () =>
+      setExpanded((curr) => (curr === 'wallet' ? null : curr)),
+    );
   };
 
   const handleTagsChange = (nextNames: string[]) => {
@@ -325,7 +330,34 @@ export function GroupRowSheet({
       : row.tripName
     : '';
   const dateLabel = row ? formatEntryDayLabel(row.date, t) : '';
+  const eff = effectiveRow ? groupRowEffect(effectiveRow, settings) : null;
+  const isNonSpendingPayment = Boolean(
+    effectiveRow &&
+      !effectiveRow.pending &&
+      effectiveRow.source === 'payment' &&
+      eff &&
+      eff.spending === 0 &&
+      eff.income === 0,
+  );
   const outcomeSentence = row ? buildOutcomeSentence(row, lang, t) : '';
+  const paymentWalletLine =
+    row && isNonSpendingPayment && resolvedWallet?.name
+      ? row.iPaid
+        ? t('groupRow.paymentWalletOut', {
+            amount: formatMoney(row.total, 'VND'),
+            wallet: resolvedWallet.name,
+          })
+        : t('groupRow.paymentWalletIn', {
+            amount: formatMoney(row.total, 'VND'),
+            wallet: resolvedWallet.name,
+          })
+      : outcomeSentence;
+  const paymentNotCountedLine =
+    row && isNonSpendingPayment
+      ? row.iPaid
+        ? t('groupRow.paymentNotCountedNote')
+        : t('groupRow.paymentNotCountedInNote')
+      : null;
   const beforeStart = Boolean(row && resolvedWallet && row.date < resolvedWallet.startDate);
   const outcomeToneClass = !row
     ? 'bg-secondary text-secondary-foreground'
@@ -371,7 +403,18 @@ export function GroupRowSheet({
               outcomeToneClass,
             )}
           >
-            {outcomeSentence}
+            {isNonSpendingPayment ? (
+              <>
+                <div>{paymentWalletLine}</div>
+                {paymentNotCountedLine && (
+                  <div className="mt-0.5 text-xs font-normal text-muted-foreground">
+                    {paymentNotCountedLine}
+                  </div>
+                )}
+              </>
+            ) : (
+              outcomeSentence
+            )}
           </div>
 
           {!isDirectExpense && (
@@ -381,50 +424,52 @@ export function GroupRowSheet({
           )}
 
           <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
-            <div>
-              <button
-                type="button"
-                data-testid="group-row-field-category"
-                aria-expanded={expanded === 'category'}
-                onClick={() =>
-                  setExpanded((curr) => (curr === 'category' ? null : 'category'))
-                }
-                className={FIELD_ROW_CLASS}
-              >
-                <span className="shrink-0 text-muted-foreground">
-                  {t('transactions.categoryLabel')}
-                </span>
-                <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
-                  {resolvedCategory && (
-                    <Icon
-                      name={categoryIconName(resolvedCategory.icon, categoryType)}
-                      size={16}
-                      className="shrink-0 text-secondary-foreground"
-                    />
-                  )}
-                  <span className="truncate">
-                    {resolvedCategory?.name ?? t('transactions.otherCategory')}
+            {!isNonSpendingPayment && (
+              <div>
+                <button
+                  type="button"
+                  data-testid="group-row-field-category"
+                  aria-expanded={expanded === 'category'}
+                  onClick={() =>
+                    setExpanded((curr) => (curr === 'category' ? null : 'category'))
+                  }
+                  className={FIELD_ROW_CLASS}
+                >
+                  <span className="shrink-0 text-muted-foreground">
+                    {t('transactions.categoryLabel')}
                   </span>
-                  <Icon
-                    name="chevronRight"
-                    size={16}
-                    className="shrink-0 text-muted-foreground"
-                  />
-                </span>
-              </button>
+                  <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
+                    {resolvedCategory && (
+                      <Icon
+                        name={categoryIconName(resolvedCategory.icon, categoryType)}
+                        size={16}
+                        className="shrink-0 text-secondary-foreground"
+                      />
+                    )}
+                    <span className="truncate">
+                      {resolvedCategory?.name ?? t('transactions.otherCategory')}
+                    </span>
+                    <Icon
+                      name="chevronRight"
+                      size={16}
+                      className="shrink-0 text-muted-foreground"
+                    />
+                  </span>
+                </button>
 
-              {expanded === 'category' && (
-                <div className="border-t border-border px-3 py-3">
-                  <CategoryPicker
-                    type={categoryType}
-                    categories={categories}
-                    recentIds={recentCategoryIds}
-                    value={resolvedCategoryId}
-                    onChange={handleCategoryChange}
-                  />
-                </div>
-              )}
-            </div>
+                {expanded === 'category' && (
+                  <div className="border-t border-border px-3 py-3">
+                    <CategoryPicker
+                      type={categoryType}
+                      categories={categories}
+                      recentIds={recentCategoryIds}
+                      value={resolvedCategoryId}
+                      onChange={handleCategoryChange}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <button
@@ -519,22 +564,24 @@ export function GroupRowSheet({
               )}
             </div>
 
-            <div className="flex w-full min-h-12 items-center justify-between gap-3 px-4 py-2">
-              <Label
-                htmlFor="group-row-exclude-switch"
-                className="flex-1 min-h-11 flex items-center text-sm font-normal text-muted-foreground cursor-pointer"
-              >
-                {t('personalEntry.excludeFromReports')}
-              </Label>
-              <Switch
-                id="group-row-exclude-switch"
-                checked={linkState.excludeFromReports}
-                disabled={updateLink.isPending}
-                onCheckedChange={handleExcludeChange}
-                aria-label={t('personalEntry.excludeFromReports')}
-                data-testid="group-row-exclude-switch"
-              />
-            </div>
+            {!isNonSpendingPayment && (
+              <div className="flex w-full min-h-12 items-center justify-between gap-3 px-4 py-2">
+                <Label
+                  htmlFor="group-row-exclude-switch"
+                  className="flex-1 min-h-11 flex items-center text-sm font-normal text-muted-foreground cursor-pointer"
+                >
+                  {t('personalEntry.excludeFromReports')}
+                </Label>
+                <Switch
+                  id="group-row-exclude-switch"
+                  checked={linkState.excludeFromReports}
+                  disabled={updateLink.isPending}
+                  onCheckedChange={handleExcludeChange}
+                  aria-label={t('personalEntry.excludeFromReports')}
+                  data-testid="group-row-exclude-switch"
+                />
+              </div>
+            )}
           </div>
 
           {saveError !== null && <InlineError error={saveError} />}

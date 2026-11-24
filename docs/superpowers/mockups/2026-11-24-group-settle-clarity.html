@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CoinCrew · Group Settle-Up Clarity Mockup</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-fg: #ffffff;
+    --secondary: #ccfbf1;
+    --secondary-fg: #134e4a;
+    --bg: #f6f7f4;
+    --card: #ffffff;
+    --fg: #1c1917;
+    --muted: #efefeb;
+    --muted-fg: #57534e;
+    --subtle-fg: #78716c;
+    --border: #e7e5e4;
+    --success: #047857;
+    --success-soft: #d1fae5;
+    --danger: #be123c;
+    --danger-soft: #ffe4e6;
+    --warning-fg: #78350f;
+    --warning-soft: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 20px 48px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 1220px; margin: 0 auto; }
+  header.top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+  .subtitle { font-size: 14px; color: var(--muted-fg); margin: 0; max-width: 640px; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .seg {
+    display: inline-flex;
+    background: var(--muted);
+    padding: 4px;
+    border-radius: 999px;
+    gap: 4px;
+  }
+  .seg button {
+    border: 0;
+    background: transparent;
+    color: var(--muted-fg);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    min-height: 32px;
+  }
+  .seg button.active {
+    background: var(--card);
+    color: var(--fg);
+    box-shadow: 0 1px 2px rgba(28,25,23,.08);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 375px));
+    gap: 24px;
+    justify-content: center;
+  }
+  .frame-wrap { display: flex; flex-direction: column; }
+  .lbl {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--muted-fg);
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  .lbl.before { color: var(--danger); }
+  .phone {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 16px;
+    min-height: 540px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    min-height: 36px;
+  }
+  .phone-hdr .back {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    color: var(--fg);
+    flex: none;
+  }
+  .phone-hdr .title {
+    font-size: 17px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .phone-hdr .action {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .sec {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-fg);
+    margin: 12px 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .sec:first-of-type { margin-top: 2px; }
+  .sec .net {
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .sec .net .prefix { font-weight: 400; color: var(--muted-fg); margin-right: 4px; }
+  .sec-sub {
+    font-size: 12px;
+    color: var(--muted-fg);
+    margin: -2px 4px 8px;
+    line-height: 1.35;
+  }
+
+  .list {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    min-height: 56px;
+  }
+  .row:first-child { border-top: 0; }
+  .tile {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--secondary);
+    color: var(--secondary-fg);
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    font-weight: 600;
+    flex: none;
+  }
+  .tile.muted {
+    background: var(--muted);
+    color: var(--muted-fg);
+  }
+  .mid { flex: 1; min-width: 0; }
+  .t {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .m {
+    font-size: 12px;
+    color: var(--muted-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+  .right { text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .amt {
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .out { color: var(--danger); }
+  .in { color: var(--success); }
+  .ink { color: var(--fg); }
+  .muted-amt { color: var(--muted-fg); }
+  .sub {
+    font-size: 12px;
+    color: var(--muted-fg);
+    white-space: nowrap;
+  }
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .p-ok { background: var(--success-soft); color: var(--success); }
+  .p-wait { background: var(--warning-soft); color: var(--warning-fg); }
+
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .summary-card .k { font-size: 13px; color: var(--muted-fg); font-weight: 500; }
+  .summary-card .v { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+  /* Sheet preview */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(28,25,23,.32);
+  }
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--card);
+    border-radius: 32px 32px 0 0;
+    border-top: 1px solid var(--border);
+    padding: 10px 16px 18px;
+  }
+  .grab {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+    margin: 0 auto 12px;
+  }
+  .sheet-title { font-size: 18px; font-weight: 600; margin: 0 0 2px; }
+  .sheet-meta { font-size: 12px; color: var(--muted-fg); margin: 0 0 12px; }
+  .outcome {
+    background: var(--muted);
+    color: var(--fg);
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+  .outcome-sub {
+    font-weight: 400;
+    color: var(--muted-fg);
+    display: block;
+    margin-top: 3px;
+  }
+  .note { font-size: 12px; color: var(--muted-fg); margin: 0 0 12px; }
+  .field-group {
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--card);
+    margin-bottom: 12px;
+  }
+  .field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 16px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .field:first-child { border-top: 0; }
+  .field .k { color: var(--muted-fg); }
+  .field .v { font-weight: 500; color: var(--fg); }
+  .btn-sec {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--secondary);
+    color: var(--secondary-fg);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .ann {
+    font-size: 12px;
+    color: var(--muted-fg);
+    line-height: 1.45;
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .ann b { color: var(--fg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 data-i18n="pageTitle">CoinCrew · Làm rõ khoản chi nhóm &amp; trả nợ nhóm</h1>
+      <p class="subtitle" data-i18n="pageSub">
+        So sánh giao diện hiện tại và phương án 2 tầng: khoản chi nhóm giữ màu chi tiêu, còn khoản trả nợ nhóm lùi về trung tính kèm nhãn rõ ràng để không bị hiểu nhầm là cộng dồn 2 lần.
+      </p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Sublabel wording">
+        <button type="button" id="opt-a" class="active" data-i18n="optA">A: "Không tính chi tiêu"</button>
+        <button type="button" id="opt-b" data-i18n="optB">B: "Chỉ đổi số dư ví"</button>
+      </div>
+      <div class="seg" role="group" aria-label="Language">
+        <button type="button" id="lang-vi" class="active">VI</button>
+        <button type="button" id="lang-en">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 0. BEFORE -->
+    <div class="frame-wrap">
+      <p class="lbl before" data-i18n="f0Label">0 · Trước (Hiện tại — dễ hiểu nhầm)</p>
+      <div class="phone">
+        <div class="phone-hdr">
+          <span class="back">←</span>
+          <span class="title" data-i18n="txTitle">Giao dịch</span>
+          <span class="action" data-i18n="filter">Lọc</span>
+        </div>
+
+        <div class="sec">
+          <span data-i18n="today">Hôm nay</span>
+          <span class="net"><span class="prefix" data-i18n="spendingPrefix">Chi tiêu</span><span class="out">−100.000₫</span></span>
+        </div>
+        <div class="list">
+          <div class="row">
+            <div class="tile">🍽️</div>
+            <div class="mid">
+              <div class="t" data-i18n="dinnerTitle">Ăn tối</div>
+              <div class="m" data-i18n="dinnerBeforeMeta">Đà Lạt · Minh trả</div>
+            </div>
+            <div class="right">
+              <div class="amt out">−100.000₫</div>
+              <div class="sub" data-i18n="yourShare">phần của bạn</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="payMinhTitle">Bạn trả Minh</div>
+              <div class="m" data-i18n="payMinhBeforeMeta">Đà Lạt · Trả nợ nhóm · Techcombank</div>
+            </div>
+            <div class="right">
+              <div class="amt ink">−100.000₫</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="ann" data-i18n="f0Ann">
+          <b>Vấn đề:</b> Cả hai dòng đều dùng ô icon Jade Mist giống nhau và đều hiện <b>−100.000₫</b> sát nhau. Người dùng nhìn lướt qua dễ tưởng mình đã chi 200.000₫ dù tiêu đề ngày ghi −100.000₫.
+        </p>
+      </div>
+    </div>
+
+    <!-- 1. AFTER: DAY VIEW / RECENT -->
+    <div class="frame-wrap">
+      <p class="lbl" data-i18n="f1Label">1 · Sau — Giao dịch (Theo ngày) &amp; Gần đây</p>
+      <div class="phone">
+        <div class="phone-hdr">
+          <span class="back">←</span>
+          <span class="title" data-i18n="txTitle">Giao dịch</span>
+          <span class="action" data-i18n="filter">Lọc</span>
+        </div>
+
+        <div class="sec">
+          <span data-i18n="today">Hôm nay</span>
+          <span class="net"><span class="prefix" data-i18n="spendingPrefix">Chi tiêu</span><span class="out">−200.000₫</span></span>
+        </div>
+        <div class="list">
+          <div class="row">
+            <div class="tile">🍽️</div>
+            <div class="mid">
+              <div class="t" data-i18n="dinnerTitle">Ăn tối</div>
+              <div class="m" data-i18n="dinnerAfterMeta">Đà Lạt · Minh trả · Chưa trừ ví</div>
+            </div>
+            <div class="right">
+              <div class="amt out">−100.000₫</div>
+              <div class="sub" data-i18n="yourShare">phần của bạn</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="payMinhTitle">Bạn trả Minh</div>
+              <div class="m" data-i18n="payMinhBeforeMeta">Đà Lạt · Trả nợ nhóm · Techcombank</div>
+            </div>
+            <div class="right">
+              <div class="amt muted-amt">−100.000₫</div>
+              <div class="sub sub-out" data-payback="out">Không tính chi tiêu</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile">🍲</div>
+            <div class="mid">
+              <div class="t" data-i18n="hotpotTitle">Lẩu tối</div>
+              <div class="m" data-i18n="hotpotMeta">Đà Lạt · Trả trước 300.000₫ · Techcombank</div>
+            </div>
+            <div class="right">
+              <div class="amt out">−100.000₫</div>
+              <div class="sub" data-i18n="yourShare">phần của bạn</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="lanPaidTitle">Lan trả bạn</div>
+              <div class="m" data-i18n="lanPaidMeta">Đà Lạt · Hoàn tiền nhóm · Techcombank</div>
+            </div>
+            <div class="right">
+              <div class="amt muted-amt">+100.000₫</div>
+              <div class="sub sub-in" data-payback="in">Không tính thu nhập</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="ann" data-i18n="f1Ann">
+          <b>Nhịp 2 tầng:</b> Khoản chi thật giữ ô Jade Mist + số tiền Lychee. Khoản trả nợ lùi về ô xám <b>Muted</b>, số tiền trung tính kèm nhãn phụ bên phải nên mắt tách biệt ngay lập tức.
+        </p>
+      </div>
+    </div>
+
+    <!-- 2. AFTER: CATEGORY VIEW -->
+    <div class="frame-wrap">
+      <p class="lbl" data-i18n="f2Label">2 · Sau — Giao dịch (Theo danh mục)</p>
+      <div class="phone">
+        <div class="phone-hdr">
+          <span class="back">←</span>
+          <span class="title" data-i18n="txTitle">Giao dịch</span>
+          <span class="action" data-i18n="byCategory">Danh mục</span>
+        </div>
+
+        <div class="sec">
+          <span data-i18n="catGroup">Nhóm</span>
+          <span class="net"><span class="out">−200.000₫</span></span>
+        </div>
+        <div class="list">
+          <div class="row">
+            <div class="tile">🍽️</div>
+            <div class="mid">
+              <div class="t" data-i18n="dinnerTitle">Ăn tối</div>
+              <div class="m" data-i18n="dinnerCatMeta">15/11 · Đà Lạt · Minh trả · Chưa trừ ví</div>
+            </div>
+            <div class="right">
+              <div class="amt out">−100.000₫</div>
+              <div class="sub" data-i18n="yourShare">phần của bạn</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile">🍲</div>
+            <div class="mid">
+              <div class="t" data-i18n="hotpotTitle">Lẩu tối</div>
+              <div class="m" data-i18n="hotpotCatMeta">15/11 · Đà Lạt · Trả trước 300.000₫</div>
+            </div>
+            <div class="right">
+              <div class="amt out">−100.000₫</div>
+              <div class="sub" data-i18n="yourShare">phần của bạn</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <span data-i18n="catTransfer">Chuyển khoản &amp; Trả nợ</span>
+        </div>
+        <div class="list">
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="payMinhTitle">Bạn trả Minh</div>
+              <div class="m" data-i18n="payMinhCatMeta">15/11 · Đà Lạt · Techcombank</div>
+            </div>
+            <div class="right">
+              <div class="amt muted-amt">−100.000₫</div>
+              <div class="sub sub-out" data-payback="out">Không tính chi tiêu</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="lanPaidTitle">Lan trả bạn</div>
+              <div class="m" data-i18n="lanPaidCatMeta">15/11 · Đà Lạt · Techcombank</div>
+            </div>
+            <div class="right">
+              <div class="amt muted-amt">+100.000₫</div>
+              <div class="sub sub-in" data-payback="in">Không tính thu nhập</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="ann" data-i18n="f2Ann">
+          <b>Tách khỏi danh mục chi tiêu:</b> Khoản trả nợ nhóm chuyển sang nhóm <b>Chuyển khoản &amp; Trả nợ</b> (không hiện tổng chi tiêu trên tiêu đề), giúp danh mục "Nhóm" khớp đúng 200.000₫.
+        </p>
+      </div>
+    </div>
+
+    <!-- 3. AFTER: WALLET DETAIL -->
+    <div class="frame-wrap">
+      <p class="lbl" data-i18n="f3Label">3 · Sau — Chi tiết ví (Techcombank)</p>
+      <div class="phone">
+        <div class="phone-hdr">
+          <span class="back">←</span>
+          <span class="title">Techcombank</span>
+          <span class="action">⋯</span>
+        </div>
+
+        <div class="summary-card">
+          <div class="k" data-i18n="walletBalance">Số dư hiện tại</div>
+          <div class="v">1.700.000₫</div>
+        </div>
+
+        <div class="sec">
+          <span data-i18n="walletMonth">Giao dịch tháng này</span>
+          <span class="action" style="font-size:12px;color:var(--primary)" data-i18n="seeAll">Xem tất cả ›</span>
+        </div>
+        <div class="list">
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="payMinhTitle">Bạn trả Minh</div>
+              <div class="m" data-i18n="payMinhWalletMeta">15/11 · Đà Lạt · Trả nợ nhóm</div>
+            </div>
+            <div class="right">
+              <div class="amt muted-amt">−100.000₫</div>
+              <div class="sub sub-out" data-payback="out">Không tính chi tiêu</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="lanPaidTitle">Lan trả bạn</div>
+              <div class="m" data-i18n="lanPaidWalletMeta">15/11 · Đà Lạt · Hoàn tiền nhóm</div>
+            </div>
+            <div class="right">
+              <div class="amt muted-amt">+100.000₫</div>
+              <div class="sub sub-in" data-payback="in">Không tính thu nhập</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile">🍲</div>
+            <div class="mid">
+              <div class="t" data-i18n="hotpotTitle">Lẩu tối</div>
+              <div class="m" data-i18n="hotpotWalletMeta">15/11 · Đà Lạt · Trả trước 300.000₫</div>
+            </div>
+            <div class="right">
+              <div class="amt out">−100.000₫</div>
+              <div class="sub" data-i18n="yourShare">phần của bạn</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="ann" data-i18n="f3Ann">
+          <b>Khớp 1-1 với số dư ví:</b> Khoản "Ăn tối" do Minh trả (chưa trừ vào ví của bạn) được ẩn khỏi danh sách của ví này, nên chỉ những giao dịch làm biến động số dư ví mới xuất hiện.
+        </p>
+      </div>
+    </div>
+
+    <!-- 4. AFTER: GROUP ROW SHEET -->
+    <div class="frame-wrap">
+      <p class="lbl" data-i18n="f4Label">4 · Sau — Chạm vào khoản trả nợ (Sheet)</p>
+      <div class="phone">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sheet-title" data-i18n="payMinhTitle">Bạn trả Minh</div>
+          <div class="sheet-meta" data-i18n="sheetMeta">Đà Lạt · Thứ bảy, 15/11</div>
+
+          <div class="outcome">
+            <span data-i18n="sheetOutcomeTop">Trừ 100.000₫ khỏi ví Techcombank</span>
+            <span class="outcome-sub" data-i18n="sheetOutcomeSub">Không tính thêm vào chi tiêu (đã tính ở khoản chi gốc).</span>
+          </div>
+
+          <p class="note" data-i18n="editInGroup">Số tiền và người chia chỉ sửa được trong nhóm.</p>
+
+          <div class="field-group">
+            <div class="field">
+              <span class="k" data-i18n="walletLabel">Ví</span>
+              <span class="v">Techcombank ›</span>
+            </div>
+            <div class="field">
+              <span class="k" data-i18n="tagsLabel">Thẻ</span>
+              <span class="v">#dalat ›</span>
+            </div>
+          </div>
+
+          <a class="btn-sec" href="#group" onclick="return false" data-i18n="openInGroup">Xem trong nhóm</a>
+        </div>
+
+        <p class="ann" style="position:relative;z-index:1;color:#fff;margin-top:8px" data-i18n="f4Ann">
+          <b style="color:#fff">Giải thích rõ &amp; bỏ mục thừa:</b> Ẩn "Danh mục" và "Không tính vào báo cáo" vì khoản trả nợ vốn đã nằm ngoài báo cáo chi tiêu.
+        </p>
+      </div>
+    </div>
+
+    <!-- 5. AFTER: GROUP PAGE PAYMENTS -->
+    <div class="frame-wrap">
+      <p class="lbl" data-i18n="f5Label">5 · Sau — Trang nhóm (Tab Đã trả)</p>
+      <div class="phone">
+        <div class="phone-hdr">
+          <span class="back">←</span>
+          <span class="title">Đà Lạt</span>
+          <span class="action">⚙</span>
+        </div>
+
+        <div class="sec" style="margin-bottom:4px">
+          <span data-i18n="paymentsMine">Các khoản đã trả của bạn</span>
+        </div>
+        <p class="sec-sub" data-i18n="paymentsHelper">
+          Các khoản này dùng để thanh toán nợ giữa thành viên, không cộng thêm vào tổng chi tiêu của nhóm.
+        </p>
+
+        <div class="list">
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="payMinhTitle">Bạn trả Minh</div>
+            </div>
+            <div class="right">
+              <div class="amt ink">100.000₫</div>
+              <span class="pill p-ok" data-i18n="confirmed">Đã xác nhận</span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="tile muted">⇄</div>
+            <div class="mid">
+              <div class="t" data-i18n="lanPaidTitle">Lan trả bạn</div>
+            </div>
+            <div class="right">
+              <div class="amt ink">100.000₫</div>
+              <span class="pill p-wait" data-i18n="waiting">Chờ xác nhận</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="ann" data-i18n="f5Ann">
+          <b>Đồng bộ ngôn ngữ hình ảnh:</b> Ô icon ⇄ trung tính khớp với Sổ chi tiêu, kèm một dòng giải thích ngắn ngay dưới tiêu đề để thành viên mới không nhầm là chi phí phát sinh.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var state = { opt: 'a', lang: 'vi' };
+
+  var copy = {
+    vi: {
+      pageTitle: 'CoinCrew · Làm rõ khoản chi nhóm & trả nợ nhóm',
+      pageSub: 'So sánh giao diện hiện tại và phương án 2 tầng: khoản chi nhóm giữ màu chi tiêu, còn khoản trả nợ nhóm lùi về trung tính kèm nhãn rõ ràng để không bị hiểu nhầm là cộng dồn 2 lần.',
+      optA: 'A: "Không tính chi tiêu"',
+      optB: 'B: "Chỉ đổi số dư ví"',
+      f0Label: '0 · Trước (Hiện tại — dễ hiểu nhầm)',
+      f1Label: '1 · Sau — Giao dịch (Theo ngày) & Gần đây',
+      f2Label: '2 · Sau — Giao dịch (Theo danh mục)',
+      f3Label: '3 · Sau — Chi tiết ví (Techcombank)',
+      f4Label: '4 · Sau — Chạm vào khoản trả nợ (Sheet)',
+      f5Label: '5 · Sau — Trang nhóm (Tab Đã trả)',
+      txTitle: 'Giao dịch',
+      filter: 'Lọc',
+      byCategory: 'Danh mục',
+      today: 'Hôm nay',
+      spendingPrefix: 'Chi tiêu',
+      dinnerTitle: 'Ăn tối',
+      dinnerBeforeMeta: 'Đà Lạt · Minh trả',
+      dinnerAfterMeta: 'Đà Lạt · Minh trả · Chưa trừ ví',
+      dinnerCatMeta: '15/11 · Đà Lạt · Minh trả · Chưa trừ ví',
+      yourShare: 'phần của bạn',
+      payMinhTitle: 'Bạn trả Minh',
+      payMinhBeforeMeta: 'Đà Lạt · Trả nợ nhóm · Techcombank',
+      payMinhCatMeta: '15/11 · Đà Lạt · Techcombank',
+      payMinhWalletMeta: '15/11 · Đà Lạt · Trả nợ nhóm',
+      hotpotTitle: 'Lẩu tối',
+      hotpotMeta: 'Đà Lạt · Trả trước 300.000₫ · Techcombank',
+      hotpotCatMeta: '15/11 · Đà Lạt · Trả trước 300.000₫',
+      hotpotWalletMeta: '15/11 · Đà Lạt · Trả trước 300.000₫',
+      lanPaidTitle: 'Lan trả bạn',
+      lanPaidMeta: 'Đà Lạt · Hoàn tiền nhóm · Techcombank',
+      lanPaidCatMeta: '15/11 · Đà Lạt · Techcombank',
+      lanPaidWalletMeta: '15/11 · Đà Lạt · Hoàn tiền nhóm',
+      catGroup: 'Nhóm',
+      catTransfer: 'Chuyển khoản & Trả nợ',
+      walletBalance: 'Số dư hiện tại',
+      walletMonth: 'Giao dịch tháng này',
+      seeAll: 'Xem tất cả ›',
+      sheetMeta: 'Đà Lạt · Thứ bảy, 15/11',
+      sheetOutcomeTop: 'Trừ 100.000₫ khỏi ví Techcombank',
+      sheetOutcomeSub: 'Không tính thêm vào chi tiêu (đã tính ở khoản chi gốc).',
+      editInGroup: 'Số tiền và người chia chỉ sửa được trong nhóm.',
+      walletLabel: 'Ví',
+      tagsLabel: 'Thẻ',
+      openInGroup: 'Xem trong nhóm',
+      paymentsMine: 'Các khoản đã trả của bạn',
+      paymentsHelper: 'Các khoản này dùng để thanh toán nợ giữa thành viên, không cộng thêm vào tổng chi tiêu của nhóm.',
+      confirmed: 'Đã xác nhận',
+      waiting: 'Chờ xác nhận',
+      f0Ann: '<b>Vấn đề:</b> Cả hai dòng đều dùng ô icon Jade Mist giống nhau và đều hiện <b>−100.000₫</b> sát nhau. Người dùng nhìn lướt qua dễ tưởng mình đã chi 200.000₫ dù tiêu đề ngày ghi −100.000₫.',
+      f1Ann: '<b>Nhịp 2 tầng:</b> Khoản chi thật giữ ô Jade Mist + số tiền Lychee. Khoản trả nợ lùi về ô xám <b>Muted</b>, số tiền trung tính kèm nhãn phụ bên phải nên mắt tách biệt ngay lập tức.',
+      f2Ann: '<b>Tách khỏi danh mục chi tiêu:</b> Khoản trả nợ nhóm chuyển sang nhóm <b>Chuyển khoản &amp; Trả nợ</b> (không hiện tổng chi tiêu trên tiêu đề), giúp danh mục "Nhóm" khớp đúng 200.000₫.',
+      f3Ann: '<b>Khớp 1-1 với số dư ví:</b> Khoản "Ăn tối" do Minh trả (chưa trừ vào ví của bạn) được ẩn khỏi danh sách của ví này, nên chỉ những giao dịch làm biến động số dư ví mới xuất hiện.',
+      f4Ann: '<b style="color:#fff">Giải thích rõ &amp; bỏ mục thừa:</b> Ẩn "Danh mục" và "Không tính vào báo cáo" vì khoản trả nợ vốn đã nằm ngoài báo cáo chi tiêu.',
+      f5Ann: '<b>Đồng bộ ngôn ngữ hình ảnh:</b> Ô icon ⇄ trung tính khớp với Sổ chi tiêu, kèm một dòng giải thích ngắn ngay dưới tiêu đề để thành viên mới không nhầm là chi phí phát sinh.',
+      paybackOutA: 'Không tính chi tiêu',
+      paybackInA: 'Không tính thu nhập',
+      paybackOutB: 'Chỉ đổi số dư ví',
+      paybackInB: 'Chỉ đổi số dư ví'
+    },
+    en: {
+      pageTitle: 'CoinCrew · Group Expense vs. Settle-Up Clarity',
+      pageSub: 'Before/After comparison using a two-tier ledger rhythm: real group expenses keep spending colour, while settle-up payments step back to muted tones with an explicit label so they never look double-counted.',
+      optA: 'A: "Not in spending"',
+      optB: 'B: "Wallet only"',
+      f0Label: '0 · Before (Current — easy to misread)',
+      f1Label: '1 · After — Transactions (Day View) & Recent',
+      f2Label: '2 · After — Transactions (Category View)',
+      f3Label: '3 · After — Wallet Detail (Techcombank)',
+      f4Label: '4 · After — Settle-Up Detail Sheet',
+      f5Label: '5 · After — Group Page (Payments Tab)',
+      txTitle: 'Transactions',
+      filter: 'Filter',
+      byCategory: 'Category',
+      today: 'Today',
+      spendingPrefix: 'Spending',
+      dinnerTitle: 'Dinner',
+      dinnerBeforeMeta: 'Da Lat · Minh paid',
+      dinnerAfterMeta: 'Da Lat · Minh paid · Not from wallet yet',
+      dinnerCatMeta: '15/11 · Da Lat · Minh paid · Not from wallet yet',
+      yourShare: 'your share',
+      payMinhTitle: 'You paid Minh',
+      payMinhBeforeMeta: 'Da Lat · Group settle-up · Techcombank',
+      payMinhCatMeta: '15/11 · Da Lat · Techcombank',
+      payMinhWalletMeta: '15/11 · Da Lat · Group settle-up',
+      hotpotTitle: 'Hotpot',
+      hotpotMeta: 'Da Lat · Paid 300.000₫ · Techcombank',
+      hotpotCatMeta: '15/11 · Da Lat · Paid 300.000₫',
+      hotpotWalletMeta: '15/11 · Da Lat · Paid 300.000₫',
+      lanPaidTitle: 'Lan paid you',
+      lanPaidMeta: 'Da Lat · Group repayment · Techcombank',
+      lanPaidCatMeta: '15/11 · Da Lat · Techcombank',
+      lanPaidWalletMeta: '15/11 · Da Lat · Group repayment',
+      catGroup: 'Group',
+      catTransfer: 'Transfers & Settle-up',
+      walletBalance: 'Current balance',
+      walletMonth: 'Entries this month',
+      seeAll: 'See all ›',
+      sheetMeta: 'Da Lat · Sat, 15/11',
+      sheetOutcomeTop: '−100.000₫ from Techcombank',
+      sheetOutcomeSub: 'Not added to spending (already counted in the original expense).',
+      editInGroup: 'Amount and people are edited in the group.',
+      walletLabel: 'Wallet',
+      tagsLabel: 'Tags',
+      openInGroup: 'Open in the group',
+      paymentsMine: 'Your payments',
+      paymentsHelper: 'Payments settle balances between members and do not add to group expenses.',
+      confirmed: 'Confirmed',
+      waiting: 'Waiting',
+      f0Ann: '<b>Problem:</b> Both rows use the same Jade Mist icon tile and show <b>−100.000₫</b> side by side. At a glance it looks like 200.000₫ spent, even though the day header says −100.000₫.',
+      f1Ann: '<b>Two-tier rhythm:</b> Real expenses keep the Jade Mist tile and Lychee amount. Settle-up rows step back to a <b>Muted</b> tile, quiet amount, and right-side sublabel so the eye separates them immediately.',
+      f2Ann: '<b>Out of spending categories:</b> Group settle-ups move into <b>Transfers &amp; Settle-up</b> (no spending total in the header), keeping the Group category aligned with 200.000₫.',
+      f3Ann: '<b>1-to-1 with wallet balance:</b> "Dinner" paid by Minh (zero wallet impact) is excluded from this wallet’s list so only rows that moved this wallet appear.',
+      f4Ann: '<b style="color:#fff">Clear breakdown &amp; less clutter:</b> Category and "Exclude from reports" are hidden on non-spending payments since they are already excluded.',
+      f5Ann: '<b>Consistent visual language:</b> Muted ⇄ icon tile matches the Spending Book, plus a quiet helper line explaining that payments only settle balances.',
+      paybackOutA: 'Not in spending',
+      paybackInA: 'Not in income',
+      paybackOutB: 'Wallet only',
+      paybackInB: 'Wallet only'
+    }
+  };
+
+  function render() {
+    var dict = copy[state.lang];
+    document.documentElement.lang = state.lang;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n');
+      if (dict[k] !== undefined) el.innerHTML = dict[k];
+    });
+    var outTxt = state.opt === 'a' ? dict.paybackOutA : dict.paybackOutB;
+    var inTxt = state.opt === 'a' ? dict.paybackInA : dict.paybackInB;
+    document.querySelectorAll('[data-payback="out"]').forEach(function (el) { el.textContent = outTxt; });
+    document.querySelectorAll('[data-payback="in"]').forEach(function (el) { el.textContent = inTxt; });
+
+    document.getElementById('opt-a').classList.toggle('active', state.opt === 'a');
+    document.getElementById('opt-b').classList.toggle('active', state.opt === 'b');
+    document.getElementById('lang-vi').classList.toggle('active', state.lang === 'vi');
+    document.getElementById('lang-en').classList.toggle('active', state.lang === 'en');
+  }
+
+  document.getElementById('opt-a').addEventListener('click', function () { state.opt = 'a'; render(); });
+  document.getElementById('opt-b').addEventListener('click', function () { state.opt = 'b'; render(); });
+  document.getElementById('lang-vi').addEventListener('click', function () { state.lang = 'vi'; render(); });
+  document.getElementById('lang-en').addEventListener('click', function () { state.lang = 'en'; render(); });
+})();
+</script>
+</body>
+</html>

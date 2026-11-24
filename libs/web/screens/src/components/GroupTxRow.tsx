@@ -77,6 +77,15 @@ export function GroupTxRow({
 
   const tripLabel = row.isDirect ? t('transactions.typePerson') : row.tripName;
 
+  const eff = groupRowEffect(row, settings);
+  const isNonSpendingPayment =
+    !row.pending && row.source === 'payment' && eff.spending === 0 && eff.income === 0;
+  const nonSpendingLabel = isNonSpendingPayment
+    ? row.iPaid
+      ? t('groupRow.notInSpending')
+      : t('groupRow.notInIncome')
+    : '';
+
   const metaParts: string[] = [];
   if (showDate) {
     metaParts.push(formatCompactRowDate(row.date, t));
@@ -107,11 +116,13 @@ export function GroupTxRow({
   if (showWallet) {
     metaParts.push(walletName);
   }
+  if (!row.pending && row.source === 'expense' && !row.iPaid && eff.walletDelta === 0 && eff.spending > 0) {
+    metaParts.push(t('groupRow.notFromWallet'));
+  }
   if (beforeStart && showBeforeStartCue) {
     metaParts.push(t('wallet.beforeStart'));
   }
 
-  const eff = groupRowEffect(row, settings);
   let displayAmount: number;
   let sign = '';
   let amountToneClass = 'text-foreground';
@@ -135,7 +146,7 @@ export function GroupTxRow({
           ? row.myShare
           : row.total;
     sign = eff.walletDelta > 0 ? '+' : eff.walletDelta < 0 ? '\u2212' : '';
-    amountToneClass = 'text-foreground';
+    amountToneClass = isNonSpendingPayment ? 'text-muted-foreground' : 'text-foreground';
   }
 
   const showYourShare =
@@ -149,6 +160,7 @@ export function GroupTxRow({
   const ariaLabel = [
     title,
     amountText,
+    nonSpendingLabel,
     showYourShare ? t('groupRow.yourShare') : '',
     row.pending ? t('history.notApproved') : '',
     ...metaParts,
@@ -166,7 +178,12 @@ export function GroupTxRow({
     >
       <span
         aria-hidden="true"
-        className="size-10 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+        className={cn(
+          'size-10 rounded-full grid place-items-center shrink-0',
+          isNonSpendingPayment
+            ? 'bg-muted text-muted-foreground'
+            : 'bg-secondary text-secondary-foreground',
+        )}
       >
         <Icon name={iconName} size={18} />
       </span>
@@ -194,6 +211,11 @@ export function GroupTxRow({
         >
           {`${sign}${formatMoney(Math.abs(displayAmount), 'VND')}`}
         </span>
+        {isNonSpendingPayment && (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {nonSpendingLabel}
+          </span>
+        )}
         {row.pending && (
           <Pill tone="warning" className="px-2 py-0.5 text-xs">
             {t('history.notApproved')}

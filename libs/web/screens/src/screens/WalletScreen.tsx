@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import {
   compareBookRows,
   createGroupWalletResolver,
+  groupRowEffect,
   type BookRow,
   type EntryView,
   type GroupRow,
@@ -142,10 +143,15 @@ export function WalletScreen(): JSX.Element {
     const rawGroupRows = listQuery.data?.groupRows ?? [];
     if (rawGroupRows.length === 0 || !id) return entryRows;
     const resolveWalletId = createGroupWalletResolver(wallets, null);
-    const matchingGroupRows = rawGroupRows.filter((r) => resolveWalletId(r) === id);
+    const matchingGroupRows = rawGroupRows.filter(
+      (r) =>
+        !r.pending &&
+        groupRowEffect(r, groupSettings).walletDelta !== 0 &&
+        resolveWalletId(r) === id,
+    );
     if (matchingGroupRows.length === 0) return entryRows;
     return [...entryRows, ...matchingGroupRows].sort(compareBookRows);
-  }, [listQuery.data, wallets, id]);
+  }, [listQuery.data, wallets, id, groupSettings]);
   const assets = assetsQuery.data?.assets ?? [];
   const assetMap = new Map(assets.map((a) => [a.id, a]));
   const holdings = holdingsQuery.data?.holdings ?? [];
