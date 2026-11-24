@@ -708,3 +708,103 @@ describe("Giao dịch gần đây: newest activity first", () => {
     expect(await idsIn()).toEqual(["tx-row-g-g-pay", "tx-row-e-later-date"]);
   });
 });
+
+describe("Settle-up clarity across category view and WalletScreen", () => {
+  const setupMock = (opts: { rows?: ListRow[]; groupRows?: GroupRow[] }) => {
+    const trip: TripView = {
+      ...tripView(),
+      trip: { ...tripView().trip, id: "t-dalat", name: "Đà Lạt" },
+    };
+    mockApi({
+      "GET /api/me": meOn,
+      "GET /api/me/ledger": { tripId: "t-led" },
+      "GET /api/trips/t-led": trip,
+      "GET /api/me/personal/wallets": { wallets },
+      "GET /api/me/personal/categories": { categories, recentIds: [] },
+      "GET /api/me/personal/tags": { tags: [] },
+      "GET /api/me/personal/assets": { assets: [] },
+      "GET /api/me/personal/group-settings": { settings: defaultSettings },
+      "GET /api/me/personal/transactions": {
+        rows: opts.rows ?? [],
+        groupRows: opts.groupRows ?? [],
+      },
+      "GET /api/me/personal/people-summary": { owedToMe: 0, iOwe: 0, pending: 0 },
+      "GET /api/me/personal/overview": { totalVnd: 5_000_000, spent: 0, income: 0, pending: 0 },
+      "GET /api/me/personal/budgets": { budgets: [] },
+      "GET /api/me/personal/plan": { upcoming: [] },
+    });
+  };
+
+  it("places non-spending group payments under Transfers & Settle-up in category view", async () => {
+    mockMedia();
+    const expenseRow = makeGroupRow({
+      id: "g-exp",
+      source: "expense",
+      title: "Ăn tối",
+      total: 200_000,
+      myShare: 100_000,
+      iPaid: false,
+      payerName: "Minh",
+    });
+    const paymentRow = makeGroupRow({
+      id: "g-pay",
+      source: "payment",
+      title: "Thanh toán",
+      total: 100_000,
+      myShare: 0,
+      iPaid: true,
+      counterpartName: "Minh",
+    });
+
+    setupMock({ groupRows: [expenseRow, paymentRow] });
+    renderAt(<App />, { route: "/transactions?month=2026-11&view=category" });
+
+    const transferGroup = await screen.findByTestId("tx-group-transfer");
+    expect(transferGroup).toHaveTextContent("Transfers & Settle-up");
+    expect(within(transferGroup).getByTestId("tx-row-g-g-pay")).toBeInTheDocument();
+    expect(within(transferGroup).queryByTestId("tx-row-g-g-exp")).not.toBeInTheDocument();
+
+    const catGroup = await screen.findByTestId("tx-group-cat:cat-group");
+    expect(within(catGroup).getByTestId("tx-row-g-g-exp")).toBeInTheDocument();
+    expect(within(catGroup).queryByTestId("tx-row-g-g-pay")).not.toBeInTheDocument();
+  });
+
+  it("hides zero-wallet-delta group expenses in WalletScreen while keeping settle-ups and paid expenses", async () => {
+    mockMedia();
+    const unpaidShare = makeGroupRow({
+      id: "g-unpaid",
+      source: "expense",
+      title: "Ăn tối",
+      total: 200_000,
+      myShare: 100_000,
+      iPaid: false,
+      payerName: "Minh",
+    });
+    const paidUpfront = makeGroupRow({
+      id: "g-paid",
+      source: "expense",
+      title: "Lẩu tối",
+      total: 300_000,
+      myShare: 100_000,
+      iPaid: true,
+      payerName: "Me",
+    });
+    const settleUp = makeGroupRow({
+      id: "g-settle",
+      source: "payment",
+      title: "Thanh toán",
+      total: 100_000,
+      myShare: 0,
+      iPaid: true,
+      counterpartName: "Minh",
+    });
+
+    setupMock({ groupRows: [unpaidShare, paidUpfront, settleUp] });
+    renderAt(<App />, { route: "/wallets/w-bank" });
+
+    const list = await screen.findByTestId("wallet-entries");
+    expect(within(list).getByTestId("tx-row-g-g-paid")).toBeInTheDocument();
+    expect(within(list).getByTestId("tx-row-g-g-settle")).toBeInTheDocument();
+    expect(within(list).queryByTestId("tx-row-g-g-unpaid")).not.toBeInTheDocument();
+  });
+});

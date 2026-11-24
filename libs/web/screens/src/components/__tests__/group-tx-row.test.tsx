@@ -93,7 +93,7 @@ describe('GroupTxRow', () => {
     expect(btn).toHaveClass('fsl-tx-row', 'fsl-tx-row--group');
     expect(btn).toHaveTextContent('Taxi sân bay');
     expect(btn).toHaveTextContent('Đà Lạt');
-    expect(btn).toHaveTextContent('Hùng paid');
+    expect(btn).toHaveTextContent('Hùng paid · Not from wallet yet');
     expect(btn).not.toHaveTextContent('Techcombank');
     expect(btn).toHaveTextContent('\u221280.000₫');
     expect(btn).toHaveTextContent('your share');
@@ -187,7 +187,7 @@ describe('GroupTxRow', () => {
     expect(btn).not.toHaveTextContent('your share');
   });
 
-  it('payment out: shows −total in neutral ink with You paid counterpart title', () => {
+  it('payment out: shows muted −total, Not in spending sublabel, and muted icon tile', () => {
     const row = makeRow({
       id: 'pay-out',
       source: 'payment',
@@ -212,10 +212,12 @@ describe('GroupTxRow', () => {
     expect(btn).toHaveTextContent('You paid Minh');
     expect(btn).toHaveTextContent('Đà Lạt · Group settle-up');
     expect(btn).toHaveTextContent('\u2212150.000₫');
-    expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-foreground');
+    expect(btn).toHaveTextContent('Not in spending');
+    expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-muted-foreground');
+    expect(btn.querySelector('.bg-muted')).toBeInTheDocument();
   });
 
-  it('payment in: shows +total in neutral ink with Counterpart paid you title', () => {
+  it('payment in: shows muted +total, Not in income sublabel, and muted icon tile', () => {
     const row = makeRow({
       id: 'pay-in',
       source: 'payment',
@@ -240,7 +242,9 @@ describe('GroupTxRow', () => {
     expect(btn).toHaveTextContent('Minh paid you');
     expect(btn).toHaveTextContent('Đà Lạt · Group repayment');
     expect(btn).toHaveTextContent('+200.000₫');
-    expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-foreground');
+    expect(btn).toHaveTextContent('Not in income');
+    expect(btn.querySelector('.fsl-tx-row__amount')).toHaveClass('text-muted-foreground');
+    expect(btn.querySelector('.bg-muted')).toBeInTheDocument();
   });
 
   it('pending expense: shows muted amount without sign, warning pill, and pending meta', () => {

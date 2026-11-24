@@ -884,6 +884,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.bank_removed': 'đã xóa thông tin ngân hàng',
   'payments.mine': 'Các khoản đã trả của bạn',
   'payments.all': 'Tất cả khoản đã trả',
+  'payments.helper': 'Các khoản này dùng để thanh toán nợ giữa thành viên, không cộng thêm vào tổng chi tiêu của nhóm.', // REVIEW
   'payments.emptyMine': 'Chưa có khoản thanh toán nào liên quan đến bạn.',
   'payments.throughPeople': 'Đã tính vào tổng ở mục Mọi người',
   'payments.arrived': 'Đã nhận được',
@@ -1510,6 +1511,7 @@ export const vi: Record<MessageKey, string> = {
   'transactions.buyAssetTitle': 'Mua {asset}', // REVIEW
   'transactions.sellAssetTitle': 'Bán {asset}', // REVIEW
   'transactions.pricePerUnit': 'Giá mỗi {unit}', // REVIEW
+  'transactions.transfersAndSettleUp': 'Chuyển khoản & Trả nợ', // REVIEW
 
   'groupRow.yourShare': 'phần của bạn', // REVIEW
   'groupRow.youPaid': 'Bạn trả {total} · {rest} mọi người nợ bạn', // REVIEW
@@ -1521,6 +1523,13 @@ export const vi: Record<MessageKey, string> = {
   'groupRow.paymentOutMeta': 'Trả nợ nhóm', // REVIEW
   'groupRow.paymentTo': 'Bạn trả {name}', // REVIEW
   'groupRow.paymentFrom': '{name} trả bạn', // REVIEW
+  'groupRow.notInSpending': 'Không tính chi tiêu', // REVIEW
+  'groupRow.notInIncome': 'Không tính thu nhập', // REVIEW
+  'groupRow.notFromWallet': 'Chưa trừ ví', // REVIEW
+  'groupRow.paymentWalletOut': 'Trừ {amount} khỏi ví {wallet}', // REVIEW
+  'groupRow.paymentWalletIn': 'Cộng {amount} vào ví {wallet}', // REVIEW
+  'groupRow.paymentNotCountedNote': 'Không tính thêm vào chi tiêu (đã tính ở khoản chi gốc).', // REVIEW
+  'groupRow.paymentNotCountedInNote': 'Không tính thêm vào thu nhập (hoàn lại khoản bạn đã trả hộ).', // REVIEW
   'groupRow.pending': 'Chờ duyệt · chưa tính', // REVIEW
   'groupRow.pendingShort': 'Chưa tính', // REVIEW
   'groupRow.openInGroup': 'Xem trong nhóm', // REVIEW
