@@ -1562,12 +1562,30 @@ export const vi: Record<MessageKey, string> = {
   'categories.parent': 'Nhóm cha', // REVIEW
   'categories.pickParent': 'Chọn nhóm cha', // REVIEW
   'categories.noParent': 'Không có (nhóm chính)', // REVIEW
+  'categories.parentLockedHasChildren': 'Đang có {count} nhóm con — chuyển các nhóm con trước để đổi nhóm cha.', // REVIEW
+  'categories.parentNoOtherParents': 'Chưa có nhóm chính nào khác để chuyển vào.', // REVIEW
+  'categories.visibilityShiftNote': 'Lưu xong sẽ đổi mặc định hiển thị ở: {wallets}. Bạn vẫn chỉnh riêng được ở "Hiện ở ví".', // REVIEW
+  'categories.visibilityShiftShow': 'hiện ở {wallet}', // REVIEW
+  'categories.visibilityShiftHide': 'ẩn ở {wallet}', // REVIEW
+  'categories.movedToParentToast': 'Đã chuyển "{name}" sang "{parent}"', // REVIEW
+  'categories.promotedToast': 'Đã đưa "{name}" lên làm nhóm chính', // REVIEW
   'categories.save': 'Lưu', // REVIEW
   'categories.emptyTitle': 'Chưa có nhóm nào', // REVIEW
   'categories.emptyBody': 'Thêm nhóm để phân loại thu chi.', // REVIEW
   'categories.deleteConfirmTitle': 'Xóa nhóm?', // REVIEW
   'categories.deleteConfirmBody': 'Bạn có chắc muốn xóa nhóm "{name}"?', // REVIEW
   'categories.hasChildrenError': 'Nhóm này đang có nhóm con. Hãy chuyển hoặc xóa các nhóm con trước.', // REVIEW
+  'categories.deleteParentTitle': 'Xóa "{name}"', // REVIEW
+  'categories.deleteParentBody': 'Nhóm này đang có {count} nhóm con. Chọn nơi chuyển các nhóm con trước khi xóa:', // REVIEW
+  'categories.deleteParentMoreChildren': '+{count} nhóm nữa', // REVIEW
+  'categories.promoteChildren': 'Lên làm nhóm chính', // REVIEW
+  'categories.promoteChildrenDesc': 'Các nhóm con sẽ tách ra thành nhóm chính độc lập.', // REVIEW
+  'categories.moveChildrenToParent': 'Chuyển sang nhóm cha khác', // REVIEW
+  'categories.moveChildrenTargetLabel': 'Chọn nhóm cha mới', // REVIEW
+  'categories.deleteParentDirectTx': '"{name}" cũng đang có {count} giao dịch trực tiếp. Chọn nhóm để chuyển các giao dịch này:', // REVIEW
+  'categories.moveChildrenAndDelete': 'Chuyển nhóm con và xóa', // REVIEW
+  'categories.deletedParentPromotedToast': 'Đã xóa "{name}" và đưa {count} nhóm con lên nhóm chính', // REVIEW
+  'categories.deletedParentMovedToast': 'Đã xóa "{name}" và chuyển {count} nhóm con sang "{parent}"', // REVIEW
   'categories.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
   'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
   'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW

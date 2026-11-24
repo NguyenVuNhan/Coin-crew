@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { and, asc, eq, gte, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, isNull, sql } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
@@ -337,17 +338,97 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       nextSortOrder = body.sortOrder;
     }
 
+    let requestedParentId: string | null | undefined;
+    if (body.parentId !== undefined) {
+      if (body.parentId === null) {
+        requestedParentId = null;
+      } else if (typeof body.parentId === 'string' && body.parentId.trim().length > 0) {
+        requestedParentId = body.parentId.trim();
+      } else {
+        throw new ApiError('VALIDATION', 422, 'Invalid parentId');
+      }
+    }
+
+    const existingParentId = existing.parentId ?? null;
+    const parentChanged = requestedParentId !== undefined && requestedParentId !== existingParentId;
+    const nextParentId: string | null =
+      requestedParentId !== undefined ? requestedParentId : existingParentId;
+
+    if (parentChanged && requestedParentId !== undefined) {
+      if (requestedParentId === id) {
+        throw new ApiError('VALIDATION', 422, 'Category cannot be its own parent');
+      }
+
+      if (requestedParentId !== null) {
+        const child = await db
+          .select({ id: personalCategories.id })
+          .from(personalCategories)
+          .where(and(eq(personalCategories.parentId, id), eq(personalCategories.userId, user.id)))
+          .get();
+
+        if (child) {
+          throw new ApiError('IN_USE', 409, 'Category has sub-categories.', {
+            reason: 'HAS_CHILDREN',
+          });
+        }
+
+        const parent = await db
+          .select({
+            id: personalCategories.id,
+            parentId: personalCategories.parentId,
+            type: personalCategories.type,
+          })
+          .from(personalCategories)
+          .where(and(eq(personalCategories.id, requestedParentId), eq(personalCategories.userId, user.id)))
+          .get();
+
+        if (!parent || parent.parentId !== null || parent.type !== existing.type) {
+          throw new ApiError('VALIDATION', 422, 'Invalid parent category');
+        }
+      }
+
+      if (body.sortOrder === undefined) {
+        const maxRow = await db
+          .select({
+            maxOrder: sql<number | null>`max(${personalCategories.sortOrder})`,
+          })
+          .from(personalCategories)
+          .where(
+            and(
+              eq(personalCategories.userId, user.id),
+              eq(personalCategories.type, existing.type),
+              requestedParentId === null
+                ? isNull(personalCategories.parentId)
+                : eq(personalCategories.parentId, requestedParentId),
+            ),
+          )
+          .get();
+
+        nextSortOrder = (maxRow?.maxOrder ?? -1) + 1;
+      }
+    }
+
     const now = nowIso();
-    await db
-      .update(personalCategories)
-      .set({
-        name: nextName,
-        icon: nextIcon,
-        hidden: nextHidden ? 1 : 0,
-        sortOrder: nextSortOrder,
-        updatedAt: now,
-      })
-      .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)));
+    const buildUpdate = () =>
+      db
+        .update(personalCategories)
+        .set({
+          name: nextName,
+          icon: nextIcon,
+          hidden: nextHidden ? 1 : 0,
+          parentId: nextParentId,
+          sortOrder: nextSortOrder,
+          updatedAt: now,
+        })
+        .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)));
+
+    if (parentChanged) {
+      await commitPersonalWrite(db, user.id, () => [
+        buildUpdate() as unknown as BatchItem<'sqlite'>,
+      ]);
+    } else {
+      await buildUpdate();
+    }
 
     const overrideRows = await db
       .select({
@@ -365,7 +446,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
 
     const category: CategoryView = {
       id: existing.id,
-      parentId: existing.parentId ?? null,
+      parentId: nextParentId,
       type: existing.type as 'expense' | 'income',
       name: nextName,
       icon: nextIcon,
@@ -399,15 +480,13 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404, 'Category not found');
     }
 
-    const child = await db
+    const childRows = await db
       .select({ id: personalCategories.id })
       .from(personalCategories)
       .where(and(eq(personalCategories.parentId, id), eq(personalCategories.userId, user.id)))
-      .get();
-
-    if (child) {
-      throw new ApiError('IN_USE', 409, 'Category has sub-categories.', { reason: 'HAS_CHILDREN' });
-    }
+      .orderBy(asc(personalCategories.sortOrder), asc(personalCategories.createdAt))
+      .all();
+    const childCount = childRows.length;
 
     const countRow = await db
       .select({ count: sql<number>`count(*)` })
@@ -416,8 +495,52 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       .get();
     const count = Number(countRow?.count ?? 0);
 
+    const rawChildren = c.req.query('children');
+    let childrenParam: string | undefined;
+    if (rawChildren !== undefined && rawChildren !== '') {
+      const trimmed = rawChildren.trim();
+      if (!trimmed) {
+        throw new ApiError('VALIDATION', 422, 'Invalid target parent category');
+      }
+      childrenParam = trimmed;
+    }
+
+    let nextChildParentId: string | null = null;
+    if (childCount > 0) {
+      if (!childrenParam) {
+        throw new ApiError('IN_USE', 409, 'Category has sub-categories.', {
+          reason: 'HAS_CHILDREN',
+          childCount,
+          count,
+        });
+      }
+      if (childrenParam !== 'promote') {
+        if (childrenParam === id) {
+          throw new ApiError('VALIDATION', 422, 'Invalid target parent category');
+        }
+        const targetParent = await db
+          .select({
+            id: personalCategories.id,
+            parentId: personalCategories.parentId,
+            type: personalCategories.type,
+          })
+          .from(personalCategories)
+          .where(and(eq(personalCategories.id, childrenParam), eq(personalCategories.userId, user.id)))
+          .get();
+
+        if (!targetParent) {
+          throw new ApiError('NOT_FOUND', 404, 'Target parent category not found');
+        }
+        if (targetParent.parentId !== null || targetParent.type !== existing.type) {
+          throw new ApiError('VALIDATION', 422, 'Invalid target parent category');
+        }
+        nextChildParentId = targetParent.id;
+      }
+    }
+
     const moveTo = c.req.query('moveTo');
-    if (moveTo !== undefined && moveTo !== '') {
+    const hasMoveTo = moveTo !== undefined && moveTo !== '';
+    if (hasMoveTo) {
       if (moveTo === id) {
         throw new ApiError('VALIDATION', 422, 'Cannot move entries to the same category.');
       }
@@ -436,26 +559,73 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         throw new ApiError('NOT_FOUND', 404, 'Target category not found');
       }
 
-      if (target.type !== existing.type || target.parentId === id) {
+      if (target.type !== existing.type || (childCount === 0 && target.parentId === id)) {
         throw new ApiError('VALIDATION', 422, 'Invalid target category');
+      }
+    } else if (count > 0) {
+      throw new ApiError('IN_USE', 409, 'Category is in use.', { count });
+    }
+
+    if (childCount > 0 || hasMoveTo) {
+      let baseOrder = -1;
+      if (childCount > 0) {
+        const destMaxRow = await db
+          .select({ maxOrder: sql<number | null>`max(${personalCategories.sortOrder})` })
+          .from(personalCategories)
+          .where(
+            and(
+              eq(personalCategories.userId, user.id),
+              eq(personalCategories.type, existing.type),
+              nextChildParentId === null
+                ? isNull(personalCategories.parentId)
+                : eq(personalCategories.parentId, nextChildParentId),
+            ),
+          )
+          .get();
+        baseOrder = destMaxRow?.maxOrder ?? -1;
       }
 
       const now = nowIso();
-      await commitPersonalWrite(db, user.id, (v) => [
-        db
-          .update(personalTransactions)
-          .set({ categoryId: moveTo, updatedAt: now, syncVersion: v })
-          .where(and(eq(personalTransactions.categoryId, id), eq(personalTransactions.userId, user.id))),
-        db
-          .delete(personalCategories)
-          .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id))),
-      ]);
+      await commitPersonalWrite(db, user.id, (v) => {
+        const stmts: BatchItem<'sqlite'>[] = [];
+        for (const [idx, child] of childRows.entries()) {
+          stmts.push(
+            db
+              .update(personalCategories)
+              .set({
+                parentId: nextChildParentId,
+                sortOrder: baseOrder + 1 + idx,
+                updatedAt: now,
+              })
+              .where(
+                and(eq(personalCategories.id, child.id), eq(personalCategories.userId, user.id)),
+              ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+        if (hasMoveTo) {
+          stmts.push(
+            db
+              .update(personalTransactions)
+              .set({ categoryId: moveTo!, updatedAt: now, syncVersion: v })
+              .where(
+                and(
+                  eq(personalTransactions.categoryId, id),
+                  eq(personalTransactions.userId, user.id),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+        stmts.push(
+          db
+            .delete(personalCategories)
+            .where(
+              and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)),
+            ) as unknown as BatchItem<'sqlite'>,
+        );
+        return stmts;
+      });
 
       return c.json({ ok: true }, 200);
-    }
-
-    if (count > 0) {
-      throw new ApiError('IN_USE', 409, 'Category is in use.', { count });
     }
 
     await db

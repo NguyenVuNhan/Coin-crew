@@ -419,12 +419,21 @@ describe('personal money hooks', () => {
 
     await act(async () => {
       await result.current.create.mutateAsync({ type: 'expense', name: 'Food', icon: 'utensils' });
-      await result.current.update.mutateAsync({ id: 'c-1', input: { name: 'Dining' } });
+      await result.current.update.mutateAsync({ id: 'c-1', input: { name: 'Dining', parentId: 'p-1' } });
+      await result.current.update.mutateAsync({ id: 'c-1', input: { parentId: null } });
       await result.current.del.mutateAsync({ id: 'c-1', moveTo: 'c/other' });
+      await result.current.del.mutateAsync({ id: 'c-1', children: 'promote' });
+      await result.current.del.mutateAsync({ id: 'c-1', moveTo: 'c/other', children: 'p-2' });
     });
 
-    const delCall = calls.find((c) => c.method === 'DELETE');
-    expect(delCall?.url).toBe('/api/me/personal/categories/c-1?moveTo=c%2Fother');
+    const patchCalls = calls.filter((c) => c.method === 'PATCH');
+    expect(patchCalls[0]?.body).toEqual({ name: 'Dining', parentId: 'p-1' });
+    expect(patchCalls[1]?.body).toEqual({ parentId: null });
+
+    const delCalls = calls.filter((c) => c.method === 'DELETE');
+    expect(delCalls[0]?.url).toBe('/api/me/personal/categories/c-1?moveTo=c%2Fother');
+    expect(delCalls[1]?.url).toBe('/api/me/personal/categories/c-1?children=promote');
+    expect(delCalls[2]?.url).toBe('/api/me/personal/categories/c-1?moveTo=c%2Fother&children=p-2');
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PERSONAL_CATEGORIES_KEY });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PERSONAL_LIST_KEY });
   });

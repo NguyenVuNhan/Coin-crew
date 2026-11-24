@@ -15,9 +15,20 @@ const createCategory = (sid: string | null, body: unknown) =>
 const patchCategory = (id: string, sid: string | null, body: unknown) =>
   postJson(`/api/me/personal/categories/${encodeURIComponent(id)}`, sid, body, 'PATCH');
 
-const deleteCategory = (id: string, sid: string | null, moveTo?: string) => {
-  const qs = moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : '';
-  return call(`/api/me/personal/categories/${encodeURIComponent(id)}${qs}`, {
+const deleteCategory = (
+  id: string,
+  sid: string | null,
+  opts?: string | { moveTo?: string; children?: string },
+) => {
+  const params = new URLSearchParams();
+  if (typeof opts === 'string') {
+    params.set('moveTo', opts);
+  } else if (opts) {
+    if (opts.moveTo) params.set('moveTo', opts.moveTo);
+    if (opts.children) params.set('children', opts.children);
+  }
+  const qs = params.toString();
+  return call(`/api/me/personal/categories/${encodeURIComponent(id)}${qs ? `?${qs}` : ''}`, {
     method: 'DELETE',
     headers: sid ? { Cookie: `sid=${sid}` } : {},
   });
@@ -43,10 +54,16 @@ function utcDaysAgo(days: number): string {
 }
 
 afterEach(async () => {
+  await env.DB.prepare('DELETE FROM personal_category_visibility').run();
   await env.DB.prepare('DELETE FROM personal_transaction_tags').run();
   await env.DB.prepare('DELETE FROM personal_transactions').run();
   await env.DB.prepare('DELETE FROM personal_tags').run();
   await env.DB.prepare('DELETE FROM personal_categories').run();
+  await env.DB.prepare('DELETE FROM personal_wallet_settings').run();
+  await env.DB.prepare('DELETE FROM personal_wallets').run();
+  await env.DB.prepare('DELETE FROM personal_sync_deletions').run();
+  await env.DB.prepare('DELETE FROM personal_sync_state').run();
+  await env.DB.prepare('DELETE FROM user_personal_settings').run();
 });
 
 describe('personal categories and tags', () => {
@@ -431,6 +448,196 @@ describe('personal categories and tags', () => {
     expect((await deleteCategory(cat2.id, sid2, cat1.id)).status).toBe(404);
     expect((await patchTag('tag-priv-1', sid2, { name: 'Hack' })).status).toBe(404);
     expect((await deleteTag('tag-priv-1', sid2)).status).toBe(404);
+  });
+
+  it('PATCH reparents sub-categories, promotes to top-level, nests childless parents, and preserves visibility overrides & transactions', async () => {
+    const sid = await memberSid('u-cat-remap', 'CatRemap');
+    await switchOn('u-cat-remap');
+
+    const wallet = (
+      await json<WalletDetailResponse>(await addWallet(sid, { name: 'Binance', currency: 'USDT', kind: 'investment', startAmount: 0 }))
+    ).wallet;
+
+    const seeded = await json<CategoriesResponse>(await getCategories(sid));
+    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const shopping = seeded.categories.find((c) => c.name === 'Mua sắm')!;
+    const fees = seeded.categories.find((c) => c.name === 'Phí & lệ phí')!;
+    const tax = seeded.categories.find((c) => c.name === 'Thuế')!;
+
+    // Explicit visibility override on `tax` and a transaction pointing to `tax`
+    await postJson(
+      `/api/me/personal/wallets/${wallet.id}/visibility`,
+      sid,
+      { categories: [{ id: tax.id, visible: false }] },
+      'PUT',
+    );
+    const today = utcDaysAgo(0);
+    await env.DB.prepare(
+      'INSERT INTO personal_transactions (id, user_id, wallet_id, type, amount, category_id, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    )
+      .bind('tx-remap-1', 'u-cat-remap', wallet.id, 'expense', 15_000, tax.id, today, `${today}T01:00:00.000Z`, `${today}T01:00:00.000Z`)
+      .run();
+
+    const syncBefore = await env.DB.prepare('SELECT version FROM personal_sync_state WHERE user_id = ?')
+      .bind('u-cat-remap')
+      .first<{ version: number }>();
+
+    // 1. Move sub-category `tax` from `fees` to `food`
+    const moveRes = await patchCategory(tax.id, sid, { parentId: food.id });
+    expect(moveRes.status).toBe(200);
+    const moved = (await json<{ category: CategoryView }>(moveRes)).category;
+    expect(moved.parentId).toBe(food.id);
+    expect(moved.sortOrder).toBe(0);
+    expect(moved.walletOverrides).toEqual([{ walletId: wallet.id, visible: false }]);
+
+    const syncAfter = await env.DB.prepare('SELECT version FROM personal_sync_state WHERE user_id = ?')
+      .bind('u-cat-remap')
+      .first<{ version: number }>();
+    expect(syncAfter?.version).toBeGreaterThan(syncBefore?.version ?? 0);
+
+    // Transaction still points to `tax.id`
+    const txRow = await env.DB.prepare('SELECT category_id FROM personal_transactions WHERE id = ?')
+      .bind('tx-remap-1')
+      .first<{ category_id: string }>();
+    expect(txRow?.category_id).toBe(tax.id);
+
+    // 2. Promote `tax` to top-level (appends after existing top-level sortOrders)
+    const promoteRes = await patchCategory(tax.id, sid, { parentId: null });
+    expect(promoteRes.status).toBe(200);
+    const promoted = (await json<{ category: CategoryView }>(promoteRes)).category;
+    expect(promoted.parentId).toBeNull();
+    expect(promoted.sortOrder).toBeGreaterThan(fees.sortOrder);
+
+    // 3. Nest childless top-level `shopping` under `food`
+    const nestRes = await patchCategory(shopping.id, sid, { parentId: food.id });
+    expect(nestRes.status).toBe(200);
+    const nested = (await json<{ category: CategoryView }>(nestRes)).category;
+    expect(nested.parentId).toBe(food.id);
+  });
+
+  it('PATCH rejects invalid parent remaps (self, cross-type, sub-category, parent with children, other user)', async () => {
+    const sid1 = await memberSid('u-cat-guard-1', 'Guard1');
+    const sid2 = await memberSid('u-cat-guard-2', 'Guard2');
+    await switchOn('u-cat-guard-1');
+    await switchOn('u-cat-guard-2');
+
+    const s1 = await json<CategoriesResponse>(await getCategories(sid1));
+    const s2 = await json<CategoriesResponse>(await getCategories(sid2));
+
+    const food = s1.categories.find((c) => c.name === 'Ăn uống')!;
+    const fees = s1.categories.find((c) => c.name === 'Phí & lệ phí')!;
+    const tax = s1.categories.find((c) => c.name === 'Thuế')!;
+    const fee = s1.categories.find((c) => c.name === 'Phí')!;
+    const salary = s1.categories.find((c) => c.name === 'Lương')!;
+    const otherFood = s2.categories.find((c) => c.name === 'Ăn uống')!;
+
+    expect((await patchCategory(food.id, sid1, { parentId: food.id })).status).toBe(422);
+    expect((await patchCategory(food.id, sid1, { parentId: salary.id })).status).toBe(422);
+    expect((await patchCategory(tax.id, sid1, { parentId: fee.id })).status).toBe(422);
+    expect((await patchCategory(tax.id, sid1, { parentId: otherFood.id })).status).toBe(422);
+    expect((await patchCategory(tax.id, sid1, { parentId: '' })).status).toBe(422);
+    expect((await patchCategory(tax.id, sid1, { parentId: 123 })).status).toBe(422);
+
+    const hasChildrenRes = await patchCategory(fees.id, sid1, { parentId: food.id });
+    expect(hasChildrenRes.status).toBe(409);
+    expect(await json<{ error: { code: string; reason: string } }>(hasChildrenRes)).toMatchObject({
+      error: { code: 'IN_USE', reason: 'HAS_CHILDREN' },
+    });
+  });
+
+  it('DELETE parent with children supports promote, reparent, atomic direct-tx move, and rejects invalid targets', async () => {
+    const sid = await memberSid('u-cat-delparent', 'DelParent');
+    const otherSid = await memberSid('u-cat-delparent-other', 'DelParentOther');
+    await switchOn('u-cat-delparent');
+    await switchOn('u-cat-delparent-other');
+
+    const wallet = (
+      await json<WalletDetailResponse>(await addWallet(sid, { name: 'Ví', startAmount: 1_000_000 }))
+    ).wallet;
+
+    const seeded = await json<CategoriesResponse>(await getCategories(sid));
+    const otherSeeded = await json<CategoriesResponse>(await getCategories(otherSid));
+    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const fees = seeded.categories.find((c) => c.name === 'Phí & lệ phí')!;
+    const tax = seeded.categories.find((c) => c.name === 'Thuế')!;
+    const fee = seeded.categories.find((c) => c.name === 'Phí')!;
+    const salary = seeded.categories.find((c) => c.name === 'Lương')!;
+    const otherUserFood = otherSeeded.categories.find((c) => c.name === 'Ăn uống')!;
+
+    // Override visibility on `tax` to make sure delete-parent preserves it
+    await postJson(
+      `/api/me/personal/wallets/${wallet.id}/visibility`,
+      sid,
+      { categories: [{ id: tax.id, visible: false }] },
+      'PUT',
+    );
+
+    // Invalid children query targets
+    expect((await deleteCategory(fees.id, sid, { children: fees.id })).status).toBe(422);
+    expect((await deleteCategory(fees.id, sid, { children: salary.id })).status).toBe(422);
+    expect((await deleteCategory(fees.id, sid, { children: tax.id })).status).toBe(422);
+    expect((await deleteCategory(fees.id, sid, { children: otherUserFood.id })).status).toBe(404);
+
+    // Direct transactions on `fees`
+    const today = utcDaysAgo(0);
+    await env.DB.prepare(
+      'INSERT INTO personal_transactions (id, user_id, wallet_id, type, amount, category_id, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    )
+      .bind('tx-parent-1', 'u-cat-delparent', wallet.id, 'expense', 40_000, fees.id, today, `${today}T01:00:00.000Z`, `${today}T01:00:00.000Z`)
+      .run();
+
+    // Bare delete includes childCount and count
+    const bareRes = await deleteCategory(fees.id, sid);
+    expect(bareRes.status).toBe(409);
+    expect(await json<{ error: { code: string; reason: string; childCount: number; count: number } }>(bareRes)).toMatchObject({
+      error: { code: 'IN_USE', reason: 'HAS_CHILDREN', childCount: 2, count: 1 },
+    });
+
+    // Promote without moveTo returns 409 count AND leaves children & parent untouched
+    const missingMoveTo = await deleteCategory(fees.id, sid, { children: 'promote' });
+    expect(missingMoveTo.status).toBe(409);
+    expect(await json<{ error: { code: string; count: number } }>(missingMoveTo)).toMatchObject({
+      error: { code: 'IN_USE', count: 1 },
+    });
+    const afterFailed = await json<CategoriesResponse>(await getCategories(sid));
+    expect(afterFailed.categories.find((c) => c.id === fees.id)).toBeDefined();
+    expect(afterFailed.categories.find((c) => c.id === tax.id)?.parentId).toBe(fees.id);
+
+    // Atomic promote + move direct transaction to one of the promoted children (`tax.id`)
+    const atomicPromote = await deleteCategory(fees.id, sid, { children: 'promote', moveTo: tax.id });
+    expect(atomicPromote.status).toBe(200);
+
+    const afterPromote = await json<CategoriesResponse>(await getCategories(sid));
+    expect(afterPromote.categories.find((c) => c.id === fees.id)).toBeUndefined();
+    const promotedTax = afterPromote.categories.find((c) => c.id === tax.id)!;
+    const promotedFee = afterPromote.categories.find((c) => c.id === fee.id)!;
+    expect(promotedTax.parentId).toBeNull();
+    expect(promotedFee.parentId).toBeNull();
+    expect(promotedTax.walletOverrides).toEqual([{ walletId: wallet.id, visible: false }]);
+
+    const movedTx = await env.DB.prepare('SELECT category_id, sync_version FROM personal_transactions WHERE id = ?')
+      .bind('tx-parent-1')
+      .first<{ category_id: string; sync_version: number }>();
+    expect(movedTx?.category_id).toBe(tax.id);
+    expect(movedTx?.sync_version).toBeGreaterThan(0);
+
+    // Create another parent with a child and delete-reparent to `food`
+    const extraParentRes = await createCategory(sid, { type: 'expense', name: 'Nhà cửa', icon: 'home' });
+    const extraParent = (await json<{ category: CategoryView }>(extraParentRes)).category;
+    const extraChildRes = await createCategory(sid, {
+      type: 'expense',
+      name: 'Nội thất',
+      icon: 'home',
+      parentId: extraParent.id,
+    });
+    const extraChild = (await json<{ category: CategoryView }>(extraChildRes)).category;
+
+    const reparentDel = await deleteCategory(extraParent.id, sid, { children: food.id });
+    expect(reparentDel.status).toBe(200);
+
+    const afterReparent = await json<CategoriesResponse>(await getCategories(sid));
+    expect(afterReparent.categories.find((c) => c.id === extraParent.id)).toBeUndefined();
+    expect(afterReparent.categories.find((c) => c.id === extraChild.id)?.parentId).toBe(food.id);
   });
 
   it('switch off: 403 on all routes', async () => {

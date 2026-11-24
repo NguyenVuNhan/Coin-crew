@@ -1,5 +1,5 @@
-import { useMemo, useState, type JSX } from 'react';
-import type { CategoryView } from '@cc/core';
+import { useEffect, useMemo, useState, type JSX } from 'react';
+import { isCategoryVisibleIn, type CategoryView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { useLedger } from '@cc/web-data-access/people';
@@ -8,6 +8,8 @@ import {
   useCreateCategory,
   useDeleteCategory,
   useUpdateCategory,
+  useWalletDetails,
+  type UpdateCategoryInput,
 } from '@cc/web-data-access/personalMoney';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { ActionRow, type RowAction } from '@cc/web-ui/components/ActionRow';
@@ -19,6 +21,7 @@ import { Modal } from '@cc/web-ui/components/Modal';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@cc/web-ui/components/ui/native-select';
@@ -34,6 +37,9 @@ interface CategoryFormSheetProps {
   type: 'expense' | 'income';
   editing: CategoryView | null;
   parents: CategoryView[];
+  allCategories: CategoryView[];
+  editingChildCount: number;
+  onSaved?: (toastMessage?: string) => void;
 }
 
 function CategoryFormSheet({
@@ -42,10 +48,14 @@ function CategoryFormSheet({
   type,
   editing,
   parents,
+  allCategories,
+  editingChildCount,
+  onSaved,
 }: CategoryFormSheetProps): JSX.Element {
   const t = useT();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
+  const walletsQuery = useWalletDetails({ enabled: Boolean(editing) });
 
   const [name, setName] = useState(editing?.name ?? '');
   const [icon, setIcon] = useState<IconName>(
@@ -57,7 +67,49 @@ function CategoryFormSheet({
   const [parentSheetOpen, setParentSheetOpen] = useState(false);
 
   const filteredIcons = useMemo(() => filterCategoryIcons(iconSearch), [iconSearch]);
-  const selectedParent = parents.find((p) => p.id === parentId) ?? null;
+  const eligibleParents = useMemo(
+    () => parents.filter((p) => !editing || p.id !== editing.id),
+    [parents, editing],
+  );
+  const selectedParent = eligibleParents.find((p) => p.id === parentId) ?? null;
+
+  const activeWallets = useMemo(
+    () => (walletsQuery.data?.wallets ?? []).filter((w) => !w.archived),
+    [walletsQuery.data?.wallets],
+  );
+
+  const liveEditing = useMemo(
+    () => (editing ? (allCategories.find((c) => c.id === editing.id) ?? editing) : null),
+    [editing, allCategories],
+  );
+
+  const nextParentId = parentId || null;
+  const parentChanged = editing !== null && nextParentId !== (editing.parentId ?? null);
+
+  const parentLockedReason = editing
+    ? editingChildCount > 0
+      ? t('categories.parentLockedHasChildren', { count: editingChildCount })
+      : editing.parentId === null && eligibleParents.length === 0
+        ? t('categories.parentNoOtherParents')
+        : null
+    : null;
+
+  const visibilityShifts = useMemo(() => {
+    if (!liveEditing || editingChildCount > 0 || !parentChanged || activeWallets.length === 0) {
+      return [];
+    }
+    const hypothetical: CategoryView = { ...liveEditing, parentId: nextParentId };
+    const shifts: Array<{ walletName: string; becomesVisible: boolean }> = [];
+    for (const w of activeWallets) {
+      const wallet = { id: w.id, kind: w.kind };
+      const before = isCategoryVisibleIn(liveEditing, allCategories, wallet);
+      const after = isCategoryVisibleIn(hypothetical, allCategories, wallet);
+      if (before !== after) {
+        shifts.push({ walletName: w.name, becomesVisible: after });
+      }
+    }
+    return shifts;
+  }, [liveEditing, editingChildCount, parentChanged, activeWallets, allCategories, nextParentId]);
 
   const busy = createCategory.isPending || updateCategory.isPending;
   const error = editing ? updateCategory.error : createCategory.error;
@@ -67,10 +119,25 @@ function CategoryFormSheet({
     const trimmed = name.trim();
     if (!trimmed || busy) return;
     if (editing) {
+      const input: UpdateCategoryInput = { name: trimmed, icon };
+      if (parentChanged) {
+        input.parentId = nextParentId;
+      }
       await updateCategory.mutateAsync({
         id: editing.id,
-        input: { name: trimmed, icon },
+        input,
       });
+      let toastMessage: string | undefined;
+      if (parentChanged) {
+        toastMessage =
+          nextParentId === null
+            ? t('categories.promotedToast', { name: trimmed })
+            : t('categories.movedToParentToast', {
+                name: trimmed,
+                parent: selectedParent?.name ?? '',
+              });
+      }
+      onSaved?.(toastMessage);
     } else {
       await createCategory.mutateAsync({
         type,
@@ -78,6 +145,7 @@ function CategoryFormSheet({
         icon,
         parentId: parentId || null,
       });
+      onSaved?.();
     }
     onClose();
   };
@@ -103,14 +171,25 @@ function CategoryFormSheet({
           />
         </div>
 
-        {!editing && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">{t('categories.parent')}</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-foreground">{t('categories.parent')}</span>
+          {parentLockedReason ? (
+            <>
+              <div
+                data-testid="category-parent-locked"
+                aria-disabled="true"
+                className="min-h-11 rounded-xl border border-border bg-muted/50 px-3 py-2 flex items-center text-base text-muted-foreground"
+              >
+                <span className="truncate">{t('categories.noParent')}</span>
+              </div>
+              <p className="m-0 text-sm text-muted-foreground">{parentLockedReason}</p>
+            </>
+          ) : (
             <button
               type="button"
               data-testid="category-parent-trigger"
               onClick={() => setParentSheetOpen(true)}
-              className="min-h-11 rounded-xl border border-border bg-card px-3 py-2 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-muted/50"
+              className="min-h-11 rounded-xl border border-border bg-card px-3 py-2 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="flex items-center gap-2.5 min-w-0">
                 {selectedParent && (
@@ -124,8 +203,30 @@ function CategoryFormSheet({
               </span>
               <Icon name="chevronRight" size={18} className="text-muted-foreground shrink-0" />
             </button>
-          </div>
-        )}
+          )}
+          {visibilityShifts.length > 0 && (
+            <div
+              data-testid="category-parent-visibility-note"
+              className="rounded-xl bg-secondary px-3 py-2.5 text-sm text-secondary-foreground flex items-start gap-2"
+            >
+              <Icon name="info" size={16} className="shrink-0 mt-0.5" />
+              <span>
+                {t('categories.visibilityShiftNote', {
+                  wallets: visibilityShifts
+                    .map((s) =>
+                      t(
+                        s.becomesVisible
+                          ? 'categories.visibilityShiftShow'
+                          : 'categories.visibilityShiftHide',
+                        { wallet: s.walletName },
+                      ),
+                    )
+                    .join(', '),
+                })}
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-foreground">{t('categories.icon')}</span>
@@ -231,14 +332,14 @@ function CategoryFormSheet({
               setParentSheetOpen(false);
             }}
             className={cn(
-              'min-h-11 flex items-center justify-between gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+              'min-h-11 flex items-center justify-between gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               parentId === '' && 'font-semibold text-primary',
             )}
           >
             <span>{t('categories.noParent')}</span>
             {parentId === '' && <Icon name="check" size={18} className="text-primary shrink-0" />}
           </button>
-          {parents.map((p) => {
+          {eligibleParents.map((p) => {
             const selected = parentId === p.id;
             return (
               <button
@@ -250,7 +351,8 @@ function CategoryFormSheet({
                   setParentSheetOpen(false);
                 }}
                 className={cn(
-                  'min-h-11 flex items-center gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+                  'min-h-11 flex items-center gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  p.hidden && 'opacity-60',
                   selected && 'font-semibold text-primary',
                 )}
               >
@@ -258,6 +360,7 @@ function CategoryFormSheet({
                   <Icon name={categoryIconName(p.icon, type)} size={18} />
                 </span>
                 <span className="flex-1 truncate">{p.name}</span>
+                {p.hidden && <Pill tone="neutral">{t('categories.hiddenBadge')}</Pill>}
                 {selected && <Icon name="check" size={18} className="text-primary shrink-0" />}
               </button>
             );
@@ -266,6 +369,16 @@ function CategoryFormSheet({
       </Sheet>
     </Sheet>
   );
+}
+
+interface DeleteParentState {
+  category: CategoryView;
+  children: CategoryView[];
+  mode: 'promote' | 'move';
+  targetParentId: string;
+  directTxCount: number | null;
+  moveToId: string;
+  error: unknown;
 }
 
 export function CategoriesScreen(): JSX.Element {
@@ -284,7 +397,14 @@ export function CategoriesScreen(): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState<CategoryView | null>(null);
   const [inUseState, setInUseState] = useState<{ category: CategoryView; count: number } | null>(null);
   const [moveToId, setMoveToId] = useState('');
-  const [hasChildrenCat, setHasChildrenCat] = useState<CategoryView | null>(null);
+  const [deleteParentState, setDeleteParentState] = useState<DeleteParentState | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const allCategories = categoriesQuery.data?.categories ?? [];
 
@@ -315,6 +435,29 @@ export function CategoriesScreen(): JSX.Element {
     );
   }, [allCategories, inUseState]);
 
+  const deleteParentOtherParents = useMemo(() => {
+    if (!deleteParentState) return [];
+    return allCategories
+      .filter(
+        (c) =>
+          c.type === deleteParentState.category.type &&
+          c.parentId === null &&
+          c.id !== deleteParentState.category.id,
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [allCategories, deleteParentState]);
+
+  const deleteParentTxTargets = useMemo(() => {
+    if (!deleteParentState) return [];
+    return allCategories
+      .filter(
+        (c) =>
+          c.type === deleteParentState.category.type &&
+          c.id !== deleteParentState.category.id,
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [allCategories, deleteParentState]);
+
   const openAdd = () => {
     setFormKey((k) => k + 1);
     setFormState({ open: true, editing: null });
@@ -323,6 +466,24 @@ export function CategoriesScreen(): JSX.Element {
   const openEdit = (cat: CategoryView) => {
     setFormKey((k) => k + 1);
     setFormState({ open: true, editing: cat });
+  };
+
+  const openDeleteParent = (cat: CategoryView, kids: CategoryView[], directCount: number | null = null) => {
+    const otherParentList = allCategories
+      .filter((c) => c.type === cat.type && c.parentId === null && c.id !== cat.id)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const fallbackMoveTarget = allCategories
+      .filter((c) => c.type === cat.type && c.id !== cat.id)
+      .sort((a, b) => a.sortOrder - b.sortOrder)[0];
+    setDeleteParentState({
+      category: cat,
+      children: kids,
+      mode: 'promote',
+      targetParentId: otherParentList[0]?.id ?? '',
+      directTxCount: directCount,
+      moveToId: fallbackMoveTarget?.id ?? '',
+      error: null,
+    });
   };
 
   const handleConfirmDelete = async () => {
@@ -335,7 +496,30 @@ export function CategoriesScreen(): JSX.Element {
       if (err instanceof ApiClientError && err.status === 409 && err.code === 'IN_USE') {
         setConfirmDelete(null);
         if (err.details.reason === 'HAS_CHILDREN') {
-          setHasChildrenCat(cat);
+          const refetched = await categoriesQuery.refetch();
+          const latestCats = refetched.data?.categories ?? allCategories;
+          const kids = latestCats
+            .filter((c) => c.parentId === cat.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+          const otherParentList = latestCats
+            .filter((c) => c.type === cat.type && c.parentId === null && c.id !== cat.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+          const fallbackMoveTarget = latestCats
+            .filter((c) => c.type === cat.type && c.id !== cat.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder)[0];
+          const count =
+            typeof err.details.count === 'number' && err.details.count > 0
+              ? err.details.count
+              : null;
+          setDeleteParentState({
+            category: cat,
+            children: kids,
+            mode: 'promote',
+            targetParentId: otherParentList[0]?.id ?? '',
+            directTxCount: count,
+            moveToId: fallbackMoveTarget?.id ?? '',
+            error: null,
+          });
         } else {
           const count = typeof err.details.count === 'number' ? err.details.count : 0;
           const firstTarget = allCategories.find(
@@ -360,6 +544,74 @@ export function CategoriesScreen(): JSX.Element {
     setInUseState(null);
   };
 
+  const handleConfirmDeleteParent = async () => {
+    if (!deleteParentState) return;
+    const { category, children, mode, targetParentId, directTxCount, moveToId: txMoveToId } =
+      deleteParentState;
+    const childrenArg = mode === 'promote' ? 'promote' : targetParentId;
+    if (!childrenArg) return;
+    if (directTxCount !== null && directTxCount > 0 && !txMoveToId) return;
+
+    setDeleteParentState((prev) => (prev ? { ...prev, error: null } : null));
+    try {
+      await deleteCategory.mutateAsync({
+        id: category.id,
+        children: childrenArg,
+        moveTo: directTxCount !== null && directTxCount > 0 ? txMoveToId : undefined,
+      });
+      const childCount = children.length;
+      const toastMsg =
+        mode === 'promote'
+          ? t('categories.deletedParentPromotedToast', {
+              name: category.name,
+              count: childCount,
+            })
+          : t('categories.deletedParentMovedToast', {
+              name: category.name,
+              count: childCount,
+              parent: deleteParentOtherParents.find((p) => p.id === targetParentId)?.name ?? '',
+            });
+      setDeleteParentState(null);
+      setToast(toastMsg);
+    } catch (err) {
+      if (
+        err instanceof ApiClientError &&
+        err.status === 409 &&
+        err.code === 'IN_USE' &&
+        typeof err.details.count === 'number' &&
+        err.details.count > 0
+      ) {
+        const count = err.details.count;
+        const fallbackMove = deleteParentTxTargets[0]?.id ?? '';
+        setDeleteParentState((prev) =>
+          prev
+            ? {
+                ...prev,
+                directTxCount: count,
+                moveToId: prev.moveToId || fallbackMove,
+                error: null,
+              }
+            : null,
+        );
+        return;
+      }
+      setDeleteParentState((prev) => (prev ? { ...prev, error: err } : null));
+    }
+  };
+
+  const handleHideParentInstead = async () => {
+    if (!deleteParentState) return;
+    try {
+      await updateCategory.mutateAsync({
+        id: deleteParentState.category.id,
+        input: { hidden: true },
+      });
+      setDeleteParentState(null);
+    } catch (err) {
+      setDeleteParentState((prev) => (prev ? { ...prev, error: err } : null));
+    }
+  };
+
   const renderRow = (cat: CategoryView, isSub: boolean) => {
     const actions: RowAction[] = [
       {
@@ -381,7 +633,14 @@ export function CategoriesScreen(): JSX.Element {
         label: t('categories.delete'),
         icon: 'trash',
         tone: 'danger',
-        onSelect: () => setConfirmDelete(cat),
+        onSelect: () => {
+          const kids = childrenByParent.get(cat.id) ?? [];
+          if (kids.length > 0) {
+            openDeleteParent(cat, kids);
+          } else {
+            setConfirmDelete(cat);
+          }
+        },
       },
     ];
 
@@ -512,6 +771,13 @@ export function CategoriesScreen(): JSX.Element {
           type={type}
           editing={formState.editing}
           parents={parents}
+          allCategories={allCategories}
+          editingChildCount={
+            formState.editing ? (childrenByParent.get(formState.editing.id)?.length ?? 0) : 0
+          }
+          onSaved={(msg) => {
+            if (msg) setToast(msg);
+          }}
         />
       )}
 
@@ -540,20 +806,197 @@ export function CategoriesScreen(): JSX.Element {
         </div>
       </Modal>
 
-      <Modal
-        open={hasChildrenCat !== null}
-        onClose={() => setHasChildrenCat(null)}
-        title={hasChildrenCat?.name ?? t('categories.title')}
+      <Sheet
+        open={deleteParentState !== null}
+        onClose={() => setDeleteParentState(null)}
+        title={
+          deleteParentState
+            ? t('categories.deleteParentTitle', { name: deleteParentState.category.name })
+            : ''
+        }
       >
-        <div className="flex flex-col gap-4">
-          <p className="m-0 text-sm text-muted-foreground">{t('categories.hasChildrenError')}</p>
-          <div className="flex justify-end">
-            <Button variant="primary" onClick={() => setHasChildrenCat(null)}>
-              {t('common.close')}
-            </Button>
+        {deleteParentState && (
+          <div data-testid="delete-parent-sheet" className="flex flex-col gap-4">
+            <p className="m-0 text-sm text-muted-foreground">
+              {t('categories.deleteParentBody', { count: deleteParentState.children.length })}
+            </p>
+
+            {deleteParentState.children.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {deleteParentState.children.slice(0, 5).map((child) => (
+                  <Pill key={child.id} tone="neutral">
+                    {child.name}
+                  </Pill>
+                ))}
+                {deleteParentState.children.length > 5 && (
+                  <Pill tone="neutral">
+                    {t('categories.deleteParentMoreChildren', {
+                      count: deleteParentState.children.length - 5,
+                    })}
+                  </Pill>
+                )}
+              </div>
+            )}
+
+            <div
+              role="radiogroup"
+              aria-label={t('categories.deleteParentBody', {
+                count: deleteParentState.children.length,
+              })}
+              className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={deleteParentState.mode === 'promote'}
+                data-testid="delete-parent-mode-promote"
+                onClick={() =>
+                  setDeleteParentState((prev) =>
+                    prev ? { ...prev, mode: 'promote', error: null } : null,
+                  )
+                }
+                className="min-h-11 w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer bg-transparent border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <span
+                    className={cn(
+                      'text-base font-medium text-foreground',
+                      deleteParentState.mode === 'promote' && 'text-primary font-semibold',
+                    )}
+                  >
+                    {t('categories.promoteChildren')}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {t('categories.promoteChildrenDesc')}
+                  </span>
+                </div>
+                {deleteParentState.mode === 'promote' && (
+                  <Icon name="check" size={18} className="text-primary shrink-0" />
+                )}
+              </button>
+
+              {deleteParentOtherParents.length > 0 && (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={deleteParentState.mode === 'move'}
+                  data-testid="delete-parent-mode-move"
+                  onClick={() =>
+                    setDeleteParentState((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            mode: 'move',
+                            targetParentId:
+                              prev.targetParentId || deleteParentOtherParents[0]?.id || '',
+                            error: null,
+                          }
+                        : null,
+                    )
+                  }
+                  className="min-h-11 w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer bg-transparent border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span
+                    className={cn(
+                      'text-base font-medium text-foreground',
+                      deleteParentState.mode === 'move' && 'text-primary font-semibold',
+                    )}
+                  >
+                    {t('categories.moveChildrenToParent')}
+                  </span>
+                  {deleteParentState.mode === 'move' && (
+                    <Icon name="check" size={18} className="text-primary shrink-0" />
+                  )}
+                </button>
+              )}
+            </div>
+
+            {deleteParentState.mode === 'move' && deleteParentOtherParents.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="delete-parent-target-select">
+                  {t('categories.moveChildrenTargetLabel')}
+                </Label>
+                <NativeSelect
+                  id="delete-parent-target-select"
+                  value={deleteParentState.targetParentId}
+                  onChange={(e) =>
+                    setDeleteParentState((prev) =>
+                      prev ? { ...prev, targetParentId: e.target.value } : null,
+                    )
+                  }
+                  data-testid="delete-parent-target-select"
+                  className="w-full min-h-11 text-base"
+                >
+                  {deleteParentOtherParents.map((p) => (
+                    <NativeSelectOption key={p.id} value={p.id}>
+                      {p.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+            )}
+
+            {deleteParentState.directTxCount !== null && deleteParentState.directTxCount > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="delete-parent-tx-move-select">
+                  {t('categories.deleteParentDirectTx', {
+                    name: deleteParentState.category.name,
+                    count: deleteParentState.directTxCount,
+                  })}
+                </Label>
+                <NativeSelect
+                  id="delete-parent-tx-move-select"
+                  value={deleteParentState.moveToId}
+                  onChange={(e) =>
+                    setDeleteParentState((prev) =>
+                      prev ? { ...prev, moveToId: e.target.value } : null,
+                    )
+                  }
+                  data-testid="delete-parent-tx-move-select"
+                  className="w-full min-h-11 text-base"
+                >
+                  {deleteParentTxTargets.map((target) => (
+                    <NativeSelectOption key={target.id} value={target.id}>
+                      {target.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+            )}
+
+            {Boolean(deleteParentState.error) && <InlineError error={deleteParentState.error} />}
+
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="danger"
+                block
+                disabled={
+                  (deleteParentState.mode === 'move' && !deleteParentState.targetParentId) ||
+                  (deleteParentState.directTxCount !== null &&
+                    deleteParentState.directTxCount > 0 &&
+                    !deleteParentState.moveToId)
+                }
+                loading={deleteCategory.isPending}
+                data-testid="delete-parent-confirm"
+                onClick={() => void handleConfirmDeleteParent()}
+              >
+                {t('categories.moveChildrenAndDelete')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                block
+                loading={updateCategory.isPending}
+                data-testid="delete-parent-hide-instead"
+                onClick={() => void handleHideParentInstead()}
+              >
+                {t('categories.hideInstead')}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        )}
+      </Sheet>
 
       <Sheet
         open={inUseState !== null}
@@ -602,6 +1045,7 @@ export function CategoriesScreen(): JSX.Element {
           </Button>
         </div>
       </Sheet>
+      {toast && <Snackbar message={toast} />}
     </Screen>
   );
 }
