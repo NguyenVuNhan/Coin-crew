@@ -1,11 +1,12 @@
 import { Link } from 'react-router';
-import { formatVnd, isFundPaid, isPlanningExpense, roundToThousand, type ExpenseView, type TripView } from '@cc/core';
+import { fixedCategory, formatVnd, isFundPaid, isPlanningExpense, roundToThousand, type ExpenseView, type TripView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { nameOf, splitText } from '@cc/web-util/tripText';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Pill } from '@cc/web-ui/components/Pill';
+import { categoryIconName } from './categoryIcon';
 
 export function rowAmount(expense: ExpenseView, view: TripView): number {
   const me = view.me.participantId;
@@ -66,6 +67,12 @@ export function ExpenseRow({
   const isDisabled = expense.status === 'disabled';
   const isPending = expense.status === 'pending';
   const isRejected = expense.status === 'rejected';
+  const fixedCat = expense.categoryKey ? fixedCategory(expense.categoryKey) : undefined;
+  const rowIcon = isPlanning
+    ? 'calendar'
+    : fixedCat
+      ? categoryIconName(fixedCat.icon, 'expense')
+      : 'receipt';
 
   const rowClasses = cn(
     'fsl-expense-row flex-1 min-w-0 flex items-center gap-3 text-foreground',
@@ -83,7 +90,7 @@ export function ExpenseRow({
         )}
         aria-hidden="true"
       >
-        <Icon name={isPlanning ? 'calendar' : 'receipt'} size={20} />
+        <Icon name={rowIcon} size={20} />
       </div>
 
       <div className="fsl-expense-row__info min-w-0 flex-1 flex flex-col gap-0.5">
