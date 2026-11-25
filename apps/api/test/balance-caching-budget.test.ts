@@ -251,7 +251,7 @@ async function seedHeavyAccount(): Promise<string> {
   }
   await batchSql(ptxStmts);
 
-  // Backfill personal_wallet_balances matching 0033_balance_caching.sql
+  // Backfill personal_wallet_balances matching 0035_balance_caching.sql
   await env.DB.prepare(
     `INSERT OR IGNORE INTO personal_wallet_balances (
       wallet_id, user_id, personal_net, entry_count, vnd_value, cash_vnd, holdings_json, needs_replay, updated_at

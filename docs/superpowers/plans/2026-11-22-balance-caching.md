@@ -37,7 +37,7 @@
 | File | Responsibility |
 |---|---|
 | `libs/api/db/src/schema.ts` | Drizzle definitions for `personalWalletBalances`, `personalTripCache`, `tripBalanceCache`, and `personalAssets.entryCount` |
-| `apps/api/migrations/0033_balance_caching.sql` | DDL for new tables/columns/indexes + set-based SQL backfill for `personal_wallet_balances` and `personal_assets.entry_count` |
+| `apps/api/migrations/0035_balance_caching.sql` | DDL for new tables/columns/indexes + set-based SQL backfill for `personal_wallet_balances` and `personal_assets.entry_count` |
 | `apps/api/src/personal/balanceCache.ts` | Pure batch-statement builders for `personal_wallet_balances` and `personal_assets.entry_count` |
 | `apps/api/src/personal/tripCache.ts` | Per-`(user_id, trip_id)` `personal_trip_cache` lazy refresh, `"__default__"` resolution, and cached `GroupRow[]` loader |
 | `apps/api/src/personal/entries.ts` | Wire `balanceCache` delta/replay/asset-count statements into personal transaction POST, PATCH, DELETE, restore |
@@ -58,11 +58,11 @@
 
 ---
 
-### Task 1: Schema, Migration `0033_balance_caching.sql`, and SQL Backfill
+### Task 1: Schema, Migration `0035_balance_caching.sql`, and SQL Backfill
 
 **Files:**
 - Modify: `libs/api/db/src/schema.ts`
-- Create: `apps/api/migrations/0033_balance_caching.sql`
+- Create: `apps/api/migrations/0035_balance_caching.sql`
 - Test: `apps/api/test/schema-balance-caching.test.ts`
 
 **Interfaces:**
@@ -84,13 +84,13 @@ Create `apps/api/test/schema-balance-caching.test.ts` that verifies:
 Run: `npx vitest run --config apps/api/vitest.config.ts apps/api/test/schema-balance-caching.test.ts`
 Expected: FAIL (`no such table: personal_wallet_balances` / missing schema exports).
 
-- [ ] **Step 3: Update `libs/api/db/src/schema.ts` and create `apps/api/migrations/0033_balance_caching.sql`**
+- [ ] **Step 3: Update `libs/api/db/src/schema.ts` and create `apps/api/migrations/0035_balance_caching.sql`**
 
 In `libs/api/db/src/schema.ts`:
 - Add `entryCount: integer('entry_count').notNull().default(0)` to `personalAssets`.
 - Add `personalWalletBalances`, `personalTripCache`, and `tripBalanceCache` table definitions with indexes (`personal_wallet_balances_user_idx`, `personal_trip_cache_trip_idx`).
 
-In `apps/api/migrations/0033_balance_caching.sql`:
+In `apps/api/migrations/0035_balance_caching.sql`:
 - `ALTER TABLE personal_assets ADD COLUMN entry_count INTEGER NOT NULL DEFAULT 0;`
 - `CREATE TABLE personal_wallet_balances (...)` + index on `user_id`.
 - `CREATE TABLE personal_trip_cache (...)` + index on `trip_id`.
@@ -107,7 +107,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add libs/api/db/src/schema.ts apps/api/migrations/0033_balance_caching.sql apps/api/test/schema-balance-caching.test.ts
+git add libs/api/db/src/schema.ts apps/api/migrations/0035_balance_caching.sql apps/api/test/schema-balance-caching.test.ts
 git commit -m "feat(db): add balance cache tables and SQL backfill (#109)"
 ```
 

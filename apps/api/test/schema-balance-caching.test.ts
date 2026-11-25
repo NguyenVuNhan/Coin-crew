@@ -20,9 +20,9 @@ async function indexesOf(table: string): Promise<string[]> {
   return res.results.map((r) => r.name);
 }
 
-function backfillQueries0033(): string[] {
-  const m = env.TEST_MIGRATIONS!.find((item) => item.name.startsWith('0033'));
-  expect(m, 'migration 0033_balance_caching.sql must exist').toBeDefined();
+function backfillQueries0035(): string[] {
+  const m = env.TEST_MIGRATIONS!.find((item) => item.name.startsWith('0035'));
+  expect(m, 'migration 0035_balance_caching.sql must exist').toBeDefined();
   const queries = m!.queries
     .map((q) => q.replace(/^-->\s*statement-breakpoint\s*/i, '').trim())
     .filter((q) => {
@@ -33,7 +33,7 @@ function backfillQueries0033(): string[] {
   return queries;
 }
 
-describe('balance caching schema and migration 0033', () => {
+describe('balance caching schema and migration 0035', () => {
   it('creates cache tables and indexes without altering personal_assets', async () => {
     expect(personalAssetCounts.assetId).toBeDefined();
     expect(personalAssetCounts.entryCount).toBeDefined();
@@ -149,10 +149,10 @@ describe('balance caching schema and migration 0033', () => {
       )
       .run();
 
-    // Clear trigger-populated balance rows so backfillQueries0033() runs against pre-migration state
+    // Clear trigger-populated balance rows so backfillQueries0035() runs against pre-migration state
     await env.DB.prepare('DELETE FROM personal_wallet_balances WHERE user_id = ?').bind(uid).run();
 
-    const queries = backfillQueries0033();
+    const queries = backfillQueries0035();
     for (const q of queries) {
       await env.DB.prepare(q).run();
     }
