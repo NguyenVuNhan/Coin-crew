@@ -118,7 +118,7 @@ export function AssetIconPickerSheet({
               {t('walletForm.noIconMatch')}
             </p>
           ) : (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {searchMatches.map((item) => renderTile(item))}
             </div>
           )
@@ -156,7 +156,7 @@ export function AssetIconPickerSheet({
               </TabsList>
             </Tabs>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               <button
                 type="button"
                 data-testid="asset-icon-option-letters"
