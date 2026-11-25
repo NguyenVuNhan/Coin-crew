@@ -1,25 +1,22 @@
-import { useId, useMemo, useState, type FormEvent, type JSX } from "react";
+import { useId, useMemo, useState, type FormEvent, type JSX } from 'react';
 import {
   ASSET_GROUPS,
   assetUnitText,
   parseAssetUnit,
   type AssetView,
-} from "@cc/core";
-import { useT } from "@cc/web-i18n";
-import { ApiClientError } from "@cc/web-data-access/client";
-import {
-  useCreateAsset,
-  useUpdateAsset,
-} from "@cc/web-data-access/personalMoney";
-import { Button } from "@cc/web-ui/components/Button";
-import { Icon } from "@cc/web-ui/components/icons";
-import { InlineError, ownError } from "@cc/web-ui/components/InlineError";
-import { Input } from "@cc/web-ui/components/ui/input";
-import { Label } from "@cc/web-ui/components/ui/label";
-import { cn } from "@cc/web-ui/lib/utils";
-import { AssetIcon } from "./AssetIcon";
-import { AssetIconPickerSheet } from "./AssetIconPickerSheet";
-import { ItemWalletsRow } from "./visibility/ItemWalletsRow";
+} from '@cc/core';
+import { useT } from '@cc/web-i18n';
+import { ApiClientError } from '@cc/web-data-access/client';
+import { useCreateAsset, useUpdateAsset } from '@cc/web-data-access/personalMoney';
+import { Button } from '@cc/web-ui/components/Button';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { cn } from '@cc/web-ui/lib/utils';
+import { AssetIcon } from './AssetIcon';
+import { AssetIconPickerSheet } from './AssetIconPickerSheet';
+import { ItemWalletsRow } from './visibility/ItemWalletsRow';
 
 export interface AssetFormProps {
   asset?: AssetView;
@@ -30,21 +27,14 @@ export interface AssetFormProps {
 
 function isDuplicateNameApiError(err: unknown): boolean {
   if (!(err instanceof ApiClientError) || err.status !== 422) return false;
-  if (err.details.field === "name") return true;
+  if (err.details.field === 'name') return true;
   const nested = err.details.details;
   return Boolean(
-    nested &&
-    typeof nested === "object" &&
-    (nested as { field?: unknown }).field === "name",
+    nested && typeof nested === 'object' && (nested as { field?: unknown }).field === 'name',
   );
 }
 
-export function AssetForm({
-  asset,
-  groups,
-  onSaved,
-  onCancel,
-}: AssetFormProps): JSX.Element {
+export function AssetForm({ asset, groups, onSaved, onCancel }: AssetFormProps): JSX.Element {
   const t = useT();
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
@@ -68,23 +58,17 @@ export function AssetForm({
 
   const initialInChips = asset ? groupChips.includes(asset.groupName) : true;
 
-  const [name, setName] = useState(asset?.name ?? "");
+  const [name, setName] = useState(asset?.name ?? '');
   const [icon, setIcon] = useState<string | null>(asset?.icon ?? null);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
-  const [unitText, setUnitText] = useState(asset ? assetUnitText(asset) : "");
+  const [unitText, setUnitText] = useState(asset ? assetUnitText(asset) : '');
   const [unitTouched, setUnitTouched] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>(
-    asset
-      ? initialInChips
-        ? asset.groupName
-        : ""
-      : (groupChips[0] ?? "Crypto"),
+    asset ? (initialInChips ? asset.groupName : '') : (groupChips[0] ?? 'Crypto'),
   );
-  const [isOtherGroup, setIsOtherGroup] = useState<boolean>(
-    asset ? !initialInChips : false,
-  );
+  const [isOtherGroup, setIsOtherGroup] = useState<boolean>(asset ? !initialInChips : false);
   const [customGroup, setCustomGroup] = useState<string>(
-    asset && !initialInChips ? asset.groupName : "",
+    asset && !initialInChips ? asset.groupName : '',
   );
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -92,27 +76,21 @@ export function AssetForm({
   const resolvedGroup = isOtherGroup ? customGroup.trim() : selectedGroup;
   const trimmedUnitText = unitText.trim();
   const parsedUnit = parseAssetUnit(unitText);
-  const unitUnchanged = Boolean(
-    asset && trimmedUnitText === assetUnitText(asset),
-  );
-  const effectiveDecimals =
-    unitUnchanged && asset ? asset.decimals : parsedUnit?.decimals;
+  const unitUnchanged = Boolean(asset && trimmedUnitText === assetUnitText(asset));
+  const effectiveDecimals = unitUnchanged && asset ? asset.decimals : parsedUnit?.decimals;
   const decimalsChangedWhileLocked = Boolean(
-    decimalsLocked &&
-    asset &&
-    parsedUnit &&
-    effectiveDecimals !== asset.decimals,
+    decimalsLocked && asset && parsedUnit && effectiveDecimals !== asset.decimals,
   );
 
   const unitErrorMessage =
     trimmedUnitText.length === 0
       ? unitTouched
-        ? t("assets.unitRequired")
+        ? t('assets.unitRequired')
         : null
       : parsedUnit === null
-        ? t("assets.unitStepError")
+        ? t('assets.unitStepError')
         : decimalsChangedWhileLocked
-          ? t("assets.decimalsLocked")
+          ? t('assets.decimalsLocked')
           : null;
 
   const busy = createAsset.isPending || updateAsset.isPending;
@@ -158,7 +136,7 @@ export function AssetForm({
       }
     } catch (err) {
       if (isDuplicateNameApiError(err)) {
-        setNameError(t("assets.duplicateName"));
+        setNameError(t('assets.duplicateName'));
       }
     }
   };
@@ -171,23 +149,15 @@ export function AssetForm({
         data-testid="asset-form"
         noValidate
       >
-        <div
-          className="flex items-center justify-between gap-3"
-          data-testid="asset-icon-row"
-        >
+        <div className="flex items-center justify-between gap-3" data-testid="asset-icon-row">
           <div className="flex items-center gap-3 min-w-0">
-            <AssetIcon
-              asset={{ id: asset?.id ?? "new", name, icon }}
-              size="lg"
-            />
-            <span className="text-sm font-medium text-foreground">
-              {t("assets.icon")}
-            </span>
+            <AssetIcon asset={{ id: asset?.id ?? 'new', name, icon }} size="lg" />
+            <span className="text-sm font-medium text-foreground">{t('assets.icon')}</span>
           </div>
           <Button
             type="button"
             variant="ghost"
-            aria-label={t("assets.iconPick")}
+            aria-label={t('assets.iconPick')}
             data-testid="asset-icon-pick-btn"
             onClick={() => setIconPickerOpen(true)}
             className="size-11 min-h-11 min-w-11 p-0 shrink-0"
@@ -197,7 +167,7 @@ export function AssetForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={nameId}>{t("assets.name")}</Label>
+          <Label htmlFor={nameId}>{t('assets.name')}</Label>
           <Input
             id={nameId}
             type="text"
@@ -218,7 +188,7 @@ export function AssetForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={unitId}>{t("assets.unit")}</Label>
+          <Label htmlFor={unitId}>{t('assets.unit')}</Label>
           <Input
             id={unitId}
             type="text"
@@ -232,15 +202,11 @@ export function AssetForm({
             data-testid="asset-unit-input"
             className="min-h-11 text-base"
           />
-          <p className="m-0 text-xs text-muted-foreground">
-            {t("assets.unitHelp")}
-          </p>
+          <p className="m-0 text-xs text-muted-foreground">{t('assets.unitHelp')}</p>
           {unitErrorMessage && (
             <div
               data-testid={
-                decimalsChangedWhileLocked
-                  ? "asset-decimals-locked-reason"
-                  : "asset-unit-error"
+                decimalsChangedWhileLocked ? 'asset-decimals-locked-reason' : 'asset-unit-error'
               }
             >
               <InlineError error={ownError(unitErrorMessage)} />
@@ -249,9 +215,7 @@ export function AssetForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-foreground">
-            {t("assets.group")}
-          </span>
+          <span className="text-sm font-medium text-foreground">{t('assets.group')}</span>
           <div className="flex flex-wrap gap-2" data-testid="asset-group-chips">
             {groupChips.map((group) => {
               const active = !isOtherGroup && selectedGroup === group;
@@ -266,10 +230,10 @@ export function AssetForm({
                     setSelectedGroup(group);
                   }}
                   className={cn(
-                    "min-h-11 px-3.5 rounded-full border text-sm font-medium transition-colors cursor-pointer",
+                    'min-h-11 px-3.5 rounded-full border text-sm font-medium transition-colors cursor-pointer',
                     active
-                      ? "border-primary bg-secondary text-secondary-foreground"
-                      : "border-border bg-card text-foreground hover:bg-muted",
+                      ? 'border-primary bg-secondary text-secondary-foreground'
+                      : 'border-border bg-card text-foreground hover:bg-muted',
                   )}
                 >
                   {group}
@@ -282,13 +246,13 @@ export function AssetForm({
               data-testid="asset-group-chip-other"
               onClick={() => setIsOtherGroup(true)}
               className={cn(
-                "min-h-11 px-3.5 rounded-full border text-sm font-medium transition-colors cursor-pointer",
+                'min-h-11 px-3.5 rounded-full border text-sm font-medium transition-colors cursor-pointer',
                 isOtherGroup
-                  ? "border-primary bg-secondary text-secondary-foreground"
-                  : "border-border bg-card text-foreground hover:bg-muted",
+                  ? 'border-primary bg-secondary text-secondary-foreground'
+                  : 'border-border bg-card text-foreground hover:bg-muted',
               )}
             >
-              {t("assets.otherGroup")}
+              {t('assets.otherGroup')}
             </button>
           </div>
 
@@ -300,7 +264,7 @@ export function AssetForm({
               maxLength={40}
               value={customGroup}
               onChange={(e) => setCustomGroup(e.target.value)}
-              placeholder={t("assets.otherGroupPlaceholder")}
+              placeholder={t('assets.otherGroupPlaceholder')}
               data-testid="asset-group-custom-input"
               className="min-h-11 text-base"
             />
@@ -313,7 +277,7 @@ export function AssetForm({
 
         <div className="flex gap-2 justify-end pt-1">
           <Button type="button" variant="ghost" onClick={onCancel}>
-            {t("common.cancel")}
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -322,7 +286,7 @@ export function AssetForm({
             loading={busy}
             data-testid="asset-save-btn"
           >
-            {t("assets.save")}
+            {t('assets.save')}
           </Button>
         </div>
       </form>
@@ -332,7 +296,7 @@ export function AssetForm({
         onClose={() => setIconPickerOpen(false)}
         value={icon}
         onSelect={setIcon}
-        asset={{ id: asset?.id ?? "new", name }}
+        asset={{ id: asset?.id ?? 'new', name }}
       />
     </>
   );

@@ -116,9 +116,7 @@ describe('AssetForm icon picker and unit help copy', () => {
     });
 
     const onSavedCreate = vi.fn();
-    const first = renderAt(
-      <AssetForm groups={[]} onSaved={onSavedCreate} onCancel={() => {}} />,
-    );
+    const first = renderAt(<AssetForm groups={[]} onSaved={onSavedCreate} onCancel={() => {}} />);
     act(() => setLang('vi'));
 
     expect(screen.getByText(t('assets.unitHelp'))).toBeInTheDocument();

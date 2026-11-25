@@ -1,5 +1,5 @@
 // Icon shapes are from Lucide (https://lucide.dev), ISC licence.
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from 'lucide-react';
 import {
   AlarmClock,
   ArrowDownLeft,
@@ -116,140 +116,34 @@ import {
   Wrench,
   X,
   Zap,
-} from "lucide-react";
+} from 'lucide-react';
 
 export type IconName =
-  | "back"
-  | "settings"
-  | "userPlus"
-  | "userCheck"
-  | "share"
-  | "copy"
-  | "download"
-  | "check"
-  | "circleCheck"
-  | "x"
-  | "chevronLeft"
-  | "chevronRight"
-  | "chevronDown"
-  | "chevronUp"
-  | "info"
-  | "receipt"
-  | "suitcase"
-  | "map"
-  | "link"
-  | "qr"
-  | "clock"
-  | "users"
-  | "history"
-  | "bank"
-  | "language"
-  | "search"
-  | "edit"
-  | "ban"
-  | "merge"
-  | "trash"
-  | "pie"
-  | "plus"
-  | "mars"
-  | "venus"
-  | "trophy"
-  | "rotateCcw"
-  | "camera"
-  | "shield"
-  | "swap"
-  | "piggyBank"
-  | "star"
-  | "crown"
-  | "user"
-  | "home"
-  | "headset"
-  | "bell"
-  | "bellOff"
-  | "bell-off"
-  | "palette"
-  | "calendar"
-  | "calendar-check"
-  | "alarm-clock"
-  | "smartphone"
-  | "ellipsis"
-  | "ellipsisVertical"
-  | "squarePlus"
-  | "shareIos"
-  | "pause"
-  | "play"
-  | "wallet"
-  | "utensils"
-  | "bus"
-  | "shopping-bag"
-  | "heart-pulse"
-  | "trending-up"
-  | "landmark"
-  | "badge-percent"
-  | "candlestick-chart"
-  | "coins"
-  | "pie-chart"
-  | "gem"
-  | "piggy-bank"
-  | "gift"
-  | "coffee"
-  | "car"
-  | "plane"
-  | "gamepad-2"
-  | "graduation-cap"
-  | "dumbbell"
-  | "briefcase"
-  | "laptop"
-  | "shirt"
-  | "zap"
-  | "wifi"
-  | "stethoscope"
-  | "music"
-  | "film"
-  | "book-open"
-  | "fuel"
-  | "wrench"
-  | "eye"
-  | "eye-off"
-  | "sliders"
-  | "searchX"
-  | "utensils-crossed"
-  | "shopping-basket"
-  | "beer"
-  | "bike"
-  | "hotel"
-  | "square-parking"
-  | "car-taxi-front"
-  | "party-popper"
-  | "house"
-  | "tv"
-  | "sofa"
-  | "package"
-  | "paw-print"
-  | "key-round"
-  | "concierge-bell"
-  | "heart-handshake"
-  | "baby"
-  | "scale"
-  | "spray-can"
-  | "flame"
-  | "trash-2"
-  | "droplet"
-  | "tag"
-  | "hand-coins"
-  | "handshake"
-  | "arrow-down-left"
-  | "arrow-up-right";
+  | 'back' | 'settings' | 'userPlus' | 'userCheck' | 'share' | 'copy' | 'download' | 'check' | 'circleCheck'
+  | 'x' | 'chevronLeft' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
+  | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
+  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
+  | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
+  | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play'
+  | 'wallet' | 'utensils' | 'bus' | 'shopping-bag' | 'heart-pulse' | 'trending-up' | 'landmark' | 'badge-percent'
+  | 'candlestick-chart' | 'coins' | 'pie-chart' | 'gem' | 'piggy-bank' | 'gift'
+  | 'coffee' | 'car' | 'plane' | 'gamepad-2' | 'graduation-cap' | 'dumbbell' | 'briefcase'
+  | 'laptop' | 'shirt' | 'zap' | 'wifi' | 'stethoscope' | 'music' | 'film' | 'book-open'
+  | 'fuel' | 'wrench' | 'eye' | 'eye-off' | 'sliders' | 'searchX'
+  | 'utensils-crossed' | 'shopping-basket' | 'beer' | 'bike' | 'hotel' | 'square-parking' | 'car-taxi-front'
+  | 'party-popper' | 'house' | 'tv' | 'sofa' | 'package' | 'paw-print' | 'key-round' | 'concierge-bell'
+  | 'heart-handshake' | 'baby' | 'scale' | 'spray-can' | 'flame' | 'trash-2' | 'droplet'
+  | 'tag' | 'hand-coins' | 'handshake' | 'arrow-down-left' | 'arrow-up-right';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
   wallet: Wallet,
   bell: Bell,
   bellOff: BellOff,
-  "bell-off": BellOff,
+  'bell-off': BellOff,
   calendar: Calendar,
-  "calendar-check": CalendarCheck,
-  "alarm-clock": AlarmClock,
+  'calendar-check': CalendarCheck,
+  'alarm-clock': AlarmClock,
   swap: ArrowLeftRight,
   back: ArrowLeft,
   settings: Settings,
@@ -304,22 +198,24 @@ const SHAPES: Record<IconName, LucideIcon> = {
   play: Play,
   utensils: Utensils,
   bus: Bus,
-  "shopping-bag": ShoppingBag,
-  "heart-pulse": HeartPulse,
-  "trending-up": TrendingUp,
+  'shopping-bag': ShoppingBag,
+  'heart-pulse': HeartPulse,
+  'trending-up': TrendingUp,
+  'arrow-down-left': ArrowDownLeft,
+  'arrow-up-right': ArrowUpRight,
   landmark: Landmark,
-  "badge-percent": BadgePercent,
-  "candlestick-chart": CandlestickChart,
+  'badge-percent': BadgePercent,
+  'candlestick-chart': CandlestickChart,
   coins: Coins,
-  "pie-chart": PieChart,
+  'pie-chart': PieChart,
   gem: Gem,
-  "piggy-bank": PiggyBank,
+  'piggy-bank': PiggyBank,
   gift: Gift,
   coffee: Coffee,
   car: Car,
   plane: Plane,
-  "gamepad-2": Gamepad2,
-  "graduation-cap": GraduationCap,
+  'gamepad-2': Gamepad2,
+  'graduation-cap': GraduationCap,
   dumbbell: Dumbbell,
   briefcase: Briefcase,
   laptop: Laptop,
@@ -329,52 +225,42 @@ const SHAPES: Record<IconName, LucideIcon> = {
   stethoscope: Stethoscope,
   music: Music,
   film: Film,
-  "book-open": BookOpen,
+  'book-open': BookOpen,
   fuel: Fuel,
   wrench: Wrench,
   eye: Eye,
-  "eye-off": EyeOff,
+  'eye-off': EyeOff,
   sliders: SlidersHorizontal,
   searchX: SearchX,
-  "utensils-crossed": UtensilsCrossed,
-  "shopping-basket": ShoppingBasket,
+  'utensils-crossed': UtensilsCrossed,
+  'shopping-basket': ShoppingBasket,
   beer: Beer,
   bike: Bike,
   hotel: Hotel,
-  "square-parking": SquareParking,
-  "car-taxi-front": CarTaxiFront,
-  "party-popper": PartyPopper,
+  'square-parking': SquareParking,
+  'car-taxi-front': CarTaxiFront,
+  'party-popper': PartyPopper,
   house: House,
   tv: Tv,
   sofa: Sofa,
   package: Package,
-  "paw-print": PawPrint,
-  "key-round": KeyRound,
-  "concierge-bell": ConciergeBell,
-  "heart-handshake": HeartHandshake,
+  'paw-print': PawPrint,
+  'key-round': KeyRound,
+  'concierge-bell': ConciergeBell,
+  'heart-handshake': HeartHandshake,
   baby: Baby,
   scale: Scale,
-  "spray-can": SprayCan,
+  'spray-can': SprayCan,
   flame: Flame,
-  "trash-2": Trash2,
+  'trash-2': Trash2,
   droplet: Droplet,
   tag: Tag,
-  "hand-coins": HandCoins,
+  'hand-coins': HandCoins,
   handshake: Handshake,
-  "arrow-down-left": ArrowDownLeft,
-  "arrow-up-right": ArrowUpRight,
 };
 
 /** Decorative icon (aria-hidden); a button that holds only an icon must carry its own aria-label and title. */
-export function Icon({
-  name,
-  size = 20,
-  className,
-}: {
-  name: IconName;
-  size?: number;
-  className?: string;
-}) {
+export function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
   const Component = SHAPES[name];
   return (
     <Component

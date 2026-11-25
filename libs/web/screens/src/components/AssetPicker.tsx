@@ -1,27 +1,20 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type JSX,
-  type RefObject,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react';
 import {
   assetStepText,
   assetUnitText,
   isAssetVisibleIn,
   normalizeName,
   type AssetView,
-} from "@cc/core";
-import { useT } from "@cc/web-i18n";
-import { Button } from "@cc/web-ui/components/Button";
-import { EmptyState } from "@cc/web-ui/components/EmptyState";
-import { Icon } from "@cc/web-ui/components/icons";
-import { Sheet } from "@cc/web-ui/components/Sheet";
-import { Input } from "@cc/web-ui/components/ui/input";
-import { cn } from "@cc/web-ui/lib/utils";
-import { AssetForm } from "./AssetForm";
-import { AssetIcon } from "./AssetIcon";
+} from '@cc/core';
+import { useT } from '@cc/web-i18n';
+import { Button } from '@cc/web-ui/components/Button';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Icon } from '@cc/web-ui/components/icons';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { cn } from '@cc/web-ui/lib/utils';
+import { AssetForm } from './AssetForm';
+import { AssetIcon } from './AssetIcon';
 
 export interface AssetPickerProps {
   open: boolean;
@@ -57,7 +50,7 @@ export function AssetPicker({
     }),
     [finalFocusRef],
   );
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
 
   const nonHidden = useMemo(
@@ -88,7 +81,7 @@ export function AssetPicker({
   const showSearch = nonHidden.length > 8;
 
   const grouped = useMemo(() => {
-    const needle = showSearch ? normalizeName(search) : "";
+    const needle = showSearch ? normalizeName(search) : '';
     const filtered = needle
       ? nonHidden.filter(
           (a) =>
@@ -112,7 +105,7 @@ export function AssetPicker({
 
   const handleClose = () => {
     setCreating(false);
-    setSearch("");
+    setSearch('');
     onClose();
   };
 
@@ -127,9 +120,7 @@ export function AssetPicker({
       open={open}
       onClose={handleClose}
       finalFocusRef={closeFocusRef}
-      title={
-        creating ? t("personalEntry.addAsset") : t("personalEntry.pickAsset")
-      }
+      title={creating ? t('personalEntry.addAsset') : t('personalEntry.pickAsset')}
     >
       {creating ? (
         <AssetForm
@@ -138,23 +129,20 @@ export function AssetPicker({
           onCancel={() => setCreating(false)}
         />
       ) : (
-        <div
-          data-testid="asset-picker-list"
-          className="fsl-asset-picker flex flex-col gap-3"
-        >
+        <div data-testid="asset-picker-list" className="fsl-asset-picker flex flex-col gap-3">
           {showSearch && (
             <Input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("personalEntry.searchAssets")}
+              placeholder={t('personalEntry.searchAssets')}
               data-testid="asset-picker-search"
               className="min-h-11 text-base"
             />
           )}
 
           {grouped.length === 0 ? (
-            <EmptyState icon="coins" title={t("personalEntry.noAssets")} />
+            <EmptyState icon="coins" title={t('personalEntry.noAssets')} />
           ) : (
             <div className="flex flex-col gap-3">
               {grouped.map(([groupName, items]) => (
@@ -167,9 +155,7 @@ export function AssetPicker({
                       const selected = asset.id === value;
                       const step = assetStepText(asset);
                       const subtitle =
-                        step.kind === "lot"
-                          ? t("assets.stepLot", { step: step.step })
-                          : step.unit;
+                        step.kind === 'lot' ? t('assets.stepLot', { step: step.step }) : step.unit;
                       return (
                         <button
                           key={asset.id}
@@ -177,8 +163,8 @@ export function AssetPicker({
                           data-testid={`asset-option-${asset.id}`}
                           onClick={() => handlePick(asset)}
                           className={cn(
-                            "min-h-11 px-2 py-2.5 flex items-center justify-between gap-3 text-left text-base font-medium text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0",
-                            selected && "text-primary font-semibold",
+                            'min-h-11 px-2 py-2.5 flex items-center justify-between gap-3 text-left text-base font-medium text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0',
+                            selected && 'text-primary font-semibold',
                           )}
                         >
                           <span className="flex items-center gap-3 min-w-0">
@@ -191,11 +177,7 @@ export function AssetPicker({
                             </span>
                           </span>
                           {selected && (
-                            <Icon
-                              name="check"
-                              size={18}
-                              className="text-primary shrink-0"
-                            />
+                            <Icon name="check" size={18} className="text-primary shrink-0" />
                           )}
                         </button>
                       );
@@ -214,7 +196,7 @@ export function AssetPicker({
             onClick={() => setCreating(true)}
           >
             <Icon name="plus" size={18} />
-            {t("personalEntry.addAsset")}
+            {t('personalEntry.addAsset')}
           </Button>
         </div>
       )}
