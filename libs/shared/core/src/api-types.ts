@@ -756,6 +756,8 @@ export interface CategoryView {
   sortOrder: number;
   /** Starter key (`food`, `fees`…) for seeded categories, null for the owner's own. Optional: older responses lack it. */
   starterKey?: string | null;
+  /** Fixed built-in category key (`food`, `food-dining`…), null for custom categories. Optional: older responses lack it. */
+  systemKey?: string | null;
   /** Per-wallet overrides of the kind default (#130). Optional: older responses lack it. */
   walletOverrides?: WalletOverride[];
 }

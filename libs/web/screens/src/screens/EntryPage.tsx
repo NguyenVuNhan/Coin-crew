@@ -725,6 +725,7 @@ export function EntryPage(): JSX.Element {
 
     const fallbackGroupCatId =
       (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && c.name === 'Nhóm')?.id ??
+      (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && c.systemKey === 'general')?.id ??
       (categoriesQuery.data?.categories ?? []).find((c) => c.type === 'expense' && !c.hidden)?.id ??
       null;
     const resolvedCatId =

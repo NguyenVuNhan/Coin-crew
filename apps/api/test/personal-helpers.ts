@@ -29,3 +29,16 @@ export function postJson(
 export function addWallet(sid: string | null, body: unknown): Promise<Response> {
   return postJson('/api/me/personal/wallets/add', sid, body);
 }
+
+/** Seeds the pre-#140 starter rows (`${userId}:food`, `:fees` › `:tax`/`:fee`, `:invest`…), i.e. an existing user. */
+export async function seedLegacyStarters(userId: string): Promise<void> {
+  const { STARTER_CATEGORIES } = await import('./fixtures/legacyStarters');
+  const now = '2026-11-01T00:00:00.000Z';
+  for (const s of STARTER_CATEGORIES) {
+    await env.DB.prepare(
+      'INSERT OR IGNORE INTO personal_categories (id, user_id, parent_id, type, name, icon, hidden, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)',
+    )
+      .bind(`${userId}:${s.key}`, userId, s.parentKey ? `${userId}:${s.parentKey}` : null, s.type, s.name, s.icon, s.sortOrder, now, now)
+      .run();
+  }
+}

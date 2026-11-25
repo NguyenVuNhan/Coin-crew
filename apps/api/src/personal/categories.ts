@@ -16,7 +16,7 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import type { CategoryView, TagView, WalletOverride } from '@cc/core';
-import { STARTER_CATEGORIES } from './starterCategories';
+import { ensureFixedCategories } from './fixedCategories';
 import { name1to40, parseJson } from './validate';
 
 function isCategoryType(v: unknown): v is 'expense' | 'income' {
@@ -48,6 +48,7 @@ function toCategoryView(
     icon: string;
     hidden: number;
     sortOrder: number;
+    systemKey: string | null;
   },
   userId: string,
   walletOverrides: WalletOverride[] = [],
@@ -61,6 +62,7 @@ function toCategoryView(
     hidden: Boolean(row.hidden),
     sortOrder: row.sortOrder,
     starterKey: starterKeyOf(userId, row.id),
+    systemKey: row.systemKey ?? null,
     walletOverrides,
   };
 }
@@ -72,7 +74,9 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
 
-    let rows = await db
+    await ensureFixedCategories(db, user.id);
+
+    const rows = await db
       .select({
         id: personalCategories.id,
         parentId: personalCategories.parentId,
@@ -81,48 +85,12 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         icon: personalCategories.icon,
         hidden: personalCategories.hidden,
         sortOrder: personalCategories.sortOrder,
+        systemKey: personalCategories.systemKey,
       })
       .from(personalCategories)
       .where(eq(personalCategories.userId, user.id))
       .orderBy(asc(personalCategories.sortOrder), asc(personalCategories.createdAt))
       .all();
-
-    if (rows.length === 0) {
-      const now = nowIso();
-      const stmts = STARTER_CATEGORIES.map((s) =>
-        db
-          .insert(personalCategories)
-          .values({
-            id: `${user.id}:${s.key}`,
-            userId: user.id,
-            parentId: s.parentKey ? `${user.id}:${s.parentKey}` : null,
-            type: s.type,
-            name: s.name,
-            icon: s.icon,
-            hidden: 0,
-            sortOrder: s.sortOrder,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .onConflictDoNothing(),
-      );
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
-
-      rows = await db
-        .select({
-          id: personalCategories.id,
-          parentId: personalCategories.parentId,
-          type: personalCategories.type,
-          name: personalCategories.name,
-          icon: personalCategories.icon,
-          hidden: personalCategories.hidden,
-          sortOrder: personalCategories.sortOrder,
-        })
-        .from(personalCategories)
-        .where(eq(personalCategories.userId, user.id))
-        .orderBy(asc(personalCategories.sortOrder), asc(personalCategories.createdAt))
-        .all();
-    }
 
     const nowDate = new Date();
     const cutoff = new Date(
@@ -285,6 +253,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       hidden: false,
       sortOrder,
       starterKey: starterKeyOf(user.id, id),
+      systemKey: null,
       walletOverrides: inheritedOverrides,
     };
 
@@ -310,6 +279,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         icon: personalCategories.icon,
         hidden: personalCategories.hidden,
         sortOrder: personalCategories.sortOrder,
+        systemKey: personalCategories.systemKey,
       })
       .from(personalCategories)
       .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)))
@@ -453,6 +423,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       hidden: nextHidden,
       sortOrder: nextSortOrder,
       starterKey: starterKeyOf(user.id, existing.id),
+      systemKey: existing.systemKey ?? null,
       walletOverrides: overrideRows.map((r) => ({
         walletId: r.walletId,
         visible: Boolean(r.visible),

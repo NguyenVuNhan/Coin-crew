@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { CategoriesResponse } from '@cc/core';
 import { call, json, memberSid, seedUser } from './helpers';
-import { switchOn } from './personal-helpers';
+import { seedLegacyStarters, switchOn } from './personal-helpers';
 
 const migration0030 = () => env.TEST_MIGRATIONS!.find((m) => m.name.startsWith('0030'))!;
 
@@ -26,10 +26,11 @@ async function runDataSteps0030(): Promise<void> {
 }
 
 describe('personal visibility migration 0030 and starter reshape', () => {
-  it('seeds a brand-new user with fees root, re-parented tax/fee, no invest-* subs, and other-income-reward', async () => {
+  it('keeps the fees root of an existing user, tax/fee subs and other-income-reward after the fixed list arrives (#140)', async () => {
     const uid = 'u-vis-seed';
     const sid = await memberSid(uid, 'VisSeed');
     await switchOn(uid);
+    await seedLegacyStarters(uid);
 
     const res = await call('/api/me/personal/categories', {
       headers: { Cookie: `sid=${sid}` },
@@ -40,22 +41,18 @@ describe('personal visibility migration 0030 and starter reshape', () => {
     const fees = body.categories.find((c) => c.id === `${uid}:fees`);
     expect(fees).toBeDefined();
     expect(fees?.parentId).toBeNull();
-    expect(fees?.type).toBe('expense');
     expect(fees?.name).toBe('Phí & lệ phí');
+    expect(fees?.systemKey).toBeNull();
 
     const tax = body.categories.find((c) => c.id === `${uid}:tax`);
     const fee = body.categories.find((c) => c.id === `${uid}:fee`);
     expect(tax?.parentId).toBe(`${uid}:fees`);
     expect(fee?.parentId).toBe(`${uid}:fees`);
 
-    const investSubs = body.categories.filter((c) => c.id.startsWith(`${uid}:invest-`));
-    expect(investSubs).toEqual([]);
-
     const reward = body.categories.find((c) => c.id === `${uid}:other-income-reward`);
-    expect(reward).toBeDefined();
     expect(reward?.parentId).toBe(`${uid}:other-income`);
-    expect(reward?.type).toBe('income');
-    expect(reward?.name).toBe('Thưởng / Staking');
+    expect(reward?.systemKey).toBeNull();
+    expect(body.categories.find((c) => c.id === `${uid}:other-income`)?.systemKey).toBe('other-income');
   });
 
   it('migrates old-shape rows, is idempotent, and leaves already-parented tax untouched', async () => {

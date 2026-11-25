@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:test';
 import { getDb } from '@cc/api-db/client';
-import type { GroupLinkView, GroupSettingsView } from '@cc/core';
+import { FIXED_CATEGORIES, type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { loadGroupRows } from '../src/personal/groupShares';
 import { call, json, linkMember, memberSid, PID, seedTrip, seedUser, T, U } from './helpers';
 import { addWallet, postJson, switchOn } from './personal-helpers';
@@ -400,7 +400,7 @@ describe('personal group links and settings routes', () => {
     const sid = await memberSid(U.minh, 'Minh');
     await switchOn(U.minh, 1);
 
-    // First read seeds Nhóm, Cho vay, Đi vay and returns defaults
+    // First read seeds the fixed danh mục list (incl. Chung, Cho vay, Đi vay) and returns defaults
     const res1 = await call('/api/me/personal/group-settings', {
       headers: { Cookie: `sid=${sid}` },
     });
@@ -413,11 +413,14 @@ describe('personal group links and settings routes', () => {
     )
       .bind(U.minh)
       .all<{ id: string; name: string; type: string }>();
-    expect(cats1.results.map((c) => ({ name: c.name, type: c.type }))).toEqual([
-      { name: 'Cho vay', type: 'expense' },
-      { name: 'Nhóm', type: 'expense' },
-      { name: 'Đi vay', type: 'income' },
-    ]);
+    expect(cats1.results).toHaveLength(FIXED_CATEGORIES.length);
+    expect(cats1.results.map((c) => ({ name: c.name, type: c.type }))).toEqual(
+      expect.arrayContaining([
+        { name: 'Cho vay', type: 'expense' },
+        { name: 'Chung', type: 'expense' },
+        { name: 'Đi vay', type: 'income' },
+      ]),
+    );
 
     // Second read is idempotent (no duplicates)
     const res2 = await call('/api/me/personal/group-settings', {
@@ -429,10 +432,10 @@ describe('personal group links and settings routes', () => {
     )
       .bind(U.minh)
       .all<{ id: string }>();
-    expect(cats2.results).toHaveLength(3);
+    expect(cats2.results).toHaveLength(FIXED_CATEGORIES.length);
 
     // Update settings
-    const groupCat = cats1.results.find((c) => c.name === 'Nhóm')!;
+    const groupCat = cats1.results.find((c) => c.name === 'Chung')!;
     const putRes = await postJson(
       '/api/me/personal/group-settings',
       sid,

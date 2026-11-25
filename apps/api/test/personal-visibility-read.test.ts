@@ -9,7 +9,7 @@ import {
   type WalletDetailResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
-import { addWallet, postJson, switchOn } from './personal-helpers';
+import { addWallet, postJson, switchOn, seedLegacyStarters } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
@@ -70,6 +70,7 @@ describe('personal visibility read & inheritance', () => {
     const uid = 'u-vis-read';
     const sid = await memberSid(uid, 'VisRead');
     await switchOn(uid);
+    await seedLegacyStarters(uid);
 
     const w1 = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Bank', startAmount: 1_000_000 }))
@@ -133,6 +134,7 @@ describe('personal visibility read & inheritance', () => {
     const uid = 'u-vis-cat-create';
     const sid = await memberSid(uid, 'VisCatCreate');
     await switchOn(uid);
+    await seedLegacyStarters(uid);
 
     const w1 = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Binance', startAmount: 0, kind: 'investment' }))
@@ -178,6 +180,7 @@ describe('personal visibility read & inheritance', () => {
     const uid = 'u-vis-ast-create';
     const sid = await memberSid(uid, 'VisAstCreate');
     await switchOn(uid);
+    await seedLegacyStarters(uid);
 
     const w1 = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Bank', startAmount: 0 }))
@@ -242,6 +245,7 @@ describe('personal visibility read & inheritance', () => {
     const uid = 'u-vis-kind';
     const sid = await memberSid(uid, 'VisKind');
     await switchOn(uid);
+    await seedLegacyStarters(uid);
 
     const w = (
       await json<WalletDetailResponse>(
@@ -286,7 +290,9 @@ describe('personal visibility read & inheritance', () => {
     const sidA = await memberSid(uidA, 'IsoA');
     const sidB = await memberSid(uidB, 'IsoB');
     await switchOn(uidA);
+    await seedLegacyStarters(uidA);
     await switchOn(uidB);
+    await seedLegacyStarters(uidB);
 
     const wA = (
       await json<WalletDetailResponse>(await addWallet(sidA, { name: 'Wallet A', startAmount: 0 }))

@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { CategoriesResponse, CategoryView, TagView, WalletDetailResponse } from '@cc/core';
+import { FIXED_CATEGORIES, type CategoriesResponse, type CategoryView, type TagView, type WalletDetailResponse } from '@cc/core';
 import { call, json, memberSid } from './helpers';
-import { addWallet, postJson, switchOn } from './personal-helpers';
+import { addWallet, postJson, switchOn, seedLegacyStarters } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
@@ -67,7 +67,7 @@ afterEach(async () => {
 });
 
 describe('personal categories and tags', () => {
-  it('first GET seeds the starter set once, even when called twice in parallel', async () => {
+  it('first GET seeds the fixed danh mục list once, even when called twice in parallel', async () => {
     const sid = await memberSid('u-cat-seed', 'CatSeed');
     await switchOn('u-cat-seed');
 
@@ -78,41 +78,35 @@ describe('personal categories and tags', () => {
     const b1 = await json<CategoriesResponse>(r1);
     const b2 = await json<CategoriesResponse>(r2);
 
-    expect(b1.categories).toHaveLength(14);
-    expect(b2.categories).toHaveLength(14);
+    expect(b1.categories).toHaveLength(FIXED_CATEGORIES.length);
+    expect(b2.categories).toHaveLength(FIXED_CATEGORIES.length);
     expect(b1.recentIds).toEqual([]);
+    expect(b1.categories.every((c) => c.systemKey)).toBe(true);
 
-    const invest = b1.categories.find((c) => c.name === 'Đầu tư');
-    expect(invest).toBeDefined();
-    expect(invest?.type).toBe('expense');
-    expect(invest?.parentId).toBeNull();
-
-    expect(b1.categories.filter((c) => c.parentId === invest!.id)).toEqual([]);
-
-    const fees = b1.categories.find((c) => c.name === 'Phí & lệ phí');
-    expect(fees?.parentId).toBeNull();
-    const feeSubs = b1.categories
-      .filter((c) => c.parentId === fees!.id)
+    const food = b1.categories.find((c) => c.systemKey === 'food')!;
+    const foodSubs = b1.categories
+      .filter((c) => c.parentId === food.id)
       .map((c) => c.name)
       .sort();
-    expect(feeSubs).toEqual(['Phí', 'Thuế']);
+    expect(foodSubs).toEqual(['Ăn ngoài', 'Bia rượu', 'Đi chợ / siêu thị'].sort());
 
     const incomeNames = b1.categories
       .filter((c) => c.type === 'income')
       .map((c) => c.name)
       .sort();
-    expect(incomeNames).toEqual(['Cổ tức', 'Lãi', 'Lương', 'Thu nhập khác', 'Thưởng / Staking']);
+    expect(incomeNames).toEqual(['Lãi', 'Lương', 'Thu nhập khác', 'Thưởng', 'Đi vay'].sort());
 
     const r3 = await getCategories(sid);
-    expect((await json<CategoriesResponse>(r3)).categories).toHaveLength(14);
+    expect((await json<CategoriesResponse>(r3)).categories).toHaveLength(FIXED_CATEGORIES.length);
   });
 
   it("a sub-category must share its parent's type and cannot nest two deep", async () => {
     const sid = await memberSid('u-cat-sub', 'CatSub');
     await switchOn('u-cat-sub');
+    await seedLegacyStarters('u-cat-sub');
 
     const seedRes = await json<CategoriesResponse>(await getCategories(sid));
-    const food = seedRes.categories.find((c) => c.name === 'Ăn uống')!;
+    const food = seedRes.categories.find((c) => c.name === 'Sức khỏe')!;
     const fees = seedRes.categories.find((c) => c.name === 'Phí & lệ phí')!;
     const investSub = seedRes.categories.find((c) => c.parentId === fees.id)!;
 
@@ -150,6 +144,7 @@ describe('personal categories and tags', () => {
   it('deleting an unused category works; one in use is 409 with the count; with moveTo the entries move', async () => {
     const sid = await memberSid('u-cat-del', 'CatDel');
     await switchOn('u-cat-del');
+    await seedLegacyStarters('u-cat-del');
 
     const wallet = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Ví', startAmount: 1_000_000 }))
@@ -157,8 +152,8 @@ describe('personal categories and tags', () => {
 
     const seeded = await json<CategoriesResponse>(await getCategories(sid));
     const fees = seeded.categories.find((c) => c.name === 'Phí & lệ phí')!;
-    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
-    const transport = seeded.categories.find((c) => c.name === 'Di chuyển')!;
+    const food = seeded.categories.find((c) => c.name === 'Sức khỏe')!;
+    const transport = seeded.categories.find((c) => c.name === 'Đầu tư')!;
     const shopping = seeded.categories.find((c) => c.name === 'Mua sắm')!;
 
     // Parent with children -> 409 IN_USE with reason HAS_CHILDREN
@@ -224,9 +219,10 @@ describe('personal categories and tags', () => {
   it('moveTo of the other type is 422', async () => {
     const sid = await memberSid('u-cat-movetype', 'CatMoveType');
     await switchOn('u-cat-movetype');
+    await seedLegacyStarters('u-cat-movetype');
 
     const seeded = await json<CategoriesResponse>(await getCategories(sid));
-    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const food = seeded.categories.find((c) => c.name === 'Sức khỏe')!;
     const salary = seeded.categories.find((c) => c.name === 'Lương')!;
 
     const res = await deleteCategory(food.id, sid, salary.id);
@@ -239,12 +235,13 @@ describe('personal categories and tags', () => {
   it('hiding keeps entries pointing at it', async () => {
     const sid = await memberSid('u-cat-hide', 'CatHide');
     await switchOn('u-cat-hide');
+    await seedLegacyStarters('u-cat-hide');
 
     const wallet = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Ví', startAmount: 500_000 }))
     ).wallet;
     const seeded = await json<CategoriesResponse>(await getCategories(sid));
-    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const food = seeded.categories.find((c) => c.name === 'Sức khỏe')!;
 
     const today = utcDaysAgo(0);
     await env.DB.prepare(
@@ -270,6 +267,7 @@ describe('personal categories and tags', () => {
   it('recentIds orders by use in the last 30 days and ignores older entries', async () => {
     const sid = await memberSid('u-cat-recent', 'CatRecent');
     await switchOn('u-cat-recent');
+    await seedLegacyStarters('u-cat-recent');
 
     const wallet = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Ví', startAmount: 2_000_000 }))
@@ -331,6 +329,7 @@ describe('personal categories and tags', () => {
   it('tags: rename clash is 409, delete removes links', async () => {
     const sid = await memberSid('u-tags', 'TagsUser');
     await switchOn('u-tags');
+    await seedLegacyStarters('u-tags');
 
     const wallet = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Ví', startAmount: 500_000 }))
@@ -420,7 +419,9 @@ describe('personal categories and tags', () => {
     const sid1 = await memberSid('u-own-1', 'Owner1');
     const sid2 = await memberSid('u-own-2', 'Owner2');
     await switchOn('u-own-1');
+    await seedLegacyStarters('u-own-1');
     await switchOn('u-own-2');
+    await seedLegacyStarters('u-own-2');
 
     const c1Res = await createCategory(sid1, {
       type: 'expense',
@@ -432,7 +433,7 @@ describe('personal categories and tags', () => {
 
     const c2List = await json<CategoriesResponse>(await getCategories(sid2));
     expect(c2List.categories.some((c) => c.id === cat1.id)).toBe(false);
-    const cat2 = c2List.categories.find((c) => c.type === 'expense')!;
+    const cat2 = c2List.categories.find((c) => c.name === 'Sức khỏe')!;
 
     await env.DB.prepare(
       'INSERT INTO personal_tags (id, user_id, name, created_at) VALUES (?, ?, ?, ?)',
@@ -453,13 +454,14 @@ describe('personal categories and tags', () => {
   it('PATCH reparents sub-categories, promotes to top-level, nests childless parents, and preserves visibility overrides & transactions', async () => {
     const sid = await memberSid('u-cat-remap', 'CatRemap');
     await switchOn('u-cat-remap');
+    await seedLegacyStarters('u-cat-remap');
 
     const wallet = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Binance', currency: 'USDT', kind: 'investment', startAmount: 0 }))
     ).wallet;
 
     const seeded = await json<CategoriesResponse>(await getCategories(sid));
-    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const food = seeded.categories.find((c) => c.name === 'Sức khỏe')!;
     const shopping = seeded.categories.find((c) => c.name === 'Mua sắm')!;
     const fees = seeded.categories.find((c) => c.name === 'Phí & lệ phí')!;
     const tax = seeded.categories.find((c) => c.name === 'Thuế')!;
@@ -519,17 +521,19 @@ describe('personal categories and tags', () => {
     const sid1 = await memberSid('u-cat-guard-1', 'Guard1');
     const sid2 = await memberSid('u-cat-guard-2', 'Guard2');
     await switchOn('u-cat-guard-1');
+    await seedLegacyStarters('u-cat-guard-1');
     await switchOn('u-cat-guard-2');
+    await seedLegacyStarters('u-cat-guard-2');
 
     const s1 = await json<CategoriesResponse>(await getCategories(sid1));
     const s2 = await json<CategoriesResponse>(await getCategories(sid2));
 
-    const food = s1.categories.find((c) => c.name === 'Ăn uống')!;
+    const food = s1.categories.find((c) => c.name === 'Sức khỏe')!;
     const fees = s1.categories.find((c) => c.name === 'Phí & lệ phí')!;
     const tax = s1.categories.find((c) => c.name === 'Thuế')!;
     const fee = s1.categories.find((c) => c.name === 'Phí')!;
     const salary = s1.categories.find((c) => c.name === 'Lương')!;
-    const otherFood = s2.categories.find((c) => c.name === 'Ăn uống')!;
+    const otherFood = s2.categories.find((c) => c.name === 'Sức khỏe')!;
 
     expect((await patchCategory(food.id, sid1, { parentId: food.id })).status).toBe(422);
     expect((await patchCategory(food.id, sid1, { parentId: salary.id })).status).toBe(422);
@@ -549,7 +553,9 @@ describe('personal categories and tags', () => {
     const sid = await memberSid('u-cat-delparent', 'DelParent');
     const otherSid = await memberSid('u-cat-delparent-other', 'DelParentOther');
     await switchOn('u-cat-delparent');
+    await seedLegacyStarters('u-cat-delparent');
     await switchOn('u-cat-delparent-other');
+    await seedLegacyStarters('u-cat-delparent-other');
 
     const wallet = (
       await json<WalletDetailResponse>(await addWallet(sid, { name: 'Ví', startAmount: 1_000_000 }))
@@ -557,12 +563,12 @@ describe('personal categories and tags', () => {
 
     const seeded = await json<CategoriesResponse>(await getCategories(sid));
     const otherSeeded = await json<CategoriesResponse>(await getCategories(otherSid));
-    const food = seeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const food = seeded.categories.find((c) => c.name === 'Sức khỏe')!;
     const fees = seeded.categories.find((c) => c.name === 'Phí & lệ phí')!;
     const tax = seeded.categories.find((c) => c.name === 'Thuế')!;
     const fee = seeded.categories.find((c) => c.name === 'Phí')!;
     const salary = seeded.categories.find((c) => c.name === 'Lương')!;
-    const otherUserFood = otherSeeded.categories.find((c) => c.name === 'Ăn uống')!;
+    const otherUserFood = otherSeeded.categories.find((c) => c.name === 'Sức khỏe')!;
 
     // Override visibility on `tax` to make sure delete-parent preserves it
     await postJson(
@@ -643,6 +649,7 @@ describe('personal categories and tags', () => {
   it('switch off: 403 on all routes', async () => {
     const sid = await memberSid('u-cat-off', 'CatOff');
     await switchOn('u-cat-off', 0);
+    await seedLegacyStarters('u-cat-off');
 
     expect((await getCategories(sid)).status).toBe(403);
     expect((await createCategory(sid, { type: 'expense', name: 'Test', icon: 'tag' })).status).toBe(403);
