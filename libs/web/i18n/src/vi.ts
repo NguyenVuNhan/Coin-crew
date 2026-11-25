@@ -1740,4 +1740,13 @@ export const vi: Record<MessageKey, string> = {
   'visibility.expand': 'Mở rộng {name}', // REVIEW
   'visibility.collapse': 'Thu gọn {name}', // REVIEW
   'visibility.save': 'Lưu', // REVIEW
+  'sharedExpense.titleLabel': 'Tiêu đề', // REVIEW
+  'sharedExpense.titlePlaceholder': 'VD: Ăn tối quán nướng', // REVIEW
+  'sharedExpense.titleRequired': 'Nhập tiêu đề', // REVIEW
+  'sharedExpense.pickCategory': 'Chọn danh mục', // REVIEW
+  'sharedExpense.clearCategory': 'Bỏ chọn', // REVIEW
+  'sharedExpense.searchCategory': 'Tìm danh mục…', // REVIEW
+  'sharedExpense.payer': 'Người trả', // REVIEW
+  'sharedExpense.note': 'Nội dung', // REVIEW
+  'sharedExpense.notePlaceholder': 'Ghi chú thêm (không bắt buộc)', // REVIEW
 };
