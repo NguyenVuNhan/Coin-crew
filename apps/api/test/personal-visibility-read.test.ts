@@ -119,7 +119,7 @@ describe('personal visibility read & inheritance', () => {
 
     // PATCH category and asset also fill starterKey / walletOverrides
     const patchedCat = (
-      await json<{ category: CategoryView }>(await patchCategory(food.id, sid, { name: 'Ăn uống 2' }))
+      await json<{ category: CategoryView }>(await patchCategory(food.id, sid, { hidden: false }))
     ).category;
     expect(patchedCat.starterKey).toBe('food');
     expect(patchedCat.walletOverrides).toEqual([{ walletId: w1.id, visible: false }]);

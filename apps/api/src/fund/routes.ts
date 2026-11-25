@@ -54,6 +54,10 @@ function validateIncome(body: unknown): { amount: number; spentOn: string; descr
     throw new ApiError('VALIDATION', 422, 'Invalid category');
   }
 
+  if (input.categoryKey !== undefined && input.categoryKey !== null) {
+    throw new ApiError('VALIDATION', 422, 'Invalid categoryKey', { reason: 'categoryKey' });
+  }
+
   return { amount, spentOn, description };
 }
 
