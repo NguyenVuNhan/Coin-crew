@@ -391,6 +391,7 @@ export function EntryPage(): JSX.Element {
   const loanTitleInputRef = useRef<HTMLInputElement>(null);
   const pendingFocusTargetRef = useRef<'category' | 'secondary' | 'asset' | 'quantity' | 'people' | 'save' | null>(null);
   const pendingFoldFocusRef = useRef<'fold-category' | 'category-grid' | 'asset' | 'details' | null>(null);
+  const pendingAssetPickFocusRef = useRef(false);
   const pendingTabRef = useRef<TabValue | null>(null);
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
@@ -465,6 +466,13 @@ export function EntryPage(): JSX.Element {
       saveBarRef.current?.querySelector<HTMLButtonElement>('[data-testid="entry-save-btn"]')?.focus();
     }
   }, [keypadOpen]);
+
+  // After an asset pick the sheet hands focus to Số lượng (finalFocusRef); keep it in view.
+  useEffect(() => {
+    if (assetPickerOpen || keypadOpen || !pendingAssetPickFocusRef.current) return;
+    pendingAssetPickFocusRef.current = false;
+    quantityInputRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [assetPickerOpen, keypadOpen]);
 
   const typeParam = searchParams.get('type');
   useEffect(() => {
@@ -1740,15 +1748,16 @@ export function EntryPage(): JSX.Element {
       : person.name;
   }, [quickSplit.people, quickSplit.payerId, ledger?.ownerPid, t]);
 
-  const displayTone = isTransferMode
-    ? 'neutral'
-    : isLoanDebt
-      ? quickSplit.flipped
-        ? 'success'
-        : 'danger'
-      : entryType === 'expense'
-        ? 'danger'
-        : 'success';
+  const displayTone =
+    isTransferMode || isTradeMode
+      ? 'neutral'
+      : isLoanDebt
+        ? quickSplit.flipped
+          ? 'success'
+          : 'danger'
+        : entryType === 'expense'
+          ? 'danger'
+          : 'success';
 
   const excludeRow = (
     <div className="w-full min-h-11 flex items-center justify-between gap-3">
@@ -2075,7 +2084,7 @@ export function EntryPage(): JSX.Element {
                       currency: selectedWallet.currency,
                     })}
                     onClick={() => setWalletSheetTarget('single')}
-                    className="self-start min-h-11 rounded-full bg-warning-soft text-foreground px-3.5 text-sm font-medium border-0 cursor-pointer"
+                    className="self-start min-h-11 rounded-full bg-muted text-foreground px-3.5 text-sm font-medium border-0 cursor-pointer"
                   >
                     {t('personalEntry.walletChipText', {
                       name: selectedWallet.name,
@@ -2532,8 +2541,13 @@ export function EntryPage(): JSX.Element {
                         <div data-testid="entry-quantity-error">
                           <InlineError
                             error={
-                              isClientOversell
-                                ? ownError(t('personalEntry.oversellError'))
+                              isClientOversell && selectedAsset && heldQuantity !== null
+                                ? ownError(
+                                    t('personalEntry.oversellError', {
+                                      qty: formatQuantity(heldQuantity, selectedAsset.decimals),
+                                      unit: selectedAsset.unit || selectedAsset.name,
+                                    }),
+                                  )
                                 : serverOversellError
                             }
                           />
@@ -2685,7 +2699,7 @@ export function EntryPage(): JSX.Element {
                     : parsedQuantity === null
                       ? t('personalEntry.enterQuantity')
                       : isClientOversell
-                        ? t('personalEntry.oversellError')
+                        ? t('personalEntry.fixQuantity')
                         : primaryMinor === null
                           ? t('loanDebt.enterAmount')
                           : null;
@@ -2861,6 +2875,7 @@ export function EntryPage(): JSX.Element {
       <AssetPicker
         open={assetPickerOpen}
         onClose={() => setAssetPickerOpen(false)}
+        finalFocusRef={quantityInputRef}
         assets={allAssets}
         value={assetId}
         walletId={selectedWallet?.id}
@@ -2869,6 +2884,8 @@ export function EntryPage(): JSX.Element {
           setPickedAsset(asset);
           setServerOversellError(null);
           setValidationError(null);
+          pendingAssetPickFocusRef.current = true;
+          setKeypadOpen(false);
         }}
       />
 

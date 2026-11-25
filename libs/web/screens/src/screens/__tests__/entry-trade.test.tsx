@@ -402,8 +402,8 @@ describe('EntryPage — Buy / Sell trade tiles (R10)', () => {
 
     // Type more than 1,5 -> inline error & Lưu disabled with reason
     await user.type(screen.getByTestId('entry-quantity'), '2');
-    expect(screen.getByTestId('entry-quantity-error')).toHaveTextContent('Vượt quá số đang có');
-    expect(screen.getByTestId('trade-disabled-reason')).toHaveTextContent('Vượt quá số đang có');
+    expect(screen.getByTestId('entry-quantity-error')).toHaveTextContent('Chỉ còn 1,5 BTC');
+    expect(screen.getByTestId('trade-disabled-reason')).toHaveTextContent('Sửa số lượng để lưu');
     expect(screen.getByTestId('entry-save-btn')).toBeDisabled();
 
     // Change to 1,5 -> valid locally, submit -> server returns 422 OVERSELL

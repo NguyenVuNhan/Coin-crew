@@ -1456,7 +1456,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.pickAsset': 'Chọn tài sản', // REVIEW
   'personalEntry.quantity': 'Số lượng', // REVIEW
   'personalEntry.heldQuantity': 'Đang có: {qty} {unit}', // REVIEW
-  'personalEntry.oversellError': 'Vượt quá số đang có', // REVIEW
+  'personalEntry.oversellError': 'Chỉ còn {qty} {unit}', // REVIEW
   'personalEntry.savedBuy': 'Đã mua {qty} {asset}', // REVIEW
   'personalEntry.savedSell': 'Đã bán {qty} {asset}', // REVIEW
   'personalEntry.addAsset': 'Thêm tài sản', // REVIEW
@@ -1464,6 +1464,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.noAssets': 'Chưa có tài sản nào', // REVIEW
   'personalEntry.chooseAsset': 'Chọn tài sản', // REVIEW
   'personalEntry.enterQuantity': 'Nhập số lượng', // REVIEW
+  'personalEntry.fixQuantity': 'Sửa số lượng để lưu', // REVIEW
   'transactions.title': 'Giao dịch', // REVIEW
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW

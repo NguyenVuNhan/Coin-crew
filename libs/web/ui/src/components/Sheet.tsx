@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { cn } from '../lib/utils';
 import { ResponsiveSheet } from './ui/responsive-sheet';
 
@@ -9,6 +9,8 @@ export interface SheetProps {
   children: ReactNode;
   className?: string;
   dismissible?: boolean;
+  /** Where focus goes on close instead of the opener. */
+  finalFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export function Sheet({
@@ -18,6 +20,7 @@ export function Sheet({
   children,
   className = '',
   dismissible = true,
+  finalFocusRef,
 }: SheetProps) {
   return (
     <ResponsiveSheet
@@ -28,6 +31,7 @@ export function Sheet({
       title={title}
       dismissible={dismissible && typeof onClose === 'function'}
       className={cn('fsl-sheet', className)}
+      finalFocusRef={finalFocusRef}
     >
       {children}
     </ResponsiveSheet>

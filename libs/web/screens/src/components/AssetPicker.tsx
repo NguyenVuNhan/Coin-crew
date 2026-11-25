@@ -1,4 +1,4 @@
-import { useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react';
 import { assetUnitText, isAssetVisibleIn, normalizeName, type AssetView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { Button } from '@cc/web-ui/components/Button';
@@ -16,6 +16,8 @@ export interface AssetPickerProps {
   value: string | null;
   onSelect(asset: AssetView): void;
   walletId?: string;
+  /** Focus target after a pick closes the sheet (defaults to the opener). */
+  finalFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export function AssetPicker({
@@ -25,8 +27,22 @@ export function AssetPicker({
   value,
   onSelect,
   walletId,
+  finalFocusRef,
 }: AssetPickerProps): JSX.Element {
   const t = useT();
+  // Only a pick sends focus onward; dismissing returns it to the opener.
+  const pickedRef = useRef(false);
+  useEffect(() => {
+    if (open) pickedRef.current = false;
+  }, [open]);
+  const closeFocusRef = useMemo<RefObject<HTMLElement | null>>(
+    () => ({
+      get current() {
+        return pickedRef.current ? (finalFocusRef?.current ?? null) : null;
+      },
+    }),
+    [finalFocusRef],
+  );
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -87,6 +103,7 @@ export function AssetPicker({
   };
 
   const handlePick = (asset: AssetView) => {
+    pickedRef.current = true;
     onSelect(asset);
     handleClose();
   };
@@ -95,6 +112,7 @@ export function AssetPicker({
     <Sheet
       open={open}
       onClose={handleClose}
+      finalFocusRef={closeFocusRef}
       title={creating ? t('personalEntry.addAsset') : t('personalEntry.pickAsset')}
     >
       {creating ? (
