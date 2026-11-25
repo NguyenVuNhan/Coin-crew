@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import {
   formatMoney,
   groupRowCategoryId,
+  groupRowEffect,
   groupRowsTotals,
   type BookRow,
   type CategoryView,
@@ -164,22 +165,32 @@ export function groupRows(
   }
 
   const catMap = new Map(categories.map((c) => [c.id, c.name]));
-  const fallbackGroupCat = categories.find((c) => c.type === 'expense' && c.name === 'Nhóm');
+  const fallbackGroupCat =
+    categories.find((c) => c.type === 'expense' && c.name === 'Nhóm') ??
+    categories.find((c) => c.type === 'expense' && c.systemKey === 'general');
   const byCat = new Map<string, { title: string; rows: BookRow[] }>();
   for (const row of rows) {
     let key: string;
     let title: string;
     if (row.kind === 'group') {
-      const catId = groupRowCategoryId(row, settings, null);
-      if (catId && catMap.has(catId)) {
-        key = `cat:${catId}`;
-        title = catMap.get(catId)!;
-      } else if (fallbackGroupCat) {
-        key = `cat:${fallbackGroupCat.id}`;
-        title = fallbackGroupCat.name;
+      const eff = groupRowEffect(row, settings);
+      const isNonSpendingPayment =
+        !row.pending && row.source === 'payment' && eff.spending === 0 && eff.income === 0;
+      if (isNonSpendingPayment) {
+        key = 'transfer';
+        title = t('transactions.transfersAndSettleUp');
       } else {
-        key = 'cat:other';
-        title = t('transactions.otherCategory');
+        const catId = groupRowCategoryId(row, settings, null);
+        if (catId && catMap.has(catId)) {
+          key = `cat:${catId}`;
+          title = catMap.get(catId)!;
+        } else if (fallbackGroupCat) {
+          key = `cat:${fallbackGroupCat.id}`;
+          title = fallbackGroupCat.name;
+        } else {
+          key = 'cat:other';
+          title = t('transactions.otherCategory');
+        }
       }
     } else if (row.kind === 'person') {
       key = 'person';
@@ -200,8 +211,14 @@ export function groupRows(
         t('transactions.otherCategory');
     }
     const existing = byCat.get(key);
-    if (existing) existing.rows.push(row);
-    else byCat.set(key, { title, rows: [row] });
+    if (existing) {
+      if (key === 'transfer' && row.kind === 'group') {
+        existing.title = t('transactions.transfersAndSettleUp');
+      }
+      existing.rows.push(row);
+    } else {
+      byCat.set(key, { title, rows: [row] });
+    }
   }
   return Array.from(byCat.entries()).map(([id, group]) => ({
     id,

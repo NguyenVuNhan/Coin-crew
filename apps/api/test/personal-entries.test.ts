@@ -8,7 +8,7 @@ import type {
   WalletDetailsResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
-import { addWallet, postJson, switchOn } from './personal-helpers';
+import { addWallet, postJson, switchOn, seedLegacyStarters } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
@@ -61,6 +61,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('expense with tags and a time is stored and returned; the wallet balance drops', async () => {
     const sid = await memberSid('u-ent-1', 'Ent1');
     await switchOn('u-ent-1');
+    await seedLegacyStarters('u-ent-1');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -130,6 +131,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('income in a USDT wallet with 12,34 USDT (1234) is accepted; 1.5 is 422', async () => {
     const sid = await memberSid('u-ent-usdt', 'EntUsdt');
     await switchOn('u-ent-usdt');
+    await seedLegacyStarters('u-ent-usdt');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -188,6 +190,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('an expense with an income category is 422; a hidden category is 422', async () => {
     const sid = await memberSid('u-ent-cat', 'EntCat');
     await switchOn('u-ent-cat');
+    await seedLegacyStarters('u-ent-cat');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -222,6 +225,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('a VND → USDT transfer needs amountReceived; both sides share transferId and default to excluded', async () => {
     const sid = await memberSid('u-ent-tr-fx', 'EntTrFx');
     await switchOn('u-ent-tr-fx');
+    await seedLegacyStarters('u-ent-tr-fx');
 
     const vndWallet = (
       await json<WalletDetailResponse>(
@@ -306,6 +310,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('same-currency transfer with a different amountReceived is 422; from = to is 422', async () => {
     const sid = await memberSid('u-ent-tr-same', 'EntTrSame');
     await switchOn('u-ent-tr-same');
+    await seedLegacyStarters('u-ent-tr-same');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -353,6 +358,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('editing the in-side of a transfer rewrites both sides', async () => {
     const sid = await memberSid('u-ent-edit-tr', 'EntEditTr');
     await switchOn('u-ent-edit-tr');
+    await seedLegacyStarters('u-ent-edit-tr');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -436,6 +442,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('turning a transfer into an expense is 422', async () => {
     const sid = await memberSid('u-ent-turn', 'EntTurn');
     await switchOn('u-ent-turn');
+    await seedLegacyStarters('u-ent-turn');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -492,6 +499,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('delete of one transfer side removes both and returns both', async () => {
     const sid = await memberSid('u-ent-del-tr', 'EntDelTr');
     await switchOn('u-ent-del-tr');
+    await seedLegacyStarters('u-ent-del-tr');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -534,6 +542,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('restore puts them back with the same ids and tags; restoring twice is 409', async () => {
     const sid = await memberSid('u-ent-restore', 'EntRestore');
     await switchOn('u-ent-restore');
+    await seedLegacyStarters('u-ent-restore');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -592,6 +601,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('restore refuses a transferId still in use', async () => {
     const sid = await memberSid('u-ent-restore-tid', 'EntRestoreTid');
     await switchOn('u-ent-restore-tid');
+    await seedLegacyStarters('u-ent-restore-tid');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -629,6 +639,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('restore refuses a pair whose sides disagree', async () => {
     const sid = await memberSid('u-ent-restore-disagree', 'EntRestoreDisagree');
     await switchOn('u-ent-restore-disagree');
+    await seedLegacyStarters('u-ent-restore-disagree');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -729,6 +740,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('restore refuses when the wallet is gone', async () => {
     const sid = await memberSid('u-ent-restore-gone', 'EntRestoreGone');
     await switchOn('u-ent-restore-gone');
+    await seedLegacyStarters('u-ent-restore-gone');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -774,6 +786,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('an entry dated before the wallet start is stored with beforeStart: false and counts toward balance', async () => {
     const sid = await memberSid('u-ent-before', 'EntBefore');
     await switchOn('u-ent-before');
+    await seedLegacyStarters('u-ent-before');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -802,6 +815,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('a 201-character note, 11 tags or a 31-character tag is 422', async () => {
     const sid = await memberSid('u-ent-limits', 'EntLimits');
     await switchOn('u-ent-limits');
+    await seedLegacyStarters('u-ent-limits');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -848,7 +862,9 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
     const sid1 = await memberSid('u-ent-own-1', 'Owner1');
     const sid2 = await memberSid('u-ent-own-2', 'Owner2');
     await switchOn('u-ent-own-1');
+    await seedLegacyStarters('u-ent-own-1');
     await switchOn('u-ent-own-2');
+    await seedLegacyStarters('u-ent-own-2');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -918,6 +934,7 @@ describe('personal entries — expense, income, transfer, edit, delete, restore'
   it('switch off: 403 on all four routes', async () => {
     const sid = await memberSid('u-ent-off', 'EntOff');
     await switchOn('u-ent-off', 0);
+    await seedLegacyStarters('u-ent-off');
 
     expect(
       (

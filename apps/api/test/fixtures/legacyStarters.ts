@@ -8,7 +8,8 @@ export interface StarterCategory {
 }
 
 /**
- * Starter categories seeded lazily on a user's first GET /me/personal/categories.
+ * Test fixture: the starter categories seeded before the fixed danh mục list (issue 140).
+ * Existing users still have these rows; `seedLegacyStarters` recreates them.
  * Parents appear before their sub-categories so batch inserts satisfy the self-FK.
  */
 export const STARTER_CATEGORIES: readonly StarterCategory[] = [

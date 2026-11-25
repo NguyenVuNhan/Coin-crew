@@ -10,7 +10,7 @@ import type {
   WalletDetailResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
-import { addWallet, postJson, switchOn } from './personal-helpers';
+import { addWallet, postJson, switchOn, seedLegacyStarters } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
@@ -45,6 +45,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('month list is newest first and totals skip excluded rows', async () => {
     const sid = await memberSid('u-list-1', 'List1');
     await switchOn('u-list-1');
+    await seedLegacyStarters('u-list-1');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -137,6 +138,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('a transfer counts in totals only when its switch is turned off', async () => {
     const sid = await memberSid('u-list-2', 'List2');
     await switchOn('u-list-2');
+    await seedLegacyStarters('u-list-2');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -194,6 +196,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('filters: wallet, category with subs, tag, type, date range, search "phở" matches "Phở bò" but "%" matches only a literal %', async () => {
     const sid = await memberSid('u-list-3', 'List3');
     await switchOn('u-list-3');
+    await seedLegacyStarters('u-list-3');
 
     const w1 = (
       await json<WalletDetailResponse>(
@@ -329,6 +332,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('quick expenses show as person rows with the owner share, on the default wallet, and count in totals', async () => {
     const sid = await memberSid('u-list-4', 'List4');
     await switchOn('u-list-4');
+    await seedLegacyStarters('u-list-4');
 
     const defaultWallet = (
       await json<WalletDetailResponse>(
@@ -419,6 +423,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('quick expenses are hidden by a category filter and by a non-default wallet filter', async () => {
     const sid = await memberSid('u-list-5', 'List5');
     await switchOn('u-list-5');
+    await seedLegacyStarters('u-list-5');
 
     const defaultWallet = (
       await json<WalletDetailResponse>(
@@ -471,6 +476,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('from/to more than 366 days apart is 422; no month and no range is 422', async () => {
     const sid = await memberSid('u-list-6', 'List6');
     await switchOn('u-list-6');
+    await seedLegacyStarters('u-list-6');
 
     expect((await getList(sid, '')).status).toBe(422);
     expect((await getList(sid, '?month=2026-13')).status).toBe(422);
@@ -482,6 +488,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('summary: VND 5.000.000 + 1.000 USDT bought for 25.000.000 gives totalVnd 30.000.000, approximate, two currency lines', async () => {
     const sid = await memberSid('u-list-7', 'List7');
     await switchOn('u-list-7');
+    await seedLegacyStarters('u-list-7');
 
     await addWallet(sid, {
       name: 'VND Main',
@@ -524,6 +531,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
   it('summary leaves archived wallets out', async () => {
     const sid = await memberSid('u-list-8', 'List8');
     await switchOn('u-list-8');
+    await seedLegacyStarters('u-list-8');
 
     await addWallet(sid, {
       name: 'VND Main',
@@ -552,7 +560,9 @@ describe('personal transaction list, quick expenses, and summary', () => {
     const sidA = await memberSid('u-list-9a', 'UserA');
     const sidB = await memberSid('u-list-9b', 'UserB');
     await switchOn('u-list-9a');
+    await seedLegacyStarters('u-list-9a');
     await switchOn('u-list-9b');
+    await seedLegacyStarters('u-list-9b');
 
     const wA = (
       await json<WalletDetailResponse>(
@@ -609,6 +619,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
     const userId = 'u-list-11';
     const sid = await memberSid(userId, 'List11');
     await switchOn(userId);
+    await seedLegacyStarters(userId);
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -702,6 +713,7 @@ describe('personal transaction list, quick expenses, and summary', () => {
     const userId = 'u-list-12';
     const sid = await memberSid(userId, 'List12');
     await switchOn(userId);
+    await seedLegacyStarters(userId);
 
     const mainWallet = (
       await json<WalletDetailResponse>(

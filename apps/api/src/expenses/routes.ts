@@ -18,6 +18,7 @@ import {
   computeShares,
   computeSportShares,
   initialExpenseStatus,
+  isFixedExpenseKey,
   isFundPaid,
   isPlanningExpense,
   MAX_AMOUNT,
@@ -56,6 +57,8 @@ export type TransactionRow = typeof transactions.$inferSelect;
 
 export interface ValidatedExpense {
   description: string;
+  categoryKey?: string | null;
+  note?: string | null;
   amount: number;
   spentOn: string;
   payerId: string;
@@ -207,6 +210,32 @@ async function validateExpenseInput(
     throw validationError('descriptionLength', 'Description must be 1 to 80 characters');
   }
 
+  let categoryKey: string | null | undefined = undefined;
+  if (input.categoryKey !== undefined) {
+    if (input.categoryKey === null) {
+      categoryKey = null;
+    } else if (typeof input.categoryKey !== 'string' || !isFixedExpenseKey(input.categoryKey)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid categoryKey', { reason: 'categoryKey' });
+    } else {
+      categoryKey = input.categoryKey;
+    }
+  }
+
+  let note: string | null | undefined = undefined;
+  if (input.note !== undefined) {
+    if (input.note === null) {
+      note = null;
+    } else if (typeof input.note !== 'string') {
+      throw new ApiError('VALIDATION', 422, 'Invalid note');
+    } else {
+      const trimmed = input.note.trim();
+      if (trimmed.length > 500) {
+        throw new ApiError('VALIDATION', 422, 'Note must be at most 500 characters', { reason: 'noteLength' });
+      }
+      note = trimmed.length === 0 ? null : trimmed;
+    }
+  }
+
   if (typeof input.amount !== 'number') {
     throw new ApiError('VALIDATION', 422, 'INVALID_AMOUNT');
   }
@@ -266,7 +295,7 @@ async function validateExpenseInput(
       throw validationError('amountInvalid', 'INVALID_AMOUNT');
     }
     // The request's payerId is ignored: the handler records the admin who wrote it.
-    return { description, amount, spentOn, payerId, mode, shares: [], meta: { paidFromFund: true } };
+    return { description, categoryKey, note, amount, spentOn, payerId, mode, shares: [], meta: { paidFromFund: true } };
   }
 
   const tripParticipants = await db
@@ -439,6 +468,8 @@ async function validateExpenseInput(
     };
     return {
       description,
+      categoryKey,
+      note,
       amount: 0,
       spentOn,
       payerId,
@@ -541,6 +572,8 @@ async function validateExpenseInput(
 
   return {
     description,
+    categoryKey,
+    note,
     amount,
     spentOn,
     payerId,
@@ -620,6 +653,8 @@ export async function writeExpenseEdit(
     tripId,
     type: 'expense',
     description: validated.description,
+    categoryKey: validated.categoryKey !== undefined ? validated.categoryKey : head.categoryKey,
+    note: validated.note !== undefined ? validated.note : head.note,
     amount: validated.amount,
     amountConfirmed: null,
     currency: 'VND',
@@ -724,6 +759,8 @@ export function expenseRoutes(): Hono<AppBindings> {
       tripId,
       type: 'expense',
       description: validated.description,
+      categoryKey: validated.categoryKey ?? null,
+      note: validated.note ?? null,
       amount: validated.amount,
       amountConfirmed: null,
       currency: 'VND',
@@ -982,6 +1019,8 @@ export function expenseRoutes(): Hono<AppBindings> {
       tripId,
       type: 'expense',
       description: targetRow.description,
+      categoryKey: targetRow.categoryKey,
+      note: targetRow.note,
       amount: targetRow.amount,
       amountConfirmed: null,
       currency: targetRow.currency,

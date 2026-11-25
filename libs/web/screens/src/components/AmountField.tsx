@@ -71,6 +71,12 @@ export interface AmountFieldProps {
   disabled?: boolean;
   testId?: string;
   inputTestId?: string;
+  /** Fixed id for the input (e.g. a form's existing `#expense-amount`); a generated one otherwise. */
+  inputId?: string;
+  /** Custom parser (e.g. the group form's "180k" / "1,5tr" shorthand); defaults to the keypad expression rules. */
+  parseValue?(value: string): number | null;
+  /** Custom input filter paired with `parseValue`; defaults to the keypad's allowed characters. */
+  sanitizeValue?(raw: string): string;
 }
 
 /** Text-input amount box for mouse-pointer (PC) devices, sharing keypad parsing rules. */
@@ -86,9 +92,13 @@ export function AmountField({
   disabled = false,
   testId,
   inputTestId,
+  inputId: inputIdProp,
+  parseValue,
+  sanitizeValue,
 }: AmountFieldProps) {
-  const inputId = useId();
-  const evaluated = evaluateAmountExpression(value, currency);
+  const generatedId = useId();
+  const inputId = inputIdProp ?? generatedId;
+  const evaluated = parseValue ? parseValue(value) : evaluateAmountExpression(value, currency);
   const isInvalid = value.length > 0 && evaluated === null;
   const symbol = CURRENCIES[currency].symbol;
   const toneClass =
@@ -99,7 +109,7 @@ export function AmountField({
       e.preventDefault();
       if (evaluated !== null) {
         const formatted = formatKeypadValue(evaluated, currency);
-        if (formatted !== value) {
+        if (formatted !== value && !parseValue) {
           onChange(formatted);
         }
         onDone?.(evaluated);
@@ -108,7 +118,8 @@ export function AmountField({
   };
 
   const handleBlur = () => {
-    if (evaluated !== null) {
+    // A custom parser (the group form's "350k") keeps what was typed; its own preview shows the value.
+    if (evaluated !== null && !parseValue) {
       const formatted = formatKeypadValue(evaluated, currency);
       if (formatted !== value) {
         onChange(formatted);
@@ -149,7 +160,7 @@ export function AmountField({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onChange={(e) => {
-            const next = sanitizeAmountInput(e.target.value, currency);
+            const next = sanitizeValue ? sanitizeValue(e.target.value) : sanitizeAmountInput(e.target.value, currency);
             if (next !== value) onChange(next);
           }}
           className={cn(

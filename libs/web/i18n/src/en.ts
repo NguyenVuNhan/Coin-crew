@@ -908,6 +908,7 @@ export const en = {
   'activity.action.bank_removed': 'deleted bank details',
   'payments.mine': 'Your payments',
   'payments.all': 'All payments',
+  'payments.helper': 'Payments settle balances between members and do not add to group expenses.',
   'payments.emptyMine': 'No payments with you yet.',
   'payments.throughPeople': 'Settled through the People total',
   'payments.arrived': 'It arrived',
@@ -1534,6 +1535,7 @@ export const en = {
   'transactions.buyAssetTitle': 'Buy {asset}',
   'transactions.sellAssetTitle': 'Sell {asset}',
   'transactions.pricePerUnit': 'Price per {unit}',
+  'transactions.transfersAndSettleUp': 'Transfers & Settle-up',
 
   'groupRow.yourShare': 'your share',
   'groupRow.youPaid': 'You paid {total} · {rest} owed to you',
@@ -1545,6 +1547,13 @@ export const en = {
   'groupRow.paymentOutMeta': 'Group settle-up',
   'groupRow.paymentTo': 'You paid {name}',
   'groupRow.paymentFrom': '{name} paid you',
+  'groupRow.notInSpending': 'Not in spending',
+  'groupRow.notInIncome': 'Not in income',
+  'groupRow.notFromWallet': 'Not from wallet yet',
+  'groupRow.paymentWalletOut': '−{amount} from {wallet}',
+  'groupRow.paymentWalletIn': '+{amount} to {wallet}',
+  'groupRow.paymentNotCountedNote': 'Not added to spending (already counted in the original expense).',
+  'groupRow.paymentNotCountedInNote': 'Not added to income (repayment for what you covered).',
   'groupRow.pending': 'Waiting for approval · not counted',
   'groupRow.pendingShort': 'Not counted',
   'groupRow.openInGroup': 'Open in the group',
@@ -1586,12 +1595,30 @@ export const en = {
   'categories.parent': 'Parent category',
   'categories.pickParent': 'Choose parent category',
   'categories.noParent': 'None (top-level)',
+  'categories.parentLockedHasChildren': 'Has {count} sub-categories — move them first to change its parent.',
+  'categories.parentNoOtherParents': 'No other top-level categories to move under.',
+  'categories.visibilityShiftNote': 'Saving will change the default visibility in: {wallets}. You can still override this in "Show in wallets".',
+  'categories.visibilityShiftShow': 'show in {wallet}',
+  'categories.visibilityShiftHide': 'hide in {wallet}',
+  'categories.movedToParentToast': 'Moved "{name}" under "{parent}"',
+  'categories.promotedToast': 'Moved "{name}" to top level',
   'categories.save': 'Save',
   'categories.emptyTitle': 'No categories yet',
   'categories.emptyBody': 'Add a category to organise your entries.',
   'categories.deleteConfirmTitle': 'Delete category?',
   'categories.deleteConfirmBody': 'Are you sure you want to delete "{name}"?',
   'categories.hasChildrenError': 'This category has sub-categories. Move or delete them first.',
+  'categories.deleteParentTitle': 'Delete "{name}"',
+  'categories.deleteParentBody': 'This category has {count} sub-categories. Choose where to move them before deleting:',
+  'categories.deleteParentMoreChildren': '+{count} more',
+  'categories.promoteChildren': 'Move to top level',
+  'categories.promoteChildrenDesc': 'Each sub-category becomes its own top-level category.',
+  'categories.moveChildrenToParent': 'Move under another parent',
+  'categories.moveChildrenTargetLabel': 'New parent category',
+  'categories.deleteParentDirectTx': '"{name}" also has {count} direct transactions. Choose a category to move them to:',
+  'categories.moveChildrenAndDelete': 'Move sub-categories and delete',
+  'categories.deletedParentPromotedToast': 'Deleted "{name}" and moved {count} sub-categories to top level',
+  'categories.deletedParentMovedToast': 'Deleted "{name}" and moved {count} sub-categories under "{parent}"',
   'categories.inUseTitle': 'Used by {count} transactions',
   'categories.moveToOther': 'Move to another category',
   'categories.moveAndDelete': 'Move and delete',
@@ -1802,6 +1829,24 @@ export const en = {
   'reports.perCurrencyBreakdown': 'Breakdown by currency',
   'reports.loadError': 'Could not load report data.',
   'reports.retry': 'Try again',
+
+  'sharedExpense.titleLabel': 'What for', // REVIEW
+  'sharedExpense.titlePlaceholder': 'e.g. BBQ dinner', // REVIEW
+  'sharedExpense.titleRequired': 'Enter a title', // REVIEW
+  'sharedExpense.pickCategory': 'Pick category', // REVIEW
+  'sharedExpense.clearCategory': 'Clear', // REVIEW
+  'sharedExpense.searchCategory': 'Search categories…', // REVIEW
+  'sharedExpense.payer': 'Paid by', // REVIEW
+  'sharedExpense.note': 'Note', // REVIEW
+  'sharedExpense.notePlaceholder': 'Extra details (optional)', // REVIEW
+  'categories.builtIn': 'Built-in', // REVIEW
+  'categories.hiddenSection': 'Hidden', // REVIEW
+  'categories.mergeInto': 'Merge into…', // REVIEW
+  'categories.mergeTitle': 'Merge “{name}” into…', // REVIEW
+  'categories.mergeEmpty': 'No built-in categories available.', // REVIEW
+  'categories.mergeConfirmTitle': 'Merge category?', // REVIEW
+  'categories.mergeConfirmBody': 'Merge “{from}” into “{to}”? Transactions will move to “{to}”.', // REVIEW
+  'categories.mergeConfirmAction': 'Merge', // REVIEW
 } as const;
 
 export type MessageKey = keyof typeof en;

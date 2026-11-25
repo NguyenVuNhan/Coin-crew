@@ -287,9 +287,19 @@ export function ExpenseDetails({
       {billShare.sheet}
       {sheet}
       <div className="fsl-details__head flex flex-row items-start justify-between gap-3">
-        <h2 className="fsl-details__title text-lg font-semibold text-foreground m-0 break-words focus:outline-none" tabIndex={-1}>
-          {e.description}
-        </h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="fsl-details__title text-lg font-semibold text-foreground m-0 break-words focus:outline-none" tabIndex={-1}>
+            {e.description}
+          </h2>
+          {e.note?.trim() ? (
+            <p
+              className="text-sm text-muted-foreground m-0 mt-1 break-words"
+              data-testid="expense-note"
+            >
+              {e.note}
+            </p>
+          ) : null}
+        </div>
         {isPlanning && e.status !== 'disabled' ? (
           <Pill tone="accent">{t('sport.planningBadge')}</Pill>
         ) : (

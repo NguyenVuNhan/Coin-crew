@@ -46,6 +46,7 @@ export interface UpdateCategoryInput {
   icon?: string;
   hidden?: boolean;
   sortOrder?: number;
+  parentId?: string | null;
 }
 
 export interface CategoryResponse {
@@ -300,10 +301,14 @@ export function useUpdateCategory() {
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
 
-  return useMutation<{ ok: true }, ApiClientError, { id: string; moveTo?: string }>({
-    mutationFn: ({ id, moveTo }) => {
+  return useMutation<{ ok: true }, ApiClientError, { id: string; moveTo?: string; children?: string }>({
+    mutationFn: ({ id, moveTo, children }) => {
       const base = `/api/me/personal/categories/${encodeURIComponent(id)}`;
-      const path = moveTo ? `${base}?moveTo=${encodeURIComponent(moveTo)}` : base;
+      const params = new URLSearchParams();
+      if (moveTo) params.set('moveTo', moveTo);
+      if (children) params.set('children', children);
+      const qs = params.toString();
+      const path = qs ? `${base}?${qs}` : base;
       return apiSend<{ ok: true }>(path, 'DELETE');
     },
     onSuccess: async () => {

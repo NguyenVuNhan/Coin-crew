@@ -9,6 +9,7 @@ import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { useListMode } from '@cc/web-util/useListMode';
 import { ActionRow } from '@cc/web-ui/components/ActionRow';
 import { Amount } from '@cc/web-ui/components/Amount';
+import { Icon } from '@cc/web-ui/components/icons';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { ListModeChip } from '@cc/web-ui/components/ListModeChip';
@@ -54,7 +55,13 @@ function PaymentItem({
     <li className="fsl-payments__item" data-testid={`payment-row-${payment.id}`}>
       <ActionRow label={label} actions={actions} onOpen={onOpen} selected={selected} hintable={hintable}>
         <span className="fsl-payments__row flex min-w-0 flex-1 items-center justify-between gap-3">
-          <span className="fsl-payments__main flex min-w-0 flex-col">
+          <span
+            aria-hidden="true"
+            className="size-9 rounded-full bg-muted text-muted-foreground grid place-items-center shrink-0"
+          >
+            <Icon name="swap" size={16} />
+          </span>
+          <span className="fsl-payments__main flex min-w-0 flex-1 flex-col">
             <span
               className={cn(
                 'fsl-payments__text min-w-0 truncate text-base font-semibold text-foreground',
@@ -114,6 +121,7 @@ export function PaymentsList({
         <h2 className="fsl-payments__heading text-sm font-semibold text-muted-foreground">{title}</h2>
         {effective !== null && <ListModeChip mode={effective} onToggle={toggle} />}
       </div>
+      <p className="fsl-payments__helper m-0 text-xs text-muted-foreground">{t('payments.helper')}</p>
       {rows.length === 0 ? (
         <p className="fsl-payments__empty rounded-xl border border-border bg-card p-4 text-base text-muted-foreground">{t('payments.emptyMine')}</p>
       ) : (

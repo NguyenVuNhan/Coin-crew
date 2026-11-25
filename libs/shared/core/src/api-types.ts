@@ -23,6 +23,7 @@ export type ApiErrorCode =
   | 'CONFLICT'
   | 'ZALO_TOKEN_INVALID'
   | 'IN_USE'
+  | 'FIXED_CATEGORY'
   | 'DEFAULT_WALLET'
   | 'OVERSELL'
   | 'NOT_IMPLEMENTED'
@@ -190,6 +191,8 @@ export interface UpdateProfileInput {
 export interface ExpenseHistoryItem {
   id: string;
   description: string;
+  categoryKey?: string | null;
+  note?: string | null;
   amount: number;
   spentOn: string;
   payerId: string;
@@ -323,6 +326,10 @@ export interface ExpenseView {
   meta?: ExpenseMeta | null;
   rootId?: string;
   history?: ExpenseHistoryItem[];
+  /** Fixed danh mục key (#140). Always sent by the server; optional so older cached views still type. */
+  categoryKey?: string | null;
+  /** Nội dung, separate from the title (`description`). Always sent by the server. */
+  note?: string | null;
 }
 export interface IncomeInput {
   amount: number;
@@ -470,6 +477,10 @@ export interface JoinResponse { participantId: string; rejoined: boolean }
 export interface ExpenseInput {
   /** 1–80 characters. */
   description: string;
+  /** Fixed expense category key (from FIXED_CATEGORIES), or null to clear; omit on edit to keep. */
+  categoryKey?: string | null;
+  /** Optional note, trimmed, empty becomes null, max 500 characters; omit on edit to keep. */
+  note?: string | null;
   amount: number;
   /** YYYY-MM-DD */
   spentOn: string;
@@ -756,6 +767,8 @@ export interface CategoryView {
   sortOrder: number;
   /** Starter key (`food`, `fees`…) for seeded categories, null for the owner's own. Optional: older responses lack it. */
   starterKey?: string | null;
+  /** Fixed built-in category key (`food`, `food-dining`…), null for custom categories. Optional: older responses lack it. */
+  systemKey?: string | null;
   /** Per-wallet overrides of the kind default (#130). Optional: older responses lack it. */
   walletOverrides?: WalletOverride[];
 }

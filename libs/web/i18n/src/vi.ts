@@ -909,6 +909,7 @@ export const vi: Record<MessageKey, string> = {
   'activity.action.bank_removed': 'đã xóa thông tin ngân hàng',
   'payments.mine': 'Các khoản đã trả của bạn',
   'payments.all': 'Tất cả khoản đã trả',
+  'payments.helper': 'Các khoản này dùng để thanh toán nợ giữa thành viên, không cộng thêm vào tổng chi tiêu của nhóm.', // REVIEW
   'payments.emptyMine': 'Chưa có khoản thanh toán nào liên quan đến bạn.',
   'payments.throughPeople': 'Đã tính vào tổng ở mục Mọi người',
   'payments.arrived': 'Đã nhận được',
@@ -1535,6 +1536,7 @@ export const vi: Record<MessageKey, string> = {
   'transactions.buyAssetTitle': 'Mua {asset}', // REVIEW
   'transactions.sellAssetTitle': 'Bán {asset}', // REVIEW
   'transactions.pricePerUnit': 'Giá mỗi {unit}', // REVIEW
+  'transactions.transfersAndSettleUp': 'Chuyển khoản & Trả nợ', // REVIEW
 
   'groupRow.yourShare': 'phần của bạn', // REVIEW
   'groupRow.youPaid': 'Bạn trả {total} · {rest} mọi người nợ bạn', // REVIEW
@@ -1546,6 +1548,13 @@ export const vi: Record<MessageKey, string> = {
   'groupRow.paymentOutMeta': 'Trả nợ nhóm', // REVIEW
   'groupRow.paymentTo': 'Bạn trả {name}', // REVIEW
   'groupRow.paymentFrom': '{name} trả bạn', // REVIEW
+  'groupRow.notInSpending': 'Không tính chi tiêu', // REVIEW
+  'groupRow.notInIncome': 'Không tính thu nhập', // REVIEW
+  'groupRow.notFromWallet': 'Chưa trừ ví', // REVIEW
+  'groupRow.paymentWalletOut': 'Trừ {amount} khỏi ví {wallet}', // REVIEW
+  'groupRow.paymentWalletIn': 'Cộng {amount} vào ví {wallet}', // REVIEW
+  'groupRow.paymentNotCountedNote': 'Không tính thêm vào chi tiêu (đã tính ở khoản chi gốc).', // REVIEW
+  'groupRow.paymentNotCountedInNote': 'Không tính thêm vào thu nhập (hoàn lại khoản bạn đã trả hộ).', // REVIEW
   'groupRow.pending': 'Chờ duyệt · chưa tính', // REVIEW
   'groupRow.pendingShort': 'Chưa tính', // REVIEW
   'groupRow.openInGroup': 'Xem trong nhóm', // REVIEW
@@ -1587,12 +1596,30 @@ export const vi: Record<MessageKey, string> = {
   'categories.parent': 'Nhóm cha', // REVIEW
   'categories.pickParent': 'Chọn nhóm cha', // REVIEW
   'categories.noParent': 'Không có (nhóm chính)', // REVIEW
+  'categories.parentLockedHasChildren': 'Đang có {count} nhóm con — chuyển các nhóm con trước để đổi nhóm cha.', // REVIEW
+  'categories.parentNoOtherParents': 'Chưa có nhóm chính nào khác để chuyển vào.', // REVIEW
+  'categories.visibilityShiftNote': 'Lưu xong sẽ đổi mặc định hiển thị ở: {wallets}. Bạn vẫn chỉnh riêng được ở "Hiện ở ví".', // REVIEW
+  'categories.visibilityShiftShow': 'hiện ở {wallet}', // REVIEW
+  'categories.visibilityShiftHide': 'ẩn ở {wallet}', // REVIEW
+  'categories.movedToParentToast': 'Đã chuyển "{name}" sang "{parent}"', // REVIEW
+  'categories.promotedToast': 'Đã đưa "{name}" lên làm nhóm chính', // REVIEW
   'categories.save': 'Lưu', // REVIEW
   'categories.emptyTitle': 'Chưa có nhóm nào', // REVIEW
   'categories.emptyBody': 'Thêm nhóm để phân loại thu chi.', // REVIEW
   'categories.deleteConfirmTitle': 'Xóa nhóm?', // REVIEW
   'categories.deleteConfirmBody': 'Bạn có chắc muốn xóa nhóm "{name}"?', // REVIEW
   'categories.hasChildrenError': 'Nhóm này đang có nhóm con. Hãy chuyển hoặc xóa các nhóm con trước.', // REVIEW
+  'categories.deleteParentTitle': 'Xóa "{name}"', // REVIEW
+  'categories.deleteParentBody': 'Nhóm này đang có {count} nhóm con. Chọn nơi chuyển các nhóm con trước khi xóa:', // REVIEW
+  'categories.deleteParentMoreChildren': '+{count} nhóm nữa', // REVIEW
+  'categories.promoteChildren': 'Lên làm nhóm chính', // REVIEW
+  'categories.promoteChildrenDesc': 'Các nhóm con sẽ tách ra thành nhóm chính độc lập.', // REVIEW
+  'categories.moveChildrenToParent': 'Chuyển sang nhóm cha khác', // REVIEW
+  'categories.moveChildrenTargetLabel': 'Chọn nhóm cha mới', // REVIEW
+  'categories.deleteParentDirectTx': '"{name}" cũng đang có {count} giao dịch trực tiếp. Chọn nhóm để chuyển các giao dịch này:', // REVIEW
+  'categories.moveChildrenAndDelete': 'Chuyển nhóm con và xóa', // REVIEW
+  'categories.deletedParentPromotedToast': 'Đã xóa "{name}" và đưa {count} nhóm con lên nhóm chính', // REVIEW
+  'categories.deletedParentMovedToast': 'Đã xóa "{name}" và chuyển {count} nhóm con sang "{parent}"', // REVIEW
   'categories.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
   'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
   'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW
@@ -1803,4 +1830,22 @@ export const vi: Record<MessageKey, string> = {
   'reports.perCurrencyBreakdown': 'Chi tiết theo tiền tệ', // REVIEW
   'reports.loadError': 'Không tải được dữ liệu báo cáo.', // REVIEW
   'reports.retry': 'Thử lại', // REVIEW
+
+  'sharedExpense.titleLabel': 'Tiêu đề', // REVIEW
+  'sharedExpense.titlePlaceholder': 'VD: Ăn tối quán nướng', // REVIEW
+  'sharedExpense.titleRequired': 'Nhập tiêu đề', // REVIEW
+  'sharedExpense.pickCategory': 'Chọn danh mục', // REVIEW
+  'sharedExpense.clearCategory': 'Bỏ chọn', // REVIEW
+  'sharedExpense.searchCategory': 'Tìm danh mục…', // REVIEW
+  'sharedExpense.payer': 'Người trả', // REVIEW
+  'sharedExpense.note': 'Nội dung', // REVIEW
+  'sharedExpense.notePlaceholder': 'Ghi chú thêm (không bắt buộc)', // REVIEW
+  'categories.builtIn': 'Có sẵn', // REVIEW
+  'categories.hiddenSection': 'Đã ẩn', // REVIEW
+  'categories.mergeInto': 'Gộp vào…', // REVIEW
+  'categories.mergeTitle': 'Gộp “{name}” vào…', // REVIEW
+  'categories.mergeEmpty': 'Chưa có danh mục cố định nào.', // REVIEW
+  'categories.mergeConfirmTitle': 'Gộp danh mục?', // REVIEW
+  'categories.mergeConfirmBody': 'Gộp “{from}” vào “{to}”? Các giao dịch sẽ chuyển sang “{to}”.', // REVIEW
+  'categories.mergeConfirmAction': 'Gộp', // REVIEW
 };

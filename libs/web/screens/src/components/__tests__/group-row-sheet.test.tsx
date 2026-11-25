@@ -455,4 +455,28 @@ describe('GroupRowSheet', () => {
     expect(pendingBanner).toHaveClass('bg-warning-soft', 'text-warning-foreground');
     expect(await screen.findByText('Before wallet start date')).toBeInTheDocument();
   });
+
+  it('non-spending payment: explains wallet + spending impact and hides category and exclude switch', async () => {
+    setupApi();
+    const row = makeRow({
+      source: 'payment',
+      iPaid: true,
+      counterpartName: 'Minh',
+      total: 100_000,
+      myShare: 0,
+    });
+
+    renderAt(<GroupRowSheet row={row} open onClose={vi.fn()} />);
+
+    const outcome = await screen.findByTestId('group-row-outcome');
+    await waitFor(() =>
+      expect(outcome).toHaveTextContent('−100.000₫ from Techcombank'),
+    );
+    expect(outcome).toHaveTextContent('Not added to spending (already counted in the original expense).');
+    expect(screen.queryByTestId('group-row-field-category')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('group-row-exclude-switch')).not.toBeInTheDocument();
+    expect(screen.getByTestId('group-row-field-wallet')).toBeInTheDocument();
+    expect(screen.getByTestId('group-row-field-tags')).toBeInTheDocument();
+    expect(screen.getByTestId('group-row-open-in-group')).toBeInTheDocument();
+  });
 });

@@ -198,7 +198,7 @@ for (const lang of langs) {
           await minh.goto(`${sportTripUrl}/expenses/new`);
 
           const whatFor = minh
-            .getByLabel(lang === 'vi' ? 'Nội dung' : 'What for')
+            .getByLabel(lang === 'vi' ? 'Tiêu đề' : 'What for')
             .or(minh.locator('#expense-what-for'));
           await whatFor.fill('Sunday badminton');
 

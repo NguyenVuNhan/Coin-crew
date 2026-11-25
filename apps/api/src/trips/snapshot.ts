@@ -132,8 +132,13 @@ export function myBalanceIn(
 
 /** True when a saved view has every field the current snapshot has (older views get rebuilt once). */
 function hasCurrentFields(view: TripSnapshot): boolean {
-  // Views cached before the group fund, player ratings, or trip locations lack those fields.
-  return 'fund' in view && 'ratings' in view && 'locations' in view;
+  // Views cached before the group fund, player ratings, trip locations, or expense categoryKey/note lack those fields.
+  return (
+    'fund' in view &&
+    'ratings' in view &&
+    'locations' in view &&
+    (view.expenses.length === 0 || ('categoryKey' in view.expenses[0]! && 'note' in view.expenses[0]!))
+  );
 }
 
 function expenseMeta(metaJson: string | null): ExpenseView['meta'] {
@@ -281,6 +286,8 @@ export async function buildSnapshot(
       list.push({
         id: tx.id,
         description: tx.description,
+        categoryKey: tx.categoryKey ?? null,
+        note: tx.note ?? null,
         amount: tx.amount,
         spentOn: tx.spentOn,
         payerId: tx.payerId,
@@ -346,6 +353,8 @@ export async function buildSnapshot(
     id: e.id,
     rootId: e.rootId,
     description: e.description,
+    categoryKey: e.categoryKey ?? null,
+    note: e.note ?? null,
     amount: e.amount,
     spentOn: e.spentOn,
     payerId: e.payerId,
