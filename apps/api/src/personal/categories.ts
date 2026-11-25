@@ -6,6 +6,8 @@ import { getDb } from '@cc/api-db/client';
 import {
   personalCategories,
   personalCategoryVisibility,
+  personalGroupLinks,
+  personalGroupSettings,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -289,6 +291,13 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       throw new ApiError('NOT_FOUND', 404, 'Category not found');
     }
 
+    if (
+      existing.systemKey !== null &&
+      (body.name !== undefined || body.icon !== undefined || body.parentId !== undefined)
+    ) {
+      throw new ApiError('FIXED_CATEGORY', 422, 'Built-in categories cannot be changed.');
+    }
+
     const nextName = body.name !== undefined ? name1to40(body.name) : existing.name;
     const nextIcon = body.icon !== undefined ? requireIcon(body.icon) : existing.icon;
 
@@ -442,6 +451,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       .select({
         id: personalCategories.id,
         type: personalCategories.type,
+        systemKey: personalCategories.systemKey,
       })
       .from(personalCategories)
       .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)))
@@ -449,6 +459,10 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
 
     if (!existing) {
       throw new ApiError('NOT_FOUND', 404, 'Category not found');
+    }
+
+    if (existing.systemKey !== null) {
+      throw new ApiError('FIXED_CATEGORY', 422, 'Built-in categories cannot be changed.');
     }
 
     const childRows = await db
@@ -582,6 +596,24 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
                 and(
                   eq(personalTransactions.categoryId, id),
                   eq(personalTransactions.userId, user.id),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+            db
+              .update(personalGroupLinks)
+              .set({ categoryId: moveTo!, updatedAt: now, syncVersion: v })
+              .where(
+                and(
+                  eq(personalGroupLinks.categoryId, id),
+                  eq(personalGroupLinks.userId, user.id),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+            db
+              .update(personalGroupSettings)
+              .set({ defaultGroupCategoryId: moveTo!, updatedAt: now })
+              .where(
+                and(
+                  eq(personalGroupSettings.defaultGroupCategoryId, id),
+                  eq(personalGroupSettings.userId, user.id),
                 ),
               ) as unknown as BatchItem<'sqlite'>,
           );
