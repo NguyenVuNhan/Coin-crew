@@ -25,6 +25,7 @@ import { Snackbar } from '@cc/web-ui/components/Snackbar';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@cc/web-ui/components/ui/native-select';
+import { Switch } from '@cc/web-ui/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
@@ -398,6 +399,11 @@ export function CategoriesScreen(): JSX.Element {
   const [inUseState, setInUseState] = useState<{ category: CategoryView; count: number } | null>(null);
   const [moveToId, setMoveToId] = useState('');
   const [deleteParentState, setDeleteParentState] = useState<DeleteParentState | null>(null);
+  const [mergeSource, setMergeSource] = useState<CategoryView | null>(null);
+  const [mergeConfirm, setMergeConfirm] = useState<{ from: CategoryView; to: CategoryView } | null>(
+    null,
+  );
+  const [mergeError, setMergeError] = useState<unknown>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -407,25 +413,45 @@ export function CategoriesScreen(): JSX.Element {
   }, [toast]);
 
   const allCategories = categoriesQuery.data?.categories ?? [];
+  const isFixed = (cat: CategoryView): boolean => Boolean(cat.systemKey);
 
-  const { parents, childrenByParent } = useMemo(() => {
+  // Every hidden category, built-in or own, sits in "Đã ẩn" below the list; a hidden parent takes its
+  // sub-categories with it, and a hidden sub-category of a shown parent is listed there on its own.
+  const { parents, visibleParents, childrenByParent, hiddenParents, hiddenSubs } = useMemo(() => {
     const filtered = allCategories.filter((c) => c.type === type);
-    const parentList = filtered
-      .filter((c) => c.parentId === null)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const byOrder = (a: CategoryView, b: CategoryView) => a.sortOrder - b.sortOrder;
+
+    const allParentList = filtered.filter((c) => c.parentId === null).sort(byOrder);
+    const hiddenParentIds = new Set(allParentList.filter((c) => c.hidden).map((c) => c.id));
+
     const childMap = new Map<string, CategoryView[]>();
+    const hiddenSubList: CategoryView[] = [];
     for (const c of filtered) {
-      if (c.parentId !== null) {
-        const arr = childMap.get(c.parentId) ?? [];
-        arr.push(c);
-        childMap.set(c.parentId, arr);
+      if (c.parentId === null) continue;
+      if (c.hidden && !hiddenParentIds.has(c.parentId)) {
+        hiddenSubList.push(c);
+        continue;
       }
+      const arr = childMap.get(c.parentId) ?? [];
+      arr.push(c);
+      childMap.set(c.parentId, arr);
     }
-    for (const arr of childMap.values()) {
-      arr.sort((a, b) => a.sortOrder - b.sortOrder);
-    }
-    return { parents: parentList, childrenByParent: childMap };
+    for (const arr of childMap.values()) arr.sort(byOrder);
+    return {
+      parents: allParentList,
+      visibleParents: allParentList.filter((c) => !c.hidden),
+      childrenByParent: childMap,
+      hiddenParents: allParentList.filter((c) => c.hidden),
+      hiddenSubs: hiddenSubList.sort(byOrder),
+    };
   }, [allCategories, type]);
+
+  const mergeTargets = useMemo(() => {
+    if (!mergeSource) return [];
+    return allCategories
+      .filter((c) => Boolean(c.systemKey) && c.type === mergeSource.type)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [allCategories, mergeSource]);
 
   const moveTargets = useMemo(() => {
     if (!inUseState) return [];
@@ -612,37 +638,54 @@ export function CategoriesScreen(): JSX.Element {
     }
   };
 
+  const handleConfirmMerge = async () => {
+    if (!mergeConfirm) return;
+    setMergeError(null);
+    try {
+      await deleteCategory.mutateAsync({
+        id: mergeConfirm.from.id,
+        moveTo: mergeConfirm.to.id,
+      });
+      setMergeConfirm(null);
+    } catch (err) {
+      setMergeError(err);
+    }
+  };
+
   const renderRow = (cat: CategoryView, isSub: boolean) => {
-    const actions: RowAction[] = [
-      {
-        id: 'edit',
-        label: t('categories.edit'),
-        icon: 'edit',
-        onSelect: () => openEdit(cat),
-      },
-      {
-        id: 'toggle-hidden',
-        label: cat.hidden ? t('categories.show') : t('categories.hide'),
-        icon: cat.hidden ? 'eye' : 'eye-off',
-        onSelect: () => {
-          void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
-        },
-      },
-      {
-        id: 'delete',
-        label: t('categories.delete'),
-        icon: 'trash',
-        tone: 'danger',
-        onSelect: () => {
-          const kids = childrenByParent.get(cat.id) ?? [];
-          if (kids.length > 0) {
-            openDeleteParent(cat, kids);
-          } else {
-            setConfirmDelete(cat);
-          }
-        },
-      },
-    ];
+    const fixed = isFixed(cat);
+    const actions: RowAction[] = fixed
+      ? []
+      : [
+          {
+            id: 'edit',
+            label: t('categories.edit'),
+            icon: 'edit',
+            onSelect: () => openEdit(cat),
+          },
+          {
+            id: 'toggle-hidden',
+            label: cat.hidden ? t('categories.show') : t('categories.hide'),
+            icon: cat.hidden ? 'eye' : 'eye-off',
+            onSelect: () => {
+              void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
+            },
+          },
+          {
+            id: 'delete',
+            label: t('categories.delete'),
+            icon: 'trash',
+            tone: 'danger',
+            onSelect: () => {
+              const kids = childrenByParent.get(cat.id) ?? [];
+              if (kids.length > 0) {
+                openDeleteParent(cat, kids);
+              } else {
+                setConfirmDelete(cat);
+              }
+            },
+          },
+        ];
 
     return (
       <div
@@ -653,39 +696,63 @@ export function CategoriesScreen(): JSX.Element {
         <ActionRow
           label={cat.name}
           actions={actions}
-          onOpen={() => openEdit(cat)}
+          onOpen={fixed ? undefined : () => openEdit(cat)}
           leading={
             <div className="size-9 rounded-lg bg-muted grid place-items-center shrink-0 text-foreground">
               <Icon name={categoryIconName(cat.icon, cat.type)} size={18} />
             </div>
           }
           trailing={
-            <div className="flex items-center gap-1">
-              {cat.hidden && <Pill tone="neutral">{t('categories.hiddenBadge')}</Pill>}
-              <button
-                type="button"
-                aria-label={t('categories.editAria', { name: cat.name })}
-                data-testid={`category-edit-${cat.id}`}
-                onClick={() => openEdit(cat)}
-                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Icon name="edit" size={18} />
-              </button>
-              <button
-                type="button"
-                aria-label={
-                  cat.hidden
-                    ? t('categories.showAria', { name: cat.name })
-                    : t('categories.hideAria', { name: cat.name })
-                }
-                data-testid={`category-toggle-hidden-${cat.id}`}
-                onClick={() => {
-                  void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
-                }}
-                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Icon name={cat.hidden ? 'eye' : 'eye-off'} size={18} />
-              </button>
+            <div className="flex items-center gap-1 min-h-11">
+              {fixed ? (
+                <span
+                  role="img"
+                  aria-label={t('categories.builtIn')}
+                  title={t('categories.builtIn')}
+                  className="inline-flex items-center px-1 text-muted-foreground shrink-0"
+                >
+                  <Icon name="shield" size={14} />
+                </span>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    aria-label={t('categories.mergeInto')}
+                    title={t('categories.mergeInto')}
+                    data-testid={`category-merge-${cat.id}`}
+                    onClick={() => {
+                      setMergeError(null);
+                      setMergeSource(cat);
+                    }}
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icon name="merge" size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('categories.editAria', { name: cat.name })}
+                    data-testid={`category-edit-${cat.id}`}
+                    onClick={() => openEdit(cat)}
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icon name="edit" size={18} />
+                  </button>
+                </>
+              )}
+              <span className="inline-flex min-h-11 items-center pl-1">
+                <Switch
+                  checked={!cat.hidden}
+                  aria-label={
+                    cat.hidden
+                      ? t('categories.showAria', { name: cat.name })
+                      : t('categories.hideAria', { name: cat.name })
+                  }
+                  data-testid={`category-hide-${cat.id}`}
+                  onCheckedChange={(checked) => {
+                    void updateCategory.mutate({ id: cat.id, input: { hidden: !checked } });
+                  }}
+                />
+              </span>
             </div>
           }
         >
@@ -730,7 +797,7 @@ export function CategoriesScreen(): JSX.Element {
           <SkeletonList rows={5} />
         ) : categoriesQuery.error ? (
           <InlineError error={categoriesQuery.error} onRetry={() => categoriesQuery.refetch()} />
-        ) : parents.length === 0 ? (
+        ) : parents.length === 0 && hiddenSubs.length === 0 ? (
           <EmptyState
             icon="pie"
             title={t('categories.emptyTitle')}
@@ -738,17 +805,35 @@ export function CategoriesScreen(): JSX.Element {
           />
         ) : (
           <SwipeGroupProvider>
-            <div className="fsl-categories__list bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-              {parents.map((parent) => {
-                const subs = childrenByParent.get(parent.id) ?? [];
-                return (
-                  <div key={parent.id} className="divide-y divide-border">
-                    {renderRow(parent, false)}
-                    {subs.map((sub) => renderRow(sub, true))}
-                  </div>
-                );
-              })}
-            </div>
+            {visibleParents.length > 0 && (
+              <div className="fsl-categories__list bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+                {visibleParents.map((parent) => {
+                  const subs = childrenByParent.get(parent.id) ?? [];
+                  return (
+                    <div key={parent.id} className="divide-y divide-border">
+                      {renderRow(parent, false)}
+                      {subs.map((sub) => renderRow(sub, true))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {(hiddenParents.length > 0 || hiddenSubs.length > 0) && (
+              <section data-testid="categories-hidden-section" className="flex flex-col gap-2">
+                <h2 className="m-0 px-1 text-sm font-semibold text-muted-foreground">
+                  {t('categories.hiddenSection')}
+                </h2>
+                <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+                  {hiddenParents.map((parent) => (
+                    <div key={parent.id} className="divide-y divide-border">
+                      {renderRow(parent, false)}
+                      {(childrenByParent.get(parent.id) ?? []).map((sub) => renderRow(sub, true))}
+                    </div>
+                  ))}
+                  {hiddenSubs.map((cat) => renderRow(cat, false))}
+                </div>
+              </section>
+            )}
           </SwipeGroupProvider>
         )}
 
@@ -1045,6 +1130,80 @@ export function CategoriesScreen(): JSX.Element {
           </Button>
         </div>
       </Sheet>
+      <Sheet
+        open={mergeSource !== null}
+        onClose={() => setMergeSource(null)}
+        title={mergeSource ? t('categories.mergeTitle', { name: mergeSource.name }) : ''}
+      >
+        {mergeTargets.length === 0 ? (
+          <p className="m-0 py-4 text-center text-sm text-muted-foreground">
+            {t('categories.mergeEmpty')}
+          </p>
+        ) : (
+          <div data-testid="merge-target-list" className="flex flex-col divide-y divide-border">
+            {mergeTargets.map((target) => (
+              <button
+                key={target.id}
+                type="button"
+                data-testid={`merge-target-${target.id}`}
+                onClick={() => {
+                  if (!mergeSource) return;
+                  setMergeError(null);
+                  setMergeConfirm({ from: mergeSource, to: target });
+                  setMergeSource(null);
+                }}
+                className="min-h-11 flex items-center gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                  <Icon name={categoryIconName(target.icon, target.type)} size={18} />
+                </span>
+                <span className="flex-1 truncate">{target.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Sheet>
+
+      <Modal
+        open={mergeConfirm !== null}
+        onClose={() => {
+          setMergeError(null);
+          setMergeConfirm(null);
+        }}
+        title={t('categories.mergeConfirmTitle')}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="m-0 text-sm text-muted-foreground">
+            {mergeConfirm
+              ? t('categories.mergeConfirmBody', {
+                  from: mergeConfirm.from.name,
+                  to: mergeConfirm.to.name,
+                })
+              : ''}
+          </p>
+          {Boolean(mergeError) && <InlineError error={mergeError} />}
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setMergeError(null);
+                setMergeConfirm(null);
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="danger"
+              data-testid="category-merge-confirm"
+              loading={deleteCategory.isPending}
+              onClick={() => void handleConfirmMerge()}
+            >
+              {t('categories.mergeConfirmAction')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {toast && <Snackbar message={toast} />}
     </Screen>
   );

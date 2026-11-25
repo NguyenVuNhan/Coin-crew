@@ -23,6 +23,7 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import { walletBalance, type GroupLinkView, type GroupSettingsView } from '@cc/core';
+import { ensureFixedCategories } from './fixedCategories';
 import { computeGroupsKey, loadGroupRows, loadGroupSettings } from './groupShares';
 import { parseJson } from './validate';
 import { loadCalc } from './wallets';
@@ -68,51 +69,6 @@ export async function recordPersonalToggle(
         updatedAt: now,
       },
     });
-}
-
-/** Categories for group rows and loans, added to every user's own list on first use (spec section 5). */
-const GROUP_STARTERS = [
-  { key: 'group', type: 'expense', name: 'Nhóm', icon: 'users', sortOrder: 8 }, // REVIEW
-  { key: 'lend', type: 'expense', name: 'Cho vay', icon: 'arrow-up-right', sortOrder: 9 }, // REVIEW
-  { key: 'borrow', type: 'income', name: 'Đi vay', icon: 'arrow-down-left', sortOrder: 4 }, // REVIEW
-] as const;
-
-async function ensureGroupStarterCategories(db: Db, userId: string): Promise<void> {
-  const starters = GROUP_STARTERS;
-  const existing = await db
-    .select({
-      name: personalCategories.name,
-      type: personalCategories.type,
-    })
-    .from(personalCategories)
-    .where(eq(personalCategories.userId, userId))
-    .all();
-
-  const missing = starters.filter(
-    (s) => !existing.some((c) => c.name === s.name && c.type === s.type),
-  );
-  if (missing.length === 0) return;
-
-  const now = nowIso();
-  const stmts = missing.map(
-    (s) =>
-      db
-        .insert(personalCategories)
-        .values({
-          id: `${userId}:${s.key}`,
-          userId,
-          parentId: null,
-          type: s.type,
-          name: s.name,
-          icon: s.icon,
-          hidden: 0,
-          sortOrder: s.sortOrder,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
-  );
-  await db.batch([stmts[0]!, ...stmts.slice(1)]);
 }
 
 function parseOptionalId(v: unknown, field: string): string | null | undefined {
@@ -354,7 +310,7 @@ export function groupLinkRoutes(): Hono<AppBindings> {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
 
-    await ensureGroupStarterCategories(db, user.id);
+    await ensureFixedCategories(db, user.id);
     const settings = await loadGroupSettings(db, user.id);
 
     return c.json({ settings }, 200);

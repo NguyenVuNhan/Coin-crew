@@ -225,7 +225,8 @@ export function GroupRowSheet({
 
   const fallbackGroupCategoryId = useMemo(
     () =>
-      categories.find((c) => c.type === categoryType && c.name === 'Nhóm')?.id ?? null,
+      (categories.find((c) => c.type === categoryType && c.name === 'Nhóm') ??
+        categories.find((c) => c.type === categoryType && c.systemKey === 'general'))?.id ?? null,
     [categories, categoryType],
   );
 

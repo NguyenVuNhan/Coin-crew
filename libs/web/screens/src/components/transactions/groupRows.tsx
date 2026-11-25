@@ -165,7 +165,9 @@ export function groupRows(
   }
 
   const catMap = new Map(categories.map((c) => [c.id, c.name]));
-  const fallbackGroupCat = categories.find((c) => c.type === 'expense' && c.name === 'Nhóm');
+  const fallbackGroupCat =
+    categories.find((c) => c.type === 'expense' && c.name === 'Nhóm') ??
+    categories.find((c) => c.type === 'expense' && c.systemKey === 'general');
   const byCat = new Map<string, { title: string; rows: BookRow[] }>();
   for (const row of rows) {
     let key: string;

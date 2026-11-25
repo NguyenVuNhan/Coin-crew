@@ -67,8 +67,8 @@ for (const variant of MATRIX) {
       const user = await setupBookUser(browser, variant, 'e01');
       try {
         const cats = await getCategories(user.page);
-        // A starter that is not the first tile, so only the guess can pick it.
-        const coffeeCat = cats.find((c) => c.type === 'expense' && c.name === 'Mua sắm')!;
+        // A fixed category that is not the first tile, so only the guess can pick it (#140: fixed list).
+        const coffeeCat = cats.find((c) => c.type === 'expense' && c.systemKey === 'entertainment')!;
         expect(coffeeCat).toBeDefined();
 
         // Seed two 45k coffee entries in the current time/amount band so the category guess triggers.
@@ -480,7 +480,7 @@ for (const variant of MATRIX) {
         await user.page.goto(`/t/${ledger.tripId}/expenses/new`);
         await expect(user.page.getByTestId('split-row-Nhan')).toBeVisible();
 
-        await user.page.getByLabel(variant.lang === 'vi' ? 'Nội dung' : 'What for').fill('Trà đá');
+        await user.page.getByLabel(variant.lang === 'vi' ? 'Tiêu đề' : 'What for').fill('Trà đá');
         await user.page.locator('#expense-amount').fill('20000');
 
         await Promise.all([

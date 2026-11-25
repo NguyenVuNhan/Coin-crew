@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type { AssetView, WalletDetailResponse } from '@cc/core';
 import { call, json, memberSid } from './helpers';
-import { addWallet, postJson, switchOn } from './personal-helpers';
+import { addWallet, postJson, switchOn, seedLegacyStarters } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
@@ -34,6 +34,7 @@ async function getAssetVisibilityRows(userId: string) {
 async function createUserFixture(userId: string, name: string) {
   const sid = await memberSid(userId, name);
   await switchOn(userId, 1);
+  await seedLegacyStarters(userId);
 
   const w1Res = await postJson('/api/me/personal/wallets', sid, {
     name: `${name} W1`,
@@ -407,6 +408,7 @@ describe('personal visibility write routes', () => {
 
     const sidOff = await memberSid('u-vis-guard-off', 'GuardOff');
     await switchOn('u-vis-guard-off', 0);
+    await seedLegacyStarters('u-vis-guard-off');
 
     const cases = [
       {

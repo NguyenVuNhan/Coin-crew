@@ -279,7 +279,8 @@ describe('EntryPage — category folding on phones (Task 3)', () => {
     expect(await screen.findByTestId('entry-fold-amount')).toHaveTextContent('120.000₫');
     expect(screen.queryByTestId('entry-fold-category')).toBeNull();
     expect(screen.queryByTestId('category-grid')).toBeNull();
-    expect(screen.getByTestId('entry-fold-details')).toBeInTheDocument();
+    // #140: payer and date are always shown on Vay/Nợ, in the shared details card.
+    expect(screen.getByTestId('shared-details-card')).toBeInTheDocument();
   });
 
   it('keeps category grid open with error state when saving expense with no category', async () => {

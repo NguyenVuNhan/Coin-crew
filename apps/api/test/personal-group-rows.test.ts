@@ -141,6 +141,7 @@ describe('loadGroupRows', () => {
       people: ['An', 'Chi'],
       pending: false,
       link: null,
+      groupCategoryId: null,
       createdAt: '2026-10-10T10:00:00.000Z',
       activityAt: expect.any(String),
     });
@@ -237,6 +238,7 @@ describe('loadGroupRows', () => {
       people: [],
       pending: false,
       link: null,
+      groupCategoryId: null,
       createdAt: '2026-10-10T10:00:00.000Z',
       activityAt: expect.any(String),
     });

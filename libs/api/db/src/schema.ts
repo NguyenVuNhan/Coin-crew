@@ -243,6 +243,8 @@ export const transactions = sqliteTable(
     tripId: text('trip_id').notNull(),
     type: text('type', { enum: ['expense', 'payment', 'income'] }).notNull(),
     description: text('description').notNull().default(''),
+    categoryKey: text('category_key'),
+    note: text('note'),
     amount: integer('amount').notNull(),
     amountConfirmed: integer('amount_confirmed'),
     currency: text('currency').notNull().default('VND'),
@@ -534,10 +536,14 @@ export const personalCategories = sqliteTable(
     icon: text('icon').notNull(),
     hidden: integer('hidden').notNull().default(0),
     sortOrder: integer('sort_order').notNull().default(0),
+    systemKey: text('system_key'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
-  (t) => [index('personal_categories_user_idx').on(t.userId)],
+  (t) => [
+    index('personal_categories_user_idx').on(t.userId),
+    uniqueIndex('personal_categories_user_system_key_idx').on(t.userId, t.systemKey),
+  ],
 );
 
 export const personalTags = sqliteTable(

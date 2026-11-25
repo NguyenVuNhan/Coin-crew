@@ -367,7 +367,7 @@ describe('Sport Planning UI components', () => {
     );
     expect((screen.getByLabelText(/Address|Địa chỉ/i) as HTMLInputElement).value).toBe('99 Cầu Giấy');
     expect((screen.getByLabelText(/Booking code|Mã đặt sân/i) as HTMLInputElement).value).toBe('BK-99');
-    expect((container.querySelector('#expense-date') as HTMLInputElement).value).toBe('2026-11-10');
+    expect((container.querySelector('[data-testid="entry-date-overlay-value"]') as HTMLInputElement).value).toBe('2026-11-10');
 
     fireEvent.change(screen.getByLabelText(/What for|Khoản chi gì/i), {
       target: { value: 'Cầu lông tối T3' },

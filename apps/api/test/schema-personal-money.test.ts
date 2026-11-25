@@ -54,6 +54,7 @@ describe('personal money tables (0027)', () => {
       'sort_order',
       'created_at',
       'updated_at',
+      'system_key',
     ]);
 
     expect(await colsOf('personal_tags')).toEqual(['id', 'user_id', 'name', 'created_at']);

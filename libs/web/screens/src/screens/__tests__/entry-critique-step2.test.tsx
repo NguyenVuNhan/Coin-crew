@@ -144,15 +144,16 @@ describe('EntryPage critique step 2 — Vay/Nợ form', () => {
     await finishAmount(user, '50000');
     const amountDisplay = screen.getByTestId('entry-fold-amount');
 
+    // #140: payer and date sit in an always-open card between the amount and Với ai?.
     const people = await screen.findByTestId('entry-people');
-    const details = screen.getByTestId('entry-fold-details');
+    const details = screen.getByTestId('shared-details-card');
     expect(screen.queryByTestId('loan-debt-payer-row')).toBeNull();
 
     expect(
-      amountDisplay.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING,
+      amountDisplay.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      people.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
+      details.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

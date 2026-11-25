@@ -8,7 +8,7 @@ import type {
   WalletDetailResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
-import { addWallet, postJson, switchOn } from './personal-helpers';
+import { addWallet, postJson, switchOn, seedLegacyStarters } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
@@ -38,6 +38,7 @@ describe('personal entries and list fixes', () => {
   it('PATCH allows a hidden category when it is the entry current category, and rejects another hidden category', async () => {
     const sid = await memberSid('u-fix-1', 'Fix1');
     await switchOn('u-fix-1');
+    await seedLegacyStarters('u-fix-1');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -92,6 +93,7 @@ describe('personal entries and list fixes', () => {
   it('PATCH /me/personal/tags/:id caps tag rename at 30 chars (422 above, 200 at 30)', async () => {
     const sid = await memberSid('u-fix-2', 'Fix2');
     await switchOn('u-fix-2');
+    await seedLegacyStarters('u-fix-2');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -127,6 +129,7 @@ describe('personal entries and list fixes', () => {
   it('GET /me/personal/transactions folds Vietnamese case in note search and computes totals after filtering', async () => {
     const sid = await memberSid('u-fix-3', 'Fix3');
     await switchOn('u-fix-3');
+    await seedLegacyStarters('u-fix-3');
 
     const wallet = (
       await json<WalletDetailResponse>(
@@ -167,6 +170,7 @@ describe('personal entries and list fixes', () => {
   it('GET /me/personal/transactions with parent categoryId includes subcategory entries', async () => {
     const sid = await memberSid('u-fix-4', 'Fix4');
     await switchOn('u-fix-4');
+    await seedLegacyStarters('u-fix-4');
 
     const wallet = (
       await json<WalletDetailResponse>(

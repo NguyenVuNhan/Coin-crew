@@ -6,6 +6,8 @@ import { getDb } from '@cc/api-db/client';
 import {
   personalCategories,
   personalCategoryVisibility,
+  personalGroupLinks,
+  personalGroupSettings,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -16,7 +18,7 @@ import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
 import type { CategoryView, TagView, WalletOverride } from '@cc/core';
-import { STARTER_CATEGORIES } from './starterCategories';
+import { ensureFixedCategories } from './fixedCategories';
 import { name1to40, parseJson } from './validate';
 
 function isCategoryType(v: unknown): v is 'expense' | 'income' {
@@ -48,6 +50,7 @@ function toCategoryView(
     icon: string;
     hidden: number;
     sortOrder: number;
+    systemKey: string | null;
   },
   userId: string,
   walletOverrides: WalletOverride[] = [],
@@ -61,6 +64,7 @@ function toCategoryView(
     hidden: Boolean(row.hidden),
     sortOrder: row.sortOrder,
     starterKey: starterKeyOf(userId, row.id),
+    systemKey: row.systemKey ?? null,
     walletOverrides,
   };
 }
@@ -72,7 +76,9 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
 
-    let rows = await db
+    await ensureFixedCategories(db, user.id);
+
+    const rows = await db
       .select({
         id: personalCategories.id,
         parentId: personalCategories.parentId,
@@ -81,48 +87,12 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         icon: personalCategories.icon,
         hidden: personalCategories.hidden,
         sortOrder: personalCategories.sortOrder,
+        systemKey: personalCategories.systemKey,
       })
       .from(personalCategories)
       .where(eq(personalCategories.userId, user.id))
       .orderBy(asc(personalCategories.sortOrder), asc(personalCategories.createdAt))
       .all();
-
-    if (rows.length === 0) {
-      const now = nowIso();
-      const stmts = STARTER_CATEGORIES.map((s) =>
-        db
-          .insert(personalCategories)
-          .values({
-            id: `${user.id}:${s.key}`,
-            userId: user.id,
-            parentId: s.parentKey ? `${user.id}:${s.parentKey}` : null,
-            type: s.type,
-            name: s.name,
-            icon: s.icon,
-            hidden: 0,
-            sortOrder: s.sortOrder,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .onConflictDoNothing(),
-      );
-      await db.batch([stmts[0]!, ...stmts.slice(1)]);
-
-      rows = await db
-        .select({
-          id: personalCategories.id,
-          parentId: personalCategories.parentId,
-          type: personalCategories.type,
-          name: personalCategories.name,
-          icon: personalCategories.icon,
-          hidden: personalCategories.hidden,
-          sortOrder: personalCategories.sortOrder,
-        })
-        .from(personalCategories)
-        .where(eq(personalCategories.userId, user.id))
-        .orderBy(asc(personalCategories.sortOrder), asc(personalCategories.createdAt))
-        .all();
-    }
 
     const nowDate = new Date();
     const cutoff = new Date(
@@ -285,6 +255,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       hidden: false,
       sortOrder,
       starterKey: starterKeyOf(user.id, id),
+      systemKey: null,
       walletOverrides: inheritedOverrides,
     };
 
@@ -310,6 +281,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         icon: personalCategories.icon,
         hidden: personalCategories.hidden,
         sortOrder: personalCategories.sortOrder,
+        systemKey: personalCategories.systemKey,
       })
       .from(personalCategories)
       .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)))
@@ -317,6 +289,13 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
 
     if (!existing) {
       throw new ApiError('NOT_FOUND', 404, 'Category not found');
+    }
+
+    if (
+      existing.systemKey !== null &&
+      (body.name !== undefined || body.icon !== undefined || body.parentId !== undefined)
+    ) {
+      throw new ApiError('FIXED_CATEGORY', 422, 'Built-in categories cannot be changed.');
     }
 
     const nextName = body.name !== undefined ? name1to40(body.name) : existing.name;
@@ -422,10 +401,21 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         })
         .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)));
 
+    // Owner decision (#140): switching a parent off hides all its sub-categories, and on shows them again.
+    const cascadeHidden = nextHidden !== Boolean(existing.hidden) && nextParentId === null;
+    const buildChildrenUpdate = () =>
+      db
+        .update(personalCategories)
+        .set({ hidden: nextHidden ? 1 : 0, updatedAt: now })
+        .where(and(eq(personalCategories.parentId, id), eq(personalCategories.userId, user.id)));
+
     if (parentChanged) {
       await commitPersonalWrite(db, user.id, () => [
         buildUpdate() as unknown as BatchItem<'sqlite'>,
+        ...(cascadeHidden ? [buildChildrenUpdate() as unknown as BatchItem<'sqlite'>] : []),
       ]);
+    } else if (cascadeHidden) {
+      await db.batch([buildUpdate(), buildChildrenUpdate()]);
     } else {
       await buildUpdate();
     }
@@ -453,6 +443,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       hidden: nextHidden,
       sortOrder: nextSortOrder,
       starterKey: starterKeyOf(user.id, existing.id),
+      systemKey: existing.systemKey ?? null,
       walletOverrides: overrideRows.map((r) => ({
         walletId: r.walletId,
         visible: Boolean(r.visible),
@@ -471,6 +462,7 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
       .select({
         id: personalCategories.id,
         type: personalCategories.type,
+        systemKey: personalCategories.systemKey,
       })
       .from(personalCategories)
       .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)))
@@ -478,6 +470,10 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
 
     if (!existing) {
       throw new ApiError('NOT_FOUND', 404, 'Category not found');
+    }
+
+    if (existing.systemKey !== null) {
+      throw new ApiError('FIXED_CATEGORY', 422, 'Built-in categories cannot be changed.');
     }
 
     const childRows = await db
@@ -611,6 +607,24 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
                 and(
                   eq(personalTransactions.categoryId, id),
                   eq(personalTransactions.userId, user.id),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+            db
+              .update(personalGroupLinks)
+              .set({ categoryId: moveTo!, updatedAt: now, syncVersion: v })
+              .where(
+                and(
+                  eq(personalGroupLinks.categoryId, id),
+                  eq(personalGroupLinks.userId, user.id),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+            db
+              .update(personalGroupSettings)
+              .set({ defaultGroupCategoryId: moveTo!, updatedAt: now })
+              .where(
+                and(
+                  eq(personalGroupSettings.defaultGroupCategoryId, id),
+                  eq(personalGroupSettings.userId, user.id),
                 ),
               ) as unknown as BatchItem<'sqlite'>,
           );

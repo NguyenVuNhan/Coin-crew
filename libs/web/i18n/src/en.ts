@@ -1739,6 +1739,23 @@ export const en = {
   'visibility.expand': 'Expand {name}',
   'visibility.collapse': 'Collapse {name}',
   'visibility.save': 'Save',
+  'sharedExpense.titleLabel': 'What for', // REVIEW
+  'sharedExpense.titlePlaceholder': 'e.g. BBQ dinner', // REVIEW
+  'sharedExpense.titleRequired': 'Enter a title', // REVIEW
+  'sharedExpense.pickCategory': 'Pick category', // REVIEW
+  'sharedExpense.clearCategory': 'Clear', // REVIEW
+  'sharedExpense.searchCategory': 'Search categories…', // REVIEW
+  'sharedExpense.payer': 'Paid by', // REVIEW
+  'sharedExpense.note': 'Note', // REVIEW
+  'sharedExpense.notePlaceholder': 'Extra details (optional)', // REVIEW
+  'categories.builtIn': 'Built-in', // REVIEW
+  'categories.hiddenSection': 'Hidden', // REVIEW
+  'categories.mergeInto': 'Merge into…', // REVIEW
+  'categories.mergeTitle': 'Merge “{name}” into…', // REVIEW
+  'categories.mergeEmpty': 'No built-in categories available.', // REVIEW
+  'categories.mergeConfirmTitle': 'Merge category?', // REVIEW
+  'categories.mergeConfirmBody': 'Merge “{from}” into “{to}”? Transactions will move to “{to}”.', // REVIEW
+  'categories.mergeConfirmAction': 'Merge', // REVIEW
 } as const;
 
 export type MessageKey = keyof typeof en;

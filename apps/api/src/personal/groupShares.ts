@@ -17,6 +17,7 @@ import {
   type GroupRow,
   type GroupSettingsView,
 } from '@cc/core';
+import { fixedCategoryId } from './fixedCategories';
 
 const TRIP_CHUNK_SIZE = 90;
 
@@ -185,6 +186,7 @@ export async function loadGroupRows(
             payerId: transactions.payerId,
             toId: transactions.toId,
             status: transactions.status,
+            categoryKey: transactions.categoryKey,
             metaJson: transactions.metaJson,
             createdAt: transactions.createdAt,
             updatedAt: transactions.updatedAt,
@@ -358,6 +360,7 @@ export async function loadGroupRows(
         people: otherParticipants.map((p) => p.name),
         pending: tx.status === 'pending',
         link,
+        groupCategoryId: tx.categoryKey ? fixedCategoryId(userId, tx.categoryKey) : null,
         createdAt: tx.createdAt,
         activityAt,
       });
@@ -383,6 +386,7 @@ export async function loadGroupRows(
         people: [],
         pending: false,
         link,
+        groupCategoryId: null,
         createdAt: tx.createdAt,
         activityAt,
       });
@@ -412,6 +416,7 @@ export async function loadGroupRows(
         people: [],
         pending: tx.status === 'says_paid',
         link,
+        groupCategoryId: null,
         createdAt: tx.createdAt,
         activityAt,
       });
