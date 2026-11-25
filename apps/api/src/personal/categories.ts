@@ -401,10 +401,21 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
         })
         .where(and(eq(personalCategories.id, id), eq(personalCategories.userId, user.id)));
 
+    // Owner decision (#140): switching a parent off hides all its sub-categories, and on shows them again.
+    const cascadeHidden = nextHidden !== Boolean(existing.hidden) && nextParentId === null;
+    const buildChildrenUpdate = () =>
+      db
+        .update(personalCategories)
+        .set({ hidden: nextHidden ? 1 : 0, updatedAt: now })
+        .where(and(eq(personalCategories.parentId, id), eq(personalCategories.userId, user.id)));
+
     if (parentChanged) {
       await commitPersonalWrite(db, user.id, () => [
         buildUpdate() as unknown as BatchItem<'sqlite'>,
+        ...(cascadeHidden ? [buildChildrenUpdate() as unknown as BatchItem<'sqlite'>] : []),
       ]);
+    } else if (cascadeHidden) {
+      await db.batch([buildUpdate(), buildChildrenUpdate()]);
     } else {
       await buildUpdate();
     }

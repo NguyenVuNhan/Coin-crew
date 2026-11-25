@@ -119,6 +119,33 @@ describe('personal fixed categories lock and merge', () => {
     expect(txRow?.category_id).toBe(foodId);
   });
 
+  it('hiding a parent hides all its sub-categories, and showing it shows them again', async () => {
+    const uid = 'u-lock-cascade';
+    const sid = await memberSid(uid, 'LockCascade');
+    await switchOn(uid);
+    await getCategories(sid);
+    const homeId = fixedCategoryId(uid, 'home');
+    const subsOfHome = async () =>
+      (await json<CategoriesResponse>(await getCategories(sid))).categories.filter(
+        (c) => c.parentId === homeId,
+      );
+
+    expect((await patchCategory(homeId, sid, { hidden: true })).status).toBe(200);
+    const hiddenSubs = await subsOfHome();
+    expect(hiddenSubs).toHaveLength(8);
+    expect(hiddenSubs.every((c) => c.hidden)).toBe(true);
+
+    expect((await patchCategory(homeId, sid, { hidden: false })).status).toBe(200);
+    expect((await subsOfHome()).every((c) => !c.hidden)).toBe(true);
+
+    // Hiding one sub-category leaves its parent and siblings alone.
+    const petsId = fixedCategoryId(uid, 'home-pets');
+    expect((await patchCategory(petsId, sid, { hidden: true })).status).toBe(200);
+    const after = await json<CategoriesResponse>(await getCategories(sid));
+    expect(after.categories.find((c) => c.id === homeId)?.hidden).toBe(false);
+    expect(after.categories.filter((c) => c.parentId === homeId && c.hidden).map((c) => c.id)).toEqual([petsId]);
+  });
+
   it('custom child under fixed parent → 201', async () => {
     const uid = 'u-lock-child';
     const sid = await memberSid(uid, 'LockChild');
