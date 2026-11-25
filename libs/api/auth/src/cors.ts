@@ -31,6 +31,6 @@ export const corsMiddleware: MiddlewareHandler<AppBindings> = async (c, next) =>
 
   await next();
   c.header('Access-Control-Allow-Origin', origin);
-  c.header('Access-Control-Expose-Headers', 'X-Device-Id');
+  c.header('Access-Control-Expose-Headers', 'X-Device-Id, X-Archived-Count');
   c.header('Vary', 'Origin', { append: true });
 };

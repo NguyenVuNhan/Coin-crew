@@ -34,7 +34,43 @@ import {
   type WalletKind,
 } from '@cc/core';
 import { parseEntryInput, parseNote, parseTags } from './entryInput';
+import {
+  assetCountDeltaStmts,
+  markAllNonVndOrInvestmentReplayStmt,
+  signedPersonalAmount,
+  walletBalanceDeltaStmts,
+} from './balanceCache';
 import { optionalTime, parseJson, requireDate } from './validate';
+
+function walletNeedsReplay(w: { currency: CurrencyCode; kind: WalletKind }): boolean {
+  return w.currency !== 'VND' || w.kind === 'investment';
+}
+
+async function loadWalletFlagsMap(
+  db: Db,
+  userId: string,
+  walletIds: string[],
+): Promise<Map<string, { currency: CurrencyCode; kind: WalletKind }>> {
+  const uniqueIds = [...new Set(walletIds)];
+  if (uniqueIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: personalWallets.id,
+      currency: personalWallets.currency,
+      kind: personalWalletSettings.kind,
+    })
+    .from(personalWallets)
+    .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+    .where(and(eq(personalWallets.userId, userId), inArray(personalWallets.id, uniqueIds)))
+    .all();
+
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      { currency: r.currency as CurrencyCode, kind: (r.kind ?? 'everyday') as WalletKind },
+    ]),
+  );
+}
 
 interface WalletInfo {
   id: string;
@@ -499,6 +535,20 @@ export function entryRoutes(): Hono<AppBindings> {
             tagId: t.id,
           }),
         ),
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          [
+            {
+              walletId: wallet.id,
+              netDelta: signedPersonalAmount(input.type, input.amount),
+              countDelta: 1,
+              needsReplay: true,
+            },
+          ],
+          now,
+        ),
+        ...assetCountDeltaStmts(db, user.id, [{ assetId: input.assetId, delta: 1 }]),
       ]);
 
       const entry = buildEntryView({
@@ -559,6 +609,19 @@ export function entryRoutes(): Hono<AppBindings> {
             transactionId: txId,
             tagId: t.id,
           }),
+        ),
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          [
+            {
+              walletId: wallet.id,
+              netDelta: signedPersonalAmount(input.type, input.amount),
+              countDelta: 1,
+              needsReplay: walletNeedsReplay(wallet),
+            },
+          ],
+          now,
         ),
       ]);
 
@@ -648,6 +711,28 @@ export function entryRoutes(): Hono<AppBindings> {
           tagId: t.id,
         }),
       ),
+      ...walletBalanceDeltaStmts(
+        db,
+        user.id,
+        [
+          {
+            walletId: fromWallet.id,
+            netDelta: -input.amountSent,
+            countDelta: 1,
+            needsReplay: walletNeedsReplay(fromWallet),
+          },
+          {
+            walletId: toWallet.id,
+            netDelta: amountReceived,
+            countDelta: 1,
+            needsReplay: walletNeedsReplay(toWallet),
+          },
+        ],
+        now,
+      ),
+      ...(fromWallet.currency !== 'VND' || toWallet.currency !== 'VND'
+        ? [markAllNonVndOrInvestmentReplayStmt(db, user.id, now)]
+        : []),
     ]);
 
     const tagNames = resolvedTags.map((t) => t.name);
@@ -698,6 +783,7 @@ export function entryRoutes(): Hono<AppBindings> {
         id: personalTransactions.id,
         walletId: personalTransactions.walletId,
         type: personalTransactions.type,
+        amount: personalTransactions.amount,
         categoryId: personalTransactions.categoryId,
         assetId: personalTransactions.assetId,
         transferId: personalTransactions.transferId,
@@ -795,6 +881,29 @@ export function entryRoutes(): Hono<AppBindings> {
             tagId: t.id,
           }),
         ),
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          [
+            {
+              walletId: oldWallet.id,
+              netDelta: -signedPersonalAmount(target.type as PersonalEntryType, target.amount),
+              countDelta: -1,
+              needsReplay: true,
+            },
+            {
+              walletId: newWallet.id,
+              netDelta: signedPersonalAmount(input.type, input.amount),
+              countDelta: 1,
+              needsReplay: true,
+            },
+          ],
+          now,
+        ),
+        ...assetCountDeltaStmts(db, user.id, [
+          ...(target.assetId ? [{ assetId: target.assetId, delta: -1 }] : []),
+          { assetId: input.assetId, delta: 1 },
+        ]),
       ]);
 
       const entry = buildEntryView({
@@ -830,6 +939,13 @@ export function entryRoutes(): Hono<AppBindings> {
       await requireCategory(db, user.id, input.categoryId, input.type, allowHidden);
 
       const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
+      const oldFlagsMap =
+        target.walletId !== wallet.id
+          ? await loadWalletFlagsMap(db, user.id, [target.walletId])
+          : null;
+      const oldWalletNeedsReplay = oldFlagsMap
+        ? walletNeedsReplay(oldFlagsMap.get(target.walletId)!)
+        : walletNeedsReplay(wallet);
 
       await commitPersonalWrite(db, user.id, (v) => [
         db
@@ -855,6 +971,25 @@ export function entryRoutes(): Hono<AppBindings> {
             transactionId: target.id,
             tagId: t.id,
           }),
+        ),
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          [
+            {
+              walletId: target.walletId,
+              netDelta: -signedPersonalAmount(target.type as PersonalEntryType, target.amount),
+              countDelta: -1,
+              needsReplay: oldWalletNeedsReplay,
+            },
+            {
+              walletId: wallet.id,
+              netDelta: signedPersonalAmount(input.type, input.amount),
+              countDelta: 1,
+              needsReplay: walletNeedsReplay(wallet),
+            },
+          ],
+          now,
         ),
       ]);
 
@@ -887,7 +1022,9 @@ export function entryRoutes(): Hono<AppBindings> {
     const pairRows = await db
       .select({
         id: personalTransactions.id,
+        walletId: personalTransactions.walletId,
         type: personalTransactions.type,
+        amount: personalTransactions.amount,
         createdAt: personalTransactions.createdAt,
       })
       .from(personalTransactions)
@@ -918,6 +1055,23 @@ export function entryRoutes(): Hono<AppBindings> {
 
     const resolvedTags = await resolveTags(db, user.id, input.tags ?? [], now);
     const excludeInt = input.excludeFromReports ? 1 : 0;
+    const oldTransferWalletIds = [outRow.walletId, inRow.walletId].filter(
+      (wid) => wid !== fromWallet.id && wid !== toWallet.id,
+    );
+    const oldTransferFlags = await loadWalletFlagsMap(db, user.id, oldTransferWalletIds);
+    const getTransferWalletFlags = (wid: string) =>
+      wid === fromWallet.id
+        ? fromWallet
+        : wid === toWallet.id
+          ? toWallet
+          : oldTransferFlags.get(wid)!;
+    const oldOutFlags = getTransferWalletFlags(outRow.walletId);
+    const oldInFlags = getTransferWalletFlags(inRow.walletId);
+    const touchesNonVnd =
+      fromWallet.currency !== 'VND' ||
+      toWallet.currency !== 'VND' ||
+      oldOutFlags.currency !== 'VND' ||
+      oldInFlags.currency !== 'VND';
 
     await commitPersonalWrite(db, user.id, (v) => [
       db
@@ -961,6 +1115,38 @@ export function entryRoutes(): Hono<AppBindings> {
           tagId: t.id,
         }),
       ),
+      ...walletBalanceDeltaStmts(
+        db,
+        user.id,
+        [
+          {
+            walletId: outRow.walletId,
+            netDelta: outRow.amount,
+            countDelta: -1,
+            needsReplay: walletNeedsReplay(oldOutFlags),
+          },
+          {
+            walletId: inRow.walletId,
+            netDelta: -inRow.amount,
+            countDelta: -1,
+            needsReplay: walletNeedsReplay(oldInFlags),
+          },
+          {
+            walletId: fromWallet.id,
+            netDelta: -input.amountSent,
+            countDelta: 1,
+            needsReplay: walletNeedsReplay(fromWallet),
+          },
+          {
+            walletId: toWallet.id,
+            netDelta: amountReceived,
+            countDelta: 1,
+            needsReplay: walletNeedsReplay(toWallet),
+          },
+        ],
+        now,
+      ),
+      ...(touchesNonVnd ? [markAllNonVndOrInvestmentReplayStmt(db, user.id, now)] : []),
     ]);
 
     const tagNames = resolvedTags.map((t) => t.name);
@@ -1020,9 +1206,11 @@ export function entryRoutes(): Hono<AppBindings> {
         createdAt: personalTransactions.createdAt,
         currency: personalWallets.currency,
         startDate: personalWallets.startDate,
+        kind: personalWalletSettings.kind,
       })
       .from(personalTransactions)
       .innerJoin(personalWallets, eq(personalWallets.id, personalTransactions.walletId))
+      .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
       .where(
         and(
           eq(personalTransactions.userId, user.id),
@@ -1082,6 +1270,11 @@ export function entryRoutes(): Hono<AppBindings> {
       tagsByTx.set(tr.transactionId, list);
     }
 
+    const now = nowIso();
+    const deleteTouchesNonVndTransfer =
+      sortedRows.some((r) => r.type === 'transfer_out' || r.type === 'transfer_in') &&
+      sortedRows.some((r) => r.currency !== 'VND');
+
     await commitPersonalWrite(db, user.id, () => [
       recordDeletions(db, user.id, inArray(personalTransactions.id, txIds)),
       db
@@ -1095,6 +1288,33 @@ export function entryRoutes(): Hono<AppBindings> {
             inArray(personalTransactions.id, txIds),
           ),
         ),
+      ...walletBalanceDeltaStmts(
+        db,
+        user.id,
+        sortedRows.map((r) => ({
+          walletId: r.walletId,
+          netDelta: -signedPersonalAmount(r.type as PersonalEntryType, r.amount),
+          countDelta: -1,
+          needsReplay:
+            r.type === 'buy' ||
+            r.type === 'sell' ||
+            walletNeedsReplay({
+              currency: r.currency as CurrencyCode,
+              kind: (r.kind ?? 'everyday') as WalletKind,
+            }),
+        })),
+        now,
+      ),
+      ...assetCountDeltaStmts(
+        db,
+        user.id,
+        sortedRows
+          .filter((r) => r.assetId)
+          .map((r) => ({ assetId: r.assetId!, delta: -1 })),
+      ),
+      ...(deleteTouchesNonVndTransfer
+        ? [markAllNonVndOrInvestmentReplayStmt(db, user.id, now)]
+        : []),
     ]);
 
     const entries: EntryView[] = sortedRows.map((r) => {
@@ -1275,6 +1495,9 @@ export function entryRoutes(): Hono<AppBindings> {
     const resolvedByLower = new Map(resolvedAll.map((t) => [t.name.toLowerCase(), t]));
 
     const restoredIds = items.map((i) => i.id);
+    const restoreTouchesNonVndTransfer =
+      items.length === 2 &&
+      items.some((item) => wallets.get(item.walletId)!.currency !== 'VND');
 
     try {
       await commitPersonalWrite(db, user.id, (v) => [
@@ -1307,6 +1530,31 @@ export function entryRoutes(): Hono<AppBindings> {
             });
           }),
         ]),
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          items.map((item) => {
+            const w = wallets.get(item.walletId)!;
+            return {
+              walletId: item.walletId,
+              netDelta: signedPersonalAmount(item.type, item.amount),
+              countDelta: 1,
+              needsReplay:
+                item.type === 'buy' || item.type === 'sell' || walletNeedsReplay(w),
+            };
+          }),
+          now,
+        ),
+        ...assetCountDeltaStmts(
+          db,
+          user.id,
+          items
+            .filter((item) => item.assetId)
+            .map((item) => ({ assetId: item.assetId!, delta: 1 })),
+        ),
+        ...(restoreTouchesNonVndTransfer
+          ? [markAllNonVndOrInvestmentReplayStmt(db, user.id, now)]
+          : []),
       ]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {

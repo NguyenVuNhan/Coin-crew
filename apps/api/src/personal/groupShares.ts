@@ -101,7 +101,12 @@ export async function loadGroupRows(
   db: Db,
   userId: string,
   range?: { from: string; to: string },
+  tripIdsFilter?: string[],
 ): Promise<GroupRow[]> {
+  if (tripIdsFilter !== undefined && tripIdsFilter.length === 0) {
+    return [];
+  }
+
   const mine = await db
     .select({
       myPid: participants.id,
@@ -123,9 +128,11 @@ export async function loadGroupRows(
 
   if (mine.length === 0) return [];
 
+  const filterSet = tripIdsFilter !== undefined ? new Set(tripIdsFilter) : null;
   const tripById = new Map<string, { tripId: string; tripName: string; preset: string; version: number }>();
   const myActivePidsByTrip = new Map<string, Set<string>>();
   for (const m of mine) {
+    if (filterSet && !filterSet.has(m.tripId)) continue;
     if (!tripById.has(m.tripId)) {
       tripById.set(m.tripId, {
         tripId: m.tripId,
@@ -141,6 +148,8 @@ export async function loadGroupRows(
     }
     set.add(m.myPid);
   }
+
+  if (tripById.size === 0) return [];
 
   const tripIds = Array.from(tripById.keys());
   const tripChunks = chunk(tripIds, TRIP_CHUNK_SIZE);

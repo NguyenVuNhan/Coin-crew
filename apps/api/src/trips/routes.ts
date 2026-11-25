@@ -31,7 +31,7 @@ import { ApiError, validationError } from '@cc/api-util/errors';
 import { newId, newToken, nowIso } from '@cc/api-util/ids';
 import { loadRecentPeople } from '../me/people';
 import { actorName as actorNameOf, loadActivityNames } from '@cc/api-db/activityNames';
-import { getSnapshot, loadTripList } from './snapshot';
+import { getSnapshot, loadTripListFiltered, type ArchivedFilter } from './snapshot';
 import { toTripView } from './view';
 
 const DELETE_GRACE_DAYS = 30;
@@ -345,9 +345,18 @@ export function tripRoutes(): Hono<AppBindings> {
 
   // GET /trips
   app.get('/trips', requireUser, async (c) => {
+    const archivedParam = c.req.query('archived');
+    if (archivedParam !== undefined && archivedParam !== 'exclude' && archivedParam !== 'only') {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    const archivedFilter: ArchivedFilter = archivedParam ?? 'all';
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
-    return c.json(await loadTripList(db, user.id));
+    const { items, archivedCount } = await loadTripListFiltered(db, user.id, archivedFilter);
+    if (archivedFilter === 'exclude') {
+      c.header('X-Archived-Count', String(archivedCount));
+    }
+    return c.json(items);
   });
 
   // GET /trips/:id/version

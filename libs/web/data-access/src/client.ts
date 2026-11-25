@@ -18,10 +18,10 @@ export class ApiClientError extends Error {
 /** Cloudflare's own error page for a Worker over the free daily request limit (error 1027). */
 const CF_DAILY_LIMIT_PAGE = /error(?: code)?:?\s*1027\b/i;
 
-export async function apiFetch<T>(
+export async function apiFetchWithHeaders<T>(
   path: string,
   init: RequestInit & { tripId?: string } = {},
-): Promise<T> {
+): Promise<{ data: T; headers: Headers }> {
   const { tripId, headers: initHeaders, ...restInit } = init;
   const headers = new Headers(initHeaders);
 
@@ -94,15 +94,23 @@ export async function apiFetch<T>(
   }
 
   if (response.status === 204) {
-    return undefined as T;
+    return { data: undefined as T, headers: response.headers };
   }
 
   const text = await response.text();
   if (!text || text.trim() === '') {
-    return undefined as T;
+    return { data: undefined as T, headers: response.headers };
   }
 
-  return JSON.parse(text) as T;
+  return { data: JSON.parse(text) as T, headers: response.headers };
+}
+
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit & { tripId?: string } = {},
+): Promise<T> {
+  const { data } = await apiFetchWithHeaders<T>(path, init);
+  return data;
 }
 
 export function apiSend<T>(

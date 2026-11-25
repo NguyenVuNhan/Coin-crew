@@ -5,6 +5,7 @@ import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import {
   personalTransactions,
+  personalWalletBalances,
   personalWalletOptions,
   personalWallets,
   personalWalletSettings,
@@ -18,16 +19,27 @@ import {
   groupWalletEntries,
   isCurrencyCode,
   isValidAmount,
+  pickFallbackVndWallet,
+  replayWallets,
+  vndTotalFromCache,
   walletBalance,
   walletVndValues,
   type CalcEntry,
   type CalcWallet,
   type CurrencyCode,
+  type Holding,
   type PersonalEntryType,
+  type VndTotal,
   type WalletDetailView,
   type WalletKind,
 } from '@cc/core';
 import { loadGroupRows, loadGroupSettings } from './groupShares';
+import {
+  DEFAULT_WALLET_DELTA_KEY,
+  loadCachedGroupRows,
+  loadCachedGroupWalletDeltas,
+} from './tripCache';
+import { initWalletBalanceStmt, signedPersonalAmount, walletBalanceDeltaStmts } from './balanceCache';
 import { name1to40, parseJson, requireDate } from './validate';
 
 export interface LoadedCalcWallet extends CalcWallet {
@@ -131,6 +143,226 @@ export async function loadCalc(
   entries.push(...groupWalletEntries(groupRows, wallets, defaultWalletId, groupSettings));
 
   return { wallets, entries };
+}
+
+export interface CachedWalletCalc extends LoadedCalcWallet {
+  entryCount: number;
+}
+
+export interface CachedWalletsSummary {
+  wallets: CachedWalletCalc[];
+  vnd: VndTotal;
+  walletBalances: Map<string, number>;
+  vndValues: Map<string, number | null>;
+  holdingsByWallet: Map<string, Holding[]>;
+}
+
+export async function loadCachedWalletsSummary(
+  db: Db,
+  userId: string,
+): Promise<CachedWalletsSummary> {
+  const [walletRows, rawGroupDeltas] = await Promise.all([
+    db
+      .select({
+        id: personalWallets.id,
+        userId: personalWallets.userId,
+        name: personalWallets.name,
+        currency: personalWallets.currency,
+        startAmount: personalWallets.startAmount,
+        startDate: personalWallets.startDate,
+        isDefault: personalWallets.isDefault,
+        createdAt: personalWallets.createdAt,
+        updatedAt: personalWallets.updatedAt,
+        kind: personalWalletSettings.kind,
+        startCostVnd: personalWalletSettings.startCostVnd,
+        icon: personalWalletSettings.icon,
+        sortOrder: personalWalletSettings.sortOrder,
+        archivedAt: personalWalletSettings.archivedAt,
+        excludeFromReports: personalWalletOptions.excludeFromReports,
+        balWalletId: personalWalletBalances.walletId,
+        personalNet: personalWalletBalances.personalNet,
+        entryCount: personalWalletBalances.entryCount,
+        cachedVndValue: personalWalletBalances.vndValue,
+        cachedCashVnd: personalWalletBalances.cashVnd,
+        holdingsJson: personalWalletBalances.holdingsJson,
+        needsReplay: personalWalletBalances.needsReplay,
+      })
+      .from(personalWallets)
+      .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+      .leftJoin(personalWalletOptions, eq(personalWalletOptions.walletId, personalWallets.id))
+      .leftJoin(personalWalletBalances, eq(personalWalletBalances.walletId, personalWallets.id))
+      .where(eq(personalWallets.userId, userId))
+      .orderBy(sql`coalesce(${personalWalletSettings.sortOrder}, 0) asc`, asc(personalWallets.createdAt))
+      .all(),
+    loadCachedGroupWalletDeltas(db, userId),
+  ]);
+
+  const wallets: CachedWalletCalc[] = walletRows.map((r) => ({
+    id: r.id,
+    userId: r.userId,
+    name: r.name,
+    currency: r.currency as CurrencyCode,
+    startAmount: r.startAmount,
+    startDate: r.startDate,
+    isDefault: Boolean(r.isDefault),
+    kind: (r.kind ?? 'everyday') as WalletKind,
+    startCostVnd: r.startCostVnd ?? null,
+    icon: r.icon ?? null,
+    sortOrder: r.sortOrder ?? 0,
+    archived: r.archivedAt !== null && r.archivedAt !== undefined,
+    archivedAt: r.archivedAt ?? null,
+    excludeFromReports: Boolean(r.excludeFromReports),
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    entryCount: Number(r.entryCount ?? 0),
+  }));
+
+  const needsFullReplay = walletRows.some(
+    (r) =>
+      r.balWalletId === null ||
+      r.needsReplay === 1 ||
+      ((r.kind ?? 'everyday') === 'investment' && r.holdingsJson === null) ||
+      (r.currency !== 'VND' &&
+        r.startCostVnd !== null &&
+        r.startAmount !== 0 &&
+        r.cachedVndValue === null),
+  );
+
+  if (needsFullReplay) {
+    const [entryRows, groupRows, groupSettings] = await Promise.all([
+      db
+        .select({
+          id: personalTransactions.id,
+          walletId: personalTransactions.walletId,
+          type: personalTransactions.type,
+          amount: personalTransactions.amount,
+          date: personalTransactions.date,
+          time: personalTransactions.time,
+          createdAt: personalTransactions.createdAt,
+          transferId: personalTransactions.transferId,
+          excludeFromReports: personalTransactions.excludeFromReports,
+          assetId: personalTransactions.assetId,
+          quantity: personalTransactions.quantity,
+        })
+        .from(personalTransactions)
+        .where(eq(personalTransactions.userId, userId))
+        .all(),
+      loadCachedGroupRows(db, userId),
+      loadGroupSettings(db, userId),
+    ]);
+
+    const netByWallet = new Map<string, number>();
+    const countByWallet = new Map<string, number>();
+    const entries: CalcEntry[] = entryRows.map((e) => {
+      const pType = e.type as PersonalEntryType;
+      netByWallet.set(e.walletId, (netByWallet.get(e.walletId) ?? 0) + signedPersonalAmount(pType, e.amount));
+      countByWallet.set(e.walletId, (countByWallet.get(e.walletId) ?? 0) + 1);
+      return {
+        id: e.id,
+        walletId: e.walletId,
+        type: pType,
+        amount: e.amount,
+        date: e.date,
+        time: e.time ?? null,
+        createdAt: e.createdAt,
+        transferId: e.transferId ?? null,
+        excludeFromReports: Boolean(e.excludeFromReports),
+        assetId: e.assetId ?? null,
+        quantity: e.quantity ?? null,
+      };
+    });
+
+    const defaultWalletId = wallets.find((w) => w.isDefault)?.id ?? null;
+    entries.push(...groupWalletEntries(groupRows, wallets, defaultWalletId, groupSettings));
+
+    const { vndValues, cashVndValues, holdingsByWallet } = replayWallets(wallets, entries);
+    const walletBalances = new Map<string, number>();
+    for (const w of wallets) {
+      w.entryCount = countByWallet.get(w.id) ?? 0;
+      walletBalances.set(w.id, walletBalance(w, entries));
+    }
+
+    const now = nowIso();
+    if (wallets.length > 0) {
+      const stmts: BatchItem<'sqlite'>[] = wallets.map((w) => {
+        const personalNet = netByWallet.get(w.id) ?? 0;
+        const entryCount = w.entryCount;
+        const vndValue = vndValues.get(w.id) ?? null;
+        const cashVnd = cashVndValues.get(w.id) ?? null;
+        const holdingsJson = JSON.stringify(holdingsByWallet.get(w.id) ?? []);
+        return db
+          .insert(personalWalletBalances)
+          .values({
+            walletId: w.id,
+            userId,
+            personalNet,
+            entryCount,
+            vndValue,
+            cashVnd,
+            holdingsJson,
+            needsReplay: 0,
+            updatedAt: now,
+          })
+          .onConflictDoUpdate({
+            target: personalWalletBalances.walletId,
+            set: {
+              personalNet,
+              entryCount,
+              vndValue,
+              cashVnd,
+              holdingsJson,
+              needsReplay: 0,
+              updatedAt: now,
+            },
+          }) as unknown as BatchItem<'sqlite'>;
+      });
+      await db.batch([stmts[0]!, ...stmts.slice(1)]);
+    }
+
+    const vnd = vndTotalFromCache(wallets, walletBalances, vndValues, cashVndValues, holdingsByWallet);
+    return { wallets, vnd, walletBalances, vndValues, holdingsByWallet };
+  }
+
+  const defaultWalletId = wallets.find((w) => w.isDefault)?.id ?? null;
+  const fallbackVndWalletId = pickFallbackVndWallet(wallets, defaultWalletId);
+  const vndWalletIds = new Set(wallets.filter((w) => w.currency === 'VND').map((w) => w.id));
+  const resolvedGroupDeltas = new Map<string, number>();
+  for (const [key, delta] of rawGroupDeltas) {
+    const targetId = key !== DEFAULT_WALLET_DELTA_KEY && vndWalletIds.has(key) ? key : fallbackVndWalletId;
+    if (targetId !== null) {
+      resolvedGroupDeltas.set(targetId, (resolvedGroupDeltas.get(targetId) ?? 0) + delta);
+    }
+  }
+
+  const walletBalances = new Map<string, number>();
+  const vndValues = new Map<string, number | null>();
+  const cashVndValues = new Map<string, number | null>();
+  const holdingsByWallet = new Map<string, Holding[]>();
+
+  for (let i = 0; i < wallets.length; i++) {
+    const w = wallets[i]!;
+    const r = walletRows[i]!;
+    const personalNet = Number(r.personalNet ?? 0);
+    const groupDelta = w.currency === 'VND' ? (resolvedGroupDeltas.get(w.id) ?? 0) : 0;
+    const balance = w.startAmount + personalNet + groupDelta;
+    walletBalances.set(w.id, balance);
+
+    const holdings = r.holdingsJson ? (JSON.parse(r.holdingsJson) as Holding[]) : [];
+    holdingsByWallet.set(w.id, holdings);
+
+    if (w.currency === 'VND') {
+      let holdingsVnd = 0;
+      for (const h of holdings) holdingsVnd += h.cost;
+      cashVndValues.set(w.id, balance);
+      vndValues.set(w.id, balance + holdingsVnd);
+    } else {
+      cashVndValues.set(w.id, r.cachedCashVnd ?? null);
+      vndValues.set(w.id, r.cachedVndValue ?? null);
+    }
+  }
+
+  const vnd = vndTotalFromCache(wallets, walletBalances, vndValues, cashVndValues, holdingsByWallet);
+  return { wallets, vnd, walletBalances, vndValues, holdingsByWallet };
 }
 
 function isWalletKind(v: unknown): v is WalletKind {
@@ -249,25 +481,28 @@ export function walletRoutes(): Hono<AppBindings> {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
 
-    const { wallets: calcWallets, entries } = await loadCalc(db, user.id);
-    const countRows = await db
-      .select({
-        walletId: personalTransactions.walletId,
-        count: sql<number>`count(*)`,
-      })
-      .from(personalTransactions)
-      .where(eq(personalTransactions.userId, user.id))
-      .groupBy(personalTransactions.walletId)
-      .all();
-
-    const counts = new Map<string, number>(
-      countRows.map((r) => [r.walletId, Number(r.count)]),
+    const { wallets: calcWallets, walletBalances, vndValues } = await loadCachedWalletsSummary(
+      db,
+      user.id,
     );
-    const vndValues = walletVndValues(calcWallets, entries);
 
-    const wallets: WalletDetailView[] = calcWallets.map((w) =>
-      toWalletView(w, entries, vndValues, counts.get(w.id) ?? 0),
-    );
+    const wallets: WalletDetailView[] = calcWallets.map((w) => ({
+      id: w.id,
+      name: w.name,
+      currency: w.currency,
+      balance: walletBalances.get(w.id) ?? w.startAmount,
+      isDefault: w.isDefault,
+      kind: w.kind,
+      startAmount: w.startAmount,
+      startDate: w.startDate,
+      startCostVnd: w.startCostVnd,
+      vndValue: vndValues.get(w.id) ?? null,
+      icon: w.icon,
+      sortOrder: w.sortOrder,
+      archived: w.archived,
+      entryCount: w.entryCount,
+      excludeFromReports: Boolean(w.excludeFromReports),
+    }));
 
     return c.json({ wallets }, 200);
   });
@@ -291,6 +526,10 @@ export function walletRoutes(): Hono<AppBindings> {
     }
 
     const walletId = newId();
+    const initialVndValue =
+      validated.currency !== 'VND' && validated.startCostVnd !== null && validated.startAmount !== 0
+        ? validated.startCostVnd
+        : null;
 
     try {
       await db.batch([
@@ -320,6 +559,10 @@ export function walletRoutes(): Hono<AppBindings> {
           userId: user.id,
           excludeFromReports: validated.excludeFromReports ? 1 : 0,
           updatedAt: now,
+        }),
+        initWalletBalanceStmt(db, user.id, walletId, now, {
+          vndValue: initialVndValue,
+          cashVnd: initialVndValue,
         }),
       ]);
     } catch (err) {
@@ -379,6 +622,10 @@ export function walletRoutes(): Hono<AppBindings> {
     const isDefault = !defaultRow;
     const sortOrder = (maxRow?.maxOrder ?? -1) + 1;
     const walletId = newId();
+    const initialVndValue =
+      validated.currency !== 'VND' && validated.startCostVnd !== null && validated.startAmount !== 0
+        ? validated.startCostVnd
+        : null;
 
     try {
       await db.batch([
@@ -408,6 +655,10 @@ export function walletRoutes(): Hono<AppBindings> {
           userId: user.id,
           excludeFromReports: validated.excludeFromReports ? 1 : 0,
           updatedAt: now,
+        }),
+        initWalletBalanceStmt(db, user.id, walletId, now, {
+          vndValue: initialVndValue,
+          cashVnd: initialVndValue,
         }),
       ]);
     } catch (err) {
@@ -761,6 +1012,27 @@ export function walletRoutes(): Hono<AppBindings> {
         }),
     );
 
+    const isNonVndOrInv =
+      nextCurrency !== 'VND' ||
+      nextKind === 'investment' ||
+      currentCurrency !== 'VND' ||
+      currentKind === 'investment';
+    const replayAffectingChange =
+      nextStartAmount !== currentStartAmount ||
+      nextStartDate !== currentStartDate ||
+      nextStartCostVnd !== currentStartCostVnd ||
+      nextCurrency !== currentCurrency;
+    if (isNonVndOrInv && replayAffectingChange) {
+      stmts.push(
+        ...walletBalanceDeltaStmts(
+          db,
+          user.id,
+          [{ walletId, netDelta: 0, countDelta: 0, needsReplay: true }],
+          now,
+        ),
+      );
+    }
+
     try {
       await db.batch([stmts[0]!, ...stmts.slice(1)]);
     } catch (err) {
@@ -770,10 +1042,28 @@ export function walletRoutes(): Hono<AppBindings> {
       throw err;
     }
 
-    const { wallets: calcWallets, entries } = await loadCalc(db, user.id);
-    const vndValues = walletVndValues(calcWallets, entries);
+    const { wallets: calcWallets, walletBalances, vndValues } = await loadCachedWalletsSummary(
+      db,
+      user.id,
+    );
     const updated = calcWallets.find((w) => w.id === walletId)!;
-    const wallet = toWalletView(updated, entries, vndValues, entryCount);
+    const wallet: WalletDetailView = {
+      id: updated.id,
+      name: updated.name,
+      currency: updated.currency,
+      balance: walletBalances.get(updated.id) ?? updated.startAmount,
+      isDefault: updated.isDefault,
+      kind: updated.kind,
+      startAmount: updated.startAmount,
+      startDate: updated.startDate,
+      startCostVnd: updated.startCostVnd,
+      vndValue: vndValues.get(updated.id) ?? null,
+      icon: updated.icon,
+      sortOrder: updated.sortOrder,
+      archived: updated.archived,
+      entryCount,
+      excludeFromReports: Boolean(updated.excludeFromReports),
+    };
 
     return c.json({ wallet }, 200);
   });

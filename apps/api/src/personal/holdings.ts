@@ -4,8 +4,8 @@ import { getDb } from '@cc/api-db/client';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
-import { walletHoldings, type HoldingsResponse, type HoldingView } from '@cc/core';
-import { loadCalc } from './wallets';
+import { type HoldingsResponse, type HoldingView } from '@cc/core';
+import { loadCachedWalletsSummary } from './wallets';
 
 export function holdingsRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -15,7 +15,7 @@ export function holdingsRoutes(): Hono<AppBindings> {
     const walletId = c.req.query('walletId') || undefined;
     const db = getDb(c.env);
 
-    const { wallets, entries } = await loadCalc(db, user.id);
+    const { wallets, holdingsByWallet } = await loadCachedWalletsSummary(db, user.id);
 
     let targetWallets = wallets.filter((w) => w.kind === 'investment' && !w.archived);
     if (walletId !== undefined) {
@@ -31,7 +31,7 @@ export function holdingsRoutes(): Hono<AppBindings> {
 
     const holdings: HoldingView[] = [];
     for (const wallet of targetWallets) {
-      for (const h of walletHoldings(wallet, entries, wallets)) {
+      for (const h of holdingsByWallet.get(wallet.id) ?? []) {
         holdings.push({
           walletId: wallet.id,
           assetId: h.assetId,

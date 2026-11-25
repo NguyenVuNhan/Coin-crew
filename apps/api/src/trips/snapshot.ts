@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lte, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, ne, or, sql, type SQLWrapper } from 'drizzle-orm';
 import type {
   ExpenseHistoryItem,
   ExpenseStatus,
@@ -36,12 +36,18 @@ import {
   playerRatings,
   transactionShares,
   transactions,
+  tripBalanceCache,
   tripLocations,
   trips,
   tripViews,
   users,
 } from '@cc/api-db/schema';
 import { nowIso } from '@cc/api-util/ids';
+import {
+  buildTripBalanceCachePayload,
+  upsertTripBalanceCacheBatch,
+  type TripBalanceCachePayload,
+} from './balanceCache';
 
 export type TripSnapshot = Omit<TripView, 'me' | 'myBalance' | 'approvals' | 'links'>;
 
@@ -49,6 +55,7 @@ export type TripSnapshot = Omit<TripView, 'me' | 'myBalance' | 'approvals' | 'li
 export interface LedgerSource {
   people: { id: string }[];
   expenses: (Pick<ExpenseView, 'id' | 'payerId' | 'amount' | 'status' | 'createdById' | 'meta'> & {
+    createdAt?: string;
     shares: { participantId: string; amount: number }[];
   })[];
   payments: Pick<PaymentView, 'id' | 'fromId' | 'toId' | 'amountClaimed' | 'amountConfirmed' | 'status'>[];
@@ -554,14 +561,119 @@ export async function getSnapshot(
       setWhere: lte(tripViews.version, trip.version),
     });
 
+  const payload = buildTripBalanceCachePayload(
+    trip,
+    {
+      people: snapshot.people,
+      expenses: snapshot.expenses,
+      payments: snapshot.payments,
+    },
+    { balances: snapshot.balances, suggestions: snapshot.suggestions },
+  );
+  await upsertTripBalanceCacheBatch(db, [payload], updatedAt);
+
   return snapshot;
 }
 
 /**
- * SQL twin of the saved-view check in `getSnapshot`: the `trip_views` row (joined next to `trips`)
- * has the trip's version and every field the current snapshot has.
+ * Batch-load the money rows (participants, latest expenses/payments + shares) for all trips
+ * matching `staleTripIds` in 2 fixed queries. Shared by `loadTripList` and `loadPeopleSummary`.
  */
-const viewIsCurrent = sql<number>`CASE WHEN ${tripViews.json} IS NOT NULL AND ${tripViews.version} = ${trips.version} AND json_valid(${tripViews.json}) THEN (json_type(${tripViews.json}, '$.fund') IS NOT NULL AND json_type(${tripViews.json}, '$.ratings') IS NOT NULL AND json_type(${tripViews.json}, '$.locations') IS NOT NULL) ELSE 0 END`;
+export async function loadLedgerSourcesBatch(
+  db: Db,
+  staleTripIds: SQLWrapper,
+): Promise<Map<string, LedgerSource>> {
+  const sources = new Map<string, LedgerSource>();
+
+  const people = await db
+    .select({ id: participants.id, tripId: participants.tripId })
+    .from(participants)
+    .where(
+      and(
+        inArray(participants.tripId, staleTripIds),
+        // People who left stay in balances, as in the snapshot.
+        inArray(participants.status, ['active', 'pending', 'left']),
+      ),
+    )
+    .orderBy(asc(participants.sortOrder));
+
+  const txWithShares = await db
+    .select({
+      id: transactions.id,
+      tripId: transactions.tripId,
+      type: transactions.type,
+      amount: transactions.amount,
+      amountConfirmed: transactions.amountConfirmed,
+      payerId: transactions.payerId,
+      toId: transactions.toId,
+      status: transactions.status,
+      createdById: transactions.createdByParticipantId,
+      metaJson: transactions.metaJson,
+      createdAt: transactions.createdAt,
+      shareParticipantId: transactionShares.participantId,
+      shareAmount: transactionShares.amount,
+    })
+    .from(transactions)
+    .leftJoin(transactionShares, eq(transactionShares.transactionId, transactions.id))
+    .where(
+      and(
+        inArray(transactions.tripId, staleTripIds),
+        eq(transactions.isLatest, 1),
+        inArray(transactions.type, ['expense', 'payment']),
+      ),
+    )
+    .orderBy(desc(transactions.createdAt));
+
+  const sourceOf = (tripId: string): LedgerSource => {
+    let source = sources.get(tripId);
+    if (!source) {
+      source = { people: [], expenses: [], payments: [] };
+      sources.set(tripId, source);
+    }
+    return source;
+  };
+  for (const p of people) sourceOf(p.tripId).people.push({ id: p.id });
+
+  const expensesById = new Map<string, LedgerSource['expenses'][number]>();
+  const seenPayments = new Set<string>();
+
+  for (const row of txWithShares) {
+    if (row.type === 'expense') {
+      let expense = expensesById.get(row.id);
+      if (!expense) {
+        expense = {
+          id: row.id,
+          payerId: row.payerId,
+          amount: row.amount,
+          status: row.status as ExpenseStatus,
+          createdById: row.createdById,
+          meta: expenseMeta(row.metaJson),
+          createdAt: row.createdAt,
+          shares: [],
+        };
+        expensesById.set(row.id, expense);
+        sourceOf(row.tripId).expenses.push(expense);
+      }
+      if (row.shareParticipantId !== null && row.shareAmount !== null) {
+        expense.shares.push({ participantId: row.shareParticipantId, amount: row.shareAmount });
+      }
+    } else if (!seenPayments.has(row.id)) {
+      seenPayments.add(row.id);
+      sourceOf(row.tripId).payments.push({
+        id: row.id,
+        fromId: row.payerId,
+        toId: row.toId!,
+        amountClaimed: row.amount,
+        amountConfirmed: row.amountConfirmed,
+        status: row.status as PaymentStatus,
+      });
+    }
+  }
+
+  return sources;
+}
+
+export type ArchivedFilter = 'all' | 'exclude' | 'only';
 
 /** The caller's groups for the list: active, and never the personal ('direct') ledger. */
 function myGroupsWhere(userId: string) {
@@ -572,169 +684,107 @@ function myGroupsWhere(userId: string) {
   );
 }
 
+function myGroupsListWhere(userId: string, archivedFilter: ArchivedFilter) {
+  const base = myGroupsWhere(userId);
+  if (archivedFilter === 'exclude') return and(base, isNull(trips.archivedAt));
+  if (archivedFilter === 'only') return and(base, isNotNull(trips.archivedAt));
+  return base;
+}
+
 /**
  * The caller's group list with their balance in each group, in a fixed number of queries however
- * many groups they have (D1 allows 50 per request): one for the groups and their saved views, then,
- * only when some saved views are out of date, three that load the money rows of all those groups
- * at once. Balances come from the same rules as the snapshot (`settleLedger`). Nothing is written:
- * opening a group refreshes its saved view.
+ * many groups they have (D1 allows 50 per request): one for the groups and their cached balances,
+ * then, only when some caches are out of date, three that load the money rows of all those groups
+ * at once and one batch upsert to `trip_balance_cache`. `trip_views` is never read or written.
+ * When `archivedFilter` is `'exclude'`, excluded archived groups are filtered in SQL so neither
+ * `trip_balance_cache` nor `transactions` are scanned for them, and `archivedCount` counts them.
  */
-export async function loadTripList(db: Db, userId: string): Promise<TripListItem[]> {
+export async function loadTripListFiltered(
+  db: Db,
+  userId: string,
+  archivedFilter: ArchivedFilter = 'all',
+): Promise<{ items: TripListItem[]; archivedCount: number }> {
+  const where = myGroupsListWhere(userId, archivedFilter);
+
   const rows = await db
     .select({
       participantId: participants.id,
       trip: trips,
-      viewJson: tripViews.json,
-      viewCurrent: viewIsCurrent,
+      cacheVersion: tripBalanceCache.tripVersion,
+      roundedBalancesJson: tripBalanceCache.roundedBalancesJson,
+      suggestionsJson: tripBalanceCache.suggestionsJson,
     })
     .from(participants)
     .innerJoin(trips, eq(participants.tripId, trips.id))
-    .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
-    .where(myGroupsWhere(userId))
+    .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
+    .where(where)
     .orderBy(desc(trips.createdAt));
 
-  const fresh = new Map<string, TripSnapshot>();
+  let archivedCount = 0;
+  if (archivedFilter === 'exclude') {
+    const countRow = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(participants)
+      .innerJoin(trips, eq(participants.tripId, trips.id))
+      .where(and(myGroupsWhere(userId), isNotNull(trips.archivedAt)))
+      .get();
+    archivedCount = Number(countRow?.count ?? 0);
+  }
+
+  const fresh = new Map<string, Record<string, number>>();
   for (const row of rows) {
-    if (row.viewCurrent !== 1 || row.viewJson === null) continue;
+    if (row.cacheVersion !== row.trip.version || row.roundedBalancesJson === null) continue;
     try {
-      const view = JSON.parse(row.viewJson) as TripSnapshot;
-      if (hasCurrentFields(view)) fresh.set(row.trip.id, view);
+      fresh.set(row.trip.id, JSON.parse(row.roundedBalancesJson) as Record<string, number>);
     } catch {
-      // Rebuilt below like any other out-of-date view.
+      // Recomputed below like any other out-of-date cache.
     }
   }
 
-  const sources = new Map<string, LedgerSource>();
+  let sources = new Map<string, LedgerSource>();
   if (rows.some((r) => !fresh.has(r.trip.id))) {
     // Subqueries, not lists of ids: D1 allows only 100 bound parameters per query.
     const staleTripIds = db
       .select({ id: trips.id })
       .from(participants)
       .innerJoin(trips, eq(participants.tripId, trips.id))
-      .leftJoin(tripViews, eq(tripViews.tripId, trips.id))
-      .where(and(myGroupsWhere(userId), sql`NOT (${viewIsCurrent})`));
-
-    const people = await db
-      .select({ id: participants.id, tripId: participants.tripId })
-      .from(participants)
+      .leftJoin(tripBalanceCache, eq(tripBalanceCache.tripId, trips.id))
       .where(
         and(
-          inArray(participants.tripId, staleTripIds),
-          // People who left stay in balances, as in the snapshot.
-          inArray(participants.status, ['active', 'pending', 'left']),
-        ),
-      )
-      .orderBy(asc(participants.sortOrder));
-
-    const txRows = await db
-      .select({
-        id: transactions.id,
-        tripId: transactions.tripId,
-        type: transactions.type,
-        amount: transactions.amount,
-        amountConfirmed: transactions.amountConfirmed,
-        payerId: transactions.payerId,
-        toId: transactions.toId,
-        status: transactions.status,
-        createdById: transactions.createdByParticipantId,
-        metaJson: transactions.metaJson,
-      })
-      .from(transactions)
-      .where(
-        and(
-          inArray(transactions.tripId, staleTripIds),
-          eq(transactions.isLatest, 1),
-          inArray(transactions.type, ['expense', 'payment']),
-        ),
-      )
-      .orderBy(desc(transactions.createdAt));
-
-    const shareRows = await db
-      .select({
-        transactionId: transactionShares.transactionId,
-        participantId: transactionShares.participantId,
-        amount: transactionShares.amount,
-      })
-      .from(transactionShares)
-      .where(
-        inArray(
-          transactionShares.transactionId,
-          db
-            .select({ id: transactions.id })
-            .from(transactions)
-            .where(
-              and(
-                inArray(transactions.tripId, staleTripIds),
-                eq(transactions.isLatest, 1),
-                eq(transactions.type, 'expense'),
-              ),
-            ),
+          where,
+          or(isNull(tripBalanceCache.tripVersion), ne(tripBalanceCache.tripVersion, trips.version)),
         ),
       );
 
-    const sourceOf = (tripId: string): LedgerSource => {
-      let source = sources.get(tripId);
-      if (!source) {
-        source = { people: [], expenses: [], payments: [] };
-        sources.set(tripId, source);
-      }
-      return source;
-    };
-    for (const p of people) sourceOf(p.tripId).people.push({ id: p.id });
-
-    const sharesByTxId = new Map<string, { participantId: string; amount: number }[]>();
-    for (const s of shareRows) {
-      let list = sharesByTxId.get(s.transactionId);
-      if (!list) {
-        list = [];
-        sharesByTxId.set(s.transactionId, list);
-      }
-      list.push({ participantId: s.participantId, amount: s.amount });
-    }
-
-    for (const tx of txRows) {
-      if (tx.type === 'expense') {
-        sourceOf(tx.tripId).expenses.push({
-          id: tx.id,
-          payerId: tx.payerId,
-          amount: tx.amount,
-          status: tx.status as ExpenseStatus,
-          createdById: tx.createdById,
-          meta: expenseMeta(tx.metaJson),
-          shares: sharesByTxId.get(tx.id) ?? [],
-        });
-      } else {
-        sourceOf(tx.tripId).payments.push({
-          id: tx.id,
-          fromId: tx.payerId,
-          toId: tx.toId!,
-          amountClaimed: tx.amount,
-          amountConfirmed: tx.amountConfirmed,
-          status: tx.status as PaymentStatus,
-        });
-      }
-    }
+    sources = await loadLedgerSourcesBatch(db, staleTripIds);
   }
 
+  const payloads: TripBalanceCachePayload[] = [];
   const list: TripListItem[] = [];
   for (const row of rows) {
-    let money: Pick<TripSnapshot, 'balances' | 'suggestions'> | undefined = fresh.get(row.trip.id);
-    if (!money) {
+    const cachedRounded = fresh.get(row.trip.id);
+    let myBalance: number;
+    if (cachedRounded) {
+      myBalance = cachedRounded[row.participantId] ?? 0;
+    } else {
       let previous: Transfer[] | undefined;
-      if (row.viewJson !== null) {
+      if (row.suggestionsJson !== null) {
         try {
-          previous = (JSON.parse(row.viewJson) as TripSnapshot).suggestions;
+          previous = JSON.parse(row.suggestionsJson) as Transfer[];
         } catch {
           previous = undefined;
         }
       }
       const source = sources.get(row.trip.id);
-      // The caller is always one of the group's people, so a group with nobody loaded means the
-      // SQL and JS view checks disagreed: build that one group in full instead (still no write).
-      money =
-        source && source.people.length > 0
-          ? settleLedger(row.trip, source, previous)
-          : await buildSnapshot(db, row.trip, previous);
+      if (source && source.people.length > 0) {
+        const settled = settleLedger(row.trip, source, previous);
+        const payload = buildTripBalanceCachePayload(row.trip, source, settled);
+        payloads.push(payload);
+        myBalance = payload.roundedBalances[row.participantId] ?? 0;
+      } else {
+        const snap = await buildSnapshot(db, row.trip, previous);
+        myBalance = myBalanceIn(row.trip, snap, row.participantId);
+      }
     }
     list.push({
       id: row.trip.id,
@@ -742,10 +792,26 @@ export async function loadTripList(db: Db, userId: string): Promise<TripListItem
       preset: (row.trip.preset as 'trip' | 'sport') ?? 'trip',
       archived: row.trip.archivedAt !== null,
       ...(row.trip.deleteAfter ? { deleteAfter: row.trip.deleteAfter } : {}),
-      myBalance: myBalanceIn(row.trip, money, row.participantId),
+      myBalance,
     });
   }
-  return list;
+
+  if (payloads.length > 0) {
+    await upsertTripBalanceCacheBatch(db, payloads, nowIso());
+  }
+
+  if (archivedFilter === 'only') {
+    archivedCount = list.length;
+  } else if (archivedFilter === 'all') {
+    archivedCount = rows.filter((r) => r.trip.archivedAt !== null).length;
+  }
+
+  return { items: list, archivedCount };
+}
+
+export async function loadTripList(db: Db, userId: string): Promise<TripListItem[]> {
+  const { items } = await loadTripListFiltered(db, userId, 'all');
+  return items;
 }
 
 /** A settlement part marked `{"offset":true}` in metaJson (settled through the People total). */

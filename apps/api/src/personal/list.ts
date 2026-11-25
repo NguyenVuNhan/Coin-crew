@@ -37,8 +37,9 @@ import {
   type PersonalEntryType,
   type PersonalSummary,
 } from "@cc/core";
-import { loadGroupRows, loadGroupSettings } from "./groupShares";
-import { loadCalc } from "./wallets";
+import { loadGroupSettings } from "./groupShares";
+import { loadCachedGroupRows } from "./tripCache";
+import { loadCachedWalletsSummary } from "./wallets";
 import { loadPersonRows } from "./personRows";
 import { requireDate } from "./validate";
 
@@ -374,13 +375,14 @@ export function listRoutes(): Hono<AppBindings> {
       return c.json<ListResponse>({ rows: filteredRows, totals }, 200);
     }
 
-    const [allGroupRows, groupSettings] = await Promise.all([
-      loadGroupRows(db, user.id, { from, to }),
+    const [cachedGroupRows, groupSettings] = await Promise.all([
+      loadCachedGroupRows(db, user.id),
       loadGroupSettings(db, user.id),
     ]);
+    const allGroupRows = cachedGroupRows.filter((r) => r.date >= from && r.date <= to);
     // A payback can repay a loan from an earlier month, so paybacks walk all history (only needed when loans count).
     const paybacks = groupSettings.countLoans
-      ? loanPaybacks(await loadGroupRows(db, user.id))
+      ? loanPaybacks(cachedGroupRows)
       : new Map<string, number>();
 
     // Part 2 Task 1: every group row, direct-group expenses included (they no longer come as PersonRow).
@@ -505,8 +507,25 @@ export function listRoutes(): Hono<AppBindings> {
     const { from, to } = monthBounds(month);
 
     const db = getDb(c.env);
-    const { wallets, entries } = await loadCalc(db, user.id);
-    const vnd = vndTotal(wallets, entries);
+    const [{ wallets, vnd }, entryRows] = await Promise.all([
+      loadCachedWalletsSummary(db, user.id),
+      db
+        .select({
+          walletId: personalTransactions.walletId,
+          type: personalTransactions.type,
+          amount: personalTransactions.amount,
+          excludeFromReports: personalTransactions.excludeFromReports,
+        })
+        .from(personalTransactions)
+        .where(
+          and(
+            eq(personalTransactions.userId, user.id),
+            gte(personalTransactions.date, from),
+            lte(personalTransactions.date, to),
+          ),
+        )
+        .all(),
+    ]);
 
     const walletCurrency = new Map(wallets.map((w) => [w.id, w.currency]));
     const excludedWalletIds = new Set(wallets.filter((w) => w.excludeFromReports).map((w) => w.id));
@@ -520,8 +539,7 @@ export function listRoutes(): Hono<AppBindings> {
     });
 
     const counted: CountedRow[] = [];
-    for (const e of entries) {
-      if (e.date < from || e.date > to) continue;
+    for (const e of entryRows) {
       if (excludedWalletIds.has(e.walletId)) continue;
       const currency = walletCurrency.get(e.walletId);
       if (!currency) continue;
