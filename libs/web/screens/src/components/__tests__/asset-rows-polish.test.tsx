@@ -77,7 +77,7 @@ function makeTradeRow(type: "buy" | "sell"): BookRow {
     tags: [],
     excludeFromReports: false,
     source: "manual",
-    tripId: null,
+    counterpartWalletId: null,
     transferId: null,
     beforeStart: false,
     createdAt: "2026-11-20T00:00:00.000Z",
