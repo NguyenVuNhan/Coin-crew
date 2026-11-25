@@ -109,7 +109,7 @@ export function AmountField({
       e.preventDefault();
       if (evaluated !== null) {
         const formatted = formatKeypadValue(evaluated, currency);
-        if (formatted !== value) {
+        if (formatted !== value && !parseValue) {
           onChange(formatted);
         }
         onDone?.(evaluated);
@@ -118,7 +118,8 @@ export function AmountField({
   };
 
   const handleBlur = () => {
-    if (evaluated !== null) {
+    // A custom parser (the group form's "350k") keeps what was typed; its own preview shows the value.
+    if (evaluated !== null && !parseValue) {
       const formatted = formatKeypadValue(evaluated, currency);
       if (formatted !== value) {
         onChange(formatted);

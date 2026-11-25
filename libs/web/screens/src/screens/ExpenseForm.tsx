@@ -1732,7 +1732,7 @@ function ExpenseFormContent({
                 <NativeSelect
                   id="expense-paid-by"
                   data-testid="shared-payer-row"
-                  className="fsl-select text-base font-medium text-right border-0 bg-transparent shadow-none"
+                  className="fsl-select w-auto min-w-0 [&>select]:border-0 [&>select]:bg-transparent [&>select]:text-right [&>select]:font-medium [&>select]:pl-0"
                   value={payer}
                   onChange={(e) => {
                     const next = e.target.value;
