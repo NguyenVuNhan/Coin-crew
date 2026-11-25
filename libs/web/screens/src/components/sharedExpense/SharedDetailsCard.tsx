@@ -4,8 +4,10 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { EntryDateRow } from '../EntryDateRow';
 
 export interface SharedDetailsCardProps {
-  payerName: string;
-  onOpenPayer(): void;
+  payerName?: string;
+  onOpenPayer?(): void;
+  /** Replaces the tap-to-open payer row, e.g. the group form's labelled select. */
+  payerControl?: ReactNode;
   date: string;
   onDateChange(d: string): void;
   walletRow?: ReactNode;
@@ -14,6 +16,7 @@ export interface SharedDetailsCardProps {
 export function SharedDetailsCard({
   payerName,
   onOpenPayer,
+  payerControl,
   date,
   onDateChange,
   walletRow,
@@ -25,6 +28,7 @@ export function SharedDetailsCard({
       data-testid="shared-details-card"
       className="rounded-xl bg-card divide-y divide-border overflow-hidden"
     >
+      {payerControl ?? (
       <button
         type="button"
         data-testid="shared-payer-row"
@@ -39,6 +43,7 @@ export function SharedDetailsCard({
           <Icon name="chevronRight" size={18} className="text-muted-foreground shrink-0" />
         </span>
       </button>
+      )}
       <EntryDateRow
         date={date}
         time={null}

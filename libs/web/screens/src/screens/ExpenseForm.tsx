@@ -16,7 +16,18 @@ import type {
   TripLocationView,
   ExtractedSportBooking,
 } from '@cc/core';
-import { can, computeShares, computeSportShares, CURRENCIES, formatVnd, isFundPaid, isPlanningExpense, parseVnd, roundToThousand } from '@cc/core';
+import {
+  can,
+  computeShares,
+  computeSportShares,
+  fixedCategory,
+  formatVnd,
+  GENERAL_CATEGORY_KEY,
+  isFundPaid,
+  isPlanningExpense,
+  parseVnd,
+  roundToThousand,
+} from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { useTripView } from '@cc/web-data-access/hooks';
@@ -38,6 +49,15 @@ import { IncomeForm } from '../components/IncomeForm';
 import { FundPaidPanel } from '../components/FundPaidPanel';
 import { SplitModePicker } from '../components/SplitModePicker';
 import { Screen } from '../components/Screen';
+import { AmountField, evaluateAmountExpression } from '../components/AmountField';
+import {
+  TitleWithCategory,
+  DanhMucSheet,
+  SharedDetailsCard,
+  NoteField,
+  type DanhMucValue,
+} from '../components/sharedExpense';
+import { AmountSuggestionChips } from '@cc/web-ui/components/AmountKeypad';
 import { Button } from '@cc/web-ui/components/Button';
 import { Avatar } from '@cc/web-ui/components/Avatar';
 import { Pill } from '@cc/web-ui/components/Pill';
@@ -292,6 +312,15 @@ interface SportGuestState {
   fixedText: string;
 }
 
+/** Group amounts keep the "180k" / "1,5tr" shorthand on top of the keypad's sums ("120000+35000"). */
+function parseGroupAmount(text: string): number | null {
+  return parseVnd(text) ?? evaluateAmountExpression(text, 'VND');
+}
+
+function sanitizeGroupAmount(raw: string): string {
+  return raw.replace(/[^0-9.,+\-− kKtTrR]/g, '');
+}
+
 function ExpenseFormContent({
   view,
   tripId,
@@ -360,6 +389,13 @@ function ExpenseFormContent({
 
   // Form field states
   const [description, setDescription] = useState(() => expense?.description ?? '');
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [category, setCategory] = useState<DanhMucValue>(() =>
+    expense?.categoryKey ? { kind: 'fixed', key: expense.categoryKey } : null,
+  );
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+  const [note, setNote] = useState(() => expense?.note ?? '');
   const [amountText, setAmountText] = useState(() =>
     expense ? fromEntryValue('amounts', expense.amount) : '',
   );
@@ -368,6 +404,7 @@ function ExpenseFormContent({
     editingFundPaid ? FUND_PAYER : (expense?.payerId ?? (me ?? formPeople[0]?.id ?? '')),
   );
   const [mode, setMode] = useState<SplitMode>(() => expense?.mode ?? 'equal');
+
 
   // Sport mode toggle
   const [sportSelected, setSportSelected] = useState<boolean>(() => {
@@ -576,8 +613,7 @@ function ExpenseFormContent({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
 
-  const parsedAmount = useMemo(() => parseVnd(amountText), [amountText]);
-  const isAmountInvalid = amountText.trim() !== '' && parsedAmount === null;
+  const parsedAmount = useMemo(() => parseGroupAmount(amountText), [amountText]);
 
   // Who is in comes from the Split between sheet: one entry each, in group order. A blank exact-amount or percent box
   // is automatic (null), and core gives it an equal part of what the typed boxes leave.
@@ -834,6 +870,11 @@ function ExpenseFormContent({
           ? isLocationValid && isSportAmountValid && isSportSplitValid
           : isAmountValid && isSplitValid);
 
+  const pickedFixed = category?.kind === 'fixed' ? fixedCategory(category.key) : undefined;
+  const categoryIcon = pickedFixed?.icon ?? fixedCategory(GENERAL_CATEGORY_KEY)?.icon ?? 'tag';
+  const categoryLabel = pickedFixed ? pickedFixed.name : t('sharedExpense.pickCategory');
+
+
   async function handleBookingImageSelect(ev: React.ChangeEvent<HTMLInputElement>) {
     const file = ev.target.files?.[0];
     ev.target.value = '';
@@ -916,10 +957,18 @@ function ExpenseFormContent({
   }
 
   async function submitExpense(overrideAmount?: number) {
+    if (!isDescriptionValid) {
+      setTitleError(t('sharedExpense.titleRequired'));
+      titleInputRef.current?.focus();
+      return;
+    }
     if (!canSubmit || isSubmitting) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
+
+    const categoryKey = category?.kind === 'fixed' ? category.key : null;
+    const trimmedNote = note.trim() || null;
 
     try {
       if (fromFund) {
@@ -927,6 +976,8 @@ function ExpenseFormContent({
         // Nobody owes a share: no entries, and whoever records it is the payer (the API sets that too).
         const body: ExpenseInput = {
           description: description.trim(),
+          categoryKey,
+          note: trimmedNote,
           amount: parsedAmount,
           spentOn,
           payerId: me,
@@ -972,6 +1023,8 @@ function ExpenseFormContent({
         if (isPlanningMode) {
           const body: ExpenseInput = {
             description: description.trim(),
+            categoryKey,
+            note: trimmedNote,
             amount: 0,
             spentOn,
             payerId,
@@ -1014,6 +1067,8 @@ function ExpenseFormContent({
         if (!sportResult || !sportResult.ok || sportTotal <= 0) return;
         const body: ExpenseInput = {
           description: description.trim(),
+          categoryKey,
+          note: trimmedNote,
           amount: sportTotal,
           spentOn,
           payerId,
@@ -1055,6 +1110,8 @@ function ExpenseFormContent({
         if (finalAmount === null) return;
         const body: ExpenseInput = {
           description: description.trim(),
+          categoryKey,
+          note: trimmedNote,
           amount: finalAmount,
           spentOn,
           payerId,
@@ -1095,56 +1152,8 @@ function ExpenseFormContent({
         ? t('expense.sendForApproval')
         : t('expenseForm.add');
 
-  return (
-    <Screen
-      title={isDirect && !isEdit ? t('home.newExpense') : title}
-      onBack={leave}
-      bottomBar={
-        <>
-          {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
-          {goneNames.length > 0 && (
-            <p className={cn('fsl-expense-form__gone m-0 mb-2 text-center text-sm leading-snug text-muted-foreground')} role="status">
-              {t('expenseForm.peopleLeft', { names: goneNames.join(', ') })}
-            </p>
-          )}
-          <Button
-            type="submit"
-            form="expense-form"
-            variant="primary"
-            block
-            loading={isSubmitting}
-            disabled={!canSubmit || isSubmitting}
-          >
-            {submitText}
-          </Button>
-        </>
-      }
-    >
-      <form
-        id="expense-form"
-        onSubmit={handleSubmit}
-        className={cn(
-          'fsl-expense-form flex flex-col gap-4 w-full',
-          Boolean(submitError || goneNames.length > 0) && 'fsl-expense-form--bar-error max-lg:pb-24',
-        )}
-      >
-        {!isDirect && switcher}
-
-        <div className={cn('fsl-field flex flex-col gap-1.5')}>
-          <Label htmlFor="expense-what-for" className={cn('fsl-field-label text-foreground')}>
-            {t('expenseForm.whatFor')}
-          </Label>
-          <Input
-            id="expense-what-for"
-            type="text"
-            className="fsl-input"
-            placeholder={sportShown ? t('sport.whatForPlaceholder') : t('expenseForm.whatForPlaceholder')}
-            maxLength={80}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
+  const sportCards = (
+    <>
         {isPlanningMode && (
           <div className="flex items-center gap-2 flex-wrap">
             <input
@@ -1619,93 +1628,146 @@ function ExpenseFormContent({
               )}
             </div>
           </div>
-        ) : (
-          <div className={cn('fsl-field flex flex-col gap-1.5')}>
-            <Label htmlFor="expense-amount" className={cn('fsl-field-label text-foreground')}>
-              {t('expenseForm.amount')}
-            </Label>
-            <Input
-              id="expense-amount"
-              type="text"
-              inputMode="decimal"
-              className="fsl-input fsl-input--amount font-semibold tabular-nums"
-              value={amountText}
-              onChange={(e) => setAmountText(e.target.value)}
-              aria-describedby={isAmountInvalid ? 'expense-amount-error' : 'expense-amount-hint'}
-            />
-            {parsedAmount !== null && (
-              <div className={cn('fsl-amount-preview text-sm font-semibold tabular-nums text-muted-foreground')}>
-                {formatVnd(parsedAmount)}
+        ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <Screen
+        title={isDirect && !isEdit ? t('home.newExpense') : title}
+        onBack={leave}
+        bottomBar={
+          (
+            <>
+              {submitError ? <InlineError error={formatSubmitError(submitError)} /> : null}
+              {goneNames.length > 0 && (
+                <p className={cn('fsl-expense-form__gone m-0 mb-2 text-center text-sm leading-snug text-muted-foreground')} role="status">
+                  {t('expenseForm.peopleLeft', { names: goneNames.join(', ') })}
+                </p>
+              )}
+              <Button
+                type="submit"
+                form="expense-form"
+                variant="primary"
+                block
+                loading={isSubmitting}
+                disabled={!canSubmit || isSubmitting}
+              >
+                {submitText}
+              </Button>
+            </>
+          )
+        }
+      >
+        <form
+          id="expense-form"
+          onSubmit={handleSubmit}
+          className={cn(
+            'fsl-expense-form flex flex-col gap-4 w-full',
+            Boolean(submitError || goneNames.length > 0) && 'fsl-expense-form--bar-error max-lg:pb-24',
+          )}
+        >
+          {!isDirect && switcher}
+
+          <TitleWithCategory
+            title={description}
+            onTitleChange={(v) => {
+              setDescription(v);
+              if (titleError) setTitleError(null);
+            }}
+            titleError={titleError}
+            categoryIcon={categoryIcon}
+            categoryLabel={categoryLabel}
+            onOpenCategory={() => setCategorySheetOpen(true)}
+            inputRef={titleInputRef}
+            inputId="expense-what-for"
+          />
+
+          {!sportShown && (
+            <div className="flex flex-col gap-1.5">
+              <AmountField
+                label={t('expenseForm.amount')}
+                value={amountText}
+                currency="VND"
+                tone="neutral"
+                inputId="expense-amount"
+                parseValue={parseGroupAmount}
+                sanitizeValue={sanitizeGroupAmount}
+                testId="amount-display"
+                inputTestId="amount-input"
+                onChange={(next) => setAmountText(next)}
+              />
+              {parsedAmount !== null && (
+                <div className={cn('fsl-amount-preview px-1 text-sm font-semibold tabular-nums text-muted-foreground')}>
+                  {formatVnd(parsedAmount)}
+                </div>
+              )}
+              {amountText.trim() !== '' && parsedAmount === null ? (
+                <div id="expense-amount-error" role="alert" className={cn('fsl-field-error px-1 text-sm text-danger')}>
+                  {t('expenseForm.amountInvalid')}
+                </div>
+              ) : (
+                <div id="expense-amount-hint" className={cn('fsl-field-hint px-1 text-sm text-muted-foreground')}>
+                  {t('expenseForm.amountHint')}
+                </div>
+              )}
+              {parsedAmount !== null && parsedAmount >= 1 && parsedAmount <= 999 && (
+                <AmountSuggestionChips
+                  value={amountText}
+                  currency="VND"
+                  onSelect={(next) => setAmountText(next)}
+                  chipClassName="border border-border"
+                />
+              )}
+            </div>
+          )}
+
+          <SharedDetailsCard
+            payerControl={
+              <div className="min-h-11 px-4 py-2 flex items-center justify-between gap-3">
+                <Label htmlFor="expense-paid-by" className="fsl-field-label text-sm font-medium text-muted-foreground shrink-0">
+                  {t('expenseForm.paidBy')}
+                </Label>
+                <NativeSelect
+                  id="expense-paid-by"
+                  data-testid="shared-payer-row"
+                  className="fsl-select text-base font-medium text-right border-0 bg-transparent shadow-none"
+                  value={payer}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    // The sport cost card turns into the plain Amount field: a total typed there carries over.
+                    if (next === FUND_PAYER && sportSelected && sportTotal > 0) {
+                      setAmountText(fromEntryValue('amounts', sportTotal));
+                    }
+                    setPayerId(next);
+                  }}
+                >
+                  {payer === '' && (
+                    <NativeSelectOption value="" disabled>
+                      {t('expenseForm.choosePayer')}
+                    </NativeSelectOption>
+                  )}
+                  {offerFund && (
+                    <NativeSelectOption value={FUND_PAYER}>{t('fund.payerOption', { amount: formatVnd(available) })}</NativeSelectOption>
+                  )}
+                  {formPeople.map((person) => (
+                    <NativeSelectOption key={person.id} value={person.id}>
+                      {person.id === me ? t('expenseForm.me', { name: person.name }) : person.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
               </div>
-            )}
-            {isAmountInvalid ? (
-              <div id="expense-amount-error" role="alert" className={cn('fsl-field-error text-sm text-danger')}>
-                {t('expenseForm.amountInvalid')}
-              </div>
+            }
+            date={spentOn}
+            onDateChange={setSpentOn}
+          />
+
+          <div className={cn('fsl-expense-form__split-section flex flex-col gap-2')}>
+            <h2 className={cn('fsl-section-heading text-sm font-semibold text-muted-foreground m-0')}>{t('expenseForm.split')}</h2>
+            {fromFund ? (
+              <FundPaidPanel available={available} after={parsedAmount === null ? null : fundCheck.after} over={fundCheck.over} />
             ) : (
-              <div id="expense-amount-hint" className={cn('fsl-field-hint text-sm text-muted-foreground')}>
-                {t('expenseForm.amountHint')}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* "Group fund · 500.000₫" is too long for half the row on a phone: paid from the fund, Paid by gets the full width. */}
-        <div className={cn('fsl-expense-form__row grid gap-3', fromFund ? 'fsl-expense-form__row--stack grid-cols-1' : 'grid-cols-2')}>
-          <div className={cn('fsl-field min-w-0 flex flex-col gap-1.5')}>
-            <Label htmlFor="expense-date" className={cn('fsl-field-label text-foreground')}>
-              {t('expenseForm.date')}
-            </Label>
-            <Input
-              id="expense-date"
-              type="date"
-              className="fsl-input"
-              value={spentOn}
-              onChange={(e) => setSpentOn(e.target.value)}
-            />
-          </div>
-
-          <div className={cn('fsl-field min-w-0 flex flex-col gap-1.5')}>
-            <Label htmlFor="expense-paid-by" className={cn('fsl-field-label text-foreground')}>
-              {t('expenseForm.paidBy')}
-            </Label>
-            <NativeSelect
-              id="expense-paid-by"
-              className="fsl-select"
-              value={payer}
-              onChange={(e) => {
-                const next = e.target.value;
-                // The sport cost card turns into the plain Amount field: a total typed there carries over.
-                if (next === FUND_PAYER && sportSelected && sportTotal > 0) {
-                  setAmountText(fromEntryValue('amounts', sportTotal));
-                }
-                setPayerId(next);
-              }}
-            >
-              {payer === '' && (
-                <NativeSelectOption value="" disabled>
-                  {t('expenseForm.choosePayer')}
-                </NativeSelectOption>
-              )}
-              {offerFund && (
-                <NativeSelectOption value={FUND_PAYER}>{t('fund.payerOption', { amount: formatVnd(available) })}</NativeSelectOption>
-              )}
-              {formPeople.map((person) => (
-                <NativeSelectOption key={person.id} value={person.id}>
-                  {person.id === me
-                    ? t('expenseForm.me', { name: person.name })
-                    : person.name}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </div>
-        </div>
-
-        <div className={cn('fsl-expense-form__split-section flex flex-col gap-2')}>
-          <h2 className={cn('fsl-section-heading text-sm font-semibold text-muted-foreground m-0')}>{t('expenseForm.split')}</h2>
-          {fromFund ? (
-            <FundPaidPanel available={available} after={parsedAmount === null ? null : fundCheck.after} over={fundCheck.over} />
-          ) : (
             <>
               <SplitBetween people={formPeople} chosen={included} me={me} onOpen={() => setPeopleSheetOpen(true)} />
 
@@ -2250,15 +2312,29 @@ function ExpenseFormContent({
               />
             </>
           )}
-        </div>
+          </div>
 
-        {view.me.kind === 'guest' && (
-          <p className={cn('fsl-expense-form__guest-note m-0 text-center text-xs text-muted-foreground leading-normal')}>
-            {t('expenseForm.guestNote')}
-          </p>
-        )}
-      </form>
-    </Screen>
+          {sportCards}
+
+          <NoteField value={note} onChange={setNote} />
+
+          {view.me.kind === 'guest' && (
+            <p className={cn('fsl-expense-form__guest-note m-0 text-center text-xs text-muted-foreground leading-normal')}>
+              {t('expenseForm.guestNote')}
+            </p>
+          )}
+        </form>
+
+        <DanhMucSheet
+          open={categorySheetOpen}
+          onClose={() => setCategorySheetOpen(false)}
+          value={category}
+          onChange={setCategory}
+        />
+
+      </Screen>
+
+    </>
   );
 }
 

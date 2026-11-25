@@ -1739,7 +1739,7 @@ export const en = {
   'visibility.expand': 'Expand {name}',
   'visibility.collapse': 'Collapse {name}',
   'visibility.save': 'Save',
-  'sharedExpense.titleLabel': 'Title', // REVIEW
+  'sharedExpense.titleLabel': 'What for', // REVIEW
   'sharedExpense.titlePlaceholder': 'e.g. BBQ dinner', // REVIEW
   'sharedExpense.titleRequired': 'Enter a title', // REVIEW
   'sharedExpense.pickCategory': 'Pick category', // REVIEW
