@@ -1720,6 +1720,7 @@ export const vi: Record<MessageKey, string> = {
   'assets.editAria': 'Sửa {name}', // REVIEW
   'assets.hideAria': 'Ẩn {name}', // REVIEW
   'assets.showAria': 'Hiện {name}', // REVIEW
+  'assets.stepLot': 'lẻ đến {step}', // REVIEW
   'wallet.holdingAvgPrice': '~{price}/{unit}', // REVIEW
   'wallet.holdingsTotal': 'Tổng vốn · {count} tài sản', // REVIEW
   'wallet.holdingsTotalWithCash': 'Tổng · {count} tài sản + tiền mặt', // REVIEW

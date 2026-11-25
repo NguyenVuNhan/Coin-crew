@@ -1719,6 +1719,7 @@ export const en = {
   'assets.editAria': 'Edit {name}',
   'assets.hideAria': 'Hide {name}',
   'assets.showAria': 'Show {name}',
+  'assets.stepLot': 'step {step}',
   'wallet.holdingAvgPrice': '~{price}/{unit}',
   'wallet.holdingsTotal': 'Total cost · {count} assets',
   'wallet.holdingsTotalWithCash': 'Total · {count} assets + cash',
