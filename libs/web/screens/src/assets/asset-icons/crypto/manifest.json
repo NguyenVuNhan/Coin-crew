@@ -1,0 +1,19 @@
+[
+  { "slug": "btc", "labelVi": "Bitcoin (BTC)", "labelEn": "Bitcoin (BTC)", "keywords": ["btc", "bitcoin", "crypto", "tien ao", "tien ma hoa"] },
+  { "slug": "eth", "labelVi": "Ethereum (ETH)", "labelEn": "Ethereum (ETH)", "keywords": ["eth", "ethereum", "ether", "crypto", "tien ao"] },
+  { "slug": "usdt", "labelVi": "Tether (USDT)", "labelEn": "Tether (USDT)", "keywords": ["usdt", "tether", "stablecoin", "usd", "crypto"] },
+  { "slug": "usdc", "labelVi": "USD Coin (USDC)", "labelEn": "USD Coin (USDC)", "keywords": ["usdc", "usd coin", "circle", "stablecoin", "crypto"] },
+  { "slug": "bnb", "labelVi": "BNB", "labelEn": "BNB", "keywords": ["bnb", "binance", "binance coin", "crypto"] },
+  { "slug": "sol", "labelVi": "Solana (SOL)", "labelEn": "Solana (SOL)", "keywords": ["sol", "solana", "crypto"] },
+  { "slug": "xrp", "labelVi": "XRP (Ripple)", "labelEn": "XRP (Ripple)", "keywords": ["xrp", "ripple", "crypto"] },
+  { "slug": "ada", "labelVi": "Cardano (ADA)", "labelEn": "Cardano (ADA)", "keywords": ["ada", "cardano", "crypto"] },
+  { "slug": "doge", "labelVi": "Dogecoin (DOGE)", "labelEn": "Dogecoin (DOGE)", "keywords": ["doge", "dogecoin", "meme", "crypto"] },
+  { "slug": "ton", "labelVi": "Toncoin (TON)", "labelEn": "Toncoin (TON)", "keywords": ["ton", "toncoin", "telegram", "crypto"] },
+  { "slug": "trx", "labelVi": "TRON (TRX)", "labelEn": "TRON (TRX)", "keywords": ["trx", "tron", "crypto"] },
+  { "slug": "dot", "labelVi": "Polkadot (DOT)", "labelEn": "Polkadot (DOT)", "keywords": ["dot", "polkadot", "crypto"] },
+  { "slug": "ltc", "labelVi": "Litecoin (LTC)", "labelEn": "Litecoin (LTC)", "keywords": ["ltc", "litecoin", "crypto"] },
+  { "slug": "pol", "labelVi": "Polygon (POL)", "labelEn": "Polygon (POL)", "keywords": ["pol", "polygon", "matic", "crypto"] },
+  { "slug": "avax", "labelVi": "Avalanche (AVAX)", "labelEn": "Avalanche (AVAX)", "keywords": ["avax", "avalanche", "crypto"] },
+  { "slug": "link", "labelVi": "Chainlink (LINK)", "labelEn": "Chainlink (LINK)", "keywords": ["link", "chainlink", "oracle", "crypto"] },
+  { "slug": "crypto-other", "labelVi": "Tiền mã hóa khác", "labelEn": "Other Crypto", "keywords": ["crypto", "token", "altcoin", "tien ao", "tien ma hoa", "khac", "other"] }
+]

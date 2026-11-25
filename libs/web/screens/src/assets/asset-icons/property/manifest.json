@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "land",
+    "labelVi": "Đất nền",
+    "labelEn": "Land Plot",
+    "keywords": ["dat nen", "dat", "lo dat", "bat dong san", "land", "plot", "real estate"]
+  },
+  {
+    "slug": "house",
+    "labelVi": "Nhà ở",
+    "labelEn": "House",
+    "keywords": ["nha", "nha o", "nha rieng", "nha pho", "bat dong san", "house", "home", "real estate"]
+  },
+  {
+    "slug": "apartment",
+    "labelVi": "Căn hộ",
+    "labelEn": "Apartment",
+    "keywords": ["can ho", "chung cu", "apartment", "condo", "flat", "real estate"]
+  },
+  {
+    "slug": "shophouse",
+    "labelVi": "Nhà mặt phố",
+    "labelEn": "Shophouse",
+    "keywords": ["nha mat pho", "shophouse", "mat bang", "kinh doanh", "shop", "real estate"]
+  },
+  {
+    "slug": "car",
+    "labelVi": "Ô tô",
+    "labelEn": "Car",
+    "keywords": ["o to", "xe hoi", "xe", "car", "auto", "vehicle"]
+  },
+  {
+    "slug": "motorbike",
+    "labelVi": "Xe máy",
+    "labelEn": "Motorbike",
+    "keywords": ["xe may", "xe tay ga", "mo to", "motorbike", "scooter", "motorcycle", "vehicle"]
+  },
+  {
+    "slug": "savings-book",
+    "labelVi": "Sổ tiết kiệm",
+    "labelEn": "Savings Book",
+    "keywords": ["so tiet kiem", "gui tiet kiem", "ky han", "savings book", "passbook", "term deposit"]
+  },
+  {
+    "slug": "loan-out",
+    "labelVi": "Cho vay",
+    "labelEn": "Loans Given",
+    "keywords": ["cho vay", "khoan vay", "no phai thu", "loan", "lending", "receivable"]
+  },
+  {
+    "slug": "insurance",
+    "labelVi": "Bảo hiểm",
+    "labelEn": "Insurance",
+    "keywords": ["bao hiem", "nhan tho", "hop dong bao hiem", "insurance", "life insurance", "policy"]
+  },
+  {
+    "slug": "watch",
+    "labelVi": "Đồng hồ",
+    "labelEn": "Watch",
+    "keywords": ["dong ho", "xa xi", "watch", "timepiece", "luxury"]
+  },
+  {
+    "slug": "art",
+    "labelVi": "Tranh & Nghệ thuật",
+    "labelEn": "Art",
+    "keywords": ["tranh", "nghe thuat", "tac pham", "art", "painting", "artwork"]
+  },
+  {
+    "slug": "collectible",
+    "labelVi": "Đồ sưu tầm",
+    "labelEn": "Collectible",
+    "keywords": ["suu tam", "the bai", "mo hinh", "collectible", "trading card", "figure"]
+  },
+  {
+    "slug": "cash-foreign",
+    "labelVi": "Ngoại tệ",
+    "labelEn": "Foreign Cash",
+    "keywords": ["ngoai te", "tien mat", "usd", "eur", "foreign currency", "cash", "banknotes"]
+  },
+  {
+    "slug": "other",
+    "labelVi": "Tài sản khác",
+    "labelEn": "Other Asset",
+    "keywords": ["tai san khac", "khac", "other", "misc", "treasure"]
+  }
+]

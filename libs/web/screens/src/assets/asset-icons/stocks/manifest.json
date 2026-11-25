@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "stock",
+    "labelVi": "Cổ phiếu",
+    "labelEn": "Stock",
+    "keywords": ["co phieu", "chung khoan", "nen nhat", "stock", "stocks", "equity", "candlestick"]
+  },
+  {
+    "slug": "stock-up",
+    "labelVi": "Tăng trưởng",
+    "labelEn": "Growth Stock",
+    "keywords": ["tang truong", "co phieu tang", "xu huong", "growth", "stock up", "bullish"]
+  },
+  {
+    "slug": "index",
+    "labelVi": "Chỉ số",
+    "labelEn": "Market Index",
+    "keywords": ["chi so", "vnindex", "vn30", "hnx", "index", "benchmark"]
+  },
+  {
+    "slug": "etf",
+    "labelVi": "Quỹ ETF",
+    "labelEn": "ETF",
+    "keywords": ["etf", "quy hoan doi", "chi so", "ro co phieu", "basket", "fund"]
+  },
+  {
+    "slug": "fund",
+    "labelVi": "Chứng chỉ quỹ",
+    "labelEn": "Mutual Fund",
+    "keywords": ["chung chi quy", "quy mo", "dau tu", "fund", "mutual fund", "ccq"]
+  },
+  {
+    "slug": "bond",
+    "labelVi": "Trái phiếu",
+    "labelEn": "Bond",
+    "keywords": ["trai phieu", "chinh phu", "doanh nghiep", "bond", "fixed income"]
+  },
+  {
+    "slug": "dividend",
+    "labelVi": "Cổ tức",
+    "labelEn": "Dividend",
+    "keywords": ["co tuc", "chia co tuc", "thu nhap", "dividend", "yield", "payout"]
+  },
+  {
+    "slug": "ipo",
+    "labelVi": "IPO / Niêm yết",
+    "labelEn": "IPO / Listing",
+    "keywords": ["ipo", "niem yet", "phat hanh", "chuong", "listing", "bell"]
+  },
+  {
+    "slug": "sector-bank",
+    "labelVi": "Ngân hàng",
+    "labelEn": "Banking",
+    "keywords": ["ngan hang", "tai chinh", "co phieu vua", "bank", "banking", "finance"]
+  },
+  {
+    "slug": "sector-realestate",
+    "labelVi": "Bất động sản",
+    "labelEn": "Real Estate",
+    "keywords": ["bat dong san", "nha dat", "dia oc", "bds", "real estate", "property"]
+  },
+  {
+    "slug": "sector-tech",
+    "labelVi": "Công nghệ",
+    "labelEn": "Technology",
+    "keywords": ["cong nghe", "phan mem", "vien thong", "tech", "technology", "chip"]
+  },
+  {
+    "slug": "sector-energy",
+    "labelVi": "Năng lượng",
+    "labelEn": "Energy",
+    "keywords": ["nang luong", "dau khi", "dien", "energy", "oil", "power"]
+  },
+  {
+    "slug": "sector-steel",
+    "labelVi": "Thép & Vật liệu",
+    "labelEn": "Steel & Materials",
+    "keywords": ["thep", "sat thep", "vat lieu", "xay dung", "steel", "materials"]
+  },
+  {
+    "slug": "sector-consumer",
+    "labelVi": "Tiêu dùng & Bán lẻ",
+    "labelEn": "Consumer & Retail",
+    "keywords": ["tieu dung", "ban le", "hang hoa", "consumer", "retail", "shopping"]
+  }
+]
