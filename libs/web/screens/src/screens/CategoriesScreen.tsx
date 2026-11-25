@@ -415,34 +415,34 @@ export function CategoriesScreen(): JSX.Element {
   const allCategories = categoriesQuery.data?.categories ?? [];
   const isFixed = (cat: CategoryView): boolean => Boolean(cat.systemKey);
 
-  const { parents, visibleParents, childrenByParent, hiddenFixed } = useMemo(() => {
+  // Every hidden category, built-in or own, sits in "Đã ẩn" below the list; a hidden parent takes its
+  // sub-categories with it, and a hidden sub-category of a shown parent is listed there on its own.
+  const { parents, visibleParents, childrenByParent, hiddenParents, hiddenSubs } = useMemo(() => {
     const filtered = allCategories.filter((c) => c.type === type);
-    const hiddenFixedList = filtered
-      .filter((c) => Boolean(c.systemKey) && c.hidden)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-    const hiddenFixedIds = new Set(hiddenFixedList.map((c) => c.id));
+    const byOrder = (a: CategoryView, b: CategoryView) => a.sortOrder - b.sortOrder;
 
-    const allParentList = filtered
-      .filter((c) => c.parentId === null)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-    const visibleParentList = allParentList.filter((c) => !hiddenFixedIds.has(c.id));
+    const allParentList = filtered.filter((c) => c.parentId === null).sort(byOrder);
+    const hiddenParentIds = new Set(allParentList.filter((c) => c.hidden).map((c) => c.id));
 
     const childMap = new Map<string, CategoryView[]>();
+    const hiddenSubList: CategoryView[] = [];
     for (const c of filtered) {
-      if (c.parentId !== null && !hiddenFixedIds.has(c.id)) {
-        const arr = childMap.get(c.parentId) ?? [];
-        arr.push(c);
-        childMap.set(c.parentId, arr);
+      if (c.parentId === null) continue;
+      if (c.hidden && !hiddenParentIds.has(c.parentId)) {
+        hiddenSubList.push(c);
+        continue;
       }
+      const arr = childMap.get(c.parentId) ?? [];
+      arr.push(c);
+      childMap.set(c.parentId, arr);
     }
-    for (const arr of childMap.values()) {
-      arr.sort((a, b) => a.sortOrder - b.sortOrder);
-    }
+    for (const arr of childMap.values()) arr.sort(byOrder);
     return {
       parents: allParentList,
-      visibleParents: visibleParentList,
+      visibleParents: allParentList.filter((c) => !c.hidden),
       childrenByParent: childMap,
-      hiddenFixed: hiddenFixedList,
+      hiddenParents: allParentList.filter((c) => c.hidden),
+      hiddenSubs: hiddenSubList.sort(byOrder),
     };
   }, [allCategories, type]);
 
@@ -703,16 +703,43 @@ export function CategoriesScreen(): JSX.Element {
             </div>
           }
           trailing={
-            fixed ? (
-              <div className="flex items-center gap-2 min-h-11">
+            <div className="flex items-center gap-1 min-h-11">
+              {fixed ? (
                 <span
                   role="img"
                   aria-label={t('categories.builtIn')}
                   title={t('categories.builtIn')}
-                  className="inline-flex items-center text-muted-foreground shrink-0"
+                  className="inline-flex items-center px-1 text-muted-foreground shrink-0"
                 >
                   <Icon name="shield" size={14} />
                 </span>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    aria-label={t('categories.mergeInto')}
+                    title={t('categories.mergeInto')}
+                    data-testid={`category-merge-${cat.id}`}
+                    onClick={() => {
+                      setMergeError(null);
+                      setMergeSource(cat);
+                    }}
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icon name="merge" size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('categories.editAria', { name: cat.name })}
+                    data-testid={`category-edit-${cat.id}`}
+                    onClick={() => openEdit(cat)}
+                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icon name="edit" size={18} />
+                  </button>
+                </>
+              )}
+              <span className="inline-flex min-h-11 items-center pl-1">
                 <Switch
                   checked={!cat.hidden}
                   aria-label={
@@ -725,49 +752,8 @@ export function CategoriesScreen(): JSX.Element {
                     void updateCategory.mutate({ id: cat.id, input: { hidden: !checked } });
                   }}
                 />
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                {cat.hidden && <Pill tone="neutral">{t('categories.hiddenBadge')}</Pill>}
-                <button
-                  type="button"
-                  aria-label={t('categories.mergeInto')}
-                  title={t('categories.mergeInto')}
-                  data-testid={`category-merge-${cat.id}`}
-                  onClick={() => {
-                    setMergeError(null);
-                    setMergeSource(cat);
-                  }}
-                  className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Icon name="merge" size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label={t('categories.editAria', { name: cat.name })}
-                  data-testid={`category-edit-${cat.id}`}
-                  onClick={() => openEdit(cat)}
-                  className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Icon name="edit" size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label={
-                    cat.hidden
-                      ? t('categories.showAria', { name: cat.name })
-                      : t('categories.hideAria', { name: cat.name })
-                  }
-                  data-testid={`category-toggle-hidden-${cat.id}`}
-                  onClick={() => {
-                    void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
-                  }}
-                  className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Icon name={cat.hidden ? 'eye' : 'eye-off'} size={18} />
-                </button>
-              </div>
-            )
+              </span>
+            </div>
           }
         >
           <span className="text-sm font-medium text-foreground truncate">{cat.name}</span>
@@ -811,7 +797,7 @@ export function CategoriesScreen(): JSX.Element {
           <SkeletonList rows={5} />
         ) : categoriesQuery.error ? (
           <InlineError error={categoriesQuery.error} onRetry={() => categoriesQuery.refetch()} />
-        ) : visibleParents.length === 0 && hiddenFixed.length === 0 ? (
+        ) : parents.length === 0 && hiddenSubs.length === 0 ? (
           <EmptyState
             icon="pie"
             title={t('categories.emptyTitle')}
@@ -832,13 +818,19 @@ export function CategoriesScreen(): JSX.Element {
                 })}
               </div>
             )}
-            {hiddenFixed.length > 0 && (
+            {(hiddenParents.length > 0 || hiddenSubs.length > 0) && (
               <section data-testid="categories-hidden-section" className="flex flex-col gap-2">
                 <h2 className="m-0 px-1 text-sm font-semibold text-muted-foreground">
                   {t('categories.hiddenSection')}
                 </h2>
                 <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-                  {hiddenFixed.map((cat) => renderRow(cat, false))}
+                  {hiddenParents.map((parent) => (
+                    <div key={parent.id} className="divide-y divide-border">
+                      {renderRow(parent, false)}
+                      {(childrenByParent.get(parent.id) ?? []).map((sub) => renderRow(sub, true))}
+                    </div>
+                  ))}
+                  {hiddenSubs.map((cat) => renderRow(cat, false))}
                 </div>
               </section>
             )}

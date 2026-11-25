@@ -104,7 +104,7 @@ describe('owner review round 2: CategoriesScreen', () => {
     });
   });
 
-  it('sends PATCH hidden: true when clicking the hide icon and updates the row button to Hiện', async () => {
+  it('sends PATCH hidden: true when switching it off and the switch then reads Hiện', async () => {
     const user = userEvent.setup();
     let categoriesState: CategoryView[] = [foodParent, coffeeSub];
 
@@ -125,8 +125,9 @@ describe('owner review round 2: CategoriesScreen', () => {
     act(() => setLang('vi'));
     await screen.findByText('Ăn uống');
 
-    const hideBtn = screen.getByRole('button', { name: 'Ẩn Ăn uống' });
-    expect(hideBtn.className).toContain('min-h-11');
+    // #140: every category hides with the same switch (44px target on its wrapper).
+    const hideBtn = screen.getByRole('switch', { name: 'Ẩn Ăn uống' });
+    expect(hideBtn.parentElement?.className).toContain('min-h-11');
     await user.click(hideBtn);
 
     await waitFor(() => {
@@ -139,7 +140,7 @@ describe('owner review round 2: CategoriesScreen', () => {
 
     const row = screen.getByTestId('category-row-cat-food');
     await waitFor(() => {
-      expect(within(row).getByRole('button', { name: 'Hiện Ăn uống' })).toBeInTheDocument();
+      expect(within(row).getByRole('switch', { name: 'Hiện Ăn uống' })).toBeInTheDocument();
     });
   });
 });

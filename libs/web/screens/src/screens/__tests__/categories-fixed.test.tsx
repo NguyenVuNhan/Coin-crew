@@ -85,6 +85,45 @@ describe('CategoriesScreen fixed, hidden & merge', () => {
     expect(within(fixedRow).queryByRole('button', { name: 'Sửa' })).not.toBeInTheDocument();
   });
 
+  it('own categories hide with the same switch and also move to Đã ẩn', async () => {
+    const user = userEvent.setup();
+    let cats = sampleCategories();
+
+    const { calls } = mockApi({
+      'GET /api/me/ledger': { tripId: 't-led', ownerPid: 'p-me' },
+      'GET /api/me/personal/categories': () => Response.json({ categories: cats, recentIds: [] }),
+      'PATCH /api/me/personal/categories/cat-custom-coffee': (init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body ?? '{}')) as { hidden?: boolean };
+        cats = cats.map((c) =>
+          c.id === 'cat-custom-coffee' ? { ...c, hidden: body.hidden ?? c.hidden } : c,
+        );
+        return Response.json({ category: cats.find((c) => c.id === 'cat-custom-coffee') });
+      },
+    });
+
+    renderVi();
+
+    const customRow = await screen.findByTestId('category-row-cat-custom-coffee');
+    expect(within(customRow).getByTestId('category-merge-cat-custom-coffee')).toBeInTheDocument();
+    expect(within(customRow).getByTestId('category-edit-cat-custom-coffee')).toBeInTheDocument();
+    expect(within(customRow).queryByTestId('category-toggle-hidden-cat-custom-coffee')).toBeNull();
+
+    await user.click(within(customRow).getByTestId('category-hide-cat-custom-coffee'));
+
+    await waitFor(() => {
+      const patchCall = calls.find(
+        (c) => c.method === 'PATCH' && c.path === '/api/me/personal/categories/cat-custom-coffee',
+      );
+      expect(patchCall?.body).toEqual({ hidden: true });
+    });
+    const hiddenSection = await screen.findByTestId('categories-hidden-section');
+    expect(within(hiddenSection).getByTestId('category-row-cat-custom-coffee')).toBeInTheDocument();
+    expect(within(hiddenSection).getByTestId('category-hide-cat-custom-coffee')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+  });
+
   it('hide switch moves it to Đã ẩn', async () => {
     const user = userEvent.setup();
     let cats = sampleCategories();
