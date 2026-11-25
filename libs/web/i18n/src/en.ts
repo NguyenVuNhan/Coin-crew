@@ -1748,6 +1748,14 @@ export const en = {
   'sharedExpense.payer': 'Paid by', // REVIEW
   'sharedExpense.note': 'Note', // REVIEW
   'sharedExpense.notePlaceholder': 'Extra details (optional)', // REVIEW
+  'categories.builtIn': 'Built-in', // REVIEW
+  'categories.hiddenSection': 'Hidden', // REVIEW
+  'categories.mergeInto': 'Merge into…', // REVIEW
+  'categories.mergeTitle': 'Merge “{name}” into…', // REVIEW
+  'categories.mergeEmpty': 'No built-in categories available.', // REVIEW
+  'categories.mergeConfirmTitle': 'Merge category?', // REVIEW
+  'categories.mergeConfirmBody': 'Merge “{from}” into “{to}”? Transactions will move to “{to}”.', // REVIEW
+  'categories.mergeConfirmAction': 'Merge', // REVIEW
 } as const;
 
 export type MessageKey = keyof typeof en;

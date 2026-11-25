@@ -1749,4 +1749,12 @@ export const vi: Record<MessageKey, string> = {
   'sharedExpense.payer': 'Người trả', // REVIEW
   'sharedExpense.note': 'Nội dung', // REVIEW
   'sharedExpense.notePlaceholder': 'Ghi chú thêm (không bắt buộc)', // REVIEW
+  'categories.builtIn': 'Có sẵn', // REVIEW
+  'categories.hiddenSection': 'Đã ẩn', // REVIEW
+  'categories.mergeInto': 'Gộp vào…', // REVIEW
+  'categories.mergeTitle': 'Gộp “{name}” vào…', // REVIEW
+  'categories.mergeEmpty': 'Chưa có danh mục cố định nào.', // REVIEW
+  'categories.mergeConfirmTitle': 'Gộp danh mục?', // REVIEW
+  'categories.mergeConfirmBody': 'Gộp “{from}” vào “{to}”? Các giao dịch sẽ chuyển sang “{to}”.', // REVIEW
+  'categories.mergeConfirmAction': 'Gộp', // REVIEW
 };
