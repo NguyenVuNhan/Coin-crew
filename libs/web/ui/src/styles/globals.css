@@ -100,6 +100,13 @@
   --radius-lg: calc(var(--radius) * 0.8);
   --radius-xl: var(--radius);
   --radius-2xl: calc(var(--radius) * 1.2);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
 }
 
 :root {
@@ -173,6 +180,13 @@
   --meme-story-bar: #ffffff;
   --meme-story-chrome: rgba(246, 247, 244, 0.12);
   --meme-story-border: rgba(246, 247, 244, 0.16);
+
+  --chart-1: #0e7490;
+  --chart-2: #d97706;
+  --chart-3: #6d28d9;
+  --chart-4: #db2777;
+  --chart-5: #2563eb;
+  --chart-6: #65a30d;
 
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
 

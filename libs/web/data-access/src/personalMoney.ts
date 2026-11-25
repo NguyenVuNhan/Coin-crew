@@ -30,6 +30,7 @@ export const PERSONAL_ASSETS_KEY = ['me', 'personal', 'assets'] as const;
 export const PERSONAL_HOLDINGS_KEY = ['me', 'personal', 'holdings'] as const;
 export const PERSONAL_GROUP_SETTINGS_KEY = ['me', 'personal', 'group-settings'] as const;
 export const PERSONAL_BALANCE_CHECKS_KEY = ['me', 'personal', 'balance-checks'] as const;
+export const PERSONAL_REPORT_KEY = ['me', 'personal', 'report'] as const;
 
 const LAST_WALLET_STORAGE_KEY = 'cc.personal.lastWallet';
 
@@ -115,6 +116,7 @@ async function invalidateMoney(queryClient: QueryClient): Promise<void> {
     queryClient.invalidateQueries({ queryKey: PERSONAL_SUMMARY_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_REPORT_KEY }),
   ]);
 }
 
@@ -132,6 +134,7 @@ async function invalidateCategories(queryClient: QueryClient): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_REPORT_KEY }),
   ]);
 }
 
@@ -139,6 +142,7 @@ async function invalidateTags(queryClient: QueryClient): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: PERSONAL_TAGS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_REPORT_KEY }),
   ]);
 }
 

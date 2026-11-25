@@ -156,6 +156,10 @@ export const vi: Record<MessageKey, string> = {
   'book.total': 'Tổng tiền', // REVIEW
   'book.peopleOwe': 'Mọi người nợ bạn', // REVIEW
   'book.peopleTitle': 'Mọi người', // REVIEW
+  'book.reportsTitle': 'Báo cáo', // REVIEW
+  'book.reportsDesc': 'Thu & chi theo danh mục, thẻ', // REVIEW
+  'book.monthSpent': 'Tháng này chi', // REVIEW
+  'book.monthIncome': 'Thu', // REVIEW
 
   'person.title': 'Chi tiết',
   'person.owesYou': 'Nợ bạn',
@@ -1713,4 +1717,90 @@ export const vi: Record<MessageKey, string> = {
   'visibility.expand': 'Mở rộng {name}', // REVIEW
   'visibility.collapse': 'Thu gọn {name}', // REVIEW
   'visibility.save': 'Lưu', // REVIEW
+
+  'reports.title': 'Báo cáo', // REVIEW
+  'reports.backToBook': 'Sổ chi tiêu', // REVIEW
+  'reports.backToReports': 'Báo cáo', // REVIEW
+  'reports.categoryDrilldownTitle': '{name}', // REVIEW
+  'reports.modeWeek': 'Tuần', // REVIEW
+  'reports.modeMonth': 'Tháng', // REVIEW
+  'reports.modeYear': 'Năm', // REVIEW
+  'reports.modeCustom': 'Tùy chọn', // REVIEW
+  'reports.prevPeriod': 'Kỳ trước', // REVIEW
+  'reports.nextPeriod': 'Kỳ sau', // REVIEW
+  'reports.customFrom': 'Từ ngày', // REVIEW
+  'reports.customTo': 'Đến ngày', // REVIEW
+  'reports.applyCustom': 'Áp dụng', // REVIEW
+  'reports.monthLabel': 'Tháng {month}', // REVIEW
+  'reports.yearLabel': 'Năm {year}', // REVIEW
+  'reports.weekLabel': '{from} – {to}', // REVIEW
+  'reports.customLabel': '{from} – {to}', // REVIEW
+  'reports.allWallets': 'Tất cả ví', // REVIEW
+  'reports.walletScope': 'Ví: {name}', // REVIEW
+  'reports.includeGroups': 'Gồm nhóm', // REVIEW
+  'reports.excludeGroups': 'Ẩn nhóm', // REVIEW
+  'reports.approximateVnd': '≈ VND', // REVIEW
+  'reports.spent': 'Đã chi', // REVIEW
+  'reports.income': 'Đã thu', // REVIEW
+  'reports.net': 'Chênh lệch', // REVIEW
+  'reports.vsSamePeriod': 'so với cùng kỳ trước', // REVIEW
+  'reports.vsSamePeriodMonth': 'so với cùng kỳ tháng trước', // REVIEW
+  'reports.vsPreviousPeriod': 'so với {label}', // REVIEW
+  'reports.vs3mAvg': 'so với TB {count} kỳ trước', // REVIEW
+  'reports.noBaselineYet': 'Chưa đủ dữ liệu kỳ trước để so sánh', // REVIEW
+  'reports.healthTitle': 'Thu & Chi trong kỳ', // REVIEW
+  'reports.cumulativeSubtitle': 'Lũy kế', // REVIEW
+  'reports.legendIncome': 'Thu', // REVIEW
+  'reports.legendExpense': 'Chi', // REVIEW
+  'reports.legendAvgIncome': 'TB thu {count} kỳ', // REVIEW
+  'reports.legendAvgExpense': 'TB chi {count} kỳ', // REVIEW
+  'reports.avgPrefix': 'TB', // REVIEW
+  'reports.singleDayNote': 'Dữ liệu lũy kế theo ngày', // REVIEW
+  'reports.categoryTitle': 'Theo danh mục', // REVIEW
+  'reports.tabExpense': 'Chi tiêu', // REVIEW
+  'reports.tabIncome': 'Thu nhập', // REVIEW
+  'reports.noExpenseCategory': 'Chưa có chi tiêu trong kỳ', // REVIEW
+  'reports.noIncomeCategory': 'Chưa có thu nhập trong kỳ', // REVIEW
+  'reports.generalParentBucket': '{name} (chung)', // REVIEW
+  'reports.uncategorized': 'Chưa phân loại', // REVIEW
+  'reports.subCategoriesTitle': 'Chi tiết theo mục con', // REVIEW
+  'reports.allSubCategoriesFilter': 'Tất cả', // REVIEW
+  'reports.clearSubFilter': 'Xóa lọc', // REVIEW
+  'reports.matchingTransactions': 'Giao dịch ({count})', // REVIEW
+  'reports.noMatchingTransactions': 'Không có giao dịch nào trong kỳ này.', // REVIEW
+  'reports.previousPeriodTotal': 'Kỳ trước', // REVIEW
+  'reports.baselineAvgLabel': 'TB {count} kỳ trước', // REVIEW
+  'reports.viewCategoryHint': 'Chạm để xem chi tiết', // REVIEW
+  'reports.tagsTitle': 'Theo thẻ', // REVIEW
+  'reports.tagsToggleExpense': 'Chi', // REVIEW
+  'reports.tagsToggleIncome': 'Thu', // REVIEW
+  'reports.tagsShowAll': 'Xem tất cả ({count} thẻ)', // REVIEW
+  'reports.tagsCollapse': 'Thu gọn', // REVIEW
+  'reports.tagsSearchPlaceholder': 'Tìm thẻ...', // REVIEW
+  'reports.tagsNoSearchMatch': 'Không tìm thấy thẻ phù hợp', // REVIEW
+  'reports.tagsMultiOverlapNote': 'Một giao dịch có thể gắn nhiều thẻ nên tổng các thanh có thể vượt tổng kỳ.', // REVIEW
+  'reports.noTagsData': 'Chưa có giao dịch gắn thẻ trong kỳ', // REVIEW
+  'reports.tagsEntryCount': '{count} giao dịch', // REVIEW
+  'reports.tagsViewTransactions': 'Xem giao dịch', // REVIEW
+  'reports.walletBalanceTitle': 'Số dư theo thời gian', // REVIEW
+  'reports.balanceOpening': 'Đầu kỳ', // REVIEW
+  'reports.balanceClosing': 'Cuối kỳ', // REVIEW
+  'reports.balanceNetChange': 'Thay đổi ròng', // REVIEW
+  'reports.balanceMin': 'Thấp nhất', // REVIEW
+  'reports.balanceMax': 'Cao nhất', // REVIEW
+  'reports.checkpointStart': 'Bắt đầu', // REVIEW
+  'reports.checkpointMin': 'Thấp nhất', // REVIEW
+  'reports.checkpointMax': 'Cao nhất', // REVIEW
+  'reports.checkpointEnd': 'Hiện tại', // REVIEW
+  'reports.excludedWalletBanner': 'Ví này không tính vào báo cáo tổng — đang xem riêng ví này', // REVIEW
+  'reports.unratedNoticeTitle': 'Một số giao dịch ngoại tệ chưa có tỷ giá', // REVIEW
+  'reports.unratedNoticeBody': '{name} ({currency}) chưa có tỷ giá sang VND nên chưa gộp vào biểu đồ VND.', // REVIEW
+  'reports.unratedInspectWallet': 'Xem ví {name}', // REVIEW
+  'reports.unratedOnlyNote': 'Các giao dịch trong kỳ hiện thuộc ví ngoại tệ chưa có tỷ giá sang VND.', // REVIEW
+  'reports.emptyTitle': 'Chưa có giao dịch trong kỳ này', // REVIEW
+  'reports.emptyBody': 'Thử chuyển sang kỳ khác hoặc xóa bộ lọc ví để xem dữ liệu.', // REVIEW
+  'reports.clearFilters': 'Xóa bộ lọc', // REVIEW
+  'reports.perCurrencyBreakdown': 'Chi tiết theo tiền tệ', // REVIEW
+  'reports.loadError': 'Không tải được dữ liệu báo cáo.', // REVIEW
+  'reports.retry': 'Thử lại', // REVIEW
 };
