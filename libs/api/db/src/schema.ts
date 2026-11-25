@@ -694,6 +694,7 @@ export const personalAssets = sqliteTable(
     unit: text('unit').notNull(),
     groupName: text('group_name').notNull(),
     decimals: integer('decimals').notNull(),
+    icon: text('icon'),
     hidden: integer('hidden').notNull().default(0),
     sortOrder: integer('sort_order').notNull(),
     createdAt: text('created_at').notNull(),

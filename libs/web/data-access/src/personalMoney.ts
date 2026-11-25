@@ -66,6 +66,7 @@ export interface CreateAssetInput {
   unit: string;
   groupName: string;
   decimals: number;
+  icon?: string | null;
 }
 
 export interface UpdateAssetInput {
@@ -73,6 +74,7 @@ export interface UpdateAssetInput {
   unit?: string;
   groupName?: string;
   decimals?: number;
+  icon?: string | null;
   hidden?: boolean;
 }
 
