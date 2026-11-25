@@ -11,7 +11,6 @@ import {
   type ChartConfig,
 } from '@cc/web-ui/components/ui/chart';
 import { Pill } from '@cc/web-ui/components/Pill';
-import { cn } from '@cc/web-ui/lib/utils';
 import { compactReportAmount } from './reportUrl';
 
 export interface HealthTrendCardProps {
@@ -21,35 +20,6 @@ export interface HealthTrendCardProps {
 export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
   const t = useT();
   const approxPrefix = report.approximate ? '≈ ' : '';
-
-  const { periodCmp, spentPctStr } = useMemo(() => {
-    const d = report.previousDelta;
-    let cmpText = '';
-    if (report.period.inProgress) {
-      cmpText =
-        report.period.mode === 'month'
-          ? t('reports.vsSamePeriodMonth')
-          : t('reports.vsSamePeriod');
-    } else {
-      const p = report.period.previous;
-      const prevLabel =
-        report.period.mode === 'month'
-          ? `${p.from.slice(5, 7)}/${p.from.slice(0, 4)}`
-          : report.period.mode === 'year'
-            ? p.from.slice(0, 4)
-            : `${p.from.slice(8, 10)}/${p.from.slice(5, 7)}–${p.to.slice(8, 10)}/${p.to.slice(5, 7)}`;
-      cmpText = t('reports.vsPreviousPeriod', { label: prevLabel });
-    }
-
-    const spentDiffSign = d.spentDiff > 0 ? '+' : d.spentDiff < 0 ? '-' : '';
-    const spentDiffAbs = Math.abs(d.spentDiff);
-    const pctStr =
-      d.spentPct !== null
-        ? `${d.spentPct > 0 ? '+' : ''}${d.spentPct}%`
-        : `${spentDiffSign}${formatMoney(spentDiffAbs, report.currency)}`;
-
-    return { periodCmp: cmpText, spentPctStr: pctStr };
-  }, [report, t]);
 
   const chartConfig = useMemo(
     () =>
@@ -100,78 +70,6 @@ export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
             <Pill tone="neutral">{t('reports.approximateVnd')}</Pill>
           )}
         </div>
-      </div>
-
-      {/* 3-column KPI strip */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-xs text-muted-foreground truncate">
-            {t('reports.spent')}
-          </span>
-          <span className="tabular-nums text-danger font-bold text-sm sm:text-base truncate">
-            {approxPrefix}
-            {formatMoney(report.totals.spent, report.currency)}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-xs text-muted-foreground truncate">
-            {t('reports.income')}
-          </span>
-          <span className="tabular-nums text-success font-bold text-sm sm:text-base truncate">
-            {approxPrefix}
-            {formatMoney(report.totals.income, report.currency)}
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-xs text-muted-foreground truncate">
-            {t('reports.net')}
-          </span>
-          <span
-            className={cn(
-              'tabular-nums font-bold text-sm sm:text-base truncate',
-              report.totals.net >= 0 ? 'text-success' : 'text-danger',
-            )}
-          >
-            {report.totals.net > 0 ? '+' : report.totals.net < 0 ? '-' : ''}
-            {approxPrefix}
-            {formatMoney(Math.abs(report.totals.net), report.currency)}
-          </span>
-        </div>
-      </div>
-
-      {/* Plain-word comparison line below KPIs */}
-      <div className="text-xs text-muted-foreground">
-        {report.baseline3m === null &&
-        report.previousDelta.previousSpent === 0 &&
-        report.previousDelta.previousIncome === 0 ? (
-          <span>{t('reports.noBaselineYet')}</span>
-        ) : (
-          <span>
-            {t('reports.spent')}{' '}
-            <span className="tabular-nums font-medium text-foreground">
-              {spentPctStr}
-            </span>{' '}
-            {periodCmp}
-            {report.baseline3m !== null ? (
-              <>
-                {' · '}
-                {t('reports.vs3mAvg', {
-                  count: String(report.baseline3m.historyCount),
-                })}
-                :{' '}
-                <span className="tabular-nums font-medium text-foreground">
-                  {approxPrefix}
-                  {formatMoney(report.baseline3m.previousSpent, report.currency)}
-                </span>
-              </>
-            ) : (
-              <>
-                {' · '}
-                <span>{t('reports.noBaselineYet')}</span>
-              </>
-            )}
-          </span>
-        )}
       </div>
 
       {/* Health Trend Chart */}
@@ -262,6 +160,13 @@ export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
         </ComposedChart>
       </ChartContainer>
 
+      <p className="sr-only">
+        {t('reports.healthChartSummary', {
+          spent: `${approxPrefix}${formatMoney(report.totals.spent, report.currency)}`,
+          income: `${approxPrefix}${formatMoney(report.totals.income, report.currency)}`,
+        })}
+      </p>
+
       {/* Accessible Legend */}
       <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground pt-1">
         <div className="flex items-center gap-1.5">
@@ -281,21 +186,38 @@ export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
           <span>{t('reports.legendExpense')}</span>
         </div>
         {report.baseline3m !== null && (
-          <div className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-2 w-2 rounded-[2px] border border-dashed border-subtle-foreground"
-              style={{
-                backgroundColor: 'var(--subtle-foreground)',
-                opacity: 0.2,
-              }}
-              aria-hidden="true"
-            />
-            <span>
-              {t('reports.legendAvgExpense', {
-                count: String(report.baseline3m.historyCount),
-              })}
-            </span>
-          </div>
+          <>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-2 w-2 rounded-[2px] border border-dashed border-subtle-foreground"
+                style={{
+                  backgroundColor: 'var(--subtle-foreground)',
+                  opacity: 0.2,
+                }}
+                aria-hidden="true"
+              />
+              <span>
+                {t('reports.legendAvgIncome', {
+                  count: String(report.baseline3m.historyCount),
+                })}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-2 w-2 rounded-[2px] border border-dashed border-subtle-foreground"
+                style={{
+                  backgroundColor: 'var(--subtle-foreground)',
+                  opacity: 0.2,
+                }}
+                aria-hidden="true"
+              />
+              <span>
+                {t('reports.legendAvgExpense', {
+                  count: String(report.baseline3m.historyCount),
+                })}
+              </span>
+            </div>
+          </>
         )}
       </div>
     </Card>

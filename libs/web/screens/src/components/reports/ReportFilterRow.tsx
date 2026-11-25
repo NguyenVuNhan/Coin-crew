@@ -62,11 +62,11 @@ export function ReportFilterRow({
         onClick={() => onChange({ ...query, includeGroups: !query.includeGroups })}
       >
         <Icon
-          name="users"
+          name={query.includeGroups ? 'check' : 'users'}
           size={16}
-          className={query.includeGroups ? 'text-foreground' : 'text-muted-foreground'}
+          className={query.includeGroups ? 'text-secondary-foreground' : 'text-muted-foreground'}
         />
-        <span>{query.includeGroups ? t('reports.includeGroups') : t('reports.excludeGroups')}</span>
+        <span>{t('reports.groupsToggle')}</span>
       </Button>
 
       {/* Wallet Picker Sheet */}

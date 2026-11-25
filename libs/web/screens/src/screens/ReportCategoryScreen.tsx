@@ -32,7 +32,10 @@ import { Screen } from '../components/Screen';
 import { TransactionRow, resolveCategoryIcon } from '../components/TransactionRow';
 import { GroupRowSheet } from '../components/GroupRowSheet';
 import { TransactionDetailContent } from './TransactionDetail';
-import { CHART_TOKEN_VARS } from '../components/reports/CategoryPiesCard';
+import {
+  groupReportSegments,
+  reportSegmentColor,
+} from '../components/reports/CategoryPiesCard';
 import {
   buildReportSearch,
   compactReportAmount,
@@ -167,6 +170,11 @@ export function ReportCategoryScreen(): JSX.Element {
     return sub.name;
   };
 
+  const subCategorySegments = useMemo(
+    () => groupReportSegments(drilldown?.subCategories ?? []),
+    [drilldown?.subCategories],
+  );
+
   const selectedSub =
     selectedSubId !== null && drilldown
       ? drilldown.subCategories.find((s) => s.categoryId === selectedSubId)
@@ -254,34 +262,39 @@ export function ReportCategoryScreen(): JSX.Element {
                 {t('reports.subCategoriesTitle')}
               </h3>
 
-              <div className="relative h-32 w-32 mx-auto flex items-center justify-center">
+              <div className="relative w-full max-w-56 aspect-square mx-auto flex items-center justify-center">
                 <ChartContainer
                   config={{}}
-                  className="h-32 w-32 aspect-square"
-                  initialDimension={{ width: 128, height: 128 }}
+                  className="size-full aspect-square"
+                  initialDimension={{ width: 224, height: 224 }}
                 >
                   <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <Pie
-                      data={drilldown.subCategories}
+                      data={subCategorySegments}
                       dataKey="amount"
-                      nameKey="name"
+                      nameKey="key"
                       cx="50%"
                       cy="50%"
-                      innerRadius={36}
-                      outerRadius={56}
+                      innerRadius="62%"
+                      outerRadius="98%"
                       stroke="var(--card)"
                       strokeWidth={2}
                       isAnimationActive={false}
                     >
-                      {drilldown.subCategories.map((sub, idx) => (
+                      {subCategorySegments.map((seg) => (
                         <Cell
-                          key={sub.categoryId}
-                          fill={CHART_TOKEN_VARS[idx % CHART_TOKEN_VARS.length]}
-                          className="cursor-pointer"
-                          onClick={() =>
-                            setSelectedSubId((prev) =>
-                              prev === sub.categoryId ? null : sub.categoryId,
-                            )
+                          key={seg.key}
+                          fill={seg.color}
+                          className={
+                            seg.key === 'other' ? undefined : 'cursor-pointer'
+                          }
+                          onClick={
+                            seg.key === 'other'
+                              ? undefined
+                              : () =>
+                                  setSelectedSubId((prev) =>
+                                    prev === seg.key ? null : seg.key,
+                                  )
                           }
                         />
                       ))}
@@ -289,7 +302,7 @@ export function ReportCategoryScreen(): JSX.Element {
                   </PieChart>
                 </ChartContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center select-none">
-                  <span className="text-xs font-bold tabular-nums text-foreground">
+                  <span className="text-lg font-bold tabular-nums text-foreground">
                     {drilldown.approximate ? '≈ ' : ''}
                     {compactReportAmount(drilldown.total)}
                   </span>
@@ -300,8 +313,7 @@ export function ReportCategoryScreen(): JSX.Element {
                 {drilldown.subCategories.map((sub, idx) => {
                   const isSelected = selectedSubId === sub.categoryId;
                   const subLabel = formatSubLabel(sub);
-                  const colorVar =
-                    CHART_TOKEN_VARS[idx % CHART_TOKEN_VARS.length];
+                  const colorVar = reportSegmentColor(idx);
 
                   return (
                     <button

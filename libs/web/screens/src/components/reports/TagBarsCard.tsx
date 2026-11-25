@@ -66,10 +66,10 @@ export function TagBarsCard({
         >
           <TabsList className="group-data-horizontal/tabs:h-auto min-h-11 p-1">
             <TabsTrigger value="expense" className="min-h-11 px-3">
-              {t('reports.tagsToggleExpense')}
+              {t('reports.tabExpense')}
             </TabsTrigger>
             <TabsTrigger value="income" className="min-h-11 px-3">
-              {t('reports.tagsToggleIncome')}
+              {t('reports.tabIncome')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -110,10 +110,7 @@ export function TagBarsCard({
                 </span>
                 <span className="tabular-nums text-sm font-medium shrink-0">
                   {approxPrefix}
-                  {formatMoney(item.amount, currency)}{' '}
-                  <span className="text-muted-foreground">
-                    ({item.percent}%)
-                  </span>
+                  {formatMoney(item.amount, currency)}
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
@@ -127,6 +124,9 @@ export function TagBarsCard({
                   )}
                 />
               </div>
+              <span className="block mt-1 text-xs tabular-nums text-muted-foreground">
+                {t('reports.tagsEntryCount', { count: String(item.entryCount) })} · {item.percent}%
+              </span>
             </Link>
           ))}
         </div>

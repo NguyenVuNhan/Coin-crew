@@ -5,6 +5,7 @@ import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import { usePersonalReport } from '@cc/web-data-access/reports';
 import { useWalletDetails } from '@cc/web-data-access/personalMoney';
+import { Button as AppButton } from '@cc/web-ui/components/Button';
 import { Button } from '@cc/web-ui/components/ui/button';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -14,6 +15,7 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { Screen } from '../components/Screen';
 import { ReportPeriodBar } from '../components/reports/ReportPeriodBar';
 import { ReportFilterRow } from '../components/reports/ReportFilterRow';
+import { ReportSummaryCard } from '../components/reports/ReportSummaryCard';
 import { HealthTrendCard } from '../components/reports/HealthTrendCard';
 import { CategoryPiesCard } from '../components/reports/CategoryPiesCard';
 import { TagBarsCard } from '../components/reports/TagBarsCard';
@@ -66,7 +68,7 @@ export function ReportsScreen(): JSX.Element {
         {report?.singleWallet?.excludedFromTotal && (
           <div
             data-testid="reports-excluded-wallet-banner"
-            className="rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 flex items-center gap-2 text-xs text-muted-foreground"
+            className="rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 flex items-center gap-2 text-sm text-muted-foreground"
           >
             <Icon name="info" size={16} className="shrink-0" />
             <span>{t('reports.excludedWalletBanner')}</span>
@@ -98,20 +100,20 @@ export function ReportsScreen(): JSX.Element {
                 key={w.walletId}
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-2"
               >
-                <p className="text-warning-foreground text-xs sm:text-sm">
+                <p className="text-warning-foreground text-sm">
                   {t('reports.unratedNoticeBody', {
                     name: w.name,
                     currency: w.currency,
                   })}
                 </p>
-                <Button
+                <AppButton
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   className="min-h-11 px-4 shrink-0 self-start sm:self-auto"
                   onClick={() => updateQuery({ ...query, walletId: w.walletId })}
                 >
                   {t('reports.unratedInspectWallet', { name: w.name })}
-                </Button>
+                </AppButton>
               </div>
             ))}
           </div>
@@ -180,38 +182,41 @@ export function ReportsScreen(): JSX.Element {
               />
             ) : (
               /* Populated report */
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                {/* Left column */}
-                <div className="lg:col-span-7 flex flex-col gap-4">
-                  {report.walletBalance && (
-                    <WalletBalanceCard balance={report.walletBalance} />
-                  )}
-                  <HealthTrendCard report={report} />
-                </div>
-
-                {/* Right column */}
-                <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div data-testid="reports-category-section">
-                    <CategoryPiesCard
-                      spending={report.spendingByCategory}
-                      income={report.incomeByCategory}
-                      currency={report.currency}
-                      approximate={report.approximate}
-                      onSelectCategory={(categoryId) =>
-                        navigate(
-                          `/reports/category/${encodeURIComponent(categoryId)}${buildReportSearch(query)}`,
-                        )
-                      }
-                    />
+              <div className="flex flex-col gap-4">
+                <ReportSummaryCard report={report} />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                  {/* Left column */}
+                  <div className="lg:col-span-7 flex flex-col gap-4">
+                    {report.walletBalance && (
+                      <WalletBalanceCard balance={report.walletBalance} />
+                    )}
+                    <HealthTrendCard report={report} />
                   </div>
-                  <div data-testid="reports-tags-section">
-                    <TagBarsCard
-                      tags={report.tags}
-                      period={report.period}
-                      query={query}
-                      currency={report.currency}
-                      approximate={report.approximate}
-                    />
+
+                  {/* Right column */}
+                  <div className="lg:col-span-5 flex flex-col gap-4">
+                    <div data-testid="reports-category-section">
+                      <CategoryPiesCard
+                        spending={report.spendingByCategory}
+                        income={report.incomeByCategory}
+                        currency={report.currency}
+                        approximate={report.approximate}
+                        onSelectCategory={(categoryId) =>
+                          navigate(
+                            `/reports/category/${encodeURIComponent(categoryId)}${buildReportSearch(query)}`,
+                          )
+                        }
+                      />
+                    </div>
+                    <div data-testid="reports-tags-section">
+                      <TagBarsCard
+                        tags={report.tags}
+                        period={report.period}
+                        query={query}
+                        currency={report.currency}
+                        approximate={report.approximate}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

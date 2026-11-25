@@ -105,8 +105,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-chart-6: var(--chart-6);
+  --color-chart-other: var(--chart-other);
 }
 
 :root {
@@ -181,12 +180,11 @@
   --meme-story-chrome: rgba(246, 247, 244, 0.12);
   --meme-story-border: rgba(246, 247, 244, 0.16);
 
-  --chart-1: #0e7490;
-  --chart-2: #d97706;
-  --chart-3: #6d28d9;
-  --chart-4: #db2777;
-  --chart-5: #2563eb;
-  --chart-6: #65a30d;
+  --chart-1: var(--primary);
+  --chart-2: color-mix(in oklab, var(--primary) 70%, var(--card));
+  --chart-3: color-mix(in oklab, var(--primary) 45%, var(--card));
+  --chart-4: color-mix(in oklab, var(--primary) 25%, var(--card));
+  --chart-other: color-mix(in oklab, var(--muted-foreground) 35%, var(--card));
 
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
 

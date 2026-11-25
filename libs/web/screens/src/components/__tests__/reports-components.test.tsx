@@ -13,6 +13,7 @@ import {
   type WalletDetailView,
 } from '@cc/core';
 import { HealthTrendCard } from '../reports/HealthTrendCard';
+import { ReportSummaryCard } from '../reports/ReportSummaryCard';
 import { CategoryPiesCard } from '../reports/CategoryPiesCard';
 import { TagBarsCard } from '../reports/TagBarsCard';
 import { WalletBalanceCard } from '../reports/WalletBalanceCard';
@@ -146,12 +147,18 @@ describe('HealthTrendCard', () => {
     countedRows: [],
   };
 
-  it('renders title, "Lũy kế" badge, KPI summary formatted via formatMoney with ≈ when approximate: true, comparison lines, and [data-slot="chart"]', () => {
-    const { container } = render(<HealthTrendCard report={baseHealthReport} />);
+  it('renders title, "Cộng dồn" badge, KPI summary formatted via formatMoney with ≈ when approximate: true, comparison lines, and [data-slot="chart"]', () => {
+    // The KPI totals and comparison sentences moved from HealthTrendCard to ReportSummaryCard.
+    const { container } = render(
+      <>
+        <ReportSummaryCard report={baseHealthReport} />
+        <HealthTrendCard report={baseHealthReport} />
+      </>,
+    );
 
     // Title and badge
     expect(screen.getByText('Thu & Chi trong kỳ')).toBeInTheDocument();
-    expect(screen.getByText('Lũy kế')).toBeInTheDocument();
+    expect(screen.getByText('Cộng dồn')).toBeInTheDocument();
     expect(screen.getByText('≈ VND')).toBeInTheDocument();
 
     // KPI Summary
@@ -165,8 +172,8 @@ describe('HealthTrendCard', () => {
     expect(container.textContent).toContain('+≈ 3.000.000₫');
 
     // Previous-period and 3-month baseline comparison lines
-    expect(container.textContent).toContain('Đã chi +25% so với cùng kỳ tháng trước');
-    expect(container.textContent).toContain('so với TB 3 kỳ trước: ≈ 4.500.000₫');
+    expect(container.textContent).toContain('Chi nhiều hơn 25% so với cùng thời điểm tháng trước');
+    expect(container.textContent).toContain('Mức thường (3 kỳ trước): ≈ 4.500.000₫');
 
     // Chart container
     expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument();
@@ -177,16 +184,22 @@ describe('HealthTrendCard', () => {
     expect(screen.queryByText(/theo ngày/i)).not.toBeInTheDocument();
   });
 
-  it('when baseline3m === null, hides 3-month baseline legend/value cleanly and shows "Chưa đủ dữ liệu kỳ trước để so sánh"', () => {
+  it('when baseline3m === null, hides 3-month baseline legend/value cleanly', () => {
     const reportWithoutBaseline: ReportData = {
       ...baseHealthReport,
       baseline3m: null,
     };
 
-    const { container } = render(<HealthTrendCard report={reportWithoutBaseline} />);
+    const { container } = render(
+      <>
+        <ReportSummaryCard report={reportWithoutBaseline} />
+        <HealthTrendCard report={reportWithoutBaseline} />
+      </>,
+    );
 
-    // Shows no baseline message
-    expect(screen.getByText('Chưa đủ dữ liệu kỳ trước để so sánh')).toBeInTheDocument();
+    // Previous-period comparison still shows; the usual-level line is hidden
+    expect(container.textContent).toContain('Chi nhiều hơn 25% so với cùng thời điểm tháng trước');
+    expect(container.textContent).not.toContain('Mức thường');
 
     // Legend does not render baseline entry
     expect(screen.queryByText(/TB chi 3 kỳ/i)).not.toBeInTheDocument();
@@ -232,7 +245,7 @@ describe('CategoryPiesCard', () => {
     },
   ];
 
-  it('renders both compact Spending and Income donuts side-by-side with center Chi/Thu totals, and verifies no duplicate "Chi tiêu"/"Thu nhập" caption labels exist outside the tabs', () => {
+  it('renders both compact Spending and Income donuts side-by-side with center Chi/Thu totals, and verifies no duplicate "Chi tiêu"/"Thu nhập" caption labels exist outside the donuts', () => {
     const onSelect = vi.fn();
     render(
       <CategoryPiesCard
@@ -252,21 +265,17 @@ describe('CategoryPiesCard', () => {
 
     // Center Chi and Thu totals
     expect(spendingDonutBtn.textContent).toContain('Chi');
-    expect(spendingDonutBtn.textContent).toContain('5M');
+    expect(spendingDonutBtn.textContent).toContain('5tr');
     expect(incomeDonutBtn.textContent).toContain('Thu');
-    expect(incomeDonutBtn.textContent).toContain('10M');
+    expect(incomeDonutBtn.textContent).toContain('10tr');
 
-    // Exactly ONE visible text "Chi tiêu" and ONE visible text "Thu nhập" (inside the TabsTriggers)
-    const expenseTexts = screen.getAllByText('Chi tiêu');
-    expect(expenseTexts).toHaveLength(1);
-    expect(expenseTexts[0]?.getAttribute('role')).toBe('tab');
-
-    const incomeTexts = screen.getAllByText('Thu nhập');
-    expect(incomeTexts).toHaveLength(1);
-    expect(incomeTexts[0]?.getAttribute('role')).toBe('tab');
+    // The donuts are the only Chi/Thu switch: no separate tab list
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(spendingDonutBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(incomeDonutBtn).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('switches ranked parent-category list via the <Tabs> toggle (Chi tiêu -> Thu nhập)', async () => {
+  it('switches ranked parent-category list via the income donut (Chi tiêu -> Thu nhập)', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     render(
@@ -284,8 +293,8 @@ describe('CategoryPiesCard', () => {
     expect(screen.getByText('Di chuyển')).toBeInTheDocument();
     expect(screen.queryByText('Lương')).not.toBeInTheDocument();
 
-    // Switch to "Thu nhập" tab
-    const incomeTab = screen.getByRole('tab', { name: 'Thu nhập' });
+    // Switch to "Thu nhập" via its donut
+    const incomeTab = screen.getByRole('button', { name: 'Thu nhập' });
     await user.click(incomeTab);
 
     expect(screen.getByText('Lương')).toBeInTheDocument();
@@ -311,8 +320,8 @@ describe('CategoryPiesCard', () => {
     await user.click(foodRow);
     expect(onSelect).toHaveBeenCalledWith('cat-food');
 
-    // Switch to income tab and click 'Lương'
-    const incomeTab = screen.getByRole('tab', { name: 'Thu nhập' });
+    // Switch to income via its donut and click 'Lương'
+    const incomeTab = screen.getByRole('button', { name: 'Thu nhập' });
     await user.click(incomeTab);
 
     const salaryRow = screen.getByRole('button', { name: /Lương/i });
@@ -445,8 +454,8 @@ describe('TagBarsCard', () => {
     expect(screen.getByText('#Ăn uống')).toBeInTheDocument();
     expect(screen.queryByText('#Thưởng')).not.toBeInTheDocument();
 
-    // Switch to Thu
-    const incomeTab = screen.getByRole('tab', { name: 'Thu' });
+    // Switch to Thu nhập (same label pair as the rest of the page)
+    const incomeTab = screen.getByRole('tab', { name: 'Thu nhập' });
     await user.click(incomeTab);
 
     expect(screen.getByText('#Thưởng')).toBeInTheDocument();
@@ -475,7 +484,7 @@ describe('TagBarsCard', () => {
     // Multi-tag overlap caption
     expect(
       screen.getByText(
-        'Một giao dịch có thể gắn nhiều thẻ nên tổng các thanh có thể vượt tổng kỳ.',
+        'Một giao dịch có thể gắn nhiều thẻ, nên cộng các thanh lại có thể lớn hơn tổng của kỳ.',
       ),
     ).toBeInTheDocument();
   });
@@ -501,7 +510,7 @@ describe('WalletBalanceCard', () => {
     ],
   };
 
-  it('renders native currency (USDT, NO ≈) badge, opening/closing/netChange KPIs, [data-slot="chart"], and 4 checkpoints with dates and amounts', () => {
+  it('renders native currency (USDT, NO ≈) badge, opening/closing/netChange KPIs, [data-slot="chart"], and one lowest/highest caption', () => {
     const { container } = render(<WalletBalanceCard balance={mockBalance} />);
 
     // Native currency badge and NO ≈
@@ -511,7 +520,7 @@ describe('WalletBalanceCard', () => {
     // Opening, Closing, NetChange KPIs
     expect(screen.getByText('Đầu kỳ')).toBeInTheDocument();
     expect(screen.getByText('Cuối kỳ')).toBeInTheDocument();
-    expect(screen.getByText('Thay đổi ròng')).toBeInTheDocument();
+    expect(screen.getByText('Tăng/giảm')).toBeInTheDocument();
 
     expect(container.textContent).toContain(formatMoney(1000, 'USDT'));
     expect(container.textContent).toContain(formatMoney(1500, 'USDT'));
@@ -524,20 +533,11 @@ describe('WalletBalanceCard', () => {
     // Chart slot
     expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument();
 
-    // 4 checkpoints
-    expect(screen.getByText('Bắt đầu')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-01')).toBeInTheDocument();
-
-    expect(screen.getByText('Thấp nhất')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-05')).toBeInTheDocument();
-    expect(container.textContent).toContain(formatMoney(900, 'USDT'));
-
-    expect(screen.getByText('Cao nhất')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-20')).toBeInTheDocument();
-    expect(container.textContent).toContain(formatMoney(1600, 'USDT'));
-
-    expect(screen.getByText('Hiện tại')).toBeInTheDocument();
-    expect(screen.getByText('2026-11-30')).toBeInTheDocument();
+    // One lowest/highest caption with dd/mm dates (opening/closing are not repeated)
+    expect(container.textContent).toContain(`Thấp nhất ${formatMoney(900, 'USDT')} (05/11)`);
+    expect(container.textContent).toContain(`Cao nhất ${formatMoney(1600, 'USDT')} (20/11)`);
+    expect(screen.queryByText('Bắt đầu')).not.toBeInTheDocument();
+    expect(screen.getAllByText(formatMoney(1000, 'USDT'))).toHaveLength(1);
   });
 
   it('renders negative netChange with text-danger class', () => {
@@ -629,11 +629,12 @@ describe('reportUrl helpers', () => {
   it('compactReportAmount formats amounts as expected', () => {
     expect(compactReportAmount(0)).toBe('0');
     expect(compactReportAmount(500)).toBe('500');
-    expect(compactReportAmount(1500)).toBe('1.5k');
-    expect(compactReportAmount(2000000)).toBe('2M');
-    expect(compactReportAmount(2500000)).toBe('2.5M');
-    expect(compactReportAmount(1000000000)).toBe('1B');
-    expect(compactReportAmount(-2500000)).toBe('-2.5M');
+    // Vietnamese (the default language in this file): decimal comma, tr / tỷ
+    expect(compactReportAmount(1500)).toBe('1,5k');
+    expect(compactReportAmount(2000000)).toBe('2tr');
+    expect(compactReportAmount(2500000)).toBe('2,5tr');
+    expect(compactReportAmount(1000000000)).toBe('1 tỷ');
+    expect(compactReportAmount(-2500000)).toBe('-2,5tr');
   });
 
   it('buildTransactionsTagUrl serializes query params cleanly', () => {
@@ -669,7 +670,7 @@ describe('ReportPeriodBar', () => {
   it('switches week/month/year via shadcn <Tabs> and steps prev/next periods', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<ReportPeriodBar query={baseQuery} today={today} onChange={onChange} />);
+    const { rerender } = render(<ReportPeriodBar query={baseQuery} today={today} onChange={onChange} />);
 
     // Switch to week
     const weekTab = screen.getByRole('tab', { name: 'Tuần' });
@@ -686,10 +687,14 @@ describe('ReportPeriodBar', () => {
     await user.click(prevBtn);
     expect(onChange).toHaveBeenCalledWith({ ...baseQuery, month: '2026-10' });
 
-    // Step next period
+    // Next period is disabled while the current month is still in progress
     const nextBtn = screen.getByRole('button', { name: 'Kỳ sau' });
-    await user.click(nextBtn);
-    expect(onChange).toHaveBeenCalledWith({ ...baseQuery, month: '2026-12' });
+    expect(nextBtn).toBeDisabled();
+
+    // From a past month, next steps forward
+    rerender(<ReportPeriodBar query={{ ...baseQuery, month: '2026-09' }} today={today} onChange={onChange} />);
+    await user.click(screen.getByRole('button', { name: 'Kỳ sau' }));
+    expect(onChange).toHaveBeenLastCalledWith({ ...baseQuery, month: '2026-10' });
   });
 
   it('clicking "Tùy chọn" opens <Sheet> with date inputs and labels, validates from > to, validates range > 366 days, and applies valid range', () => {
@@ -771,7 +776,7 @@ describe('ReportFilterRow', () => {
     } as WalletDetailView,
   ];
 
-  it('opens wallet picker <Sheet>, picks a wallet (walletId), picks "Tất cả ví", and toggles "Gồm nhóm" (includeGroups)', () => {
+  it('opens wallet picker <Sheet>, picks a wallet (walletId), picks "Tất cả ví", and toggles "Tiền nhóm" (includeGroups)', () => {
     const onChange = vi.fn();
     const { rerender } = render(
       <ReportFilterRow query={baseQuery} wallets={mockWallets} onChange={onChange} />,
@@ -813,8 +818,8 @@ describe('ReportFilterRow', () => {
     fireEvent.click(sheetAllWalletsBtn);
     expect(onChange).toHaveBeenCalledWith({ ...baseQuery, walletId: undefined });
 
-    // 3. Toggle "Gồm nhóm" button
-    const groupsBtn = screen.getByRole('button', { name: /Gồm nhóm/i });
+    // 3. Toggle the fixed-label "Tiền nhóm" button
+    const groupsBtn = screen.getByRole('button', { name: /Tiền nhóm/i });
     expect(groupsBtn).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(groupsBtn);
@@ -833,7 +838,7 @@ describe('ReportFilterRow', () => {
       />,
     );
 
-    const excludeGroupsBtn = screen.getByRole('button', { name: /Ẩn nhóm/i });
+    const excludeGroupsBtn = screen.getByRole('button', { name: /Tiền nhóm/i });
     expect(excludeGroupsBtn).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(excludeGroupsBtn);

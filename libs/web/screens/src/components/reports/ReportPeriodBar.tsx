@@ -44,6 +44,7 @@ export function ReportPeriodBar({
 
   const activePeriod = period ?? resolveReportPeriod(query, today);
   const heading = formatReportPeriodHeading(activePeriod, t);
+  const isNextDisabled = activePeriod.inProgress || activePeriod.from > today;
 
   const handleApplyCustom = () => {
     if (!draftFrom || !draftTo) {
@@ -87,18 +88,18 @@ export function ReportPeriodBar({
       {/* 4-mode tabs */}
       <Tabs value={query.mode} onValueChange={handleModeChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4 group-data-horizontal/tabs:h-auto min-h-11 p-1">
-          <TabsTrigger value="week" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="week" className="min-h-11 text-sm">
             {t('reports.modeWeek')}
           </TabsTrigger>
-          <TabsTrigger value="month" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="month" className="min-h-11 text-sm">
             {t('reports.modeMonth')}
           </TabsTrigger>
-          <TabsTrigger value="year" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="year" className="min-h-11 text-sm">
             {t('reports.modeYear')}
           </TabsTrigger>
           <TabsTrigger
             value="custom"
-            className="min-h-11 text-xs sm:text-sm"
+            className="min-h-11 text-sm"
             onClick={() => setIsSheetOpen(true)}
           >
             {t('reports.modeCustom')}
@@ -143,6 +144,7 @@ export function ReportPeriodBar({
           variant="ghost"
           className="min-h-11 min-w-11 size-11 p-0 rounded-full shrink-0"
           onClick={() => onChange(stepReportPeriod(query, 1, today))}
+          disabled={isNextDisabled}
           aria-label={t('reports.nextPeriod')}
           title={t('reports.nextPeriod')}
         >

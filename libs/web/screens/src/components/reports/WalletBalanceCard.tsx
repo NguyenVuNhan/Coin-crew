@@ -9,7 +9,7 @@ import {
   ChartTooltipContent,
 } from '@cc/web-ui/components/ui/chart';
 import { cn } from '@cc/web-ui/lib/utils';
-import { compactReportAmount } from './reportUrl';
+import { compactReportAmount, formatDayMonth } from './reportUrl';
 
 export interface WalletBalanceCardProps {
   balance: WalletBalanceSeriesResult;
@@ -18,14 +18,20 @@ export interface WalletBalanceCardProps {
 export function WalletBalanceCard({ balance }: WalletBalanceCardProps) {
   const t = useT();
 
-  const isNetPositiveOrZero = balance.netChange >= 0;
   const formattedNetChange =
     balance.netChange > 0
       ? `+${formatMoney(balance.netChange, balance.currency)}`
       : formatMoney(balance.netChange, balance.currency);
 
-  const startDate = balance.points[0]?.date ?? '';
-  const endDate = balance.points[balance.points.length - 1]?.date ?? '';
+  const netChangeColor =
+    balance.netChange > 0
+      ? 'text-success'
+      : balance.netChange < 0
+        ? 'text-danger'
+        : 'text-foreground';
+
+  const minDate = formatDayMonth(balance.min.date);
+  const maxDate = formatDayMonth(balance.max.date);
 
   return (
     <Card className="p-4 rounded-xl bg-card border border-border shadow-none ring-0 flex flex-col gap-3 w-full text-card-foreground">
@@ -60,7 +66,7 @@ export function WalletBalanceCard({ balance }: WalletBalanceCardProps) {
           <span
             className={cn(
               'text-sm font-bold tabular-nums truncate',
-              isNetPositiveOrZero ? 'text-success' : 'text-danger',
+              netChangeColor,
             )}
           >
             {formattedNetChange}
@@ -124,59 +130,35 @@ export function WalletBalanceCard({ balance }: WalletBalanceCardProps) {
         </AreaChart>
       </ChartContainer>
 
-      <div className="grid grid-cols-2 gap-2 mt-1">
-        <div className="flex flex-col rounded-xl bg-muted/40 p-2.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground gap-1">
-            <span>{t('reports.checkpointStart')}</span>
-            {startDate && (
-              <span className="tabular-nums truncate">{startDate}</span>
-            )}
-          </div>
-          <span className="text-sm font-bold tabular-nums text-foreground mt-0.5 truncate">
-            {formatMoney(balance.opening, balance.currency)}
-          </span>
-        </div>
+      <p className="sr-only">
+        {t('reports.balanceChartSummary', {
+          opening: formatMoney(balance.opening, balance.currency),
+          closing: formatMoney(balance.closing, balance.currency),
+          min: formatMoney(balance.min.value, balance.currency),
+          max: formatMoney(balance.max.value, balance.currency),
+        })}
+      </p>
 
-        <div className="flex flex-col rounded-xl bg-muted/40 p-2.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground gap-1">
-            <span>{t('reports.checkpointMin')}</span>
-            {balance.min.date && (
-              <span className="tabular-nums truncate">{balance.min.date}</span>
-            )}
-          </div>
+      <div className="text-sm text-muted-foreground tabular-nums flex flex-wrap gap-x-3 gap-y-1">
+        <span>
+          {t('reports.balanceMin')}{' '}
           <span
             className={cn(
-              'text-sm font-bold tabular-nums mt-0.5 truncate',
+              'font-semibold',
               balance.min.value < 0 ? 'text-danger' : 'text-foreground',
             )}
           >
             {formatMoney(balance.min.value, balance.currency)}
           </span>
-        </div>
-
-        <div className="flex flex-col rounded-xl bg-muted/40 p-2.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground gap-1">
-            <span>{t('reports.checkpointMax')}</span>
-            {balance.max.date && (
-              <span className="tabular-nums truncate">{balance.max.date}</span>
-            )}
-          </div>
-          <span className="text-sm font-bold tabular-nums text-foreground mt-0.5 truncate">
+          {minDate ? ` (${minDate})` : ''}
+        </span>
+        <span>
+          {t('reports.balanceMax')}{' '}
+          <span className="font-semibold text-foreground">
             {formatMoney(balance.max.value, balance.currency)}
           </span>
-        </div>
-
-        <div className="flex flex-col rounded-xl bg-muted/40 p-2.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground gap-1">
-            <span>{t('reports.checkpointEnd')}</span>
-            {endDate && (
-              <span className="tabular-nums truncate">{endDate}</span>
-            )}
-          </div>
-          <span className="text-sm font-bold tabular-nums text-foreground mt-0.5 truncate">
-            {formatMoney(balance.closing, balance.currency)}
-          </span>
-        </div>
+          {maxDate ? ` (${maxDate})` : ''}
+        </span>
       </div>
     </Card>
   );

@@ -358,11 +358,13 @@ describe('Task 8 — 375px & Multi-Theme Verification (reports-theme-and-layout)
       expect(charts.length).toBeGreaterThanOrEqual(3);
 
       // Fixed Money colors invariant: spent total retains text-danger class and income total retains text-success class (neither adopts text-primary)
-      const spentTotal = screen.getByText(/1\.200\.000/);
+      // Scoped to the summary card: the chart's screen-reader summary repeats the totals
+      const summaryCard = screen.getByTestId('reports-summary');
+      const spentTotal = within(summaryCard).getByText(/1\.200\.000/);
       expect(spentTotal).toHaveClass('text-danger');
       expect(spentTotal).not.toHaveClass('text-primary');
 
-      const incomeTotal = screen.getByText(/3\.500\.000/);
+      const incomeTotal = within(summaryCard).getByText(/3\.500\.000/);
       expect(incomeTotal).toHaveClass('text-success');
       expect(incomeTotal).not.toHaveClass('text-primary');
 
@@ -386,11 +388,13 @@ describe('Task 8 — 375px & Multi-Theme Verification (reports-theme-and-layout)
       expect(charts.length).toBeGreaterThanOrEqual(3);
 
       // Fixed Money colors invariant: spent total retains text-danger class and income total retains text-success class (neither adopts text-primary)
-      const spentTotal = screen.getByText(/1\.200\.000/);
+      // Scoped to the summary card: the chart's screen-reader summary repeats the totals
+      const summaryCard = screen.getByTestId('reports-summary');
+      const spentTotal = within(summaryCard).getByText(/1\.200\.000/);
       expect(spentTotal).toHaveClass('text-danger');
       expect(spentTotal).not.toHaveClass('text-primary');
 
-      const incomeTotal = screen.getByText(/3\.500\.000/);
+      const incomeTotal = within(summaryCard).getByText(/3\.500\.000/);
       expect(incomeTotal).toHaveClass('text-success');
       expect(incomeTotal).not.toHaveClass('text-primary');
 

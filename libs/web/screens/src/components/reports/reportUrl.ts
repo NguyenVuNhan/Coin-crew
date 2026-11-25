@@ -1,5 +1,5 @@
 import type { ReportPeriodMode, ReportPeriodWindow, ReportQuery } from '@cc/core';
-import type { useT } from '@cc/web-i18n';
+import { getLang, type useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 
 // --- Pure UTC Date Arithmetic Helpers ---
@@ -40,6 +40,18 @@ export function addMonthsUtc(ym: string, deltaMonths: number): string {
 
 export function formatDdMmYy(dateStr: string): string {
   return `${dateStr.slice(8, 10)}/${dateStr.slice(5, 7)}/${dateStr.slice(0, 4)}`;
+}
+
+/**
+ * Formats an ISO YYYY-MM-DD date string as dd/mm. Returns '' for empty or malformed input.
+ */
+export function formatDayMonth(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (!match) return '';
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+  return `${match[3]}/${match[2]}`;
 }
 
 /**
@@ -218,21 +230,27 @@ export function buildTransactionsTagUrl(
 }
 
 /**
- * Formats compact chart axis/center values (e.g. 1.5M, 250k).
+ * Formats compact chart axis/center values according to current language
+ * (vi: 1,5tr, 2tr, 1,2 tỷ, 250k; en: 1.5M, 2M, 1.2B, 250k).
  */
 export function compactReportAmount(val: number | string): string {
   const num = typeof val === 'number' ? val : Number(val);
   if (!Number.isFinite(num) || num === 0) return '0';
   const abs = Math.abs(num);
   const sign = num < 0 ? '-' : '';
+  const isVi = getLang() === 'vi';
+  const formatScaled = (n: number) => {
+    const str = n.toFixed(1).replace(/\.0$/, '');
+    return isVi ? str.replace('.', ',') : str;
+  };
   if (abs >= 1_000_000_000) {
-    return `${sign}${(abs / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+    return `${sign}${formatScaled(abs / 1_000_000_000)}${isVi ? ' tỷ' : 'B'}`;
   }
   if (abs >= 1_000_000) {
-    return `${sign}${(abs / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    return `${sign}${formatScaled(abs / 1_000_000)}${isVi ? 'tr' : 'M'}`;
   }
   if (abs >= 1_000) {
-    return `${sign}${(abs / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+    return `${sign}${formatScaled(abs / 1_000)}k`;
   }
   return `${sign}${abs}`;
 }
