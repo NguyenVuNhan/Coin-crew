@@ -139,7 +139,7 @@ Owner-decided:
 - Components look like the Chi/Thu page.
 
 My calls:
-- The title is required, and Nội dung is optional. With no danh mục picked, the icon shows **Chung**.
+- The title is required in the group form, and Nội dung is optional. With no danh mục picked, the icon shows **Chung**. *Revised during build:* on the Vay/Nợ tab an empty title falls back to the picked danh mục's name, else Cho vay / Đi vay (what it saved before), so a quick loan still saves in three taps. The tab's old "Thêm chi tiết" fold is gone, because payer, date and wallet are always shown.
 - The danh mục icon opens a sheet (`Sheet` wrapper) listing the fixed list grouped by parent, with a search like the existing `CategoryPicker`. In Sổ chi tiêu it also lists the user's visible custom categories. In a group it lists the fixed list only.
 - Amount entry reuses the Chi/Thu amount box (`AmountField`). *Revised during build:* the group form types into it on every device (no docked keypad) and keeps its "180k" / "1,5tr" shorthand alongside sums like "120000+35000", plus the "1.500.000₫" preview and hint. The Vay/Nợ tab keeps the Chi/Thu keypad as today.
 - Người trả defaults to the current user and Ngày to today. *Revised during build:* in the group form Người trả is a labelled native select inside the details card (one tap opens the system picker on phones). The Vay/Nợ tab opens a `PayerSheet`. Ngày uses `EntryDateRow`. The Vay/Nợ tab's existing payer handling (`quickSplit.payerId`, flip in the outcome sentence) maps onto the Người trả row.

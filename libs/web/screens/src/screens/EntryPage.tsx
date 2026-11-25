@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   CURRENCIES,
   GENERAL_CATEGORY_KEY,
+  isFixedExpenseKey,
   assetQuantityLabel,
   assetUnitText,
   fixedCategory,
@@ -1525,6 +1526,11 @@ export function EntryPage(): JSX.Element {
       if (canShareChi && quickSplit.chosen.size > 0 && ledger) {
         if (quickSplit.result && !quickSplit.result.ok) return;
         const description = quickExpenseDescription({ note, fallback: categoryName });
+        // A fixed expense danh mục becomes the group's too (#140); a custom one stays personal.
+        const pickedSystemKey =
+          categoriesQuery.data?.categories.find((c) => c.id === effectiveCategoryId)?.systemKey ?? null;
+        const shareCategoryKey =
+          pickedSystemKey && isFixedExpenseKey(pickedSystemKey) ? pickedSystemKey : null;
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
         try {
@@ -1538,6 +1544,7 @@ export function EntryPage(): JSX.Element {
               : {}),
             expense: {
               description,
+              categoryKey: shareCategoryKey,
               amount: amountToSave,
               spentOn: date,
               payerId: quickSplit.payerId,
