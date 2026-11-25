@@ -23,6 +23,7 @@ export type ApiErrorCode =
   | 'CONFLICT'
   | 'ZALO_TOKEN_INVALID'
   | 'IN_USE'
+  | 'FIXED_CATEGORY'
   | 'DEFAULT_WALLET'
   | 'OVERSELL'
   | 'NOT_IMPLEMENTED'

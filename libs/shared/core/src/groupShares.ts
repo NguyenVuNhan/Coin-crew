@@ -30,6 +30,7 @@ export interface GroupRow {
   people: string[];
   pending: boolean;
   link: GroupLinkView | null;
+  groupCategoryId?: string | null;
   createdAt: string;
   activityAt: string;
 }
@@ -283,7 +284,12 @@ export function groupRowCategoryId(
   settings: GroupSettingsView,
   fallbackGroupCategoryId: string | null,
 ): string | null {
-  return row.link?.categoryId ?? settings.defaultGroupCategoryId ?? fallbackGroupCategoryId;
+  return (
+    row.link?.categoryId ??
+    row.groupCategoryId ??
+    settings.defaultGroupCategoryId ??
+    fallbackGroupCategoryId
+  );
 }
 
 export function groupRowsTotals(
