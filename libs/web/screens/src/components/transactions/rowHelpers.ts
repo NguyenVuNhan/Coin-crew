@@ -7,6 +7,14 @@ import {
 import type { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 
+/** Formats `YYYY-MM-DD` as `DD/MM/YYYY`, or returns the input unchanged if not ISO. */
+export function formatFullCalendarDate(dateStr: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!match) return dateStr;
+  const [, yearStr, monthStr, dayStr] = match;
+  return `${dayStr}/${monthStr}/${yearStr}`;
+}
+
 /** Formats `YYYY-MM-DD` as `DD/MM` (or `DD/MM/YYYY` in another year). */
 export function formatShortCalendarDate(
   dateStr: string,

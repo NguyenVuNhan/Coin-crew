@@ -107,6 +107,7 @@ export function TransactionGroupList({
                     settings={settings}
                     showDate={viewMode === 'category'}
                     showBeforeStartCue={showBeforeStartCue}
+                    titleMode={viewMode === 'category' ? 'detail' : 'category'}
                     onOpenEntry={onOpenEntry}
                     onOpenGroup={onOpenGroup}
                   />

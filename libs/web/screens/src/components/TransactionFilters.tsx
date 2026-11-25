@@ -178,6 +178,11 @@ export function TransactionFilters({
           items={visibleCategories}
           selectedId={draft.categoryId}
           indentOf={(c) => (c.parentId ? 1 : 0)}
+          sectionOf={(c) =>
+            c.type === 'expense'
+              ? { key: 'expense', label: t('personalEntry.expense') }
+              : { key: 'income', label: t('personalEntry.income') }
+          }
           testIdPrefix="tx-filter-category"
           onPick={(id) => {
             setDraft((prev) => ({ ...prev, categoryId: id }));
