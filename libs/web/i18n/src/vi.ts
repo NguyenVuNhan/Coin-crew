@@ -1694,8 +1694,12 @@ export const vi: Record<MessageKey, string> = {
   'assets.decimalsDecrease': 'Giảm số chữ số thập phân', // REVIEW
   'assets.decimalsIncrease': 'Tăng số chữ số thập phân', // REVIEW
   'assets.decimalsLocked': 'Đã có giao dịch, không đổi được bước nhỏ nhất', // REVIEW
-  'assets.unitHelp': 'Số (vd 0.0001) là bước nhỏ nhất; chữ (vd chỉ) là tên đơn vị', // REVIEW
-  'assets.unitStepError': 'Nhập bước nhỏ nhất như 1, 0.1, 0.01…', // REVIEW
+  'assets.icon': 'Biểu tượng', // REVIEW
+  'assets.iconPick': 'Chọn biểu tượng', // REVIEW
+  'assets.iconLetters': 'Chữ cái', // REVIEW
+  'assets.iconSearch': 'Tìm biểu tượng', // REVIEW
+  'assets.unitHelp': 'Số (vd 0,0001) là bước lẻ nhỏ nhất; chữ (vd chỉ) là tên đơn vị, lẻ đến 2 số thập phân', // REVIEW
+  'assets.unitStepError': 'Nhập bước nhỏ nhất như 1, 0,1, 0,01…', // REVIEW
   'assets.unitRequired': 'Nhập đơn vị', // REVIEW
   'assets.duplicateName': 'Đã có tài sản tên này', // REVIEW
   'assets.save': 'Lưu', // REVIEW

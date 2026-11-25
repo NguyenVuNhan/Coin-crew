@@ -121,12 +121,12 @@ describe('owner review round 1: assets and holdings', () => {
     fireEvent.change(screen.getByTestId('asset-name-input'), { target: { value: 'BTC' } });
     // Invalid step
     fireEvent.change(screen.getByTestId('asset-unit-input'), { target: { value: '0.0005' } });
-    expect(screen.getByText('Nhập bước nhỏ nhất như 1, 0.1, 0.01…')).toBeTruthy();
+    expect(screen.getByText('Nhập bước nhỏ nhất như 1, 0,1, 0,01…')).toBeTruthy();
     expect((screen.getByTestId('asset-save-btn') as HTMLButtonElement).disabled).toBe(true);
 
     // Valid number step
     fireEvent.change(screen.getByTestId('asset-unit-input'), { target: { value: '0.0001' } });
-    expect(screen.queryByText('Nhập bước nhỏ nhất như 1, 0.1, 0.01…')).toBeNull();
+    expect(screen.queryByText('Nhập bước nhỏ nhất như 1, 0,1, 0,01…')).toBeNull();
     fireEvent.click(screen.getByTestId('asset-save-btn'));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
