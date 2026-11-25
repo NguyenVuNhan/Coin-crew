@@ -1593,28 +1593,28 @@ export const en = {
   'categories.noParent': 'None (top-level)',
   'categories.parentLockedHasChildren': 'Has {count} sub-categories — move them first to change its parent.',
   'categories.parentNoOtherParents': 'No other top-level categories to move under.',
-  'categories.visibilityShiftNote': 'Saving will change the default visibility in: {wallets}. You can still override this in "Show in wallets".',
+  'categories.visibilityShiftNote': 'Saving will change the default visibility in: {wallets}. You can still override this in “Show in wallets”.',
   'categories.visibilityShiftShow': 'show in {wallet}',
   'categories.visibilityShiftHide': 'hide in {wallet}',
-  'categories.movedToParentToast': 'Moved "{name}" under "{parent}"',
-  'categories.promotedToast': 'Moved "{name}" to top level',
+  'categories.movedToParentToast': 'Moved “{name}” under “{parent}”',
+  'categories.promotedToast': 'Moved “{name}” to top level',
   'categories.save': 'Save',
   'categories.emptyTitle': 'No categories yet',
   'categories.emptyBody': 'Add a category to organise your entries.',
   'categories.deleteConfirmTitle': 'Delete category?',
-  'categories.deleteConfirmBody': 'Are you sure you want to delete "{name}"?',
+  'categories.deleteConfirmBody': 'Are you sure you want to delete “{name}”?',
   'categories.hasChildrenError': 'This category has sub-categories. Move or delete them first.',
-  'categories.deleteParentTitle': 'Delete "{name}"',
+  'categories.deleteParentTitle': 'Delete “{name}”',
   'categories.deleteParentBody': 'This category has {count} sub-categories. Choose where to move them before deleting:',
   'categories.deleteParentMoreChildren': '+{count} more',
   'categories.promoteChildren': 'Move to top level',
   'categories.promoteChildrenDesc': 'Each sub-category becomes its own top-level category.',
   'categories.moveChildrenToParent': 'Move under another parent',
   'categories.moveChildrenTargetLabel': 'New parent category',
-  'categories.deleteParentDirectTx': '"{name}" also has {count} direct transactions. Choose a category to move them to:',
+  'categories.deleteParentDirectTx': '“{name}” also has {count} direct transactions. Choose a category to move them to:',
   'categories.moveChildrenAndDelete': 'Move sub-categories and delete',
-  'categories.deletedParentPromotedToast': 'Deleted "{name}" and moved {count} sub-categories to top level',
-  'categories.deletedParentMovedToast': 'Deleted "{name}" and moved {count} sub-categories under "{parent}"',
+  'categories.deletedParentPromotedToast': 'Deleted “{name}” and moved {count} sub-categories to top level',
+  'categories.deletedParentMovedToast': 'Deleted “{name}” and moved {count} sub-categories under “{parent}”',
   'categories.inUseTitle': 'Used by {count} transactions',
   'categories.moveToOther': 'Move to another category',
   'categories.moveAndDelete': 'Move and delete',
@@ -1753,9 +1753,13 @@ export const en = {
   'categories.mergeInto': 'Merge into…', // REVIEW
   'categories.mergeTitle': 'Merge “{name}” into…', // REVIEW
   'categories.mergeEmpty': 'No built-in categories available.', // REVIEW
+  'categories.mergeSearchPlaceholder': 'Search categories…', // REVIEW
+  'categories.mergeNoResults': 'No matching categories.', // REVIEW
   'categories.mergeConfirmTitle': 'Merge category?', // REVIEW
   'categories.mergeConfirmBody': 'Merge “{from}” into “{to}”? Transactions will move to “{to}”.', // REVIEW
   'categories.mergeConfirmAction': 'Merge', // REVIEW
+  'categories.hiddenToast': 'Hid “{name}”', // REVIEW
+  'categories.shownToast': 'Showing “{name}”', // REVIEW
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import { isCategoryVisibleIn, type CategoryView } from '@cc/core';
+import { foldForSearch, isCategoryVisibleIn, type CategoryView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { useLedger } from '@cc/web-data-access/people';
@@ -11,6 +11,7 @@ import {
   useWalletDetails,
   type UpdateCategoryInput,
 } from '@cc/web-data-access/personalMoney';
+import { useIsCoarsePointer } from '@cc/web-util/media';
 import { SwipeGroupProvider } from '@cc/web-util/useSwipeReveal';
 import { ActionRow, type RowAction } from '@cc/web-ui/components/ActionRow';
 import { Button } from '@cc/web-ui/components/Button';
@@ -41,6 +42,8 @@ interface CategoryFormSheetProps {
   allCategories: CategoryView[];
   editingChildCount: number;
   onSaved?: (toastMessage?: string) => void;
+  onMerge?: () => void;
+  onDelete?: () => void;
 }
 
 function CategoryFormSheet({
@@ -52,6 +55,8 @@ function CategoryFormSheet({
   allCategories,
   editingChildCount,
   onSaved,
+  onMerge,
+  onDelete,
 }: CategoryFormSheetProps): JSX.Element {
   const t = useT();
   const createCategory = useCreateCategory();
@@ -244,7 +249,7 @@ function CategoryFormSheet({
               <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
                 <Icon name={icon} size={20} />
               </span>
-              <span className="text-base text-foreground">{icon}</span>
+              <span className="text-base text-foreground">{t('categories.pickIcon')}</span>
             </span>
             <Icon name="chevronRight" size={18} className="text-muted-foreground shrink-0" />
           </button>
@@ -253,6 +258,37 @@ function CategoryFormSheet({
         {editing && <ItemWalletsRow kind="category" item={editing} />}
 
         {error && <InlineError error={error} />}
+
+        {editing && !editing.systemKey && (onMerge || onDelete) && (
+          <div className="flex flex-col gap-1 border-t border-border pt-3">
+            {onMerge && (
+              <Button
+                type="button"
+                variant="ghost"
+                block
+                data-testid="category-form-merge"
+                className="justify-start"
+                onClick={onMerge}
+              >
+                <Icon name="merge" size={18} />
+                {t('categories.mergeInto')}
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                block
+                data-testid="category-form-delete"
+                className="justify-start text-danger hover:bg-danger-soft"
+                onClick={onDelete}
+              >
+                <Icon name="trash" size={18} />
+                {t('categories.delete')}
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 justify-end pt-1">
           <Button type="button" variant="ghost" onClick={onClose}>
@@ -382,8 +418,15 @@ interface DeleteParentState {
   error: unknown;
 }
 
+interface ToastState {
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
 export function CategoriesScreen(): JSX.Element {
   const t = useT();
+  const isCoarsePointer = useIsCoarsePointer();
   const { ledger } = useLedger();
   const categoriesQuery = useCategories();
   const updateCategory = useUpdateCategory();
@@ -400,11 +443,16 @@ export function CategoriesScreen(): JSX.Element {
   const [moveToId, setMoveToId] = useState('');
   const [deleteParentState, setDeleteParentState] = useState<DeleteParentState | null>(null);
   const [mergeSource, setMergeSource] = useState<CategoryView | null>(null);
+  const [mergeSearch, setMergeSearch] = useState('');
   const [mergeConfirm, setMergeConfirm] = useState<{ from: CategoryView; to: CategoryView } | null>(
     null,
   );
   const [mergeError, setMergeError] = useState<unknown>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  useEffect(() => {
+    if (!mergeSource) setMergeSearch('');
+  }, [mergeSource]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -448,10 +496,41 @@ export function CategoriesScreen(): JSX.Element {
 
   const mergeTargets = useMemo(() => {
     if (!mergeSource) return [];
-    return allCategories
-      .filter((c) => Boolean(c.systemKey) && c.type === mergeSource.type)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const byOrder = (a: CategoryView, b: CategoryView) => a.sortOrder - b.sortOrder;
+    const fixed = allCategories.filter(
+      (c) => Boolean(c.systemKey) && c.type === mergeSource.type,
+    );
+    const parentList = fixed.filter((c) => c.parentId === null).sort(byOrder);
+    const childMap = new Map<string, CategoryView[]>();
+    for (const c of fixed) {
+      if (c.parentId === null) continue;
+      const arr = childMap.get(c.parentId) ?? [];
+      arr.push(c);
+      childMap.set(c.parentId, arr);
+    }
+    for (const arr of childMap.values()) arr.sort(byOrder);
+    return parentList.map((parent) => ({
+      parent,
+      children: childMap.get(parent.id) ?? [],
+    }));
   }, [allCategories, mergeSource]);
+
+  const filteredMergeTargets = useMemo(() => {
+    const q = foldForSearch(mergeSearch.trim());
+    if (!q) return mergeTargets;
+    const result: Array<{ parent: CategoryView; children: CategoryView[] }> = [];
+    for (const group of mergeTargets) {
+      if (foldForSearch(group.parent.name).includes(q)) {
+        result.push(group);
+      } else {
+        const matchingChildren = group.children.filter((c) => foldForSearch(c.name).includes(q));
+        if (matchingChildren.length > 0) {
+          result.push({ parent: group.parent, children: matchingChildren });
+        }
+      }
+    }
+    return result;
+  }, [mergeTargets, mergeSearch]);
 
   const moveTargets = useMemo(() => {
     if (!inUseState) return [];
@@ -598,7 +677,7 @@ export function CategoriesScreen(): JSX.Element {
               parent: deleteParentOtherParents.find((p) => p.id === targetParentId)?.name ?? '',
             });
       setDeleteParentState(null);
-      setToast(toastMsg);
+      setToast({ message: toastMsg });
     } catch (err) {
       if (
         err instanceof ApiClientError &&
@@ -652,38 +731,39 @@ export function CategoriesScreen(): JSX.Element {
     }
   };
 
+  const startMerge = (cat: CategoryView) => {
+    setMergeError(null);
+    setMergeSource(cat);
+  };
+
+  const startDelete = (cat: CategoryView) => {
+    const kids = childrenByParent.get(cat.id) ?? [];
+    if (kids.length > 0) {
+      openDeleteParent(cat, kids);
+    } else {
+      setConfirmDelete(cat);
+    }
+  };
+
   const renderRow = (cat: CategoryView, isSub: boolean) => {
     const fixed = isFixed(cat);
     const actions: RowAction[] = fixed
       ? []
       : [
           {
-            id: 'edit',
-            label: t('categories.edit'),
-            icon: 'edit',
-            onSelect: () => openEdit(cat),
-          },
-          {
-            id: 'toggle-hidden',
-            label: cat.hidden ? t('categories.show') : t('categories.hide'),
-            icon: cat.hidden ? 'eye' : 'eye-off',
-            onSelect: () => {
-              void updateCategory.mutate({ id: cat.id, input: { hidden: !cat.hidden } });
-            },
+            id: 'merge',
+            label: t('categories.mergeInto'),
+            icon: 'merge',
+            testId: `category-merge-${cat.id}`,
+            onSelect: () => startMerge(cat),
           },
           {
             id: 'delete',
             label: t('categories.delete'),
             icon: 'trash',
             tone: 'danger',
-            onSelect: () => {
-              const kids = childrenByParent.get(cat.id) ?? [];
-              if (kids.length > 0) {
-                openDeleteParent(cat, kids);
-              } else {
-                setConfirmDelete(cat);
-              }
-            },
+            testId: `category-delete-${cat.id}`,
+            onSelect: () => startDelete(cat),
           },
         ];
 
@@ -694,9 +774,10 @@ export function CategoriesScreen(): JSX.Element {
         className={cn(isSub && 'pl-10', cat.hidden && 'opacity-60')}
       >
         <ActionRow
-          label={cat.name}
+          label={fixed ? cat.name : t('categories.editAria', { name: cat.name })}
           actions={actions}
           onOpen={fixed ? undefined : () => openEdit(cat)}
+          openTestId={fixed ? undefined : `category-edit-${cat.id}`}
           leading={
             <div className="size-9 rounded-lg bg-muted grid place-items-center shrink-0 text-foreground">
               <Icon name={categoryIconName(cat.icon, cat.type)} size={18} />
@@ -704,7 +785,7 @@ export function CategoriesScreen(): JSX.Element {
           }
           trailing={
             <div className="flex items-center gap-1 min-h-11">
-              {fixed ? (
+              {fixed && (
                 <span
                   role="img"
                   aria-label={t('categories.builtIn')}
@@ -713,31 +794,6 @@ export function CategoriesScreen(): JSX.Element {
                 >
                   <Icon name="shield" size={14} />
                 </span>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    aria-label={t('categories.mergeInto')}
-                    title={t('categories.mergeInto')}
-                    data-testid={`category-merge-${cat.id}`}
-                    onClick={() => {
-                      setMergeError(null);
-                      setMergeSource(cat);
-                    }}
-                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Icon name="merge" size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={t('categories.editAria', { name: cat.name })}
-                    data-testid={`category-edit-${cat.id}`}
-                    onClick={() => openEdit(cat)}
-                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Icon name="edit" size={18} />
-                  </button>
-                </>
               )}
               <span className="inline-flex min-h-11 items-center pl-1">
                 <Switch
@@ -749,7 +805,27 @@ export function CategoriesScreen(): JSX.Element {
                   }
                   data-testid={`category-hide-${cat.id}`}
                   onCheckedChange={(checked) => {
-                    void updateCategory.mutate({ id: cat.id, input: { hidden: !checked } });
+                    const nextHidden = !checked;
+                    void updateCategory.mutate(
+                      { id: cat.id, input: { hidden: nextHidden } },
+                      {
+                        onSuccess: () => {
+                          setToast({
+                            message: nextHidden
+                              ? t('categories.hiddenToast', { name: cat.name })
+                              : t('categories.shownToast', { name: cat.name }),
+                            actionLabel: t('common.undo'),
+                            onAction: () => {
+                              setToast(null);
+                              void updateCategory.mutate({
+                                id: cat.id,
+                                input: { hidden: !nextHidden },
+                              });
+                            },
+                          });
+                        },
+                      },
+                    );
                   }}
                 />
               </span>
@@ -861,8 +937,26 @@ export function CategoriesScreen(): JSX.Element {
             formState.editing ? (childrenByParent.get(formState.editing.id)?.length ?? 0) : 0
           }
           onSaved={(msg) => {
-            if (msg) setToast(msg);
+            if (msg) setToast({ message: msg });
           }}
+          onMerge={
+            formState.editing && !isFixed(formState.editing)
+              ? () => {
+                  const target = formState.editing!;
+                  setFormState({ open: false, editing: null });
+                  startMerge(target);
+                }
+              : undefined
+          }
+          onDelete={
+            formState.editing && !isFixed(formState.editing)
+              ? () => {
+                  const target = formState.editing!;
+                  setFormState({ open: false, editing: null });
+                  startDelete(target);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -1132,7 +1226,10 @@ export function CategoriesScreen(): JSX.Element {
       </Sheet>
       <Sheet
         open={mergeSource !== null}
-        onClose={() => setMergeSource(null)}
+        onClose={() => {
+          setMergeSource(null);
+          setMergeSearch('');
+        }}
         title={mergeSource ? t('categories.mergeTitle', { name: mergeSource.name }) : ''}
       >
         {mergeTargets.length === 0 ? (
@@ -1140,26 +1237,57 @@ export function CategoriesScreen(): JSX.Element {
             {t('categories.mergeEmpty')}
           </p>
         ) : (
-          <div data-testid="merge-target-list" className="flex flex-col divide-y divide-border">
-            {mergeTargets.map((target) => (
-              <button
-                key={target.id}
-                type="button"
-                data-testid={`merge-target-${target.id}`}
-                onClick={() => {
-                  if (!mergeSource) return;
-                  setMergeError(null);
-                  setMergeConfirm({ from: mergeSource, to: target });
-                  setMergeSource(null);
-                }}
-                className="min-h-11 flex items-center gap-3 px-2 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
-                  <Icon name={categoryIconName(target.icon, target.type)} size={18} />
-                </span>
-                <span className="flex-1 truncate">{target.name}</span>
-              </button>
-            ))}
+          <div className="flex flex-col gap-3">
+            {/* Stays put while the list scrolls under it. */}
+            <div className="sticky top-0 z-10 bg-popover pt-0.5 pb-1">
+              <Input
+                type="search"
+                value={mergeSearch}
+                onChange={(e) => setMergeSearch(e.target.value)}
+                placeholder={t('categories.mergeSearchPlaceholder')}
+                aria-label={t('categories.mergeSearchPlaceholder')}
+                data-testid="merge-search"
+                autoFocus={!isCoarsePointer}
+                className="min-h-11 text-base"
+              />
+            </div>
+            {filteredMergeTargets.length === 0 ? (
+              <p className="m-0 py-4 text-center text-sm text-muted-foreground">
+                {t('categories.mergeNoResults')}
+              </p>
+            ) : (
+              <div data-testid="merge-target-list" className="flex flex-col divide-y divide-border">
+                {filteredMergeTargets.map(({ parent, children }) => (
+                  <div key={parent.id} className="flex flex-col divide-y divide-border">
+                    {[
+                      { item: parent, isSub: false },
+                      ...children.map((child) => ({ item: child, isSub: true })),
+                    ].map(({ item: target, isSub }) => (
+                      <button
+                        key={target.id}
+                        type="button"
+                        data-testid={`merge-target-${target.id}`}
+                        onClick={() => {
+                          if (!mergeSource) return;
+                          setMergeError(null);
+                          setMergeConfirm({ from: mergeSource, to: target });
+                          setMergeSource(null);
+                        }}
+                        className={cn(
+                          'min-h-11 flex items-center gap-3 py-2.5 text-left text-base text-foreground hover:bg-muted rounded-xl cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          isSub ? 'pl-10 pr-2' : 'px-2 font-medium',
+                        )}
+                      >
+                        <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                          <Icon name={categoryIconName(target.icon, target.type)} size={18} />
+                        </span>
+                        <span className="flex-1 truncate">{target.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Sheet>
@@ -1204,7 +1332,13 @@ export function CategoriesScreen(): JSX.Element {
         </div>
       </Modal>
 
-      {toast && <Snackbar message={toast} />}
+      {toast && (
+        <Snackbar
+          message={toast.message}
+          actionLabel={toast.actionLabel}
+          onAction={toast.onAction}
+        />
+      )}
     </Screen>
   );
 }

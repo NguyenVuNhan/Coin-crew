@@ -90,7 +90,8 @@ export function ResponsiveSheet({
             )}
           </div>
           {/* pb-1/-mb-1: room for a pressed button's 1px drop and its focus ring, so a bottom button never makes the body scroll. */}
-          <div className="-mx-6 -mb-1 min-h-0 overflow-y-auto px-6 pb-1">{children}</div>
+          {/* Thin scrollbar on a clear track, so it doesn't sit as a grey bar against the card's rounded corner. */}
+          <div className="-mx-6 -mb-1 min-h-0 overflow-y-auto px-6 pb-1 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">{children}</div>
         </DialogContent>
       </Dialog>
     )
@@ -117,7 +118,7 @@ export function ResponsiveSheet({
             </Button>
           )}
         </div>
-        <div className="px-4 pb-6 overflow-y-auto">{children}</div>
+        <div className="px-4 pb-6 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">{children}</div>
       </DrawerContent>
     </Drawer>
   )

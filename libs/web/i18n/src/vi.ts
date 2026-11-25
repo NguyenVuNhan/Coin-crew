@@ -1574,52 +1574,52 @@ export const vi: Record<MessageKey, string> = {
   'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
   'personalSettings.assets': 'Tài sản', // REVIEW
   'personalSettings.tags': 'Thẻ', // REVIEW
-  'categories.title': 'Nhóm chi tiêu', // REVIEW
-  'categories.tabs': 'Loại nhóm', // REVIEW
+  'categories.title': 'Danh mục chi tiêu', // REVIEW
+  'categories.tabs': 'Loại danh mục', // REVIEW
   'categories.hiddenBadge': 'Đã ẩn', // REVIEW
-  'categories.add': 'Thêm nhóm', // REVIEW
+  'categories.add': 'Thêm danh mục', // REVIEW
   'categories.edit': 'Sửa', // REVIEW
   'categories.hide': 'Ẩn', // REVIEW
   'categories.show': 'Hiện', // REVIEW
   'categories.delete': 'Xóa', // REVIEW
-  'categories.newTitle': 'Thêm nhóm', // REVIEW
-  'categories.editTitle': 'Sửa nhóm', // REVIEW
-  'categories.name': 'Tên nhóm', // REVIEW
+  'categories.newTitle': 'Thêm danh mục', // REVIEW
+  'categories.editTitle': 'Sửa danh mục', // REVIEW
+  'categories.name': 'Tên danh mục', // REVIEW
   'categories.icon': 'Biểu tượng', // REVIEW
   'categories.pickIcon': 'Chọn biểu tượng', // REVIEW
   'categories.iconSearch': 'Tìm biểu tượng...', // REVIEW
   'categories.noIconResults': 'Không tìm thấy biểu tượng phù hợp.', // REVIEW
-  'categories.parent': 'Nhóm cha', // REVIEW
-  'categories.pickParent': 'Chọn nhóm cha', // REVIEW
-  'categories.noParent': 'Không có (nhóm chính)', // REVIEW
-  'categories.parentLockedHasChildren': 'Đang có {count} nhóm con — chuyển các nhóm con trước để đổi nhóm cha.', // REVIEW
-  'categories.parentNoOtherParents': 'Chưa có nhóm chính nào khác để chuyển vào.', // REVIEW
-  'categories.visibilityShiftNote': 'Lưu xong sẽ đổi mặc định hiển thị ở: {wallets}. Bạn vẫn chỉnh riêng được ở "Hiện ở ví".', // REVIEW
+  'categories.parent': 'Danh mục cha', // REVIEW
+  'categories.pickParent': 'Chọn danh mục cha', // REVIEW
+  'categories.noParent': 'Không có (danh mục chính)', // REVIEW
+  'categories.parentLockedHasChildren': 'Đang có {count} danh mục con — chuyển các danh mục con trước để đổi danh mục cha.', // REVIEW
+  'categories.parentNoOtherParents': 'Chưa có danh mục chính nào khác để chuyển vào.', // REVIEW
+  'categories.visibilityShiftNote': 'Lưu xong sẽ đổi mặc định hiển thị ở: {wallets}. Bạn vẫn chỉnh riêng được ở “Hiện ở ví”.', // REVIEW
   'categories.visibilityShiftShow': 'hiện ở {wallet}', // REVIEW
   'categories.visibilityShiftHide': 'ẩn ở {wallet}', // REVIEW
-  'categories.movedToParentToast': 'Đã chuyển "{name}" sang "{parent}"', // REVIEW
-  'categories.promotedToast': 'Đã đưa "{name}" lên làm nhóm chính', // REVIEW
+  'categories.movedToParentToast': 'Đã chuyển “{name}” sang “{parent}”', // REVIEW
+  'categories.promotedToast': 'Đã đưa “{name}” lên làm danh mục chính', // REVIEW
   'categories.save': 'Lưu', // REVIEW
-  'categories.emptyTitle': 'Chưa có nhóm nào', // REVIEW
-  'categories.emptyBody': 'Thêm nhóm để phân loại thu chi.', // REVIEW
-  'categories.deleteConfirmTitle': 'Xóa nhóm?', // REVIEW
-  'categories.deleteConfirmBody': 'Bạn có chắc muốn xóa nhóm "{name}"?', // REVIEW
-  'categories.hasChildrenError': 'Nhóm này đang có nhóm con. Hãy chuyển hoặc xóa các nhóm con trước.', // REVIEW
-  'categories.deleteParentTitle': 'Xóa "{name}"', // REVIEW
-  'categories.deleteParentBody': 'Nhóm này đang có {count} nhóm con. Chọn nơi chuyển các nhóm con trước khi xóa:', // REVIEW
-  'categories.deleteParentMoreChildren': '+{count} nhóm nữa', // REVIEW
-  'categories.promoteChildren': 'Lên làm nhóm chính', // REVIEW
-  'categories.promoteChildrenDesc': 'Các nhóm con sẽ tách ra thành nhóm chính độc lập.', // REVIEW
-  'categories.moveChildrenToParent': 'Chuyển sang nhóm cha khác', // REVIEW
-  'categories.moveChildrenTargetLabel': 'Chọn nhóm cha mới', // REVIEW
-  'categories.deleteParentDirectTx': '"{name}" cũng đang có {count} giao dịch trực tiếp. Chọn nhóm để chuyển các giao dịch này:', // REVIEW
-  'categories.moveChildrenAndDelete': 'Chuyển nhóm con và xóa', // REVIEW
-  'categories.deletedParentPromotedToast': 'Đã xóa "{name}" và đưa {count} nhóm con lên nhóm chính', // REVIEW
-  'categories.deletedParentMovedToast': 'Đã xóa "{name}" và chuyển {count} nhóm con sang "{parent}"', // REVIEW
+  'categories.emptyTitle': 'Chưa có danh mục nào', // REVIEW
+  'categories.emptyBody': 'Thêm danh mục để phân loại thu chi.', // REVIEW
+  'categories.deleteConfirmTitle': 'Xóa danh mục?', // REVIEW
+  'categories.deleteConfirmBody': 'Bạn có chắc muốn xóa danh mục “{name}”?', // REVIEW
+  'categories.hasChildrenError': 'Danh mục này đang có danh mục con. Hãy chuyển hoặc xóa các danh mục con trước.', // REVIEW
+  'categories.deleteParentTitle': 'Xóa “{name}”', // REVIEW
+  'categories.deleteParentBody': 'Danh mục này đang có {count} danh mục con. Chọn nơi chuyển các danh mục con trước khi xóa:', // REVIEW
+  'categories.deleteParentMoreChildren': '+{count} danh mục nữa', // REVIEW
+  'categories.promoteChildren': 'Lên làm danh mục chính', // REVIEW
+  'categories.promoteChildrenDesc': 'Các danh mục con sẽ tách ra thành danh mục chính độc lập.', // REVIEW
+  'categories.moveChildrenToParent': 'Chuyển sang danh mục cha khác', // REVIEW
+  'categories.moveChildrenTargetLabel': 'Chọn danh mục cha mới', // REVIEW
+  'categories.deleteParentDirectTx': '“{name}” cũng đang có {count} giao dịch trực tiếp. Chọn danh mục để chuyển các giao dịch này:', // REVIEW
+  'categories.moveChildrenAndDelete': 'Chuyển danh mục con và xóa', // REVIEW
+  'categories.deletedParentPromotedToast': 'Đã xóa “{name}” và đưa {count} danh mục con lên danh mục chính', // REVIEW
+  'categories.deletedParentMovedToast': 'Đã xóa “{name}” và chuyển {count} danh mục con sang “{parent}”', // REVIEW
   'categories.inUseTitle': 'Đang có {count} giao dịch', // REVIEW
-  'categories.moveToOther': 'Chuyển sang nhóm khác', // REVIEW
+  'categories.moveToOther': 'Chuyển sang danh mục khác', // REVIEW
   'categories.moveAndDelete': 'Chuyển và xóa', // REVIEW
-  'categories.hideInstead': 'Ẩn nhóm, giữ lịch sử', // REVIEW
+  'categories.hideInstead': 'Ẩn danh mục, giữ lịch sử', // REVIEW
   'categories.editAria': 'Sửa {name}', // REVIEW
   'categories.hideAria': 'Ẩn {name}', // REVIEW
   'categories.showAria': 'Hiện {name}', // REVIEW
@@ -1754,7 +1754,11 @@ export const vi: Record<MessageKey, string> = {
   'categories.mergeInto': 'Gộp vào…', // REVIEW
   'categories.mergeTitle': 'Gộp “{name}” vào…', // REVIEW
   'categories.mergeEmpty': 'Chưa có danh mục cố định nào.', // REVIEW
+  'categories.mergeSearchPlaceholder': 'Tìm danh mục…', // REVIEW
+  'categories.mergeNoResults': 'Không tìm thấy danh mục phù hợp.', // REVIEW
   'categories.mergeConfirmTitle': 'Gộp danh mục?', // REVIEW
   'categories.mergeConfirmBody': 'Gộp “{from}” vào “{to}”? Các giao dịch sẽ chuyển sang “{to}”.', // REVIEW
   'categories.mergeConfirmAction': 'Gộp', // REVIEW
+  'categories.hiddenToast': 'Đã ẩn “{name}”', // REVIEW
+  'categories.shownToast': 'Đã hiện “{name}”', // REVIEW
 };

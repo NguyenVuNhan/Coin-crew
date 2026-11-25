@@ -68,7 +68,8 @@ describe('Review Round 1 — CategoriesScreen icon & parent pickers (R8)', () =>
 
     await user.click(within(grid).getByTestId('category-icon-option-coffee'));
     await waitFor(() => expect(screen.queryByTestId('category-icon-search')).toBeNull());
-    expect(screen.getByTestId('category-icon-trigger')).toHaveTextContent('coffee');
+    // The trigger shows the picked icon's tile and a label, never the raw icon id.
+    expect(screen.getByTestId('category-icon-trigger')).not.toHaveTextContent('coffee');
 
     await user.click(screen.getByTestId('category-save-btn'));
     await waitFor(() => expect(createdBody).not.toBeNull());

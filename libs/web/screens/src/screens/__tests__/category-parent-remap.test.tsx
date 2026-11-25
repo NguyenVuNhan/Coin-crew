@@ -184,7 +184,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
       expect(patchCall?.body).toMatchObject({ name: 'Thuế', icon: 'landmark', parentId: 'cat-food' });
     });
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Đã chuyển "Thuế" sang "Ăn uống"');
+    expect(await screen.findByRole('status')).toHaveTextContent('Đã chuyển “Thuế” sang “Ăn uống”');
   });
 
   it('omits visibility-shift preview when explicit override already fixes wallet visibility, and promotes sub-category to top-level', async () => {
@@ -226,7 +226,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
       expect(patchCall?.body).toMatchObject({ parentId: null });
     });
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Đã đưa "Thuế" lên làm nhóm chính');
+    expect(await screen.findByRole('status')).toHaveTextContent('Đã đưa “Thuế” lên làm danh mục chính');
     await waitFor(() => {
       expect(screen.getByTestId('category-row-cat-tax')).not.toHaveClass('pl-10');
     });
@@ -273,7 +273,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
     expect(locked).toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByTestId('category-parent-trigger')).toBeNull();
     expect(
-      screen.getByText('Đang có 2 nhóm con — chuyển các nhóm con trước để đổi nhóm cha.'),
+      screen.getByText('Đang có 2 danh mục con — chuyển các danh mục con trước để đổi danh mục cha.'),
     ).toBeInTheDocument();
 
     await user.click(screen.getByTestId('category-save-btn'));
@@ -317,7 +317,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
 
     await user.click(screen.getByTestId('category-edit-cat-salary'));
     expect(await screen.findByTestId('category-parent-locked')).toBeInTheDocument();
-    expect(screen.getByText('Chưa có nhóm chính nào khác để chuyển vào.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có danh mục chính nào khác để chuyển vào.')).toBeInTheDocument();
   });
 
   it('deletes a parent with children by promoting children directly without the confirm modal', async () => {
@@ -357,7 +357,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
     // Opens delete-parent sheet directly (no generic confirmDelete modal)
     const sheet = await screen.findByTestId('delete-parent-sheet');
     expect(screen.queryByTestId('category-delete-confirm')).toBeNull();
-    expect(within(sheet).getByText('+1 nhóm nữa')).toBeInTheDocument();
+    expect(within(sheet).getByText('+1 danh mục nữa')).toBeInTheDocument();
     expect(within(sheet).getByTestId('delete-parent-mode-promote')).toHaveAttribute(
       'aria-checked',
       'true',
@@ -368,7 +368,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
     await waitFor(() => expect(screen.queryByTestId('delete-parent-sheet')).toBeNull());
     expect(deletedUrls[0]).toBe('/api/me/personal/categories/cat-fees?children=promote');
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Đã xóa "Phí & lệ phí" và đưa 6 nhóm con lên nhóm chính',
+      'Đã xóa “Phí & lệ phí” và đưa 6 danh mục con lên danh mục chính',
     );
   });
 
@@ -419,7 +419,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
     await user.click(within(sheet).getByTestId('delete-parent-confirm'));
 
     const txSelect = await within(sheet).findByTestId('delete-parent-tx-move-select');
-    expect(within(sheet).getByText(/"Phí & lệ phí" cũng đang có 3 giao dịch trực tiếp/)).toBeInTheDocument();
+    expect(within(sheet).getByText(/“Phí & lệ phí” cũng đang có 3 giao dịch trực tiếp/)).toBeInTheDocument();
     expect(within(sheet).getByTestId('delete-parent-mode-move')).toHaveAttribute(
       'aria-checked',
       'true',
@@ -434,7 +434,7 @@ describe('CategoriesScreen parent remap & delete-parent flows', () => {
       '/api/me/personal/categories/cat-fees?moveTo=cat-tax&children=cat-food',
     );
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Đã xóa "Phí & lệ phí" và chuyển 2 nhóm con sang "Ăn uống"',
+      'Đã xóa “Phí & lệ phí” và chuyển 2 danh mục con sang “Ăn uống”',
     );
 
     // Now `cat-food` has children (`Thuế`, `Phí`) -> test Hide instead
