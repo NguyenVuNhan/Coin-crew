@@ -27,6 +27,8 @@ export interface QuickShareInput {
     payerId: string;
     mode: SplitMode;
     entries: { participantId: string; value: number }[];
+    categoryKey?: string | null;
+    note?: string | null;
   };
   link: UpdateGroupLinkInput & { intent?: 'shared' | 'loan' | null };
 }

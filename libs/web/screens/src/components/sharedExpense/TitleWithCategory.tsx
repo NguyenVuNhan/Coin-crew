@@ -16,6 +16,8 @@ export interface TitleWithCategoryProps {
   onOpenCategory(): void;
   inputRef?: RefObject<HTMLInputElement | null>;
   inputId?: string;
+  /** Test id of the title input; Vay/Nợ keeps its pre-#140 `entry-note-input`. */
+  inputTestId?: string;
 }
 
 const DEFAULT_ICON = fixedCategory(GENERAL_CATEGORY_KEY)?.icon ?? 'tag';
@@ -29,6 +31,7 @@ export function TitleWithCategory({
   onOpenCategory,
   inputRef,
   inputId,
+  inputTestId = 'shared-title-input',
 }: TitleWithCategoryProps): JSX.Element {
   const t = useT();
   const generatedId = useId();
@@ -56,7 +59,7 @@ export function TitleWithCategory({
           ref={inputRef}
           id={id}
           type="text"
-          data-testid="shared-title-input"
+          data-testid={inputTestId}
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder={t('sharedExpense.titlePlaceholder')}

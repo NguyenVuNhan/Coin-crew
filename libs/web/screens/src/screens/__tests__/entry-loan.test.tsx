@@ -298,7 +298,7 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     expect(screen.queryByTestId('entry-flip')).toBeNull();
   });
 
-  it('(d) has no loan-debt-payer-row, no category picker, and note is optional with no placeholder', async () => {
+  it('(d) shows the payer row and a small danh mục button, no category tiles, and the title is optional (#140)', async () => {
     const user = userEvent.setup();
     mockApi(baseRoutes());
 
@@ -306,38 +306,35 @@ describe('EntryPage — Vay/Nợ as a pure-loan form', () => {
     await finishAmount(user, '50000');
 
     expect(screen.queryByTestId('loan-debt-payer-row')).toBeNull();
+    expect(screen.getByTestId('shared-payer-row')).toBeInTheDocument();
+    expect(screen.getByTestId('shared-category-btn')).toBeInTheDocument();
     expect(screen.queryByTestId('category-tile-cat-food')).toBeNull();
     expect(await screen.findByTestId('entry-people')).toHaveTextContent('Với ai?');
 
     await pickPeople(user, ['Minh']);
+    expect(screen.getByTestId('entry-note-input')).toHaveValue('');
     expect(screen.getByTestId('entry-save-btn')).toBeEnabled();
-
-    await openDetails(user);
-    const noteInput = screen.getByTestId('entry-note-input');
-    expect(noteInput).not.toHaveAttribute('placeholder');
   });
 
-  it('(e) on Vay/Nợ, Ghi chú sits right under Số tiền (before Với ai? and Ngày) in DOM order', async () => {
+  it('(e) on Vay/Nợ, the title sits above Số tiền, then payer + Ngày, then Với ai? (#140)', async () => {
     const user = userEvent.setup();
     mockApi(baseRoutes());
 
     renderEntry('/entries/new?type=loan-debt');
     await finishAmount(user, '50000');
 
+    const titleInput = screen.getByTestId('entry-note-input');
     const amountFold = screen.getByTestId('entry-fold-amount');
-    const noteInput = screen.getByTestId('entry-note-input');
+    const dateRow = screen.getByTestId('entry-date-row');
     const people = await screen.findByTestId('entry-people');
     expect(
-      amountFold.compareDocumentPosition(noteInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+      titleInput.compareDocumentPosition(amountFold) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      noteInput.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING,
+      amountFold.compareDocumentPosition(dateRow) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-
-    await openDetails(user);
-    const dateRow = screen.getByTestId('entry-date-row');
     expect(
-      people.compareDocumentPosition(dateRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+      dateRow.compareDocumentPosition(people) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

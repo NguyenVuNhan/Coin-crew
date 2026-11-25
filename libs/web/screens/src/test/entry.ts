@@ -14,10 +14,14 @@ export async function finishAmount(
   await user.click(screen.getByTestId('key-done'));
 }
 
-/** Expands the details fold to reveal wallet, date, note, and extra details rows. */
+/**
+ * Expands the details fold to reveal wallet, date, note, and extra details rows.
+ * Vay/Nợ shows payer, date and wallet in an always-open card (#140), so there is nothing to open.
+ */
 export async function openDetails(
   user: ReturnType<typeof userEvent.setup>,
 ): Promise<void> {
+  if (screen.queryByTestId('shared-details-card')) return;
   const toggle = await screen.findByTestId('entry-fold-details');
   await user.click(toggle);
 }
