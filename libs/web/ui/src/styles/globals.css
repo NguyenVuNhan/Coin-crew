@@ -100,6 +100,12 @@
   --radius-lg: calc(var(--radius) * 0.8);
   --radius-xl: var(--radius);
   --radius-2xl: calc(var(--radius) * 1.2);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-other: var(--chart-other);
 }
 
 :root {
@@ -173,6 +179,12 @@
   --meme-story-bar: #ffffff;
   --meme-story-chrome: rgba(246, 247, 244, 0.12);
   --meme-story-border: rgba(246, 247, 244, 0.16);
+
+  --chart-1: var(--primary);
+  --chart-2: color-mix(in oklab, var(--primary) 70%, var(--card));
+  --chart-3: color-mix(in oklab, var(--primary) 45%, var(--card));
+  --chart-4: color-mix(in oklab, var(--primary) 25%, var(--card));
+  --chart-other: color-mix(in oklab, var(--muted-foreground) 35%, var(--card));
 
   --radius: 1.25rem;              /* 20px cards; buttons are pills */
 

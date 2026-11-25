@@ -23,7 +23,9 @@
     "lucide-react": "1.63.0",
     "radix-ui": "1.8.1",
     "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-router": "8.4.0",
+    "recharts": "3.8.0",
     "shadcn": "4.23.0",
     "sonner": "2.0.8",
     "tailwind-merge": "3.7.0",
@@ -32,6 +34,9 @@
     "vaul": "1.1.2"
   },
   "nx": {
-    "tags": ["scope:web", "type:ui"]
+    "tags": [
+      "scope:web",
+      "type:ui"
+    ]
   }
 }

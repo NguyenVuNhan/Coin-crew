@@ -20,6 +20,7 @@ import {
   usePersonalSummary,
   useWalletDetails,
 } from "@cc/web-data-access/personalMoney";
+import { useCurrentMonthReportTotals } from "@cc/web-data-access/reports";
 import { EmptyState } from "@cc/web-ui/components/EmptyState";
 import { Button } from "@cc/web-ui/components/Button";
 import { Card } from "@cc/web-ui/components/ui/card";
@@ -50,6 +51,7 @@ function BookTotal(): JSX.Element {
   const hasWallet = (list?.length ?? 0) > 0;
   const currentMonth = currentMonthLocal();
   const summary = usePersonalSummary(currentMonth, { enabled: hasWallet });
+  const monthTotals = useCurrentMonthReportTotals({ enabled: hasWallet });
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -137,6 +139,28 @@ function BookTotal(): JSX.Element {
               })}
             </p>
           )}
+          {monthTotals.ready && (
+            <p
+              data-testid="book-month-totals"
+              className="m-0 text-xs text-muted-foreground tabular-nums flex flex-wrap items-center gap-x-1.5"
+            >
+              <span>
+                {t('book.monthSpent')}{' '}
+                <span className="font-semibold text-danger">
+                  {monthTotals.approximate ? '≈ ' : ''}
+                  {formatMoney(monthTotals.spent, 'VND')}
+                </span>
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>
+                {t('book.monthIncome')}{' '}
+                <span className="font-semibold text-success">
+                  {monthTotals.approximate ? '≈ ' : ''}
+                  {formatMoney(monthTotals.income, 'VND')}
+                </span>
+              </span>
+            </p>
+          )}
           <WalletPie slices={pieSlices} />
         </Card>
       ) : (
@@ -164,7 +188,7 @@ function BookTotal(): JSX.Element {
   );
 }
 
-function BookPeople(): JSX.Element {
+function BookPeople({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element {
   const t = useT();
   const {
     owedToYou,
@@ -191,7 +215,7 @@ function BookPeople(): JSX.Element {
   }
 
   return (
-    <div className="fsl-book__list bg-card rounded-xl overflow-hidden">
+    <div className="fsl-book__list bg-card rounded-xl overflow-hidden divide-y divide-border">
       <Link
         to="/people"
         data-testid="book-people-row"
@@ -226,6 +250,29 @@ function BookPeople(): JSX.Element {
         />
         <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
       </Link>
+      {hasWallet && (
+        <Link
+          to="/reports"
+          data-testid="book-reports-row"
+          className="fsl-book__reports flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
+        >
+          <span
+            aria-hidden="true"
+            className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+          >
+            <Icon name="pie-chart" size={18} />
+          </span>
+          <div className="flex-1 flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-foreground leading-snug">
+              {t('book.reportsTitle')}
+            </span>
+            <span className="text-xs text-muted-foreground leading-snug truncate">
+              {t('book.reportsDesc')}
+            </span>
+          </div>
+          <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
+        </Link>
+      )}
     </div>
   );
 }
@@ -341,11 +388,11 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   );
 }
 
-function BookSummary(): JSX.Element {
+function BookSummary({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element {
   return (
     <>
       <BookTotal />
-      <BookPeople />
+      <BookPeople hasWallet={hasWallet} />
       <BookRecent limit={5} />
     </>
   );
@@ -367,7 +414,7 @@ export function MainScreen({ book }: { book: boolean }): JSX.Element {
     <Home
       book={book && hasWallet}
       title={book ? t("book.title") : undefined}
-      summary={book ? wide ? <BookPeople /> : <BookSummary /> : undefined}
+      summary={book ? wide ? <BookPeople hasWallet={hasWallet} /> : <BookSummary hasWallet={hasWallet} /> : undefined}
       wideMain={
         book && wide ? (
           <>
