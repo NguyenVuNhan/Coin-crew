@@ -619,13 +619,12 @@ export function budgetStarters(
   rows: CountedSpendRow[],
   categories: CategoryView[],
   today: string,
-  opts?: { max?: number; currency?: CurrencyCode; excludedWalletIds?: string[] },
+  opts?: { max?: number; currency?: CurrencyCode },
 ): BudgetStarter[] {
   const max = opts?.max ?? 3;
   if (max <= 0) return [];
 
   const currency: CurrencyCode = opts?.currency ?? 'VND';
-  const excludedWallets = opts?.excludedWalletIds ? new Set(opts.excludedWalletIds) : null;
   const { from, to } = lastFullMonthPeriod(today);
 
   const categoriesById = new Map<string, CategoryView>();
@@ -637,6 +636,8 @@ export function budgetStarters(
   for (const def of defs) {
     if (def.target.kind === 'category' && def.currency === currency) {
       budgetedCategoryIds.add(def.target.categoryId);
+      const top = resolveTopLevelCategory(def.target.categoryId, categoriesById);
+      if (top) budgetedCategoryIds.add(top.id);
     }
   }
 
@@ -646,7 +647,6 @@ export function budgetStarters(
     if (row.currency !== currency) continue;
     if (row.date < from || row.date > to) continue;
     if (row.amount <= 0) continue;
-    if (excludedWallets && row.walletId !== null && excludedWallets.has(row.walletId)) continue;
 
     const top = resolveTopLevelCategory(row.categoryId, categoriesById);
     if (!top) continue;
@@ -681,6 +681,8 @@ export function lastFullMonthSpent(
   today: string,
   currency: CurrencyCode = 'VND',
 ): number {
+  if (SYNTHETIC_CATEGORY_IDS.has(categoryId)) return 0;
+
   const { from, to } = lastFullMonthPeriod(today);
 
   const parentById = new Map<string, string | null>();
@@ -704,6 +706,8 @@ export function lastFullMonthSpent(
   for (const row of rows) {
     if (row.currency !== currency) continue;
     if (row.date < from || row.date > to) continue;
+    if (row.amount <= 0) continue;
+    if (SYNTHETIC_CATEGORY_IDS.has(row.categoryId)) continue;
     if (!matchesCategory(row.categoryId)) continue;
     total += row.amount;
   }

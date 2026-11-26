@@ -160,16 +160,13 @@ describe('budgetStarters', () => {
     ]);
   });
 
-  it('ignores USD rows by default and excludes specified wallets', () => {
+  it('ignores USD rows by default', () => {
     const rows: CountedSpendRow[] = [
       makeRow({ id: 'e-usd', currency: 'USD', categoryId: 'c-shopping', amount: 50_000 }),
-      makeRow({ id: 'e-excl', walletId: 'w-excl', categoryId: 'c-bills', amount: 900_000 }),
       makeRow({ id: 'e-vnd', walletId: 'w-vnd', categoryId: 'c-food', amount: 310_000 }),
     ];
 
-    const result = budgetStarters([], rows, BASE_CATEGORIES, TODAY, {
-      excludedWalletIds: ['w-excl'],
-    });
+    const result = budgetStarters([], rows, BASE_CATEGORIES, TODAY);
     expect(result).toEqual([
       { categoryId: 'c-food', lastMonthSpent: 310_000, suggestedAmount: 400_000 },
     ]);
