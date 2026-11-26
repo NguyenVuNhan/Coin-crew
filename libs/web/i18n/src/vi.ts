@@ -1922,4 +1922,34 @@ export const vi: Record<MessageKey, string> = {
   'budgets.warnAlso': '{name} cũng sẽ {state}.', // REVIEW
   'budgets.savedWithBudget': 'Đã lưu. {name} {state}: {detail}', // REVIEW
   'budgets.see': 'Xem', // REVIEW
+  'budgets.edit': 'Sửa ngân sách', // REVIEW
+  'budgets.notFound': 'Không tìm thấy ngân sách', // REVIEW
+  'budgets.notFoundBody': 'Ngân sách này có thể đã bị xóa.', // REVIEW
+  'budgets.prevPeriod': 'Kỳ trước', // REVIEW
+  'budgets.nextPeriod': 'Kỳ sau', // REVIEW
+  'budgets.timeLeftLabel': 'Còn', // REVIEW
+  'budgets.timeLeftDaysShort': '{n} ngày', // REVIEW
+  'budgets.timeLeftMonthsShort': '{y} năm {m} tháng', // REVIEW
+  'budgets.periodEnded': 'Đã xong', // REVIEW
+  'budgets.noteFine': 'Đúng nhịp. Bạn có thể chi khoảng {pace} đến {end}.', // REVIEW
+  'budgets.noteFast': 'Đang chi nhanh quá. Cố giữ khoảng {pace} đến {end}.', // REVIEW
+  'budgets.noteNear': 'Sắp chạm mức. Bạn có thể chi khoảng {pace} đến {end}.', // REVIEW
+  'budgets.noteOver': 'Đã vượt {amount}. {stop}.', // REVIEW
+  'budgets.notePastOver': 'Đã vượt {amount} so với mức {limit}.', // REVIEW
+  'budgets.notePastNear': 'Sát mức {limit}, đã chi {spent}.', // REVIEW
+  'budgets.notePastFine': 'Trong mức, còn dư {left}.', // REVIEW
+  'budgets.pastOver': 'Vượt {amount}', // REVIEW
+  'budgets.pastNear': 'Sát mức', // REVIEW
+  'budgets.pastFine': 'Trong mức', // REVIEW
+  'budgets.ofLimit': 'trên {limit}', // REVIEW
+  'budgets.suggestDismiss': 'Bỏ qua', // REVIEW
+  'budgets.byYear': 'Theo năm', // REVIEW
+  'budgets.chartAria': 'Chi tiêu {count} kỳ gần đây so với mức của từng kỳ', // REVIEW
+  'budgets.chartAriaByYear': 'Chi tiêu theo năm trong {count} năm', // REVIEW
+  'budgets.chartBarAria': '{label}: đã chi {spent} trên {limit}', // REVIEW
+  'budgets.chartBarYearAria': '{label}: đã chi {spent}', // REVIEW
+  'budgets.noTxInPeriod': 'Chưa có giao dịch nào được tính trong kỳ này.', // REVIEW
+  'budgets.seeAll': 'Tất cả ›', // REVIEW
+  'budgets.paceUnitDay': '{amount} mỗi ngày', // REVIEW
+  'budgets.paceUnitMonth': '{amount} mỗi tháng', // REVIEW
 };

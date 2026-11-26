@@ -1,0 +1,965 @@
+import { useMemo, useState, type JSX, type ReactNode } from 'react';
+import { Link, useParams } from 'react-router';
+import {
+  BUDGET_NEAR,
+  budgetProgress,
+  compareBookRows,
+  firstBudgetPeriod,
+  formatMoney,
+  limitFor,
+  type BookRow,
+  type BudgetDef,
+  type BudgetPeriod,
+  type BudgetProgress,
+  type CountedSpendRow,
+  type EntryView,
+  type GroupRow,
+  type GroupSettingsView,
+  type SyncEntryRow,
+  type WalletDetailView,
+} from '@cc/core';
+import { getLang, useT } from '@cc/web-i18n';
+import { todayLocal } from '@cc/web-util/localDate';
+import {
+  useBudgets,
+  useBudgetsProgress,
+  useUpdateBudget,
+} from '@cc/web-data-access/budgets';
+import {
+  useAssets,
+  useCategories,
+  useGroupSettings,
+  usePersonalList,
+  useTags,
+  useWalletDetails,
+} from '@cc/web-data-access/personalMoney';
+import { useGroupCopy } from '@cc/web-data-access/txCopy/groupCopy';
+import { useTxCopy } from '@cc/web-data-access/txCopy/hooks';
+import { Button } from '@cc/web-ui/components/Button';
+import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Icon, type IconName } from '@cc/web-ui/components/icons';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { cn } from '@cc/web-ui/lib/utils';
+import { GroupRowSheet } from '../components/GroupRowSheet';
+import { Screen } from '../components/Screen';
+import { TransactionRow } from '../components/TransactionRow';
+import { BudgetArc } from '../components/budgets/BudgetArc';
+import {
+  BudgetHistoryChart,
+  type BudgetHistoryBar,
+} from '../components/budgets/BudgetHistoryChart';
+import { TransactionDetailContent } from './TransactionDetail';
+
+const LONG_PERIOD_DAYS = 92;
+const PACE_TOKEN = '__BUDGET_PACE__';
+const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
+  defaultGroupCategoryId: null,
+  countLoans: false,
+};
+
+function parseYmd(ymd: string): [number, number, number] {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return [y ?? 1970, m ?? 1, d ?? 1];
+}
+
+function diffDaysUtc(from: string, to: string): number {
+  const [y1, m1, d1] = parseYmd(from);
+  const [y2, m2, d2] = parseYmd(to);
+  return Math.round(
+    (Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000,
+  );
+}
+
+function formatDayMonth(ymd: string): string {
+  const [, m, d] = parseYmd(ymd);
+  return `${d}/${m}`;
+}
+
+function formatFullDate(ymd: string): string {
+  const [y, m, d] = parseYmd(ymd);
+  return `${d}/${m}/${y}`;
+}
+
+function formatPeriodLabel(
+  def: BudgetDef,
+  period: BudgetPeriod,
+  lang: 'vi' | 'en',
+): string {
+  const [fy, fm, fd] = parseYmd(period.from);
+  const [ty] = parseYmd(period.to);
+
+  if (def.periodKind === 'month' && fd === 1 && fy === ty) {
+    const monthPart =
+      lang === 'vi'
+        ? `Tháng ${fm}/${fy}`
+        : new Date(Date.UTC(fy, fm - 1, 1)).toLocaleDateString('en-US', {
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'UTC',
+          });
+    return `${monthPart} · ${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}`;
+  }
+
+  if (def.periodKind === 'year') {
+    const yearPart = lang === 'vi' ? `Năm ${fy}` : `${fy}`;
+    return `${yearPart} · ${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}`;
+  }
+
+  if (fy === ty) {
+    return `${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}/${ty}`;
+  }
+  return `${formatFullDate(period.from)} – ${formatFullDate(period.to)}`;
+}
+
+function formatShortPeriodLabel(
+  def: BudgetDef,
+  period: BudgetPeriod,
+  lang: 'vi' | 'en',
+): string {
+  const [fy, fm, fd] = parseYmd(period.from);
+  if (def.periodKind === 'month' && fd === 1) {
+    return lang === 'vi' ? `T${fm}` : `M${fm}`;
+  }
+  if (def.periodKind === 'year') {
+    return String(fy);
+  }
+  return formatDayMonth(period.from);
+}
+
+function formatPastRowTitle(
+  def: BudgetDef,
+  period: BudgetPeriod,
+  lang: 'vi' | 'en',
+): string {
+  const [fy, fm, fd] = parseYmd(period.from);
+  if (def.periodKind === 'month' && fd === 1) {
+    return lang === 'vi'
+      ? `Tháng ${fm}`
+      : new Date(Date.UTC(fy, fm - 1, 1)).toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        });
+  }
+  if (def.periodKind === 'year') {
+    return lang === 'vi' ? `Năm ${fy}` : String(fy);
+  }
+  return `${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}`;
+}
+
+function formatTimeLeftShort(
+  daysLeft: number,
+  t: ReturnType<typeof useT>,
+): string {
+  if (daysLeft <= 0) return t('budgets.periodEnded');
+  if (daysLeft >= 365) {
+    const totalMonths = Math.floor(daysLeft / 30);
+    const y = Math.floor(totalMonths / 12);
+    const m = totalMonths % 12;
+    return t('budgets.timeLeftMonthsShort', { y, m });
+  }
+  return t('budgets.timeLeftDaysShort', { n: daysLeft });
+}
+
+function Stat({
+  label,
+  value,
+  align = 'left',
+}: {
+  label: string;
+  value: string;
+  align?: 'left' | 'center' | 'right';
+}): JSX.Element {
+  return (
+    <div
+      className={cn(
+        'flex flex-col',
+        align === 'center' && 'items-center',
+        align === 'right' && 'items-end',
+      )}
+    >
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold tabular-nums text-foreground">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function buildStateNote(
+  progress: BudgetProgress,
+  def: BudgetDef,
+  t: ReturnType<typeof useT>,
+): ReactNode {
+  const { state, limit, spent, left, daysLeft, pace, period } = progress;
+
+  if (daysLeft <= 0) {
+    if (state === 'over') {
+      return t('budgets.notePastOver', {
+        amount: formatMoney(Math.abs(left), def.currency),
+        limit: formatMoney(limit, def.currency),
+      });
+    }
+    if (state === 'near') {
+      return t('budgets.notePastNear', {
+        limit: formatMoney(limit, def.currency),
+        spent: formatMoney(spent, def.currency),
+      });
+    }
+    return t('budgets.notePastFine', {
+      left: formatMoney(Math.max(0, left), def.currency),
+    });
+  }
+
+  if (state === 'over') {
+    return t('budgets.noteOver', {
+      amount: formatMoney(Math.abs(left), def.currency),
+      stop: t('budgets.stopUntilEnd'),
+    });
+  }
+
+  const end = formatDayMonth(period.to);
+  const paceAmount = pace ? formatMoney(pace.amount, def.currency) : formatMoney(0, def.currency);
+  const paceUnitKey =
+    pace?.unit === 'month' ? 'budgets.paceUnitMonth' : 'budgets.paceUnitDay';
+  const paceStr = t(paceUnitKey, { amount: PACE_TOKEN });
+  const [paceBefore, paceAfter = ''] = paceStr.split(PACE_TOKEN);
+
+  const noteKey =
+    state === 'fast'
+      ? 'budgets.noteFast'
+      : state === 'near'
+        ? 'budgets.noteNear'
+        : 'budgets.noteFine';
+  const template = t(noteKey, { pace: PACE_TOKEN, end });
+  const [before, after = ''] = template.split(PACE_TOKEN);
+
+  return (
+    <>
+      {before}
+      {paceBefore}
+      <b className="font-semibold tabular-nums">{paceAmount}</b>
+      {paceAfter}
+      {after}
+    </>
+  );
+}
+
+function hydrateSyncEntry(
+  row: SyncEntryRow,
+  walletById: Map<string, WalletDetailView>,
+  tagNameById: Map<string, string>,
+): EntryView {
+  const wallet = walletById.get(row.walletId);
+  return {
+    id: row.id,
+    walletId: row.walletId,
+    type: row.type,
+    amount: row.amount,
+    currency: wallet?.currency ?? 'VND',
+    categoryId: row.categoryId,
+    assetId: row.assetId,
+    quantity: row.quantity,
+    transferId: row.transferId,
+    counterpartWalletId: row.counterpartWalletId,
+    date: row.date,
+    time: row.time,
+    note: row.note,
+    tags: row.tagIds
+      .map((tid) => tagNameById.get(tid))
+      .filter((name): name is string => Boolean(name)),
+    excludeFromReports: row.excludeFromReports,
+    source: 'manual',
+    beforeStart: wallet !== undefined && row.date < wallet.startDate,
+    createdAt: row.createdAt,
+  };
+}
+
+function synthesizeFallbackEntry(
+  row: CountedSpendRow,
+  tagNameById: Map<string, string>,
+): EntryView {
+  return {
+    id: row.id,
+    walletId: row.walletId ?? '',
+    type: 'expense',
+    amount: row.amount,
+    currency: row.currency,
+    categoryId: row.categoryId,
+    transferId: null,
+    counterpartWalletId: null,
+    date: row.date,
+    time: null,
+    note: null,
+    tags: row.tagIds
+      .map((tid) => tagNameById.get(tid))
+      .filter((name): name is string => Boolean(name)),
+    excludeFromReports: false,
+    source: 'manual',
+    beforeStart: false,
+    createdAt: row.date,
+  };
+}
+
+export function BudgetDetailScreen(): JSX.Element {
+  const { id } = useParams<{ id: string }>();
+  const t = useT();
+  const lang = getLang();
+  const today = todayLocal();
+
+  const budgetsQuery = useBudgets();
+  const { source, defs, history, suggestion, rowsFor, isPending, error } =
+    useBudgetsProgress();
+  const updateBudget = useUpdateBudget();
+
+  const walletsQuery = useWalletDetails();
+  const categoriesQuery = useCategories();
+  const tagsQuery = useTags();
+  const groupSettingsQuery = useGroupSettings();
+
+  const wallets = walletsQuery.data?.wallets ?? [];
+  const categories = categoriesQuery.data?.categories ?? [];
+  const tags = tagsQuery.data?.tags ?? [];
+  const groupSettings = groupSettingsQuery.data?.settings ?? DEFAULT_GROUP_SETTINGS;
+  const hasInvestmentWallet = wallets.some((w) => w.kind === 'investment');
+  const assetsQuery = useAssets({ enabled: hasInvestmentWallet });
+  const assets = assetsQuery.data?.assets ?? [];
+
+  const def = useMemo(
+    () => (id ? defs.find((b) => b.id === id) ?? null : null),
+    [defs, id],
+  );
+
+  const [selectedPeriodFrom, setSelectedPeriodFrom] = useState<string | null>(
+    null,
+  );
+  const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
+  const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(
+    null,
+  );
+
+  const allPeriods = useMemo(() => {
+    if (!def) return [];
+    const h = history(def.id);
+    if (h.length > 0) return h;
+    const first = firstBudgetPeriod(def);
+    return [{ period: first, limit: limitFor(def, first), spent: 0 }];
+  }, [def, history]);
+
+  const selectedIndex = useMemo(() => {
+    if (allPeriods.length === 0) return 0;
+    if (selectedPeriodFrom === null) return 0;
+    const idx = allPeriods.findIndex((p) => p.period.from === selectedPeriodFrom);
+    return idx >= 0 ? idx : 0;
+  }, [allPeriods, selectedPeriodFrom]);
+
+  const shownItem = allPeriods[selectedIndex] ?? null;
+
+  const shownProgress = useMemo(() => {
+    if (!def || !shownItem) return null;
+    return budgetProgress(def, shownItem.spent, shownItem.period, today);
+  }, [def, shownItem, today]);
+
+  const activeSuggestion = useMemo(
+    () => (def ? suggestion(def.id) : null),
+    [def, suggestion],
+  );
+
+  const countedRows = useMemo(() => {
+    if (!def || !shownItem) return [];
+    return rowsFor(def.id, shownItem.period);
+  }, [def, shownItem, rowsFor]);
+
+  const txCopy = useTxCopy();
+  const groupCopy = useGroupCopy({ enabled: Boolean(def) });
+
+  const listEnabled =
+    Boolean(def && shownItem) &&
+    source === 'server' &&
+    countedRows.length > 0;
+  const listQuery = usePersonalList(
+    shownItem
+      ? { from: shownItem.period.from, to: shownItem.period.to, groups: 'show' }
+      : {},
+    { enabled: listEnabled, groups: true },
+  );
+
+  const bookRows = useMemo<BookRow[]>(() => {
+    if (countedRows.length === 0) return [];
+    const walletById = new Map(wallets.map((w) => [w.id, w]));
+    const tagNameById = new Map(tags.map((tg) => [tg.id, tg.name]));
+
+    const entryById = new Map<string, EntryView>();
+    const groupById = new Map<string, GroupRow>();
+
+    if (source === 'copy') {
+      if (txCopy.snapshot) {
+        for (const e of txCopy.snapshot.entries) {
+          entryById.set(e.id, hydrateSyncEntry(e, walletById, tagNameById));
+        }
+      }
+      if (groupCopy.snapshot) {
+        for (const g of groupCopy.snapshot.rows) {
+          groupById.set(g.id, g);
+        }
+      }
+    } else if (listQuery.data) {
+      for (const r of listQuery.data.rows) {
+        if (r.kind === 'entry') {
+          entryById.set(r.entry.id, r.entry);
+        }
+      }
+      for (const g of listQuery.data.groupRows ?? []) {
+        groupById.set(g.id, g);
+      }
+    }
+
+    const result: BookRow[] = [];
+    for (const row of countedRows) {
+      if (row.kind === 'group') {
+        const g = groupById.get(row.id);
+        if (g) {
+          result.push(g);
+        } else {
+          result.push({
+            kind: 'entry',
+            entry: synthesizeFallbackEntry(row, tagNameById),
+          });
+        }
+      } else {
+        const entry =
+          entryById.get(row.id) ?? synthesizeFallbackEntry(row, tagNameById);
+        result.push({ kind: 'entry', entry });
+      }
+    }
+    return result.sort(compareBookRows);
+  }, [
+    countedRows,
+    wallets,
+    tags,
+    source,
+    txCopy.snapshot,
+    groupCopy.snapshot,
+    listQuery.data,
+  ]);
+
+  const isLongPeriod = useMemo(() => {
+    if (!shownItem) return false;
+    return diffDaysUtc(shownItem.period.from, shownItem.period.to) + 1 > LONG_PERIOD_DAYS;
+  }, [shownItem]);
+
+  const chartModel = useMemo<{
+    heading: string;
+    ariaLabel: string;
+    bars: BudgetHistoryBar[];
+    showCaption: boolean;
+  } | null>(() => {
+    if (!def || !shownItem) return null;
+
+    if (isLongPeriod) {
+      if (def.periodKind === 'year') {
+        const recent = allPeriods.slice(0, 6).reverse();
+        const bars: BudgetHistoryBar[] = recent.map((item) => {
+          const yearLabel = item.period.from.slice(0, 4);
+          return {
+            key: item.period.from,
+            label: yearLabel,
+            spent: item.spent,
+            limit: item.limit,
+            isCurrent: item.period.from === shownItem.period.from,
+            ariaLabel: t('budgets.chartBarAria', {
+              label: yearLabel,
+              spent: formatMoney(item.spent, def.currency),
+              limit: formatMoney(item.limit, def.currency),
+            }),
+          };
+        });
+        return {
+          heading: t('budgets.byYear'),
+          ariaLabel: t('budgets.chartAriaByYear', { count: bars.length }),
+          bars,
+          showCaption: true,
+        };
+      }
+
+      // Multi-month / multi-year once-budget: aggregate counted rows per year
+      const startYear = Number(shownItem.period.from.slice(0, 4));
+      const endYear = Number(shownItem.period.to.slice(0, 4));
+      const spentByYear = new Map<number, number>();
+      for (const row of countedRows) {
+        const y = Number(row.date.slice(0, 4));
+        spentByYear.set(y, (spentByYear.get(y) ?? 0) + row.amount);
+      }
+      const currentYear = Number(today.slice(0, 4));
+      const years: number[] = [];
+      for (let y = startYear; y <= endYear; y++) {
+        years.push(y);
+      }
+      const visibleYears = years.slice(-6);
+      const bars: BudgetHistoryBar[] = visibleYears.map((y) => {
+        const spent = spentByYear.get(y) ?? 0;
+        const label = String(y);
+        return {
+          key: label,
+          label,
+          spent,
+          isCurrent: y === currentYear,
+          ariaLabel: t('budgets.chartBarYearAria', {
+            label,
+            spent: formatMoney(spent, def.currency),
+          }),
+        };
+      });
+      return {
+        heading: t('budgets.byYear'),
+        ariaLabel: t('budgets.chartAriaByYear', { count: bars.length }),
+        bars,
+        showCaption: false,
+      };
+    }
+
+    const recent = allPeriods.slice(0, 6).reverse();
+    const bars: BudgetHistoryBar[] = recent.map((item) => {
+      const label = formatShortPeriodLabel(def, item.period, lang);
+      return {
+        key: item.period.from,
+        label,
+        spent: item.spent,
+        limit: item.limit,
+        isCurrent: item.period.from === shownItem.period.from,
+        ariaLabel: t('budgets.chartBarAria', {
+          label,
+          spent: formatMoney(item.spent, def.currency),
+          limit: formatMoney(item.limit, def.currency),
+        }),
+      };
+    });
+    return {
+      heading: t('budgets.recentPeriods'),
+      ariaLabel: t('budgets.chartAria', { count: bars.length }),
+      bars,
+      showCaption: true,
+    };
+  }, [def, shownItem, isLongPeriod, allPeriods, countedRows, today, lang, t]);
+
+  const pastPeriods = useMemo(() => {
+    if (!def || def.periodKind === 'once') return [];
+    return allPeriods.slice(1, 6);
+  }, [def, allPeriods]);
+
+  const allTxHref = useMemo(() => {
+    if (!def || !shownItem) return '/transactions';
+    const params = new URLSearchParams();
+    params.set('from', shownItem.period.from);
+    params.set('to', shownItem.period.to);
+    if (def.target.kind === 'category') {
+      params.set('categoryId', def.target.categoryId);
+    } else {
+      params.set('tagId', def.target.tagId);
+    }
+    return `/transactions?${params.toString()}`;
+  }, [def, shownItem]);
+
+  const canStepPrev = selectedIndex < allPeriods.length - 1;
+  const canStepNext = selectedIndex > 0;
+
+  const handleStepPrev = () => {
+    if (!canStepPrev) return;
+    const prev = allPeriods[selectedIndex + 1];
+    if (prev) setSelectedPeriodFrom(prev.period.from);
+  };
+
+  const handleStepNext = () => {
+    if (!canStepNext) return;
+    if (selectedIndex - 1 === 0) {
+      setSelectedPeriodFrom(null);
+    } else {
+      const next = allPeriods[selectedIndex - 1];
+      if (next) setSelectedPeriodFrom(next.period.from);
+    }
+  };
+
+  const handleAcceptSuggestion = () => {
+    if (!def || !activeSuggestion) return;
+    updateBudget.mutate({
+      id: def.id,
+      input: { amount: activeSuggestion.amount, today },
+    });
+  };
+
+  const handleDismissSuggestion = () => {
+    if (!def) return;
+    updateBudget.mutate({
+      id: def.id,
+      input: { dismissSuggestion: true, today },
+    });
+  };
+
+  const currentLimit = allPeriods[0]?.limit ?? shownProgress?.limit ?? 0;
+
+  return (
+    <Screen
+      title={def?.name ?? t('budgets.title')}
+      back="/budgets"
+      right={
+        def ? (
+          <Button
+            variant="ghost"
+            href={`/budgets/${encodeURIComponent(def.id)}?edit=1`}
+            data-testid="budget-edit-button"
+            aria-label={t('budgets.edit')}
+            title={t('budgets.edit')}
+            className="size-11 p-0"
+          >
+            <Icon name="edit" size={22} />
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="fsl-budget-detail flex flex-col gap-4">
+        {isPending && !def ? (
+          <SkeletonList rows={3} />
+        ) : error && !def ? (
+          <InlineError error={error} onRetry={() => budgetsQuery.refetch()} />
+        ) : !def || !shownProgress ? (
+          <div data-testid="budget-not-found">
+            <EmptyState
+              icon="pie-chart"
+              title={t('budgets.notFound')}
+              body={t('budgets.notFoundBody')}
+              action={
+                <Button variant="primary" block href="/budgets">
+                  {t('budgets.title')}
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <>
+            {/* 1. Summary Card */}
+            <div
+              data-testid="budget-summary-card"
+              className="rounded-xl bg-card border border-border p-5 flex flex-col gap-3"
+            >
+              <div className="flex items-center justify-between -mx-2 -mt-2">
+                <button
+                  type="button"
+                  data-testid="budget-prev-period"
+                  aria-label={t('budgets.prevPeriod')}
+                  title={t('budgets.prevPeriod')}
+                  disabled={!canStepPrev}
+                  onClick={handleStepPrev}
+                  className="inline-flex items-center justify-center size-11 rounded-full text-foreground hover:bg-muted disabled:text-muted-foreground/40 disabled:hover:bg-transparent disabled:cursor-not-allowed cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+                >
+                  <Icon name="chevronLeft" size={22} />
+                </button>
+                <span
+                  data-testid="budget-period-label"
+                  className="text-sm font-medium text-muted-foreground text-center"
+                >
+                  {formatPeriodLabel(def, shownProgress.period, lang)}
+                </span>
+                <button
+                  type="button"
+                  data-testid="budget-next-period"
+                  aria-label={t('budgets.nextPeriod')}
+                  title={t('budgets.nextPeriod')}
+                  disabled={!canStepNext}
+                  onClick={handleStepNext}
+                  className="inline-flex items-center justify-center size-11 rounded-full text-foreground hover:bg-muted disabled:text-muted-foreground/40 disabled:hover:bg-transparent disabled:cursor-not-allowed cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+                >
+                  <Icon name="chevronRight" size={22} />
+                </button>
+              </div>
+
+              <div className="relative flex justify-center">
+                <BudgetArc
+                  used={
+                    shownProgress.limit > 0
+                      ? Math.min(
+                          100,
+                          Math.round(
+                            (shownProgress.spent / shownProgress.limit) * 100,
+                          ),
+                        )
+                      : shownProgress.spent > 0
+                        ? 100
+                        : 0
+                  }
+                  state={shownProgress.state}
+                />
+                <div className="absolute bottom-0 inset-x-0 flex flex-col items-center">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {shownProgress.state === 'over'
+                      ? t('budgets.overLabel')
+                      : t('budgets.remaining')}
+                  </span>
+                  <span
+                    data-testid="budget-remaining-amount"
+                    className={cn(
+                      'text-3xl font-bold tabular-nums leading-tight',
+                      shownProgress.state === 'over'
+                        ? 'text-danger'
+                        : 'text-foreground',
+                    )}
+                  >
+                    {shownProgress.state === 'over'
+                      ? `\u2212${formatMoney(Math.abs(shownProgress.left), def.currency)}`
+                      : formatMoney(Math.max(0, shownProgress.left), def.currency)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <Stat
+                  label={t('budgets.limit')}
+                  value={formatMoney(shownProgress.limit, def.currency)}
+                />
+                <Stat
+                  label={t('budgets.spent')}
+                  value={formatMoney(shownProgress.spent, def.currency)}
+                  align="center"
+                />
+                <Stat
+                  label={t('budgets.timeLeftLabel')}
+                  value={formatTimeLeftShort(shownProgress.daysLeft, t)}
+                  align="right"
+                />
+              </div>
+
+              <p
+                data-testid="budget-state-note"
+                className={cn(
+                  'm-0 rounded-xl px-4 py-3 text-sm leading-snug',
+                  shownProgress.state === 'over'
+                    ? 'bg-danger-soft text-danger'
+                    : shownProgress.state === 'fast' ||
+                        shownProgress.state === 'near'
+                      ? 'bg-warning-soft text-warning-foreground'
+                      : 'bg-secondary text-secondary-foreground',
+                )}
+              >
+                {buildStateNote(shownProgress, def, t)}
+              </p>
+            </div>
+
+            {/* 2. Suggestion Line (B12) */}
+            {activeSuggestion && (
+              <div
+                data-testid="budget-suggestion"
+                className="rounded-xl bg-card border border-border p-4 flex flex-col gap-3"
+              >
+                <p className="m-0 text-sm text-foreground leading-snug">
+                  {activeSuggestion.direction === 'raise'
+                    ? t('budgets.suggestRaise', {
+                        avg: formatMoney(activeSuggestion.average, def.currency),
+                        limit: formatMoney(currentLimit, def.currency),
+                      })
+                    : t('budgets.suggestLower', {
+                        avg: formatMoney(activeSuggestion.average, def.currency),
+                        limit: formatMoney(currentLimit, def.currency),
+                      })}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    data-testid="budget-suggest-accept"
+                    loading={updateBudget.isPending}
+                    onClick={handleAcceptSuggestion}
+                  >
+                    {t('budgets.suggestAction', {
+                      amount: formatMoney(activeSuggestion.amount, def.currency),
+                    })}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    data-testid="budget-suggest-dismiss"
+                    disabled={updateBudget.isPending}
+                    onClick={handleDismissSuggestion}
+                  >
+                    {t('budgets.suggestDismiss')}
+                  </Button>
+                </div>
+                {updateBudget.error && <InlineError error={updateBudget.error} />}
+              </div>
+            )}
+
+            {/* 3. History Chart & Past Periods */}
+            {chartModel && chartModel.bars.length > 0 && (
+              <section className="flex flex-col gap-2">
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="m-0 text-sm font-semibold text-muted-foreground">
+                    {chartModel.heading}
+                  </h2>
+                </div>
+                <div className="rounded-xl bg-card px-4 pt-4 pb-3 flex flex-col gap-2">
+                  <BudgetHistoryChart
+                    bars={chartModel.bars}
+                    ariaLabel={chartModel.ariaLabel}
+                  />
+                  {chartModel.showCaption && (
+                    <span className="text-xs text-muted-foreground">
+                      {t('budgets.chartCaption')}
+                    </span>
+                  )}
+                </div>
+
+                {pastPeriods.length > 0 && (
+                  <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                    {pastPeriods.map((entry) => {
+                      const isOver = entry.spent > entry.limit;
+                      const isNear =
+                        !isOver &&
+                        entry.limit > 0 &&
+                        entry.spent >= BUDGET_NEAR * entry.limit;
+                      const icon: IconName = isOver
+                        ? 'ban'
+                        : isNear
+                          ? 'clock'
+                          : 'check';
+                      const wordsClass = isOver
+                        ? 'text-danger font-semibold'
+                        : isNear
+                          ? 'text-warning font-semibold'
+                          : 'text-muted-foreground';
+                      const wordsText = isOver
+                        ? t('budgets.pastOver', {
+                            amount: formatMoney(
+                              entry.spent - entry.limit,
+                              def.currency,
+                            ),
+                          })
+                        : isNear
+                          ? t('budgets.pastNear')
+                          : t('budgets.pastFine');
+                      const isSelected =
+                        entry.period.from === shownProgress.period.from;
+
+                      return (
+                        <button
+                          key={entry.period.from}
+                          type="button"
+                          data-testid={`budget-past-row-${entry.period.from}`}
+                          aria-pressed={isSelected}
+                          onClick={() =>
+                            setSelectedPeriodFrom(entry.period.from)
+                          }
+                          className={cn(
+                            'w-full min-h-11 px-4 py-3 flex items-center gap-3 text-left hover:bg-accent cursor-pointer bg-transparent border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none',
+                            isSelected && 'bg-accent',
+                          )}
+                        >
+                          <div className="flex-1 min-w-0 flex flex-col">
+                            <span className="text-sm font-semibold text-foreground">
+                              {formatPastRowTitle(def, entry.period, lang)}
+                            </span>
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1 text-sm',
+                                wordsClass,
+                              )}
+                            >
+                              <Icon name={icon} size={14} className="shrink-0" />
+                              <span>{wordsText}</span>
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end shrink-0">
+                            <span
+                              className={cn(
+                                'text-sm font-semibold tabular-nums',
+                                isOver ? 'text-danger' : 'text-foreground',
+                              )}
+                            >
+                              {formatMoney(entry.spent, def.currency)}
+                            </span>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {t('budgets.ofLimit', {
+                                limit: formatMoney(entry.limit, def.currency),
+                              })}
+                            </span>
+                          </div>
+                          <Icon
+                            name="chevronRight"
+                            size={18}
+                            className="text-muted-foreground shrink-0"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* 4. Counted Transactions for Shown Period */}
+            <section className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1">
+                <h2 className="m-0 text-sm font-semibold text-muted-foreground">
+                  {t('budgets.periodTx', { count: countedRows.length })}
+                </h2>
+                <Link
+                  to={allTxHref}
+                  data-testid="budget-tx-see-all"
+                  className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 -my-2 -mr-2 no-underline"
+                >
+                  {t('budgets.seeAll')}
+                </Link>
+              </div>
+
+              {countedRows.length === 0 ? (
+                <p className="m-0 px-1 text-sm text-muted-foreground">
+                  {t('budgets.noTxInPeriod')}
+                </p>
+              ) : (
+                <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
+                  {bookRows.map((row) => (
+                    <TransactionRow
+                      key={
+                        row.kind === 'entry'
+                          ? `entry-${row.entry.id}`
+                          : row.kind === 'group'
+                            ? `group-${row.id}`
+                            : `person-${row.id}`
+                      }
+                      row={row}
+                      wallets={wallets}
+                      categories={categories}
+                      assets={assets}
+                      settings={groupSettings}
+                      showDate
+                      onOpenEntry={setSelectedEntry}
+                      onOpenGroup={setSelectedGroupRow}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </div>
+
+      <Sheet
+        open={Boolean(selectedEntry)}
+        onClose={() => setSelectedEntry(null)}
+        title={t('transactions.detailTitle')}
+      >
+        {selectedEntry && (
+          <TransactionDetailContent
+            entry={selectedEntry}
+            wallets={wallets}
+            categories={categories}
+            assets={assets}
+            onDone={() => setSelectedEntry(null)}
+          />
+        )}
+      </Sheet>
+      <GroupRowSheet
+        row={selectedGroupRow}
+        open={selectedGroupRow !== null}
+        onClose={() => setSelectedGroupRow(null)}
+      />
+    </Screen>
+  );
+}
