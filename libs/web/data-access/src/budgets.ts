@@ -1,0 +1,391 @@
+import { useCallback, useMemo } from 'react';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from '@tanstack/react-query';
+import {
+  budgetImpacts,
+  budgetPeriodAt,
+  budgetPeriodsUpTo,
+  budgetProgress,
+  budgetSpent,
+  budgetSuggestion,
+  firstBudgetPeriod,
+  limitFor,
+  listCountedSpending,
+  orderBudgets,
+  type BudgetDef,
+  type BudgetDraft,
+  type BudgetImpact,
+  type BudgetPeriod,
+  type BudgetProgress,
+  type BudgetResponse,
+  type BudgetsProgressResponse,
+  type BudgetsResponse,
+  type BudgetSuggestion,
+  type CalcEntry,
+  type CategoryView,
+  type CountedSpendRow,
+  type CreateBudgetInput,
+  type UpdateBudgetInput,
+} from '@cc/core';
+import { todayLocal } from '@cc/web-util/localDate';
+import { apiFetch, apiSend, type ApiClientError } from './client';
+import {
+  useCategories,
+  useGroupSettings,
+  useTags,
+  useWalletDetails,
+} from './personalMoney';
+import * as groupCopyMod from './txCopy/groupCopy';
+import * as txCopyMod from './txCopy/hooks';
+
+export const PERSONAL_BUDGETS_KEY = ['me', 'personal', 'budgets'] as const;
+
+const EMPTY_DEFS: BudgetDef[] = [];
+const EMPTY_ROWS: CountedSpendRow[] = [];
+const EMPTY_CATEGORIES: CategoryView[] = [];
+const EMPTY_IMPACTS: BudgetImpact[] = [];
+
+const UNAVAILABLE_GROUP_COPY: ReturnType<typeof groupCopyMod.useGroupCopy> = {
+  status: 'unavailable',
+  snapshot: null,
+};
+
+const UNAVAILABLE_TX_COPY: ReturnType<typeof txCopyMod.useTxCopy> = {
+  status: 'unavailable',
+  snapshot: null,
+};
+
+// Existing screen tests partially mock txCopy modules without useGroupCopy; tolerate missing exports safely.
+function resolveOptionalFn<T>(mod: Record<string, unknown>, key: string): T | null {
+  try {
+    const value = mod[key];
+    return typeof value === 'function' ? (value as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+const useGroupCopySafe: typeof groupCopyMod.useGroupCopy =
+  resolveOptionalFn<typeof groupCopyMod.useGroupCopy>(
+    groupCopyMod as Record<string, unknown>,
+    'useGroupCopy',
+  ) ?? (() => UNAVAILABLE_GROUP_COPY);
+
+const useTxCopySafe: typeof txCopyMod.useTxCopy =
+  resolveOptionalFn<typeof txCopyMod.useTxCopy>(
+    txCopyMod as Record<string, unknown>,
+    'useTxCopy',
+  ) ?? (() => UNAVAILABLE_TX_COPY);
+
+export function useBudgets(opts?: {
+  enabled?: boolean;
+}): UseQueryResult<BudgetsResponse, ApiClientError> {
+  return useQuery<BudgetsResponse, ApiClientError>({
+    queryKey: PERSONAL_BUDGETS_KEY,
+    queryFn: () => apiFetch<BudgetsResponse>('/api/me/personal/budgets'),
+    enabled: opts?.enabled ?? true,
+  });
+}
+
+export function useCreateBudget() {
+  const queryClient = useQueryClient();
+
+  return useMutation<BudgetResponse, ApiClientError, CreateBudgetInput>({
+    mutationFn: (input: CreateBudgetInput) =>
+      apiSend<BudgetResponse>('/api/me/personal/budgets', 'POST', input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+  });
+}
+
+export function useUpdateBudget() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    BudgetResponse,
+    ApiClientError,
+    { id: string; input: UpdateBudgetInput }
+  >({
+    mutationFn: ({ id, input }) =>
+      apiSend<BudgetResponse>(
+        `/api/me/personal/budgets/${encodeURIComponent(id)}`,
+        'PATCH',
+        input,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+  });
+}
+
+export function useDeleteBudget() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ ok: true }, ApiClientError, string>({
+    mutationFn: (id: string) =>
+      apiSend<{ ok: true }>(`/api/me/personal/budgets/${encodeURIComponent(id)}`, 'DELETE'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+  });
+}
+
+export interface BudgetsProgress {
+  source: 'copy' | 'server' | 'pending';
+  current: BudgetProgress[];
+  groups: ReturnType<typeof orderBudgets>;
+  history(id: string): { period: BudgetPeriod; limit: number; spent: number }[];
+  suggestion(id: string): BudgetSuggestion | null;
+  rowsFor(id: string, period: BudgetPeriod): CountedSpendRow[];
+}
+
+function filterBudgetRows(
+  def: BudgetDef,
+  rows: CountedSpendRow[],
+  period: BudgetPeriod,
+  parentById: Map<string, string | null>,
+): CountedSpendRow[] {
+  const excluded = new Set(def.excludedWalletIds);
+
+  const matchesCategory = (categoryId: string, targetCategoryId: string): boolean => {
+    let cur: string | null = categoryId;
+    const seen = new Set<string>();
+    while (cur !== null) {
+      if (cur === targetCategoryId) return true;
+      if (seen.has(cur)) return false;
+      seen.add(cur);
+      cur = parentById.get(cur) ?? null;
+    }
+    return false;
+  };
+
+  const matched: CountedSpendRow[] = [];
+  for (const row of rows) {
+    if (row.currency !== def.currency) continue;
+    if (row.walletId === null || excluded.has(row.walletId)) continue;
+    if (row.date < period.from || row.date > period.to) continue;
+
+    if (def.target.kind === 'category') {
+      if (!matchesCategory(row.categoryId, def.target.categoryId)) continue;
+    } else {
+      if (!row.tagIds.includes(def.target.tagId)) continue;
+    }
+
+    matched.push(row);
+  }
+
+  matched.sort((a, b) => {
+    if (a.date !== b.date) return a.date > b.date ? -1 : 1;
+    return a.id.localeCompare(b.id);
+  });
+
+  return matched;
+}
+
+function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean }) {
+  const { enabled, allowServerFallback } = opts;
+  const today = todayLocal();
+
+  const budgetsQuery = useBudgets({ enabled });
+  const walletsQuery = useWalletDetails({ enabled });
+  const categoriesQuery = useCategories({ enabled });
+  const tagsQuery = useTags({ enabled });
+  const groupSettingsQuery = useGroupSettings({ enabled });
+
+  const wallets = walletsQuery.data?.wallets;
+  const categories = categoriesQuery.data?.categories;
+  const tags = tagsQuery.data?.tags;
+  const groupSettings = groupSettingsQuery.data?.settings;
+
+  const metadataReady = Boolean(wallets && categories && tags && groupSettings);
+
+  const txCopy = useTxCopySafe();
+  const groupCopy = useGroupCopySafe({ enabled });
+
+  const lookupsLoading =
+    walletsQuery.isPending ||
+    categoriesQuery.isPending ||
+    tagsQuery.isPending ||
+    groupSettingsQuery.isPending;
+
+  const txOpening = txCopy.status === 'opening';
+  const groupOpening = groupCopy.status === 'opening';
+  const waitingForLookups =
+    txCopy.status === 'ready' &&
+    groupCopy.status === 'ready' &&
+    !metadataReady &&
+    lookupsLoading;
+
+  const stillOpening = enabled && (txOpening || groupOpening || waitingForLookups);
+
+  const copyReady =
+    enabled &&
+    txCopy.status === 'ready' &&
+    Boolean(txCopy.snapshot) &&
+    groupCopy.status === 'ready' &&
+    Boolean(groupCopy.snapshot) &&
+    metadataReady;
+
+  const copyRows = useMemo(() => {
+    if (!copyReady || !wallets || !categories || !tags || !groupSettings || !txCopy.snapshot) {
+      return null;
+    }
+    return listCountedSpending({
+      wallets,
+      entries: txCopy.snapshot.entries as unknown as Array<
+        CalcEntry & { categoryId: string | null; tagIds: string[]; source?: string }
+      >,
+      categories,
+      tags,
+      groupRows: groupCopy.snapshot?.rows ?? [],
+      groupSettings,
+    });
+  }, [
+    copyReady,
+    wallets,
+    categories,
+    tags,
+    groupSettings,
+    txCopy.snapshot,
+    groupCopy.snapshot,
+  ]);
+
+  const serverQueryEnabled = allowServerFallback && enabled && !stillOpening && !copyReady;
+
+  const serverQuery = useQuery<BudgetsProgressResponse, ApiClientError>({
+    queryKey: [...PERSONAL_BUDGETS_KEY, 'progress', today],
+    queryFn: () =>
+      apiFetch<BudgetsProgressResponse>(
+        `/api/me/personal/budgets/progress?today=${encodeURIComponent(today)}`,
+      ),
+    enabled: serverQueryEnabled,
+  });
+
+  let source: 'copy' | 'server' | 'pending';
+  let rows: CountedSpendRow[];
+  let isPending: boolean;
+  let error: ApiClientError | null;
+
+  if (copyReady) {
+    source = 'copy';
+    rows = copyRows ?? EMPTY_ROWS;
+    isPending = budgetsQuery.isPending;
+    error = budgetsQuery.error ?? null;
+  } else if (stillOpening) {
+    source = 'pending';
+    rows = EMPTY_ROWS;
+    isPending = true;
+    error = budgetsQuery.error ?? null;
+  } else {
+    source = 'server';
+    rows = serverQuery.data?.rows ?? EMPTY_ROWS;
+    isPending = budgetsQuery.isPending || serverQuery.isPending || categoriesQuery.isPending;
+    error = budgetsQuery.error ?? serverQuery.error ?? categoriesQuery.error ?? null;
+  }
+
+  return {
+    source,
+    rows,
+    defs: budgetsQuery.data?.budgets ?? EMPTY_DEFS,
+    categories: categories ?? EMPTY_CATEGORIES,
+    today,
+    isPending,
+    error,
+  };
+}
+
+export function useBudgetsProgress(opts?: {
+  enabled?: boolean;
+}): BudgetsProgress & {
+  isPending: boolean;
+  error: ApiClientError | null;
+  defs: BudgetDef[];
+} {
+  const enabled = opts?.enabled ?? true;
+  const { source, rows, defs, categories, today, isPending, error } = useBudgetsSource({
+    enabled,
+    allowServerFallback: true,
+  });
+
+  const defById = useMemo(() => {
+    const map = new Map<string, BudgetDef>();
+    for (const def of defs) {
+      map.set(def.id, def);
+    }
+    return map;
+  }, [defs]);
+
+  const parentById = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const c of categories) {
+      map.set(c.id, c.parentId);
+    }
+    return map;
+  }, [categories]);
+
+  const current = useMemo<BudgetProgress[]>(() => {
+    return defs.map((def) => {
+      const period = budgetPeriodAt(def, today) ?? firstBudgetPeriod(def);
+      const spent = budgetSpent(def, rows, period, categories);
+      return budgetProgress(def, spent, period, today);
+    });
+  }, [defs, rows, categories, today]);
+
+  const groups = useMemo(() => orderBudgets(current), [current]);
+
+  const history = useCallback(
+    (id: string): { period: BudgetPeriod; limit: number; spent: number }[] => {
+      const def = defById.get(id);
+      if (!def) return [];
+      return budgetPeriodsUpTo(def, today).map((period) => ({
+        period,
+        limit: limitFor(def, period),
+        spent: budgetSpent(def, rows, period, categories),
+      }));
+    },
+    [defById, today, rows, categories],
+  );
+
+  const suggestion = useCallback(
+    (id: string): BudgetSuggestion | null => {
+      const def = defById.get(id);
+      if (!def) return null;
+      return budgetSuggestion(def, history(id), today);
+    },
+    [defById, history, today],
+  );
+
+  const rowsFor = useCallback(
+    (id: string, period: BudgetPeriod): CountedSpendRow[] => {
+      const def = defById.get(id);
+      if (!def) return EMPTY_ROWS;
+      return filterBudgetRows(def, rows, period, parentById);
+    },
+    [defById, rows, parentById],
+  );
+
+  return {
+    source,
+    current,
+    groups,
+    history,
+    suggestion,
+    rowsFor,
+    isPending,
+    error,
+    defs,
+  };
+}
+
+export function useBudgetImpacts(draft: BudgetDraft | null): BudgetImpact[] {
+  const { source, rows, defs, categories, today } = useBudgetsSource({
+    enabled: true,
+    allowServerFallback: false,
+  });
+
+  return useMemo(() => {
+    if (source !== 'copy' || draft === null || defs.length === 0) {
+      return EMPTY_IMPACTS;
+    }
+    return budgetImpacts(defs, rows, draft, categories, today);
+  }, [source, draft, defs, rows, categories, today]);
+}
