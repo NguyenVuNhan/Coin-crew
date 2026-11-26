@@ -1868,4 +1868,57 @@ export const vi: Record<MessageKey, string> = {
   'categories.mergeConfirmAction': 'Gộp', // REVIEW
   'categories.hiddenToast': 'Đã ẩn “{name}”', // REVIEW
   'categories.shownToast': 'Đã hiện “{name}”', // REVIEW
+
+  'budgets.title': 'Ngân sách', // REVIEW
+  'budgets.groupOver': 'Đã vượt mức · {count}', // REVIEW
+  'budgets.groupFast': 'Đang chi nhanh quá · {count}', // REVIEW
+  'budgets.groupOnPace': 'Đúng nhịp · {count}', // REVIEW
+  'budgets.groupEnded': 'Đã kết thúc', // REVIEW
+  'budgets.overBy': 'Đã vượt {pct}%', // REVIEW
+  'budgets.willOverBy': 'Sẽ vượt ~{amount}', // REVIEW
+  'budgets.near': 'Sắp chạm mức', // REVIEW
+  'budgets.fineMostLeft': 'Còn nhiều', // REVIEW
+  'budgets.fineOverHalf': 'Còn hơn một nửa', // REVIEW
+  'budgets.fineAboutHalf': 'Còn khoảng một nửa', // REVIEW
+  'budgets.fineThird': 'Còn gần một phần ba', // REVIEW
+  'budgets.fineLittle': 'Còn ít', // REVIEW
+  'budgets.left': 'còn lại', // REVIEW
+  'budgets.overLabel': 'vượt mức', // REVIEW
+  'budgets.pacePerDay': '≈ {amount} mỗi ngày', // REVIEW
+  'budgets.pacePerMonth': '≈ {amount} mỗi tháng', // REVIEW
+  'budgets.stopUntilEnd': 'Nên dừng đến hết kỳ', // REVIEW
+  'budgets.timeLeftDays': 'còn {n} ngày', // REVIEW
+  'budgets.timeLeftMonths': 'còn {y} năm {m} tháng', // REVIEW
+  'budgets.add': 'Đặt ngân sách', // REVIEW
+  'budgets.emptyTitle': 'Chưa có ngân sách nào', // REVIEW
+  'budgets.emptyBody': 'Đặt mức chi cho danh mục hoặc thẻ để biết mỗi ngày còn chi được bao nhiêu.', // REVIEW
+  'budgets.remaining': 'Còn lại', // REVIEW
+  'budgets.limit': 'Mức', // REVIEW
+  'budgets.spent': 'Đã chi', // REVIEW
+  'budgets.recentPeriods': '6 kỳ gần đây', // REVIEW
+  'budgets.chartCaption': 'Cột là đã chi, vạch đứt là mức của kỳ đó.', // REVIEW
+  'budgets.periodTx': 'Giao dịch kỳ này ({count})', // REVIEW
+  'budgets.suggestRaise': '6 kỳ liền bạn chi khoảng {avg}, nhiều hơn mức {limit}', // REVIEW
+  'budgets.suggestLower': '6 kỳ liền bạn chỉ chi khoảng {avg}, ít hơn nhiều so với mức {limit}', // REVIEW
+  'budgets.suggestAction': 'Đổi mức thành {amount}', // REVIEW
+  'budgets.formWhat': 'Danh mục hoặc thẻ', // REVIEW
+  'budgets.formAmount': 'Mức ngân sách', // REVIEW
+  'budgets.formCurrency': 'Tiền tệ', // REVIEW
+  'budgets.formWallets': 'Ví tính vào', // REVIEW
+  'budgets.formPeriod': 'Chu kỳ', // REVIEW
+  'budgets.periodWeek': 'Hằng tuần', // REVIEW
+  'budgets.periodMonth': 'Hằng tháng', // REVIEW
+  'budgets.monthStartDay': 'Bắt đầu ngày', // REVIEW
+  'budgets.periodYear': 'Hằng năm', // REVIEW
+  'budgets.periodOnce': 'Một lần', // REVIEW
+  'budgets.remove': 'Xóa ngân sách', // REVIEW
+  'budgets.removeConfirm': 'Xóa ngân sách này và toàn bộ lịch sử của nó?', // REVIEW
+  'budgets.warnFast': 'Khoản này làm {name} chi nhanh quá', // REVIEW
+  'budgets.warnNear': 'Khoản này làm {name} sắp chạm mức', // REVIEW
+  'budgets.warnOver': 'Khoản này làm {name} vượt mức {amount}', // REVIEW
+  'budgets.warnAlreadyOver': '{name} đã vượt mức, giờ vượt {amount}', // REVIEW
+  'budgets.warnAfter': 'Sau khoản này còn {left}, khoảng {pace}', // REVIEW
+  'budgets.warnAlso': '{name} cũng sẽ {state}.', // REVIEW
+  'budgets.savedWithBudget': 'Đã lưu. {name} {state}: {detail}', // REVIEW
+  'budgets.see': 'Xem', // REVIEW
 };
