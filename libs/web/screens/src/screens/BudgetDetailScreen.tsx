@@ -1,5 +1,5 @@
-import { useMemo, useState, type JSX, type ReactNode } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useMemo, useState, type JSX, type MouseEvent, type ReactNode } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   BUDGET_NEAR,
   budgetProgress,
@@ -153,6 +153,7 @@ function buildStateNote(
 
 export function BudgetDetailScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
   const lang = getLang();
@@ -258,7 +259,7 @@ export function BudgetDetailScreen(): JSX.Element {
     if (!def || !activeSuggestion) return;
     updateBudget.mutate({
       id: def.id,
-      input: { amount: activeSuggestion.amount, today },
+      input: { amount: activeSuggestion.amount, dismissSuggestion: true, today },
     });
   };
 
@@ -273,6 +274,12 @@ export function BudgetDetailScreen(): JSX.Element {
   const currentLimit = allPeriods[0]?.limit ?? shownProgress?.limit ?? 0;
 
   const editOpen = searchParams.get('edit') === '1' && Boolean(def);
+  const editHref = def ? `/budgets/${encodeURIComponent(def.id)}?edit=1` : '';
+  const handleOpenEdit = (e: MouseEvent<HTMLElement>) => {
+    if (!def || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigate(editHref, { replace: true });
+  };
   const handleCloseEdit = () => {
     const next = new URLSearchParams(searchParams);
     next.delete('edit');
@@ -287,7 +294,8 @@ export function BudgetDetailScreen(): JSX.Element {
         def ? (
           <Button
             variant="ghost"
-            href={`/budgets/${encodeURIComponent(def.id)}?edit=1`}
+            href={editHref}
+            onClick={handleOpenEdit}
             data-testid="budget-edit-button"
             aria-label={t('budgets.edit')}
             title={t('budgets.edit')}

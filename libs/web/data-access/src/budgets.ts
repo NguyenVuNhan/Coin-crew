@@ -50,6 +50,7 @@ const EMPTY_DEFS: BudgetDef[] = [];
 const EMPTY_ROWS: CountedSpendRow[] = [];
 const EMPTY_CATEGORIES: CategoryView[] = [];
 const EMPTY_IMPACTS: BudgetImpact[] = [];
+const EMPTY_HISTORY: { period: BudgetPeriod; limit: number; spent: number }[] = [];
 
 const UNAVAILABLE_GROUP_COPY: ReturnType<typeof groupCopyMod.useGroupCopy> = {
   status: 'unavailable',
@@ -208,7 +209,9 @@ function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean
     groupCopy.snapshot,
   ]);
 
-  const serverQueryEnabled = allowServerFallback && enabled && !stillOpening && !copyReady;
+  const defs = budgetsQuery.data?.budgets ?? EMPTY_DEFS;
+  const serverQueryEnabled =
+    allowServerFallback && enabled && !stillOpening && !copyReady && defs.length > 0;
 
   const serverQuery = useQuery<BudgetsProgressResponse, ApiClientError>({
     queryKey: [...PERSONAL_BUDGETS_KEY, 'progress', today],
@@ -237,14 +240,17 @@ function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean
   } else {
     source = 'server';
     rows = serverQuery.data?.rows ?? EMPTY_ROWS;
-    isPending = budgetsQuery.isPending || serverQuery.isPending || categoriesQuery.isPending;
+    isPending =
+      budgetsQuery.isPending ||
+      (serverQueryEnabled && serverQuery.isPending) ||
+      categoriesQuery.isPending;
     error = budgetsQuery.error ?? serverQuery.error ?? categoriesQuery.error ?? null;
   }
 
   return {
     source,
     rows,
-    defs: budgetsQuery.data?.budgets ?? EMPTY_DEFS,
+    defs,
     categories: categories ?? EMPTY_CATEGORIES,
     today,
     isPending,
@@ -283,26 +289,50 @@ export function useBudgetsProgress(opts?: {
 
   const groups = useMemo(() => orderBudgets(current), [current]);
 
+  const historyCache = useMemo(
+    () => new Map<string, { period: BudgetPeriod; limit: number; spent: number }[]>(),
+    [defById, today, rows, categories],
+  );
+
   const history = useCallback(
     (id: string): { period: BudgetPeriod; limit: number; spent: number }[] => {
+      const cached = historyCache.get(id);
+      if (cached) return cached;
       const def = defById.get(id);
-      if (!def) return [];
-      return budgetPeriodsUpTo(def, today).map((period) => ({
+      if (!def) return EMPTY_HISTORY;
+      const computed = budgetPeriodsUpTo(def, today).map((period) => ({
         period,
         limit: limitFor(def, period),
         spent: budgetSpent(def, rows, period, categories),
       }));
+      historyCache.set(id, computed);
+      return computed;
     },
-    [defById, today, rows, categories],
+    [historyCache, defById, today, rows, categories],
   );
 
+  const suggestionsById = useMemo(() => {
+    const map = new Map<string, BudgetSuggestion | null>();
+    for (const def of defs) {
+      if (def.periodKind === 'once') {
+        map.set(def.id, null);
+        continue;
+      }
+      const recentHistory = budgetPeriodsUpTo(def, today)
+        .slice(0, 7)
+        .map((period) => ({
+          period,
+          limit: limitFor(def, period),
+          spent: budgetSpent(def, rows, period, categories),
+        }));
+      map.set(def.id, budgetSuggestion(def, recentHistory, today));
+    }
+    return map;
+  }, [defs, rows, categories, today]);
+
   const suggestion = useCallback(
-    (id: string): BudgetSuggestion | null => {
-      const def = defById.get(id);
-      if (!def) return null;
-      return budgetSuggestion(def, history(id), today);
-    },
-    [defById, history, today],
+    (id: string): BudgetSuggestion | null => suggestionsById.get(id) ?? null,
+    [suggestionsById],
   );
 
   const rowsFor = useCallback(

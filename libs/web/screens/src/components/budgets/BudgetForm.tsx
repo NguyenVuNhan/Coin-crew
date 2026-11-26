@@ -345,6 +345,12 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
     t,
   ]);
 
+  const currentLimit = useMemo(() => {
+    if (!budget) return null;
+    const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
+    return limitFor(budget, curPeriod);
+  }, [budget, today]);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit || isPending || parsedAmount === null) return;
@@ -355,7 +361,7 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
           id: budget.id,
           input: {
             name: effectiveName,
-            amount: parsedAmount,
+            ...(parsedAmount !== currentLimit ? { amount: parsedAmount } : {}),
             excludedWalletIds: effectiveExcludedIds,
             today,
           },

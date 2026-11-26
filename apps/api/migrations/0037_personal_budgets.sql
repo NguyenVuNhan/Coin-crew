@@ -18,7 +18,7 @@ CREATE TABLE `personal_budgets` (
 --> statement-breakpoint
 CREATE INDEX `personal_budgets_user_idx` ON `personal_budgets` (`user_id`);
 --> statement-breakpoint
-CREATE UNIQUE INDEX `personal_budgets_target_period_uq` ON `personal_budgets` (`user_id`, `target_kind`, `target_id`, `period_kind`);
+CREATE UNIQUE INDEX `personal_budgets_target_period_uq` ON `personal_budgets` (`user_id`, `target_kind`, `target_id`, `period_kind`, `currency`) WHERE `period_kind` <> 'once';
 --> statement-breakpoint
 CREATE TABLE `personal_budget_limits` (
   `budget_id` text NOT NULL REFERENCES `personal_budgets`(`id`) ON DELETE CASCADE,

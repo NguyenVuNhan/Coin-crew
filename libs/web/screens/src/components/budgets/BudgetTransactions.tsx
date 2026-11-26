@@ -206,6 +206,7 @@ export function BudgetTransactions({
     const params = new URLSearchParams();
     params.set('from', period.from);
     params.set('to', period.to);
+    params.set('type', 'expense');
     if (def.target.kind === 'category') {
       params.set('categoryId', def.target.categoryId);
     } else {

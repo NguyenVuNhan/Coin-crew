@@ -164,7 +164,6 @@ describe('BudgetForm deep link (?edit=1)', () => {
 
     expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
       name: 'Ăn uống',
-      amount: 3_000_000,
       excludedWalletIds: ['w-bank', 'w-old'],
       today: '2026-11-26',
     });

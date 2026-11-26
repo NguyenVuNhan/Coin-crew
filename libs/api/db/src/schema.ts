@@ -985,12 +985,9 @@ export const personalBudgets = sqliteTable(
   },
   (t) => [
     index('personal_budgets_user_idx').on(t.userId),
-    uniqueIndex('personal_budgets_target_period_uq').on(
-      t.userId,
-      t.targetKind,
-      t.targetId,
-      t.periodKind,
-    ),
+    uniqueIndex('personal_budgets_target_period_uq')
+      .on(t.userId, t.targetKind, t.targetId, t.periodKind, t.currency)
+      .where(sql`${t.periodKind} <> 'once'`),
     check('personal_budgets_target_kind_check', sql`${t.targetKind} IN ('category', 'tag')`),
     check(
       'personal_budgets_period_kind_check',

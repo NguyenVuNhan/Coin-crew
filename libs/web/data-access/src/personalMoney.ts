@@ -316,7 +316,11 @@ export function useDeleteCategory() {
       return apiSend<{ ok: true }>(path, 'DELETE');
     },
     onSuccess: async () => {
-      await Promise.all([invalidateCategories(queryClient), requestTxCopySync()]);
+      await Promise.all([
+        invalidateCategories(queryClient),
+        queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+        requestTxCopySync(),
+      ]);
     },
   });
 }
@@ -346,7 +350,11 @@ export function useDeleteTag() {
     mutationFn: (id: string) =>
       apiSend<{ ok: true }>(`/api/me/personal/tags/${encodeURIComponent(id)}`, 'DELETE'),
     onSuccess: async () => {
-      await Promise.all([invalidateTags(queryClient), requestTxCopySync()]);
+      await Promise.all([
+        invalidateTags(queryClient),
+        queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+        requestTxCopySync(),
+      ]);
     },
   });
 }

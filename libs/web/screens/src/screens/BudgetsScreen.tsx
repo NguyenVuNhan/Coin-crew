@@ -1,5 +1,5 @@
-import { useMemo, useState, type JSX } from 'react';
-import { useSearchParams } from 'react-router';
+import { useMemo, useState, type JSX, type MouseEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { BudgetDef, BudgetProgress } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useBudgets, useBudgetsProgress } from '@cc/web-data-access/budgets';
@@ -59,6 +59,7 @@ function BudgetGroupSection({
 
 export function BudgetsScreen(): JSX.Element {
   const t = useT();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const budgetsQuery = useBudgets();
   const { groups, defs, suggestion, isPending, error } = useBudgetsProgress();
@@ -66,6 +67,11 @@ export function BudgetsScreen(): JSX.Element {
   const [endedOpen, setEndedOpen] = useState(false);
 
   const formOpen = searchParams.get('new') === '1';
+  const handleOpenForm = (e: MouseEvent<HTMLElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigate('/budgets?new=1', { replace: true });
+  };
   const handleCloseForm = () => {
     const next = new URLSearchParams(searchParams);
     next.delete('new');
@@ -103,6 +109,7 @@ export function BudgetsScreen(): JSX.Element {
         <Button
           variant="ghost"
           href="/budgets?new=1"
+          onClick={handleOpenForm}
           data-testid="budgets-add-button"
           aria-label={t('budgets.add')}
           title={t('budgets.add')}
@@ -127,6 +134,7 @@ export function BudgetsScreen(): JSX.Element {
                 variant="primary"
                 block
                 href="/budgets?new=1"
+                onClick={handleOpenForm}
                 data-testid="budgets-empty-add"
               >
                 {t('budgets.add')}
