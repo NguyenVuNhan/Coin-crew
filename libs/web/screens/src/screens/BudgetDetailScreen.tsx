@@ -593,7 +593,7 @@ export function BudgetDetailScreen(): JSX.Element {
           </>
         )}
       </div>
-      {def && <BudgetForm open={editOpen} onClose={handleCloseEdit} budget={def} />}
+      {def && <BudgetForm key={def.id} open={editOpen} onClose={handleCloseEdit} budget={def} />}
     </Screen>
   );
 }

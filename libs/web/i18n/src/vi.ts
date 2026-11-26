@@ -1876,6 +1876,8 @@ export const vi: Record<MessageKey, string> = {
   'budgets.groupEnded': 'Đã kết thúc', // REVIEW
   'budgets.overBy': 'Đã vượt {pct}%', // REVIEW
   'budgets.willOverBy': 'Sẽ vượt ~{amount}', // REVIEW
+  'budgets.stateOver': 'Đã vượt mức', // REVIEW
+  'budgets.stateFast': 'Chi nhanh quá', // REVIEW
   'budgets.near': 'Sắp chạm mức', // REVIEW
   'budgets.fineMostLeft': 'Còn nhiều', // REVIEW
   'budgets.fineOverHalf': 'Còn hơn một nửa', // REVIEW
@@ -1953,7 +1955,6 @@ export const vi: Record<MessageKey, string> = {
   'budgets.paceUnitDay': '{amount} mỗi ngày', // REVIEW
   'budgets.paceUnitMonth': '{amount} mỗi tháng', // REVIEW
   'budgets.save': 'Lưu', // REVIEW
-  'budgets.cancel': 'Hủy', // REVIEW
   'budgets.formName': 'Tên ngân sách', // REVIEW
   'budgets.formNamePlaceholder': 'Mặc định theo tên danh mục hoặc thẻ', // REVIEW
   'budgets.targetCategory': 'Danh mục', // REVIEW

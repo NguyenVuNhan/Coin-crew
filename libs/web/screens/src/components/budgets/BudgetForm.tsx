@@ -123,18 +123,35 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
   const [targetKind, setTargetKind] = useState<'category' | 'tag'>('category');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [tagId, setTagId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [nameDirty, setNameDirty] = useState(false);
-  const [amountText, setAmountText] = useState('');
-  const [currency, setCurrency] = useState<CurrencyCode>(budget?.currency ?? 'VND');
-  const [currencyTouched, setCurrencyTouched] = useState(false);
-  const [excludedWalletIds, setExcludedWalletIds] = useState<string[]>([]);
-  const [walletsTouched, setWalletsTouched] = useState(false);
+  const [name, setName] = useState(() => budget?.name ?? '');
+  const [nameDirty, setNameDirty] = useState(() => Boolean(budget));
+  const [amountText, setAmountText] = useState(() => {
+    if (!budget) return '';
+    const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
+    return formatMinorInput(limitFor(budget, curPeriod), budget.currency);
+  });
+  const [currency, setCurrency] = useState<CurrencyCode>(() => budget?.currency ?? 'VND');
+  const [currencyTouched, setCurrencyTouched] = useState(() => Boolean(budget));
+  const [excludedWalletIds, setExcludedWalletIds] = useState<string[]>(() =>
+    budget ? [...budget.excludedWalletIds] : [],
+  );
+  const [walletsTouched, setWalletsTouched] = useState(() => Boolean(budget));
   const [periodKind, setPeriodKind] = useState<BudgetPeriodKind>('month');
   const [monthStartDayText, setMonthStartDayText] = useState('1');
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState('');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const resetMutationsRef = useRef(() => {
+    createBudget.reset();
+    updateBudget.reset();
+    deleteBudget.reset();
+  });
+  resetMutationsRef.current = () => {
+    createBudget.reset();
+    updateBudget.reset();
+    deleteBudget.reset();
+  };
 
   const prevOpenRef = useRef(open);
   useEffect(() => {
@@ -167,12 +184,10 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
         setToDate('');
         setConfirmDeleteOpen(false);
       }
-      createBudget.reset();
-      updateBudget.reset();
-      deleteBudget.reset();
+      resetMutationsRef.current();
     }
     prevOpenRef.current = open;
-  }, [open, budget, today, defaultCurrency, activeWallets, createBudget, updateBudget, deleteBudget]);
+  }, [open, budget, today, defaultCurrency, activeWallets]);
 
   const effectiveCurrency: CurrencyCode = isEdit
     ? budget!.currency
@@ -186,7 +201,10 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
   );
 
   const effectiveExcludedIds = useMemo(() => {
-    if (isEdit || walletsTouched) {
+    if (isEdit) {
+      return excludedWalletIds;
+    }
+    if (walletsTouched) {
       const allowed = new Set(currencyWallets.map((w) => w.id));
       return excludedWalletIds.filter((id) => allowed.has(id));
     }
@@ -840,7 +858,7 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
                 data-testid="budget-form-remove-cancel"
                 onClick={() => setConfirmDeleteOpen(false)}
               >
-                {t('budgets.cancel')}
+                {t('common.cancel')}
               </Button>
             </div>
           </div>
