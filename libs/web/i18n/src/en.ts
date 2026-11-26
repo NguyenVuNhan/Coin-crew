@@ -1900,6 +1900,7 @@ export const en = {
   'budgets.suggestRaise': 'For 6 periods in a row you spent around {avg}, above your {limit} limit',
   'budgets.suggestLower': 'For 6 periods in a row you only spent around {avg}, well below your {limit} limit',
   'budgets.suggestAction': 'Change limit to {amount}',
+  'budgets.suggestMark': 'Limit suggestion available',
   'budgets.formWhat': 'Category or tag',
   'budgets.formAmount': 'Limit amount',
   'budgets.formCurrency': 'Currency',

@@ -1901,6 +1901,7 @@ export const vi: Record<MessageKey, string> = {
   'budgets.suggestRaise': '6 kỳ liền bạn chi khoảng {avg}, nhiều hơn mức {limit}', // REVIEW
   'budgets.suggestLower': '6 kỳ liền bạn chỉ chi khoảng {avg}, ít hơn nhiều so với mức {limit}', // REVIEW
   'budgets.suggestAction': 'Đổi mức thành {amount}', // REVIEW
+  'budgets.suggestMark': 'Có gợi ý đổi mức', // REVIEW
   'budgets.formWhat': 'Danh mục hoặc thẻ', // REVIEW
   'budgets.formAmount': 'Mức ngân sách', // REVIEW
   'budgets.formCurrency': 'Tiền tệ', // REVIEW
