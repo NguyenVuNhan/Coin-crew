@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX, type ReactNode } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import {
   BUDGET_NEAR,
   budgetProgress,
@@ -32,6 +32,7 @@ import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { BudgetArc } from '../components/budgets/BudgetArc';
+import { BudgetForm } from '../components/budgets/BudgetForm';
 import { BudgetHistoryChart } from '../components/budgets/BudgetHistoryChart';
 import { BudgetTransactions } from '../components/budgets/BudgetTransactions';
 import { buildBudgetChartModel } from '../components/budgets/budgetChartModel';
@@ -152,6 +153,7 @@ function buildStateNote(
 
 export function BudgetDetailScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
   const lang = getLang();
   const today = todayLocal();
@@ -269,6 +271,13 @@ export function BudgetDetailScreen(): JSX.Element {
   };
 
   const currentLimit = allPeriods[0]?.limit ?? shownProgress?.limit ?? 0;
+
+  const editOpen = searchParams.get('edit') === '1' && Boolean(def);
+  const handleCloseEdit = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('edit');
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <Screen
@@ -584,6 +593,7 @@ export function BudgetDetailScreen(): JSX.Element {
           </>
         )}
       </div>
+      {def && <BudgetForm open={editOpen} onClose={handleCloseEdit} budget={def} />}
     </Screen>
   );
 }

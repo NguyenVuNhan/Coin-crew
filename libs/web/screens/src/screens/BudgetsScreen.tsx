@@ -1,4 +1,5 @@
 import { useMemo, useState, type JSX } from 'react';
+import { useSearchParams } from 'react-router';
 import type { BudgetDef, BudgetProgress } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useBudgets, useBudgetsProgress } from '@cc/web-data-access/budgets';
@@ -10,6 +11,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Screen } from '../components/Screen';
 import { categoryIconName } from '../components/categoryIcon';
+import { BudgetForm } from '../components/budgets/BudgetForm';
 import { BudgetRow } from '../components/budgets/BudgetRow';
 
 interface BudgetGroupSectionProps {
@@ -57,10 +59,18 @@ function BudgetGroupSection({
 
 export function BudgetsScreen(): JSX.Element {
   const t = useT();
+  const [searchParams, setSearchParams] = useSearchParams();
   const budgetsQuery = useBudgets();
   const { groups, defs, suggestion, isPending, error } = useBudgetsProgress();
   const categoriesQuery = useCategories();
   const [endedOpen, setEndedOpen] = useState(false);
+
+  const formOpen = searchParams.get('new') === '1';
+  const handleCloseForm = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('new');
+    setSearchParams(next, { replace: true });
+  };
 
   const defById = useMemo(() => {
     const map = new Map<string, BudgetDef>();
@@ -184,6 +194,7 @@ export function BudgetsScreen(): JSX.Element {
           </>
         )}
       </div>
+      <BudgetForm open={formOpen} onClose={handleCloseForm} />
     </Screen>
   );
 }

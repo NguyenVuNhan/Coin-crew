@@ -1951,6 +1951,17 @@ export const en = {
   'budgets.seeAll': 'All ›',
   'budgets.paceUnitDay': '{amount} per day',
   'budgets.paceUnitMonth': '{amount} per month',
+  'budgets.save': 'Save',
+  'budgets.cancel': 'Cancel',
+  'budgets.formName': 'Budget name',
+  'budgets.formNamePlaceholder': 'Defaults to category or tag name',
+  'budgets.targetCategory': 'Category',
+  'budgets.targetTag': 'Tag',
+  'budgets.noTags': 'No tags yet. Add tags when recording expenses.',
+  'budgets.noWallets': 'No wallets in this currency.',
+  'budgets.walletExcludedHint': 'Excluded from reports',
+  'budgets.monthStartDayError': 'Enter a day from 1 to 31',
+  'budgets.duplicateError': 'A budget for {name} with this period already exists.',
 } as const;
 
 export type MessageKey = keyof typeof en;

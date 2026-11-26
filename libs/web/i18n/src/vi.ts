@@ -1952,4 +1952,15 @@ export const vi: Record<MessageKey, string> = {
   'budgets.seeAll': 'Tất cả ›', // REVIEW
   'budgets.paceUnitDay': '{amount} mỗi ngày', // REVIEW
   'budgets.paceUnitMonth': '{amount} mỗi tháng', // REVIEW
+  'budgets.save': 'Lưu', // REVIEW
+  'budgets.cancel': 'Hủy', // REVIEW
+  'budgets.formName': 'Tên ngân sách', // REVIEW
+  'budgets.formNamePlaceholder': 'Mặc định theo tên danh mục hoặc thẻ', // REVIEW
+  'budgets.targetCategory': 'Danh mục', // REVIEW
+  'budgets.targetTag': 'Thẻ', // REVIEW
+  'budgets.noTags': 'Chưa có thẻ nào. Hãy gắn thẻ khi ghi chép giao dịch.', // REVIEW
+  'budgets.noWallets': 'Chưa có ví nào cho loại tiền này.', // REVIEW
+  'budgets.walletExcludedHint': 'Không tính vào báo cáo', // REVIEW
+  'budgets.monthStartDayError': 'Nhập ngày từ 1 đến 31', // REVIEW
+  'budgets.duplicateError': 'Đã có ngân sách cho {name} với chu kỳ này rồi.', // REVIEW
 };
