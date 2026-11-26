@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb } from '@cc/api-db/client';
 import {
+  personalAssetCounts,
   personalAssets,
   personalAssetVisibility,
   personalTransactions,
@@ -10,6 +11,7 @@ import {
   personalWalletSettings,
 } from '@cc/api-db/schema';
 import { commitPersonalWrite } from '@cc/api-db/personalSync';
+import { assetCountDeltaStmts } from './balanceCache';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
@@ -126,37 +128,47 @@ export function assetRoutes(): Hono<AppBindings> {
     const user = (await getSessionUser(c))!;
     const db = getDb(c.env);
 
-    const rows = await db
-      .select({
-        id: personalAssets.id,
-        name: personalAssets.name,
-        unit: personalAssets.unit,
-        groupName: personalAssets.groupName,
-        decimals: personalAssets.decimals,
-        icon: personalAssets.icon,
-        hidden: personalAssets.hidden,
-        sortOrder: personalAssets.sortOrder,
-        entryCount: sql<number>`count(${personalTransactions.id})`,
-      })
-      .from(personalAssets)
-      .leftJoin(
-        personalTransactions,
-        and(eq(personalTransactions.assetId, personalAssets.id), eq(personalTransactions.userId, user.id)),
-      )
-      .where(eq(personalAssets.userId, user.id))
-      .groupBy(personalAssets.id)
-      .orderBy(asc(personalAssets.sortOrder), asc(personalAssets.createdAt))
-      .all();
+    const [rows, countRows, overrideRows] = await Promise.all([
+      db
+        .select({
+          id: personalAssets.id,
+          name: personalAssets.name,
+          unit: personalAssets.unit,
+          groupName: personalAssets.groupName,
+          decimals: personalAssets.decimals,
+          icon: personalAssets.icon,
+          hidden: personalAssets.hidden,
+          sortOrder: personalAssets.sortOrder,
+        })
+        .from(personalAssets)
+        .where(eq(personalAssets.userId, user.id))
+        .orderBy(asc(personalAssets.sortOrder), asc(personalAssets.createdAt))
+        .all(),
+      db
+        .select({
+          assetId: personalTransactions.assetId,
+          entryCount: sql<number>`count(*)`,
+        })
+        .from(personalTransactions)
+        .where(and(eq(personalTransactions.userId, user.id), isNotNull(personalTransactions.assetId)))
+        .groupBy(personalTransactions.assetId)
+        .all(),
+      db
+        .select({
+          assetId: personalAssetVisibility.assetId,
+          walletId: personalAssetVisibility.walletId,
+          visible: personalAssetVisibility.visible,
+        })
+        .from(personalAssetVisibility)
+        .where(eq(personalAssetVisibility.userId, user.id))
+        .all(),
+    ]);
 
-    const overrideRows = await db
-      .select({
-        assetId: personalAssetVisibility.assetId,
-        walletId: personalAssetVisibility.walletId,
-        visible: personalAssetVisibility.visible,
-      })
-      .from(personalAssetVisibility)
-      .where(eq(personalAssetVisibility.userId, user.id))
-      .all();
+    const countByAsset = new Map<string, number>(
+      countRows
+        .filter((r): r is { assetId: string; entryCount: number } => r.assetId !== null)
+        .map((r) => [r.assetId, Number(r.entryCount)]),
+    );
 
     const overridesByAsset = new Map<string, WalletOverride[]>();
     for (const r of overrideRows) {
@@ -167,7 +179,9 @@ export function assetRoutes(): Hono<AppBindings> {
     }
 
     const body: AssetsResponse = {
-      assets: rows.map((r) => toAssetView(r, overridesByAsset.get(r.id) ?? [])),
+      assets: rows.map((r) =>
+        toAssetView({ ...r, entryCount: countByAsset.get(r.id) ?? 0 }, overridesByAsset.get(r.id) ?? []),
+      ),
     };
     return c.json(body, 200);
   });
@@ -262,6 +276,11 @@ export function assetRoutes(): Hono<AppBindings> {
           sortOrder,
           createdAt: now,
           updatedAt: now,
+        }),
+        db.insert(personalAssetCounts).values({
+          assetId: id,
+          userId: user.id,
+          entryCount: 0,
         }),
         ...(inheritedOverrides.length > 0
           ? [
@@ -473,6 +492,7 @@ export function assetRoutes(): Hono<AppBindings> {
           .update(personalTransactions)
           .set({ assetId: moveTo, updatedAt: now, syncVersion: v })
           .where(and(eq(personalTransactions.assetId, id), eq(personalTransactions.userId, user.id))),
+        ...assetCountDeltaStmts(db, user.id, [{ assetId: moveTo, delta: count }]),
         db
           .delete(personalAssets)
           .where(and(eq(personalAssets.id, id), eq(personalAssets.userId, user.id))),

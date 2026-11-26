@@ -341,7 +341,7 @@ function replayWalletsInternal(
   return { vndValues, cashVndValues, holdingsByWallet, entryVnd, unratedWalletIds };
 }
 
-function replayWallets(
+export function replayWallets(
   wallets: CalcWallet[],
   entries: CalcEntry[],
 ): {
@@ -560,8 +560,13 @@ export interface VndTotal {
   unratedWalletIds: string[];
 }
 
-export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal {
-  const { vndValues, cashVndValues, holdingsByWallet } = replayWallets(wallets, entries);
+export function vndTotalFromCache(
+  wallets: CalcWallet[],
+  walletBalances: Map<string, number>,
+  vndValues: Map<string, number | null>,
+  cashVndValues: Map<string, number | null>,
+  holdingsByWallet: Map<string, Holding[]>,
+): VndTotal {
   let totalVnd = 0;
   let cashVnd = 0;
   let approximate = false;
@@ -570,7 +575,7 @@ export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal 
 
   for (const w of wallets) {
     if (w.archived) continue;
-    const bal = walletBalance(w, entries);
+    const bal = walletBalances.get(w.id) ?? w.startAmount;
     currencyBalances.set(w.currency, (currencyBalances.get(w.currency) ?? 0) + bal);
 
     const hasHoldings = (holdingsByWallet.get(w.id)?.length ?? 0) > 0;
@@ -606,6 +611,16 @@ export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal 
     perCurrency,
     unratedWalletIds,
   };
+}
+
+export function vndTotal(wallets: CalcWallet[], entries: CalcEntry[]): VndTotal {
+  const { vndValues, cashVndValues, holdingsByWallet } = replayWallets(wallets, entries);
+  const walletBalances = new Map<string, number>();
+  for (const w of wallets) {
+    if (w.archived) continue;
+    walletBalances.set(w.id, walletBalance(w, entries));
+  }
+  return vndTotalFromCache(wallets, walletBalances, vndValues, cashVndValues, holdingsByWallet);
 }
 
 export interface CountedRow {

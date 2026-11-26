@@ -5,7 +5,7 @@ import type { TripListItem } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { deleteDaysLeft } from '@cc/web-util/time';
 import { useMe } from '@cc/web-data-access/hooks';
-import { apiFetch } from '@cc/web-data-access/client';
+import { apiFetch, apiFetchWithHeaders } from '@cc/web-data-access/client';
 import { Screen } from '../components/Screen';
 import { ConsentSheet } from '../components/ConsentSheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
@@ -21,17 +21,106 @@ import { ProposalBanner } from '../components/ProposalBanner';
 import { Icon } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
 
+function TripListCard({ trips }: { trips: TripListItem[] }) {
+  const t = useT();
+  return (
+    <div className="fsl-my-trips__list bg-card border border-border rounded-xl overflow-hidden">
+      {trips.map((trip) => {
+        const tone =
+          trip.myBalance > 0
+            ? 'success'
+            : trip.myBalance < 0
+              ? 'danger'
+              : 'neutral';
+        const label =
+          trip.myBalance > 0
+            ? t('trips.youreOwed')
+            : trip.myBalance < 0
+              ? t('trips.youOwe')
+              : t('trips.settled');
+
+        return (
+          <Link
+            key={trip.id}
+            to={`/t/${trip.id}`}
+            className="fsl-my-trips__row flex items-center justify-between gap-3 px-4 py-3 min-h-[56px] text-foreground border-b border-border last:border-b-0 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
+          >
+            <div className="fsl-my-trips__row-info flex flex-col gap-1 min-w-0 flex-1">
+              <span className="fsl-my-trips__row-name truncate text-base font-semibold text-foreground">{trip.name}</span>
+              <span className="fsl-my-trips__row-sub text-sm leading-snug">
+                <span
+                  className={cn(
+                    'fsl-my-trips__line',
+                    `fsl-my-trips__line--${tone}`,
+                    tone === 'success' && 'text-success',
+                    tone === 'danger' && 'text-danger',
+                    tone === 'neutral' && 'text-muted-foreground',
+                  )}
+                >
+                  {label}
+                  {trip.myBalance !== 0 && (
+                    <>
+                      {' '}
+                      <Amount
+                        value={Math.abs(trip.myBalance)}
+                        tone={tone}
+                      />
+                    </>
+                  )}
+                </span>
+                {trip.archived && (
+                  <span className="fsl-my-trips__archived text-muted-foreground"> · {t('trips.archived')}</span>
+                )}
+              </span>
+              {trip.archived && trip.deleteAfter && (() => {
+                const days = deleteDaysLeft(trip.deleteAfter);
+                return (
+                  <Pill tone="danger" className="fsl-my-trips__delete-flag mt-1 w-fit inline-flex items-center gap-1">
+                    <Icon name="clock" size={12} />
+                    {days <= 0
+                      ? t('trips.deleteToday')
+                      : days === 1
+                        ? t('trips.deleteInOneDay')
+                        : t('trips.deleteInDays', { days })}
+                  </Pill>
+                );
+              })()}
+            </div>
+            <Icon
+              name="chevronRight"
+              size={20}
+              className="fsl-my-trips__chevron text-subtle-foreground shrink-0"
+            />
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 /** `embedded`: render only the list, inside another screen (the Groups tab on Home). */
 export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
   const t = useT();
   const navigate = useNavigate();
 
   const meQuery = useMe();
+  const [showArchived, setShowArchived] = useState(false);
 
-  const tripsQuery = useQuery<TripListItem[]>({
-    queryKey: ['trips'],
-    queryFn: () => apiFetch<TripListItem[]>('/api/trips'),
+  const tripsQuery = useQuery<{ items: TripListItem[]; archivedCount: number }>({
+    queryKey: ['trips', 'active'],
+    queryFn: async () => {
+      const { data, headers } = await apiFetchWithHeaders<TripListItem[]>('/api/trips?archived=exclude');
+      const rawCount = Number(headers.get('X-Archived-Count') ?? '0');
+      const archivedCount = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 0;
+      return { items: data, archivedCount };
+    },
     enabled: meQuery.data?.user !== null,
+  });
+
+  const archivedQuery = useQuery<TripListItem[]>({
+    queryKey: ['trips', 'archived'],
+    queryFn: () => apiFetch<TripListItem[]>('/api/trips?archived=only'),
+    enabled: meQuery.data?.user !== null && showArchived,
   });
 
   const user = meQuery.data?.user;
@@ -74,7 +163,9 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
     }
   }, [meQuery.isSuccess, user, navigate]);
 
-  const isEmpty = tripsQuery.isSuccess && tripsQuery.data.length === 0;
+  const activeTrips = tripsQuery.data?.items ?? [];
+  const archivedCount = tripsQuery.data?.archivedCount ?? 0;
+  const isEmpty = tripsQuery.isSuccess && activeTrips.length === 0 && archivedCount === 0;
 
   const content = (
     <>
@@ -121,77 +212,29 @@ export function MyTrips({ embedded = false }: { embedded?: boolean } = {}) {
             }
           />
         ) : (
-          <div className="fsl-my-trips__list bg-card border border-border rounded-xl overflow-hidden">
-            {tripsQuery.data?.map((trip) => {
-              const tone =
-                trip.myBalance > 0
-                  ? 'success'
-                  : trip.myBalance < 0
-                    ? 'danger'
-                    : 'neutral';
-              const label =
-                trip.myBalance > 0
-                  ? t('trips.youreOwed')
-                  : trip.myBalance < 0
-                    ? t('trips.youOwe')
-                    : t('trips.settled');
-
-              return (
-                <Link
-                  key={trip.id}
-                  to={`/t/${trip.id}`}
-                  className="fsl-my-trips__row flex items-center justify-between gap-3 px-4 py-3 min-h-[56px] text-foreground border-b border-border last:border-b-0 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
-                >
-                  <div className="fsl-my-trips__row-info flex flex-col gap-1 min-w-0 flex-1">
-                    <span className="fsl-my-trips__row-name truncate text-base font-semibold text-foreground">{trip.name}</span>
-                    <span className="fsl-my-trips__row-sub text-sm leading-snug">
-                      <span
-                        className={cn(
-                          'fsl-my-trips__line',
-                          `fsl-my-trips__line--${tone}`,
-                          tone === 'success' && 'text-success',
-                          tone === 'danger' && 'text-danger',
-                          tone === 'neutral' && 'text-muted-foreground',
-                        )}
-                      >
-                        {label}
-                        {trip.myBalance !== 0 && (
-                          <>
-                            {' '}
-                            <Amount
-                              value={Math.abs(trip.myBalance)}
-                              tone={tone}
-                            />
-                          </>
-                        )}
-                      </span>
-                      {trip.archived && (
-                        <span className="fsl-my-trips__archived text-muted-foreground"> · {t('trips.archived')}</span>
-                      )}
-                    </span>
-                    {trip.archived && trip.deleteAfter && (() => {
-                      const days = deleteDaysLeft(trip.deleteAfter);
-                      return (
-                        <Pill tone="danger" className="fsl-my-trips__delete-flag mt-1 w-fit inline-flex items-center gap-1">
-                          <Icon name="clock" size={12} />
-                          {days <= 0
-                            ? t('trips.deleteToday')
-                            : days === 1
-                              ? t('trips.deleteInOneDay')
-                              : t('trips.deleteInDays', { days })}
-                        </Pill>
-                      );
-                    })()}
-                  </div>
-                  <Icon
-                    name="chevronRight"
-                    size={20}
-                    className="fsl-my-trips__chevron text-subtle-foreground shrink-0"
-                  />
-                </Link>
-              );
-            })}
-          </div>
+          <>
+            {activeTrips.length > 0 && <TripListCard trips={activeTrips} />}
+            {showArchived && (
+              archivedQuery.isError ? (
+                <InlineError
+                  error={archivedQuery.error}
+                  onRetry={() => archivedQuery.refetch()}
+                />
+              ) : archivedQuery.data && archivedQuery.data.length > 0 ? (
+                <TripListCard trips={archivedQuery.data} />
+              ) : null
+            )}
+            {archivedCount > 0 && (
+              <Button
+                variant="ghost"
+                block
+                loading={showArchived && archivedQuery.isLoading}
+                onClick={() => setShowArchived((v) => !v)}
+              >
+                {showArchived ? t('trips.hideHidden') : t('trips.showHidden')}
+              </Button>
+            )}
+          </>
         )}
       </div>
       {noRequest && <Snackbar message={t('merge.noRequestHere')} />}

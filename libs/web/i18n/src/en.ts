@@ -102,6 +102,8 @@ export const en = {
   'trips.deleteInOneDay': 'Deletes in 1 day',
   'trips.deleteInDays': 'Deletes in {days} days',
   'trips.deleteToday': 'Deletes today',
+  'trips.showHidden': 'Show hidden groups',
+  'trips.hideHidden': 'Hide hidden groups',
 
   'account.label': 'Account',
   'account.language': 'Language',
