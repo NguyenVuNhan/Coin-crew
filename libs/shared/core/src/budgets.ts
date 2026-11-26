@@ -218,12 +218,12 @@ export function limitFor(def: BudgetDef, period: BudgetPeriod): number {
 
 // --- Spending ---
 
-export function budgetSpent(
+export function budgetRows(
   def: BudgetDef,
   rows: CountedSpendRow[],
   period: BudgetPeriod,
   categories: CategoryView[],
-): number {
+): CountedSpendRow[] {
   const excluded = new Set(def.excludedWalletIds);
   let parentById: Map<string, string | null> | null = null;
 
@@ -246,7 +246,7 @@ export function budgetSpent(
     return false;
   };
 
-  let total = 0;
+  const matched: CountedSpendRow[] = [];
   for (const row of rows) {
     if (row.currency !== def.currency) continue;
     if (row.walletId === null || excluded.has(row.walletId)) continue;
@@ -258,9 +258,27 @@ export function budgetSpent(
       if (!row.tagIds.includes(def.target.tagId)) continue;
     }
 
-    total += row.amount;
+    matched.push(row);
   }
 
+  matched.sort((a, b) => {
+    if (a.date !== b.date) return a.date > b.date ? -1 : 1;
+    return a.id.localeCompare(b.id);
+  });
+
+  return matched;
+}
+
+export function budgetSpent(
+  def: BudgetDef,
+  rows: CountedSpendRow[],
+  period: BudgetPeriod,
+  categories: CategoryView[],
+): number {
+  let total = 0;
+  for (const row of budgetRows(def, rows, period, categories)) {
+    total += row.amount;
+  }
   return total;
 }
 

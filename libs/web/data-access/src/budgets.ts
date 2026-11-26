@@ -10,6 +10,7 @@ import {
   budgetPeriodAt,
   budgetPeriodsUpTo,
   budgetProgress,
+  budgetRows,
   budgetSpent,
   budgetSuggestion,
   firstBudgetPeriod,
@@ -34,6 +35,7 @@ import {
 import { todayLocal } from '@cc/web-util/localDate';
 import { apiFetch, apiSend, type ApiClientError } from './client';
 import {
+  PERSONAL_BUDGETS_KEY,
   useCategories,
   useGroupSettings,
   useTags,
@@ -42,7 +44,7 @@ import {
 import * as groupCopyMod from './txCopy/groupCopy';
 import * as txCopyMod from './txCopy/hooks';
 
-export const PERSONAL_BUDGETS_KEY = ['me', 'personal', 'budgets'] as const;
+export { PERSONAL_BUDGETS_KEY } from './personalMoney';
 
 const EMPTY_DEFS: BudgetDef[] = [];
 const EMPTY_ROWS: CountedSpendRow[] = [];
@@ -136,49 +138,6 @@ export interface BudgetsProgress {
   history(id: string): { period: BudgetPeriod; limit: number; spent: number }[];
   suggestion(id: string): BudgetSuggestion | null;
   rowsFor(id: string, period: BudgetPeriod): CountedSpendRow[];
-}
-
-function filterBudgetRows(
-  def: BudgetDef,
-  rows: CountedSpendRow[],
-  period: BudgetPeriod,
-  parentById: Map<string, string | null>,
-): CountedSpendRow[] {
-  const excluded = new Set(def.excludedWalletIds);
-
-  const matchesCategory = (categoryId: string, targetCategoryId: string): boolean => {
-    let cur: string | null = categoryId;
-    const seen = new Set<string>();
-    while (cur !== null) {
-      if (cur === targetCategoryId) return true;
-      if (seen.has(cur)) return false;
-      seen.add(cur);
-      cur = parentById.get(cur) ?? null;
-    }
-    return false;
-  };
-
-  const matched: CountedSpendRow[] = [];
-  for (const row of rows) {
-    if (row.currency !== def.currency) continue;
-    if (row.walletId === null || excluded.has(row.walletId)) continue;
-    if (row.date < period.from || row.date > period.to) continue;
-
-    if (def.target.kind === 'category') {
-      if (!matchesCategory(row.categoryId, def.target.categoryId)) continue;
-    } else {
-      if (!row.tagIds.includes(def.target.tagId)) continue;
-    }
-
-    matched.push(row);
-  }
-
-  matched.sort((a, b) => {
-    if (a.date !== b.date) return a.date > b.date ? -1 : 1;
-    return a.id.localeCompare(b.id);
-  });
-
-  return matched;
 }
 
 function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean }) {
@@ -314,14 +273,6 @@ export function useBudgetsProgress(opts?: {
     return map;
   }, [defs]);
 
-  const parentById = useMemo(() => {
-    const map = new Map<string, string | null>();
-    for (const c of categories) {
-      map.set(c.id, c.parentId);
-    }
-    return map;
-  }, [categories]);
-
   const current = useMemo<BudgetProgress[]>(() => {
     return defs.map((def) => {
       const period = budgetPeriodAt(def, today) ?? firstBudgetPeriod(def);
@@ -358,9 +309,9 @@ export function useBudgetsProgress(opts?: {
     (id: string, period: BudgetPeriod): CountedSpendRow[] => {
       const def = defById.get(id);
       if (!def) return EMPTY_ROWS;
-      return filterBudgetRows(def, rows, period, parentById);
+      return budgetRows(def, rows, period, categories);
     },
-    [defById, rows, parentById],
+    [defById, rows, categories],
   );
 
   return {
