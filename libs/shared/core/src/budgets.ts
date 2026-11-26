@@ -1,4 +1,4 @@
-import type { CurrencyCode } from './currency';
+import { CURRENCIES, type CurrencyCode } from './currency';
 import type { CategoryView } from './api-types';
 import type { CountedSpendRow } from './reports';
 
@@ -382,4 +382,162 @@ export function orderBudgets(list: BudgetProgress[]): {
   onPace.sort((a, b) => usageRatio(b) - usageRatio(a));
 
   return { over, fast, onPace, ended };
+}
+
+// --- Limit Suggestions ---
+
+export interface BudgetSuggestion {
+  direction: 'raise' | 'lower';
+  amount: number;
+  average: number;
+}
+
+export function budgetSuggestion(
+  def: BudgetDef,
+  history: { period: BudgetPeriod; limit: number; spent: number }[],
+  today: string,
+): BudgetSuggestion | null {
+  if (def.periodKind === 'once') return null;
+
+  const first = firstBudgetPeriod(def);
+  const completed = history
+    .filter((h) => h.period.to < today && h.period.from >= first.from)
+    .sort((a, b) => (a.period.from > b.period.from ? -1 : a.period.from < b.period.from ? 1 : 0));
+
+  if (completed.length < BUDGET_SUGGEST_RUN) return null;
+
+  const run = completed.slice(0, BUDGET_SUGGEST_RUN);
+
+  if (
+    def.suggestionDismissedUntil !== null &&
+    run.some((h) => h.period.from < def.suggestionDismissedUntil!)
+  ) {
+    return null;
+  }
+
+  const allOver = run.every((h) => h.spent > h.limit);
+  const allUnder = run.every((h) => h.spent < BUDGET_UNDER * h.limit);
+  if (!allOver && !allUnder) return null;
+
+  const rawAverage = run.reduce((acc, h) => acc + h.spent, 0) / run.length;
+  const step = def.currency === 'VND' ? 100_000 : 10 ** CURRENCIES[def.currency].decimals;
+  const amount = Math.round(rawAverage / step) * step;
+
+  const currentPeriod = budgetPeriodAt(def, today);
+  const currentLimit = currentPeriod ? limitFor(def, currentPeriod) : run[0]!.limit;
+  if (amount === currentLimit) return null;
+
+  return {
+    direction: allOver ? 'raise' : 'lower',
+    amount,
+    average: Math.round(rawAverage),
+  };
+}
+
+// --- Entry Impact ---
+
+export interface BudgetDraft {
+  amount: number;
+  categoryId: string | null;
+  tagIds: string[];
+  date: string;
+  walletId: string;
+  currency: CurrencyCode;
+  replacesId?: string;
+}
+
+export interface BudgetImpact {
+  budgetId: string;
+  name: string;
+  before: BudgetProgress;
+  after: BudgetProgress;
+}
+
+const STATE_SEVERITY: Record<BudgetState, number> = {
+  over: 0,
+  fast: 1,
+  near: 2,
+  fine: 3,
+};
+
+export function budgetImpacts(
+  defs: BudgetDef[],
+  rows: CountedSpendRow[],
+  draft: BudgetDraft,
+  categories: CategoryView[],
+  today: string,
+): BudgetImpact[] {
+  if (draft.amount <= 0) return [];
+
+  const parentById = new Map<string, string | null>();
+  for (const c of categories) {
+    parentById.set(c.id, c.parentId);
+  }
+
+  const matchesCat = (categoryId: string, targetCategoryId: string): boolean => {
+    let cur: string | null = categoryId;
+    const seen = new Set<string>();
+    while (cur !== null) {
+      if (cur === targetCategoryId) return true;
+      if (seen.has(cur)) return false;
+      seen.add(cur);
+      cur = parentById.get(cur) ?? null;
+    }
+    return false;
+  };
+
+  const targetNarrowness = (def: BudgetDef): number => {
+    if (def.target.kind === 'tag') return -1;
+    let depth = 0;
+    let cur: string | null = parentById.get(def.target.categoryId) ?? null;
+    const seen = new Set<string>([def.target.categoryId]);
+    while (cur !== null) {
+      if (seen.has(cur)) break;
+      seen.add(cur);
+      depth++;
+      cur = parentById.get(cur) ?? null;
+    }
+    return depth;
+  };
+
+  const baseRows =
+    draft.replacesId !== undefined ? rows.filter((r) => r.id !== draft.replacesId) : rows;
+
+  const matched: { impact: BudgetImpact; narrowness: number }[] = [];
+
+  for (const def of defs) {
+    if (def.currency !== draft.currency) continue;
+    if (def.excludedWalletIds.includes(draft.walletId)) continue;
+
+    const period = budgetPeriodAt(def, draft.date);
+    if (!period) continue;
+    if (period.from < firstBudgetPeriod(def).from) continue;
+
+    if (def.target.kind === 'category') {
+      if (draft.categoryId === null || !matchesCat(draft.categoryId, def.target.categoryId)) {
+        continue;
+      }
+    } else {
+      if (!draft.tagIds.includes(def.target.tagId)) continue;
+    }
+
+    const spentBefore = budgetSpent(def, baseRows, period, categories);
+    const before = budgetProgress(def, spentBefore, period, today);
+    const after = budgetProgress(def, spentBefore + draft.amount, period, today);
+
+    if (after.state === 'fine') continue;
+
+    matched.push({
+      impact: { budgetId: def.id, name: def.name, before, after },
+      narrowness: targetNarrowness(def),
+    });
+  }
+
+  matched.sort((a, b) => {
+    const sevDiff = STATE_SEVERITY[a.impact.after.state] - STATE_SEVERITY[b.impact.after.state];
+    if (sevDiff !== 0) return sevDiff;
+    return b.narrowness - a.narrowness;
+  });
+
+  return matched.map((m) => m.impact);
 }
