@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { budgetSuggestion, type BudgetDef, type BudgetPeriod } from '@cc/core';
+import { budgetSuggestion, type BudgetDef, type BudgetPeriod } from '../src/budgets';
 
 function monthPeriod(year: number, month: number): BudgetPeriod {
   const m = String(month).padStart(2, '0');
