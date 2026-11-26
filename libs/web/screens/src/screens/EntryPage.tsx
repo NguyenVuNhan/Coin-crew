@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CURRENCIES,
@@ -15,6 +15,7 @@ import {
   quantityInputDecimals,
   quickExpenseDescription,
   type AssetView,
+  type BudgetDraft,
   type CurrencyCode,
   type EntryInput,
   type EntryView,
@@ -29,6 +30,7 @@ import { ApiClientError } from '@cc/web-data-access/client';
 import { useTripView } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
+import { useBudgetImpacts } from '@cc/web-data-access/budgets';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -71,6 +73,10 @@ import { SmallAmountModal } from '../components/SmallAmountModal';
 import { ForeignWalletModal, type ForeignWalletConfirm } from '../components/ForeignWalletModal';
 import { WalletIcon } from '../components/WalletIcon';
 import { showUndo } from '../components/UndoSnackbarHost';
+import {
+  BudgetWarning,
+  formatBudgetSavedMessage,
+} from '../components/budgets/BudgetWarning';
 import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
 import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
 import { SplitFold } from '../components/quickShare/SplitFold';
@@ -178,6 +184,7 @@ export function EntryPage(): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
   const isDirectEdit = isEdit && searchParams.get('group') === '1';
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { goBack } = useBack('/trips');
   const { ledger, isLoading: ledgerLoading } = useLedger();
   const {
@@ -301,7 +308,6 @@ export function EntryPage(): JSX.Element {
 
   const walletsQuery = useWalletDetails();
   const categoriesQuery = useCategories();
-  const tagsQuery = useTags({ enabled: isDirectEdit });
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
@@ -351,6 +357,7 @@ export function EntryPage(): JSX.Element {
   const [loanPayerOpen, setLoanPayerOpen] = useState(false);
   const [loanTitleError, setLoanTitleError] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+  const tagsQuery = useTags({ enabled: isDirectEdit || tags.length > 0 });
   const [excludeFromReports, setExcludeFromReports] = useState(initial.transfer);
   const [excludeTouched, setExcludeTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -888,6 +895,75 @@ export function EntryPage(): JSX.Element {
 
   const effectiveCategoryId = categoryId ?? guessedCategoryId;
   const activeGuessedId = !categoryPicked && !categoryId ? guessedCategoryId : null;
+
+  const draftTagIds = useMemo(() => {
+    if (tags.length === 0) return [];
+    if (isDirectEdit) return tags;
+    const allTags = tagsQuery.data?.tags ?? [];
+    if (allTags.length === 0) return [];
+    const idByName = new Map(allTags.map((tg) => [tg.name.toLowerCase(), tg.id]));
+    return tags
+      .map((name) => idByName.get(name.trim().toLowerCase()))
+      .filter((tid): tid is string => Boolean(tid));
+  }, [tags, isDirectEdit, tagsQuery.data?.tags]);
+
+  const budgetDraftAmount = useMemo(() => {
+    if (primaryMinor === null || primaryMinor <= 0) return 0;
+    if (canShareChi && quickSplit.chosen.size > 0 && ledger?.ownerPid) {
+      if (!quickSplit.result?.ok) return 0;
+      return (
+        quickSplit.result.shares.find((s) => s.participantId === ledger.ownerPid)?.amount ?? 0
+      );
+    }
+    return primaryMinor;
+  }, [primaryMinor, canShareChi, quickSplit.chosen.size, quickSplit.result, ledger?.ownerPid]);
+
+  const budgetDraft = useMemo<BudgetDraft | null>(() => {
+    if (
+      isLoanDebt ||
+      entryType !== 'expense' ||
+      isTransferMode ||
+      isTradeMode ||
+      excludeFromReports ||
+      !selectedWallet ||
+      budgetDraftAmount <= 0
+    ) {
+      return null;
+    }
+    const draftDate = dateTime.split('T')[0] || todayLocal();
+    const replacesId = isEdit
+      ? isDirectEdit
+        ? (directExpense?.rootId ?? directExpense?.id ?? id)
+        : id
+      : undefined;
+    return {
+      amount: budgetDraftAmount,
+      categoryId: effectiveCategoryId,
+      tagIds: draftTagIds,
+      date: draftDate,
+      walletId: selectedWallet.id,
+      currency: selectedWallet.currency,
+      ...(replacesId ? { replacesId } : {}),
+    };
+  }, [
+    isLoanDebt,
+    entryType,
+    isTransferMode,
+    isTradeMode,
+    excludeFromReports,
+    selectedWallet,
+    budgetDraftAmount,
+    effectiveCategoryId,
+    draftTagIds,
+    dateTime,
+    isEdit,
+    isDirectEdit,
+    directExpense?.rootId,
+    directExpense?.id,
+    id,
+  ]);
+
+  const budgetImpacts = useBudgetImpacts(budgetDraft);
 
   useEffect(() => {
     if (
@@ -1571,11 +1647,22 @@ export function EntryPage(): JSX.Element {
             await deleteEntry.mutateAsync(id);
           }
           writeLastWallet(selectedWallet.id);
-          showUndo({
-            message: isEdit ? t('personalEntry.saved') : savedMessage,
-            actionLabel: t('common.close'),
-            onAction: () => {},
-          });
+          const topBudgetImpact = budgetImpacts[0];
+          if (topBudgetImpact) {
+            showUndo({
+              message: formatBudgetSavedMessage(topBudgetImpact, selectedWallet.currency, t),
+              actionLabel: t('budgets.see'),
+              onAction: () => {
+                navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
+              },
+            });
+          } else {
+            showUndo({
+              message: isEdit ? t('personalEntry.saved') : savedMessage,
+              actionLabel: t('common.close'),
+              onAction: () => {},
+            });
+          }
           goBack();
         } catch (err) {
           setValidationError(err);
@@ -1606,6 +1693,12 @@ export function EntryPage(): JSX.Element {
       lastUsedWalletId = selectedWallet.id;
     }
 
+    const topBudgetImpact =
+      !isLoanDebt && !isTransferMode && !isTradeMode && entryType === 'expense'
+        ? (budgetImpacts[0] ?? null)
+        : null;
+    const savedBudgetCurrency = selectedWallet?.currency ?? 'VND';
+
     savingRef.current = true;
     try {
       if (isDirectEdit && ledger && directExpense) {
@@ -1615,35 +1708,65 @@ export function EntryPage(): JSX.Element {
           expenseId: directExpense.id,
         });
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
-        showUndo({
-          message: t('personalEntry.saved'),
-          actionLabel: t('common.close'),
-          onAction: () => {},
-        });
+        if (topBudgetImpact) {
+          showUndo({
+            message: formatBudgetSavedMessage(topBudgetImpact, savedBudgetCurrency, t),
+            actionLabel: t('budgets.see'),
+            onAction: () => {
+              navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
+            },
+          });
+        } else {
+          showUndo({
+            message: t('personalEntry.saved'),
+            actionLabel: t('common.close'),
+            onAction: () => {},
+          });
+        }
       } else if (isEdit && id) {
         await updateEntry.mutateAsync({ id, input });
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
-        showUndo({
-          message: t('personalEntry.saved'),
-          actionLabel: t('common.close'),
-          onAction: () => {},
-        });
+        if (topBudgetImpact) {
+          showUndo({
+            message: formatBudgetSavedMessage(topBudgetImpact, savedBudgetCurrency, t),
+            actionLabel: t('budgets.see'),
+            onAction: () => {
+              navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
+            },
+          });
+        } else {
+          showUndo({
+            message: t('personalEntry.saved'),
+            actionLabel: t('common.close'),
+            onAction: () => {},
+          });
+        }
       } else {
         const created = await createEntry.mutateAsync(input);
         const createdId = created?.entries?.[0]?.id;
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
-        showUndo(
-          {
-            message: savedMessage,
-            actionLabel: t('common.undo'),
+        if (topBudgetImpact) {
+          showUndo({
+            message: formatBudgetSavedMessage(topBudgetImpact, savedBudgetCurrency, t),
+            actionLabel: t('budgets.see'),
             onAction: () => {
-              if (createdId) {
-                deleteEntry.mutate(createdId);
-              }
+              navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
             },
-          },
-          5000,
-        );
+          });
+        } else {
+          showUndo(
+            {
+              message: savedMessage,
+              actionLabel: t('common.undo'),
+              onAction: () => {
+                if (createdId) {
+                  deleteEntry.mutate(createdId);
+                }
+              },
+            },
+            5000,
+          );
+        }
       }
       goBack();
     } catch (err) {
@@ -2293,6 +2416,17 @@ export function EntryPage(): JSX.Element {
                 </span>
               </FoldLine>
             ) : null)}
+
+            {!isLoanDebt &&
+              entryType === 'expense' &&
+              !isTransferMode &&
+              !isTradeMode &&
+              budgetImpacts.length > 0 && (
+                <BudgetWarning
+                  impacts={budgetImpacts}
+                  currency={selectedWallet?.currency ?? 'VND'}
+                />
+              )}
 
             {!isLoanDebt && (isMousePointer || !fold.isOpen('amount')) && (
               <div className="w-full min-h-11 px-4 py-2 rounded-xl bg-card flex items-center justify-between gap-3">
