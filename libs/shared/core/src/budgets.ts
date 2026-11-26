@@ -1,6 +1,12 @@
 import { CURRENCIES, type CurrencyCode } from './currency';
 import type { CategoryView } from './api-types';
-import type { CountedSpendRow } from './reports';
+import {
+  UNCATEGORIZED_CATEGORY_ID,
+  SYNTHETIC_GROUP_CATEGORY_ID,
+  SYNTHETIC_LEND_CATEGORY_ID,
+  SYNTHETIC_BORROW_CATEGORY_ID,
+  type CountedSpendRow,
+} from './reports';
 
 export type BudgetPeriodKind = 'week' | 'month' | 'year' | 'once';
 
@@ -558,4 +564,149 @@ export function budgetImpacts(
   });
 
   return matched.map((m) => m.impact);
+}
+
+// --- Starter Suggestions & Last Full Month Spending ---
+
+export interface BudgetStarter {
+  categoryId: string;
+  lastMonthSpent: number;
+  suggestedAmount: number;
+}
+
+const SYNTHETIC_CATEGORY_IDS = new Set<string>([
+  UNCATEGORIZED_CATEGORY_ID,
+  SYNTHETIC_GROUP_CATEGORY_ID,
+  SYNTHETIC_LEND_CATEGORY_ID,
+  SYNTHETIC_BORROW_CATEGORY_ID,
+]);
+
+function lastFullMonthPeriod(today: string): BudgetPeriod {
+  const [y, m] = parseYmd(today);
+  const [py, pm] = shiftYearMonth(y, m, -1);
+  return {
+    from: formatYmd(py, pm, 1),
+    to: formatYmd(py, pm, daysInMonthUtc(py, pm)),
+  };
+}
+
+function roundUpToStep(amount: number, currency: CurrencyCode): number {
+  const step = currency === 'VND' ? 100_000 : 10 ** CURRENCIES[currency].decimals;
+  return Math.ceil(amount / step) * step;
+}
+
+function resolveTopLevelCategory(
+  categoryId: string,
+  categoriesById: Map<string, CategoryView>,
+): CategoryView | null {
+  if (SYNTHETIC_CATEGORY_IDS.has(categoryId)) return null;
+  let cur = categoriesById.get(categoryId) ?? null;
+  if (!cur) return null;
+
+  const seen = new Set<string>([cur.id]);
+  while (cur.parentId !== null) {
+    if (seen.has(cur.parentId)) break;
+    const parent = categoriesById.get(cur.parentId);
+    if (!parent) break;
+    seen.add(parent.id);
+    cur = parent;
+  }
+  return cur;
+}
+
+export function budgetStarters(
+  defs: BudgetDef[],
+  rows: CountedSpendRow[],
+  categories: CategoryView[],
+  today: string,
+  opts?: { max?: number; currency?: CurrencyCode; excludedWalletIds?: string[] },
+): BudgetStarter[] {
+  const max = opts?.max ?? 3;
+  if (max <= 0) return [];
+
+  const currency: CurrencyCode = opts?.currency ?? 'VND';
+  const excludedWallets = opts?.excludedWalletIds ? new Set(opts.excludedWalletIds) : null;
+  const { from, to } = lastFullMonthPeriod(today);
+
+  const categoriesById = new Map<string, CategoryView>();
+  for (const c of categories) {
+    categoriesById.set(c.id, c);
+  }
+
+  const budgetedCategoryIds = new Set<string>();
+  for (const def of defs) {
+    if (def.target.kind === 'category' && def.currency === currency) {
+      budgetedCategoryIds.add(def.target.categoryId);
+    }
+  }
+
+  const spentByTopId = new Map<string, number>();
+
+  for (const row of rows) {
+    if (row.currency !== currency) continue;
+    if (row.date < from || row.date > to) continue;
+    if (row.amount <= 0) continue;
+    if (excludedWallets && row.walletId !== null && excludedWallets.has(row.walletId)) continue;
+
+    const top = resolveTopLevelCategory(row.categoryId, categoriesById);
+    if (!top) continue;
+    if (top.type !== 'expense' || top.hidden) continue;
+    if (budgetedCategoryIds.has(top.id)) continue;
+
+    spentByTopId.set(top.id, (spentByTopId.get(top.id) ?? 0) + row.amount);
+  }
+
+  const starters: BudgetStarter[] = [];
+  for (const [categoryId, lastMonthSpent] of spentByTopId) {
+    if (lastMonthSpent <= 0) continue;
+    starters.push({
+      categoryId,
+      lastMonthSpent,
+      suggestedAmount: roundUpToStep(lastMonthSpent, currency),
+    });
+  }
+
+  starters.sort((a, b) => {
+    if (b.lastMonthSpent !== a.lastMonthSpent) return b.lastMonthSpent - a.lastMonthSpent;
+    return a.categoryId.localeCompare(b.categoryId);
+  });
+
+  return starters.slice(0, max);
+}
+
+export function lastFullMonthSpent(
+  rows: CountedSpendRow[],
+  categoryId: string,
+  categories: CategoryView[],
+  today: string,
+  currency: CurrencyCode = 'VND',
+): number {
+  const { from, to } = lastFullMonthPeriod(today);
+
+  const parentById = new Map<string, string | null>();
+  for (const c of categories) {
+    parentById.set(c.id, c.parentId);
+  }
+
+  const matchesCategory = (rowCategoryId: string): boolean => {
+    let cur: string | null = rowCategoryId;
+    const seen = new Set<string>();
+    while (cur !== null) {
+      if (cur === categoryId) return true;
+      if (seen.has(cur)) return false;
+      seen.add(cur);
+      cur = parentById.get(cur) ?? null;
+    }
+    return false;
+  };
+
+  let total = 0;
+  for (const row of rows) {
+    if (row.currency !== currency) continue;
+    if (row.date < from || row.date > to) continue;
+    if (!matchesCategory(row.categoryId)) continue;
+    total += row.amount;
+  }
+
+  return total;
 }

@@ -12,8 +12,10 @@ import {
   budgetProgress,
   budgetRows,
   budgetSpent,
+  budgetStarters,
   budgetSuggestion,
   firstBudgetPeriod,
+  lastFullMonthSpent,
   limitFor,
   listCountedSpending,
   orderBudgets,
@@ -25,12 +27,14 @@ import {
   type BudgetResponse,
   type BudgetsProgressResponse,
   type BudgetsResponse,
+  type BudgetStarter,
   type BudgetSuggestion,
   type CalcEntry,
   type CategoryView,
   type CountedSpendRow,
   type CreateBudgetInput,
   type UpdateBudgetInput,
+  type WalletDetailView,
 } from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
 import { apiFetch, apiSend, type ApiClientError } from './client';
@@ -49,7 +53,9 @@ export { PERSONAL_BUDGETS_KEY } from './personalMoney';
 const EMPTY_DEFS: BudgetDef[] = [];
 const EMPTY_ROWS: CountedSpendRow[] = [];
 const EMPTY_CATEGORIES: CategoryView[] = [];
+const EMPTY_WALLETS: WalletDetailView[] = [];
 const EMPTY_IMPACTS: BudgetImpact[] = [];
+const EMPTY_STARTERS: BudgetStarter[] = [];
 const EMPTY_HISTORY: { period: BudgetPeriod; limit: number; spent: number }[] = [];
 
 const UNAVAILABLE_GROUP_COPY: ReturnType<typeof groupCopyMod.useGroupCopy> = {
@@ -252,6 +258,7 @@ function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean
     rows,
     defs,
     categories: categories ?? EMPTY_CATEGORIES,
+    wallets: wallets ?? EMPTY_WALLETS,
     today,
     isPending,
     error,
@@ -369,4 +376,45 @@ export function useBudgetImpacts(draft: BudgetDraft | null): BudgetImpact[] {
     }
     return budgetImpacts(defs, rows, draft, categories, today);
   }, [source, draft, defs, rows, categories, today]);
+}
+
+function filterReportIncludedRows(
+  rows: CountedSpendRow[],
+  wallets: WalletDetailView[],
+): CountedSpendRow[] {
+  const excludedWalletIds = new Set(
+    wallets.filter((w) => Boolean(w.excludeFromReports)).map((w) => w.id),
+  );
+  if (excludedWalletIds.size === 0) return rows;
+  return rows.filter((r) => r.walletId === null || !excludedWalletIds.has(r.walletId));
+}
+
+export function useBudgetStarters(): { starters: BudgetStarter[]; ready: boolean } {
+  const { source, rows, defs, categories, wallets, today, isPending } = useBudgetsSource({
+    enabled: true,
+    allowServerFallback: false,
+  });
+
+  const ready = source === 'copy' && !isPending;
+
+  const starters = useMemo(() => {
+    if (!ready) return EMPTY_STARTERS;
+    const reportRows = filterReportIncludedRows(rows, wallets);
+    return budgetStarters(defs, reportRows, categories, today);
+  }, [ready, defs, rows, wallets, categories, today]);
+
+  return { starters, ready };
+}
+
+export function useLastMonthCategorySpent(categoryId: string | null): number | null {
+  const { source, rows, categories, wallets, today } = useBudgetsSource({
+    enabled: categoryId !== null,
+    allowServerFallback: false,
+  });
+
+  return useMemo(() => {
+    if (source !== 'copy' || categoryId === null) return null;
+    const reportRows = filterReportIncludedRows(rows, wallets);
+    return lastFullMonthSpent(reportRows, categoryId, categories, today);
+  }, [source, categoryId, rows, wallets, categories, today]);
 }
