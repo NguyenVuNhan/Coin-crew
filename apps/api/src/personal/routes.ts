@@ -17,6 +17,7 @@ import { syncRoutes } from './sync';
 import { groupLinkRoutes, recordPersonalToggle } from './groupLinks';
 import { visibilityRoutes } from './visibility';
 import { reportRoutes } from './reports';
+import { budgetRoutes } from './budgets';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -71,6 +72,7 @@ export function personalRoutes(): Hono<AppBindings> {
   app.route('/', groupLinkRoutes());
   app.route('/', visibilityRoutes());
   app.route('/', reportRoutes());
+  app.route('/', budgetRoutes());
 
   return app;
 }
