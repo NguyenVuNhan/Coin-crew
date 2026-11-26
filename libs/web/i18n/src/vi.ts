@@ -1581,6 +1581,7 @@ export const vi: Record<MessageKey, string> = {
   'personalSettings.categories': 'Nhóm chi tiêu', // REVIEW
   'personalSettings.assets': 'Tài sản', // REVIEW
   'personalSettings.tags': 'Thẻ', // REVIEW
+  'personalSettings.budgets': 'Ngân sách', // REVIEW
   'categories.title': 'Danh mục chi tiêu', // REVIEW
   'categories.tabs': 'Loại danh mục', // REVIEW
   'categories.hiddenBadge': 'Đã ẩn', // REVIEW
@@ -1964,4 +1965,16 @@ export const vi: Record<MessageKey, string> = {
   'budgets.walletExcludedHint': 'Không tính vào báo cáo', // REVIEW
   'budgets.monthStartDayError': 'Nhập ngày từ 1 đến 31', // REVIEW
   'budgets.duplicateError': 'Đã có ngân sách cho {name} với chu kỳ này rồi.', // REVIEW
+  'budgets.bookEmptyLine': 'Đặt mức chi cho một danh mục để biết mỗi ngày còn chi được bao nhiêu', // REVIEW
+  'budgets.viewBudget': 'Xem ngân sách', // REVIEW
+  'budgets.setForCategory': 'Đặt ngân sách cho {name}', // REVIEW
+  'budgets.setForCategoryWithLastMonth': 'Đặt ngân sách cho {name} · tháng trước {amount}', // REVIEW
+  'budgets.starterHeading': 'Gợi ý từ tháng trước', // REVIEW
+  'budgets.starterLastMonth': 'Tháng trước {amount}', // REVIEW
+  'budgets.starterSet': 'Đặt', // REVIEW
+  'budgets.starterSetAria': 'Đặt ngân sách cho {name}', // REVIEW
+  'budgets.starterAmountAria': 'Mức ngân sách cho {name}', // REVIEW
+  'budgets.starterPickOther': 'Chọn danh mục khác', // REVIEW
+  'budgets.moreOptions': 'Thêm tùy chọn', // REVIEW
+  'budgets.createdToast': 'Đã đặt ngân sách {name}', // REVIEW
 };

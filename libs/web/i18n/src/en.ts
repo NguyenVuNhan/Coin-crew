@@ -1580,6 +1580,7 @@ export const en = {
   'personalSettings.categories': 'Categories',
   'personalSettings.assets': 'Assets',
   'personalSettings.tags': 'Tags',
+  'personalSettings.budgets': 'Budgets',
   'categories.title': 'Categories',
   'categories.tabs': 'Category type',
   'categories.hiddenBadge': 'Hidden',
@@ -1963,6 +1964,18 @@ export const en = {
   'budgets.walletExcludedHint': 'Excluded from reports',
   'budgets.monthStartDayError': 'Enter a day from 1 to 31',
   'budgets.duplicateError': 'A budget for {name} with this period already exists.',
+  'budgets.bookEmptyLine': 'Set a spending limit for a category to see how much you can spend each day',
+  'budgets.viewBudget': 'View budget',
+  'budgets.setForCategory': 'Set budget for {name}',
+  'budgets.setForCategoryWithLastMonth': 'Set budget for {name} · last month {amount}',
+  'budgets.starterHeading': 'Based on last month',
+  'budgets.starterLastMonth': 'Last month {amount}',
+  'budgets.starterSet': 'Set',
+  'budgets.starterSetAria': 'Set budget for {name}',
+  'budgets.starterAmountAria': 'Limit amount for {name}',
+  'budgets.starterPickOther': 'Choose another category',
+  'budgets.moreOptions': 'More options',
+  'budgets.createdToast': 'Budget set for {name}',
 } as const;
 
 export type MessageKey = keyof typeof en;

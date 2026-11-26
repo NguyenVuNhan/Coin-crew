@@ -216,6 +216,9 @@ describe('BudgetForm', () => {
 
     const form = await screen.findByTestId('budget-form');
 
+    // Expand "Thêm tuỳ chọn" to inspect defaults for currency, wallets, period, and name
+    await user.click(screen.getByTestId('budget-form-more-options'));
+
     // Currency is hidden when user only has one currency (VND)
     expect(screen.queryByTestId('budget-form-currency')).not.toBeInTheDocument();
 
@@ -299,6 +302,9 @@ describe('BudgetForm', () => {
     // Switch to Tag target and pick "Đà Lạt"
     await user.click(screen.getByTestId('budget-form-target-tag'));
     await user.click(screen.getByTestId('budget-form-tag-tag-trip'));
+
+    // Expand "Thêm tuỳ chọn" to inspect name and pick one-time period
+    await user.click(screen.getByTestId('budget-form-more-options'));
     expect(screen.getByTestId('budget-form-name')).toHaveValue('Đà Lạt');
 
     // Enter amount
@@ -374,6 +380,9 @@ describe('BudgetForm', () => {
 
     renderVi('/budgets?new=1');
     await screen.findByTestId('budget-form');
+
+    // Expand "Thêm tuỳ chọn" to access currency, wallets, and start day
+    await user.click(screen.getByTestId('budget-form-more-options'));
 
     // Currency picker is shown and defaults to VND
     expect(await screen.findByTestId('budget-form-currency')).toBeInTheDocument();

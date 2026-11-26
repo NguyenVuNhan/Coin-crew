@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type JSX } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
   CURRENCIES,
   budgetPeriodAt,
@@ -9,6 +9,7 @@ import {
   parseMoney,
   type BudgetDef,
   type BudgetPeriodKind,
+  type BudgetStarter,
   type CreateBudgetInput,
   type CurrencyCode,
   type TagView,
@@ -18,6 +19,7 @@ import { useLang, useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import {
   useBudgets,
+  useBudgetStarters,
   useCreateBudget,
   useDeleteBudget,
   useUpdateBudget,
@@ -37,12 +39,16 @@ import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../CategoryPicker';
 import { CurrencyBadge } from '../CurrencyBadge';
+import { showUndo } from '../UndoSnackbarHost';
 import { WalletIcon } from '../WalletIcon';
+import { categoryIconName } from '../categoryIcon';
 
 export interface BudgetFormProps {
   open: boolean;
   onClose: () => void;
   budget?: BudgetDef;
+  initialCategoryId?: string | null;
+  initialAmount?: string | number | null;
 }
 
 const PERIOD_OPTIONS: readonly BudgetPeriodKind[] = ['week', 'month', 'year', 'once'];
@@ -57,6 +63,12 @@ function formatMinorInput(minor: number, currency: CurrencyCode): string {
   return frac === 0 ? String(whole) : `${whole}.${String(frac).padStart(2, '0')}`;
 }
 
+function formatVndInput(amount: number): string {
+  const abs = Math.abs(Math.trunc(amount));
+  if (abs === 0) return '';
+  return String(abs).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 function defaultExcludedFor(wallets: WalletDetailView[], code: CurrencyCode): string[] {
   return wallets
     .filter((w) => !w.archived && w.currency === code && w.excludeFromReports)
@@ -69,18 +81,44 @@ function isDuplicateError(err: unknown): boolean {
   return e.status === 409 || e.code === 'DUPLICATE';
 }
 
-export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Element {
+export function BudgetForm({
+  open,
+  onClose,
+  budget,
+  initialCategoryId,
+  initialAmount,
+}: BudgetFormProps): JSX.Element {
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const today = todayLocal();
 
   const isEdit = Boolean(budget);
+
+  const prefillCategoryId = useMemo(() => {
+    if (isEdit) return null;
+    const raw = initialCategoryId ?? searchParams.get('categoryId');
+    const trimmed = raw?.trim() ?? '';
+    return trimmed.length > 0 ? trimmed : null;
+  }, [isEdit, initialCategoryId, searchParams]);
+
+  const prefillAmount = useMemo(() => {
+    if (isEdit) return '';
+    if (initialAmount !== undefined && initialAmount !== null && String(initialAmount).trim() !== '') {
+      return String(initialAmount).trim();
+    }
+    const raw = searchParams.get('amount');
+    return raw ? raw.trim() : '';
+  }, [isEdit, initialAmount, searchParams]);
+
+  const hasPrefill = !isEdit && (prefillCategoryId !== null || prefillAmount !== '');
 
   const categoriesQuery = useCategories();
   const tagsQuery = useTags();
   const walletsQuery = useWalletDetails();
   const budgetsQuery = useBudgets();
+  const { starters, ready: startersReady } = useBudgetStarters();
 
   const createBudget = useCreateBudget();
   const updateBudget = useUpdateBudget();
@@ -121,14 +159,16 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
   const walletsGroupId = useId();
 
   const [targetKind, setTargetKind] = useState<'category' | 'tag'>('category');
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(() => prefillCategoryId);
   const [tagId, setTagId] = useState<string | null>(null);
   const [name, setName] = useState(() => budget?.name ?? '');
   const [nameDirty, setNameDirty] = useState(() => Boolean(budget));
   const [amountText, setAmountText] = useState(() => {
-    if (!budget) return '';
-    const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
-    return formatMinorInput(limitFor(budget, curPeriod), budget.currency);
+    if (budget) {
+      const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
+      return formatMinorInput(limitFor(budget, curPeriod), budget.currency);
+    }
+    return prefillAmount;
   });
   const [currency, setCurrency] = useState<CurrencyCode>(() => budget?.currency ?? 'VND');
   const [currencyTouched, setCurrencyTouched] = useState(() => Boolean(budget));
@@ -141,6 +181,13 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState('');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const [choseCustom, setChoseCustom] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [starterAmounts, setStarterAmounts] = useState<Record<string, string>>({});
+  const [pendingStarterId, setPendingStarterId] = useState<string | null>(null);
+  const [lastAttemptedName, setLastAttemptedName] = useState('');
+  const submittingRef = useRef(false);
 
   const resetMutationsRef = useRef(() => {
     createBudget.reset();
@@ -169,11 +216,11 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
         setConfirmDeleteOpen(false);
       } else {
         setTargetKind('category');
-        setCategoryId(null);
+        setCategoryId(prefillCategoryId);
         setTagId(null);
         setName('');
         setNameDirty(false);
-        setAmountText('');
+        setAmountText(prefillAmount);
         setCurrency(defaultCurrency);
         setCurrencyTouched(false);
         setExcludedWalletIds(defaultExcludedFor(activeWallets, defaultCurrency));
@@ -183,11 +230,17 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
         setFromDate(today);
         setToDate('');
         setConfirmDeleteOpen(false);
+        setChoseCustom(false);
+        setAdvancedOpen(false);
+        setStarterAmounts({});
+        setPendingStarterId(null);
+        setLastAttemptedName('');
       }
+      submittingRef.current = false;
       resetMutationsRef.current();
     }
     prevOpenRef.current = open;
-  }, [open, budget, today, defaultCurrency, activeWallets]);
+  }, [open, budget, today, defaultCurrency, activeWallets, prefillCategoryId, prefillAmount]);
 
   const effectiveCurrency: CurrencyCode = isEdit
     ? budget!.currency
@@ -228,6 +281,15 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
 
   const selectedTargetName =
     targetKind === 'category' ? selectedCategory?.name ?? '' : selectedTag?.name ?? '';
+
+  useEffect(() => {
+    if (!isEdit && !nameDirty && targetKind === 'category' && selectedCategory && name !== selectedCategory.name) {
+      setName(selectedCategory.name);
+    }
+  }, [isEdit, nameDirty, targetKind, selectedCategory, name]);
+
+  const showStarters =
+    !isEdit && !hasPrefill && !choseCustom && startersReady && starters.length > 0;
 
   const handleSelectCategory = (id: string) => {
     setCategoryId(id);
@@ -328,7 +390,7 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
               b.target.kind === 'tag' &&
               b.target.tagId === tagId)),
       );
-      const dupName = existing?.name || selectedTargetName || trimmedName;
+      const dupName = existing?.name || lastAttemptedName || selectedTargetName || trimmedName;
       return ownError(t('budgets.duplicateError', { name: dupName }));
     }
     return activeError;
@@ -340,6 +402,7 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
     targetKind,
     categoryId,
     tagId,
+    lastAttemptedName,
     selectedTargetName,
     trimmedName,
     t,
@@ -351,9 +414,54 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
     return limitFor(budget, curPeriod);
   }, [budget, today]);
 
+  const handleCreateSuccess = (created: BudgetDef) => {
+    submittingRef.current = false;
+    setPendingStarterId(null);
+    onClose();
+    navigate(`/budgets/${encodeURIComponent(created.id)}`, { replace: false });
+    showUndo({
+      message: t('budgets.createdToast', { name: created.name }),
+      actionLabel: t('common.close'),
+      onAction: () => {},
+    });
+  };
+
+  const handleStarterCreate = (starter: BudgetStarter) => {
+    if (submittingRef.current || createBudget.isPending) return;
+    const rawText = starterAmounts[starter.categoryId] ?? formatVndInput(starter.suggestedAmount);
+    const parsed = parseMoney(rawText, 'VND');
+    if (parsed === null) return;
+
+    const cat = categories.find((c) => c.id === starter.categoryId);
+    const starterName = cat?.name ?? starter.categoryId;
+
+    submittingRef.current = true;
+    setPendingStarterId(starter.categoryId);
+    setLastAttemptedName(starterName);
+
+    const input: CreateBudgetInput = {
+      name: starterName,
+      target: { kind: 'category', categoryId: starter.categoryId },
+      currency: 'VND',
+      amount: parsed,
+      periodKind: 'month',
+      monthStartDay: 1,
+      excludedWalletIds: defaultExcludedFor(activeWallets, 'VND'),
+      today,
+    };
+
+    createBudget.mutate(input, {
+      onSuccess: (res) => handleCreateSuccess(res.budget),
+      onError: () => {
+        submittingRef.current = false;
+        setPendingStarterId(null);
+      },
+    });
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || isPending || parsedAmount === null) return;
+    if (!canSubmit || isPending || submittingRef.current || parsedAmount === null) return;
 
     if (budget) {
       updateBudget.mutate(
@@ -388,9 +496,13 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
       today,
     };
 
+    submittingRef.current = true;
+    setLastAttemptedName(effectiveName);
+
     createBudget.mutate(input, {
-      onSuccess: (res) => {
-        navigate(`/budgets/${encodeURIComponent(res.budget.id)}`, { replace: true });
+      onSuccess: (res) => handleCreateSuccess(res.budget),
+      onError: () => {
+        submittingRef.current = false;
       },
     });
   };
@@ -425,6 +537,109 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
         onClose={onClose}
         title={isEdit ? t('budgets.edit') : t('budgets.add')}
       >
+        {showStarters ? (
+          <div className="fsl-budget-starters flex flex-col gap-4" data-testid="budget-starters">
+            <p className="m-0 text-sm font-semibold text-muted-foreground">
+              {t('budgets.starterHeading')}
+            </p>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {starters.map((starter, idx) => {
+                const cat = categories.find((c) => c.id === starter.categoryId);
+                const catName = cat?.name ?? starter.categoryId;
+                const catIcon = categoryIconName(cat?.icon, cat?.type ?? 'expense');
+                const rawText =
+                  starterAmounts[starter.categoryId] ?? formatVndInput(starter.suggestedAmount);
+                const trimmed = rawText.trim();
+                const parsed = trimmed !== '' ? parseMoney(trimmed, 'VND') : null;
+                const showRowError = trimmed !== '' && parsed === null;
+                const isRowPending =
+                  createBudget.isPending && pendingStarterId === starter.categoryId;
+
+                return (
+                  <div
+                    key={starter.categoryId}
+                    data-testid={`budget-starter-row-${starter.categoryId}`}
+                    className="p-3.5 flex flex-col gap-2.5"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="size-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                        <Icon name={catIcon} size={20} />
+                      </span>
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-sm font-semibold text-foreground truncate">
+                          {catName}
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {t('budgets.starterLastMonth', {
+                            amount: formatMoney(starter.lastMonthSpent, 'VND'),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1 min-w-0">
+                        <Input
+                          type="text"
+                          inputMode="text"
+                          autoComplete="off"
+                          aria-label={t('budgets.starterAmountAria', { name: catName })}
+                          data-testid={`budget-starter-amount-${starter.categoryId}`}
+                          className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums pr-8"
+                          value={rawText}
+                          disabled={createBudget.isPending}
+                          onChange={(e) =>
+                            setStarterAmounts((prev) => ({
+                              ...prev,
+                              [starter.categoryId]: e.target.value,
+                            }))
+                          }
+                        />
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground"
+                        >
+                          ₫
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant={idx === 0 ? 'primary' : 'secondary'}
+                        loading={isRowPending}
+                        disabled={createBudget.isPending || parsed === null}
+                        data-testid={`budget-starter-set-${starter.categoryId}`}
+                        aria-label={t('budgets.starterSetAria', { name: catName })}
+                        onClick={() => handleStarterCreate(starter)}
+                        className="shrink-0"
+                      >
+                        {t('budgets.starterSet')}
+                      </Button>
+                    </div>
+
+                    {showRowError && (
+                      <div role="alert" className="fsl-field-error text-sm text-danger">
+                        {t('expenseForm.amountInvalid')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {displayError && <InlineError error={displayError} />}
+
+            <Button
+              type="button"
+              variant="ghost"
+              block
+              disabled={createBudget.isPending}
+              data-testid="budget-starters-other"
+              onClick={() => setChoseCustom(true)}
+            >
+              {t('budgets.starterPickOther')}
+            </Button>
+          </div>
+        ) : (
         <form
           className="fsl-budget-form flex flex-col gap-4"
           data-testid="budget-form"
@@ -582,8 +797,22 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
             )}
           </div>
 
-          {/* Create-only: Currency (only when >1 currency exists across active wallets) */}
-          {showCurrencyPicker && (
+          {/* Create-only: "Thêm tuỳ chọn" collapsible toggle for period, currency, wallets, name */}
+          {!isEdit && (
+            <button
+              type="button"
+              data-testid="budget-form-more-options"
+              aria-expanded={advancedOpen}
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="flex items-center justify-between min-h-11 px-1 text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+            >
+              <span>{t('budgets.moreOptions')}</span>
+              <Icon name={advancedOpen ? 'chevronUp' : 'chevronDown'} size={18} />
+            </button>
+          )}
+
+          {/* Create-only: Currency (only when >1 currency exists across active wallets, inside "Thêm tuỳ chọn") */}
+          {showCurrencyPicker && advancedOpen && (
             <div className="fsl-field flex flex-col gap-1.5" data-testid="budget-form-currency">
               <Label className="text-sm font-semibold text-muted-foreground">
                 {t('budgets.formCurrency')}
@@ -624,7 +853,8 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
             </div>
           )}
 
-          {/* Wallets */}
+          {/* Wallets (always in edit mode; under "Thêm tuỳ chọn" in create mode) */}
+          {(isEdit || advancedOpen) && (
           <div className="fsl-field flex flex-col gap-1.5" data-testid="budget-form-wallets">
             <Label className="text-sm font-semibold text-muted-foreground">
               {t('budgets.formWallets')}
@@ -668,9 +898,10 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
               )}
             </div>
           </div>
+          )}
 
-          {/* Create-only: Period */}
-          {!isEdit && (
+          {/* Create-only: Period (under "Thêm tuỳ chọn") */}
+          {!isEdit && advancedOpen && (
             <div className="fsl-field flex flex-col gap-2" data-testid="budget-form-period">
               <Label className="text-sm font-semibold text-muted-foreground">
                 {t('budgets.formPeriod')}
@@ -776,8 +1007,8 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
             </div>
           )}
 
-          {/* Create-only: Name (defaults to target name) */}
-          {!isEdit && (
+          {/* Create-only: Name (defaults to target name; under "Thêm tuỳ chọn") */}
+          {!isEdit && advancedOpen && (
             <div className="fsl-field flex flex-col gap-1.5">
               <div className="flex items-center justify-between gap-2">
                 <Label
@@ -832,6 +1063,7 @@ export function BudgetForm({ open, onClose, budget }: BudgetFormProps): JSX.Elem
             </Button>
           )}
         </form>
+        )}
       </Sheet>
 
       {isEdit && (

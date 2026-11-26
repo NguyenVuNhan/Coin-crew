@@ -67,6 +67,8 @@ export function BudgetsScreen(): JSX.Element {
   const [endedOpen, setEndedOpen] = useState(false);
 
   const formOpen = searchParams.get('new') === '1';
+  const prefillCategoryId = searchParams.get('categoryId');
+  const prefillAmount = searchParams.get('amount');
   const handleOpenForm = (e: MouseEvent<HTMLElement>) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
@@ -75,6 +77,8 @@ export function BudgetsScreen(): JSX.Element {
   const handleCloseForm = () => {
     const next = new URLSearchParams(searchParams);
     next.delete('new');
+    next.delete('categoryId');
+    next.delete('amount');
     setSearchParams(next, { replace: true });
   };
 
@@ -202,7 +206,12 @@ export function BudgetsScreen(): JSX.Element {
           </>
         )}
       </div>
-      <BudgetForm open={formOpen} onClose={handleCloseForm} />
+      <BudgetForm
+        open={formOpen}
+        onClose={handleCloseForm}
+        initialCategoryId={prefillCategoryId}
+        initialAmount={prefillAmount}
+      />
     </Screen>
   );
 }
