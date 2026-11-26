@@ -27,7 +27,7 @@ describe('lot assets (unit === "")', () => {
     const parsed = parseQuantity('1', quantityInputDecimals(btcLot));
     expect(parsed).toBe(1);
     expect(parseQuantity('0,5', quantityInputDecimals(btcLot))).toBeNull();
-    expect(assetUnitText(btcLot)).toBe('0.0001');
+    expect(assetUnitText(btcLot)).toBe('0,0001');
     expect(assetQuantityLabel(parsed!, btcLot)).toBe('0,0001 BTC');
   });
 });

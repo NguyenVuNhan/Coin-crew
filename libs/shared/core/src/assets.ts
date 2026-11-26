@@ -78,7 +78,14 @@ export function assetUnitText(asset: { unit: string; decimals: number }): string
   if (asset.unit) return asset.unit;
   if (asset.decimals <= 0) return '1';
   const clamped = Math.min(asset.decimals, MAX_ASSET_DECIMALS);
-  return `0.${'0'.repeat(clamped - 1)}1`;
+  return `0,${'0'.repeat(clamped - 1)}1`;
+}
+
+export type AssetStepText = { kind: 'lot'; step: string } | { kind: 'word'; unit: string };
+
+export function assetStepText(asset: { unit: string; decimals: number }): AssetStepText {
+  if (asset.unit) return { kind: 'word', unit: asset.unit };
+  return { kind: 'lot', step: assetUnitText(asset) };
 }
 
 export function assetQuantityLabel(

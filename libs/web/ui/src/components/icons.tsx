@@ -2,8 +2,10 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   AlarmClock,
+  ArrowDownLeft,
   ArrowLeft,
   ArrowLeftRight,
+  ArrowUpRight,
   Baby,
   BadgePercent,
   Ban,
@@ -131,7 +133,7 @@ export type IconName =
   | 'utensils-crossed' | 'shopping-basket' | 'beer' | 'bike' | 'hotel' | 'square-parking' | 'car-taxi-front'
   | 'party-popper' | 'house' | 'tv' | 'sofa' | 'package' | 'paw-print' | 'key-round' | 'concierge-bell'
   | 'heart-handshake' | 'baby' | 'scale' | 'spray-can' | 'flame' | 'trash-2' | 'droplet'
-  | 'tag' | 'hand-coins' | 'handshake';
+  | 'tag' | 'hand-coins' | 'handshake' | 'arrow-down-left' | 'arrow-up-right';
 
 const SHAPES: Record<IconName, LucideIcon> = {
   home: House,
@@ -199,6 +201,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   'shopping-bag': ShoppingBag,
   'heart-pulse': HeartPulse,
   'trending-up': TrendingUp,
+  'arrow-down-left': ArrowDownLeft,
+  'arrow-up-right': ArrowUpRight,
   landmark: Landmark,
   'badge-percent': BadgePercent,
   'candlestick-chart': CandlestickChart,

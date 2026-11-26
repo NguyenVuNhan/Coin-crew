@@ -464,7 +464,7 @@ describe('M3: OVERSELL copy in InlineError and EntryPage', () => {
     const qtyInput = screen.getByTestId('entry-quantity');
     await user.type(qtyInput, '2');
     expect(screen.getByTestId('entry-quantity-error')).toHaveTextContent(
-      t('personalEntry.oversellError'),
+      t('personalEntry.oversellError', { qty: '1', unit: 'BTC' }),
     );
 
     await user.clear(qtyInput);

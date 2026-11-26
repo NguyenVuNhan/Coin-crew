@@ -50,6 +50,18 @@ function requireDecimals(v: unknown): number {
   return v;
 }
 
+function parseOptionalIcon(v: unknown): string | null {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== 'string') {
+    throw new ApiError('VALIDATION', 422, 'Invalid icon');
+  }
+  const trimmed = v.trim();
+  if (trimmed.length < 1 || trimmed.length > 40) {
+    throw new ApiError('VALIDATION', 422, 'Invalid icon');
+  }
+  return trimmed;
+}
+
 function toAssetView(
   row: {
     id: string;
@@ -57,6 +69,7 @@ function toAssetView(
     unit: string;
     groupName: string;
     decimals: number;
+    icon: string | null;
     hidden: number;
     sortOrder: number;
     entryCount: number | string;
@@ -69,6 +82,7 @@ function toAssetView(
     unit: row.unit,
     groupName: row.groupName,
     decimals: row.decimals,
+    icon: row.icon ?? null,
     hidden: Boolean(row.hidden),
     sortOrder: row.sortOrder,
     entryCount: Number(row.entryCount),
@@ -122,6 +136,7 @@ export function assetRoutes(): Hono<AppBindings> {
           unit: personalAssets.unit,
           groupName: personalAssets.groupName,
           decimals: personalAssets.decimals,
+          icon: personalAssets.icon,
           hidden: personalAssets.hidden,
           sortOrder: personalAssets.sortOrder,
         })
@@ -183,6 +198,7 @@ export function assetRoutes(): Hono<AppBindings> {
     const unit = trimmedString(body.unit, 20, 'Invalid unit', 0);
     const groupName = trimmedString(body.groupName, 30, 'Invalid groupName');
     const decimals = requireDecimals(body.decimals);
+    const icon = parseOptionalIcon(body.icon);
 
     const db = getDb(c.env);
     await assertUniqueAssetName(db, user.id, name);
@@ -194,6 +210,7 @@ export function assetRoutes(): Hono<AppBindings> {
         unit: personalAssets.unit,
         groupName: personalAssets.groupName,
         decimals: personalAssets.decimals,
+        icon: personalAssets.icon,
         hidden: personalAssets.hidden,
         sortOrder: personalAssets.sortOrder,
       })
@@ -254,6 +271,7 @@ export function assetRoutes(): Hono<AppBindings> {
           unit,
           groupName,
           decimals,
+          icon,
           hidden: 0,
           sortOrder,
           createdAt: now,
@@ -290,6 +308,7 @@ export function assetRoutes(): Hono<AppBindings> {
       unit,
       groupName,
       decimals,
+      icon,
       hidden: false,
       sortOrder,
       entryCount: 0,
@@ -316,6 +335,7 @@ export function assetRoutes(): Hono<AppBindings> {
         unit: personalAssets.unit,
         groupName: personalAssets.groupName,
         decimals: personalAssets.decimals,
+        icon: personalAssets.icon,
         hidden: personalAssets.hidden,
         sortOrder: personalAssets.sortOrder,
         entryCount: sql<number>`count(${personalTransactions.id})`,
@@ -362,6 +382,8 @@ export function assetRoutes(): Hono<AppBindings> {
       nextHidden = body.hidden;
     }
 
+    const nextIcon = body.icon !== undefined ? parseOptionalIcon(body.icon) : (existing.icon ?? null);
+
     const now = nowIso();
     try {
       await db
@@ -371,6 +393,7 @@ export function assetRoutes(): Hono<AppBindings> {
           unit: nextUnit,
           groupName: nextGroupName,
           decimals: nextDecimals,
+          icon: nextIcon,
           hidden: nextHidden ? 1 : 0,
           updatedAt: now,
         })
@@ -402,6 +425,7 @@ export function assetRoutes(): Hono<AppBindings> {
       unit: nextUnit,
       groupName: nextGroupName,
       decimals: nextDecimals,
+      icon: nextIcon,
       hidden: nextHidden,
       sortOrder: existing.sortOrder,
       entryCount,

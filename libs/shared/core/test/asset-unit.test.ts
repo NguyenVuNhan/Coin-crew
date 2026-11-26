@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetQuantityLabel, assetUnitText, parseAssetUnit } from '../src/assets';
+import { assetQuantityLabel, assetStepText, assetUnitText, parseAssetUnit } from '../src/assets';
 
 describe('parseAssetUnit', () => {
   it('parses power-of-ten steps into empty unit and decimals', () => {
@@ -11,7 +11,10 @@ describe('parseAssetUnit', () => {
 
   it('parses word units with 2 decimals', () => {
     expect(parseAssetUnit('chỉ')).toEqual({ unit: 'chỉ', decimals: 2 });
-    expect(parseAssetUnit('  cổ phiếu  ')).toEqual({ unit: 'cổ phiếu', decimals: 2 });
+    expect(parseAssetUnit('  cổ phiếu  ')).toEqual({
+      unit: 'cổ phiếu',
+      decimals: 2,
+    });
   });
 
   it('rejects non-power-of-ten numbers, over-precision, and empty input', () => {
@@ -37,9 +40,26 @@ describe('assetUnitText', () => {
       const text = assetUnitText(c);
       expect(parseAssetUnit(text)).toEqual(c);
     }
-    expect(assetUnitText({ unit: '', decimals: 4 })).toBe('0.0001');
+    expect(assetUnitText({ unit: '', decimals: 4 })).toBe('0,0001');
     expect(assetUnitText({ unit: '', decimals: 0 })).toBe('1');
     expect(assetUnitText({ unit: 'chỉ', decimals: 2 })).toBe('chỉ');
+  });
+});
+
+describe('assetStepText', () => {
+  it('returns lot step or word unit', () => {
+    expect(assetStepText({ unit: '', decimals: 4 })).toEqual({
+      kind: 'lot',
+      step: '0,0001',
+    });
+    expect(assetStepText({ unit: '', decimals: 0 })).toEqual({
+      kind: 'lot',
+      step: '1',
+    });
+    expect(assetStepText({ unit: 'chỉ', decimals: 2 })).toEqual({
+      kind: 'word',
+      unit: 'chỉ',
+    });
   });
 });
 

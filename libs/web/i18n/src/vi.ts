@@ -1458,7 +1458,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.pickAsset': 'Chọn tài sản', // REVIEW
   'personalEntry.quantity': 'Số lượng', // REVIEW
   'personalEntry.heldQuantity': 'Đang có: {qty} {unit}', // REVIEW
-  'personalEntry.oversellError': 'Vượt quá số đang có', // REVIEW
+  'personalEntry.oversellError': 'Chỉ còn {qty} {unit}', // REVIEW
   'personalEntry.savedBuy': 'Đã mua {qty} {asset}', // REVIEW
   'personalEntry.savedSell': 'Đã bán {qty} {asset}', // REVIEW
   'personalEntry.addAsset': 'Thêm tài sản', // REVIEW
@@ -1466,6 +1466,7 @@ export const vi: Record<MessageKey, string> = {
   'personalEntry.noAssets': 'Chưa có tài sản nào', // REVIEW
   'personalEntry.chooseAsset': 'Chọn tài sản', // REVIEW
   'personalEntry.enterQuantity': 'Nhập số lượng', // REVIEW
+  'personalEntry.fixQuantity': 'Sửa số lượng để lưu', // REVIEW
   'transactions.title': 'Giao dịch', // REVIEW
   'transactions.recentTitle': 'Giao dịch gần đây', // REVIEW
   'transactions.allLink': 'Tất cả', // REVIEW
@@ -1695,8 +1696,12 @@ export const vi: Record<MessageKey, string> = {
   'assets.decimalsDecrease': 'Giảm số chữ số thập phân', // REVIEW
   'assets.decimalsIncrease': 'Tăng số chữ số thập phân', // REVIEW
   'assets.decimalsLocked': 'Đã có giao dịch, không đổi được bước nhỏ nhất', // REVIEW
-  'assets.unitHelp': 'Số (vd 0.0001) là bước nhỏ nhất; chữ (vd chỉ) là tên đơn vị', // REVIEW
-  'assets.unitStepError': 'Nhập bước nhỏ nhất như 1, 0.1, 0.01…', // REVIEW
+  'assets.icon': 'Biểu tượng', // REVIEW
+  'assets.iconPick': 'Chọn biểu tượng', // REVIEW
+  'assets.iconLetters': 'Chữ cái', // REVIEW
+  'assets.iconSearch': 'Tìm biểu tượng', // REVIEW
+  'assets.unitHelp': 'Số (vd 0,0001) là bước lẻ nhỏ nhất; chữ (vd chỉ) là tên đơn vị, lẻ đến 2 số thập phân', // REVIEW
+  'assets.unitStepError': 'Nhập bước nhỏ nhất như 1, 0,1, 0,01…', // REVIEW
   'assets.unitRequired': 'Nhập đơn vị', // REVIEW
   'assets.duplicateName': 'Đã có tài sản tên này', // REVIEW
   'assets.save': 'Lưu', // REVIEW
@@ -1717,6 +1722,7 @@ export const vi: Record<MessageKey, string> = {
   'assets.editAria': 'Sửa {name}', // REVIEW
   'assets.hideAria': 'Ẩn {name}', // REVIEW
   'assets.showAria': 'Hiện {name}', // REVIEW
+  'assets.stepLot': 'lẻ đến {step}', // REVIEW
   'wallet.holdingAvgPrice': '~{price}/{unit}', // REVIEW
   'wallet.holdingsTotal': 'Tổng vốn · {count} tài sản', // REVIEW
   'wallet.holdingsTotalWithCash': 'Tổng · {count} tài sản + tiền mặt', // REVIEW

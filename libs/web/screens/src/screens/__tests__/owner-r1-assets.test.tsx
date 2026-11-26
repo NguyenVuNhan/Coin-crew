@@ -118,15 +118,21 @@ describe('owner review round 1: assets and holdings', () => {
     expect(screen.queryByTestId('asset-decimals-minus')).toBeNull();
     expect(screen.queryByTestId('asset-decimals-plus')).toBeNull();
 
-    fireEvent.change(screen.getByTestId('asset-name-input'), { target: { value: 'BTC' } });
+    fireEvent.change(screen.getByTestId('asset-name-input'), {
+      target: { value: 'BTC' },
+    });
     // Invalid step
-    fireEvent.change(screen.getByTestId('asset-unit-input'), { target: { value: '0.0005' } });
-    expect(screen.getByText('Nhập bước nhỏ nhất như 1, 0.1, 0.01…')).toBeTruthy();
+    fireEvent.change(screen.getByTestId('asset-unit-input'), {
+      target: { value: '0.0005' },
+    });
+    expect(screen.getByText('Nhập bước nhỏ nhất như 1, 0,1, 0,01…')).toBeTruthy();
     expect((screen.getByTestId('asset-save-btn') as HTMLButtonElement).disabled).toBe(true);
 
     // Valid number step
-    fireEvent.change(screen.getByTestId('asset-unit-input'), { target: { value: '0.0001' } });
-    expect(screen.queryByText('Nhập bước nhỏ nhất như 1, 0.1, 0.01…')).toBeNull();
+    fireEvent.change(screen.getByTestId('asset-unit-input'), {
+      target: { value: '0.0001' },
+    });
+    expect(screen.queryByText('Nhập bước nhỏ nhất như 1, 0,1, 0,01…')).toBeNull();
     fireEvent.click(screen.getByTestId('asset-save-btn'));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
@@ -218,38 +224,56 @@ describe('owner review round 1: assets and holdings', () => {
     expect(screen.getByText('Giá mỗi BTC')).toBeTruthy();
   });
 
-  it('AssetsScreen shows visible edit and hide/show icon buttons with accessible labels', async () => {
+  it('AssetsScreen opens edit on row tap and toggles hidden via Switch', async () => {
     mockApi({
       'GET /api/me': meOn,
       'GET /api/me/ledger': { ledger: null },
-      'GET /api/me/personal/assets': { assets: [btcAsset, { ...goldAsset, hidden: true }] },
-      'PATCH /api/me/personal/assets/a-btc': { asset: { ...btcAsset, hidden: true } },
+      'GET /api/me/personal/assets': {
+        assets: [btcAsset, { ...goldAsset, hidden: true }],
+      },
+      'PATCH /api/me/personal/assets/a-btc': {
+        asset: { ...btcAsset, hidden: true },
+      },
     });
 
     renderAt(<AssetsScreen />, { route: '/personal/assets' });
     act(() => setLang('vi'));
     await waitFor(() => expect(screen.getByTestId('asset-row-a-btc')).toBeTruthy());
 
-    const editBtn = screen.getByRole('button', { name: 'Sửa BTC' });
-    const hideBtn = screen.getByRole('button', { name: 'Ẩn BTC' });
+    const editBtn = screen.getByTestId('asset-edit-a-btc');
+    const hideSwitch = screen.getByRole('switch', { name: 'Ẩn BTC' });
     expect(editBtn.className).toContain('min-h-11');
-    expect(hideBtn.className).toContain('min-h-11');
+    expect(hideSwitch).toHaveAttribute('data-testid', 'asset-toggle-hidden-a-btc');
 
     fireEvent.click(editBtn);
     await waitFor(() => expect(screen.getByTestId('asset-form')).toBeTruthy());
-    expect((screen.getByTestId('asset-unit-input') as HTMLInputElement).value).toBe('0.0001');
+    expect((screen.getByTestId('asset-unit-input') as HTMLInputElement).value).toBe('0,0001');
   });
 
   it('WalletScreen shows holdings pie with average price for investment wallet and no pie for everyday wallet', async () => {
     const holdings: HoldingView[] = [
-      { walletId: 'w-inv', assetId: 'a-btc', quantity: 10000, cost: 5_208_333, costVnd: 130_000_000 },
-      { walletId: 'w-inv', assetId: 'a-gold', quantity: 250, cost: 0, costVnd: 0 },
+      {
+        walletId: 'w-inv',
+        assetId: 'a-btc',
+        quantity: 10000,
+        cost: 5_208_333,
+        costVnd: 130_000_000,
+      },
+      {
+        walletId: 'w-inv',
+        assetId: 'a-gold',
+        quantity: 250,
+        cost: 0,
+        costVnd: 0,
+      },
     ];
 
     mockApi({
       'GET /api/me': meOn,
       'GET /api/me/ledger': { ledger: null },
-      'GET /api/me/personal/wallets': { wallets: [investWallet, everydayWallet] },
+      'GET /api/me/personal/wallets': {
+        wallets: [investWallet, everydayWallet],
+      },
       'GET /api/me/personal/categories': { categories: [], recentIds: [] },
       'GET /api/me/personal/assets': { assets: [btcAsset, goldAsset] },
       'GET /api/me/personal/holdings': { holdings },

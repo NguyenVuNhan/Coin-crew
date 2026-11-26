@@ -890,6 +890,7 @@ export interface AssetView {
   unit: string;
   groupName: string;
   decimals: number;
+  icon?: string | null;
   hidden: boolean;
   sortOrder: number;
   entryCount: number;

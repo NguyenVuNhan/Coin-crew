@@ -17,6 +17,7 @@ import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
 import { ledgerDetailsPath } from '../lib/detailsNav';
 
+import { AssetIcon } from './AssetIcon';
 import { categoryIconName } from './categoryIcon';
 import { GroupTxRow } from './GroupTxRow';
 import { formatCompactRowDate, shouldShowWalletName } from './transactions/rowHelpers';
@@ -32,6 +33,7 @@ export interface TransactionRowProps {
   showDate?: boolean;
   showBeforeStartCue?: boolean;
   hideWalletName?: boolean;
+  titleMode?: 'category' | 'detail';
   onOpenEntry?: (entry: EntryView) => void;
   onOpenGroup?: (row: GroupRow) => void;
 }
@@ -48,6 +50,7 @@ export function TransactionRow({
   showDate = false,
   showBeforeStartCue = true,
   hideWalletName = false,
+  titleMode = 'category',
   onOpenEntry,
   onOpenGroup,
 }: TransactionRowProps): JSX.Element {
@@ -84,7 +87,9 @@ export function TransactionRow({
       showWallet ? walletName : '',
       beforeStart && showBeforeStartCue ? t('wallet.beforeStart') : '',
     ].filter(Boolean);
-    const title = t('transactions.withPeople', { names: row.people.join(', ') });
+    const title = t('transactions.withPeople', {
+      names: row.people.join(', '),
+    });
     const href = ledgerDetailsPath(row.tripId, 'expense', row.id);
     const amountText = `\u2212${formatMoney(Math.abs(row.share), row.currency)}`;
     const ariaLabel = [
@@ -146,14 +151,21 @@ export function TransactionRow({
     ? walletById.get(entry.counterpartWalletId)?.name ?? ''
     : '';
 
+  const trimmedNote = entry.note?.trim() ?? '';
+  const genericEntryLabel = isExpense ? t('personalEntry.expense') : t('personalEntry.income');
+  const isDetailStandard = titleMode === 'detail' && !isTransfer && !isTrade;
+  const noteUsedAsTitle = isDetailStandard && Boolean(trimmedNote);
+  const walletUsedAsTitle = isDetailStandard && !trimmedNote && Boolean(walletName);
+
   const title = isTransfer
     ? t('personalEntry.transfer')
     : isTrade
       ? isBuy
         ? t('transactions.buyAssetTitle', { asset: assetName })
         : t('transactions.sellAssetTitle', { asset: assetName })
-      : category?.name ??
-        (isExpense ? t('personalEntry.expense') : t('personalEntry.income'));
+      : isDetailStandard
+        ? trimmedNote || walletName || genericEntryLabel
+        : (category?.name ?? genericEntryLabel);
 
   const iconName: IconName = isTransfer
     ? 'swap'
@@ -170,8 +182,21 @@ export function TransactionRow({
       ? assetQuantityLabel(entry.quantity, asset)
       : '';
   const metaParts = isTrade
-    ? [datePart, qtyPart, showWallet ? walletName : '', entry.note ?? '', tagText, beforeStartPart].filter(Boolean)
-    : [datePart, entry.note ?? '', showWallet ? walletName : '', tagText, beforeStartPart].filter(Boolean);
+    ? [
+        datePart,
+        qtyPart,
+        showWallet ? walletName : '',
+        entry.note ?? '',
+        tagText,
+        beforeStartPart,
+      ].filter(Boolean)
+    : [
+        datePart,
+        noteUsedAsTitle ? '' : (entry.note ?? ''),
+        showWallet && !walletUsedAsTitle ? walletName : '',
+        tagText,
+        beforeStartPart,
+      ].filter(Boolean);
 
   const formattedAmount = formatMoney(Math.abs(entry.amount), entry.currency);
   const signedText = isTransfer
@@ -201,12 +226,27 @@ export function TransactionRow({
 
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className="size-10 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
-      >
-        <Icon name={iconName} size={18} />
-      </span>
+      {isTrade ? (
+        <span aria-hidden="true" className="relative size-10 shrink-0">
+          <AssetIcon
+            asset={asset ?? { id: entry.assetId ?? entry.id, name: assetName }}
+            size="md"
+          />
+          <span
+            data-testid={isBuy ? 'trade-direction-buy' : 'trade-direction-sell'}
+            className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-card ring-2 ring-card grid place-items-center text-foreground"
+          >
+            <Icon name={isBuy ? 'arrow-down-left' : 'arrow-up-right'} size={12} />
+          </span>
+        </span>
+      ) : (
+        <span
+          aria-hidden="true"
+          className="size-10 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+        >
+          <Icon name={iconName} size={18} />
+        </span>
+      )}
       <div className="min-w-0 flex-1 overflow-hidden flex flex-col gap-0.5">
         <span className="text-sm font-semibold text-foreground truncate">{title}</span>
         {metaParts.length > 0 && (

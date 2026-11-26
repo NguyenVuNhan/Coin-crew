@@ -58,7 +58,13 @@ const usdtWalletPos: WalletDetailView = {
 describe('Owner review fixes (PR #131)', () => {
   it('shows "~" average price, grey cash slice + cash row, and no start date on WalletScreen', async () => {
     const holdings: HoldingView[] = [
-      { walletId: 'w-usdt', assetId: 'a-btc', quantity: 1, cost: 100_000, costVnd: 25_000_000 },
+      {
+        walletId: 'w-usdt',
+        assetId: 'a-btc',
+        quantity: 1,
+        cost: 100_000,
+        costVnd: 25_000_000,
+      },
     ];
 
     mockApi({
@@ -181,9 +187,9 @@ describe('Owner review fixes (PR #131)', () => {
     await waitFor(() => expect(screen.getByTestId('entry-asset-row')).toBeInTheDocument());
 
     await user.click(screen.getByTestId('entry-asset-row'));
-    await user.click(await screen.findByText('BTC'));
+    await user.click(await screen.findByTestId('asset-option-a-btc'));
 
-    expect(screen.getByTestId('entry-quantity-unit')).toHaveTextContent('× 0.0001 BTC');
+    expect(screen.getByTestId('entry-quantity-unit')).toHaveTextContent('× 0,0001 BTC');
     expect(screen.getByTestId('entry-quantity')).toHaveAttribute('inputmode', 'numeric');
 
     await user.type(screen.getByTestId('entry-quantity'), '1');

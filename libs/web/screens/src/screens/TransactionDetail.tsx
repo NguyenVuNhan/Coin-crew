@@ -39,6 +39,7 @@ import { formatEntryDayLabel } from '../components/EntryDateRow';
 import { Screen } from '../components/Screen';
 import { TagInput } from '../components/TagInput';
 import { resolveCategoryIcon } from '../components/TransactionRow';
+import { formatFullCalendarDate } from '../components/transactions/rowHelpers';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
 
@@ -470,7 +471,9 @@ export function TransactionDetailContent({
           <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
             <span className="text-muted-foreground">{t('personalEntry.date')}</span>
             <span className="font-medium text-foreground tabular-nums">
-              {entry.time ? `${entry.date} · ${entry.time}` : entry.date}
+              {entry.time
+                ? `${formatFullCalendarDate(entry.date)} · ${entry.time}`
+                : formatFullCalendarDate(entry.date)}
             </span>
           </div>
 

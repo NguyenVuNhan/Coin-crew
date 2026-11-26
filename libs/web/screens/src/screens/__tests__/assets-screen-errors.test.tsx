@@ -113,7 +113,7 @@ describe('Personal settings: Assets error handling & move targets', () => {
     expect(screen.getByTestId('asset-move-list')).toBeInTheDocument();
   });
 
-  it('shows an error when the hide row action PATCH fails', async () => {
+  it('shows an error when the hide switch PATCH fails', async () => {
     const user = userEvent.setup();
     mockApp({
       'PATCH /api/me/personal/assets/a-eth': () =>
@@ -122,7 +122,7 @@ describe('Personal settings: Assets error handling & move targets', () => {
 
     renderAt(<App />, { route: '/personal/assets' });
     const ethRow = await screen.findByTestId('asset-row-a-eth');
-    await user.click(within(ethRow).getByRole('button', { name: 'Hide' }));
+    await user.click(within(ethRow).getByTestId('asset-toggle-hidden-a-eth'));
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
   });

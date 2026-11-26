@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "gold-bar",
+    "labelVi": "Vàng miếng",
+    "labelEn": "Gold Bar",
+    "keywords": ["vang mieng", "vang", "sjc", "luong", "cay", "gold", "bar", "bullion"]
+  },
+  {
+    "slug": "gold-bars",
+    "labelVi": "Vàng thỏi",
+    "labelEn": "Gold Bars",
+    "keywords": ["vang thoi", "vang mieng", "vang", "gold", "bars", "stack"]
+  },
+  {
+    "slug": "gold-ring",
+    "labelVi": "Nhẫn vàng trơn",
+    "labelEn": "Gold Ring",
+    "keywords": ["nhan tron", "nhan vang", "9999", "chi", "vang", "gold", "ring"]
+  },
+  {
+    "slug": "gold-jewelry",
+    "labelVi": "Trang sức vàng",
+    "labelEn": "Gold Jewelry",
+    "keywords": ["trang suc", "day chuyen", "lac tay", "vang", "gold", "jewelry", "necklace"]
+  },
+  {
+    "slug": "gold-coin",
+    "labelVi": "Tiền vàng",
+    "labelEn": "Gold Coin",
+    "keywords": ["tien vang", "xu vang", "vang", "gold", "coin"]
+  },
+  {
+    "slug": "gold-leaf",
+    "labelVi": "Vàng lá",
+    "labelEn": "Gold Leaf",
+    "keywords": ["vang la", "vang quy", "vang", "gold", "leaf", "sheet"]
+  },
+  {
+    "slug": "silver-bar",
+    "labelVi": "Bạc miếng",
+    "labelEn": "Silver Bar",
+    "keywords": ["bac mieng", "bac thoi", "bac", "silver", "bar"]
+  },
+  {
+    "slug": "platinum",
+    "labelVi": "Bạch kim",
+    "labelEn": "Platinum",
+    "keywords": ["bach kim", "kim loai quy", "platinum", "pt"]
+  },
+  {
+    "slug": "gemstone",
+    "labelVi": "Đá quý",
+    "labelEn": "Gemstone",
+    "keywords": ["da quy", "kim cuong", "gemstone", "gem", "diamond"]
+  },
+  {
+    "slug": "oil",
+    "labelVi": "Dầu thô",
+    "labelEn": "Crude Oil",
+    "keywords": ["dau tho", "dau mo", "hang hoa", "oil", "crude", "barrel"]
+  },
+  {
+    "slug": "coffee",
+    "labelVi": "Cà phê",
+    "labelEn": "Coffee",
+    "keywords": ["ca phe", "nong san", "hang hoa", "coffee", "bean"]
+  },
+  {
+    "slug": "rice",
+    "labelVi": "Gạo",
+    "labelEn": "Rice",
+    "keywords": ["gao", "lua gao", "nong san", "hang hoa", "rice", "grain"]
+  }
+]

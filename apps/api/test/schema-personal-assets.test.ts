@@ -24,6 +24,7 @@ describe('personal assets table (0028)', () => {
       'sort_order',
       'created_at',
       'updated_at',
+      'icon',
     ]);
   });
 

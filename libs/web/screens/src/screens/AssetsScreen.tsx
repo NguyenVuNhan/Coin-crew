@@ -1,5 +1,5 @@
 import { useMemo, useState, type JSX } from 'react';
-import { assetUnitText, type AssetView } from '@cc/core';
+import { assetStepText, assetUnitText, type AssetView } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { ApiClientError } from '@cc/web-data-access/client';
 import { useLedger } from '@cc/web-data-access/people';
@@ -18,8 +18,10 @@ import { Modal } from '@cc/web-ui/components/Modal';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { Switch } from '@cc/web-ui/components/ui/switch';
 import { cn } from '@cc/web-ui/lib/utils';
 import { AssetForm } from '../components/AssetForm';
+import { AssetIcon } from '../components/AssetIcon';
 import { Screen } from '../components/Screen';
 
 export function AssetsScreen(): JSX.Element {
@@ -29,7 +31,10 @@ export function AssetsScreen(): JSX.Element {
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
 
-  const [formState, setFormState] = useState<{ open: boolean; editing: AssetView | null }>({
+  const [formState, setFormState] = useState<{
+    open: boolean;
+    editing: AssetView | null;
+  }>({
     open: false,
     editing: null,
   });
@@ -37,7 +42,10 @@ export function AssetsScreen(): JSX.Element {
   const [showHidden, setShowHidden] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<AssetView | null>(null);
   const [confirmDeleteError, setConfirmDeleteError] = useState<unknown>(null);
-  const [inUseState, setInUseState] = useState<{ asset: AssetView; count: number } | null>(null);
+  const [inUseState, setInUseState] = useState<{
+    asset: AssetView;
+    count: number;
+  } | null>(null);
   const [inUseError, setInUseError] = useState<unknown>(null);
   const [showMovePicker, setShowMovePicker] = useState(false);
   const [actionError, setActionError] = useState<unknown>(null);
@@ -133,7 +141,10 @@ export function AssetsScreen(): JSX.Element {
     if (!inUseState) return;
     setInUseError(null);
     try {
-      await deleteAsset.mutateAsync({ id: inUseState.asset.id, moveTo: moveToId });
+      await deleteAsset.mutateAsync({
+        id: inUseState.asset.id,
+        moveTo: moveToId,
+      });
       setInUseState(null);
       setShowMovePicker(false);
     } catch (err) {
@@ -145,7 +156,10 @@ export function AssetsScreen(): JSX.Element {
     if (!inUseState) return;
     setInUseError(null);
     try {
-      await updateAsset.mutateAsync({ id: inUseState.asset.id, input: { hidden: true } });
+      await updateAsset.mutateAsync({
+        id: inUseState.asset.id,
+        input: { hidden: true },
+      });
       setInUseState(null);
       setShowMovePicker(false);
     } catch (err) {
@@ -156,7 +170,10 @@ export function AssetsScreen(): JSX.Element {
   const handleToggleHidden = async (asset: AssetView) => {
     setActionError(null);
     try {
-      await updateAsset.mutateAsync({ id: asset.id, input: { hidden: !asset.hidden } });
+      await updateAsset.mutateAsync({
+        id: asset.id,
+        input: { hidden: !asset.hidden },
+      });
     } catch (err) {
       setActionError(err);
     }
@@ -165,20 +182,6 @@ export function AssetsScreen(): JSX.Element {
   const renderRow = (asset: AssetView) => {
     const actions: RowAction[] = [
       {
-        id: 'edit',
-        label: t('assets.edit'),
-        icon: 'edit',
-        onSelect: () => openEdit(asset),
-      },
-      {
-        id: 'toggle-hidden',
-        label: asset.hidden ? t('assets.show') : t('assets.hide'),
-        icon: asset.hidden ? 'eye' : 'eye-off',
-        onSelect: () => {
-          void handleToggleHidden(asset);
-        },
-      },
-      {
         id: 'delete',
         label: t('assets.delete'),
         icon: 'trash',
@@ -186,6 +189,8 @@ export function AssetsScreen(): JSX.Element {
         onSelect: () => requestDelete(asset),
       },
     ];
+    const step = assetStepText(asset);
+    const subtitle = step.kind === 'lot' ? t('assets.stepLot', { step: step.step }) : step.unit;
 
     return (
       <div
@@ -197,46 +202,31 @@ export function AssetsScreen(): JSX.Element {
           label={asset.name}
           actions={actions}
           onOpen={() => openEdit(asset)}
-          leading={
-            <div className="size-9 rounded-lg bg-muted grid place-items-center shrink-0 text-foreground">
-              <Icon name="coins" size={18} />
-            </div>
-          }
+          openTestId={`asset-edit-${asset.id}`}
+          leading={<AssetIcon asset={asset} size="sm" />}
           trailing={
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 min-h-11">
               {asset.hidden && <Pill tone="neutral">{t('assets.hiddenBadge')}</Pill>}
-              <button
-                type="button"
-                aria-label={t('assets.editAria', { name: asset.name })}
-                data-testid={`asset-edit-${asset.id}`}
-                onClick={() => openEdit(asset)}
-                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Icon name="edit" size={18} />
-              </button>
-              <button
-                type="button"
-                aria-label={
-                  asset.hidden
-                    ? t('assets.showAria', { name: asset.name })
-                    : t('assets.hideAria', { name: asset.name })
-                }
-                data-testid={`asset-toggle-hidden-${asset.id}`}
-                onClick={() => {
-                  void handleToggleHidden(asset);
-                }}
-                className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Icon name={asset.hidden ? 'eye' : 'eye-off'} size={18} />
-              </button>
+              <span className="inline-flex min-h-11 items-center pl-1">
+                <Switch
+                  checked={!asset.hidden}
+                  aria-label={
+                    asset.hidden
+                      ? t('assets.showAria', { name: asset.name })
+                      : t('assets.hideAria', { name: asset.name })
+                  }
+                  data-testid={`asset-toggle-hidden-${asset.id}`}
+                  onCheckedChange={() => {
+                    void handleToggleHidden(asset);
+                  }}
+                />
+              </span>
             </div>
           }
         >
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-medium text-foreground truncate">{asset.name}</span>
-            <span className="text-xs text-muted-foreground truncate">
-              {assetUnitText(asset)}
-            </span>
+            <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
           </div>
         </ActionRow>
       </div>

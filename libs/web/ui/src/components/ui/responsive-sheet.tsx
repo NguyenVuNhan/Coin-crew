@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from "react"
+import type { JSX, ReactNode, RefObject } from "react"
 import { useRef, useSyncExternalStore } from "react"
 import { cn } from "../../lib/utils"
 import { Button } from "./button"
@@ -14,6 +14,8 @@ export interface ResponsiveSheetProps {
   dismissible?: boolean /* default true */
   className?: string
   children: ReactNode
+  /** Where focus goes when the sheet closes, when not back to the opener (e.g. the next field after a pick). */
+  finalFocusRef?: RefObject<HTMLElement | null>
 }
 
 const MEDIA_QUERY = "(min-width: 640px)"
@@ -51,6 +53,7 @@ export function ResponsiveSheet({
   dismissible = true,
   className,
   children,
+  finalFocusRef,
 }: ResponsiveSheetProps): JSX.Element {
   const isWide = useMinWidth640()
   const t = useT()
@@ -61,7 +64,8 @@ export function ResponsiveSheet({
   }
   const returnFocus = (e: Event) => {
     e.preventDefault()
-    openerRef.current?.focus()
+    const target = finalFocusRef?.current ?? openerRef.current
+    target?.focus()
     openerRef.current = null
   }
 
