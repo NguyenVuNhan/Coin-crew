@@ -8,6 +8,7 @@ import {
 import { useT } from '@cc/web-i18n';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
+import { showUndo } from '../UndoSnackbarHost';
 import { BudgetBar } from './BudgetBar';
 
 type TranslateFn = ReturnType<typeof useT>;
@@ -106,6 +107,60 @@ export function formatBudgetSavedMessage(
       })
     : formatMoney(Math.max(0, after.left), currency);
   return t('budgets.savedWithBudget', { name, state, detail });
+}
+
+/**
+ * Shows the post-save snackbar for an expense save (B14 / B21).
+ * New entries (when `undo` is provided) keep the Undo action and 5000 ms duration while
+ * surfacing the budget state in the message; edit/split paths show "Xem" to open the budget.
+ */
+export function showBudgetSaved({
+  impact,
+  currency,
+  fallbackMessage,
+  t,
+  navigate,
+  undo,
+}: {
+  impact: BudgetImpact | null;
+  currency: CurrencyCode;
+  fallbackMessage: string;
+  t: TranslateFn;
+  navigate: (to: string) => void;
+  undo?: () => void;
+}): void {
+  const message = impact
+    ? formatBudgetSavedMessage(impact, currency, t)
+    : fallbackMessage;
+
+  if (undo) {
+    showUndo(
+      {
+        message,
+        actionLabel: t('common.undo'),
+        onAction: undo,
+      },
+      5000,
+    );
+    return;
+  }
+
+  if (impact) {
+    showUndo({
+      message,
+      actionLabel: t('budgets.see'),
+      onAction: () => {
+        navigate(`/budgets/${encodeURIComponent(impact.budgetId)}`);
+      },
+    });
+    return;
+  }
+
+  showUndo({
+    message,
+    actionLabel: t('common.close'),
+    onAction: () => {},
+  });
 }
 
 /**

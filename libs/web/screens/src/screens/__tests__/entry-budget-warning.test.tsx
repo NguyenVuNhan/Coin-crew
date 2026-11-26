@@ -508,7 +508,7 @@ describe('EntryPage — live budget warning and post-save snackbar (Task 11)', (
     });
   });
 
-  it('after saving a fast-making expense, snackbar shows savedWithBudget and "Xem" navigates to /budgets/<id> without any confirm dialog', async () => {
+  it('after saving a new fast-making expense, snackbar shows savedWithBudget and keeps Hoàn tác without any confirm dialog', async () => {
     const user = userEvent.setup();
     setLocalCopy([
       makeSyncEntry({ id: 'se-coffee', categoryId: 'cat-coffee', amount: 160_000, date: '2026-11-24' }),
@@ -525,12 +525,9 @@ describe('EntryPage — live budget warning and post-save snackbar (Task 11)', (
     // No confirm dialog
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    // Snackbar shows savedWithBudget message and "Xem" action
-    const seeBtn = await screen.findByRole('button', { name: 'Xem' });
-    expect(screen.getByText(/Đã lưu\. Cà phê chi nhanh quá/)).toBeInTheDocument();
-
-    await user.click(seeBtn);
-    expect(await screen.findByTestId('budget-detail-route')).toHaveTextContent('Budget b-coffee');
+    // Snackbar shows savedWithBudget message and keeps Undo ("Hoàn tác") on new entries
+    expect(await screen.findByText(/Đã lưu\. Cà phê chi nhanh quá/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hoàn tác' })).toBeInTheDocument();
   });
 
   it('after saving a fine expense, the existing saved message is unchanged', async () => {

@@ -75,7 +75,7 @@ import { WalletIcon } from '../components/WalletIcon';
 import { showUndo } from '../components/UndoSnackbarHost';
 import {
   BudgetWarning,
-  formatBudgetSavedMessage,
+  showBudgetSaved,
 } from '../components/budgets/BudgetWarning';
 import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
 import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
@@ -965,6 +965,29 @@ export function EntryPage(): JSX.Element {
 
   const budgetImpacts = useBudgetImpacts(budgetDraft);
 
+  const multipliedBudgetDraft = useMemo<BudgetDraft | null>(() => {
+    if (!budgetDraft || smallAmountConfirm?.target !== 'primary') return null;
+    const multiplied = smallAmountConfirm.minor * 1000;
+    const amount =
+      canShareChi &&
+      quickSplit.chosen.size > 0 &&
+      ledger?.ownerPid &&
+      primaryMinor !== null &&
+      primaryMinor > 0
+        ? Math.round((budgetDraft.amount * multiplied) / primaryMinor)
+        : multiplied;
+    return { ...budgetDraft, amount };
+  }, [
+    budgetDraft,
+    smallAmountConfirm,
+    canShareChi,
+    quickSplit.chosen.size,
+    ledger?.ownerPid,
+    primaryMinor,
+  ]);
+
+  const multipliedBudgetImpacts = useBudgetImpacts(multipliedBudgetDraft);
+
   useEffect(() => {
     if (
       isMousePointer ||
@@ -1329,6 +1352,16 @@ export function EntryPage(): JSX.Element {
     let lastUsedWalletId: string | null;
     let savedMessage: string;
 
+    const isMultipliedPrimary =
+      confirmedOverride?.target === 'primary' &&
+      smallAmountConfirm?.target === 'primary' &&
+      confirmedOverride.minor === smallAmountConfirm.minor * 1000;
+    const savedBudgetImpact =
+      !isLoanDebt && !isTransferMode && !isTradeMode && entryType === 'expense' && !excludeFromReports
+        ? ((isMultipliedPrimary ? multipliedBudgetImpacts : budgetImpacts)[0] ?? null)
+        : null;
+    const savedBudgetCurrency = selectedWallet?.currency ?? 'VND';
+
     const effectivePrimaryMinor =
       confirmedOverride?.target === 'primary' ? confirmedOverride.minor : primaryMinor;
     const effectiveSecondaryMinor =
@@ -1647,22 +1680,13 @@ export function EntryPage(): JSX.Element {
             await deleteEntry.mutateAsync(id);
           }
           writeLastWallet(selectedWallet.id);
-          const topBudgetImpact = budgetImpacts[0];
-          if (topBudgetImpact) {
-            showUndo({
-              message: formatBudgetSavedMessage(topBudgetImpact, selectedWallet.currency, t),
-              actionLabel: t('budgets.see'),
-              onAction: () => {
-                navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
-              },
-            });
-          } else {
-            showUndo({
-              message: isEdit ? t('personalEntry.saved') : savedMessage,
-              actionLabel: t('common.close'),
-              onAction: () => {},
-            });
-          }
+          showBudgetSaved({
+            impact: savedBudgetImpact,
+            currency: selectedWallet.currency,
+            fallbackMessage: isEdit ? t('personalEntry.saved') : savedMessage,
+            t,
+            navigate,
+          });
           goBack();
         } catch (err) {
           setValidationError(err);
@@ -1693,12 +1717,6 @@ export function EntryPage(): JSX.Element {
       lastUsedWalletId = selectedWallet.id;
     }
 
-    const topBudgetImpact =
-      !isLoanDebt && !isTransferMode && !isTradeMode && entryType === 'expense'
-        ? (budgetImpacts[0] ?? null)
-        : null;
-    const savedBudgetCurrency = selectedWallet?.currency ?? 'VND';
-
     savingRef.current = true;
     try {
       if (isDirectEdit && ledger && directExpense) {
@@ -1708,65 +1726,39 @@ export function EntryPage(): JSX.Element {
           expenseId: directExpense.id,
         });
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
-        if (topBudgetImpact) {
-          showUndo({
-            message: formatBudgetSavedMessage(topBudgetImpact, savedBudgetCurrency, t),
-            actionLabel: t('budgets.see'),
-            onAction: () => {
-              navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
-            },
-          });
-        } else {
-          showUndo({
-            message: t('personalEntry.saved'),
-            actionLabel: t('common.close'),
-            onAction: () => {},
-          });
-        }
+        showBudgetSaved({
+          impact: savedBudgetImpact,
+          currency: savedBudgetCurrency,
+          fallbackMessage: t('personalEntry.saved'),
+          t,
+          navigate,
+        });
       } else if (isEdit && id) {
         await updateEntry.mutateAsync({ id, input });
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
-        if (topBudgetImpact) {
-          showUndo({
-            message: formatBudgetSavedMessage(topBudgetImpact, savedBudgetCurrency, t),
-            actionLabel: t('budgets.see'),
-            onAction: () => {
-              navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
-            },
-          });
-        } else {
-          showUndo({
-            message: t('personalEntry.saved'),
-            actionLabel: t('common.close'),
-            onAction: () => {},
-          });
-        }
+        showBudgetSaved({
+          impact: savedBudgetImpact,
+          currency: savedBudgetCurrency,
+          fallbackMessage: t('personalEntry.saved'),
+          t,
+          navigate,
+        });
       } else {
         const created = await createEntry.mutateAsync(input);
         const createdId = created?.entries?.[0]?.id;
         if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
-        if (topBudgetImpact) {
-          showUndo({
-            message: formatBudgetSavedMessage(topBudgetImpact, savedBudgetCurrency, t),
-            actionLabel: t('budgets.see'),
-            onAction: () => {
-              navigate(`/budgets/${encodeURIComponent(topBudgetImpact.budgetId)}`);
-            },
-          });
-        } else {
-          showUndo(
-            {
-              message: savedMessage,
-              actionLabel: t('common.undo'),
-              onAction: () => {
-                if (createdId) {
-                  deleteEntry.mutate(createdId);
-                }
-              },
-            },
-            5000,
-          );
-        }
+        showBudgetSaved({
+          impact: savedBudgetImpact,
+          currency: savedBudgetCurrency,
+          fallbackMessage: savedMessage,
+          t,
+          navigate,
+          undo: () => {
+            if (createdId) {
+              deleteEntry.mutate(createdId);
+            }
+          },
+        });
       }
       goBack();
     } catch (err) {
