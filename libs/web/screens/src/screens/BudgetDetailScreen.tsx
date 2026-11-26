@@ -1,22 +1,14 @@
 import { useMemo, useState, type JSX, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import {
   BUDGET_NEAR,
   budgetProgress,
-  compareBookRows,
   firstBudgetPeriod,
   formatMoney,
   limitFor,
-  type BookRow,
   type BudgetDef,
-  type BudgetPeriod,
   type BudgetProgress,
-  type CountedSpendRow,
-  type EntryView,
-  type GroupRow,
   type GroupSettingsView,
-  type SyncEntryRow,
-  type WalletDetailView,
 } from '@cc/core';
 import { getLang, useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
@@ -29,139 +21,31 @@ import {
   useAssets,
   useCategories,
   useGroupSettings,
-  usePersonalList,
   useTags,
   useWalletDetails,
 } from '@cc/web-data-access/personalMoney';
-import { useGroupCopy } from '@cc/web-data-access/txCopy/groupCopy';
-import { useTxCopy } from '@cc/web-data-access/txCopy/hooks';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon, type IconName } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
-import { Sheet } from '@cc/web-ui/components/Sheet';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { cn } from '@cc/web-ui/lib/utils';
-import { GroupRowSheet } from '../components/GroupRowSheet';
 import { Screen } from '../components/Screen';
-import { TransactionRow } from '../components/TransactionRow';
 import { BudgetArc } from '../components/budgets/BudgetArc';
+import { BudgetHistoryChart } from '../components/budgets/BudgetHistoryChart';
+import { BudgetTransactions } from '../components/budgets/BudgetTransactions';
+import { buildBudgetChartModel } from '../components/budgets/budgetChartModel';
 import {
-  BudgetHistoryChart,
-  type BudgetHistoryBar,
-} from '../components/budgets/BudgetHistoryChart';
-import { TransactionDetailContent } from './TransactionDetail';
+  formatBudgetPeriodLabel,
+  formatDayMonth,
+  formatTimeLeftShort,
+} from '../components/budgets/budgetLabels';
 
-const LONG_PERIOD_DAYS = 92;
 const PACE_TOKEN = '__BUDGET_PACE__';
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
   countLoans: false,
 };
-
-function parseYmd(ymd: string): [number, number, number] {
-  const [y, m, d] = ymd.split('-').map(Number);
-  return [y ?? 1970, m ?? 1, d ?? 1];
-}
-
-function diffDaysUtc(from: string, to: string): number {
-  const [y1, m1, d1] = parseYmd(from);
-  const [y2, m2, d2] = parseYmd(to);
-  return Math.round(
-    (Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000,
-  );
-}
-
-function formatDayMonth(ymd: string): string {
-  const [, m, d] = parseYmd(ymd);
-  return `${d}/${m}`;
-}
-
-function formatFullDate(ymd: string): string {
-  const [y, m, d] = parseYmd(ymd);
-  return `${d}/${m}/${y}`;
-}
-
-function formatPeriodLabel(
-  def: BudgetDef,
-  period: BudgetPeriod,
-  lang: 'vi' | 'en',
-): string {
-  const [fy, fm, fd] = parseYmd(period.from);
-  const [ty] = parseYmd(period.to);
-
-  if (def.periodKind === 'month' && fd === 1 && fy === ty) {
-    const monthPart =
-      lang === 'vi'
-        ? `Tháng ${fm}/${fy}`
-        : new Date(Date.UTC(fy, fm - 1, 1)).toLocaleDateString('en-US', {
-            month: 'short',
-            year: 'numeric',
-            timeZone: 'UTC',
-          });
-    return `${monthPart} · ${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}`;
-  }
-
-  if (def.periodKind === 'year') {
-    const yearPart = lang === 'vi' ? `Năm ${fy}` : `${fy}`;
-    return `${yearPart} · ${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}`;
-  }
-
-  if (fy === ty) {
-    return `${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}/${ty}`;
-  }
-  return `${formatFullDate(period.from)} – ${formatFullDate(period.to)}`;
-}
-
-function formatShortPeriodLabel(
-  def: BudgetDef,
-  period: BudgetPeriod,
-  lang: 'vi' | 'en',
-): string {
-  const [fy, fm, fd] = parseYmd(period.from);
-  if (def.periodKind === 'month' && fd === 1) {
-    return lang === 'vi' ? `T${fm}` : `M${fm}`;
-  }
-  if (def.periodKind === 'year') {
-    return String(fy);
-  }
-  return formatDayMonth(period.from);
-}
-
-function formatPastRowTitle(
-  def: BudgetDef,
-  period: BudgetPeriod,
-  lang: 'vi' | 'en',
-): string {
-  const [fy, fm, fd] = parseYmd(period.from);
-  if (def.periodKind === 'month' && fd === 1) {
-    return lang === 'vi'
-      ? `Tháng ${fm}`
-      : new Date(Date.UTC(fy, fm - 1, 1)).toLocaleDateString('en-US', {
-          month: 'short',
-          year: 'numeric',
-          timeZone: 'UTC',
-        });
-  }
-  if (def.periodKind === 'year') {
-    return lang === 'vi' ? `Năm ${fy}` : String(fy);
-  }
-  return `${formatDayMonth(period.from)} – ${formatDayMonth(period.to)}`;
-}
-
-function formatTimeLeftShort(
-  daysLeft: number,
-  t: ReturnType<typeof useT>,
-): string {
-  if (daysLeft <= 0) return t('budgets.periodEnded');
-  if (daysLeft >= 365) {
-    const totalMonths = Math.floor(daysLeft / 30);
-    const y = Math.floor(totalMonths / 12);
-    const m = totalMonths % 12;
-    return t('budgets.timeLeftMonthsShort', { y, m });
-  }
-  return t('budgets.timeLeftDaysShort', { n: daysLeft });
-}
 
 function Stat({
   label,
@@ -221,11 +105,24 @@ function buildStateNote(
   }
 
   const end = formatDayMonth(period.to);
-  const paceAmount = pace ? formatMoney(pace.amount, def.currency) : formatMoney(0, def.currency);
+  const paceAmount = pace
+    ? formatMoney(pace.amount, def.currency)
+    : formatMoney(0, def.currency);
   const paceUnitKey =
     pace?.unit === 'month' ? 'budgets.paceUnitMonth' : 'budgets.paceUnitDay';
   const paceStr = t(paceUnitKey, { amount: PACE_TOKEN });
-  const [paceBefore, paceAfter = ''] = paceStr.split(PACE_TOKEN);
+  const paceNode: ReactNode = paceStr.includes(PACE_TOKEN) ? (
+    <>
+      {paceStr.split(PACE_TOKEN)[0]}
+      <b className="font-semibold tabular-nums">{paceAmount}</b>
+      {paceStr.split(PACE_TOKEN)[1]}
+    </>
+  ) : (
+    <>
+      {paceStr}{' '}
+      <b className="font-semibold tabular-nums">{paceAmount}</b>
+    </>
+  );
 
   const noteKey =
     state === 'fast'
@@ -234,73 +131,23 @@ function buildStateNote(
         ? 'budgets.noteNear'
         : 'budgets.noteFine';
   const template = t(noteKey, { pace: PACE_TOKEN, end });
-  const [before, after = ''] = template.split(PACE_TOKEN);
 
+  if (!template.includes(PACE_TOKEN)) {
+    return (
+      <>
+        {template} {paceNode}
+      </>
+    );
+  }
+
+  const [before, after = ''] = template.split(PACE_TOKEN);
   return (
     <>
       {before}
-      {paceBefore}
-      <b className="font-semibold tabular-nums">{paceAmount}</b>
-      {paceAfter}
+      {paceNode}
       {after}
     </>
   );
-}
-
-function hydrateSyncEntry(
-  row: SyncEntryRow,
-  walletById: Map<string, WalletDetailView>,
-  tagNameById: Map<string, string>,
-): EntryView {
-  const wallet = walletById.get(row.walletId);
-  return {
-    id: row.id,
-    walletId: row.walletId,
-    type: row.type,
-    amount: row.amount,
-    currency: wallet?.currency ?? 'VND',
-    categoryId: row.categoryId,
-    assetId: row.assetId,
-    quantity: row.quantity,
-    transferId: row.transferId,
-    counterpartWalletId: row.counterpartWalletId,
-    date: row.date,
-    time: row.time,
-    note: row.note,
-    tags: row.tagIds
-      .map((tid) => tagNameById.get(tid))
-      .filter((name): name is string => Boolean(name)),
-    excludeFromReports: row.excludeFromReports,
-    source: 'manual',
-    beforeStart: wallet !== undefined && row.date < wallet.startDate,
-    createdAt: row.createdAt,
-  };
-}
-
-function synthesizeFallbackEntry(
-  row: CountedSpendRow,
-  tagNameById: Map<string, string>,
-): EntryView {
-  return {
-    id: row.id,
-    walletId: row.walletId ?? '',
-    type: 'expense',
-    amount: row.amount,
-    currency: row.currency,
-    categoryId: row.categoryId,
-    transferId: null,
-    counterpartWalletId: null,
-    date: row.date,
-    time: null,
-    note: null,
-    tags: row.tagIds
-      .map((tid) => tagNameById.get(tid))
-      .filter((name): name is string => Boolean(name)),
-    excludeFromReports: false,
-    source: 'manual',
-    beforeStart: false,
-    createdAt: row.date,
-  };
 }
 
 export function BudgetDetailScreen(): JSX.Element {
@@ -333,10 +180,6 @@ export function BudgetDetailScreen(): JSX.Element {
   );
 
   const [selectedPeriodFrom, setSelectedPeriodFrom] = useState<string | null>(
-    null,
-  );
-  const [selectedEntry, setSelectedEntry] = useState<EntryView | null>(null);
-  const [selectedGroupRow, setSelectedGroupRow] = useState<GroupRow | null>(
     null,
   );
 
@@ -372,195 +215,23 @@ export function BudgetDetailScreen(): JSX.Element {
     return rowsFor(def.id, shownItem.period);
   }, [def, shownItem, rowsFor]);
 
-  const txCopy = useTxCopy();
-  const groupCopy = useGroupCopy({ enabled: Boolean(def) });
-
-  const listEnabled =
-    Boolean(def && shownItem) &&
-    source === 'server' &&
-    countedRows.length > 0;
-  const listQuery = usePersonalList(
-    shownItem
-      ? { from: shownItem.period.from, to: shownItem.period.to, groups: 'show' }
-      : {},
-    { enabled: listEnabled, groups: true },
-  );
-
-  const bookRows = useMemo<BookRow[]>(() => {
-    if (countedRows.length === 0) return [];
-    const walletById = new Map(wallets.map((w) => [w.id, w]));
-    const tagNameById = new Map(tags.map((tg) => [tg.id, tg.name]));
-
-    const entryById = new Map<string, EntryView>();
-    const groupById = new Map<string, GroupRow>();
-
-    if (source === 'copy') {
-      if (txCopy.snapshot) {
-        for (const e of txCopy.snapshot.entries) {
-          entryById.set(e.id, hydrateSyncEntry(e, walletById, tagNameById));
-        }
-      }
-      if (groupCopy.snapshot) {
-        for (const g of groupCopy.snapshot.rows) {
-          groupById.set(g.id, g);
-        }
-      }
-    } else if (listQuery.data) {
-      for (const r of listQuery.data.rows) {
-        if (r.kind === 'entry') {
-          entryById.set(r.entry.id, r.entry);
-        }
-      }
-      for (const g of listQuery.data.groupRows ?? []) {
-        groupById.set(g.id, g);
-      }
-    }
-
-    const result: BookRow[] = [];
-    for (const row of countedRows) {
-      if (row.kind === 'group') {
-        const g = groupById.get(row.id);
-        if (g) {
-          result.push(g);
-        } else {
-          result.push({
-            kind: 'entry',
-            entry: synthesizeFallbackEntry(row, tagNameById),
-          });
-        }
-      } else {
-        const entry =
-          entryById.get(row.id) ?? synthesizeFallbackEntry(row, tagNameById);
-        result.push({ kind: 'entry', entry });
-      }
-    }
-    return result.sort(compareBookRows);
-  }, [
-    countedRows,
-    wallets,
-    tags,
-    source,
-    txCopy.snapshot,
-    groupCopy.snapshot,
-    listQuery.data,
-  ]);
-
-  const isLongPeriod = useMemo(() => {
-    if (!shownItem) return false;
-    return diffDaysUtc(shownItem.period.from, shownItem.period.to) + 1 > LONG_PERIOD_DAYS;
-  }, [shownItem]);
-
-  const chartModel = useMemo<{
-    heading: string;
-    ariaLabel: string;
-    bars: BudgetHistoryBar[];
-    showCaption: boolean;
-  } | null>(() => {
+  const chartModel = useMemo(() => {
     if (!def || !shownItem) return null;
-
-    if (isLongPeriod) {
-      if (def.periodKind === 'year') {
-        const recent = allPeriods.slice(0, 6).reverse();
-        const bars: BudgetHistoryBar[] = recent.map((item) => {
-          const yearLabel = item.period.from.slice(0, 4);
-          return {
-            key: item.period.from,
-            label: yearLabel,
-            spent: item.spent,
-            limit: item.limit,
-            isCurrent: item.period.from === shownItem.period.from,
-            ariaLabel: t('budgets.chartBarAria', {
-              label: yearLabel,
-              spent: formatMoney(item.spent, def.currency),
-              limit: formatMoney(item.limit, def.currency),
-            }),
-          };
-        });
-        return {
-          heading: t('budgets.byYear'),
-          ariaLabel: t('budgets.chartAriaByYear', { count: bars.length }),
-          bars,
-          showCaption: true,
-        };
-      }
-
-      // Multi-month / multi-year once-budget: aggregate counted rows per year
-      const startYear = Number(shownItem.period.from.slice(0, 4));
-      const endYear = Number(shownItem.period.to.slice(0, 4));
-      const spentByYear = new Map<number, number>();
-      for (const row of countedRows) {
-        const y = Number(row.date.slice(0, 4));
-        spentByYear.set(y, (spentByYear.get(y) ?? 0) + row.amount);
-      }
-      const currentYear = Number(today.slice(0, 4));
-      const years: number[] = [];
-      for (let y = startYear; y <= endYear; y++) {
-        years.push(y);
-      }
-      const visibleYears = years.slice(-6);
-      const bars: BudgetHistoryBar[] = visibleYears.map((y) => {
-        const spent = spentByYear.get(y) ?? 0;
-        const label = String(y);
-        return {
-          key: label,
-          label,
-          spent,
-          isCurrent: y === currentYear,
-          ariaLabel: t('budgets.chartBarYearAria', {
-            label,
-            spent: formatMoney(spent, def.currency),
-          }),
-        };
-      });
-      return {
-        heading: t('budgets.byYear'),
-        ariaLabel: t('budgets.chartAriaByYear', { count: bars.length }),
-        bars,
-        showCaption: false,
-      };
-    }
-
-    const recent = allPeriods.slice(0, 6).reverse();
-    const bars: BudgetHistoryBar[] = recent.map((item) => {
-      const label = formatShortPeriodLabel(def, item.period, lang);
-      return {
-        key: item.period.from,
-        label,
-        spent: item.spent,
-        limit: item.limit,
-        isCurrent: item.period.from === shownItem.period.from,
-        ariaLabel: t('budgets.chartBarAria', {
-          label,
-          spent: formatMoney(item.spent, def.currency),
-          limit: formatMoney(item.limit, def.currency),
-        }),
-      };
+    return buildBudgetChartModel({
+      def,
+      shownItem,
+      allPeriods,
+      countedRows,
+      today,
+      lang,
+      t,
     });
-    return {
-      heading: t('budgets.recentPeriods'),
-      ariaLabel: t('budgets.chartAria', { count: bars.length }),
-      bars,
-      showCaption: true,
-    };
-  }, [def, shownItem, isLongPeriod, allPeriods, countedRows, today, lang, t]);
+  }, [def, shownItem, allPeriods, countedRows, today, lang, t]);
 
   const pastPeriods = useMemo(() => {
     if (!def || def.periodKind === 'once') return [];
     return allPeriods.slice(1, 6);
   }, [def, allPeriods]);
-
-  const allTxHref = useMemo(() => {
-    if (!def || !shownItem) return '/transactions';
-    const params = new URLSearchParams();
-    params.set('from', shownItem.period.from);
-    params.set('to', shownItem.period.to);
-    if (def.target.kind === 'category') {
-      params.set('categoryId', def.target.categoryId);
-    } else {
-      params.set('tagId', def.target.tagId);
-    }
-    return `/transactions?${params.toString()}`;
-  }, [def, shownItem]);
 
   const canStepPrev = selectedIndex < allPeriods.length - 1;
   const canStepNext = selectedIndex > 0;
@@ -659,7 +330,7 @@ export function BudgetDetailScreen(): JSX.Element {
                   data-testid="budget-period-label"
                   className="text-sm font-medium text-muted-foreground text-center"
                 >
-                  {formatPeriodLabel(def, shownProgress.period, lang)}
+                  {formatBudgetPeriodLabel(def, shownProgress.period, lang, 'full')}
                 </span>
                 <button
                   type="button"
@@ -853,7 +524,12 @@ export function BudgetDetailScreen(): JSX.Element {
                         >
                           <div className="flex-1 min-w-0 flex flex-col">
                             <span className="text-sm font-semibold text-foreground">
-                              {formatPastRowTitle(def, entry.period, lang)}
+                              {formatBudgetPeriodLabel(
+                                def,
+                                entry.period,
+                                lang,
+                                'row',
+                              )}
                             </span>
                             <span
                               className={cn(
@@ -894,72 +570,20 @@ export function BudgetDetailScreen(): JSX.Element {
             )}
 
             {/* 4. Counted Transactions for Shown Period */}
-            <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-                  {t('budgets.periodTx', { count: countedRows.length })}
-                </h2>
-                <Link
-                  to={allTxHref}
-                  data-testid="budget-tx-see-all"
-                  className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 -my-2 -mr-2 no-underline"
-                >
-                  {t('budgets.seeAll')}
-                </Link>
-              </div>
-
-              {countedRows.length === 0 ? (
-                <p className="m-0 px-1 text-sm text-muted-foreground">
-                  {t('budgets.noTxInPeriod')}
-                </p>
-              ) : (
-                <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
-                  {bookRows.map((row) => (
-                    <TransactionRow
-                      key={
-                        row.kind === 'entry'
-                          ? `entry-${row.entry.id}`
-                          : row.kind === 'group'
-                            ? `group-${row.id}`
-                            : `person-${row.id}`
-                      }
-                      row={row}
-                      wallets={wallets}
-                      categories={categories}
-                      assets={assets}
-                      settings={groupSettings}
-                      showDate
-                      onOpenEntry={setSelectedEntry}
-                      onOpenGroup={setSelectedGroupRow}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+            <BudgetTransactions
+              def={def}
+              period={shownProgress.period}
+              source={source}
+              countedRows={countedRows}
+              wallets={wallets}
+              categories={categories}
+              tags={tags}
+              assets={assets}
+              groupSettings={groupSettings}
+            />
           </>
         )}
       </div>
-
-      <Sheet
-        open={Boolean(selectedEntry)}
-        onClose={() => setSelectedEntry(null)}
-        title={t('transactions.detailTitle')}
-      >
-        {selectedEntry && (
-          <TransactionDetailContent
-            entry={selectedEntry}
-            wallets={wallets}
-            categories={categories}
-            assets={assets}
-            onDone={() => setSelectedEntry(null)}
-          />
-        )}
-      </Sheet>
-      <GroupRowSheet
-        row={selectedGroupRow}
-        open={selectedGroupRow !== null}
-        onClose={() => setSelectedGroupRow(null)}
-      />
     </Screen>
   );
 }
