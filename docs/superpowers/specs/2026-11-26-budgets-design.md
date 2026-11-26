@@ -166,3 +166,17 @@ The builder measures and records the real numbers in the plan. When the local co
 - The English copy, and the Vietnamese copy beyond the lines quoted here (marked `// REVIEW`).
 - Removing a category, tag or wallet that a budget uses (§6).
 - `DESIGN.md`: record the budget states (B6) and the entry warning block as named uses of Turmeric and Lychee under The Money Means Something Rule.
+
+
+## Addendum, 2026-11-27: finding budgets and the first budget
+
+The owner tested the build: with no budgets, the Ngân sách card was hidden and the Budgets page could only be reached by URL, a dead end in the home-screen app. The flow was reshaped with `/impeccable shape` and confirmed by the owner ("Continue"). This overrules §4.4's "hides when the owner has no budgets" and §4.3's field layout.
+
+| # | Decision | Source |
+|---|---|---|
+| D1 | **The Ngân sách card is always on Sổ chi tiêu.** With no budgets it shows one line ("Đặt mức chi cho một danh mục để biết mỗi ngày còn chi được bao nhiêu") and a secondary "Đặt ngân sách" button; with budgets it is unchanged. | owner |
+| D2 | **Three doors, one flow:** the card; a "Ngân sách" row in the personal settings (gear) menu beside Ví, Danh mục, Thẻ, with a count when budgets exist, opening `/budgets`; and on a category's report page (`/reports/category/:id`) an action "Đặt ngân sách cho <name> · tháng trước <amount>" when that category has no budget, or "Xem ngân sách" when it has one. Categories only, not tags, for now. | owner (doors); my call (report wording, categories only) |
+| D3 | **The first budget is suggested from history.** The create sheet opens with up to **3** expense categories with the most spending in the last full calendar month, each with that month's spending rounded **up** to the next 100.000₫ (VND) as the amount. One tap on "Đặt" creates it (monthly from the 1st, all VND wallets except those excluded from reports); tapping the amount edits it first. Categories that already have a budget are left out. "Chọn danh mục khác" opens the short form. With no spending last month, or without the local copy, the suggestions are skipped and the short form opens. | owner (suggest from history); my call (3, round up, fallbacks) |
+| D4 | **Short form:** "what" (category or tag) and amount first; period with start day, wallets, and name sit under "Thêm tuỳ chọn" with the defaults above. Edit keeps its current fields. | owner |
+| D5 | **After creating**, go to the new budget's page with a snackbar "Đã đặt ngân sách <name>"; Back returns to where the flow started. | my call |
+| D6 | An end-to-end test starts from an account with **no budgets** and reaches budgets on screen from the card, the gear menu and a category report. | owner ("for new user who save this to an app") |
