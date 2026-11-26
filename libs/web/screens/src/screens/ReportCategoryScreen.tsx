@@ -4,6 +4,9 @@ import { Cell, Pie, PieChart } from 'recharts';
 import {
   compareBookRows,
   formatMoney,
+  SYNTHETIC_BORROW_CATEGORY_ID,
+  SYNTHETIC_GROUP_CATEGORY_ID,
+  SYNTHETIC_LEND_CATEGORY_ID,
   UNCATEGORIZED_CATEGORY_ID,
   type BookRow,
   type EntryView,
@@ -12,6 +15,7 @@ import {
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
+import { useBudgets, useLastMonthCategorySpent } from '@cc/web-data-access/budgets';
 import { useCategoryDrilldown } from '@cc/web-data-access/reports';
 import {
   useAssets,
@@ -19,6 +23,7 @@ import {
   useGroupSettings,
   useWalletDetails,
 } from '@cc/web-data-access/personalMoney';
+import { Button as AppButton } from '@cc/web-ui/components/Button';
 import { Button } from '@cc/web-ui/components/ui/button';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { ChartContainer } from '@cc/web-ui/components/ui/chart';
@@ -182,6 +187,57 @@ export function ReportCategoryScreen(): JSX.Element {
 
   const selectedSubName = selectedSub ? formatSubLabel(selectedSub) : '';
 
+  const isSyntheticCategory =
+    categoryId === UNCATEGORIZED_CATEGORY_ID ||
+    categoryId === SYNTHETIC_GROUP_CATEGORY_ID ||
+    categoryId === SYNTHETIC_LEND_CATEGORY_ID ||
+    categoryId === SYNTHETIC_BORROW_CATEGORY_ID;
+  const canShowBudgetAction = Boolean(
+    drilldown && drilldown.type === 'expense' && !isSyntheticCategory,
+  );
+  const budgetsQuery = useBudgets({ enabled: canShowBudgetAction });
+  const existingBudget = useMemo(
+    () =>
+      (budgetsQuery.data?.budgets ?? []).find(
+        (b) => b.target.kind === 'category' && b.target.categoryId === categoryId,
+      ) ?? null,
+    [budgetsQuery.data?.budgets, categoryId],
+  );
+  const lastMonthSpent = useLastMonthCategorySpent(
+    canShowBudgetAction && budgetsQuery.isSuccess && !existingBudget ? categoryId : null,
+  );
+  const budgetAction = useMemo(() => {
+    if (!canShowBudgetAction || !budgetsQuery.isSuccess) return null;
+    if (existingBudget) {
+      return {
+        href: `/budgets/${encodeURIComponent(existingBudget.id)}`,
+        label: t('budgets.viewBudget'),
+      };
+    }
+    if (lastMonthSpent !== null && lastMonthSpent > 0) {
+      const roundedAmount = Math.ceil(lastMonthSpent / 100_000) * 100_000;
+      return {
+        href: `/budgets?new=1&categoryId=${encodeURIComponent(categoryId)}&amount=${roundedAmount}`,
+        label: t('budgets.setForCategoryWithLastMonth', {
+          name: displayCategoryName,
+          amount: formatMoney(roundedAmount, 'VND'),
+        }),
+      };
+    }
+    return {
+      href: `/budgets?new=1&categoryId=${encodeURIComponent(categoryId)}`,
+      label: t('budgets.setForCategory', { name: displayCategoryName }),
+    };
+  }, [
+    canShowBudgetAction,
+    budgetsQuery.isSuccess,
+    existingBudget,
+    lastMonthSpent,
+    categoryId,
+    displayCategoryName,
+    t,
+  ]);
+
   return (
     <Screen title={displayCategoryName} back={backUrl} wide>
       {isPending && !drilldown ? (
@@ -251,6 +307,18 @@ export function ReportCategoryScreen(): JSX.Element {
               </div>
             </div>
           </Card>
+
+          {budgetAction && (
+            <AppButton
+              variant="secondary"
+              block
+              href={budgetAction.href}
+              data-testid="report-category-budget-action"
+            >
+              <Icon name="piggy-bank" size={16} />
+              <span>{budgetAction.label}</span>
+            </AppButton>
+          )}
 
           {/* 2. Sub-categories Breakdown Card */}
           {drilldown.subCategories.length > 0 && (

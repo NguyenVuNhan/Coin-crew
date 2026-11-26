@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import type { BudgetProgress, CurrencyCode } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { useBudgetsProgress } from '@cc/web-data-access/budgets';
+import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
 import { BudgetBar } from './BudgetBar';
@@ -45,9 +46,6 @@ export function BookBudgets({ show = true }: { show?: boolean }): JSX.Element | 
   }
 
   const top = [...groups.over, ...groups.fast, ...groups.onPace].slice(0, 2);
-  if (top.length === 0) {
-    return null;
-  }
 
   return (
     <section
@@ -68,7 +66,30 @@ export function BookBudgets({ show = true }: { show?: boolean }): JSX.Element | 
         </Link>
       </div>
       <div className="bg-card rounded-xl overflow-hidden divide-y divide-border">
-        {top.map((progress) => {
+        {top.length === 0 ? (
+          <div
+            data-testid="book-budgets-empty"
+            className="fsl-book__budgets-empty p-5 flex flex-col items-start gap-4 text-left w-full text-card-foreground"
+          >
+            <div className="flex items-center gap-3 w-full">
+              <span className="size-12 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                <Icon name="piggy-bank" size={24} />
+              </span>
+              <p className="m-0 text-sm text-muted-foreground min-w-0">
+                {t('budgets.bookEmptyLine')}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              block
+              href="/budgets?new=1"
+              data-testid="book-budgets-add"
+            >
+              {t('budgets.add')}
+            </Button>
+          </div>
+        ) : (
+          top.map((progress) => {
           const def = defById.get(progress.budgetId);
           if (!def) return null;
           const words = cardStateWords(progress, t, def.currency);
@@ -105,7 +126,8 @@ export function BookBudgets({ show = true }: { show?: boolean }): JSX.Element | 
               <BudgetBar state={progress.state} used={usedPct} today={todayPct} />
             </Link>
           );
-        })}
+          })
+        )}
       </div>
     </section>
   );

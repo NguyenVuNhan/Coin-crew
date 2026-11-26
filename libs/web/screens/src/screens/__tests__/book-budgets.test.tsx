@@ -233,14 +233,14 @@ describe('BookBudgets on Sổ chi tiêu', () => {
     ).toBeTruthy();
   });
 
-  it('is hidden when there are no budgets', async () => {
+  it('shows the empty state when there are no budgets', async () => {
     mockApp(meOn, []);
     renderAt(<App />, { route: '/trips' });
 
-    await screen.findByTestId('book-total');
-    await waitFor(() => {
-      expect(screen.queryByTestId('book-budgets')).not.toBeInTheDocument();
-    });
+    const card = await screen.findByTestId('book-budgets');
+    expect(within(card).getByTestId('book-budgets-empty')).toBeInTheDocument();
+    const addBtn = within(card).getByTestId('book-budgets-add');
+    expect(addBtn).toHaveAttribute('href', '/budgets?new=1');
   });
 
   it('is hidden and does not fetch budgets when the spending book switch is off', async () => {
