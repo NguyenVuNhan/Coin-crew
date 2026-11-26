@@ -86,7 +86,8 @@ const cashWallet: WalletDetailView = {
 
 const categories: CategoryView[] = [
   { id: 'cat-food', parentId: null, type: 'expense', name: 'Ăn uống', icon: 'utensils', hidden: false, sortOrder: 0 },
-  { id: 'cat-salary', parentId: null, type: 'income', name: 'Lương', icon: 'coins', hidden: false, sortOrder: 1 },
+  { id: 'cat-shop', parentId: null, type: 'expense', name: 'Mua sắm', icon: 'shopping-bag', hidden: false, sortOrder: 1 },
+  { id: 'cat-salary', parentId: null, type: 'income', name: 'Lương', icon: 'coins', hidden: false, sortOrder: 2 },
 ];
 
 function syncEntry(
@@ -125,6 +126,14 @@ const entries: SyncEntryRow[] = [
     date: '2026-10-12',
     note: 'Cơm trưa',
     categoryId: 'cat-food',
+  }),
+  syncEntry({
+    id: 'e-shop-nov',
+    type: 'expense',
+    amount: 350_000,
+    date: '2026-11-10',
+    note: 'Áo thun',
+    categoryId: 'cat-shop',
   }),
   syncEntry({
     id: 'e-inc',
@@ -188,6 +197,22 @@ describe('ReportCategoryScreen budget action', () => {
       'href',
       '/budgets?new=1&categoryId=cat-food&amount=1300000',
     );
+  });
+
+  it('shows plain Đặt ngân sách cho {name} and omits amount param when category has no last-month spend', async () => {
+    setupCopy();
+    mockCategoryReportApi([]);
+
+    renderAt(<ReportCategoryScreen />, {
+      route: '/reports/category/cat-shop',
+      path: '/reports/category/:categoryId',
+    });
+    setLang('vi', false);
+
+    const action = await screen.findByTestId('report-category-budget-action');
+    expect(action).toHaveTextContent('Đặt ngân sách cho Mua sắm');
+    expect(action).not.toHaveTextContent('tháng trước');
+    expect(action).toHaveAttribute('href', '/budgets?new=1&categoryId=cat-shop');
   });
 
   it('shows Xem ngân sách linking to /budgets/:id when the category already has a budget', async () => {

@@ -634,6 +634,9 @@ export function budgetStarters(
 
   const budgetedCategoryIds = new Set<string>();
   for (const def of defs) {
+    if (def.periodKind === 'once' && def.to !== null && def.to < today) {
+      continue;
+    }
     if (def.target.kind === 'category' && def.currency === currency) {
       budgetedCategoryIds.add(def.target.categoryId);
       const top = resolveTopLevelCategory(def.target.categoryId, categoriesById);

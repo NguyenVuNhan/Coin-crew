@@ -87,11 +87,8 @@ test('budgets discovery: empty card, starters, create, back to book, gear menu, 
     await assertNoHorizontalOverflow(page);
     await saveShot(page, testInfo, 'discovery-budget-detail', PHONE_VI);
 
-    // 4. Back to Sổ chi tiêu.
+    // 4. One Back from the new budget lands directly on Sổ chi tiêu (D5).
     await page.getByRole('link', { name: 'Quay lại' }).click();
-    if (/\/budgets$/.test(page.url())) {
-      await page.getByRole('link', { name: 'Quay lại' }).click();
-    }
     await expect(page).toHaveURL(/\/trips$/);
     await expect(page.getByTestId(`book-budget-row-${budget.id}`)).toBeVisible();
 

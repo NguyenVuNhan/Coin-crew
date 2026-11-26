@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type {
   BudgetDef,
@@ -16,7 +15,6 @@ import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView } from '../../test/fixtures';
 import { App } from '../../App';
-import { BudgetForm } from '../../components/budgets/BudgetForm';
 import { hideUndo } from '../../components/UndoSnackbarHost';
 import { NavHistoryProvider } from '../../lib/navHistory';
 
@@ -35,7 +33,7 @@ interface MockEntry {
 }
 
 const txCopyState: {
-  status: 'ready' | 'unavailable';
+  status: 'opening' | 'ready' | 'unavailable';
   snapshot: { entries: MockEntry[] } | null;
 } = {
   status: 'ready',
@@ -354,6 +352,35 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
     expect(api.calls.filter((c) => c.method === 'POST')).toHaveLength(1);
   });
 
+  it('shows skeleton instead of flashing the short form while budgets source is pending, then shows starters', async () => {
+    txCopyState.snapshot = { entries: lastMonthEntries };
+
+    let resolveBudgets!: (res: Response) => void;
+    const budgetsPromise = new Promise<Response>((resolve) => {
+      resolveBudgets = resolve;
+    });
+
+    stubApis({
+      budgets: [],
+      extraRoutes: {
+        'GET /api/me/personal/budgets': () => budgetsPromise,
+      },
+    });
+
+    renderVi('/budgets?new=1');
+
+    // While budgets source is pending, skeleton renders and short form does NOT flash
+    await screen.findByTestId('budget-starters-loading');
+    expect(screen.queryByTestId('budget-form')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-starters')).not.toBeInTheDocument();
+
+    resolveBudgets(Response.json({ budgets: [] }));
+
+    await screen.findByTestId('budget-starters');
+    expect(screen.queryByTestId('budget-starters-loading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-form')).not.toBeInTheDocument();
+  });
+
   it('opens short form directly when there are no starters or copy is not ready', async () => {
     txCopyState.snapshot = { entries: [] };
     stubApis({ budgets: [] });
@@ -361,6 +388,7 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
     renderVi('/budgets?new=1');
     await screen.findByTestId('budget-form');
     expect(screen.queryByTestId('budget-starters')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-starters-loading')).not.toBeInTheDocument();
   });
 
   it('"Chọn danh mục khác" switches from starters to the short form', async () => {
@@ -527,7 +555,7 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
     expect(screen.queryByTestId('budget-form')).not.toBeInTheDocument();
   });
 
-  it('after create from another origin screen, Back returns to that origin screen', async () => {
+  it('after create from another origin screen, one Back returns directly to that origin screen', async () => {
     const user = userEvent.setup();
     txCopyState.snapshot = { entries: lastMonthEntries };
 
@@ -559,18 +587,14 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
     });
 
     function OriginHarness() {
-      const [open, setOpen] = useState(false);
       return (
         <div>
-          <button type="button" data-testid="origin-open" onClick={() => setOpen(true)}>
-            Open
-          </button>
-          <BudgetForm
-            open={open}
-            onClose={() => setOpen(false)}
-            initialCategoryId="cat-shop"
-            initialAmount="1200000"
-          />
+          <Link
+            to="/budgets?new=1&categoryId=cat-shop&amount=1200000"
+            data-testid="origin-open"
+          >
+            Đặt ngân sách cho Mua sắm
+          </Link>
         </div>
       );
     }
@@ -598,8 +622,12 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
       setLang('vi', false);
     });
 
+    // Push /budgets?new=1&categoryId=cat-shop&amount=1200000 from the origin screen (as the app does)
     await user.click(screen.getByTestId('origin-open'));
     await screen.findByTestId('budget-form');
+    expect(screen.getByTestId('loc-full')).toHaveTextContent(
+      '/budgets?new=1&categoryId=cat-shop&amount=1200000',
+    );
     await user.click(screen.getByTestId('budget-form-submit'));
 
     await waitFor(() => {
@@ -607,7 +635,7 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
     });
     expect(screen.getByText('Đã đặt ngân sách Mua sắm')).toBeInTheDocument();
 
-    // Clicking Screen's Back arrow returns directly to /reports/category/cat-shop
+    // One Back returns directly to /reports/category/cat-shop (skipping /budgets)
     await user.click(await screen.findByRole('link', { name: 'Quay lại' }));
 
     await waitFor(() => {

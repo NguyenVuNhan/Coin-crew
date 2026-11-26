@@ -19,6 +19,7 @@ import { useLang, useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import {
   useBudgets,
+  useBudgetsProgress,
   useBudgetStarters,
   useCreateBudget,
   useDeleteBudget,
@@ -33,6 +34,7 @@ import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
 import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
@@ -288,6 +290,17 @@ export function BudgetForm({
     }
   }, [isEdit, nameDirty, targetKind, selectedCategory, name]);
 
+  const { source: budgetsSource, isPending: budgetsSourcePending } = useBudgetsProgress({
+    enabled: !isEdit && !hasPrefill && !choseCustom,
+  });
+
+  const showStartersLoading =
+    !isEdit &&
+    !hasPrefill &&
+    !choseCustom &&
+    !startersReady &&
+    (budgetsSource === 'pending' || (budgetsSource === 'copy' && budgetsSourcePending));
+
   const showStarters =
     !isEdit && !hasPrefill && !choseCustom && startersReady && starters.length > 0;
 
@@ -417,8 +430,7 @@ export function BudgetForm({
   const handleCreateSuccess = (created: BudgetDef) => {
     submittingRef.current = false;
     setPendingStarterId(null);
-    onClose();
-    navigate(`/budgets/${encodeURIComponent(created.id)}`, { replace: false });
+    navigate(`/budgets/${encodeURIComponent(created.id)}`, { replace: true });
     showUndo({
       message: t('budgets.createdToast', { name: created.name }),
       actionLabel: t('common.close'),
@@ -537,7 +549,33 @@ export function BudgetForm({
         onClose={onClose}
         title={isEdit ? t('budgets.edit') : t('budgets.add')}
       >
-        {showStarters ? (
+        {showStartersLoading ? (
+          <div
+            className="fsl-budget-starters flex flex-col gap-4"
+            data-testid="budget-starters-loading"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <Skeleton width="55%" height={16} radius="sm" />
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {[0, 1, 2].map((idx) => (
+                <div key={idx} className="p-3.5 flex flex-col gap-2.5">
+                  <div className="flex items-center gap-3">
+                    <Skeleton width={40} height={40} radius="pill" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <Skeleton width="45%" height={14} radius="sm" />
+                      <Skeleton width="35%" height={12} radius="sm" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton height={44} radius="xl" className="flex-1" />
+                    <Skeleton width={72} height={44} radius="xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : showStarters ? (
           <div className="fsl-budget-starters flex flex-col gap-4" data-testid="budget-starters">
             <p className="m-0 text-sm font-semibold text-muted-foreground">
               {t('budgets.starterHeading')}
