@@ -2054,4 +2054,9 @@ export const vi: Record<MessageKey, string> = {
   'travels.statePill.done': 'Đã xong', // REVIEW
   'travels.empty': 'Chưa có khoản chi nào cho chuyến này.', // REVIEW
   'travels.noLimit': 'Không đặt hạn mức', // REVIEW
+  'travels.notFound': 'Không tìm thấy chuyến đi', // REVIEW
+  'travels.notFoundBody': 'Chuyến đi này có thể đã bị xóa.', // REVIEW
+  'travels.edit': 'Sửa chuyến đi', // REVIEW
+  'travels.solo': 'một mình', // REVIEW
+  'travels.addExpense': 'Ghi khoản chi', // REVIEW
 };

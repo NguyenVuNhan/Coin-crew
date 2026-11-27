@@ -2053,6 +2053,11 @@ export const en = {
   'travels.statePill.done': 'Done',
   'travels.empty': 'No expenses for this trip yet.',
   'travels.noLimit': 'No limit set',
+  'travels.notFound': 'Trip not found',
+  'travels.notFoundBody': 'This trip may have been removed.',
+  'travels.edit': 'Edit trip',
+  'travels.solo': 'solo',
+  'travels.addExpense': 'Add expense',
 } as const;
 
 export type MessageKey = keyof typeof en;
