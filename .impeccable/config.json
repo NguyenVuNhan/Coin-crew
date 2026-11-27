@@ -53,6 +53,33 @@
         ],
         "createdAt": "2026-11-21T06:21:14.683Z",
         "reason": "Reference mockup, not shipped UI: the flagged text is white annotation over the dark scrim and wireframe chips; the real components follow DESIGN.md tokens (planner)"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/trip-mode/trip-overview.html"
+        ],
+        "createdAt": "2026-11-26T19:06:00.453Z",
+        "reason": "Claude: brainstorm wireframe kept as design reference, not shipped UI; real screens follow DESIGN.md"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/trip-mode/trip-overview.html"
+        ],
+        "createdAt": "2026-11-26T19:06:00.543Z",
+        "reason": "Claude: brainstorm wireframe kept as design reference, not shipped UI; real screens follow DESIGN.md"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/trip-mode/trip-flow.html"
+        ],
+        "createdAt": "2026-11-26T19:23:51.961Z",
+        "reason": "Claude: brainstorm wireframe kept as design reference, not shipped UI"
       }
     ]
   }
