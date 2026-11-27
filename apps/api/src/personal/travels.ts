@@ -50,7 +50,7 @@ const MARK_INSERT_CHUNK = 20;
 const MARK_UPDATE_CHUNK = 50;
 const TX_TAG_CHUNK = 30;
 const TX_UPDATE_CHUNK = 50;
-const TAG_SHARES_LIMIT = 200;
+const TAG_SHARES_LIMIT = 100;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -583,6 +583,7 @@ export function travelRoutes(): Hono<AppBindings> {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
+    // Validated for contract parity with budgets; reserved for future use.
     requireDate(body.today);
 
     const db = getDb(c.env);

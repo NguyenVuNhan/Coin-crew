@@ -392,6 +392,14 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     // ge-move keeps its tag
     expect(await getLinkTagIds(userId, 'ge-move')).toEqual([created.tagId]);
+
+    // Leftover mark for ge-gone is still present
+    const goneMark = await env.DB.prepare(
+      'SELECT travel_id, state FROM personal_travel_share_marks WHERE user_id = ? AND root_id = ?',
+    )
+      .bind(userId, 'ge-gone')
+      .first<{ travel_id: string; state: string }>();
+    expect(goneMark).toEqual({ travel_id: created.id, state: 'tagged' });
   });
 
   it("tie-break: share in two trips' ranges goes to the on trip", async () => {
@@ -484,5 +492,93 @@ describe('POST /me/personal/travels/tag-shares', () => {
     expect(res2.status).toBe(200);
     expect(await json<{ tagged: number }>(res2)).toEqual({ tagged: 0 });
     expect(queries2).toBeLessThanOrEqual(50);
+  });
+
+  it('caps work at 100 shares per call within 50 queries on a cold trip cache, then tags the remainder', async () => {
+    const userId = 'u-ts-cap';
+    const sid = await memberSid(userId, 'CapUser');
+    await switchOn(userId);
+
+    await ensureGroup('g-cap', userId);
+    await createTravel(sid, {
+      name: 'Big Trip',
+      start: '2026-12-10',
+      end: '2026-12-12',
+      countsFrom: '2026-12-01',
+      groupIds: ['g-cap'],
+      today: '2026-12-01',
+    });
+
+    const expenses = Array.from({ length: 105 }, (_, i) => ({
+      id: `ge-cap-${String(i).padStart(3, '0')}`,
+      description: `Item ${i}`,
+      amount: 100_000,
+      myShare: 50_000,
+      spentOn: '2026-12-11',
+    }));
+    await seedGroupExpenses('g-cap', userId, expenses);
+
+    // Force a cold trip cache
+    await env.DB.prepare('DELETE FROM personal_trip_cache WHERE user_id = ?').bind(userId).run();
+
+    const { result: res1, queries: q1 } = await countQueries(() =>
+      tagShares(sid, { today: '2026-12-11' }),
+    );
+    expect(res1.status).toBe(200);
+    expect(await json<{ tagged: number }>(res1)).toEqual({ tagged: 100 });
+    expect(q1).toBeLessThanOrEqual(50);
+
+    // Second call tags the remaining 5
+    const { result: res2, queries: q2 } = await countQueries(() =>
+      tagShares(sid, { today: '2026-12-11' }),
+    );
+    expect(res2.status).toBe(200);
+    expect(await json<{ tagged: number }>(res2)).toEqual({ tagged: 5 });
+    expect(q2).toBeLessThanOrEqual(50);
+  });
+
+  it('skips a share already manually tagged with another trip tag (one trip per share)', async () => {
+    const userId = 'u-ts-onetrip';
+    const sid = await memberSid(userId, 'OneTripUser');
+    await switchOn(userId);
+
+    await ensureGroup('g-one', userId);
+    const tripA = (
+      await json<TravelSavedResponse>(
+        await createTravel(sid, {
+          name: 'Trip A',
+          start: '2026-12-10',
+          end: '2026-12-12',
+          countsFrom: '2026-12-01',
+          groupIds: ['g-one'],
+          today: '2026-12-01',
+        }),
+      )
+    ).travel;
+
+    const tripB = (
+      await json<TravelSavedResponse>(
+        await createTravel(sid, {
+          name: 'Trip B',
+          start: '2026-12-20',
+          end: '2026-12-22',
+          countsFrom: '2026-12-15',
+          groupIds: [],
+          today: '2026-12-01',
+        }),
+      )
+    ).travel;
+
+    await seedGroupExpenses('g-one', userId, [
+      { id: 'ge-manual-b', description: 'Tagged B by hand', amount: 400_000, myShare: 200_000, spentOn: '2026-12-11' },
+    ]);
+
+    expect((await putGroupLink(sid, 'ge-manual-b', { tagIds: [tripB.tagId] })).status).toBe(200);
+
+    const res = await tagShares(sid, { today: '2026-12-11' });
+    expect(res.status).toBe(200);
+    expect(await json<{ tagged: number }>(res)).toEqual({ tagged: 0 });
+    expect(await getLinkTagIds(userId, 'ge-manual-b')).toEqual([tripB.tagId]);
+    expect(await getLinkTagIds(userId, 'ge-manual-b')).not.toContain(tripA.tagId);
   });
 });
