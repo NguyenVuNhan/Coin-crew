@@ -382,13 +382,13 @@ export function RecurringScreen(): JSX.Element {
                               {name}
                             </div>
                             {isPaused ? (
-                              <div className="text-xs text-warning-foreground leading-snug truncate">
+                              <div className="text-xs text-warning-foreground leading-snug line-clamp-2">
                                 {t('recurring.rulePausedMeta', {
                                   reason: pausedReasonLabel(rule.pausedReason, t),
                                 })}
                               </div>
                             ) : (
-                              <div className="text-xs text-muted-foreground leading-snug truncate">
+                              <div className="text-xs text-muted-foreground leading-snug line-clamp-2">
                                 {activeMeta}
                               </div>
                             )}

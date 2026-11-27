@@ -326,7 +326,7 @@ function BookRecurringRow({ wallets }: { wallets: WalletDetailView[] }): JSX.Ele
         <span className="text-sm font-semibold text-foreground leading-snug">
           {t('recurring.homeTitle')}
         </span>
-        <span className="text-xs text-muted-foreground leading-snug truncate tabular-nums">
+        <span className="text-xs text-muted-foreground leading-snug line-clamp-2 tabular-nums">
           {subLine}
         </span>
       </div>
