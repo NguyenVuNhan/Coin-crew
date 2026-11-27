@@ -147,7 +147,7 @@ export interface BudgetsProgress {
   rowsFor(id: string, period: BudgetPeriod): CountedSpendRow[];
 }
 
-function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean }) {
+export function useBudgetsSource(opts: { enabled: boolean; allowServerFallback: boolean }) {
   const { enabled, allowServerFallback } = opts;
   const today = todayLocal();
 

@@ -14,6 +14,7 @@ import {
   parseQuantity,
   quantityInputDecimals,
   quickExpenseDescription,
+  travelForDate,
   type AssetView,
   type BudgetDraft,
   type CurrencyCode,
@@ -31,6 +32,7 @@ import { useTripView } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import { useBudgetImpacts } from '@cc/web-data-access/budgets';
+import { useTravels } from '@cc/web-data-access/travels';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -77,6 +79,7 @@ import {
   BudgetWarning,
   showBudgetSaved,
 } from '../components/budgets/BudgetWarning';
+import { EntryTravelRow } from '../components/travels/EntryTravelRow';
 import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
 import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
 import { SplitFold } from '../components/quickShare/SplitFold';
@@ -896,16 +899,62 @@ export function EntryPage(): JSX.Element {
   const effectiveCategoryId = categoryId ?? guessedCategoryId;
   const activeGuessedId = !categoryPicked && !categoryId ? guessedCategoryId : null;
 
+  const isPlainExpense = !isLoanDebt && entryType === 'expense' && !isTransferMode && !isTradeMode;
+  const entryDate = dateTime.split('T')[0] || todayLocal();
+  const travelsQuery = useTravels({ enabled: isPlainExpense });
+  const travelMatch = useMemo(
+    () => (isPlainExpense ? travelForDate(travelsQuery.data?.travels ?? [], entryDate) : null),
+    [isPlainExpense, travelsQuery.data?.travels, entryDate],
+  );
+  const [travelOn, setTravelOn] = useState<boolean | null>(null);
+  const travelMatchId = travelMatch?.travel.id ?? null;
+  const prevTravelMatchIdRef = useRef<string | null>(travelMatchId);
+  useEffect(() => {
+    if (prevTravelMatchIdRef.current !== travelMatchId) {
+      prevTravelMatchIdRef.current = travelMatchId;
+      setTravelOn(null);
+    }
+  }, [travelMatchId]);
+
+  const tripTagName = useMemo(() => {
+    if (!travelMatch) return null;
+    const matchedTag = (tagsQuery.data?.tags ?? []).find(
+      (tg) => tg.id === travelMatch.travel.tagId,
+    );
+    return matchedTag?.name ?? travelMatch.travel.name;
+  }, [travelMatch, tagsQuery.data?.tags]);
+
+  const existingHasTravelTag = useMemo(() => {
+    if (!isEdit || !travelMatch) return false;
+    if (isDirectEdit) {
+      return tags.includes(travelMatch.travel.tagId);
+    }
+    const needle = (tripTagName ?? travelMatch.travel.name).trim().toLowerCase();
+    return tags.some((name) => name.trim().toLowerCase() === needle);
+  }, [isEdit, isDirectEdit, travelMatch, tags, tripTagName]);
+
+  const effectiveTravelOn = travelMatch
+    ? (travelOn ?? (isEdit ? existingHasTravelTag : travelMatch.mode === 'on'))
+    : false;
+
   const draftTagIds = useMemo(() => {
-    if (tags.length === 0) return [];
-    if (isDirectEdit) return tags;
-    const allTags = tagsQuery.data?.tags ?? [];
-    if (allTags.length === 0) return [];
-    const idByName = new Map(allTags.map((tg) => [tg.name.toLowerCase(), tg.id]));
-    return tags
-      .map((name) => idByName.get(name.trim().toLowerCase()))
-      .filter((tid): tid is string => Boolean(tid));
-  }, [tags, isDirectEdit, tagsQuery.data?.tags]);
+    const baseIds = (() => {
+      if (tags.length === 0) return [];
+      if (isDirectEdit) return tags;
+      const allTags = tagsQuery.data?.tags ?? [];
+      if (allTags.length === 0) return [];
+      const idByName = new Map(allTags.map((tg) => [tg.name.toLowerCase(), tg.id]));
+      return tags
+        .map((name) => idByName.get(name.trim().toLowerCase()))
+        .filter((tid): tid is string => Boolean(tid));
+    })();
+    if (!travelMatch) return baseIds;
+    const tripTagId = travelMatch.travel.tagId;
+    if (effectiveTravelOn) {
+      return baseIds.includes(tripTagId) ? baseIds : [...baseIds, tripTagId];
+    }
+    return baseIds.filter((tid) => tid !== tripTagId);
+  }, [tags, isDirectEdit, tagsQuery.data?.tags, travelMatch, effectiveTravelOn]);
 
   const budgetDraftAmount = useMemo(() => {
     if (primaryMinor === null || primaryMinor <= 0) return 0;
@@ -1648,6 +1697,14 @@ export function EntryPage(): JSX.Element {
           categoriesQuery.data?.categories.find((c) => c.id === effectiveCategoryId)?.systemKey ?? null;
         const shareCategoryKey =
           pickedSystemKey && isFixedExpenseKey(pickedSystemKey) ? pickedSystemKey : null;
+        const resolvedShareTagIds = (() => {
+          if (!isPlainExpense || !travelMatch) return tags;
+          const tripTagId = travelMatch.travel.tagId;
+          if (effectiveTravelOn) {
+            return tags.includes(tripTagId) ? tags : [...tags, tripTagId];
+          }
+          return tags.filter((tid) => tid !== tripTagId);
+        })();
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
         try {
@@ -1672,7 +1729,7 @@ export function EntryPage(): JSX.Element {
               intent: isDirectEdit ? (directGroupRow?.link?.intent ?? 'shared') : 'shared',
               categoryId: effectiveCategoryId,
               walletId: selectedWallet.id,
-              tagIds: tags,
+              tagIds: resolvedShareTagIds,
               excludeFromReports,
             },
           });
@@ -1697,11 +1754,31 @@ export function EntryPage(): JSX.Element {
       }
 
       const tagNameById = new Map((tagsQuery.data?.tags ?? []).map((tg) => [tg.id, tg.name]));
-      const resolvedEntryTags = isDirectEdit
+      const baseEntryTags = isDirectEdit
         ? tags.map((tid) => tagNameById.get(tid)).filter((n): n is string => Boolean(n))
         : isEdit
           ? tags
           : [];
+      const resolvedEntryTags = (() => {
+        if (!isPlainExpense || !travelMatch) return baseEntryTags;
+        const tagName = tripTagName ?? travelMatch.travel.name;
+        const needle = tagName.trim().toLowerCase();
+        const fallbackNeedle = travelMatch.travel.name.trim().toLowerCase();
+        if (effectiveTravelOn) {
+          const already = baseEntryTags.some((n) => {
+            const norm = n.trim().toLowerCase();
+            return norm === needle || norm === fallbackNeedle;
+          });
+          return already ? baseEntryTags : [...baseEntryTags, tagName];
+        }
+        if (isEdit) {
+          return baseEntryTags.filter((n) => {
+            const norm = n.trim().toLowerCase();
+            return norm !== needle && norm !== fallbackNeedle;
+          });
+        }
+        return baseEntryTags;
+      })();
 
       input = {
         type: entryType,
@@ -2524,6 +2601,14 @@ export function EntryPage(): JSX.Element {
                   names={quickSplitNames}
                 />
               </div>
+            )}
+
+            {isPlainExpense && (
+              <EntryTravelRow
+                match={travelMatch}
+                on={effectiveTravelOn}
+                onToggle={setTravelOn}
+              />
             )}
 
             {/* Compact rows and details fold */}

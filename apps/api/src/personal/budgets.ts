@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
-import { getDb } from '@cc/api-db/client';
+import { getDb, type Db } from '@cc/api-db/client';
 import {
   personalBudgetExcludedWallets,
   personalBudgetLimits,
@@ -26,6 +26,7 @@ import {
   type BudgetPeriodKind,
   type BudgetTarget,
   type BudgetView,
+  type CreateBudgetInput,
   type CurrencyCode,
 } from '@cc/core';
 import { loadReportInput } from './reports';
@@ -116,6 +117,99 @@ function toBudgetView(
     suggestionDismissedUntil: row.suggestionDismissedUntil ?? null,
     createdOn: row.createdOn,
   };
+}
+
+export function budgetCreateStatements(
+  db: Db,
+  userId: string,
+  input: CreateBudgetInput,
+  _v: SQL,
+  now: string,
+): { id: string; statements: BatchItem<'sqlite'>[] } {
+  const id = newId();
+  const targetId = input.target.kind === 'category' ? input.target.categoryId : input.target.tagId;
+  const name = (input.name ?? '').trim().slice(0, 40);
+  const monthStartDay = input.periodKind === 'month' ? (input.monthStartDay ?? 1) : null;
+  const fromDate = input.periodKind === 'once' ? (input.from ?? null) : null;
+  const toDate = input.periodKind === 'once' ? (input.to ?? null) : null;
+
+  const draftDef: BudgetDef = {
+    id,
+    name,
+    target: input.target,
+    currency: input.currency,
+    periodKind: input.periodKind,
+    monthStartDay,
+    from: fromDate,
+    to: toDate,
+    excludedWalletIds: input.excludedWalletIds,
+    limits: [],
+    suggestionDismissedUntil: null,
+    createdOn: input.today,
+  };
+  const effectiveFrom = firstBudgetPeriod(draftDef).from;
+
+  const statements: BatchItem<'sqlite'>[] = [
+    db.insert(personalBudgets).values({
+      id,
+      userId,
+      name,
+      targetKind: input.target.kind,
+      targetId,
+      currency: input.currency,
+      periodKind: input.periodKind,
+      monthStartDay,
+      fromDate,
+      toDate,
+      suggestionDismissedUntil: null,
+      createdOn: input.today,
+      createdAt: now,
+      updatedAt: now,
+    }),
+    db.insert(personalBudgetLimits).values({
+      budgetId: id,
+      effectiveFrom,
+      amount: input.amount,
+    }),
+  ];
+
+  if (input.excludedWalletIds.length > 0) {
+    statements.push(
+      db.insert(personalBudgetExcludedWallets).values(
+        input.excludedWalletIds.map((walletId) => ({
+          budgetId: id,
+          walletId,
+        })),
+      ),
+    );
+  }
+
+  return { id, statements };
+}
+
+export function budgetMoveOnceStatements(
+  db: Db,
+  budgetId: string,
+  from: string,
+  to: string,
+  now = nowIso(),
+): BatchItem<'sqlite'>[] {
+  return [
+    db
+      .update(personalBudgets)
+      .set({
+        fromDate: from,
+        toDate: to,
+        updatedAt: now,
+      })
+      .where(eq(personalBudgets.id, budgetId)),
+    db
+      .update(personalBudgetLimits)
+      .set({
+        effectiveFrom: from,
+      })
+      .where(eq(personalBudgetLimits.budgetId, budgetId)),
+  ];
 }
 
 export function budgetRoutes(): Hono<AppBindings> {
@@ -474,8 +568,26 @@ export function budgetRoutes(): Hono<AppBindings> {
     }
 
     const name = explicitName ?? targetRow.name.trim().slice(0, 40);
-    const id = newId();
     const now = nowIso();
+
+    const { id, statements } = budgetCreateStatements(
+      db,
+      user.id,
+      {
+        name,
+        target,
+        currency,
+        amount,
+        periodKind,
+        ...(monthStartDay !== null ? { monthStartDay } : {}),
+        ...(fromDate !== null ? { from: fromDate } : {}),
+        ...(toDate !== null ? { to: toDate } : {}),
+        excludedWalletIds,
+        today,
+      },
+      sql`0`,
+      now,
+    );
 
     const draftDef: BudgetDef = {
       id,
@@ -493,43 +605,8 @@ export function budgetRoutes(): Hono<AppBindings> {
     };
     const effectiveFrom = firstBudgetPeriod(draftDef).from;
 
-    const stmts: BatchItem<'sqlite'>[] = [
-      db.insert(personalBudgets).values({
-        id,
-        userId: user.id,
-        name,
-        targetKind: target.kind,
-        targetId,
-        currency,
-        periodKind,
-        monthStartDay,
-        fromDate,
-        toDate,
-        suggestionDismissedUntil: null,
-        createdOn: today,
-        createdAt: now,
-        updatedAt: now,
-      }),
-      db.insert(personalBudgetLimits).values({
-        budgetId: id,
-        effectiveFrom,
-        amount,
-      }),
-    ];
-
-    if (excludedWalletIds.length > 0) {
-      stmts.push(
-        db.insert(personalBudgetExcludedWallets).values(
-          excludedWalletIds.map((walletId) => ({
-            budgetId: id,
-            walletId,
-          })),
-        ),
-      );
-    }
-
     try {
-      await db.batch(stmts as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
+      await db.batch(statements as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
     } catch (err) {
       if (isDbError(err, 'UNIQUE constraint failed') || isDbError(err, 'UNIQUE')) {
         throw new ApiError('DUPLICATE', 409, 'A budget for this target and period already exists.');

@@ -234,7 +234,7 @@ function assertNoOversell(
   }
 }
 
-async function resolveTags(
+export async function resolveTags(
   db: Db,
   userId: string,
   names: string[],
@@ -242,39 +242,65 @@ async function resolveTags(
 ): Promise<{ id: string; name: string }[]> {
   if (names.length === 0) return [];
 
-  await db
-    .insert(personalTags)
-    .values(
-      names.map((name) => ({
-        id: newId(),
-        userId,
-        name,
-        createdAt: now,
-      })),
-    )
-    .onConflictDoNothing();
-
-  const lowerNames = names.map((n) => n.toLowerCase());
-  const rows = await db
+  // SQLite lower() is ASCII-only, so match existing tags case-insensitively in JS.
+  const existingRows = await db
     .select({
       id: personalTags.id,
       name: personalTags.name,
     })
     .from(personalTags)
-    .where(
-      and(
-        eq(personalTags.userId, userId),
-        inArray(sql`lower(${personalTags.name})`, lowerNames),
-      ),
-    )
+    .where(eq(personalTags.userId, userId))
     .all();
 
   const byLower = new Map<string, { id: string; name: string }>();
-  for (const r of rows) {
+  for (const r of existingRows) {
     byLower.set(r.name.toLowerCase(), r);
   }
 
-  return names.map((n) => byLower.get(n.toLowerCase())!);
+  const missing: string[] = [];
+  const seenMissing = new Set<string>();
+  for (const name of names) {
+    const key = name.toLowerCase();
+    if (!byLower.has(key) && !seenMissing.has(key)) {
+      seenMissing.add(key);
+      missing.push(name);
+    }
+  }
+
+  if (missing.length > 0) {
+    await db
+      .insert(personalTags)
+      .values(
+        missing.map((name) => ({
+          id: newId(),
+          userId,
+          name,
+          createdAt: now,
+        })),
+      )
+      .onConflictDoNothing();
+
+    const insertedRows = await db
+      .select({
+        id: personalTags.id,
+        name: personalTags.name,
+      })
+      .from(personalTags)
+      .where(and(eq(personalTags.userId, userId), inArray(personalTags.name, missing)))
+      .all();
+
+    for (const r of insertedRows) {
+      byLower.set(r.name.toLowerCase(), r);
+    }
+  }
+
+  return names.map((n) => {
+    const resolved = byLower.get(n.toLowerCase());
+    if (!resolved) {
+      throw new ApiError('INTERNAL', 500, `Failed to resolve tag "${n}"`);
+    }
+    return resolved;
+  });
 }
 
 function resolveTransferAmounts(

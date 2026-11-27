@@ -39,6 +39,8 @@ import { TransactionRow } from "../components/TransactionRow";
 import { WalletPie } from "../components/WalletPie";
 import { PersonalSettingsMenu } from "../components/PersonalSettingsMenu";
 import { BookBudgets } from "../components/budgets/BookBudgets";
+import { BookTravelRow } from "../components/travels/BookTravelRow";
+import { TravelShareSync } from "../components/travels/TravelShareSync";
 
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
@@ -252,27 +254,30 @@ function BookPeople({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element
         <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
       </Link>
       {hasWallet && (
-        <Link
-          to="/reports"
-          data-testid="book-reports-row"
-          className="fsl-book__reports flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
-        >
-          <span
-            aria-hidden="true"
-            className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+        <>
+          <Link
+            to="/reports"
+            data-testid="book-reports-row"
+            className="fsl-book__reports flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
           >
-            <Icon name="pie-chart" size={18} />
-          </span>
-          <div className="flex-1 flex flex-col min-w-0">
-            <span className="text-sm font-semibold text-foreground leading-snug">
-              {t('book.reportsTitle')}
+            <span
+              aria-hidden="true"
+              className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+            >
+              <Icon name="pie-chart" size={18} />
             </span>
-            <span className="text-xs text-muted-foreground leading-snug truncate">
-              {t('book.reportsDesc')}
-            </span>
-          </div>
-          <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
-        </Link>
+            <div className="flex-1 flex flex-col min-w-0">
+              <span className="text-sm font-semibold text-foreground leading-snug">
+                {t('book.reportsTitle')}
+              </span>
+              <span className="text-xs text-muted-foreground leading-snug truncate">
+                {t('book.reportsDesc')}
+              </span>
+            </div>
+            <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
+          </Link>
+          <BookTravelRow />
+        </>
       )}
     </div>
   );
@@ -413,21 +418,24 @@ export function MainScreen({ book }: { book: boolean }): JSX.Element {
   const wallets = useWalletDetails({ enabled: book });
   const hasWallet = (wallets.data?.wallets.length ?? 0) > 0;
   return (
-    <Home
-      book={book && hasWallet}
-      title={book ? t("book.title") : undefined}
-      summary={book ? wide ? <BookPeople hasWallet={hasWallet} /> : <BookSummary hasWallet={hasWallet} /> : undefined}
-      wideMain={
-        book && wide ? (
-          <>
-            <BookTotal />
-            <BookBudgets show={hasWallet} />
-            <BookRecent limit={8} />
-          </>
-        ) : undefined
-      }
-      rightExtra={book ? <PersonalSettingsMenu /> : undefined}
-    />
+    <>
+      {book && hasWallet && <TravelShareSync />}
+      <Home
+        book={book && hasWallet}
+        title={book ? t("book.title") : undefined}
+        summary={book ? wide ? <BookPeople hasWallet={hasWallet} /> : <BookSummary hasWallet={hasWallet} /> : undefined}
+        wideMain={
+          book && wide ? (
+            <>
+              <BookTotal />
+              <BookBudgets show={hasWallet} />
+              <BookRecent limit={8} />
+            </>
+          ) : undefined
+        }
+        rightExtra={book ? <PersonalSettingsMenu /> : undefined}
+      />
+    </>
   );
 }
 

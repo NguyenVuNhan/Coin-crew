@@ -432,6 +432,8 @@ export interface CountedSpendRow {
   currency: CurrencyCode;
   date: string;
   amount: number;
+  /** Always set by listCountedSpending (a number, or null for a foreign row with no rate). */
+  vnd?: number | null;
   categoryId: string;
   tagIds: string[];
 }
@@ -1370,6 +1372,7 @@ export function listCountedSpending(
       currency: tx.currency,
       date: tx.date,
       amount: tx.amount,
+      vnd: tx.vndAmount,
       categoryId: tx.categoryId,
       tagIds: tx.tagIds,
     });

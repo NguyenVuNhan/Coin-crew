@@ -17,6 +17,8 @@ import { ReportsScreen } from './screens/ReportsScreen';
 import { ReportCategoryScreen } from './screens/ReportCategoryScreen';
 import { BudgetsScreen } from './screens/BudgetsScreen';
 import { BudgetDetailScreen } from './screens/BudgetDetailScreen';
+import { TravelsScreen } from './screens/TravelsScreen';
+import { TravelDetailScreen } from './screens/TravelDetailScreen';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
 import { PersonScreen } from './screens/PersonScreen';
@@ -111,6 +113,8 @@ export function App() {
       <Route path="/reports/category/:categoryId" element={<PersonalRoute><ReportCategoryScreen /></PersonalRoute>} />
       <Route path="/budgets" element={<PersonalRoute><BudgetsScreen /></PersonalRoute>} />
       <Route path="/budgets/:id" element={<PersonalRoute><BudgetDetailScreen /></PersonalRoute>} />
+      <Route path="/travels" element={<PersonalRoute><TravelsScreen /></PersonalRoute>} />
+      <Route path="/travels/:id" element={<PersonalRoute><TravelDetailScreen /></PersonalRoute>} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />
