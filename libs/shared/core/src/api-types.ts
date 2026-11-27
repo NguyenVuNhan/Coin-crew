@@ -1009,6 +1009,10 @@ export interface TravelsResponse {
   travels: TravelView[];
 }
 
+export interface TravelRowsResponse {
+  rows: CountedSpendRow[];
+}
+
 export interface TravelLimitInput {
   amount: number;
   currency: CurrencyCode;

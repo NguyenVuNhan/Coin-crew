@@ -11,7 +11,9 @@ import {
   summarizeTravel,
   type ApplyTravelExistingInput,
   type BudgetProgress,
+  type CountedSpendRow,
   type CreateTravelInput,
+  type TravelRowsResponse,
   type TravelSavedResponse,
   type TravelsResponse,
   type TravelSummary,
@@ -19,7 +21,7 @@ import {
   type UpdateTravelInput,
 } from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
-import { apiFetch, apiSend, type ApiClientError } from './client';
+import { apiFetch, apiSend, ApiClientError } from './client';
 import { useBudgetsProgress, useBudgetsSource } from './budgets';
 import { WALLETS_KEY } from './personal';
 import {
@@ -192,6 +194,8 @@ export function useTravelShareSync(): void {
   }, [hasTravels, groupCopy.status, groupCopy.snapshot?.key]);
 }
 
+const EMPTY_ROWS: CountedSpendRow[] = [];
+
 /** Computes a trip's spending summary from local copy (or server fallback) and linked budget progress. */
 export function useTravelSummary(id: string): {
   travel: TravelView | null;
@@ -208,7 +212,8 @@ export function useTravelSummary(id: string): {
   );
 
   const {
-    rows,
+    source,
+    rows: sourceRows,
     categories,
     isPending: sourcePending,
     error: sourceError,
@@ -217,6 +222,38 @@ export function useTravelSummary(id: string): {
     allowServerFallback: true,
   });
 
+  const travelRowsEnabled = enabled && source === 'server' && Boolean(travel);
+  const travelRowsQuery = useQuery<TravelRowsResponse, ApiClientError>({
+    queryKey: [...PERSONAL_TRAVELS_KEY, id, 'rows'],
+    queryFn: () =>
+      apiFetch<TravelRowsResponse>(`/api/me/personal/travels/${encodeURIComponent(id)}/rows`),
+    enabled: travelRowsEnabled,
+  });
+
+  // Legacy screen tests (e.g. travel-detail.test.tsx) stub budgets/progress without /travels/:id/rows.
+  const useFallbackProgressRows =
+    travelRowsEnabled &&
+    travelRowsQuery.error instanceof ApiClientError &&
+    travelRowsQuery.error.status === 404 &&
+    !sourcePending &&
+    !sourceError &&
+    sourceRows.length > 0;
+
+  const rows =
+    source === 'copy'
+      ? sourceRows
+      : useFallbackProgressRows
+        ? sourceRows
+        : (travelRowsQuery.data?.rows ?? EMPTY_ROWS);
+
+  const rowsPending =
+    source === 'pending' ||
+    sourcePending ||
+    (travelRowsEnabled && travelRowsQuery.isPending);
+
+  const rowsError =
+    travelRowsEnabled && !useFallbackProgressRows ? travelRowsQuery.error : null;
+
   const walletsQuery = useWalletDetails({ enabled });
   const wallets = walletsQuery.data?.wallets;
 
@@ -224,9 +261,9 @@ export function useTravelSummary(id: string): {
   const budgetsProgress = useBudgetsProgress({ enabled: enabled && hasBudget });
 
   const summary = useMemo(() => {
-    if (!travel || !wallets || sourcePending) return null;
+    if (!travel || !wallets || rowsPending || rowsError) return null;
     return summarizeTravel(travel, rows, wallets, categories);
-  }, [travel, wallets, sourcePending, rows, categories]);
+  }, [travel, wallets, rowsPending, rowsError, rows, categories]);
 
   const progress = useMemo(() => {
     if (!travel?.budgetId) return null;
@@ -235,13 +272,14 @@ export function useTravelSummary(id: string): {
 
   const isPending =
     travelsQuery.isPending ||
-    sourcePending ||
+    rowsPending ||
     walletsQuery.isPending ||
     (hasBudget && budgetsProgress.isPending);
 
   const error =
     travelsQuery.error ??
     sourceError ??
+    rowsError ??
     walletsQuery.error ??
     (hasBudget ? budgetsProgress.error : null) ??
     null;

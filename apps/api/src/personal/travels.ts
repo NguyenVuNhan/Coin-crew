@@ -31,16 +31,19 @@ import {
   findTravelOverlap,
   groupRowEffect,
   isCurrencyCode,
+  listCountedSpending,
   travelForShare,
   type CurrencyCode,
   type TravelDef,
   type TravelExisting,
   type TravelLimitInput,
+  type TravelRowsResponse,
   type TravelView,
 } from '@cc/core';
 import { budgetCreateStatements, budgetMoveOnceStatements } from './budgets';
 import { resolveTags } from './entries';
 import { loadGroupSettings } from './groupShares';
+import { loadReportInput } from './reports';
 import { loadCachedGroupRows } from './tripCache';
 import { parseJson, requireDate } from './validate';
 
@@ -410,6 +413,34 @@ export function travelRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
     const travels = await loadUserTravels(db, user.id);
     return c.json({ travels }, 200);
+  });
+
+  app.get('/me/personal/travels/:id/rows', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const id = c.req.param('id');
+    const db = getDb(c.env);
+    const travel = await db
+      .select({
+        id: personalTravels.id,
+        tagId: personalTravels.tagId,
+        countsFrom: personalTravels.countsFrom,
+        endDate: personalTravels.endDate,
+      })
+      .from(personalTravels)
+      .where(and(eq(personalTravels.id, id), eq(personalTravels.userId, user.id)))
+      .get();
+    if (!travel) {
+      throw new ApiError('NOT_FOUND', 404, 'Trip not found');
+    }
+
+    const allRows = listCountedSpending(await loadReportInput(db, user.id));
+    const rows = allRows.filter(
+      (r) =>
+        r.tagIds.includes(travel.tagId) &&
+        r.date >= travel.countsFrom &&
+        r.date <= travel.endDate,
+    );
+    return c.json({ rows } satisfies TravelRowsResponse, 200);
   });
 
   app.post('/me/personal/travels', requirePersonal, async (c) => {
