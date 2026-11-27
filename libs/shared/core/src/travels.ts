@@ -1,3 +1,8 @@
+import type { CategoryView, WalletDetailView } from './api-types';
+import type { CurrencyCode } from './currency';
+import type { CountedSpendRow } from './reports';
+import { categoryRoot } from './visibility';
+
 export interface TravelDef {
   id: string;
   tagId: string;
@@ -111,4 +116,151 @@ export function travelDayIndex(t: TravelDef, today: string): { day: number; of: 
 /** Signed number of days from today until t.start. */
 export function daysUntil(t: TravelDef, today: string): number {
   return diffDaysUtc(today, t.start);
+}
+
+export interface TravelCurrencySummary {
+  currency: CurrencyCode;
+  total: number;
+  own: number;
+  group: number;
+  byCategory: { categoryId: string; amount: number }[];
+  byDay: { date: string | 'leadup'; amount: number }[];
+  count: number;
+}
+
+export interface TravelSummary {
+  currencies: TravelCurrencySummary[];
+  approxVnd: number | null;
+  rowIds: string[];
+}
+
+/**
+ * Filters counted spend rows to those belonging to `t`: tagged with `t.tagId`,
+ * within `t.countsFrom <= date <= t.end`, and on a non-null wallet not excluded from reports.
+ */
+export function travelRows(
+  t: TravelDef,
+  rows: CountedSpendRow[],
+  wallets: WalletDetailView[],
+): CountedSpendRow[] {
+  const includedWalletIds = new Set(
+    wallets.filter((w) => !w.excludeFromReports).map((w) => w.id),
+  );
+  return rows.filter(
+    (row) =>
+      row.tagIds.includes(t.tagId) &&
+      t.countsFrom <= row.date &&
+      row.date <= t.end &&
+      row.walletId !== null &&
+      includedWalletIds.has(row.walletId),
+  );
+}
+
+function summarizeCurrencyRows(
+  currency: CurrencyCode,
+  rows: CountedSpendRow[],
+  tripStart: string,
+  resolveTopCategoryId: (categoryId: string) => string,
+): TravelCurrencySummary {
+  let own = 0;
+  let group = 0;
+  const categoryTotals = new Map<string, number>();
+  const dayTotals = new Map<string | 'leadup', number>();
+
+  for (const row of rows) {
+    if (row.kind === 'entry') {
+      own += row.amount;
+    } else {
+      group += row.amount;
+    }
+
+    const topCatId = resolveTopCategoryId(row.categoryId);
+    categoryTotals.set(topCatId, (categoryTotals.get(topCatId) ?? 0) + row.amount);
+
+    const dayKey: string | 'leadup' = row.date < tripStart ? 'leadup' : row.date;
+    dayTotals.set(dayKey, (dayTotals.get(dayKey) ?? 0) + row.amount);
+  }
+
+  const byCategory = Array.from(categoryTotals.entries())
+    .map(([categoryId, amount]) => ({ categoryId, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const byDay = Array.from(dayTotals.entries())
+    .filter(([, amount]) => amount !== 0)
+    .map(([date, amount]) => ({ date, amount }))
+    .sort((a, b) => {
+      if (a.date === 'leadup') return -1;
+      if (b.date === 'leadup') return 1;
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    });
+
+  return {
+    currency,
+    total: own + group,
+    own,
+    group,
+    byCategory,
+    byDay,
+    count: rows.length,
+  };
+}
+
+/** Summarizes a trip's counted spend per currency, category root, day, and optional approx VND. */
+export function summarizeTravel(
+  t: TravelDef,
+  rows: CountedSpendRow[],
+  wallets: WalletDetailView[],
+  categories: CategoryView[],
+): TravelSummary {
+  const matched = travelRows(t, rows, wallets);
+  const categoriesById = new Map(categories.map((c) => [c.id, c]));
+  const topCategoryCache = new Map<string, string>();
+
+  const resolveTopCategoryId = (categoryId: string): string => {
+    const cached = topCategoryCache.get(categoryId);
+    if (cached !== undefined) return cached;
+    const cat = categoriesById.get(categoryId);
+    const rootId = cat ? categoryRoot(cat, categories).id : categoryId;
+    topCategoryCache.set(categoryId, rootId);
+    return rootId;
+  };
+
+  const byCurrency = new Map<CurrencyCode, CountedSpendRow[]>();
+  let hasForeign = false;
+  let hasUnrated = false;
+  let vndSum = 0;
+
+  for (const row of matched) {
+    const list = byCurrency.get(row.currency);
+    if (list) {
+      list.push(row);
+    } else {
+      byCurrency.set(row.currency, [row]);
+    }
+
+    if (row.currency !== 'VND') {
+      hasForeign = true;
+    }
+    if (row.vnd == null) {
+      hasUnrated = true;
+    } else {
+      vndSum += row.vnd;
+    }
+  }
+
+  const currencies = Array.from(byCurrency.entries())
+    .map(([currency, cRows]) =>
+      summarizeCurrencyRows(currency, cRows, t.start, resolveTopCategoryId),
+    )
+    .sort((a, b) => {
+      if (a.currency === 'VND' && b.currency !== 'VND') return -1;
+      if (b.currency === 'VND' && a.currency !== 'VND') return 1;
+      return b.total - a.total;
+    });
+
+  return {
+    currencies,
+    approxVnd: hasForeign && !hasUnrated ? vndSum : null,
+    rowIds: matched.map((r) => r.id),
+  };
 }
