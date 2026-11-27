@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
 import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
 import {
+  personalPlannedItems,
+  personalRecurringRules,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -21,6 +24,7 @@ import { nowIso } from '@cc/api-util/ids';
 import {
   isValidAmount,
   isValidQuantity,
+  vnDate,
   type CalcEntry,
   type CurrencyCode,
   type EntryView,
@@ -236,6 +240,8 @@ export function entryRoutes(): Hono<AppBindings> {
         categoryId: personalTransactions.categoryId,
         assetId: personalTransactions.assetId,
         transferId: personalTransactions.transferId,
+        source: personalTransactions.source,
+        externalRef: personalTransactions.externalRef,
         createdAt: personalTransactions.createdAt,
       })
       .from(personalTransactions)
@@ -245,6 +251,36 @@ export function entryRoutes(): Hono<AppBindings> {
     if (!target) {
       throw new ApiError('NOT_FOUND', 404, 'Transaction not found');
     }
+
+    // R14: editing a recurring transaction confirms its rule and resolves any open check-in
+    const recurringRuleId =
+      target.source === 'recurring' && target.externalRef && target.externalRef.includes(':')
+        ? target.externalRef.slice(0, target.externalRef.indexOf(':'))
+        : null;
+    const r14Stmts: BatchItem<'sqlite'>[] = recurringRuleId
+      ? [
+          db
+            .update(personalRecurringRules)
+            .set({ lastConfirmedOn: vnDate(new Date()), updatedAt: now })
+            .where(
+              and(
+                eq(personalRecurringRules.id, recurringRuleId),
+                eq(personalRecurringRules.userId, user.id),
+              ),
+            ) as unknown as BatchItem<'sqlite'>,
+          db
+            .update(personalPlannedItems)
+            .set({ status: 'confirmed', resolvedAt: now })
+            .where(
+              and(
+                eq(personalPlannedItems.userId, user.id),
+                eq(personalPlannedItems.ruleId, recurringRuleId),
+                eq(personalPlannedItems.kind, 'recurring_checkin'),
+                eq(personalPlannedItems.status, 'waiting'),
+              ),
+            ) as unknown as BatchItem<'sqlite'>,
+        ]
+      : [];
 
     const targetIsTransfer = target.type === 'transfer_out' || target.type === 'transfer_in';
     const inputIsTransfer = input.type === 'transfer';
@@ -353,6 +389,7 @@ export function entryRoutes(): Hono<AppBindings> {
           ...(target.assetId ? [{ assetId: target.assetId, delta: -1 }] : []),
           { assetId: input.assetId, delta: 1 },
         ]),
+        ...r14Stmts,
       ]);
 
       const entry = buildEntryView({
@@ -440,6 +477,7 @@ export function entryRoutes(): Hono<AppBindings> {
           ],
           now,
         ),
+        ...r14Stmts,
       ]);
 
       const entry = buildEntryView({
@@ -596,6 +634,7 @@ export function entryRoutes(): Hono<AppBindings> {
         now,
       ),
       ...(touchesNonVnd ? [markAllNonVndOrInvestmentReplayStmt(db, user.id, now)] : []),
+      ...r14Stmts,
     ]);
 
     const tagNames = resolvedTags.map((t) => t.name);

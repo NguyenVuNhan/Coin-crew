@@ -5,6 +5,7 @@ export type ApiErrorCode =
   | 'LINK_DEAD'
   | 'VALIDATION'
   | 'ALREADY_HANDLED'
+  | 'ALREADY_RESOLVED'
   | 'PERSON_PENDING'
   | 'PERSON_LEFT'
   | 'TRIP_ARCHIVED'
@@ -1047,5 +1048,13 @@ export interface RecurringRulesResponse {
 
 export interface RecurringRuleResponse {
   rule: RecurringRuleView;
+}
+
+export interface PlannedItemsResponse {
+  items: PlannedItemView[];
+}
+
+export interface ConfirmPlannedInput {
+  entry?: EntryInput;
 }
 

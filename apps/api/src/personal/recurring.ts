@@ -283,6 +283,57 @@ function extractDateFromRef(ref: string | null, ruleId: string): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : null;
 }
 
+export function resumeRuleStmts(
+  db: Db,
+  userId: string,
+  ruleId: string,
+  schedule: RecurringSchedule,
+  today: string,
+  now: string,
+): {
+  nextDueOn: string | null;
+  nextStatus: RecurringRuleView['status'];
+  stmts: BatchItem<'sqlite'>[];
+} {
+  const nextDueOn = nextOccurrenceAfter(schedule, today);
+  const nextStatus: RecurringRuleView['status'] = nextDueOn === null ? 'ended' : 'active';
+  const stmts: BatchItem<'sqlite'>[] = [
+    db
+      .update(personalRecurringRules)
+      .set({
+        status: nextStatus,
+        pausedReason: null,
+        nextDueOn,
+        lastConfirmedOn: today,
+        updatedAt: now,
+      })
+      .where(and(eq(personalRecurringRules.id, ruleId), eq(personalRecurringRules.userId, userId))),
+    db
+      .update(personalPlannedItems)
+      .set({ status: 'dismissed', resolvedAt: now })
+      .where(
+        and(
+          eq(personalPlannedItems.userId, userId),
+          eq(personalPlannedItems.ruleId, ruleId),
+          eq(personalPlannedItems.kind, 'recurring_paused'),
+          eq(personalPlannedItems.status, 'waiting'),
+        ),
+      ),
+    db
+      .update(personalPlannedItems)
+      .set({ status: 'confirmed', resolvedAt: now })
+      .where(
+        and(
+          eq(personalPlannedItems.userId, userId),
+          eq(personalPlannedItems.ruleId, ruleId),
+          eq(personalPlannedItems.kind, 'recurring_checkin'),
+          eq(personalPlannedItems.status, 'waiting'),
+        ),
+      ),
+  ];
+  return { nextDueOn, nextStatus, stmts };
+}
+
 export function recurringRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -819,45 +870,16 @@ export function recurringRoutes(): Hono<AppBindings> {
     const nowDate = new Date();
     const today = vnDate(nowDate);
     const now = nowDate.toISOString();
-    const nextDueOn = nextOccurrenceAfter(schedule, today);
-    const nextStatus: RecurringRuleView['status'] = nextDueOn === null ? 'ended' : 'active';
+    const { nextDueOn, nextStatus, stmts } = resumeRuleStmts(
+      db,
+      user.id,
+      id,
+      schedule,
+      today,
+      now,
+    );
 
-    await db.batch([
-      db
-        .update(personalRecurringRules)
-        .set({
-          status: nextStatus,
-          pausedReason: null,
-          nextDueOn,
-          lastConfirmedOn: today,
-          updatedAt: now,
-        })
-        .where(
-          and(eq(personalRecurringRules.id, id), eq(personalRecurringRules.userId, user.id)),
-        ),
-      db
-        .update(personalPlannedItems)
-        .set({ status: 'dismissed', resolvedAt: now })
-        .where(
-          and(
-            eq(personalPlannedItems.userId, user.id),
-            eq(personalPlannedItems.ruleId, id),
-            eq(personalPlannedItems.kind, 'recurring_paused'),
-            eq(personalPlannedItems.status, 'waiting'),
-          ),
-        ),
-      db
-        .update(personalPlannedItems)
-        .set({ status: 'confirmed', resolvedAt: now })
-        .where(
-          and(
-            eq(personalPlannedItems.userId, user.id),
-            eq(personalPlannedItems.ruleId, id),
-            eq(personalPlannedItems.kind, 'recurring_checkin'),
-            eq(personalPlannedItems.status, 'waiting'),
-          ),
-        ),
-    ]);
+    await db.batch(stmts as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
 
     const rule = toRuleView(
       {

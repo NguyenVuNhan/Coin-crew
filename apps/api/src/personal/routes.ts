@@ -21,6 +21,7 @@ import { visibilityRoutes } from './visibility';
 import { reportRoutes } from './reports';
 import { budgetRoutes } from './budgets';
 import { recurringRoutes } from './recurring';
+import { plannedRoutes } from './planned';
 
 export function personalRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
@@ -125,6 +126,7 @@ export function personalRoutes(): Hono<AppBindings> {
   app.route('/', reportRoutes());
   app.route('/', budgetRoutes());
   app.route('/', recurringRoutes());
+  app.route('/', plannedRoutes());
 
   return app;
 }
