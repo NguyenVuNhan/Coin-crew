@@ -2007,6 +2007,9 @@ export const vi: Record<MessageKey, string> = {
   'budgets.viewExisting': 'Xem ngân sách', // REVIEW
   'budgets.missingTarget': 'Chọn danh mục hoặc thẻ để lưu.', // REVIEW
   'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
+  'budgets.stillDueDetail': 'Còn {count} khoản định kỳ sắp tới · {amount}', // REVIEW
+  'budgets.stillDuePace': 'Sau đó, mỗi ngày còn khoảng {amount} ({days} ngày)', // REVIEW
+  'budgets.stillDueRow': 'Còn {count} khoản định kỳ · {amount}', // REVIEW
 
   'recurring.title': 'Định kỳ', // REVIEW
   'recurring.addRule': 'Thêm quy tắc', // REVIEW
@@ -2142,4 +2145,9 @@ export const vi: Record<MessageKey, string> = {
   'recurring.editRuleTitle': 'Sửa quy tắc', // REVIEW
   'recurring.editRuleHint': 'Thay đổi chỉ áp dụng cho các lần sau.', // REVIEW
   'recurring.toastRuleUpdated': 'Đã cập nhật quy tắc', // REVIEW
+  'recurring.confirmTitle': 'Xác nhận khoản định kỳ', // REVIEW
+  'recurring.alreadyResolvedError': 'Khoản này đã được xử lý.', // REVIEW
+  'recurring.backToRecurring': 'Về trang Định kỳ', // REVIEW
+  'recurring.plannedNotFoundTitle': 'Không tìm thấy khoản chờ xác nhận', // REVIEW
+  'recurring.plannedNotFoundBody': 'Khoản này có thể đã được xác nhận hoặc bỏ qua.', // REVIEW
 };

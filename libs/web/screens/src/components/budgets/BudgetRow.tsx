@@ -28,6 +28,8 @@ export interface BudgetRowProps {
   withinName?: string;
   /** Set when an ancestor category budget is currently over its limit. */
   parentOver?: { name: string };
+  /** Amount still due from recurring rules this period; drawn as a hatched segment after spent. */
+  stillDueAmount?: number;
 }
 
 /** True when the row leads with the per-day (or per-month) amount instead of the amount left. */
@@ -80,6 +82,7 @@ export function BudgetRow({
   hasSuggestion = false,
   withinName,
   parentOver,
+  stillDueAmount = 0,
 }: BudgetRowProps): JSX.Element {
   const t = useT();
   const resolvedIcon: IconName = icon ?? (def.target.kind === 'tag' ? 'tag' : 'receipt');
@@ -186,6 +189,9 @@ export function BudgetRow({
       <BudgetBar
         state={progress.state}
         used={usedPct}
+        stillDue={
+          !progress.ended && progress.limit > 0 ? (stillDueAmount / progress.limit) * 100 : 0
+        }
         today={progress.ended || isOver || isParentOver ? undefined : todayPct}
       />
 

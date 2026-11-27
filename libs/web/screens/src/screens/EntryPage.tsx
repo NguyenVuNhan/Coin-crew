@@ -34,7 +34,9 @@ import { useLedger } from '@cc/web-data-access/people';
 import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import { useBudgetImpacts } from '@cc/web-data-access/budgets';
 import {
+  useConfirmPlanned,
   useCreateRule,
+  usePlannedItems,
   useRecurringRules,
   useUpdateRule,
 } from '@cc/web-data-access/recurring';
@@ -72,6 +74,7 @@ import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { categoryIconName } from '../components/categoryIcon';
 import { EntryDateRow, formatEntryDayLabel } from '../components/EntryDateRow';
+import { draftTitle } from '../components/PlannedItemCard';
 import { RepeatField, type RepeatValue } from '../components/RepeatField';
 import { defaultMonthlySchedule } from '../lib/scheduleWords';
 import { useEntryFold } from '../components/entryFold';
@@ -194,7 +197,9 @@ export function EntryPage(): JSX.Element {
   const isEdit = Boolean(id);
   const [searchParams, setSearchParams] = useSearchParams();
   const isDirectEdit = isEntryEdit && searchParams.get('group') === '1';
-  const isRepeatPreset = !isEdit && searchParams.get('repeat') === '1';
+  const plannedId = !isEdit ? searchParams.get('planned') : null;
+  const isPlannedConfirm = Boolean(plannedId);
+  const isRepeatPreset = !isEdit && !isPlannedConfirm && searchParams.get('repeat') === '1';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { goBack } = useBack('/trips');
@@ -287,6 +292,15 @@ export function EntryPage(): JSX.Element {
     () => (isRuleEdit && id ? (rulesQuery.data?.rules.find((r) => r.id === id) ?? null) : null),
     [isRuleEdit, id, rulesQuery.data?.rules],
   );
+  const plannedQuery = usePlannedItems({ enabled: isPlannedConfirm });
+  const plannedItem = useMemo(() => {
+    if (!isPlannedConfirm || !plannedId) return null;
+    const found = plannedQuery.data?.items.find((it) => it.id === plannedId) ?? null;
+    if (!found || found.kind !== 'recurring_occurrence' || found.status !== 'waiting' || !found.draft) {
+      return null;
+    }
+    return found;
+  }, [isPlannedConfirm, plannedId, plannedQuery.data?.items]);
 
   const directGroupRow = useMemo(() => {
     if (!isDirectEdit) return null;
@@ -330,6 +344,7 @@ export function EntryPage(): JSX.Element {
   const deleteEntry = useDeleteEntry();
   const createRule = useCreateRule();
   const updateRule = useUpdateRule();
+  const confirmPlanned = useConfirmPlanned();
 
   const allWallets = useMemo(
     () => walletsQuery.data?.wallets ?? [],
@@ -388,9 +403,10 @@ export function EntryPage(): JSX.Element {
   const [excludeFromReports, setExcludeFromReports] = useState(initial.transfer);
   const [excludeTouched, setExcludeTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [keypadOpen, setKeypadOpen] = useState(!isEdit);
+  const [keypadOpen, setKeypadOpen] = useState(!isEdit && !isPlannedConfirm);
   const [walletSheetTarget, setWalletSheetTarget] = useState<'single' | 'other' | null>(null);
   const [validationError, setValidationError] = useState<unknown>(null);
+  const [plannedAlreadyResolved, setPlannedAlreadyResolved] = useState(false);
   const [categoryError, setCategoryError] = useState(false);
   const [categoryRingActive, setCategoryRingActive] = useState(false);
   const [smallAmountConfirm, setSmallAmountConfirm] = useState<{
@@ -430,7 +446,7 @@ export function EntryPage(): JSX.Element {
   const wasKeypadOpenBeforeGuardRef = useRef(false);
   const didAutoFocusRef = useRef(false);
   const isMousePointer = useIsMousePointer();
-  const fold = useEntryFold({ enabled: !isMousePointer, isEdit });
+  const fold = useEntryFold({ enabled: !isMousePointer, isEdit: isEdit || isPlannedConfirm });
   const foldAmountOpen = fold.isOpen('amount');
   const foldCategoryOpen = fold.isOpen('category');
   const foldDetailsOpen = fold.isOpen('details');
@@ -510,7 +526,7 @@ export function EntryPage(): JSX.Element {
 
   const typeParam = searchParams.get('type');
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || isPlannedConfirm) return;
     if (typeParam === 'loan-debt') {
       setActiveTab((prev) => (prev === 'loan-debt' ? prev : 'loan-debt'));
     } else if (typeParam === 'income') {
@@ -520,11 +536,11 @@ export function EntryPage(): JSX.Element {
       setActiveTab((prev) => (prev === 'expense' ? prev : 'expense'));
       setEntryType((prev) => (prev === 'expense' ? prev : 'expense'));
     }
-  }, [isEdit, typeParam]);
+  }, [isEdit, isPlannedConfirm, typeParam]);
 
   // Initialize default wallets in new mode
   useEffect(() => {
-    if (isEdit || walletDefaultsApplied || activeWallets.length === 0) return;
+    if (isEdit || isPlannedConfirm || walletDefaultsApplied || activeWallets.length === 0) return;
     const urlWalletId = searchParams.get('wallet');
     const validUrlWallet =
       urlWalletId && activeWallets.some((w) => w.id === urlWalletId) ? urlWalletId : null;
@@ -537,7 +553,7 @@ export function EntryPage(): JSX.Element {
       setIsTradeMode(false);
     }
     setWalletDefaultsApplied(true);
-  }, [isEdit, walletDefaultsApplied, activeWallets, searchParams]);
+  }, [isEdit, isPlannedConfirm, walletDefaultsApplied, activeWallets, searchParams]);
 
   // Initialize form from loaded entry in edit mode
   useEffect(() => {
@@ -656,22 +672,79 @@ export function EntryPage(): JSX.Element {
     setInitializedId(editingRule.id);
   }, [isRuleEdit, editingRule, walletsQuery.isPending, allWallets, initializedId]);
 
+  // Initialize form from loaded planned item in confirm mode (/entries/new?planned=<id>)
+  useEffect(() => {
+    if (
+      !isPlannedConfirm ||
+      !plannedItem?.draft ||
+      walletsQuery.isPending ||
+      initializedId === plannedItem.id
+    ) {
+      return;
+    }
+    const d = plannedItem.draft;
+    const wCurrency = allWallets.find((w) => w.id === d.walletId)?.currency ?? 'VND';
+    if (d.type === 'transfer') {
+      setIsTransferMode(true);
+      setIsTradeMode(false);
+      setEntryType('expense');
+      setActiveTab('expense');
+      setWalletId(d.walletId);
+      setOtherWalletId(d.toWalletId ?? '');
+      setPrimaryExpr(formatKeypadValue(d.amount, wCurrency));
+      if (d.amountReceived != null) {
+        const toCur = allWallets.find((w) => w.id === d.toWalletId)?.currency ?? 'VND';
+        setSecondaryExpr(formatKeypadValue(d.amountReceived, toCur));
+      }
+    } else if (d.type === 'buy') {
+      setIsTradeMode(true);
+      setIsTransferMode(false);
+      setEntryType('expense');
+      setActiveTab('expense');
+      setWalletId(d.walletId);
+      setCategoryId(null);
+      setCategoryPicked(false);
+      setAssetId(d.assetId ?? null);
+      setQuantityText('');
+      setPrimaryExpr(formatKeypadValue(d.amount, wCurrency));
+    } else {
+      setIsTradeMode(false);
+      setIsTransferMode(false);
+      setEntryType(d.type);
+      setActiveTab(d.type);
+      setWalletId(d.walletId);
+      setCategoryId(d.categoryId ?? null);
+      setCategoryPicked(Boolean(d.categoryId));
+      setPrimaryExpr(formatKeypadValue(d.amount, wCurrency));
+    }
+
+    setDateTime(`${plannedItem.dueOn}T00:00`);
+    setNote(d.note ?? '');
+    setTags(d.tags ?? []);
+    setExcludeFromReports(Boolean(d.excludeFromReports));
+    setExcludeTouched(true);
+    if (Boolean(d.excludeFromReports) !== (d.type === 'transfer')) {
+      setShowMore(true);
+    }
+    setInitializedId(plannedItem.id);
+  }, [isPlannedConfirm, plannedItem, walletsQuery.isPending, allWallets, initializedId]);
+
   const selectedWallet = useMemo(() => {
-    if (isEdit) return allWallets.find((w) => w.id === walletId);
+    if (isEdit || isPlannedConfirm) return allWallets.find((w) => w.id === walletId);
     if (isLoanDebt) {
       const current = vndWallets.find((w) => w.id === walletId);
       if (current) return current;
       return vndWallets.find((w) => w.isDefault) ?? vndWallets[0];
     }
     return activeWallets.find((w) => w.id === walletId) ?? activeWallets[0];
-  }, [isEdit, isLoanDebt, allWallets, activeWallets, vndWallets, walletId]);
+  }, [isEdit, isPlannedConfirm, isLoanDebt, allWallets, activeWallets, vndWallets, walletId]);
   const otherWallet = useMemo(
     () =>
-      isEdit
+      isEdit || isPlannedConfirm
         ? allWallets.find((w) => w.id === otherWalletId)
         : (activeWallets.find((w) => w.id === otherWalletId) ??
           activeWallets.find((w) => w.id !== selectedWallet?.id)),
-    [isEdit, allWallets, activeWallets, otherWalletId, selectedWallet?.id],
+    [isEdit, isPlannedConfirm, allWallets, activeWallets, otherWalletId, selectedWallet?.id],
   );
 
   const isInvestmentWallet = selectedWallet?.kind === 'investment';
@@ -801,7 +874,7 @@ export function EntryPage(): JSX.Element {
 
   const isBuyMode = isTradeMode && entryType === 'expense';
   const isSellMode = isTradeMode && entryType === 'income';
-  const canRepeat = !isLoanDebt && !isSellMode && (!isEdit || isRuleEdit);
+  const canRepeat = !isLoanDebt && !isSellMode && !isPlannedConfirm && (!isEdit || isRuleEdit);
   const isRecurringSave = canRepeat && (isRuleEdit || repeatValue !== null);
 
   const canShareChi =
@@ -961,6 +1034,7 @@ export function EntryPage(): JSX.Element {
 
   const guessEnabled =
     !isEdit &&
+    !isPlannedConfirm &&
     activeTab === 'expense' &&
     !isTransferMode &&
     !isTradeMode &&
@@ -1406,7 +1480,8 @@ export function EntryPage(): JSX.Element {
     updateEntry.isPending ||
     quickShare.isSaving ||
     createRule.isPending ||
-    updateRule.isPending;
+    updateRule.isPending ||
+    confirmPlanned.isPending;
 
   const handleRetryQuickShareLink = async () => {
     if (isSaving || savingRef.current) return;
@@ -1662,7 +1737,7 @@ export function EntryPage(): JSX.Element {
           date,
           time,
           note: note.trim() ? note.trim() : null,
-          ...(isEdit ? { tags } : {}),
+          ...(isEdit || isPlannedConfirm ? { tags } : {}),
           excludeFromReports,
         };
       }
@@ -1682,6 +1757,7 @@ export function EntryPage(): JSX.Element {
       }
       if (
         !isEdit &&
+        !isPlannedConfirm &&
         !confirmedOverride &&
         selectedWallet.currency !== 'VND' &&
         !foreignConfirmedRef.current
@@ -1715,7 +1791,7 @@ export function EntryPage(): JSX.Element {
           date,
           time,
           note: note.trim() ? note.trim() : null,
-          ...(isEdit ? { tags } : {}),
+          ...(isEdit || isPlannedConfirm ? { tags } : {}),
         };
         lastUsedWalletId = selectedWallet.id;
         savedMessage = t(
@@ -1740,6 +1816,7 @@ export function EntryPage(): JSX.Element {
       }
       if (
         !isEdit &&
+        !isPlannedConfirm &&
         !confirmedOverride &&
         selectedWallet.currency !== 'VND' &&
         !foreignConfirmedRef.current
@@ -1821,7 +1898,7 @@ export function EntryPage(): JSX.Element {
       const tagNameById = new Map((tagsQuery.data?.tags ?? []).map((tg) => [tg.id, tg.name]));
       const resolvedEntryTags = isDirectEdit
         ? tags.map((tid) => tagNameById.get(tid)).filter((n): n is string => Boolean(n))
-        : isEdit
+        : isEdit || isPlannedConfirm
           ? tags
           : [];
 
@@ -1886,6 +1963,23 @@ export function EntryPage(): JSX.Element {
         return;
       }
       if (!input) return;
+      if (isPlannedConfirm && plannedItem) {
+        await confirmPlanned.mutateAsync({
+          id: plannedItem.id,
+          input: { entry: input },
+        });
+        if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
+        const categoriesById = new Map((categoriesQuery.data?.categories ?? []).map((c) => [c.id, c]));
+        const assetsById = new Map(allAssets.map((a) => [a.id, a]));
+        const confirmName = draftTitle(plannedItem.draft, categoriesById, assetsById, t);
+        showUndo({
+          message: t('recurring.toastRecorded', { name: confirmName }),
+          actionLabel: t('common.close'),
+          onAction: () => {},
+        });
+        navigate('/recurring', { replace: true });
+        return;
+      }
       if (isDirectEdit && ledger && directExpense) {
         await createEntry.mutateAsync(input);
         await quickShare.deleteExpense({
@@ -1935,7 +2029,15 @@ export function EntryPage(): JSX.Element {
           : err && typeof err === 'object' && 'code' in err
             ? String((err as { code: unknown }).code)
             : undefined;
-      if (code === 'OVERSELL') {
+      const status =
+        err instanceof ApiClientError
+          ? err.status
+          : err && typeof err === 'object' && 'status' in err
+            ? Number((err as { status: unknown }).status)
+            : undefined;
+      if (isPlannedConfirm && (code === 'ALREADY_RESOLVED' || status === 409)) {
+        setPlannedAlreadyResolved(true);
+      } else if (code === 'OVERSELL') {
         setServerOversellError(err);
       } else {
         setValidationError(err);
@@ -1947,6 +2049,7 @@ export function EntryPage(): JSX.Element {
 
   const hasUnsavedAmount =
     !isEdit &&
+    !isPlannedConfirm &&
     (primaryExpr.trim().length > 0 ||
       (isDiffCurrencyTransfer && secondaryExpr.trim().length > 0) ||
       (isTradeMode && quantityText.trim().length > 0) ||
@@ -2116,6 +2219,7 @@ export function EntryPage(): JSX.Element {
     walletsQuery.isPending ||
     (isEntryEdit && !isDirectEdit && !entry && listQuery.isPending) ||
     (isRuleEdit && !editingRule && rulesQuery.isPending) ||
+    (isPlannedConfirm && !plannedItem && plannedQuery.isPending) ||
     isDirectEditLoading;
   const isLoanLoading =
     isLoanDebt && (ledgerLoading || (Boolean(ledger) && directViewLoading && !directView));
@@ -2124,12 +2228,14 @@ export function EntryPage(): JSX.Element {
     (isLoanDebt || isDirectEdit) && Boolean(ledger) && !directViewLoading && !directView;
   const isEditMissing = isEntryEdit && (isDirectEdit ? !directExpense : !entry);
   const isRuleMissing = isRuleEdit && !editingRule;
-  const noActiveWallet = !isEdit && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
+  const isPlannedMissing = isPlannedConfirm && !plannedItem;
+  const noActiveWallet = !isEdit && !isPlannedConfirm && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
 
   useEffect(() => {
     if (
       !isMousePointer ||
       isEdit ||
+      isPlannedConfirm ||
       isLoading ||
       isLoanLoading ||
       walletsQuery.isError ||
@@ -2145,6 +2251,7 @@ export function EntryPage(): JSX.Element {
   }, [
     isMousePointer,
     isEdit,
+    isPlannedConfirm,
     isLoading,
     isLoanLoading,
     walletsQuery.isError,
@@ -2175,6 +2282,13 @@ export function EntryPage(): JSX.Element {
               className="m-0 flex-1 text-lg font-semibold text-foreground truncate"
             >
               {t('recurring.editRuleTitle')}
+            </h1>
+          ) : isPlannedConfirm ? (
+            <h1
+              data-testid="planned-confirm-title"
+              className="m-0 flex-1 text-lg font-semibold text-foreground truncate"
+            >
+              {t('recurring.confirmTitle')}
             </h1>
           ) : (
             <Tabs
@@ -2252,6 +2366,21 @@ export function EntryPage(): JSX.Element {
               }
             />
           </div>
+        ) : isPlannedMissing && plannedQuery.isError ? (
+          <InlineError error={plannedQuery.error} onRetry={() => plannedQuery.refetch()} />
+        ) : isPlannedMissing ? (
+          <div data-testid="planned-confirm-not-found">
+            <EmptyState
+              icon="repeat"
+              title={t('recurring.plannedNotFoundTitle')}
+              body={t('recurring.plannedNotFoundBody')}
+              action={
+                <Button href="/recurring" variant="primary" block data-testid="planned-confirm-back-recurring">
+                  {t('recurring.title')}
+                </Button>
+              }
+            />
+          </div>
         ) : isEditMissing && listQuery.isError ? (
           <InlineError error={listQuery.error} onRetry={() => listQuery.refetch()} />
         ) : isEditMissing ? (
@@ -2271,6 +2400,19 @@ export function EntryPage(): JSX.Element {
             {hasArchivedWallet && (
               <div data-testid="archived-wallet-notice">
                 <InlineError error={ownError(t('personalEntry.archivedWalletNotice'))} />
+              </div>
+            )}
+            {plannedAlreadyResolved && (
+              <div data-testid="planned-already-resolved" className="flex flex-col gap-2">
+                <InlineError error={ownError(t('recurring.alreadyResolvedError'))} />
+                <Button
+                  href="/recurring"
+                  variant="secondary"
+                  block
+                  data-testid="planned-already-resolved-back"
+                >
+                  {t('recurring.backToRecurring')}
+                </Button>
               </div>
             )}
             {validationError !== null && (
@@ -3016,6 +3158,7 @@ export function EntryPage(): JSX.Element {
         !isLoanViewError &&
         !isEditMissing &&
         !isRuleMissing &&
+        !isPlannedMissing &&
         !noActiveWallet && (
         effectiveKeypadOpen ? (
           <DockedAmountKeypad

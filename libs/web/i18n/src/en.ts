@@ -2006,6 +2006,9 @@ export const en = {
   'budgets.viewExisting': 'View budget',
   'budgets.missingTarget': 'Pick a category or tag to save.',
   'budgets.missingAmount': 'Enter an amount to save.',
+  'budgets.stillDueDetail': '{count} recurring left this period · {amount}',
+  'budgets.stillDuePace': 'After that, about {amount} per day ({days} days)',
+  'budgets.stillDueRow': '{count} recurring left · {amount}',
 
   'recurring.title': 'Recurring',
   'recurring.addRule': 'Add rule',
@@ -2141,6 +2144,11 @@ export const en = {
   'recurring.editRuleTitle': 'Edit rule',
   'recurring.editRuleHint': 'Changes only apply to future occurrences.',
   'recurring.toastRuleUpdated': 'Rule updated',
+  'recurring.confirmTitle': 'Confirm recurring item',
+  'recurring.alreadyResolvedError': 'This item has already been handled.',
+  'recurring.backToRecurring': 'Back to Recurring',
+  'recurring.plannedNotFoundTitle': 'Pending item not found',
+  'recurring.plannedNotFoundBody': 'This item may have already been confirmed or skipped.',
 } as const;
 
 export type MessageKey = keyof typeof en;

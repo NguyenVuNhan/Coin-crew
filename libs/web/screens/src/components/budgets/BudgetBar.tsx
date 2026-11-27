@@ -17,6 +17,8 @@ export interface BudgetBarProps {
   today?: number;
   /** Optional percentage added by an expense being entered, in 0..100. */
   adding?: number;
+  /** Optional percentage of the limit still due from recurring rules, in 0..100. */
+  stillDue?: number;
   className?: string;
 }
 
@@ -25,16 +27,18 @@ function clampPct(value: number): number {
   return Math.max(0, Math.min(value, 100));
 }
 
-/** Progress bar for a budget: spent fill, optional pending-expense preview, and a "today" tick. */
+/** Progress bar for a budget: spent fill, optional pending-expense preview, optional still-due hatch, and a "today" tick. */
 export function BudgetBar({
   state,
   used,
   today,
   adding = 0,
+  stillDue = 0,
   className,
 }: BudgetBarProps): JSX.Element {
   const u = clampPct(used);
-  const a = clampPct(Math.min(adding, 100 - u));
+  const sd = clampPct(Math.min(stillDue, 100 - u));
+  const a = clampPct(Math.min(adding, 100 - u - sd));
   const td = today !== undefined ? clampPct(today) : undefined;
   const fill = FILL_CLASS[state];
 
@@ -47,10 +51,20 @@ export function BudgetBar({
         className={cn('absolute inset-y-0 left-0 rounded-full', fill)}
         style={{ width: `${u}%` }}
       />
+      {sd > 0 && (
+        <div
+          data-testid="budget-bar-still-due"
+          className={cn(
+            'absolute inset-y-0 rounded-r-full opacity-35 bg-[repeating-linear-gradient(135deg,var(--primary)_0_4px,transparent_4px_8px)]',
+            u === 0 && 'rounded-l-full',
+          )}
+          style={{ left: `${u}%`, width: `${sd}%` }}
+        />
+      )}
       {a > 0 && (
         <div
           className={cn('absolute inset-y-0 rounded-r-full opacity-40', fill)}
-          style={{ left: `${u}%`, width: `${a}%` }}
+          style={{ left: `${u + sd}%`, width: `${a}%` }}
         />
       )}
       {td !== undefined && (
