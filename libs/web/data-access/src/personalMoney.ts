@@ -32,6 +32,8 @@ export const PERSONAL_GROUP_SETTINGS_KEY = ['me', 'personal', 'group-settings'] 
 export const PERSONAL_BALANCE_CHECKS_KEY = ['me', 'personal', 'balance-checks'] as const;
 export const PERSONAL_REPORT_KEY = ['me', 'personal', 'report'] as const;
 export const PERSONAL_BUDGETS_KEY = ['me', 'personal', 'budgets'] as const;
+export const PERSONAL_RECURRING_KEY = ['me', 'personal', 'recurring'] as const;
+export const PERSONAL_PLANNED_KEY = ['me', 'personal', 'planned'] as const;
 
 const LAST_WALLET_STORAGE_KEY = 'cc.personal.lastWallet';
 
@@ -132,6 +134,8 @@ async function invalidateEntry(queryClient: QueryClient): Promise<void> {
     queryClient.invalidateQueries({ queryKey: PERSONAL_CATEGORIES_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_ASSETS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_PLANNED_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_RECURRING_KEY }),
   ]);
 }
 

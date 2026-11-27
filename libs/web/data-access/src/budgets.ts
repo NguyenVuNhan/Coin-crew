@@ -18,6 +18,7 @@ import {
   lastFullMonthSpent,
   limitFor,
   listCountedSpending,
+  occurrencesBetween,
   orderBudgets,
   type BudgetDef,
   type BudgetDraft,
@@ -33,6 +34,10 @@ import {
   type CategoryView,
   type CountedSpendRow,
   type CreateBudgetInput,
+  type PlannedItemView,
+  type RecurringDraft,
+  type RecurringRuleView,
+  type TagView,
   type UpdateBudgetInput,
   type WalletDetailView,
 } from '@cc/core';
@@ -47,6 +52,7 @@ import {
 } from './personalMoney';
 import * as groupCopyMod from './txCopy/groupCopy';
 import * as txCopyMod from './txCopy/hooks';
+import { usePlannedItems, useRecurringRules } from './recurring';
 
 export { PERSONAL_BUDGETS_KEY } from './personalMoney';
 
@@ -417,4 +423,132 @@ export function useLastMonthCategorySpent(categoryId: string | null): number | n
     const reportRows = filterReportIncludedRows(rows, wallets);
     return lastFullMonthSpent(reportRows, categoryId, categories, today);
   }, [source, categoryId, rows, wallets, categories, today]);
+}
+
+function addOneDayYmd(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, (d ?? 1) + 1));
+  const yy = String(dt.getUTCFullYear()).padStart(4, '0');
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+/** Counts future active-rule expenses (tomorrow..period.to) and waiting recurring_occurrence expenses within the period. */
+export function budgetStillDue(
+  budget: BudgetDef,
+  period: BudgetPeriod,
+  rules: RecurringRuleView[],
+  waitingItems: PlannedItemView[],
+  categories: CategoryView[],
+  wallets: Pick<WalletDetailView, 'id' | 'currency'>[],
+  today: string,
+  tags: Pick<TagView, 'id' | 'name'>[] = [],
+): { count: number; amount: number } {
+  const excluded = new Set(budget.excludedWalletIds);
+  const walletCurrency = new Map(wallets.map((w) => [w.id, w.currency]));
+
+  let parentById: Map<string, string | null> | null = null;
+  let targetTagName: string | undefined;
+  if (budget.target.kind === 'category') {
+    parentById = new Map(categories.map((c) => [c.id, c.parentId]));
+  } else {
+    const tagId = budget.target.tagId;
+    targetTagName = tags.find((t) => t.id === tagId)?.name;
+  }
+
+  const matchesCategory = (categoryId: string | undefined, targetCategoryId: string): boolean => {
+    if (!categoryId) return false;
+    let cur: string | null = categoryId;
+    const seen = new Set<string>();
+    while (cur !== null) {
+      if (cur === targetCategoryId) return true;
+      if (seen.has(cur)) return false;
+      seen.add(cur);
+      cur = parentById?.get(cur) ?? null;
+    }
+    return false;
+  };
+
+  const inScope = (draft: RecurringDraft): boolean => {
+    if (draft.type !== 'expense' || draft.excludeFromReports) return false;
+    if (excluded.has(draft.walletId)) return false;
+    if (walletCurrency.get(draft.walletId) !== budget.currency) return false;
+
+    if (budget.target.kind === 'category') {
+      return matchesCategory(draft.categoryId, budget.target.categoryId);
+    }
+    const tagId = budget.target.tagId;
+    return (
+      draft.tags.includes(tagId) ||
+      (targetTagName !== undefined && draft.tags.includes(targetTagName))
+    );
+  };
+
+  let count = 0;
+  let amount = 0;
+
+  const tomorrow = addOneDayYmd(today);
+  const windowFrom = tomorrow > period.from ? tomorrow : period.from;
+  if (windowFrom <= period.to) {
+    for (const rule of rules) {
+      if (rule.status !== 'active' || rule.nextDueOn === null) continue;
+      if (!inScope(rule.draft)) continue;
+      const from = rule.nextDueOn > windowFrom ? rule.nextDueOn : windowFrom;
+      if (from > period.to) continue;
+      const dates = occurrencesBetween(rule.schedule, from, period.to);
+      if (dates.length > 0) {
+        count += dates.length;
+        amount += dates.length * rule.draft.amount;
+      }
+    }
+  }
+
+  for (const item of waitingItems) {
+    if (item.kind !== 'recurring_occurrence' || item.status !== 'waiting' || !item.draft) continue;
+    if (item.dueOn < period.from || item.dueOn > period.to) continue;
+    if (!inScope(item.draft)) continue;
+    count += 1;
+    amount += item.draft.amount;
+  }
+
+  return { count, amount };
+}
+
+const EMPTY_RULES: RecurringRuleView[] = [];
+const EMPTY_PLANNED: PlannedItemView[] = [];
+const EMPTY_TAGS: TagView[] = [];
+
+/** Expenses from active rules (waiting items included) inside the budget's scope, from tomorrow to the period end. */
+export function useBudgetStillDue(
+  budget: BudgetDef,
+  period: BudgetPeriod,
+): { count: number; amount: number } {
+  const today = todayLocal();
+  const rulesQuery = useRecurringRules();
+  const plannedQuery = usePlannedItems();
+  const categoriesQuery = useCategories();
+  const walletsQuery = useWalletDetails();
+  const tagsQuery = useTags();
+
+  const rules = rulesQuery.data?.rules ?? EMPTY_RULES;
+  const waitingItems = plannedQuery.data?.items ?? EMPTY_PLANNED;
+  const categories = categoriesQuery.data?.categories ?? EMPTY_CATEGORIES;
+  const wallets = walletsQuery.data?.wallets ?? EMPTY_WALLETS;
+  const tags = tagsQuery.data?.tags ?? EMPTY_TAGS;
+
+  return useMemo(
+    () =>
+      budgetStillDue(
+        budget,
+        period,
+        rules,
+        waitingItems,
+        categories,
+        wallets,
+        today,
+        tags,
+      ),
+    [budget, period, rules, waitingItems, categories, wallets, today, tags],
+  );
 }
