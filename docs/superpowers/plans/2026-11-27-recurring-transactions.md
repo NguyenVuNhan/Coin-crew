@@ -120,7 +120,7 @@ Rules the functions encode (spec R3, R6, §4):
 - `every` steps from `startDate`'s period (week of startDate, month of startDate…).
 - `end.count` counts occurrences from `startDate`; `end.date` is inclusive.
 - `checkInPolicy`: interval < 7 → `{after, askAfterDays: 30, graceDays: 14, graceOccurrences: null}`; 7 to < 28 → `{after, 60, null, 3}`; 28 to < 365 → `{after, 182, null, 3}`; ≥ 365 → `{every}`.
-- `planRuleRun`: dates = `occurrencesBetween(schedule, nextDueOn, today)` cut to `maxOccurrences`. With `askMe` or policy `every`, all go to `wait`; otherwise to `record`. `pause: 'waiting'` when `waitingOccurrences + wait.length >= 3` (the dates up to and including the third still go to `wait`; later dates are dropped). For policy `after` and no `askMe`: `openCheckIn` when no check-in is open and `today >= lastConfirmedOn + askAfterDays`; `pause: 'checkin'` when a check-in is open and (`graceDays` passed since `createdOn` or `occurrencesSince + record.length >= graceOccurrences`). Recording stops at the occurrence that triggers the pause (it isn't recorded). `nextDueOn` = `nextOccurrenceAfter` the last handled date (or the current value if nothing was handled); `null` when the schedule has ended.
+- `planRuleRun`: dates = `occurrencesBetween(schedule, nextDueOn, today)` cut to `maxOccurrences`. With `askMe` or policy `every`, all go to `wait`; otherwise to `record`. `pause: 'waiting'` when `waitingOccurrences + wait.length >= 3` (the dates up to and including the third still go to `wait`; later dates are dropped). For policy `after` and no `askMe`: `openCheckIn` when no check-in is open and `today >= lastConfirmedOn + askAfterDays`; `pause: 'checkin'` when a check-in is open and (`graceDays` passed since `createdOn`, or more than `graceOccurrences` occurrences would have been recorded since it opened). The first `graceOccurrences` after the check-in are recorded; the occurrence that triggers the pause isn't. `nextDueOn` = `nextOccurrenceAfter` the last handled date (or the current value if nothing was handled); `null` when the schedule has ended.
 
 - [ ] **Step 1: Write the failing schedule tests** (`recurring-schedule.test.ts`):
   - `monthly on 31 clamps in February and returns in March`: `occurrencesBetween({unit:'month',every:1,monthDay:31,startDate:'2027-01-31',end:{kind:'never'}}, '2027-01-01','2027-04-30')` → `['2027-01-31','2027-02-28','2027-03-31','2027-04-30']`.
@@ -138,7 +138,7 @@ Rules the functions encode (spec R3, R6, §4):
   - `ask me waits`, `yearly waits`: dates in `wait`, not `record`.
   - `third waiting pauses`: waitingOccurrences 2, one new date → wait 1, `pause: 'waiting'`.
   - `check-in opens after 6 months for monthly`: lastConfirmedOn 2027-01-01, today 2027-07-05 → `openCheckIn: true`.
-  - `check-in grace pauses monthly after 3 more`: openCheckIn occurrencesSince 2, one due → record `[]`, `pause: 'checkin'`.
+  - `check-in grace pauses monthly after 3 more`: openCheckIn occurrencesSince 3, one due → record `[]`, `pause: 'checkin'`; with occurrencesSince 2 and two due → the first is recorded, then pause.
   - `daily grace is 14 days`: daily rule, check-in created 2027-01-01, today 2027-01-16 → `pause: 'checkin'`.
   - `respects maxOccurrences`: daily, 40 days missed, max 31 → 31 recorded, nextDueOn = the 32nd date.
   - `ended schedule`: count 2 with both made → nextDueOn null.

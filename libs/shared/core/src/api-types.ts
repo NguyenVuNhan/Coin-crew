@@ -998,3 +998,40 @@ export interface BudgetsProgressResponse {
   rows: CountedSpendRow[];
 }
 
+import type { RecurringDraft, RecurringSchedule } from './recurring';
+
+export interface RecurringRuleView {
+  id: string;
+  draft: RecurringDraft;
+  schedule: RecurringSchedule;
+  askMe: boolean;
+  status: 'active' | 'paused' | 'ended';
+  pausedReason:
+    | 'checkin'
+    | 'waiting'
+    | 'missing_wallet'
+    | 'missing_category'
+    | 'missing_asset'
+    | 'manual'
+    | null;
+  nextDueOn: string | null;
+  lastConfirmedOn: string;
+}
+
+export type PlannedKind =
+  | 'recurring_occurrence'
+  | 'recurring_checkin'
+  | 'recurring_paused'
+  | 'rule_suggestion';
+
+export interface PlannedItemView {
+  id: string;
+  kind: PlannedKind | string;
+  ruleId: string | null;
+  dueOn: string;
+  draft: RecurringDraft | null;
+  status: 'waiting' | 'confirmed' | 'skipped' | 'dismissed';
+  meta: Record<string, unknown> | null;
+  createdOn: string;
+}
+
