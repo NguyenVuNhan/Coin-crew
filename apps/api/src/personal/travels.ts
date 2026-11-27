@@ -31,6 +31,7 @@ import {
   findTravelOverlap,
   groupRowEffect,
   isCurrencyCode,
+  travelForShare,
   type CurrencyCode,
   type TravelDef,
   type TravelExisting,
@@ -49,6 +50,7 @@ const MARK_INSERT_CHUNK = 20;
 const MARK_UPDATE_CHUNK = 50;
 const TX_TAG_CHUNK = 30;
 const TX_UPDATE_CHUNK = 50;
+const TAG_SHARES_LIMIT = 200;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -572,6 +574,90 @@ export function travelRoutes(): Hono<AppBindings> {
     };
 
     return c.json({ travel, existing: existingResult.existing }, 201);
+  });
+
+  app.post('/me/personal/travels/tag-shares', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const body = await parseJson<Record<string, unknown>>(c);
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+    requireDate(body.today);
+
+    const db = getDb(c.env);
+    const travels = await loadUserTravels(db, user.id);
+    if (travels.length === 0 || travels.every((t) => t.groupIds.length === 0)) {
+      return c.json({ tagged: 0 }, 200);
+    }
+
+    const [groupRows, markRows] = await Promise.all([
+      loadCachedGroupRows(db, user.id),
+      db
+        .select({ rootId: personalTravelShareMarks.rootId })
+        .from(personalTravelShareMarks)
+        .where(eq(personalTravelShareMarks.userId, user.id))
+        .all(),
+    ]);
+
+    const markedRootIds = new Set(markRows.map((m) => m.rootId));
+    const allTripTagIds = new Set(travels.map((t) => t.tagId));
+    const matches: { rootId: string; tripId: string; tagId: string; travelId: string }[] = [];
+
+    for (const row of groupRows) {
+      if (matches.length >= TAG_SHARES_LIMIT) break;
+      if (row.pending || row.source !== 'expense' || row.myShare <= 0) continue;
+      if (markedRootIds.has(row.rootId)) continue;
+
+      const match = travelForShare(travels, row);
+      if (!match) continue;
+      if (row.link?.tagIds.some((tid) => allTripTagIds.has(tid) && tid !== match.tagId)) continue;
+
+      markedRootIds.add(row.rootId);
+      matches.push({
+        rootId: row.rootId,
+        tripId: row.tripId,
+        tagId: match.tagId,
+        travelId: match.id,
+      });
+    }
+
+    if (matches.length === 0) {
+      return c.json({ tagged: 0 }, 200);
+    }
+
+    const now = nowIso();
+    await commitPersonalWrite(db, user.id, (v) => {
+      const stmts: BatchItem<'sqlite'>[] = [
+        ...tagGroupSharesStatements(
+          db,
+          user.id,
+          matches.map((m) => ({ rootId: m.rootId, tripId: m.tripId, tagId: m.tagId })),
+          v,
+          now,
+        ),
+      ];
+
+      for (const batch of chunk(matches, MARK_INSERT_CHUNK)) {
+        stmts.push(
+          db
+            .insert(personalTravelShareMarks)
+            .values(
+              batch.map((m) => ({
+                userId: user.id,
+                rootId: m.rootId,
+                travelId: m.travelId,
+                state: 'tagged' as const,
+              })),
+            )
+            .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
+        );
+      }
+
+      return stmts;
+    });
+
+    return c.json({ tagged: matches.length }, 200);
   });
 
   app.patch('/me/personal/travels/:id', requirePersonal, async (c) => {
