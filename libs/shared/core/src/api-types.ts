@@ -1035,3 +1035,17 @@ export interface PlannedItemView {
   createdOn: string;
 }
 
+export interface RecurringRuleInput {
+  draft: RecurringDraft;
+  schedule: RecurringSchedule;
+  askMe?: boolean;
+}
+
+export interface RecurringRulesResponse {
+  rules: RecurringRuleView[];
+}
+
+export interface RecurringRuleResponse {
+  rule: RecurringRuleView;
+}
+
