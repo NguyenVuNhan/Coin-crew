@@ -425,12 +425,23 @@ function toCountedRow(e: CalcEntry, currency: CurrencyCode): CountedRow {
   };
 }
 
+export interface CountedSpendRow {
+  kind: 'entry' | 'group';
+  id: string;
+  walletId: string | null;
+  currency: CurrencyCode;
+  date: string;
+  amount: number;
+  categoryId: string;
+  tagIds: string[];
+}
+
 // --- Internal Normalized Transaction Row & Discriminated Ref Helper ---
 
 interface NormalizedTx {
   kind: 'entry' | 'group';
   id: string;
-  walletId: string;
+  walletId: string | null;
   currency: CurrencyCode;
   date: string;
   side: 'expense' | 'income';
@@ -478,8 +489,18 @@ interface NormalizedScope {
   entryVnd: Map<string, number | null>;
 }
 
-function normalizeInScopeTransactions(input: Parameters<typeof buildReport>[0]): NormalizedScope {
+interface NormalizeScopeOptions {
+  allWallets?: boolean;
+  includeGroups?: boolean;
+}
+
+function normalizeInScopeTransactions(
+  input: Omit<Parameters<typeof buildReport>[0], 'query' | 'today'> & { query?: ReportQuery },
+  options?: NormalizeScopeOptions,
+): NormalizedScope {
   const { wallets, entries, categories, groupRows, groupSettings, query } = input;
+  const allWallets = Boolean(options?.allWallets);
+  const includeGroups = options?.includeGroups ?? Boolean(query?.includeGroups);
 
   const walletsById = new Map<string, WalletDetailView>();
   for (const w of wallets) walletsById.set(w.id, w);
@@ -501,18 +522,20 @@ function normalizeInScopeTransactions(input: Parameters<typeof buildReport>[0]):
   const { entryVnd } = replayEntryVndAmounts(wallets, [...entries, ...allGroupEntries]);
   const paybacks = groupSettings.countLoans ? loanPaybacks(groupRows) : new Map<string, number>();
 
-  const isSingleWallet = Boolean(query.walletId);
-  const targetWallet = isSingleWallet ? walletsById.get(query.walletId!) : undefined;
+  const isSingleWallet = !allWallets && Boolean(query?.walletId);
+  const targetWallet = isSingleWallet ? walletsById.get(query!.walletId!) : undefined;
   const reportCurrency: CurrencyCode = targetWallet ? targetWallet.currency : 'VND';
 
   const isWalletInScope = (wId: string): boolean => {
-    if (isSingleWallet) return wId === query.walletId;
+    if (allWallets) return true;
+    if (isSingleWallet) return wId === query!.walletId;
     return !excludedWalletIds.has(wId);
   };
 
   const isGroupRowInScope = (row: GroupRow): boolean => {
+    if (allWallets) return true;
     const wId = resolveGroupWallet(row);
-    if (isSingleWallet) return wId === query.walletId;
+    if (isSingleWallet) return wId === query!.walletId;
     return wId === null || !excludedWalletIds.has(wId);
   };
 
@@ -545,7 +568,7 @@ function normalizeInScopeTransactions(input: Parameters<typeof buildReport>[0]):
     });
   }
 
-  if (query.includeGroups) {
+  if (includeGroups) {
     for (const row of groupRows) {
       if (!isGroupRowInScope(row)) continue;
       const pb = paybacks.get(row.id) ?? 0;
@@ -560,7 +583,7 @@ function normalizeInScopeTransactions(input: Parameters<typeof buildReport>[0]):
         (side === 'expense' ? SYNTHETIC_LEND_CATEGORY_ID : SYNTHETIC_BORROW_CATEGORY_ID);
       const catId = resolveCategoryMeta(rawCatId, categoriesById).id;
 
-      const wId = resolveGroupWallet(row) ?? '';
+      const wId = resolveGroupWallet(row);
 
       txs.push({
         kind: 'group',
@@ -1004,10 +1027,11 @@ export function buildReport(input: {
 
     // Handle unrated in All-wallets mode
     if (!isSingleWallet && tx.vndAmount === null) {
-      let u = unratedMap.get(tx.walletId);
+      const unratedKey = tx.walletId ?? '';
+      let u = unratedMap.get(unratedKey);
       if (!u) {
         u = { spent: 0, income: 0 };
-        unratedMap.set(tx.walletId, u);
+        unratedMap.set(unratedKey, u);
       }
       if (tx.side === 'expense') u.spent += tx.amount;
       else u.income += tx.amount;
@@ -1325,4 +1349,30 @@ export function buildCategoryDrilldown(
     subCategories,
     rows,
   };
+}
+
+// --- Counted Spending Rows (Budgets Engine Bridge) ---
+
+export function listCountedSpending(
+  input: Omit<Parameters<typeof buildReport>[0], 'query' | 'today'>,
+): CountedSpendRow[] {
+  const { txs } = normalizeInScopeTransactions(input, {
+    allWallets: true,
+    includeGroups: true,
+  });
+  const rows: CountedSpendRow[] = [];
+  for (const tx of txs) {
+    if (tx.side !== 'expense') continue;
+    rows.push({
+      kind: tx.kind,
+      id: tx.id,
+      walletId: tx.walletId,
+      currency: tx.currency,
+      date: tx.date,
+      amount: tx.amount,
+      categoryId: tx.categoryId,
+      tagIds: tx.tagIds,
+    });
+  }
+  return rows;
 }

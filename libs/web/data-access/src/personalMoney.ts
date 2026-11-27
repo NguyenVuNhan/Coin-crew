@@ -31,6 +31,7 @@ export const PERSONAL_HOLDINGS_KEY = ['me', 'personal', 'holdings'] as const;
 export const PERSONAL_GROUP_SETTINGS_KEY = ['me', 'personal', 'group-settings'] as const;
 export const PERSONAL_BALANCE_CHECKS_KEY = ['me', 'personal', 'balance-checks'] as const;
 export const PERSONAL_REPORT_KEY = ['me', 'personal', 'report'] as const;
+export const PERSONAL_BUDGETS_KEY = ['me', 'personal', 'budgets'] as const;
 
 const LAST_WALLET_STORAGE_KEY = 'cc.personal.lastWallet';
 
@@ -120,6 +121,7 @@ async function invalidateMoney(queryClient: QueryClient): Promise<void> {
     queryClient.invalidateQueries({ queryKey: PERSONAL_LIST_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_HOLDINGS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_REPORT_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
   ]);
 }
 
@@ -314,7 +316,11 @@ export function useDeleteCategory() {
       return apiSend<{ ok: true }>(path, 'DELETE');
     },
     onSuccess: async () => {
-      await Promise.all([invalidateCategories(queryClient), requestTxCopySync()]);
+      await Promise.all([
+        invalidateCategories(queryClient),
+        queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+        requestTxCopySync(),
+      ]);
     },
   });
 }
@@ -344,7 +350,11 @@ export function useDeleteTag() {
     mutationFn: (id: string) =>
       apiSend<{ ok: true }>(`/api/me/personal/tags/${encodeURIComponent(id)}`, 'DELETE'),
     onSuccess: async () => {
-      await Promise.all([invalidateTags(queryClient), requestTxCopySync()]);
+      await Promise.all([
+        invalidateTags(queryClient),
+        queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
+        requestTxCopySync(),
+      ]);
     },
   });
 }

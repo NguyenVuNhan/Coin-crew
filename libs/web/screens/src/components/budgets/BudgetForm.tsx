@@ -1,0 +1,1295 @@
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type JSX } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
+import {
+  CURRENCIES,
+  budgetPeriodAt,
+  firstBudgetPeriod,
+  formatMoney,
+  limitFor,
+  parseMoney,
+  type BudgetDef,
+  type BudgetPeriodKind,
+  type BudgetStarter,
+  type CreateBudgetInput,
+  type CurrencyCode,
+  type TagView,
+  type WalletDetailView,
+} from '@cc/core';
+import { useLang, useT } from '@cc/web-i18n';
+import { todayLocal } from '@cc/web-util/localDate';
+import {
+  useBudgets,
+  useBudgetsProgress,
+  useBudgetStarters,
+  useCreateBudget,
+  useDeleteBudget,
+  useUpdateBudget,
+} from '@cc/web-data-access/budgets';
+import {
+  useCategories,
+  useTags,
+  useWalletDetails,
+} from '@cc/web-data-access/personalMoney';
+import { Button } from '@cc/web-ui/components/Button';
+import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError, ownError } from '@cc/web-ui/components/InlineError';
+import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Skeleton } from '@cc/web-ui/components/Skeleton';
+import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
+import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
+import { cn } from '@cc/web-ui/lib/utils';
+import { CategoryPicker } from '../CategoryPicker';
+import { CurrencyBadge } from '../CurrencyBadge';
+import { showUndo } from '../UndoSnackbarHost';
+import { WalletIcon } from '../WalletIcon';
+import { categoryIconName } from '../categoryIcon';
+
+export interface BudgetFormProps {
+  open: boolean;
+  onClose: () => void;
+  budget?: BudgetDef;
+  initialCategoryId?: string | null;
+  initialAmount?: string | number | null;
+}
+
+const PERIOD_OPTIONS: readonly BudgetPeriodKind[] = ['week', 'month', 'year', 'once'];
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function formatMinorInput(minor: number, currency: CurrencyCode): string {
+  const abs = Math.abs(Math.trunc(minor));
+  if (abs === 0) return '';
+  if (CURRENCIES[currency].decimals === 0) return String(abs);
+  const whole = Math.floor(abs / 100);
+  const frac = abs % 100;
+  return frac === 0 ? String(whole) : `${whole}.${String(frac).padStart(2, '0')}`;
+}
+
+function formatVndInput(amount: number): string {
+  const abs = Math.abs(Math.trunc(amount));
+  if (abs === 0) return '';
+  return String(abs).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function formatEditAmountInput(minor: number, currency: CurrencyCode): string {
+  return CURRENCIES[currency].decimals === 0
+    ? formatVndInput(minor)
+    : formatMinorInput(minor, currency);
+}
+
+function defaultExcludedFor(wallets: WalletDetailView[], code: CurrencyCode): string[] {
+  return wallets
+    .filter((w) => !w.archived && w.currency === code && w.excludeFromReports)
+    .map((w) => w.id);
+}
+
+function isDuplicateError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { status?: unknown; code?: unknown };
+  return e.status === 409 || e.code === 'DUPLICATE';
+}
+
+export function BudgetForm({
+  open,
+  onClose,
+  budget,
+  initialCategoryId,
+  initialAmount,
+}: BudgetFormProps): JSX.Element {
+  const t = useT();
+  const [lang] = useLang();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const today = todayLocal();
+
+  const isEdit = Boolean(budget);
+
+  const prefillCategoryId = useMemo(() => {
+    if (isEdit) return null;
+    const raw = initialCategoryId ?? searchParams.get('categoryId');
+    const trimmed = raw?.trim() ?? '';
+    return trimmed.length > 0 ? trimmed : null;
+  }, [isEdit, initialCategoryId, searchParams]);
+
+  const prefillAmount = useMemo(() => {
+    if (isEdit) return '';
+    if (initialAmount !== undefined && initialAmount !== null && String(initialAmount).trim() !== '') {
+      return String(initialAmount).trim();
+    }
+    const raw = searchParams.get('amount');
+    return raw ? raw.trim() : '';
+  }, [isEdit, initialAmount, searchParams]);
+
+  const hasPrefill = !isEdit && (prefillCategoryId !== null || prefillAmount !== '');
+
+  const categoriesQuery = useCategories();
+  const tagsQuery = useTags();
+  const walletsQuery = useWalletDetails();
+  const budgetsQuery = useBudgets();
+  const { starters, ready: startersReady } = useBudgetStarters();
+
+  const createBudget = useCreateBudget();
+  const updateBudget = useUpdateBudget();
+  const deleteBudget = useDeleteBudget();
+
+  const categories = categoriesQuery.data?.categories ?? [];
+  const tags = tagsQuery.data?.tags ?? [];
+  const allWallets = walletsQuery.data?.wallets ?? [];
+  const existingBudgets = budgetsQuery.data?.budgets ?? [];
+
+  const activeWallets = useMemo(
+    () => allWallets.filter((w) => !w.archived),
+    [allWallets],
+  );
+
+  const availableCurrencies = useMemo(() => {
+    const seen = new Set<CurrencyCode>();
+    for (const w of activeWallets) {
+      seen.add(w.currency);
+    }
+    return Array.from(seen);
+  }, [activeWallets]);
+
+  const defaultCurrency: CurrencyCode = useMemo(() => {
+    if (availableCurrencies.length === 1) return availableCurrencies[0]!;
+    if (availableCurrencies.length === 0 || availableCurrencies.includes('VND')) return 'VND';
+    return availableCurrencies[0]!;
+  }, [availableCurrencies]);
+
+  const showCurrencyPicker = !isEdit && availableCurrencies.length > 1;
+
+  const nameId = useId();
+  const amountId = useId();
+  const amountErrorId = useId();
+  const monthStartDayId = useId();
+  const fromDateId = useId();
+  const toDateId = useId();
+  const walletsGroupId = useId();
+
+  const [targetKind, setTargetKind] = useState<'category' | 'tag'>('category');
+  const [categoryId, setCategoryId] = useState<string | null>(() => prefillCategoryId);
+  const [tagId, setTagId] = useState<string | null>(null);
+  const [name, setName] = useState(() => budget?.name ?? '');
+  const [nameDirty, setNameDirty] = useState(() => Boolean(budget));
+  const [amountText, setAmountText] = useState(() => {
+    if (budget) {
+      const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
+      return formatEditAmountInput(limitFor(budget, curPeriod), budget.currency);
+    }
+    return prefillAmount;
+  });
+  const [currency, setCurrency] = useState<CurrencyCode>(() => budget?.currency ?? 'VND');
+  const [currencyTouched, setCurrencyTouched] = useState(() => Boolean(budget));
+  const [excludedWalletIds, setExcludedWalletIds] = useState<string[]>(() =>
+    budget ? [...budget.excludedWalletIds] : [],
+  );
+  const [walletsTouched, setWalletsTouched] = useState(() => Boolean(budget));
+  const [periodKind, setPeriodKind] = useState<BudgetPeriodKind>('month');
+  const [monthStartDayText, setMonthStartDayText] = useState('1');
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState('');
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const [choseCustom, setChoseCustom] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [starterAmounts, setStarterAmounts] = useState<Record<string, string>>({});
+  const [pendingStarterId, setPendingStarterId] = useState<string | null>(null);
+  const [lastAttemptedName, setLastAttemptedName] = useState('');
+  const submittingRef = useRef(false);
+
+  const resetMutationsRef = useRef(() => {
+    createBudget.reset();
+    updateBudget.reset();
+    deleteBudget.reset();
+  });
+  resetMutationsRef.current = () => {
+    createBudget.reset();
+    updateBudget.reset();
+    deleteBudget.reset();
+  };
+
+  const prevOpenRef = useRef(open);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      if (budget) {
+        const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
+        const curLimit = limitFor(budget, curPeriod);
+        setName(budget.name);
+        setNameDirty(true);
+        setAmountText(formatEditAmountInput(curLimit, budget.currency));
+        setCurrency(budget.currency);
+        setCurrencyTouched(true);
+        setExcludedWalletIds([...budget.excludedWalletIds]);
+        setWalletsTouched(true);
+        setConfirmDeleteOpen(false);
+      } else {
+        setTargetKind('category');
+        setCategoryId(prefillCategoryId);
+        setTagId(null);
+        setName('');
+        setNameDirty(false);
+        setAmountText(prefillAmount);
+        setCurrency(defaultCurrency);
+        setCurrencyTouched(false);
+        setExcludedWalletIds(defaultExcludedFor(activeWallets, defaultCurrency));
+        setWalletsTouched(false);
+        setPeriodKind('month');
+        setMonthStartDayText('1');
+        setFromDate(today);
+        setToDate('');
+        setConfirmDeleteOpen(false);
+        setChoseCustom(false);
+        setAdvancedOpen(false);
+        setStarterAmounts({});
+        setPendingStarterId(null);
+        setLastAttemptedName('');
+      }
+      submittingRef.current = false;
+      resetMutationsRef.current();
+    }
+    prevOpenRef.current = open;
+  }, [open, budget, today, defaultCurrency, activeWallets, prefillCategoryId, prefillAmount]);
+
+  const effectiveCurrency: CurrencyCode = isEdit
+    ? budget!.currency
+    : currencyTouched
+      ? currency
+      : defaultCurrency;
+
+  const currencyWallets = useMemo(
+    () => activeWallets.filter((w) => w.currency === effectiveCurrency),
+    [activeWallets, effectiveCurrency],
+  );
+
+  const effectiveExcludedIds = useMemo(() => {
+    if (isEdit) {
+      return excludedWalletIds;
+    }
+    if (walletsTouched) {
+      const allowed = new Set(currencyWallets.map((w) => w.id));
+      return excludedWalletIds.filter((id) => allowed.has(id));
+    }
+    return defaultExcludedFor(activeWallets, effectiveCurrency);
+  }, [isEdit, walletsTouched, excludedWalletIds, currencyWallets, activeWallets, effectiveCurrency]);
+
+  const effectiveExcludedSet = useMemo(
+    () => new Set(effectiveExcludedIds),
+    [effectiveExcludedIds],
+  );
+
+  const selectedCategory = useMemo(
+    () => (categoryId ? categories.find((c) => c.id === categoryId) ?? null : null),
+    [categories, categoryId],
+  );
+
+  const selectedTag = useMemo(
+    () => (tagId ? tags.find((tg) => tg.id === tagId) ?? null : null),
+    [tags, tagId],
+  );
+
+  const selectedTargetName =
+    targetKind === 'category' ? selectedCategory?.name ?? '' : selectedTag?.name ?? '';
+
+  useEffect(() => {
+    if (!isEdit && !nameDirty && targetKind === 'category' && selectedCategory && name !== selectedCategory.name) {
+      setName(selectedCategory.name);
+    }
+  }, [isEdit, nameDirty, targetKind, selectedCategory, name]);
+
+  const { source: budgetsSource, isPending: budgetsSourcePending } = useBudgetsProgress({
+    enabled: !isEdit && !hasPrefill && !choseCustom,
+  });
+
+  const showStartersLoading =
+    !isEdit &&
+    !hasPrefill &&
+    !choseCustom &&
+    !startersReady &&
+    (budgetsSource === 'pending' || (budgetsSource === 'copy' && budgetsSourcePending));
+
+  const showStarters =
+    !isEdit && !hasPrefill && !choseCustom && startersReady && starters.length > 0;
+
+  const handleSelectCategory = (id: string) => {
+    setCategoryId(id);
+    if (!nameDirty) {
+      const cat = categories.find((c) => c.id === id);
+      if (cat) setName(cat.name);
+    }
+  };
+
+  const handleSelectTag = (tag: TagView) => {
+    setTagId(tag.id);
+    if (!nameDirty) {
+      setName(tag.name);
+    }
+  };
+
+  const handleSwitchTargetKind = (next: 'category' | 'tag') => {
+    if (next === targetKind) return;
+    setTargetKind(next);
+    if (!nameDirty) {
+      if (next === 'category') {
+        setName(selectedCategory?.name ?? '');
+      } else {
+        setName(selectedTag?.name ?? '');
+      }
+    }
+  };
+
+  const handleSelectCurrency = (next: CurrencyCode) => {
+    setCurrency(next);
+    setCurrencyTouched(true);
+    setExcludedWalletIds(defaultExcludedFor(activeWallets, next));
+    setWalletsTouched(false);
+  };
+
+  const handleToggleWallet = (walletId: string, checked: boolean) => {
+    const next = new Set(effectiveExcludedIds);
+    if (checked) {
+      next.delete(walletId);
+    } else {
+      next.add(walletId);
+    }
+    setExcludedWalletIds(Array.from(next));
+    setWalletsTouched(true);
+  };
+
+  const trimmedAmount = amountText.trim();
+  const parsedAmount = trimmedAmount !== '' ? parseMoney(trimmedAmount, effectiveCurrency) : null;
+  const showAmountError = trimmedAmount !== '' && parsedAmount === null;
+
+  const trimmedName = name.trim();
+  const effectiveName = isEdit ? trimmedName : trimmedName || selectedTargetName;
+
+  const parsedMonthStartDay = useMemo(() => {
+    if (periodKind !== 'month') return 1;
+    const raw = monthStartDayText.trim();
+    if (!/^\d+$/.test(raw)) return null;
+    const n = Number(raw);
+    return Number.isInteger(n) && n >= 1 && n <= 31 ? n : null;
+  }, [periodKind, monthStartDayText]);
+
+  const showMonthStartDayError =
+    !isEdit && periodKind === 'month' && parsedMonthStartDay === null;
+
+  const onceDatesValid =
+    periodKind !== 'once' ||
+    (YMD_RE.test(fromDate) && YMD_RE.test(toDate) && fromDate <= toDate);
+
+  const showOnceRangeError =
+    !isEdit &&
+    periodKind === 'once' &&
+    YMD_RE.test(fromDate) &&
+    YMD_RE.test(toDate) &&
+    fromDate > toDate;
+
+  const hasTarget = isEdit || (targetKind === 'category' ? Boolean(categoryId) : Boolean(tagId));
+
+  const existingForTarget = useMemo(() => {
+    if (isEdit) return null;
+    if (targetKind === 'category' && !categoryId) return null;
+    if (targetKind === 'tag' && !tagId) return null;
+    return (
+      existingBudgets.find(
+        (b) =>
+          b.currency === effectiveCurrency &&
+          b.periodKind === periodKind &&
+          ((targetKind === 'category' &&
+            b.target.kind === 'category' &&
+            b.target.categoryId === categoryId) ||
+            (targetKind === 'tag' &&
+              b.target.kind === 'tag' &&
+              b.target.tagId === tagId)),
+      ) ?? null
+    );
+  }, [isEdit, existingBudgets, effectiveCurrency, periodKind, targetKind, categoryId, tagId]);
+
+  const markedCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const b of existingBudgets) {
+      if (
+        b.target.kind === 'category' &&
+        b.currency === effectiveCurrency &&
+        b.periodKind === periodKind
+      ) {
+        ids.add(b.target.categoryId);
+      }
+    }
+    return ids;
+  }, [existingBudgets, effectiveCurrency, periodKind]);
+
+  const canSubmit =
+    hasTarget &&
+    !existingForTarget &&
+    effectiveName.length >= 1 &&
+    effectiveName.length <= 40 &&
+    parsedAmount !== null &&
+    (isEdit || (parsedMonthStartDay !== null && onceDatesValid));
+
+  const isPending = createBudget.isPending || updateBudget.isPending;
+  const activeError = isEdit ? updateBudget.error : createBudget.error;
+
+  const displayError = useMemo(() => {
+    if (!activeError) return null;
+    if (!isEdit && isDuplicateError(activeError)) {
+      const existing = existingBudgets.find(
+        (b) =>
+          b.periodKind === periodKind &&
+          ((targetKind === 'category' &&
+            b.target.kind === 'category' &&
+            b.target.categoryId === categoryId) ||
+            (targetKind === 'tag' &&
+              b.target.kind === 'tag' &&
+              b.target.tagId === tagId)),
+      );
+      const dupName = existing?.name || lastAttemptedName || selectedTargetName || trimmedName;
+      return ownError(t('budgets.duplicateError', { name: dupName }));
+    }
+    return activeError;
+  }, [
+    activeError,
+    isEdit,
+    existingBudgets,
+    periodKind,
+    targetKind,
+    categoryId,
+    tagId,
+    lastAttemptedName,
+    selectedTargetName,
+    trimmedName,
+    t,
+  ]);
+
+  const currentLimit = useMemo(() => {
+    if (!budget) return null;
+    const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
+    return limitFor(budget, curPeriod);
+  }, [budget, today]);
+
+  const handleCreateSuccess = (created: BudgetDef) => {
+    submittingRef.current = false;
+    setPendingStarterId(null);
+    navigate(`/budgets/${encodeURIComponent(created.id)}`, { replace: true });
+    showUndo({
+      message: t('budgets.createdToast', { name: created.name }),
+      actionLabel: t('common.undo'),
+      onAction: () => {
+        void deleteBudget
+          .mutateAsync(created.id)
+          .then(() => {
+            navigate('/budgets', { replace: true });
+          })
+          .catch(() => {});
+      },
+    });
+  };
+
+  const handleStarterCreate = (starter: BudgetStarter) => {
+    if (submittingRef.current || createBudget.isPending) return;
+    const rawText = starterAmounts[starter.categoryId] ?? formatVndInput(starter.suggestedAmount);
+    const parsed = parseMoney(rawText, 'VND');
+    if (parsed === null) return;
+
+    const cat = categories.find((c) => c.id === starter.categoryId);
+    const starterName = cat?.name ?? starter.categoryId;
+
+    submittingRef.current = true;
+    setPendingStarterId(starter.categoryId);
+    setLastAttemptedName(starterName);
+
+    const input: CreateBudgetInput = {
+      name: starterName,
+      target: { kind: 'category', categoryId: starter.categoryId },
+      currency: 'VND',
+      amount: parsed,
+      periodKind: 'month',
+      monthStartDay: 1,
+      excludedWalletIds: defaultExcludedFor(activeWallets, 'VND'),
+      today,
+    };
+
+    createBudget.mutate(input, {
+      onSuccess: (res) => handleCreateSuccess(res.budget),
+      onError: () => {
+        submittingRef.current = false;
+        setPendingStarterId(null);
+      },
+    });
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit || isPending || submittingRef.current || parsedAmount === null) return;
+
+    if (budget) {
+      updateBudget.mutate(
+        {
+          id: budget.id,
+          input: {
+            name: effectiveName,
+            ...(parsedAmount !== currentLimit ? { amount: parsedAmount } : {}),
+            excludedWalletIds: effectiveExcludedIds,
+            today,
+          },
+        },
+        { onSuccess: onClose },
+      );
+      return;
+    }
+
+    const target =
+      targetKind === 'category'
+        ? ({ kind: 'category', categoryId: categoryId! } as const)
+        : ({ kind: 'tag', tagId: tagId! } as const);
+
+    const input: CreateBudgetInput = {
+      name: effectiveName,
+      target,
+      currency: effectiveCurrency,
+      amount: parsedAmount,
+      periodKind,
+      ...(periodKind === 'month' ? { monthStartDay: parsedMonthStartDay ?? 1 } : {}),
+      ...(periodKind === 'once' ? { from: fromDate, to: toDate } : {}),
+      excludedWalletIds: effectiveExcludedIds,
+      today,
+    };
+
+    submittingRef.current = true;
+    setLastAttemptedName(effectiveName);
+
+    createBudget.mutate(input, {
+      onSuccess: (res) => handleCreateSuccess(res.budget),
+      onError: () => {
+        submittingRef.current = false;
+      },
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!budget || deleteBudget.isPending) return;
+    deleteBudget.mutate(budget.id, {
+      onSuccess: () => {
+        setConfirmDeleteOpen(false);
+        navigate('/budgets', { replace: true });
+      },
+    });
+  };
+
+  const periodLabel = (kind: BudgetPeriodKind): string => {
+    switch (kind) {
+      case 'week':
+        return t('budgets.periodWeek');
+      case 'month':
+        return t('budgets.periodMonth');
+      case 'year':
+        return t('budgets.periodYear');
+      case 'once':
+        return t('budgets.periodOnce');
+    }
+  };
+
+  const includedWalletCount = currencyWallets.filter(
+    (w) => !effectiveExcludedSet.has(w.id),
+  ).length;
+  const walletsSummary =
+    includedWalletCount === currencyWallets.length
+      ? t('budgets.defaultsAllWallets', {
+          symbol: effectiveCurrency,
+        })
+      : t('budgets.defaultsSomeWallets', { n: includedWalletCount });
+  const defaultsSummary = [
+    periodLabel(periodKind),
+    ...(periodKind === 'month'
+      ? [t('budgets.defaultsFromDay', { day: parsedMonthStartDay ?? 1 })]
+      : []),
+    walletsSummary,
+  ].join(' · ');
+
+  return (
+    <>
+      <Sheet
+        open={open}
+        onClose={onClose}
+        title={isEdit ? t('budgets.edit') : t('budgets.add')}
+      >
+        {showStartersLoading ? (
+          <div
+            className="fsl-budget-starters flex flex-col gap-4"
+            data-testid="budget-starters-loading"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <Skeleton width="55%" height={16} radius="sm" />
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {[0, 1, 2].map((idx) => (
+                <div key={idx} className="p-3.5 flex flex-col gap-2.5">
+                  <div className="flex items-center gap-3">
+                    <Skeleton width={40} height={40} radius="pill" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <Skeleton width="45%" height={14} radius="sm" />
+                      <Skeleton width="35%" height={12} radius="sm" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton height={44} radius="xl" className="flex-1" />
+                    <Skeleton width={72} height={44} radius="xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : showStarters ? (
+          <div className="fsl-budget-starters flex flex-col gap-4" data-testid="budget-starters">
+            <p className="m-0 text-sm font-semibold text-muted-foreground">
+              {t('budgets.starterHeading')}
+            </p>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {starters.map((starter, idx) => {
+                const cat = categories.find((c) => c.id === starter.categoryId);
+                const catName = cat?.name ?? starter.categoryId;
+                const catIcon = categoryIconName(cat?.icon, cat?.type ?? 'expense');
+                const rawText =
+                  starterAmounts[starter.categoryId] ?? formatVndInput(starter.suggestedAmount);
+                const trimmed = rawText.trim();
+                const parsed = trimmed !== '' ? parseMoney(trimmed, 'VND') : null;
+                const showRowError = trimmed !== '' && parsed === null;
+                const isRowPending =
+                  createBudget.isPending && pendingStarterId === starter.categoryId;
+
+                return (
+                  <div
+                    key={starter.categoryId}
+                    data-testid={`budget-starter-row-${starter.categoryId}`}
+                    className="p-3.5 flex flex-col gap-2.5"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="size-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                        <Icon name={catIcon} size={20} />
+                      </span>
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-sm font-semibold text-foreground truncate">
+                          {catName}
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {t('budgets.starterLastMonth', {
+                            amount: formatMoney(starter.lastMonthSpent, 'VND'),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1 min-w-0">
+                        <Input
+                          type="text"
+                          inputMode="text"
+                          autoComplete="off"
+                          aria-label={t('budgets.starterAmountAria', { name: catName })}
+                          data-testid={`budget-starter-amount-${starter.categoryId}`}
+                          className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums pr-8"
+                          value={rawText}
+                          disabled={createBudget.isPending}
+                          onChange={(e) =>
+                            setStarterAmounts((prev) => ({
+                              ...prev,
+                              [starter.categoryId]: e.target.value,
+                            }))
+                          }
+                        />
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground"
+                        >
+                          ₫
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant={idx === 0 ? 'primary' : 'secondary'}
+                        loading={isRowPending}
+                        disabled={createBudget.isPending || parsed === null}
+                        data-testid={`budget-starter-set-${starter.categoryId}`}
+                        aria-label={t('budgets.starterSetAria', { name: catName })}
+                        onClick={() => handleStarterCreate(starter)}
+                        className="shrink-0"
+                      >
+                        {t('budgets.starterSet')}
+                      </Button>
+                    </div>
+
+                    {showRowError && (
+                      <div role="alert" className="fsl-field-error text-sm text-danger">
+                        {t('expenseForm.amountInvalid')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {displayError && <InlineError error={displayError} />}
+
+            <Button
+              type="button"
+              variant="ghost"
+              block
+              disabled={createBudget.isPending}
+              data-testid="budget-starters-other"
+              onClick={() => setChoseCustom(true)}
+            >
+              {t('budgets.starterPickOther')}
+            </Button>
+          </div>
+        ) : (
+        <form
+          className="fsl-budget-form flex flex-col gap-4"
+          data-testid="budget-form"
+          noValidate
+          onSubmit={handleSubmit}
+        >
+          {/* Create-only: What (Category or Tag) */}
+          {!isEdit && (
+            <div className="fsl-field flex flex-col gap-2">
+              <Label className="text-sm font-semibold text-muted-foreground">
+                {t('budgets.formWhat')}
+              </Label>
+              <div
+                className="grid grid-cols-2 gap-2"
+                role="group"
+                aria-label={t('budgets.formWhat')}
+              >
+                {(['category', 'tag'] as const).map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    data-testid={`budget-form-target-${kind}`}
+                    aria-pressed={targetKind === kind}
+                    onClick={() => handleSwitchTargetKind(kind)}
+                    className={cn(
+                      'min-h-11 rounded-xl border px-3 text-sm font-semibold transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      targetKind === kind
+                        ? 'border-primary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-foreground hover:bg-muted',
+                    )}
+                  >
+                    {kind === 'category'
+                      ? t('budgets.targetCategory')
+                      : t('budgets.targetTag')}
+                  </button>
+                ))}
+              </div>
+
+              {targetKind === 'category' ? (
+                <div>
+                  <CategoryPicker
+                    type="expense"
+                    categories={categories}
+                    recentIds={[]}
+                    value={categoryId}
+                    onChange={handleSelectCategory}
+                    markedIds={markedCategoryIds}
+                    markedLabel={t('budgets.alreadySet')}
+                  />
+                </div>
+              ) : (
+                <div
+                  data-testid="budget-form-tag-list"
+                  className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden"
+                >
+                  {tags.length === 0 ? (
+                    <p className="m-0 px-3.5 py-3 text-sm text-muted-foreground">
+                      {t('budgets.noTags')}
+                    </p>
+                  ) : (
+                    tags.map((tag) => {
+                      const selected = tagId === tag.id;
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          data-testid={`budget-form-tag-${tag.id}`}
+                          aria-pressed={selected}
+                          onClick={() => handleSelectTag(tag)}
+                          className={cn(
+                            'w-full min-h-11 px-3.5 py-2.5 flex items-center gap-3 text-left text-base cursor-pointer bg-transparent border-0 hover:bg-muted transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                            selected
+                              ? 'text-primary font-semibold'
+                              : 'text-foreground font-medium',
+                          )}
+                        >
+                          <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
+                            <Icon name="tag" size={16} />
+                          </span>
+                          <span className="flex-1 truncate">{tag.name}</span>
+                          {selected && (
+                            <Icon name="check" size={18} className="text-primary shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {existingForTarget && (
+                <div
+                  data-testid="budget-form-existing"
+                  className="rounded-xl bg-secondary text-secondary-foreground px-4 py-3 text-sm flex flex-col gap-2.5"
+                >
+                  <p className="m-0">
+                    {t('budgets.existingNote', { name: existingForTarget.name })}
+                  </p>
+                  <div>
+                    <Button
+                      variant="primary"
+                      href={`/budgets/${encodeURIComponent(existingForTarget.id)}`}
+                      data-testid="budget-form-view-existing"
+                      onClick={() => onClose()}
+                    >
+                      {t('budgets.viewExisting')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Edit-only: Name first (or Create: Name at bottom — spec §4.3 puts name after period on create, and edit shows name, amount, wallets) */}
+          {isEdit && (
+            <div className="fsl-field flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label
+                  htmlFor={nameId}
+                  className="text-sm font-semibold text-muted-foreground"
+                >
+                  {t('budgets.formName')}
+                </Label>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {`${name.length}/40`}
+                </span>
+              </div>
+              <Input
+                id={nameId}
+                data-testid="budget-form-name"
+                maxLength={40}
+                autoComplete="off"
+                className="fsl-input text-base min-h-11"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameDirty(true);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Amount */}
+          <div className="fsl-field flex flex-col gap-1.5">
+            <Label
+              htmlFor={amountId}
+              className="text-sm font-semibold text-muted-foreground"
+            >
+              {t('budgets.formAmount')}
+            </Label>
+            <div className="relative">
+              <Input
+                id={amountId}
+                data-testid="budget-form-amount"
+                type="text"
+                inputMode="text"
+                autoComplete="off"
+                placeholder={t('budgets.amountPlaceholder')}
+                className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums pr-8 placeholder:font-normal placeholder:text-muted-foreground"
+                aria-describedby={showAmountError ? amountErrorId : undefined}
+                value={amountText}
+                onChange={(e) => setAmountText(e.target.value)}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground"
+              >
+                {CURRENCIES[effectiveCurrency].symbol}
+              </span>
+            </div>
+            {trimmedAmount !== '' && parsedAmount !== null && (
+              <div
+                data-testid="budget-form-amount-preview"
+                className="text-sm font-semibold tabular-nums text-muted-foreground"
+              >
+                {formatMoney(parsedAmount, effectiveCurrency)}
+              </div>
+            )}
+            {showAmountError && (
+              <div
+                id={amountErrorId}
+                role="alert"
+                className="fsl-field-error text-sm text-danger"
+              >
+                {t('expenseForm.amountInvalid')}
+              </div>
+            )}
+          </div>
+
+          {/* Create-only: "Thêm tuỳ chọn" collapsible toggle for period, currency, wallets, name */}
+          {!isEdit && (
+            <button
+              type="button"
+              data-testid="budget-form-more-options"
+              aria-expanded={advancedOpen}
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="flex items-center justify-between gap-2 min-h-11 px-1 py-1.5 text-left text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+            >
+              <span className="flex flex-col min-w-0">
+                <span>{t('budgets.moreOptions')}</span>
+                {!advancedOpen && (
+                  <span
+                    data-testid="budget-form-defaults"
+                    className="text-xs font-normal text-muted-foreground"
+                  >
+                    {defaultsSummary}
+                  </span>
+                )}
+              </span>
+              <Icon
+                name={advancedOpen ? 'chevronUp' : 'chevronDown'}
+                size={18}
+                className="shrink-0"
+              />
+            </button>
+          )}
+
+          {/* Create-only: Currency (only when >1 currency exists across active wallets, inside "Thêm tuỳ chọn") */}
+          {showCurrencyPicker && advancedOpen && (
+            <div className="fsl-field flex flex-col gap-1.5" data-testid="budget-form-currency">
+              <Label className="text-sm font-semibold text-muted-foreground">
+                {t('budgets.formCurrency')}
+              </Label>
+              <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+                {availableCurrencies.map((code) => {
+                  const info = CURRENCIES[code];
+                  const selected = effectiveCurrency === code;
+                  const cName = lang === 'vi' ? info.nameVi : info.nameEn;
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      data-testid={`budget-form-currency-${code}`}
+                      aria-pressed={selected}
+                      onClick={() => handleSelectCurrency(code)}
+                      className={cn(
+                        'w-full min-h-11 px-3.5 py-2.5 flex items-center gap-3 text-left cursor-pointer bg-transparent border-0 hover:bg-muted transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                        selected && 'bg-secondary/40',
+                      )}
+                    >
+                      <CurrencyBadge code={code} size="sm" selected={selected} />
+                      <span className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-sm font-semibold text-foreground truncate">
+                          {cName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {`${code} · ${info.symbol}`}
+                        </span>
+                      </span>
+                      {selected && (
+                        <Icon name="check" size={18} className="text-primary shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Wallets (always in edit mode; under "Thêm tuỳ chọn" in create mode) */}
+          {(isEdit || advancedOpen) && (
+          <div className="fsl-field flex flex-col gap-1.5" data-testid="budget-form-wallets">
+            <Label className="text-sm font-semibold text-muted-foreground">
+              {t('budgets.formWallets')}
+            </Label>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {currencyWallets.length === 0 ? (
+                <p className="m-0 px-3.5 py-3 text-sm text-muted-foreground">
+                  {t('budgets.noWallets')}
+                </p>
+              ) : (
+                currencyWallets.map((w) => {
+                  const checked = !effectiveExcludedSet.has(w.id);
+                  const checkboxId = `${walletsGroupId}-${w.id}`;
+                  return (
+                    <Label
+                      key={w.id}
+                      htmlFor={checkboxId}
+                      data-testid={`budget-form-wallet-${w.id}`}
+                      className="min-h-11 px-3.5 py-2.5 flex items-center gap-3 font-normal cursor-pointer hover:bg-muted transition-colors motion-reduce:transition-none"
+                    >
+                      <Checkbox
+                        id={checkboxId}
+                        data-testid={`budget-form-wallet-check-${w.id}`}
+                        checked={checked}
+                        onCheckedChange={(next) => handleToggleWallet(w.id, next === true)}
+                      />
+                      <WalletIcon icon={w.icon} size="xs" />
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {w.name}
+                        </span>
+                        {w.excludeFromReports && (
+                          <span className="text-xs text-muted-foreground">
+                            {t('budgets.walletExcludedHint')}
+                          </span>
+                        )}
+                      </div>
+                    </Label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          )}
+
+          {/* Edit-only: Period (read-only) */}
+          {isEdit && budget && (
+            <div
+              className="fsl-field flex flex-col gap-1"
+              data-testid="budget-form-period-readonly"
+            >
+              <Label className="text-sm font-semibold text-muted-foreground">
+                {t('budgets.formPeriod')}
+              </Label>
+              <div className="text-base text-foreground">
+                {budget.periodKind === 'month'
+                  ? `${periodLabel(budget.periodKind)} · ${t('budgets.defaultsFromDay', {
+                      day: budget.monthStartDay ?? 1,
+                    })}`
+                  : periodLabel(budget.periodKind)}
+              </div>
+              <p className="m-0 text-xs text-muted-foreground">
+                {t('budgets.periodLockedHint')}
+              </p>
+            </div>
+          )}
+
+          {/* Create-only: Period (under "Thêm tuỳ chọn") */}
+          {!isEdit && advancedOpen && (
+            <div className="fsl-field flex flex-col gap-2" data-testid="budget-form-period">
+              <Label className="text-sm font-semibold text-muted-foreground">
+                {t('budgets.formPeriod')}
+              </Label>
+              <div
+                className="grid grid-cols-2 gap-2"
+                role="group"
+                aria-label={t('budgets.formPeriod')}
+              >
+                {PERIOD_OPTIONS.map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    data-testid={`budget-form-period-${kind}`}
+                    aria-pressed={periodKind === kind}
+                    onClick={() => setPeriodKind(kind)}
+                    className={cn(
+                      'min-h-11 rounded-xl border px-3 text-sm font-semibold transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      periodKind === kind
+                        ? 'border-primary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-foreground hover:bg-muted',
+                    )}
+                  >
+                    {periodLabel(kind)}
+                  </button>
+                ))}
+              </div>
+
+              {periodKind === 'month' && (
+                <div className="rounded-xl border border-border bg-card px-3.5 py-3 flex flex-col gap-1.5">
+                  <Label
+                    htmlFor={monthStartDayId}
+                    className="text-sm font-semibold text-muted-foreground"
+                  >
+                    {t('budgets.monthStartDay')}
+                  </Label>
+                  <Input
+                    id={monthStartDayId}
+                    data-testid="budget-form-month-start-day"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={31}
+                    className="fsl-input text-base min-h-11 tabular-nums"
+                    value={monthStartDayText}
+                    onChange={(e) => setMonthStartDayText(e.target.value)}
+                  />
+                  {showMonthStartDayError && (
+                    <div role="alert" className="text-sm text-danger">
+                      {t('budgets.monthStartDayError')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {periodKind === 'once' && (
+                <div className="rounded-xl border border-border bg-card px-3.5 py-3 flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="flex flex-col gap-1">
+                      <Label
+                        htmlFor={fromDateId}
+                        className="text-sm font-semibold text-muted-foreground"
+                      >
+                        {t('transactions.fromDate')}
+                      </Label>
+                      <Input
+                        id={fromDateId}
+                        data-testid="budget-form-from"
+                        type="date"
+                        className="fsl-input text-base min-h-11 tabular-nums"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label
+                        htmlFor={toDateId}
+                        className="text-sm font-semibold text-muted-foreground"
+                      >
+                        {t('transactions.toDate')}
+                      </Label>
+                      <Input
+                        id={toDateId}
+                        data-testid="budget-form-to"
+                        type="date"
+                        className="fsl-input text-base min-h-11 tabular-nums"
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {showOnceRangeError && (
+                    <div
+                      role="alert"
+                      data-testid="budget-form-range-error"
+                      className="text-sm text-danger"
+                    >
+                      {t('transactions.rangeFromAfterTo')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Create-only: Name (defaults to target name; under "Thêm tuỳ chọn") */}
+          {!isEdit && advancedOpen && (
+            <div className="fsl-field flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label
+                  htmlFor={nameId}
+                  className="text-sm font-semibold text-muted-foreground"
+                >
+                  {t('budgets.formName')}
+                </Label>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {`${name.length}/40`}
+                </span>
+              </div>
+              <Input
+                id={nameId}
+                data-testid="budget-form-name"
+                maxLength={40}
+                autoComplete="off"
+                placeholder={t('budgets.formNamePlaceholder')}
+                className="fsl-input text-base min-h-11"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameDirty(e.target.value.trim().length > 0);
+                }}
+              />
+            </div>
+          )}
+
+          {displayError && <InlineError error={displayError} />}
+
+          <Button
+            type="submit"
+            variant="primary"
+            block
+            loading={isPending}
+            disabled={!canSubmit || isPending}
+            data-testid="budget-form-submit"
+          >
+            {t('budgets.save')}
+          </Button>
+
+          {!isEdit && !canSubmit && !isPending && (() => {
+            const missingText = !hasTarget
+              ? t('budgets.missingTarget')
+              : existingForTarget
+                ? null
+                : parsedAmount === null
+                  ? t('budgets.missingAmount')
+                  : null;
+            return missingText ? (
+              <p
+                data-testid="budget-form-missing"
+                className="m-0 text-sm text-muted-foreground text-center"
+              >
+                {missingText}
+              </p>
+            ) : null;
+          })()}
+
+          {isEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              block
+              data-testid="budget-form-remove"
+              className="text-danger border border-danger/30 hover:bg-danger-soft/50"
+              onClick={() => setConfirmDeleteOpen(true)}
+            >
+              {t('budgets.remove')}
+            </Button>
+          )}
+        </form>
+        )}
+      </Sheet>
+
+      {isEdit && (
+        <Sheet
+          open={confirmDeleteOpen}
+          onClose={() => setConfirmDeleteOpen(false)}
+          title={t('budgets.remove')}
+        >
+          <div className="flex flex-col gap-4" data-testid="budget-remove-confirm-sheet">
+            <p className="m-0 text-sm text-foreground leading-relaxed">
+              {t('budgets.removeConfirm')}
+            </p>
+            {deleteBudget.error && <InlineError error={deleteBudget.error} />}
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="danger"
+                block
+                loading={deleteBudget.isPending}
+                data-testid="budget-form-remove-confirm"
+                onClick={handleConfirmDelete}
+              >
+                {t('budgets.remove')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                block
+                disabled={deleteBudget.isPending}
+                data-testid="budget-form-remove-cancel"
+                onClick={() => setConfirmDeleteOpen(false)}
+              >
+                {t('common.cancel')}
+              </Button>
+            </div>
+          </div>
+        </Sheet>
+      )}
+    </>
+  );
+}

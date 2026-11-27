@@ -108,7 +108,7 @@ export function buildReportQueryString(query: ReportQuery, today?: string): stri
   return params.toString();
 }
 
-function hydrateEntryView(
+export function hydrateEntryView(
   r: SyncEntryRow,
   walletById: Map<string, WalletDetailView>,
   tagNameById: Map<string, string>,

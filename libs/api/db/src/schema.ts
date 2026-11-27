@@ -961,3 +961,64 @@ export const tripBalanceCache = sqliteTable('trip_balance_cache', {
   oldestSharedJson: text('oldest_shared_json').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+/** Personal spending budgets (0037, #116). */
+export const personalBudgets = sqliteTable(
+  'personal_budgets',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    targetKind: text('target_kind', { enum: ['category', 'tag'] }).notNull(),
+    targetId: text('target_id').notNull(),
+    currency: text('currency').notNull(),
+    periodKind: text('period_kind', { enum: ['week', 'month', 'year', 'once'] }).notNull(),
+    monthStartDay: integer('month_start_day'),
+    fromDate: text('from_date'),
+    toDate: text('to_date'),
+    suggestionDismissedUntil: text('suggestion_dismissed_until'),
+    createdOn: text('created_on').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    index('personal_budgets_user_idx').on(t.userId),
+    uniqueIndex('personal_budgets_target_period_uq')
+      .on(t.userId, t.targetKind, t.targetId, t.periodKind, t.currency)
+      .where(sql`${t.periodKind} <> 'once'`),
+    check('personal_budgets_target_kind_check', sql`${t.targetKind} IN ('category', 'tag')`),
+    check(
+      'personal_budgets_period_kind_check',
+      sql`${t.periodKind} IN ('week', 'month', 'year', 'once')`,
+    ),
+  ],
+);
+
+/** Per-period limit history for personal budgets (0037, #116). */
+export const personalBudgetLimits = sqliteTable(
+  'personal_budget_limits',
+  {
+    budgetId: text('budget_id')
+      .notNull()
+      .references(() => personalBudgets.id, { onDelete: 'cascade' }),
+    effectiveFrom: text('effective_from').notNull(),
+    amount: integer('amount').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.budgetId, t.effectiveFrom] })],
+);
+
+/** Wallets unticked from a personal budget (0037, #116). */
+export const personalBudgetExcludedWallets = sqliteTable(
+  'personal_budget_excluded_wallets',
+  {
+    budgetId: text('budget_id')
+      .notNull()
+      .references(() => personalBudgets.id, { onDelete: 'cascade' }),
+    walletId: text('wallet_id')
+      .notNull()
+      .references(() => personalWallets.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.budgetId, t.walletId] })],
+);

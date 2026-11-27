@@ -21,6 +21,7 @@ export type ApiErrorCode =
   | 'BOTH_SIGNED_IN'
   | 'PROPOSAL_PENDING'
   | 'CONFLICT'
+  | 'DUPLICATE'
   | 'ZALO_TOKEN_INVALID'
   | 'IN_USE'
   | 'FIXED_CATEGORY'
@@ -109,6 +110,8 @@ import type { CurrencyCode } from './currency';
 import type { PersonalEntryType } from './wallets';
 import type { GroupRow } from './groupShares';
 import type { WalletOverride } from './visibility';
+import type { BudgetDef, BudgetPeriodKind, BudgetTarget } from './budgets';
+import type { CountedSpendRow } from './reports';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -958,5 +961,40 @@ export interface SyncResponse {
   cursor: SyncCursor | null;
   ledger: { version: number; rows: SyncLedgerRow[] } | null;
   groups?: { key: string; rows: GroupRow[] } | null;
+}
+
+export type BudgetView = BudgetDef;
+
+export interface BudgetsResponse {
+  budgets: BudgetView[];
+}
+
+export interface BudgetResponse {
+  budget: BudgetView;
+}
+
+export interface CreateBudgetInput {
+  name?: string;
+  target: BudgetTarget;
+  currency: CurrencyCode;
+  amount: number;
+  periodKind: BudgetPeriodKind;
+  monthStartDay?: number;
+  from?: string;
+  to?: string;
+  excludedWalletIds: string[];
+  today: string;
+}
+
+export interface UpdateBudgetInput {
+  name?: string;
+  amount?: number;
+  excludedWalletIds?: string[];
+  dismissSuggestion?: boolean;
+  today: string;
+}
+
+export interface BudgetsProgressResponse {
+  rows: CountedSpendRow[];
 }
 

@@ -38,6 +38,7 @@ import { GroupRowSheet } from "../components/GroupRowSheet";
 import { TransactionRow } from "../components/TransactionRow";
 import { WalletPie } from "../components/WalletPie";
 import { PersonalSettingsMenu } from "../components/PersonalSettingsMenu";
+import { BookBudgets } from "../components/budgets/BookBudgets";
 
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
@@ -393,6 +394,7 @@ function BookSummary({ hasWallet = false }: { hasWallet?: boolean }): JSX.Elemen
     <>
       <BookTotal />
       <BookPeople hasWallet={hasWallet} />
+      <BookBudgets show={hasWallet} />
       <BookRecent limit={5} />
     </>
   );
@@ -419,6 +421,7 @@ export function MainScreen({ book }: { book: boolean }): JSX.Element {
         book && wide ? (
           <>
             <BookTotal />
+            <BookBudgets show={hasWallet} />
             <BookRecent limit={8} />
           </>
         ) : undefined

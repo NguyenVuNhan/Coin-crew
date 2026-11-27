@@ -1,6 +1,7 @@
 import { useId, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { useT } from '@cc/web-i18n';
+import { useBudgets } from '@cc/web-data-access/budgets';
 import {
   useCategories,
   useGroupSettings,
@@ -19,6 +20,7 @@ interface NavSettingItem {
   label: string;
   icon: IconName;
   to: string;
+  count?: number;
 }
 
 export function PersonalSettingsMenu(): JSX.Element {
@@ -35,7 +37,9 @@ export function PersonalSettingsMenu(): JSX.Element {
 
   const groupSettingsQuery = useGroupSettings({ enabled: open });
   const categoriesQuery = useCategories({ enabled: open || catOpen });
+  const budgetsQuery = useBudgets({ enabled: open });
   const updateGroupSettings = useUpdateGroupSettings();
+  const budgetsCount = budgetsQuery.data?.budgets.length ?? 0;
 
   const categories = categoriesQuery.data?.categories ?? [];
   const savedCategoryId = groupSettingsQuery.data?.settings.defaultGroupCategoryId ?? null;
@@ -81,6 +85,13 @@ export function PersonalSettingsMenu(): JSX.Element {
       label: t('personalSettings.tags'),
       icon: 'receipt',
       to: '/personal/tags',
+    },
+    {
+      id: 'budgets',
+      label: t('personalSettings.budgets'),
+      icon: 'piggy-bank',
+      to: '/budgets',
+      count: budgetsCount > 0 ? budgetsCount : undefined,
     },
   ];
 
@@ -132,6 +143,7 @@ export function PersonalSettingsMenu(): JSX.Element {
             <button
               key={item.id}
               type="button"
+              data-testid={`personal-settings-${item.id}`}
               className="fsl-action-sheet__action fsl-action-sheet__action--default flex items-center justify-between gap-3 w-full min-h-12 px-4 py-3 text-left font-medium text-base text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none cursor-pointer bg-transparent border-0"
               onClick={() => {
                 setOpen(false);
@@ -142,7 +154,17 @@ export function PersonalSettingsMenu(): JSX.Element {
                 <Icon name={item.icon} size={20} className="shrink-0" />
                 <span className="truncate">{item.label}</span>
               </span>
-              <Icon name="chevronRight" size={20} className="text-muted-foreground shrink-0" />
+              <span className="inline-flex items-center gap-1 shrink-0">
+                {item.count !== undefined && (
+                  <span
+                    data-testid={`personal-settings-${item.id}-count`}
+                    className="text-sm text-muted-foreground tabular-nums"
+                  >
+                    {item.count}
+                  </span>
+                )}
+                <Icon name="chevronRight" size={20} className="text-muted-foreground shrink-0" />
+              </span>
             </button>
           ))}
 
