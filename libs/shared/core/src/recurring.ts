@@ -397,3 +397,79 @@ export function upcomingOccurrences(
 
   return items;
 }
+
+export interface RepeatCandidateRow {
+  date: string;
+  amount: number;
+}
+
+function isWithin10Percent(amount: number, reference: number): boolean {
+  return Math.abs(amount - reference) * 10 <= reference;
+}
+
+/** rows: same user, type, category and wallet, last 100 days, including the new one. */
+export function detectRepeat(
+  rows: RepeatCandidateRow[],
+  latest: RepeatCandidateRow,
+): { schedule: RecurringSchedule; amount: number } | null {
+  if (latest.amount <= 0) return null;
+
+  const matching = rows.filter((r) => isWithin10Percent(r.amount, latest.amount));
+  const [ly, lm, ld] = parseYmd(latest.date);
+
+  // Monthly: one row in each of the last 3 calendar months (including the latest's)
+  // within ±3 days of the latest's day.
+  let monthlyMatch = true;
+  for (let delta = 0; delta >= -2; delta--) {
+    const [ty, tm] = shiftYearMonth(ly, lm, delta);
+    const targetDay = Math.min(ld, daysInMonthUtc(ty, tm));
+    const found = matching.some((r) => {
+      const [ry, rm, rd] = parseYmd(r.date);
+      return ry === ty && rm === tm && Math.abs(rd - targetDay) <= 3;
+    });
+    if (!found) {
+      monthlyMatch = false;
+      break;
+    }
+  }
+
+  if (monthlyMatch) {
+    const [nextY, nextM] = shiftYearMonth(ly, lm, 1);
+    const nextDay = Math.min(ld, daysInMonthUtc(nextY, nextM));
+    return {
+      schedule: {
+        unit: 'month',
+        every: 1,
+        monthDay: ld,
+        startDate: formatYmd(nextY, nextM, nextDay),
+        end: { kind: 'never' },
+      },
+      amount: latest.amount,
+    };
+  }
+
+  // Weekly: one row on the latest's weekday in each of the last 4 weeks.
+  const matchingDates = new Set(matching.map((r) => r.date));
+  let weeklyMatch = true;
+  for (let w = 0; w < 4; w++) {
+    if (!matchingDates.has(addDaysUtc(latest.date, -7 * w))) {
+      weeklyMatch = false;
+      break;
+    }
+  }
+
+  if (weeklyMatch) {
+    return {
+      schedule: {
+        unit: 'week',
+        every: 1,
+        weekdays: [isoWeekdayUtc(latest.date)],
+        startDate: addDaysUtc(latest.date, 7),
+        end: { kind: 'never' },
+      },
+      amount: latest.amount,
+    };
+  }
+
+  return null;
+}

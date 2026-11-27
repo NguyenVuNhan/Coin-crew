@@ -1,16 +1,23 @@
 import { Hono, type Context } from 'hono';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
-import { personalPlannedItems, personalRecurringRules } from '@cc/api-db/schema';
+import {
+  personalPlannedItems,
+  personalRecurringRules,
+  personalTransactions,
+} from '@cc/api-db/schema';
 import { personalBumpStatement, personalVersionExpr } from '@cc/api-db/personalSync';
 import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError, isDbError } from '@cc/api-util/errors';
+import { newId } from '@cc/api-util/ids';
 import {
+  detectRepeat,
   vnDate,
   type ConfirmPlannedInput,
+  type EntryView,
   type PlannedItemsResponse,
   type PlannedItemView,
   type RecurringDraft,
@@ -300,4 +307,118 @@ export function plannedRoutes(): Hono<AppBindings> {
   });
 
   return app;
+}
+
+function subtractDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, (d ?? 1) - days));
+  const ry = String(dt.getUTCFullYear()).padStart(4, '0');
+  const rm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const rd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${ry}-${rm}-${rd}`;
+}
+
+/** Query cost: <= 3. Suggests a recurring rule when repeated manual entries match a monthly or weekly pattern. */
+export async function maybeSuggestRule(
+  db: Db,
+  userId: string,
+  entry: EntryView,
+  today: string,
+): Promise<void> {
+  if (
+    (entry.type !== 'expense' && entry.type !== 'income') ||
+    !entry.categoryId ||
+    entry.amount <= 0
+  ) {
+    return;
+  }
+
+  const cutoff = subtractDaysYmd(entry.date, 100);
+  const rows = await db
+    .select({
+      date: personalTransactions.date,
+      amount: personalTransactions.amount,
+    })
+    .from(personalTransactions)
+    .where(
+      and(
+        eq(personalTransactions.userId, userId),
+        eq(personalTransactions.type, entry.type),
+        eq(personalTransactions.categoryId, entry.categoryId),
+        eq(personalTransactions.walletId, entry.walletId),
+        gte(personalTransactions.date, cutoff),
+        lte(personalTransactions.date, entry.date),
+      ),
+    )
+    .all();
+
+  const detected = detectRepeat(rows, { date: entry.date, amount: entry.amount });
+  if (!detected) return;
+
+  const existingRules = await db
+    .select({
+      draft: personalRecurringRules.draft,
+    })
+    .from(personalRecurringRules)
+    .where(
+      and(
+        eq(personalRecurringRules.userId, userId),
+        eq(personalRecurringRules.type, entry.type),
+        inArray(personalRecurringRules.status, ['active', 'paused']),
+      ),
+    )
+    .all();
+
+  for (const r of existingRules) {
+    const d = JSON.parse(r.draft) as RecurringDraft;
+    if (
+      d.categoryId === entry.categoryId &&
+      d.walletId === entry.walletId &&
+      Math.abs(d.amount - detected.amount) * 10 <= detected.amount
+    ) {
+      return;
+    }
+  }
+
+  const band = Math.round(Math.log(detected.amount) / Math.log(1.1));
+  const refKey = `${entry.categoryId}:${entry.walletId}:${band}`;
+  const count = detected.schedule.unit === 'month' ? 3 : 4;
+  const draft: RecurringDraft = {
+    type: entry.type,
+    walletId: entry.walletId,
+    categoryId: entry.categoryId,
+    amount: detected.amount,
+    tags: entry.tags,
+    note: entry.note,
+    excludeFromReports: entry.excludeFromReports,
+  };
+  const meta = {
+    pattern: {
+      schedule: detected.schedule,
+      amount: detected.amount,
+      categoryId: entry.categoryId,
+      walletId: entry.walletId,
+      type: entry.type,
+      count,
+    },
+  };
+
+  await db
+    .insert(personalPlannedItems)
+    .values({
+      id: newId(),
+      userId,
+      kind: 'rule_suggestion',
+      refKey,
+      ruleId: null,
+      dueOn: today,
+      draft: JSON.stringify(draft),
+      meta: JSON.stringify(meta),
+      status: 'waiting',
+      transactionId: null,
+      createdOn: today,
+      resolvedAt: null,
+    })
+    .onConflictDoNothing()
+    .run();
 }

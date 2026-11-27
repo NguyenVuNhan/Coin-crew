@@ -51,6 +51,7 @@ import {
   writeEntry,
 } from './entryWrite';
 import { optionalTime, parseJson, requireDate } from './validate';
+import { maybeSuggestRule } from './planned';
 
 async function loadWalletFlagsMap(
   db: Db,
@@ -220,6 +221,14 @@ export function entryRoutes(): Hono<AppBindings> {
       externalRef: null,
       now,
     });
+    const entry = entries[0];
+    if (entry && (entry.type === 'expense' || entry.type === 'income')) {
+      try {
+        await maybeSuggestRule(db, user.id, entry, vnDate(new Date(now)));
+      } catch (err) {
+        console.error('maybeSuggestRule failed', err);
+      }
+    }
     return c.json({ entries }, 201);
   });
 
