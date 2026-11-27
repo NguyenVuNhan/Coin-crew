@@ -16,8 +16,8 @@ import {
   personalTravelShareMarks,
   personalTravels,
   personalWalletOptions,
+  personalWalletSettings,
   personalWallets,
-  transactions,
   trips,
 } from '@cc/api-db/schema';
 import { commitPersonalWrite } from '@cc/api-db/personalSync';
@@ -43,9 +43,10 @@ import { loadGroupSettings } from './groupShares';
 import { loadCachedGroupRows } from './tripCache';
 import { parseJson, requireDate } from './validate';
 
-const LINK_UPSERT_CHUNK = 10;
+const LINK_UPSERT_CHUNK = 8;
 const LINK_TAG_CHUNK = 25;
 const MARK_INSERT_CHUNK = 20;
+const MARK_UPDATE_CHUNK = 50;
 const TX_TAG_CHUNK = 30;
 const TX_UPDATE_CHUNK = 50;
 
@@ -260,14 +261,28 @@ async function assertActiveGroups(db: Db, userId: string, groupIds: string[]): P
   }
 }
 
-async function loadDefaultExcludedWalletIds(db: Db, userId: string): Promise<string[]> {
+async function loadDefaultExcludedWalletIds(
+  db: Db,
+  userId: string,
+  currency: CurrencyCode,
+): Promise<string[]> {
   const rows = await db
-    .select({ walletId: personalWalletOptions.walletId })
-    .from(personalWalletOptions)
-    .where(
+    .select({ walletId: personalWallets.id })
+    .from(personalWallets)
+    .innerJoin(
+      personalWalletOptions,
       and(
+        eq(personalWalletOptions.walletId, personalWallets.id),
         eq(personalWalletOptions.userId, userId),
         eq(personalWalletOptions.excludeFromReports, 1),
+      ),
+    )
+    .leftJoin(personalWalletSettings, eq(personalWalletSettings.walletId, personalWallets.id))
+    .where(
+      and(
+        eq(personalWallets.userId, userId),
+        eq(personalWallets.currency, currency),
+        isNull(personalWalletSettings.archivedAt),
       ),
     )
     .all();
@@ -279,6 +294,7 @@ async function computeExisting(
   userId: string,
   params: {
     tagId: string;
+    allTripTagIds: Set<string>;
     start: string;
     end: string;
     countsFrom: string;
@@ -345,7 +361,7 @@ async function computeExisting(
       if (!groupSet.has(row.tripId)) continue;
       if (row.date < params.countsFrom || row.date > params.end) continue;
       if (markedRootIds.has(row.rootId)) continue;
-      if (row.link?.tagIds.includes(params.tagId)) continue;
+      if (row.link?.tagIds.some((tid) => params.allTripTagIds.has(tid))) continue;
 
       const spending = groupRowEffect(row, settings).spending;
       if (spending <= 0) continue;
@@ -456,10 +472,14 @@ export function travelRoutes(): Hono<AppBindings> {
       }
     }
 
+    const allTripTagIds = new Set(existingTravels.map((t) => t.tagId));
+    allTripTagIds.add(resolvedTag.id);
+
     const [excludedWalletIds, existingResult] = await Promise.all([
-      limit ? loadDefaultExcludedWalletIds(db, user.id) : Promise.resolve([]),
+      limit ? loadDefaultExcludedWalletIds(db, user.id, limit.currency) : Promise.resolve([]),
       computeExisting(db, user.id, {
         tagId: resolvedTag.id,
+        allTripTagIds,
         start,
         end,
         countsFrom,
@@ -646,12 +666,20 @@ export function travelRoutes(): Hono<AppBindings> {
 
     const creatingBudget =
       limitInput !== undefined && limitInput !== null && existing.budgetId === null;
+    const allTripTagIds = new Set(allTravels.map((t) => t.tagId));
+    allTripTagIds.add(existing.tagId);
+    const removedGroupIds = groupsChanged
+      ? existing.groupIds.filter((gid) => !nextGroupIds.includes(gid))
+      : [];
 
     const [excludedWalletIds, existingResult] = await Promise.all([
-      creatingBudget ? loadDefaultExcludedWalletIds(db, user.id) : Promise.resolve([]),
+      creatingBudget
+        ? loadDefaultExcludedWalletIds(db, user.id, limitInput.currency)
+        : Promise.resolve([]),
       datesChanged || groupsChanged
         ? computeExisting(db, user.id, {
             tagId: existing.tagId,
+            allTripTagIds,
             start: nextStart,
             end: nextEnd,
             countsFrom: nextCountsFrom,
@@ -779,6 +807,23 @@ export function travelRoutes(): Hono<AppBindings> {
                 tripId,
               })),
             ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+        if (removedGroupIds.length > 0) {
+          stmts.push(
+            db
+              .delete(personalTravelShareMarks)
+              .where(
+                and(
+                  eq(personalTravelShareMarks.userId, user.id),
+                  eq(personalTravelShareMarks.travelId, existing.id),
+                  eq(personalTravelShareMarks.state, 'skipped'),
+                  sql`${personalTravelShareMarks.rootId} IN (SELECT root_id FROM transactions WHERE is_latest = 1 AND trip_id IN (${sql.join(
+                    removedGroupIds.map((gid) => sql`${gid}`),
+                    sql`, `,
+                  )}))`,
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
           );
         }
       }
@@ -917,18 +962,12 @@ export function travelRoutes(): Hono<AppBindings> {
     const skippedShares: { rootId: string; tripId: string; tagId: string }[] = [];
 
     if (skippedRootIds.length > 0) {
-      const txRows = await db
-        .select({
-          rootId: transactions.rootId,
-          tripId: transactions.tripId,
-        })
-        .from(transactions)
-        .where(and(inArray(transactions.rootId, skippedRootIds), sql`${transactions.isLatest} = 1`))
-        .all();
-
+      const groupRows = await loadCachedGroupRows(db, user.id);
       const tripByRoot = new Map<string, string>();
-      for (const r of txRows) {
-        tripByRoot.set(r.rootId, r.tripId);
+      for (const row of groupRows) {
+        if (!tripByRoot.has(row.rootId)) {
+          tripByRoot.set(row.rootId, row.tripId);
+        }
       }
       for (const rootId of skippedRootIds) {
         const tripId = tripByRoot.get(rootId);
@@ -977,20 +1016,24 @@ export function travelRoutes(): Hono<AppBindings> {
         );
       }
 
-      if (skippedMarks.length > 0) {
-        stmts.push(
-          db
-            .update(personalTravelShareMarks)
-            .set({ state: 'tagged' })
-            .where(
-              and(
-                eq(personalTravelShareMarks.userId, user.id),
-                eq(personalTravelShareMarks.travelId, existing.id),
-                eq(personalTravelShareMarks.state, 'skipped'),
-              ),
-            ) as unknown as BatchItem<'sqlite'>,
-          ...tagGroupSharesStatements(db, user.id, skippedShares, v, now),
-        );
+      if (skippedShares.length > 0) {
+        const taggedRootIds = skippedShares.map((s) => s.rootId);
+        for (const batch of chunk(taggedRootIds, MARK_UPDATE_CHUNK)) {
+          stmts.push(
+            db
+              .update(personalTravelShareMarks)
+              .set({ state: 'tagged' })
+              .where(
+                and(
+                  eq(personalTravelShareMarks.userId, user.id),
+                  eq(personalTravelShareMarks.travelId, existing.id),
+                  eq(personalTravelShareMarks.state, 'skipped'),
+                  inArray(personalTravelShareMarks.rootId, batch),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+        stmts.push(...tagGroupSharesStatements(db, user.id, skippedShares, v, now));
       }
 
       return stmts;

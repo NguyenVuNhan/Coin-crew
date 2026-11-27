@@ -664,7 +664,7 @@ describe('personal travels routes', () => {
     expect(listed).toHaveLength(0);
   });
 
-  it("foreign user's trip is 404", async () => {
+  it("foreign user's trip is 404 and GET excludes another user's trips", async () => {
     const sidA = await memberSid('u-trv-a', 'UserA');
     const sidB = await memberSid('u-trv-b', 'UserB');
     await switchOn('u-trv-a');
@@ -682,8 +682,292 @@ describe('personal travels routes', () => {
       )
     ).travel;
 
+    expect((await json<TravelsResponse>(await listTravels(sidB))).travels).toEqual([]);
     expect((await patchTravel(sidB, created.id, { name: 'Stolen', today: '2026-11-27' })).status).toBe(404);
     expect((await deleteTravel(sidB, created.id)).status).toBe(404);
     expect((await applyExisting(sidB, created.id, { tag: true })).status).toBe(404);
+  });
+
+  it('defaultExcludedFor: budget excludes only active same-currency not-in-reports wallets', async () => {
+    const userId = 'u-trv-excl';
+    const sid = await memberSid(userId, 'ExclUser');
+    await switchOn(userId);
+
+    const wVndExcl = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, {
+          name: 'VND Hidden',
+          startAmount: 1_000_000,
+          startDate: '2026-11-01',
+          excludeFromReports: true,
+        }),
+      )
+    ).wallet;
+    const wVndArchivedExcl = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, {
+          name: 'VND Archived',
+          startAmount: 1_000_000,
+          startDate: '2026-11-01',
+          excludeFromReports: true,
+        }),
+      )
+    ).wallet;
+    await postJson(`/api/me/personal/wallets/${encodeURIComponent(wVndArchivedExcl.id)}`, sid, {
+      archived: true,
+    }, 'PATCH');
+    await addWallet(sid, {
+      name: 'USD Hidden',
+      currency: 'USD',
+      startAmount: 50_00,
+      startCostVnd: 1_250_000,
+      startDate: '2026-11-01',
+      excludeFromReports: true,
+    });
+
+    const created = (
+      await json<TravelSavedResponse>(
+        await createTravel(sid, {
+          name: 'Vũng Tàu',
+          start: '2026-12-05',
+          end: '2026-12-06',
+          groupIds: [],
+          limit: { amount: 2_000_000, currency: 'VND' },
+          today: '2026-11-27',
+        }),
+      )
+    ).travel;
+
+    const budget = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
+    expect(budget.excludedWalletIds).toEqual([wVndExcl.id]);
+  });
+
+  it('T7: a share already carrying trip A tag is not marked or counted for trip B', async () => {
+    const userId = 'u-trv-t7';
+    const sid = await memberSid(userId, 'T7User');
+    await switchOn(userId);
+
+    await seedGroupWithExpenses('g-shared', userId, [
+      { id: 'ge-a', description: 'Shared dinner', amount: 600_000, myShare: 300_000, spentOn: '2026-12-02' },
+    ]);
+
+    const tripA = (
+      await json<TravelSavedResponse>(
+        await createTravel(sid, {
+          name: 'Trip A',
+          start: '2026-12-01',
+          end: '2026-12-05',
+          countsFrom: '2026-11-25',
+          groupIds: ['g-shared'],
+          today: '2026-11-27',
+        }),
+      )
+    ).travel;
+
+    // Tag ge-a with Trip A's tag via group-link (even without a mark, e.g. manually tagged)
+    await env.DB.prepare('DELETE FROM personal_travel_share_marks WHERE travel_id = ?')
+      .bind(tripA.id)
+      .run();
+    const linkRes = await putGroupLink(sid, 'ge-a', { tagIds: [tripA.tagId] });
+    expect(linkRes.status).toBe(200);
+
+    // Trip B's lead-up covers 2026-12-02; ge-a already carries Trip A's tag -> must not be counted or marked
+    const resB = await createTravel(sid, {
+      name: 'Trip B',
+      start: '2026-12-10',
+      end: '2026-12-12',
+      countsFrom: '2026-12-01',
+      groupIds: ['g-shared'],
+      today: '2026-11-27',
+    });
+    expect(resB.status).toBe(201);
+    const savedB = await json<TravelSavedResponse>(resB);
+    expect(savedB.existing.shares).toEqual({ count: 0, total: 0 });
+
+    const marksB = await env.DB.prepare(
+      'SELECT root_id FROM personal_travel_share_marks WHERE travel_id = ?',
+    )
+      .bind(savedB.travel.id)
+      .all<{ root_id: string }>();
+    expect(marksB.results).toEqual([]);
+  });
+
+  it('PATCH changing groupIds writes new marks for added groups and deletes skipped marks for removed groups', async () => {
+    const userId = 'u-trv-grp-patch';
+    const sid = await memberSid(userId, 'GrpPatch');
+    await switchOn(userId);
+
+    await seedGroupWithExpenses('g-one', userId, [
+      { id: 'ge-1', description: 'One', amount: 400_000, myShare: 200_000, spentOn: '2026-11-11' },
+    ]);
+    await seedGroupWithExpenses('g-two', userId, [
+      { id: 'ge-2', description: 'Two', amount: 500_000, myShare: 250_000, spentOn: '2026-11-11' },
+    ]);
+
+    const created = (
+      await json<TravelSavedResponse>(
+        await createTravel(sid, {
+          name: 'Group Swap',
+          start: '2026-11-10',
+          end: '2026-11-12',
+          countsFrom: '2026-11-10',
+          groupIds: ['g-one'],
+          today: '2026-11-27',
+        }),
+      )
+    ).travel;
+
+    // Swap g-one -> g-two: ge-1's skipped mark is deleted, ge-2's skipped mark is created
+    const patchRes = await patchTravel(sid, created.id, {
+      groupIds: ['g-two'],
+      today: '2026-11-27',
+    });
+    expect(patchRes.status).toBe(200);
+    const patched = await json<TravelSavedResponse>(patchRes);
+    expect(patched.travel.groupIds).toEqual(['g-two']);
+    expect(patched.existing.shares).toEqual({ count: 1, total: 250_000 });
+
+    const marks = await env.DB.prepare(
+      'SELECT root_id, state FROM personal_travel_share_marks WHERE travel_id = ? ORDER BY root_id',
+    )
+      .bind(created.id)
+      .all<{ root_id: string; state: string }>();
+    expect(marks.results).toEqual([{ root_id: 'ge-2', state: 'skipped' }]);
+  });
+
+  it('endNow with start > today clamps start and end to today and moves budget', async () => {
+    const userId = 'u-trv-endnow-future';
+    const sid = await memberSid(userId, 'FutureEndNow');
+    await switchOn(userId);
+
+    const created = (
+      await json<TravelSavedResponse>(
+        await createTravel(sid, {
+          name: 'Future Trip',
+          start: '2026-12-20',
+          end: '2026-12-25',
+          countsFrom: '2026-12-01',
+          groupIds: [],
+          limit: { amount: 4_000_000, currency: 'VND' },
+          today: '2026-11-27',
+        }),
+      )
+    ).travel;
+
+    const res = await patchTravel(sid, created.id, {
+      endNow: true,
+      today: '2026-11-27',
+    });
+    expect(res.status).toBe(200);
+    const ended = (await json<TravelSavedResponse>(res)).travel;
+    expect(ended.start).toBe('2026-11-27');
+    expect(ended.end).toBe('2026-11-27');
+    expect(ended.countsFrom).toBe('2026-11-27');
+
+    const budget = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
+    expect(budget.from).toBe('2026-11-27');
+    expect(budget.to).toBe('2026-11-27');
+    expect(budget.limits).toEqual([{ effectiveFrom: '2026-11-27', amount: 4_000_000 }]);
+  });
+
+  it('create with 3 groups stays within 50 queries', async () => {
+    const userId = 'u-trv-3grp';
+    const sid = await memberSid(userId, 'ThreeGroups');
+    await switchOn(userId);
+
+    for (const gid of ['g-3a', 'g-3b', 'g-3c']) {
+      await seedGroupWithExpenses(gid, userId, [
+        { id: `e-${gid}`, description: 'Meal', amount: 200_000, myShare: 100_000, spentOn: '2026-11-11' },
+      ]);
+    }
+
+    const { result: res, queries } = await countQueries(() =>
+      createTravel(sid, {
+        name: 'Multi Group',
+        start: '2026-11-10',
+        end: '2026-11-12',
+        countsFrom: '2026-11-01',
+        groupIds: ['g-3a', 'g-3b', 'g-3c'],
+        limit: { amount: 5_000_000, currency: 'VND' },
+        today: '2026-11-27',
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(queries).toBeLessThanOrEqual(50);
+    const saved = await json<TravelSavedResponse>(res);
+    expect(saved.existing.shares).toEqual({ count: 3, total: 300_000 });
+  });
+
+  it('POST .../existing handles >100 skipped shares without exceeding D1 param limit and leaves missing marks skipped', async () => {
+    const userId = 'u-trv-many';
+    const sid = await memberSid(userId, 'ManyShares');
+    await switchOn(userId);
+
+    const tripId = 'g-many';
+    const now = '2026-10-01T00:00:00.000Z';
+    const myPid = `p-me-${tripId}`;
+    const otherPid = `p-other-${tripId}`;
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO trips (id, name, currency, fewest_transfers, organiser_user_id, group_token, view_token, version, created_at) VALUES (?, 'Many', 'VND', 1, ?, 'gtok-many', 'vtok-many', 1, ?)",
+      ).bind(tripId, userId, now),
+      env.DB.prepare(
+        "INSERT INTO participants (id, trip_id, name, normalized_name, user_id, status, sort_order, created_at) VALUES (?, ?, 'Me', 'me', ?, 'active', 0, ?)",
+      ).bind(myPid, tripId, userId, now),
+      env.DB.prepare(
+        "INSERT INTO participants (id, trip_id, name, normalized_name, user_id, status, sort_order, created_at) VALUES (?, ?, 'Friend', 'friend', NULL, 'active', 1, ?)",
+      ).bind(otherPid, tripId, now),
+    ]);
+
+    const COUNT = 105;
+    const seedStmts: D1PreparedStatement[] = [];
+    for (let i = 0; i < COUNT; i++) {
+      const id = `gm-${String(i).padStart(3, '0')}`;
+      seedStmts.push(
+        env.DB.prepare(
+          "INSERT INTO transactions (id, root_id, parent_id, is_latest, trip_id, type, description, amount, currency, spent_on, payer_id, split_mode, status, created_by_participant_id, created_at, updated_at) VALUES (?, ?, NULL, 1, ?, 'expense', ?, 100000, 'VND', '2026-11-11', ?, 'exact', 'approved', ?, ?, ?)",
+        ).bind(id, id, tripId, `Item ${i}`, otherPid, myPid, now, now),
+        env.DB.prepare(
+          'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 50000, 50000)',
+        ).bind(id, myPid),
+        env.DB.prepare(
+          'INSERT INTO transaction_shares (transaction_id, participant_id, input_value, amount) VALUES (?, ?, 50000, 50000)',
+        ).bind(id, otherPid),
+      );
+    }
+    await env.DB.batch(seedStmts);
+
+    const saved = await json<TravelSavedResponse>(
+      await createTravel(sid, {
+        name: 'Big Trip',
+        start: '2026-11-10',
+        end: '2026-11-12',
+        countsFrom: '2026-11-10',
+        groupIds: [tripId],
+        today: '2026-11-27',
+      }),
+    );
+    expect(saved.existing.shares).toEqual({ count: COUNT, total: COUNT * 50_000 });
+
+    // Insert an orphan skipped mark whose transaction no longer exists -> must remain 'skipped'
+    await env.DB.prepare(
+      "INSERT INTO personal_travel_share_marks (user_id, root_id, travel_id, state) VALUES (?, 'gm-orphan', ?, 'skipped')",
+    )
+      .bind(userId, saved.travel.id)
+      .run();
+
+    const { result: applyRes, queries } = await countQueries(() =>
+      applyExisting(sid, saved.travel.id, { tag: true }),
+    );
+    expect(applyRes.status).toBe(200);
+    expect(queries).toBeLessThanOrEqual(50);
+    expect(await json<{ tagged: number }>(applyRes)).toEqual({ tagged: COUNT });
+
+    const orphanMark = await env.DB.prepare(
+      "SELECT state FROM personal_travel_share_marks WHERE user_id = ? AND root_id = 'gm-orphan'",
+    )
+      .bind(userId)
+      .first<{ state: string }>();
+    expect(orphanMark?.state).toBe('skipped');
   });
 });
