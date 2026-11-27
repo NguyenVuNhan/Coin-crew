@@ -71,7 +71,9 @@ function TravelSection({
 
           let endingNode: JSX.Element | null = null;
           if (state === 'done') {
-            if (progress && budgetDef) {
+            if (travel.budgetId === null) {
+              endingNode = <span className="text-muted-foreground">{t('travels.noLimit')}</span>;
+            } else if (progress && budgetDef) {
               const over = progress.spent > progress.limit;
               const diff = Math.abs(progress.limit - progress.spent);
               const text = over
@@ -88,8 +90,6 @@ function TravelSection({
                   {text}
                 </span>
               );
-            } else {
-              endingNode = <span className="text-muted-foreground">{t('travels.noLimit')}</span>;
             }
           }
 

@@ -2024,6 +2024,7 @@ export const vi: Record<MessageKey, string> = {
   'travels.countsFromLine': 'Tính cả chi tiêu trước chuyến từ {date}', // REVIEW
   'travels.groupsLabel': 'Đi cùng nhóm', // REVIEW
   'travels.groupsHint': 'Bỏ trống nếu đi một mình', // REVIEW
+  'travels.removeGroup': 'Bỏ {name}', // REVIEW
   'travels.limitLabel': 'Hạn mức (tùy chọn)', // REVIEW
   'travels.save': 'Lưu chuyến đi', // REVIEW
   'travels.overlap': 'Trùng với chuyến {name} ({range})', // REVIEW

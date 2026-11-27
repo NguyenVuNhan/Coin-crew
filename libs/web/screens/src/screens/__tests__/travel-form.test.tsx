@@ -14,6 +14,7 @@ import { setLang } from '@cc/web-i18n';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView } from '../../test/fixtures';
 import { App } from '../../App';
+import { TravelExistingSheet } from '../../components/travels/TravelExistingSheet';
 import { TravelForm } from '../../components/travels/TravelForm';
 
 vi.mock('@cc/web-util/localDate', async (importOriginal) => {
@@ -200,6 +201,11 @@ describe('TravelForm', () => {
     expect(overlap).toHaveTextContent(/20–23\/12/);
     // Sheet stays open
     expect(screen.getByTestId('travel-form')).toBeInTheDocument();
+
+    // Changing start or end clears the overlap error
+    fireEvent.change(screen.getByTestId('travel-form-start'), { target: { value: '2026-12-26' } });
+    fireEvent.change(screen.getByTestId('travel-form-end'), { target: { value: '2026-12-28' } });
+    expect(screen.queryByTestId('travel-form-overlap')).not.toBeInTheDocument();
   });
 
   it('existing sheet appears only when there is something to tag and sends tag:true / tag:false', async () => {
@@ -341,7 +347,10 @@ describe('TravelForm', () => {
     await user.click(within(picker).getByTestId('travel-group-picker-done'));
 
     const form = screen.getByTestId('travel-form');
-    expect(within(form).getByTestId('travel-form-group-chip-g-dl')).toHaveTextContent('Đà Lạt gang');
+    const chip = within(form).getByTestId('travel-form-group-chip-g-dl');
+    expect(chip).toHaveTextContent('Đà Lạt gang');
+    const removeBtn = within(chip).getByRole('button', { name: 'Bỏ Đà Lạt gang' });
+    expect(removeBtn).toHaveClass('min-h-11', 'min-w-11');
   });
 
   it('edit mode shows end-early only while on and confirms delete via Modal', async () => {
@@ -420,5 +429,132 @@ describe('TravelForm', () => {
         api.calls.some((c) => c.method === 'DELETE' && c.path === '/api/me/personal/travels/tr-up'),
       ).toBe(true);
     });
+  });
+
+  it('save an edit before budgets load omits limit from the request body', async () => {
+    const user = userEvent.setup();
+    const tripWithBudget: TravelView = {
+      id: 'tr-b',
+      tagId: 'tag-dl',
+      name: 'Đà Lạt',
+      start: '2026-11-12',
+      end: '2026-11-14',
+      countsFrom: '2026-11-05',
+      groupIds: [],
+      budgetId: 'b-dl',
+      createdAt: '2026-11-05T00:00:00.000Z',
+    };
+
+    const api = stubApis({
+      travels: [tripWithBudget],
+      extraRoutes: {
+        // Never resolves so budgets stay in loading state
+        'GET /api/me/personal/budgets': () => new Promise<Response>(() => {}),
+        'PATCH /api/me/personal/travels/tr-b': () =>
+          Response.json({
+            travel: { ...tripWithBudget, name: 'Đà Lạt 2' },
+            existing: { own: { count: 0, totals: [] }, shares: { count: 0, total: 0 } },
+          }),
+      },
+    });
+
+    const onSaved = vi.fn();
+    renderAt(
+      <TravelForm open onClose={vi.fn()} travel={tripWithBudget} onSaved={onSaved} />,
+      { route: '/travels/tr-b', path: '*' },
+    );
+    act(() => {
+      setLang('vi', false);
+    });
+
+    const nameInput = await screen.findByTestId('travel-form-name');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Đà Lạt 2');
+
+    const submit = screen.getByTestId('travel-form-submit');
+    expect(submit).not.toBeDisabled();
+    await user.click(submit);
+
+    await waitFor(() => {
+      expect(
+        api.calls.some((c) => c.method === 'PATCH' && c.path === '/api/me/personal/travels/tr-b'),
+      ).toBe(true);
+    });
+
+    const patchBody = api.calls.find(
+      (c) => c.method === 'PATCH' && c.path === '/api/me/personal/travels/tr-b',
+    )?.body as Record<string, unknown>;
+    expect('limit' in patchBody).toBe(false);
+    expect(patchBody.name).toBe('Đà Lạt 2');
+  });
+
+  it('untouched countsFrom follows defaultCountsFrom(start, today) and moving start earlier clamps touched countsFrom', async () => {
+    const user = userEvent.setup();
+    stubApis();
+    renderVi('/travels');
+
+    await user.click(await screen.findByTestId('travels-empty-add'));
+    await screen.findByTestId('travel-form');
+
+    await user.type(screen.getByTestId('travel-form-name'), 'Đà Lạt');
+
+    // Today is 2026-11-05. Future start (2026-11-12) -> defaultCountsFrom = 2026-11-05 (5/11)
+    fireEvent.change(screen.getByTestId('travel-form-start'), { target: { value: '2026-11-12' } });
+    fireEvent.change(screen.getByTestId('travel-form-end'), { target: { value: '2026-11-14' } });
+    expect(screen.getByTestId('travel-form-counts-from-toggle')).toHaveTextContent('5/11');
+
+    // Earlier start (2026-11-02 < today) -> untouched default follows start (2/11)
+    fireEvent.change(screen.getByTestId('travel-form-start'), { target: { value: '2026-11-02' } });
+    expect(screen.getByTestId('travel-form-counts-from-toggle')).toHaveTextContent('2/11');
+
+    // Move start back to 2026-11-12, open countsFrom picker, and pick 2026-11-10
+    fireEvent.change(screen.getByTestId('travel-form-start'), { target: { value: '2026-11-12' } });
+    await user.click(screen.getByTestId('travel-form-counts-from-toggle'));
+    fireEvent.change(screen.getByTestId('travel-form-counts-from'), {
+      target: { value: '2026-11-10' },
+    });
+    expect(screen.getByTestId('travel-form-counts-from')).toHaveValue('2026-11-10');
+
+    // Now move start earlier than countsFrom (2026-11-08) -> countsFrom clamps to 2026-11-08 and Save stays enabled
+    fireEvent.change(screen.getByTestId('travel-form-start'), { target: { value: '2026-11-08' } });
+    expect(screen.getByTestId('travel-form-counts-from')).toHaveValue('2026-11-08');
+    expect(screen.getByTestId('travel-form-submit')).not.toBeDisabled();
+  });
+
+  it('closing the existing-items sheet (dismiss) sends tag:false exactly once', async () => {
+    const user = userEvent.setup();
+    const api = stubApis({
+      extraRoutes: {
+        'POST /api/me/personal/travels/tr-dismiss/existing': () => Response.json({ tagged: 0 }),
+      },
+    });
+    const onDone = vi.fn();
+
+    renderAt(
+      <TravelExistingSheet
+        travelId="tr-dismiss"
+        existing={{
+          own: { count: 3, totals: [{ currency: 'VND', amount: 500_000 }] },
+          shares: { count: 0, total: 0 },
+        }}
+        onDone={onDone}
+      />,
+      { route: '/travels', path: '*' },
+    );
+    act(() => {
+      setLang('vi', false);
+    });
+
+    await screen.findByTestId('travel-existing-sheet');
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(onDone).toHaveBeenCalledTimes(1);
+    });
+    const calls = api.calls.filter(
+      (c) => c.path === '/api/me/personal/travels/tr-dismiss/existing',
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.body).toEqual({ tag: false });
   });
 });

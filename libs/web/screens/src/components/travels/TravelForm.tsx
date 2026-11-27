@@ -242,7 +242,8 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
     ? currency
     : linkedBudget?.currency ?? defaultCurrency;
 
-  const showCurrencyPicker = availableCurrencies.length > 1;
+  const showCurrencyPicker =
+    availableCurrencies.length > 1 && !(isEdit && Boolean(travel?.budgetId));
 
   const effectiveCountsFrom = useMemo(() => {
     if (countsFromTouched) return countsFrom;
@@ -289,6 +290,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
       parsedLimit !== null ? { amount: parsedLimit, currency: effectiveCurrency } : null;
 
     if (travel) {
+      const limitChanged = limitTouched || currencyTouched;
       updateTravel.mutate(
         {
           id: travel.id,
@@ -298,7 +300,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             end,
             countsFrom: effectiveCountsFrom,
             groupIds,
-            limit: limitValue,
+            ...(limitChanged ? { limit: limitValue } : {}),
           },
         },
         {
@@ -408,7 +410,21 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
                   type="date"
                   className="fsl-input text-base min-h-11 tabular-nums"
                   value={start}
-                  onChange={(e) => setStart(e.target.value)}
+                  onChange={(e) => {
+                    const nextStart = e.target.value;
+                    setStart(nextStart);
+                    if (
+                      countsFromTouched &&
+                      YMD_RE.test(nextStart) &&
+                      YMD_RE.test(countsFrom) &&
+                      countsFrom > nextStart
+                    ) {
+                      setCountsFrom(nextStart);
+                    }
+                    if (overlapError) {
+                      resetMutationsRef.current();
+                    }
+                  }}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -421,7 +437,12 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
                   type="date"
                   className="fsl-input text-base min-h-11 tabular-nums"
                   value={end}
-                  onChange={(e) => setEnd(e.target.value)}
+                  onChange={(e) => {
+                    setEnd(e.target.value);
+                    if (overlapError) {
+                      resetMutationsRef.current();
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -496,16 +517,16 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
                     key={gid}
                     tone="accent"
                     data-testid={`travel-form-group-chip-${gid}`}
-                    className="gap-1.5 py-1 pl-2.5 pr-1.5"
+                    className="gap-0.5 py-0 pl-3 pr-0"
                   >
                     <span>{gName}</span>
                     <button
                       type="button"
-                      aria-label={t('common.close')}
+                      aria-label={t('travels.removeGroup', { name: gName })}
                       onClick={() => setGroupIds((prev) => prev.filter((id) => id !== gid))}
-                      className="inline-flex items-center justify-center size-5 rounded-full bg-transparent border-0 text-secondary-foreground hover:bg-muted cursor-pointer p-0"
+                      className="inline-flex items-center justify-center min-h-11 min-w-11 -my-2 rounded-full bg-transparent border-0 text-secondary-foreground hover:bg-muted cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <Icon name="x" size={12} />
+                      <Icon name="x" size={14} />
                     </button>
                   </Pill>
                 );

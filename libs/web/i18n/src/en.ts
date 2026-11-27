@@ -2023,6 +2023,7 @@ export const en = {
   'travels.countsFromLine': 'Includes pre-trip spending from {date}',
   'travels.groupsLabel': 'With groups',
   'travels.groupsHint': 'Leave empty for solo trip',
+  'travels.removeGroup': 'Remove {name}',
   'travels.limitLabel': 'Limit (optional)',
   'travels.save': 'Save trip',
   'travels.overlap': 'Overlaps with {name} ({range})',
