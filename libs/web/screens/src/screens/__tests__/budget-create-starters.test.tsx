@@ -254,9 +254,8 @@ describe('BudgetForm create starters, short form, prefill & after-create', () =>
     expect(screen.queryByTestId('budget-starters')).not.toBeInTheDocument();
     expect(screen.getByText('Đã đặt ngân sách Ăn uống')).toBeInTheDocument();
 
-    // Close action dismisses the snackbar
-    await user.click(screen.getByRole('button', { name: 'Đóng' }));
-    expect(screen.queryByText('Đã đặt ngân sách Ăn uống')).not.toBeInTheDocument();
+    // The snackbar offers Undo (deleting the new budget)
+    expect(screen.getByRole('button', { name: 'Hoàn tác' })).toBeInTheDocument();
   });
 
   it('editing a starter amount sends the edited amount', async () => {

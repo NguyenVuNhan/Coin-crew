@@ -255,7 +255,8 @@ describe('BudgetDetailScreen', () => {
     expect(within(card).getByText('3.000.000₫')).toBeInTheDocument();
     expect(within(card).getByText('2.130.000₫')).toBeInTheDocument();
     expect(within(card).getByText(/5 ngày/)).toBeInTheDocument();
-    expect(within(card).getByTestId('budget-state-note')).toHaveTextContent(/174\.000₫/);
+    expect(within(card).getByTestId('budget-pace-amount')).toHaveTextContent(/174\.000₫/);
+    expect(within(card).getByText('mỗi ngày còn')).toBeInTheDocument();
 
     const editBtn = screen.getByTestId('budget-edit-button');
     expect(editBtn).toHaveAttribute('href', '/budgets/b-food?edit=1');
@@ -305,11 +306,11 @@ describe('BudgetDetailScreen', () => {
     renderDetailVi('/budgets/b-food');
 
     const chart = await screen.findByTestId('budget-history-chart');
-    expect(chart).toHaveAttribute('aria-label');
+    expect(screen.getByRole('list', { name: /.+/ })).toBeInTheDocument();
     const cols = within(chart).getAllByTestId('budget-chart-col');
     expect(cols).toHaveLength(6);
     for (const col of cols) {
-      expect(col.getAttribute('aria-label')?.trim().length).toBeGreaterThan(0);
+      expect(col.querySelector('rect, line')).not.toBeNull();
     }
 
     // Month 10 has limit 3.000.000₫, Month 8 has limit 2.500.000₫
@@ -387,7 +388,7 @@ describe('BudgetDetailScreen', () => {
     expect(within(chart).getByText('2025')).toBeInTheDocument();
     expect(within(chart).getByText('2026')).toBeInTheDocument();
     expect(within(chart).getByText('2027')).toBeInTheDocument();
-    expect(screen.getByTestId('budget-state-note')).toHaveTextContent(/mỗi tháng/);
+    expect(screen.getByText('mỗi tháng còn')).toBeInTheDocument();
   });
 
   it('lists only counted rows of the shown period under "Giao dịch kỳ này" and links "Tất cả ›" to /transactions with filters', async () => {

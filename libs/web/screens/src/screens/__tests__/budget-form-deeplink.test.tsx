@@ -148,7 +148,7 @@ describe('BudgetForm deep link (?edit=1)', () => {
     await screen.findByTestId('budget-form');
 
     expect(screen.getByTestId('budget-form-name')).toHaveValue('Ăn uống');
-    expect(screen.getByTestId('budget-form-amount')).toHaveValue('3000000');
+    expect(screen.getByTestId('budget-form-amount')).toHaveValue('3.000.000');
 
     expect(await screen.findByTestId('budget-form-wallet-check-w-cash')).toBeChecked();
     expect(screen.getByTestId('budget-form-wallet-check-w-bank')).not.toBeChecked();

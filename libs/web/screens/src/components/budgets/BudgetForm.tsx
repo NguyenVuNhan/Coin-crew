@@ -71,6 +71,12 @@ function formatVndInput(amount: number): string {
   return String(abs).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
+function formatEditAmountInput(minor: number, currency: CurrencyCode): string {
+  return CURRENCIES[currency].decimals === 0
+    ? formatVndInput(minor)
+    : formatMinorInput(minor, currency);
+}
+
 function defaultExcludedFor(wallets: WalletDetailView[], code: CurrencyCode): string[] {
   return wallets
     .filter((w) => !w.archived && w.currency === code && w.excludeFromReports)
@@ -168,7 +174,7 @@ export function BudgetForm({
   const [amountText, setAmountText] = useState(() => {
     if (budget) {
       const curPeriod = budgetPeriodAt(budget, today) ?? firstBudgetPeriod(budget);
-      return formatMinorInput(limitFor(budget, curPeriod), budget.currency);
+      return formatEditAmountInput(limitFor(budget, curPeriod), budget.currency);
     }
     return prefillAmount;
   });
@@ -210,7 +216,7 @@ export function BudgetForm({
         const curLimit = limitFor(budget, curPeriod);
         setName(budget.name);
         setNameDirty(true);
-        setAmountText(formatMinorInput(curLimit, budget.currency));
+        setAmountText(formatEditAmountInput(curLimit, budget.currency));
         setCurrency(budget.currency);
         setCurrencyTouched(true);
         setExcludedWalletIds([...budget.excludedWalletIds]);
@@ -380,8 +386,42 @@ export function BudgetForm({
 
   const hasTarget = isEdit || (targetKind === 'category' ? Boolean(categoryId) : Boolean(tagId));
 
+  const existingForTarget = useMemo(() => {
+    if (isEdit) return null;
+    if (targetKind === 'category' && !categoryId) return null;
+    if (targetKind === 'tag' && !tagId) return null;
+    return (
+      existingBudgets.find(
+        (b) =>
+          b.currency === effectiveCurrency &&
+          b.periodKind === periodKind &&
+          ((targetKind === 'category' &&
+            b.target.kind === 'category' &&
+            b.target.categoryId === categoryId) ||
+            (targetKind === 'tag' &&
+              b.target.kind === 'tag' &&
+              b.target.tagId === tagId)),
+      ) ?? null
+    );
+  }, [isEdit, existingBudgets, effectiveCurrency, periodKind, targetKind, categoryId, tagId]);
+
+  const markedCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const b of existingBudgets) {
+      if (
+        b.target.kind === 'category' &&
+        b.currency === effectiveCurrency &&
+        b.periodKind === periodKind
+      ) {
+        ids.add(b.target.categoryId);
+      }
+    }
+    return ids;
+  }, [existingBudgets, effectiveCurrency, periodKind]);
+
   const canSubmit =
     hasTarget &&
+    !existingForTarget &&
     effectiveName.length >= 1 &&
     effectiveName.length <= 40 &&
     parsedAmount !== null &&
@@ -433,8 +473,15 @@ export function BudgetForm({
     navigate(`/budgets/${encodeURIComponent(created.id)}`, { replace: true });
     showUndo({
       message: t('budgets.createdToast', { name: created.name }),
-      actionLabel: t('common.close'),
-      onAction: () => {},
+      actionLabel: t('common.undo'),
+      onAction: () => {
+        void deleteBudget
+          .mutateAsync(created.id)
+          .then(() => {
+            navigate('/budgets', { replace: true });
+          })
+          .catch(() => {});
+      },
     });
   };
 
@@ -541,6 +588,23 @@ export function BudgetForm({
         return t('budgets.periodOnce');
     }
   };
+
+  const includedWalletCount = currencyWallets.filter(
+    (w) => !effectiveExcludedSet.has(w.id),
+  ).length;
+  const walletsSummary =
+    includedWalletCount === currencyWallets.length
+      ? t('budgets.defaultsAllWallets', {
+          symbol: effectiveCurrency,
+        })
+      : t('budgets.defaultsSomeWallets', { n: includedWalletCount });
+  const defaultsSummary = [
+    periodLabel(periodKind),
+    ...(periodKind === 'month'
+      ? [t('budgets.defaultsFromDay', { day: parsedMonthStartDay ?? 1 })]
+      : []),
+    walletsSummary,
+  ].join(' · ');
 
   return (
     <>
@@ -717,13 +781,15 @@ export function BudgetForm({
               </div>
 
               {targetKind === 'category' ? (
-                <div className="rounded-xl border border-border bg-card p-3">
+                <div>
                   <CategoryPicker
                     type="expense"
                     categories={categories}
                     recentIds={[]}
                     value={categoryId}
                     onChange={handleSelectCategory}
+                    markedIds={markedCategoryIds}
+                    markedLabel={t('budgets.alreadySet')}
                   />
                 </div>
               ) : (
@@ -763,6 +829,27 @@ export function BudgetForm({
                       );
                     })
                   )}
+                </div>
+              )}
+
+              {existingForTarget && (
+                <div
+                  data-testid="budget-form-existing"
+                  className="rounded-xl bg-secondary text-secondary-foreground px-4 py-3 text-sm flex flex-col gap-2.5"
+                >
+                  <p className="m-0">
+                    {t('budgets.existingNote', { name: existingForTarget.name })}
+                  </p>
+                  <div>
+                    <Button
+                      variant="primary"
+                      href={`/budgets/${encodeURIComponent(existingForTarget.id)}`}
+                      data-testid="budget-form-view-existing"
+                      onClick={() => onClose()}
+                    >
+                      {t('budgets.viewExisting')}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -805,17 +892,26 @@ export function BudgetForm({
             >
               {t('budgets.formAmount')}
             </Label>
-            <Input
-              id={amountId}
-              data-testid="budget-form-amount"
-              type="text"
-              inputMode="text"
-              autoComplete="off"
-              className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums"
-              aria-describedby={showAmountError ? amountErrorId : undefined}
-              value={amountText}
-              onChange={(e) => setAmountText(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id={amountId}
+                data-testid="budget-form-amount"
+                type="text"
+                inputMode="text"
+                autoComplete="off"
+                placeholder={t('budgets.amountPlaceholder')}
+                className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums pr-8 placeholder:font-normal placeholder:text-muted-foreground"
+                aria-describedby={showAmountError ? amountErrorId : undefined}
+                value={amountText}
+                onChange={(e) => setAmountText(e.target.value)}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground"
+              >
+                {CURRENCIES[effectiveCurrency].symbol}
+              </span>
+            </div>
             {trimmedAmount !== '' && parsedAmount !== null && (
               <div
                 data-testid="budget-form-amount-preview"
@@ -842,10 +938,24 @@ export function BudgetForm({
               data-testid="budget-form-more-options"
               aria-expanded={advancedOpen}
               onClick={() => setAdvancedOpen((v) => !v)}
-              className="flex items-center justify-between min-h-11 px-1 text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+              className="flex items-center justify-between gap-2 min-h-11 px-1 py-1.5 text-left text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
             >
-              <span>{t('budgets.moreOptions')}</span>
-              <Icon name={advancedOpen ? 'chevronUp' : 'chevronDown'} size={18} />
+              <span className="flex flex-col min-w-0">
+                <span>{t('budgets.moreOptions')}</span>
+                {!advancedOpen && (
+                  <span
+                    data-testid="budget-form-defaults"
+                    className="text-xs font-normal text-muted-foreground"
+                  >
+                    {defaultsSummary}
+                  </span>
+                )}
+              </span>
+              <Icon
+                name={advancedOpen ? 'chevronUp' : 'chevronDown'}
+                size={18}
+                className="shrink-0"
+              />
             </button>
           )}
 
@@ -936,6 +1046,28 @@ export function BudgetForm({
               )}
             </div>
           </div>
+          )}
+
+          {/* Edit-only: Period (read-only) */}
+          {isEdit && budget && (
+            <div
+              className="fsl-field flex flex-col gap-1"
+              data-testid="budget-form-period-readonly"
+            >
+              <Label className="text-sm font-semibold text-muted-foreground">
+                {t('budgets.formPeriod')}
+              </Label>
+              <div className="text-base text-foreground">
+                {budget.periodKind === 'month'
+                  ? `${periodLabel(budget.periodKind)} · ${t('budgets.defaultsFromDay', {
+                      day: budget.monthStartDay ?? 1,
+                    })}`
+                  : periodLabel(budget.periodKind)}
+              </div>
+              <p className="m-0 text-xs text-muted-foreground">
+                {t('budgets.periodLockedHint')}
+              </p>
+            </div>
           )}
 
           {/* Create-only: Period (under "Thêm tuỳ chọn") */}
@@ -1087,6 +1219,24 @@ export function BudgetForm({
           >
             {t('budgets.save')}
           </Button>
+
+          {!isEdit && !canSubmit && !isPending && (() => {
+            const missingText = !hasTarget
+              ? t('budgets.missingTarget')
+              : existingForTarget
+                ? null
+                : parsedAmount === null
+                  ? t('budgets.missingAmount')
+                  : null;
+            return missingText ? (
+              <p
+                data-testid="budget-form-missing"
+                className="m-0 text-sm text-muted-foreground text-center"
+              >
+                {missingText}
+              </p>
+            ) : null;
+          })()}
 
           {isEdit && (
             <Button

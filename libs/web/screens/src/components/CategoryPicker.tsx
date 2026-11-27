@@ -27,6 +27,10 @@ export interface CategoryPickerProps {
   transitionEnabled?: boolean;
   /** Category id currently pre-selected by the local guess; drawn with a dashed ring. */
   guessedId?: string | null;
+  /** Category ids marked with a badge and secondary label. */
+  markedIds?: ReadonlySet<string>;
+  /** Secondary label shown under marked categories. */
+  markedLabel?: string;
 }
 
 /** Tags a tapped tile's icon and label right before a View Transition snapshot is captured. */
@@ -57,6 +61,8 @@ export function CategoryPicker({
   wallet,
   transitionEnabled = false,
   guessedId = null,
+  markedIds,
+  markedLabel,
 }: CategoryPickerProps): JSX.Element {
   const t = useT();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -225,6 +231,7 @@ export function CategoryPicker({
         {tiles.map((cat, idx) => {
           const selected = !transferSelected && !tradeSelected && value === cat.id;
           const isGuess = selected && guessedId === cat.id;
+          const isMarked = Boolean(markedIds?.has(cat.id));
           return (
             <button
               key={cat.id}
@@ -251,15 +258,28 @@ export function CategoryPicker({
             >
               <span
                 className={cn(
-                  'size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center transition-shadow',
+                  'relative size-11 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center transition-shadow',
                   selected && (isGuess ? 'border-2 border-dashed border-primary' : 'ring-2 ring-primary'),
                 )}
               >
                 <Icon name={categoryIconName(cat.icon, type)} size={20} />
+                {isMarked && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                  >
+                    <Icon name="check" size={10} />
+                  </span>
+                )}
               </span>
               <span className="text-sm font-medium text-foreground leading-tight line-clamp-2 break-words w-full">
                 {cat.name}
               </span>
+              {isMarked && markedLabel && (
+                <span className="text-xs text-muted-foreground leading-tight w-full truncate">
+                  {markedLabel}
+                </span>
+              )}
             </button>
           );
         })}
@@ -316,7 +336,14 @@ export function CategoryPicker({
                   <span className="size-9 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
                     <Icon name={categoryIconName(parent.icon, type)} size={18} />
                   </span>
-                  <span className="flex-1 truncate">{parent.name}</span>
+                  <span className="flex-1 min-w-0 flex flex-col">
+                    <span className="truncate">{parent.name}</span>
+                    {markedIds?.has(parent.id) && markedLabel && (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {markedLabel}
+                      </span>
+                    )}
+                  </span>
                   {parentSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
                 </button>
                 {subs.map((sub) => {
@@ -335,7 +362,14 @@ export function CategoryPicker({
                       <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
                         <Icon name={categoryIconName(sub.icon, type)} size={16} />
                       </span>
-                      <span className="flex-1 truncate">{sub.name}</span>
+                      <span className="flex-1 min-w-0 flex flex-col">
+                        <span className="truncate">{sub.name}</span>
+                        {markedIds?.has(sub.id) && markedLabel && (
+                          <span className="text-xs font-normal text-muted-foreground">
+                            {markedLabel}
+                          </span>
+                        )}
+                      </span>
                       {subSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
                     </button>
                   );
@@ -359,7 +393,14 @@ export function CategoryPicker({
                 <span className="size-8 rounded-xl bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
                   <Icon name={categoryIconName(sub.icon, type)} size={16} />
                 </span>
-                <span className="flex-1 truncate">{sub.name}</span>
+                <span className="flex-1 min-w-0 flex flex-col">
+                  <span className="truncate">{sub.name}</span>
+                  {markedIds?.has(sub.id) && markedLabel && (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {markedLabel}
+                    </span>
+                  )}
+                </span>
                 {subSelected && <Icon name="check" size={18} className="text-primary shrink-0" />}
               </button>
             );

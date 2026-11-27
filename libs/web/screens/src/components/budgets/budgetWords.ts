@@ -1,5 +1,5 @@
 import { formatMoney, type BudgetProgress, type CurrencyCode } from '@cc/core';
-import type { useT } from '@cc/web-i18n';
+import { getLang, type useT } from '@cc/web-i18n';
 import type { IconName } from '@cc/web-ui/components/icons';
 
 export type BudgetTranslateFn = ReturnType<typeof useT>;
@@ -8,6 +8,25 @@ export interface BudgetStateWordsResult {
   text: string;
   icon: IconName;
   className: string;
+}
+
+/** Formats an approximate VND amount for projected overage copy. */
+export function approxMoney(
+  amount: number,
+  lang: 'vi' | 'en',
+  currency: CurrencyCode = 'VND',
+): string {
+  if (currency !== 'VND') return formatMoney(amount, currency);
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000) {
+    const num = (amount / 1_000_000).toFixed(1).replace(/\.0$/, '');
+    return lang === 'vi' ? `${num.replace('.', ',')} triệu` : `${num} million ₫`;
+  }
+  if (abs >= 1_000) {
+    const thousands = Math.round(amount / 1_000);
+    return lang === 'vi' ? `${thousands} nghìn` : `${thousands} thousand ₫`;
+  }
+  return formatMoney(amount, 'VND');
 }
 
 /**
@@ -37,7 +56,7 @@ export function budgetStateWords(
         ? Math.max(0, Math.round(progress.projectedOverPct * progress.limit))
         : 0;
     return {
-      text: t('budgets.willOverBy', { amount: formatMoney(projectedOver, currency) }),
+      text: t('budgets.willOverBy', { amount: approxMoney(projectedOver, getLang(), currency) }),
       icon: 'zap',
       className: 'text-warning font-semibold',
     };

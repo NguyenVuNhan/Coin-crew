@@ -1873,10 +1873,10 @@ export const vi: Record<MessageKey, string> = {
   'budgets.title': 'Ngân sách', // REVIEW
   'budgets.groupOver': 'Đã vượt mức · {count}', // REVIEW
   'budgets.groupFast': 'Đang chi nhanh quá · {count}', // REVIEW
-  'budgets.groupOnPace': 'Đúng nhịp · {count}', // REVIEW
+  'budgets.groupOnPace': 'Trong mức · {count}', // REVIEW
   'budgets.groupEnded': 'Đã kết thúc', // REVIEW
-  'budgets.overBy': 'Đã vượt {pct}%', // REVIEW
-  'budgets.willOverBy': 'Sẽ vượt ~{amount}', // REVIEW
+  'budgets.overBy': 'Vượt {pct}%', // REVIEW
+  'budgets.willOverBy': 'Sẽ vượt khoảng {amount}', // REVIEW
   'budgets.stateOver': 'Đã vượt mức', // REVIEW
   'budgets.stateFast': 'Chi nhanh quá', // REVIEW
   'budgets.near': 'Sắp chạm mức', // REVIEW
@@ -1934,10 +1934,11 @@ export const vi: Record<MessageKey, string> = {
   'budgets.timeLeftDaysShort': '{n} ngày', // REVIEW
   'budgets.timeLeftMonthsShort': '{y} năm {m} tháng', // REVIEW
   'budgets.periodEnded': 'Đã xong', // REVIEW
-  'budgets.noteFine': 'Đúng nhịp. Bạn có thể chi khoảng {pace} đến {end}.', // REVIEW
-  'budgets.noteFast': 'Đang chi nhanh quá. Cố giữ khoảng {pace} đến {end}.', // REVIEW
-  'budgets.noteNear': 'Sắp chạm mức. Bạn có thể chi khoảng {pace} đến {end}.', // REVIEW
-  'budgets.noteOver': 'Đã vượt {amount}. {stop}.', // REVIEW
+  'budgets.noteFine': 'Đang chi đúng nhịp.', // REVIEW
+  'budgets.noteFast': 'Đang chi nhanh hơn thời gian. Giữ nhịp này sẽ vượt khoảng {amount}.', // REVIEW
+  'budgets.noteNear': 'Sắp chạm mức, chi nhẹ tay đến {end}.', // REVIEW
+  'budgets.noteOver': 'Mọi khoản chi thêm đều cộng vào phần vượt.', // REVIEW
+  'budgets.noteOverOnce': 'Đã chi quá mức ngân sách này.', // REVIEW
   'budgets.notePastOver': 'Đã vượt {amount} so với mức {limit}.', // REVIEW
   'budgets.notePastNear': 'Sát mức {limit}, đã chi {spent}.', // REVIEW
   'budgets.notePastFine': 'Trong mức, còn dư {left}.', // REVIEW
@@ -1977,4 +1978,33 @@ export const vi: Record<MessageKey, string> = {
   'budgets.starterPickOther': 'Chọn danh mục khác', // REVIEW
   'budgets.moreOptions': 'Thêm tùy chọn', // REVIEW
   'budgets.createdToast': 'Đã đặt ngân sách {name}', // REVIEW
+  'budgets.perDayLeft': 'mỗi ngày còn', // REVIEW
+  'budgets.perMonthLeft': 'mỗi tháng còn', // REVIEW
+  'budgets.todayLeft': 'hôm nay còn', // REVIEW
+  'budgets.leftOver': 'Còn dư', // REVIEW
+  'budgets.overShort': 'Vượt', // REVIEW
+  'budgets.nextPeriodFrom': 'Kỳ mới từ {date}', // REVIEW
+  'budgets.endsOn': 'Kết thúc {date}', // REVIEW
+  'budgets.perDayShort': 'mỗi ngày', // REVIEW
+  'budgets.perMonthShort': 'mỗi tháng', // REVIEW
+  'budgets.rowNextPeriod': 'Kỳ mới từ {date}', // REVIEW
+  'budgets.rowEndsOn': 'Kết thúc {date}', // REVIEW
+  'budgets.tickHint': 'Vạch đen là hôm nay. Thanh dài quá vạch là "Chi nhanh quá"; đã dùng từ 85% mức là "Sắp chạm mức".', // REVIEW
+  'budgets.tickHintDismiss': 'Đã hiểu', // REVIEW
+  'budgets.stopShort': 'Nên dừng', // REVIEW
+  'budgets.parentOver': '{name} đã vượt', // REVIEW
+  'budgets.parentOverNote': '{name} (gồm cả mục này) đã vượt {amount}', // REVIEW
+  'budgets.overAmountAria': 'vượt mức {amount}', // REVIEW
+  'budgets.withinParent': 'trong {name}', // REVIEW
+  'budgets.includesChildren': 'Gồm cả ngân sách {names}', // REVIEW
+  'budgets.defaultsFromDay': 'từ ngày {day}', // REVIEW
+  'budgets.defaultsAllWallets': 'mọi ví {symbol}', // REVIEW
+  'budgets.defaultsSomeWallets': '{n} ví', // REVIEW
+  'budgets.periodLockedHint': 'Muốn đổi chu kỳ? Xóa ngân sách này rồi đặt lại.', // REVIEW
+  'budgets.amountPlaceholder': 'VD: 3tr hoặc 3.000.000', // REVIEW
+  'budgets.alreadySet': 'Đã có', // REVIEW
+  'budgets.existingNote': '{name} đã có ngân sách với chu kỳ này.', // REVIEW
+  'budgets.viewExisting': 'Xem ngân sách', // REVIEW
+  'budgets.missingTarget': 'Chọn danh mục hoặc thẻ để lưu.', // REVIEW
+  'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
 };

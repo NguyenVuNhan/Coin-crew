@@ -439,7 +439,7 @@ describe('BudgetForm', () => {
 
     // Only name, amount, wallets are shown; target, currency, period are absent
     expect(screen.getByTestId('budget-form-name')).toHaveValue('Ăn uống');
-    expect(screen.getByTestId('budget-form-amount')).toHaveValue('3000000');
+    expect(screen.getByTestId('budget-form-amount')).toHaveValue('3.000.000');
     expect(screen.getByTestId('budget-form-wallets')).toBeInTheDocument();
     expect(screen.queryByTestId('budget-form-target-category')).not.toBeInTheDocument();
     expect(screen.queryByTestId('budget-form-currency')).not.toBeInTheDocument();
@@ -519,7 +519,7 @@ describe('BudgetForm', () => {
   it('409 DUPLICATE shows an inline error naming the duplicate', async () => {
     const user = userEvent.setup();
     stubApis({
-      budgets: [existingFoodBudget],
+      budgets: [], // not in the local list yet (a race): only the server knows
       wallets: [cashWallet],
       extraRoutes: {
         'POST /api/me/personal/budgets': () =>

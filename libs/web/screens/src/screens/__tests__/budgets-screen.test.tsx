@@ -234,21 +234,21 @@ describe('BudgetsScreen', () => {
     expect(headings).toEqual([
       'Đã vượt mức · 1',
       'Đang chi nhanh quá · 1',
-      'Đúng nhịp · 2',
+      'Trong mức · 2',
     ]);
 
-    // Over row: −220.000₫ in text-danger, "Nên dừng đến hết kỳ", links to /budgets/b-over, class fsl-budget-row
+    // Over row: −220.000₫ in text-danger, the next-period line, links to /budgets/b-over, class fsl-budget-row
     const overRow = screen.getByTestId('budget-row-b-over');
     expect(overRow).toHaveClass('fsl-budget-row');
     expect(overRow).toHaveAttribute('href', '/budgets/b-over');
     const overAmount = within(overRow).getByText('−220.000₫');
     expect(overAmount).toHaveClass('text-danger');
-    expect(within(overRow).getByText(/Nên dừng đến hết kỳ/)).toBeInTheDocument();
+    expect(within(overRow).getByText(/Kỳ mới từ/)).toBeInTheDocument();
 
     // Fast row: projected words
     const fastRow = screen.getByTestId('budget-row-b-fast');
     expect(fastRow).toHaveAttribute('href', '/budgets/b-fast');
-    expect(within(fastRow).getByText(/Sẽ vượt ~/)).toBeInTheDocument();
+    expect(within(fastRow).getByText(/Sẽ vượt khoảng/)).toBeInTheDocument();
 
     // Every state (over, fast, near, fine) has state words and an icon (not colour alone)
     for (const id of ['b-over', 'b-fast', 'b-near', 'b-fine']) {

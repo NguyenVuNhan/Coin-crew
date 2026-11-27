@@ -1,5 +1,5 @@
-import { useMemo, useState, type JSX, type MouseEvent, type ReactNode } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useMemo, useState, type JSX, type MouseEvent } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   BUDGET_NEAR,
   budgetProgress,
@@ -36,37 +36,57 @@ import { BudgetForm } from '../components/budgets/BudgetForm';
 import { BudgetHistoryChart } from '../components/budgets/BudgetHistoryChart';
 import { BudgetTransactions } from '../components/budgets/BudgetTransactions';
 import { buildBudgetChartModel } from '../components/budgets/budgetChartModel';
+import { findChildBudgets, findParentBudget, progressById } from '../components/budgets/budgetOverlap';
 import {
   formatBudgetPeriodLabel,
   formatDayMonth,
-  formatTimeLeftShort,
+  parseYmd,
 } from '../components/budgets/budgetLabels';
+import { approxMoney, budgetTimeLeft } from '../components/budgets/budgetWords';
 
-const PACE_TOKEN = '__BUDGET_PACE__';
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
   countLoans: false,
 };
 
+function nextDayYmd(ymd: string): string {
+  const [y, m, d] = parseYmd(ymd);
+  const dt = new Date(Date.UTC(y, m - 1, d + 1));
+  const ry = String(dt.getUTCFullYear()).padStart(4, '0');
+  const rm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const rd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${ry}-${rm}-${rd}`;
+}
+
 function Stat({
   label,
   value,
   align = 'left',
+  valueTestId,
+  valueClassName,
 }: {
   label: string;
   value: string;
   align?: 'left' | 'center' | 'right';
+  valueTestId?: string;
+  valueClassName?: string;
 }): JSX.Element {
   return (
     <div
       className={cn(
-        'flex flex-col',
+        'flex flex-col min-w-0',
         align === 'center' && 'items-center',
         align === 'right' && 'items-end',
       )}
     >
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold tabular-nums text-foreground">
+      <span
+        data-testid={valueTestId}
+        className={cn(
+          'text-sm font-semibold tabular-nums text-foreground',
+          valueClassName,
+        )}
+      >
         {value}
       </span>
     </div>
@@ -77,8 +97,9 @@ function buildStateNote(
   progress: BudgetProgress,
   def: BudgetDef,
   t: ReturnType<typeof useT>,
-): ReactNode {
-  const { state, limit, spent, left, daysLeft, pace, period } = progress;
+): string {
+  const { state, limit, spent, left, daysLeft, period, projectedOverPct } =
+    progress;
 
   if (daysLeft <= 0) {
     if (state === 'over') {
@@ -99,56 +120,24 @@ function buildStateNote(
   }
 
   if (state === 'over') {
-    return t('budgets.noteOver', {
-      amount: formatMoney(Math.abs(left), def.currency),
-      stop: t('budgets.stopUntilEnd'),
+    return t(def.periodKind === 'once' ? 'budgets.noteOverOnce' : 'budgets.noteOver');
+  }
+
+  if (state === 'fast') {
+    const projectedOver = Math.max(
+      0,
+      Math.round((projectedOverPct ?? 0) * limit),
+    );
+    return t('budgets.noteFast', {
+      amount: approxMoney(projectedOver, getLang(), def.currency),
     });
   }
 
-  const end = formatDayMonth(period.to);
-  const paceAmount = pace
-    ? formatMoney(pace.amount, def.currency)
-    : formatMoney(0, def.currency);
-  const paceUnitKey =
-    pace?.unit === 'month' ? 'budgets.paceUnitMonth' : 'budgets.paceUnitDay';
-  const paceStr = t(paceUnitKey, { amount: PACE_TOKEN });
-  const paceNode: ReactNode = paceStr.includes(PACE_TOKEN) ? (
-    <>
-      {paceStr.split(PACE_TOKEN)[0]}
-      <b className="font-semibold tabular-nums">{paceAmount}</b>
-      {paceStr.split(PACE_TOKEN)[1]}
-    </>
-  ) : (
-    <>
-      {paceStr}{' '}
-      <b className="font-semibold tabular-nums">{paceAmount}</b>
-    </>
-  );
-
-  const noteKey =
-    state === 'fast'
-      ? 'budgets.noteFast'
-      : state === 'near'
-        ? 'budgets.noteNear'
-        : 'budgets.noteFine';
-  const template = t(noteKey, { pace: PACE_TOKEN, end });
-
-  if (!template.includes(PACE_TOKEN)) {
-    return (
-      <>
-        {template} {paceNode}
-      </>
-    );
+  if (state === 'near') {
+    return t('budgets.noteNear', { end: formatDayMonth(period.to) });
   }
 
-  const [before, after = ''] = template.split(PACE_TOKEN);
-  return (
-    <>
-      {before}
-      {paceNode}
-      {after}
-    </>
-  );
+  return t('budgets.noteFine');
 }
 
 export function BudgetDetailScreen(): JSX.Element {
@@ -160,7 +149,7 @@ export function BudgetDetailScreen(): JSX.Element {
   const today = todayLocal();
 
   const budgetsQuery = useBudgets();
-  const { source, defs, history, suggestion, rowsFor, isPending, error } =
+  const { source, defs, groups, history, suggestion, rowsFor, isPending, error } =
     useBudgetsProgress();
   const updateBudget = useUpdateBudget();
 
@@ -181,6 +170,31 @@ export function BudgetDetailScreen(): JSX.Element {
     () => (id ? defs.find((b) => b.id === id) ?? null : null),
     [defs, id],
   );
+
+  const parentById = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const cat of categories) {
+      map.set(cat.id, cat.parentId);
+    }
+    return map;
+  }, [categories]);
+
+  const childBudgetNames = useMemo(() => {
+    if (!def) return '';
+    return findChildBudgets(def, defs, parentById)
+      .map((child) => child.name)
+      .join(', ');
+  }, [def, defs, parentById]);
+
+  const parentBudget = useMemo(
+    () => (def ? findParentBudget(def, defs, parentById) : null),
+    [def, defs, parentById],
+  );
+
+  const progressMap = useMemo(() => progressById(groups), [groups]);
+  const parentProgress = parentBudget ? progressMap.get(parentBudget.id) ?? null : null;
+  /** The parent budget is over: this page says stop and links to it instead of its own advice. */
+  const parentIsOver = parentProgress?.state === 'over';
 
   const [selectedPeriodFrom, setSelectedPeriodFrom] = useState<string | null>(
     null,
@@ -364,63 +378,159 @@ export function BudgetDetailScreen(): JSX.Element {
 
               <div className="relative flex justify-center">
                 <BudgetArc
-                  used={
-                    shownProgress.limit > 0
-                      ? Math.min(
-                          100,
-                          Math.round(
-                            (shownProgress.spent / shownProgress.limit) * 100,
-                          ),
-                        )
-                      : shownProgress.spent > 0
-                        ? 100
-                        : 0
-                  }
+                  spent={shownProgress.spent}
+                  limit={shownProgress.limit}
                   state={shownProgress.state}
+                  todayPct={
+                    shownProgress.daysLeft > 0 && !parentIsOver
+                      ? Math.round(shownProgress.elapsed * 100)
+                      : undefined
+                  }
                 />
-                <div className="absolute bottom-0 inset-x-0 flex flex-col items-center">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {shownProgress.state === 'over'
-                      ? t('budgets.overLabel')
-                      : t('budgets.remaining')}
-                  </span>
-                  <span
-                    data-testid="budget-remaining-amount"
-                    className={cn(
-                      'text-3xl font-bold tabular-nums leading-tight',
-                      shownProgress.state === 'over'
-                        ? 'text-danger'
-                        : 'text-foreground',
-                    )}
-                  >
-                    {shownProgress.state === 'over'
-                      ? `\u2212${formatMoney(Math.abs(shownProgress.left), def.currency)}`
-                      : formatMoney(Math.max(0, shownProgress.left), def.currency)}
-                  </span>
+                <div className="absolute bottom-0 inset-x-0 flex flex-col items-center text-center">
+                  {shownProgress.daysLeft <= 0 ? (
+                    <>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {shownProgress.state === 'over'
+                          ? t('budgets.overShort')
+                          : t('budgets.leftOver')}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-3xl font-bold tabular-nums leading-tight',
+                          shownProgress.state === 'over'
+                            ? 'text-danger'
+                            : 'text-foreground',
+                        )}
+                      >
+                        {shownProgress.state === 'over'
+                          ? formatMoney(Math.abs(shownProgress.left), def.currency)
+                          : formatMoney(Math.max(0, shownProgress.left), def.currency)}
+                      </span>
+                    </>
+                  ) : shownProgress.state === 'over' ? (
+                    <>
+                      <span className="text-sm font-semibold text-danger">
+                        {t('budgets.stopShort')}
+                      </span>
+                      <span className="text-xl font-semibold text-foreground leading-tight">
+                        {def.periodKind === 'once'
+                          ? t('budgets.endsOn', {
+                              date: formatDayMonth(shownProgress.period.to),
+                            })
+                          : t('budgets.nextPeriodFrom', {
+                              date: formatDayMonth(
+                                nextDayYmd(shownProgress.period.to),
+                              ),
+                            })}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {budgetTimeLeft(shownProgress.daysLeft, t)}
+                      </span>
+                    </>
+                  ) : parentBudget && parentProgress?.state === 'over' ? (
+                    <>
+                      <span className="text-xl font-semibold text-danger leading-tight">
+                        {t('budgets.stopShort')}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {t('budgets.parentOver', { name: parentBudget.name })}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {shownProgress.daysLeft === 1
+                          ? t('budgets.todayLeft')
+                          : shownProgress.pace?.unit === 'month'
+                            ? t('budgets.perMonthLeft')
+                            : t('budgets.perDayLeft')}
+                      </span>
+                      <span
+                        data-testid="budget-pace-amount"
+                        className="text-3xl font-bold tabular-nums leading-tight text-foreground"
+                      >
+                        {shownProgress.daysLeft === 1 || !shownProgress.pace
+                          ? formatMoney(
+                              Math.max(0, shownProgress.left),
+                              def.currency,
+                            )
+                          : formatMoney(
+                              shownProgress.pace.amount,
+                              def.currency,
+                            )}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {budgetTimeLeft(shownProgress.daysLeft, t)}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="flex justify-between">
-                <Stat
-                  label={t('budgets.limit')}
-                  value={formatMoney(shownProgress.limit, def.currency)}
-                />
+              <div className="flex justify-between gap-2">
+                {shownProgress.state === 'over' ? (
+                  <Stat
+                    label={t('budgets.overShort')}
+                    value={`\u2212${formatMoney(Math.abs(shownProgress.left), def.currency)}`}
+                    valueTestId="budget-remaining-amount"
+                    valueClassName="text-danger"
+                  />
+                ) : (
+                  <Stat
+                    label={t('budgets.remaining')}
+                    value={formatMoney(Math.max(0, shownProgress.left), def.currency)}
+                    valueTestId="budget-remaining-amount"
+                  />
+                )}
                 <Stat
                   label={t('budgets.spent')}
                   value={formatMoney(shownProgress.spent, def.currency)}
                   align="center"
                 />
                 <Stat
-                  label={t('budgets.timeLeftLabel')}
-                  value={formatTimeLeftShort(shownProgress.daysLeft, t)}
+                  label={t('budgets.limit')}
+                  value={formatMoney(shownProgress.limit, def.currency)}
                   align="right"
                 />
               </div>
 
+              {childBudgetNames && (
+                <p
+                  className="m-0 text-xs text-muted-foreground"
+                  data-testid="budget-includes"
+                >
+                  {t('budgets.includesChildren', { names: childBudgetNames })}
+                </p>
+              )}
+
+              {shownProgress.daysLeft > 0 &&
+                shownProgress.state !== 'over' &&
+                parentBudget &&
+                parentProgress?.state === 'over' && (
+                  <Link
+                    to={`/budgets/${encodeURIComponent(parentBudget.id)}`}
+                    data-testid="budget-parent-over"
+                    className="min-h-11 rounded-xl bg-danger-soft text-danger px-4 py-3 text-sm flex items-center justify-between gap-2 no-underline hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity motion-reduce:transition-none"
+                  >
+                    <span>
+                      {t('budgets.parentOverNote', {
+                        name: parentBudget.name,
+                        amount: formatMoney(
+                          Math.abs(parentProgress.left),
+                          parentBudget.currency,
+                        ),
+                      })}
+                    </span>
+                    <Icon name="chevronRight" size={18} className="shrink-0" />
+                  </Link>
+                )}
+
+              {!(shownProgress.daysLeft > 0 && shownProgress.state !== 'over' && parentIsOver) && (
               <p
                 data-testid="budget-state-note"
                 className={cn(
-                  'm-0 rounded-xl px-4 py-3 text-sm leading-snug',
+                  'm-0 rounded-xl px-4 py-3 text-sm leading-snug text-pretty',
                   shownProgress.state === 'over'
                     ? 'bg-danger-soft text-danger'
                     : shownProgress.state === 'fast' ||
@@ -431,6 +541,7 @@ export function BudgetDetailScreen(): JSX.Element {
               >
                 {buildStateNote(shownProgress, def, t)}
               </p>
+              )}
             </div>
 
             {/* 2. Suggestion Line (B12) */}
@@ -475,24 +586,28 @@ export function BudgetDetailScreen(): JSX.Element {
             )}
 
             {/* 3. History Chart & Past Periods */}
-            {chartModel && chartModel.bars.length > 0 && (
+            {((chartModel && chartModel.bars.length >= 2) || pastPeriods.length > 0) && (
               <section className="flex flex-col gap-2">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="m-0 text-sm font-semibold text-muted-foreground">
-                    {chartModel.heading}
-                  </h2>
-                </div>
-                <div className="rounded-xl bg-card px-4 pt-4 pb-3 flex flex-col gap-2">
-                  <BudgetHistoryChart
-                    bars={chartModel.bars}
-                    ariaLabel={chartModel.ariaLabel}
-                  />
-                  {chartModel.showCaption && (
-                    <span className="text-xs text-muted-foreground">
-                      {t('budgets.chartCaption')}
-                    </span>
-                  )}
-                </div>
+                {chartModel && chartModel.bars.length >= 2 && (
+                  <>
+                    <div className="flex items-center justify-between px-1">
+                      <h2 className="m-0 text-sm font-semibold text-muted-foreground">
+                        {chartModel.heading}
+                      </h2>
+                    </div>
+                    <div className="rounded-xl bg-card px-4 pt-4 pb-3 flex flex-col gap-2">
+                      <BudgetHistoryChart
+                        bars={chartModel.bars}
+                        ariaLabel={chartModel.ariaLabel}
+                      />
+                      {chartModel.showCaption && (
+                        <span className="text-xs text-muted-foreground">
+                          {t('budgets.chartCaption')}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {pastPeriods.length > 0 && (
                   <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
@@ -573,11 +688,6 @@ export function BudgetDetailScreen(): JSX.Element {
                               })}
                             </span>
                           </div>
-                          <Icon
-                            name="chevronRight"
-                            size={18}
-                            className="text-muted-foreground shrink-0"
-                          />
                         </button>
                       );
                     })}
