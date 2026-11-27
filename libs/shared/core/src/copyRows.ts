@@ -65,6 +65,7 @@ export function listFromCopy(
   const candidates: ListRow[] = [];
 
   for (const r of rows.entries) {
+    if (query.rule && r.ruleId !== query.rule) continue;
     const wallet = walletById.get(r.walletId);
     if (!wallet) continue;
 
@@ -94,7 +95,8 @@ export function listFromCopy(
       note: r.note,
       tags,
       excludeFromReports: r.excludeFromReports,
-      source: 'manual',
+      source: r.ruleId ? 'recurring' : 'manual',
+      ...(r.ruleId ? { ruleId: r.ruleId } : {}),
       beforeStart: isBeforeStart({ date: r.date }, { startDate: wallet.startDate }),
       createdAt: r.createdAt,
     };
@@ -102,7 +104,7 @@ export function listFromCopy(
     candidates.push({ kind: 'entry', entry });
   }
 
-  if (defaultWalletId !== null) {
+  if (defaultWalletId !== null && !query.rule) {
     for (const r of rows.ledger) {
       candidates.push({
         kind: 'person',

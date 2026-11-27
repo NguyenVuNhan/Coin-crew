@@ -588,6 +588,7 @@ export const personalTransactions = sqliteTable(
   },
   (t) => [
     index('personal_tx_user_date_idx').on(t.userId, t.date),
+    index('personal_tx_wallet_cat_amount_idx').on(t.walletId, t.categoryId, t.amount, t.date),
     index('personal_tx_user_sync_idx').on(t.userId, t.syncVersion, t.id),
     index('personal_tx_wallet_date_idx').on(t.walletId, t.date),
     index('personal_tx_transfer_idx').on(t.transferId),

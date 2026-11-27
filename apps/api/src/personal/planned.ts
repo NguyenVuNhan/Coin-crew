@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono';
-import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
@@ -309,6 +309,16 @@ export function plannedRoutes(): Hono<AppBindings> {
   return app;
 }
 
+/** The same day of the month before (clamped to that month's last day). */
+function sameDayLastMonth(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const py = m === 1 ? (y ?? 1970) - 1 : (y ?? 1970);
+  const pm = m === 1 ? 12 : (m ?? 1) - 1;
+  const last = new Date(Date.UTC(py, pm, 0)).getUTCDate();
+  const pd = Math.min(d ?? 1, last);
+  return `${String(py).padStart(4, '0')}-${String(pm).padStart(2, '0')}-${String(pd).padStart(2, '0')}`;
+}
+
 function subtractDaysYmd(ymd: string, days: number): string {
   const [y, m, d] = ymd.split('-').map(Number);
   const dt = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, (d ?? 1) - days));
@@ -318,7 +328,11 @@ function subtractDaysYmd(ymd: string, days: number): string {
   return `${ry}-${rm}-${rd}`;
 }
 
-/** Query cost: <= 3. Suggests a recurring rule when repeated manual entries match a monthly or weekly pattern. */
+/**
+ * Query cost: <= 5. Suggests a recurring rule when repeated manual entries match a monthly or weekly pattern.
+ * Two cheap LIMIT 1 probes come first (a similar amount around the same day last month, or exactly a week ago);
+ * the 100-day read runs only when one of them hits, so a busy category costs few rows per save.
+ */
 export async function maybeSuggestRule(
   db: Db,
   userId: string,
@@ -331,6 +345,39 @@ export async function maybeSuggestRule(
     entry.amount <= 0
   ) {
     return;
+  }
+
+  const sameCandidate = and(
+    eq(personalTransactions.userId, userId),
+    eq(personalTransactions.categoryId, entry.categoryId),
+    eq(personalTransactions.type, entry.type),
+    eq(personalTransactions.walletId, entry.walletId),
+    // |amount - x| * 10 <= x, as a range so the index can seek it (amounts are whole numbers).
+    gte(personalTransactions.amount, entry.amount - Math.floor(entry.amount / 10)),
+    lte(personalTransactions.amount, entry.amount + Math.floor(entry.amount / 10)),
+  );
+  const lastMonthDay = sameDayLastMonth(entry.date);
+  const monthProbe = await db
+    .select({ id: personalTransactions.id })
+    .from(personalTransactions)
+    .where(
+      and(
+        sameCandidate,
+        // "+date" keeps SQLite on personal_tx_wallet_cat_amount_idx instead of the wallet/date index.
+        sql`+${personalTransactions.date} >= ${subtractDaysYmd(lastMonthDay, 3)}`,
+        sql`+${personalTransactions.date} <= ${subtractDaysYmd(lastMonthDay, -3)}`,
+      ),
+    )
+    .limit(1)
+    .all();
+  if (monthProbe.length === 0) {
+    const weekProbe = await db
+      .select({ id: personalTransactions.id })
+      .from(personalTransactions)
+      .where(and(sameCandidate, sql`+${personalTransactions.date} = ${subtractDaysYmd(entry.date, 7)}`))
+      .limit(1)
+      .all();
+    if (weekProbe.length === 0) return;
   }
 
   const cutoff = subtractDaysYmd(entry.date, 100);

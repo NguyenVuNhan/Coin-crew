@@ -217,10 +217,17 @@ export function TransactionRow({
         ? t('transactions.directionFrom', { wallet: counterpartName })
         : t('transactions.directionTo', { wallet: counterpartName })
       : '';
+  const isRecurring = entry.source === 'recurring';
   const ariaAmountText = isTrade
     ? `${isBuy ? '\u2212' : '+'}${formattedAmount}`
     : signedText;
-  const ariaLabel = [title, ariaAmountText, directionText, ...metaParts]
+  const ariaLabel = [
+    title,
+    ariaAmountText,
+    directionText,
+    ...metaParts,
+    isRecurring ? t('recurring.markLabel') : '',
+  ]
     .filter(Boolean)
     .join('. ');
 
@@ -249,9 +256,19 @@ export function TransactionRow({
       )}
       <div className="min-w-0 flex-1 overflow-hidden flex flex-col gap-0.5">
         <span className="text-sm font-semibold text-foreground truncate">{title}</span>
-        {metaParts.length > 0 && (
-          <span className="text-xs text-muted-foreground truncate">
-            {metaParts.join(' · ')}
+        {(metaParts.length > 0 || isRecurring) && (
+          <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
+            {metaParts.length > 0 && <span className="truncate">{metaParts.join(' · ')}</span>}
+            {metaParts.length > 0 && isRecurring && <span aria-hidden="true">·</span>}
+            {isRecurring && (
+              <span
+                data-testid="tx-row-recurring-mark"
+                className="inline-flex items-center gap-1 shrink-0"
+              >
+                <Icon name="repeat" size={12} />
+                <span>{t('recurring.markLabel')}</span>
+              </span>
+            )}
           </span>
         )}
       </div>

@@ -149,6 +149,8 @@ export function syncRoutes(): Hono<AppBindings> {
         excludeFromReports: personalTransactions.excludeFromReports,
         createdAt: personalTransactions.createdAt,
         syncVersion: personalTransactions.syncVersion,
+        source: personalTransactions.source,
+        externalRef: personalTransactions.externalRef,
       })
       .from(personalTransactions)
       .where(and(...conditions))
@@ -205,6 +207,9 @@ export function syncRoutes(): Hono<AppBindings> {
       excludeFromReports: r.excludeFromReports === 1,
       createdAt: r.createdAt,
       syncVersion: r.syncVersion,
+      ...(r.source === 'recurring' && r.externalRef
+        ? { ruleId: r.externalRef.split(':')[0] || null }
+        : {}),
     }));
 
     let removedIds: string[] = [];

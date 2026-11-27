@@ -2093,4 +2093,21 @@ export const vi: Record<MessageKey, string> = {
   'recurring.weekday.short.5': 'T6', // REVIEW
   'recurring.weekday.short.6': 'T7', // REVIEW
   'recurring.weekday.short.7': 'CN', // REVIEW
+  'recurring.typeShortExpense': 'Chi', // REVIEW
+  'recurring.typeShortIncome': 'Thu', // REVIEW
+  'recurring.typeShortTransfer': 'Chuyển', // REVIEW
+  'recurring.typeShortBuy': 'Mua', // REVIEW
+  'recurring.detailNextDue': 'Lần tới {date}', // REVIEW
+  'recurring.detailConfirmed': 'đã xác nhận {date}', // REVIEW
+  'recurring.recordedHeading': 'Đã ghi', // REVIEW
+  'recurring.recordedEmpty': 'Chưa ghi lần nào', // REVIEW
+  'recurring.deleteRule': 'Xóa quy tắc', // REVIEW
+  'recurring.deleteConfirmTitle': 'Xóa quy tắc này?', // REVIEW
+  'recurring.deleteKeepsNote': 'Xóa quy tắc không xóa các giao dịch đã ghi.', // REVIEW
+  'recurring.notFoundTitle': 'Không tìm thấy quy tắc', // REVIEW
+  'recurring.notFoundBody': 'Quy tắc này không tồn tại hoặc đã bị xóa.', // REVIEW
+  'recurring.markLabel': 'Lặp lại', // REVIEW
+  'recurring.autoRecordedBy': 'Tự ghi theo quy tắc “{name}”', // REVIEW
+  'recurring.ruleDeleted': 'Quy tắc đã bị xóa', // REVIEW
+  'recurring.repeatThis': 'Lặp lại giao dịch này', // REVIEW
 };

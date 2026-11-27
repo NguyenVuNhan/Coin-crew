@@ -142,8 +142,13 @@ export function listRoutes(): Hono<AppBindings> {
       throw new ApiError("VALIDATION", 422, "Invalid recent");
     }
     const recent = recentParsed;
+    const rule = c.req.query("rule")?.trim() || undefined;
+    const hasPeriod =
+      c.req.query("month") !== undefined ||
+      c.req.query("from") !== undefined ||
+      c.req.query("to") !== undefined;
     const { from, to } =
-      recent !== undefined
+      recent !== undefined || (rule !== undefined && !hasPeriod)
         ? { from: "0000-01-01", to: "9999-12-31" }
         : parseListPeriod({
             month: c.req.query("month"),
@@ -240,6 +245,13 @@ export function listRoutes(): Hono<AppBindings> {
           sql`${personalTransactions.id} IN (SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ${tagId})`,
         );
       }
+      if (rule) {
+        const escapedRule = rule.replace(/[\\%_]/g, "\\$&");
+        conditions.push(eq(personalTransactions.source, "recurring"));
+        conditions.push(
+          sql`${personalTransactions.externalRef} LIKE ${`${escapedRule}:%`} ESCAPE '\\'`,
+        );
+      }
       if (type === "expense") {
         conditions.push(eq(personalTransactions.type, "expense"));
       } else if (type === "income") {
@@ -269,6 +281,8 @@ export function listRoutes(): Hono<AppBindings> {
           time: personalTransactions.time,
           note: personalTransactions.note,
           excludeFromReports: personalTransactions.excludeFromReports,
+          source: personalTransactions.source,
+          externalRef: personalTransactions.externalRef,
           createdAt: personalTransactions.createdAt,
         })
         .from(personalTransactions)
@@ -309,6 +323,12 @@ export function listRoutes(): Hono<AppBindings> {
       for (const r of entryRows) {
         const wallet = walletMap.get(r.walletId);
         if (!wallet) continue;
+        const entrySource: EntryView["source"] =
+          r.source === "recurring" ? "recurring" : "manual";
+        const ruleId =
+          entrySource === "recurring" && r.externalRef
+            ? r.externalRef.split(":")[0] || null
+            : null;
         const entry: EntryView = {
           id: r.id,
           walletId: r.walletId,
@@ -325,7 +345,8 @@ export function listRoutes(): Hono<AppBindings> {
           note: r.note ?? null,
           tags: tagsByTx.get(r.id) ?? [],
           excludeFromReports: Boolean(r.excludeFromReports),
-          source: "manual",
+          source: entrySource,
+          ...(ruleId ? { ruleId } : {}),
           beforeStart: isBeforeStart(
             { date: r.date },
             { startDate: wallet.startDate },
@@ -338,6 +359,7 @@ export function listRoutes(): Hono<AppBindings> {
 
     const includePersonRows =
       !showGroups &&
+      !rule &&
       !categoryId &&
       !assetId &&
       !tagId &&

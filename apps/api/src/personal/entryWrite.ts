@@ -360,8 +360,15 @@ export function buildEntryView(params: {
   tags: string[];
   excludeFromReports: boolean;
   source?: 'manual' | 'adjustment' | 'recurring';
+  externalRef?: string | null;
   createdAt: string;
 }): EntryView {
+  const source: EntryView['source'] = params.source ?? 'manual';
+  const ruleId =
+    source === 'recurring' && params.externalRef
+      ? (params.externalRef.split(':')[0] || null)
+      : null;
+
   return {
     id: params.id,
     walletId: params.wallet.id,
@@ -378,7 +385,8 @@ export function buildEntryView(params: {
     note: params.note,
     tags: params.tags,
     excludeFromReports: params.excludeFromReports,
-    source: (params.source ?? 'manual') as EntryView['source'],
+    source,
+    ruleId,
     beforeStart: isBeforeStart({ date: params.date }, { startDate: params.wallet.startDate }),
     createdAt: params.createdAt,
   };
@@ -446,6 +454,7 @@ export async function prepareEntryWrite(
       tags: tagPlan.tags.map((t) => t.name),
       excludeFromReports: false,
       source,
+      externalRef,
       createdAt: now,
     });
 
@@ -525,6 +534,7 @@ export async function prepareEntryWrite(
       tags: tagPlan.tags.map((t) => t.name),
       excludeFromReports: Boolean(input.excludeFromReports),
       source,
+      externalRef,
       createdAt: now,
     });
 
@@ -616,6 +626,7 @@ export async function prepareEntryWrite(
     tags: tagNames,
     excludeFromReports,
     source,
+    externalRef: outExternalRef,
     createdAt: now,
   });
   const inEntry = buildEntryView({
@@ -632,6 +643,7 @@ export async function prepareEntryWrite(
     tags: tagNames,
     excludeFromReports,
     source,
+    externalRef: inExternalRef,
     createdAt: now,
   });
 

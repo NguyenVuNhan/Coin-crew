@@ -2092,6 +2092,23 @@ export const en = {
   'recurring.weekday.short.5': 'Fri',
   'recurring.weekday.short.6': 'Sat',
   'recurring.weekday.short.7': 'Sun',
+  'recurring.typeShortExpense': 'Expense',
+  'recurring.typeShortIncome': 'Income',
+  'recurring.typeShortTransfer': 'Transfer',
+  'recurring.typeShortBuy': 'Buy',
+  'recurring.detailNextDue': 'Next {date}',
+  'recurring.detailConfirmed': 'confirmed {date}',
+  'recurring.recordedHeading': 'Recorded',
+  'recurring.recordedEmpty': 'Nothing recorded yet',
+  'recurring.deleteRule': 'Delete rule',
+  'recurring.deleteConfirmTitle': 'Delete this rule?',
+  'recurring.deleteKeepsNote': 'Deleting a rule keeps all recorded transactions.',
+  'recurring.notFoundTitle': 'Rule not found',
+  'recurring.notFoundBody': 'This rule does not exist or has been deleted.',
+  'recurring.markLabel': 'Recurring',
+  'recurring.autoRecordedBy': 'Auto-recorded by “{name}”',
+  'recurring.ruleDeleted': 'Rule was deleted',
+  'recurring.repeatThis': 'Repeat this transaction',
 } as const;
 
 export type MessageKey = keyof typeof en;

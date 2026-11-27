@@ -18,6 +18,7 @@ import { ReportCategoryScreen } from './screens/ReportCategoryScreen';
 import { BudgetsScreen } from './screens/BudgetsScreen';
 import { BudgetDetailScreen } from './screens/BudgetDetailScreen';
 import { RecurringScreen } from './screens/RecurringScreen';
+import { RuleDetailScreen } from './screens/RuleDetailScreen';
 import { Groups } from './screens/Groups';
 import { MyActivity } from './screens/MyActivity';
 import { PersonScreen } from './screens/PersonScreen';
@@ -113,6 +114,7 @@ export function App() {
       <Route path="/budgets" element={<PersonalRoute><BudgetsScreen /></PersonalRoute>} />
       <Route path="/budgets/:id" element={<PersonalRoute><BudgetDetailScreen /></PersonalRoute>} />
       <Route path="/recurring" element={<PersonalRoute><RecurringScreen /></PersonalRoute>} />
+      <Route path="/recurring/:id" element={<PersonalRoute><RuleDetailScreen /></PersonalRoute>} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />

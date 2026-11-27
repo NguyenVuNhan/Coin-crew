@@ -840,7 +840,8 @@ export interface EntryView {
   note: string | null;
   tags: string[];
   excludeFromReports: boolean;
-  source: 'manual' | 'adjustment';
+  source: 'manual' | 'adjustment' | 'recurring';
+  ruleId?: string | null;
   beforeStart: boolean;
   createdAt: string;
 }
@@ -877,6 +878,7 @@ export interface ListQuery {
   tripId?: string;
   groups?: 'show' | 'hide';
   q?: string;
+  rule?: string;
   /** "Giao dịch gần đây": the newest activity across all months, at most this many of each kind (1–20). */
   recent?: number;
 }
@@ -935,6 +937,8 @@ export interface SyncEntryRow {
   excludeFromReports: boolean;
   createdAt: string;
   syncVersion: number;
+  /** Set only on rows a recurring rule recorded. */
+  ruleId?: string | null;
 }
 
 export interface SyncLedgerRow {

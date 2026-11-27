@@ -194,6 +194,7 @@ export function buildListQueryString(query: GroupListQuery): string {
     ['tripId', query.tripId],
     ['groups', query.groups],
     ['q', query.q],
+    ['rule', query.rule],
     ['recent', query.recent === undefined ? undefined : String(query.recent)],
   ];
   for (const [key, value] of pairs) {
