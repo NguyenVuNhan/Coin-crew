@@ -165,3 +165,29 @@ The hourly job (`0 * * * *` in `apps/api/src/index.ts`, beside the existing work
 ## 13. Left to the builder
 
 Table and column names; the rule form's exact layout (through /impeccable, reviewed live with the owner); Vietnamese and English copy (marked `// REVIEW`); where the occurrence maths lives (pure functions in `@cc/core` are natural so web and API agree on "next date" and "upcoming"); the job's batch size within §11; how the planned-item kind registry looks in code.
+
+## Addendum: screens (owner approved 2026-11-28, /impeccable shape)
+
+Mockup: `docs/superpowers/mockups/recurring/3-six-screens.html`. Real components only (grouped lists, `Button`, `Sheet`, `Pill`, `EmptyState`, `Icon`); theme tokens only. New Vietnamese lines are marked `// REVIEW`.
+
+**Owner's picks:** schedule presets first; waiting items show their buttons in the row (no swipe); "30 ngày tới" lists each occurrence grouped by date.
+
+1. **Home row** (after Báo cáo, once a wallet exists): repeat icon tile, title "Định kỳ & chờ xác nhận", sub-line "{n} quy tắc · 30 ngày tới chi {vndOut}" (no rules: "Tự ghi các khoản lặp lại"). A Turmeric pill "{n} chờ" only when items wait.
+2. **Định kỳ screen** (`/recurring`), header "Định kỳ" with a "+" icon button (aria "Thêm quy tắc"):
+   - **"Chờ xác nhận · {n}"**, right note "Chưa tính vào số dư". One grouped list; each item a row with its buttons under the text:
+     - occurrence (Turmeric tile, the category icon): title = rule name/category, meta "Đến hạn {d/m}" (+ " · hỏi số tiền mỗi lần" for ask-me), amount (with "~" when ask-me). Buttons **Xác nhận** (primary) · **Sửa** (secondary) · **Bỏ qua** (ghost). A buy: meta "Đến hạn {d/m} · nhập số CCQ khi xác nhận", buttons **Nhập & xác nhận** (opens the buy form) · **Bỏ qua**.
+     - check-in (Turmeric tile): "{name} còn dùng không?", meta "{amount}/{unit} · tự tạm dừng sau {n} lần nữa nếu chưa trả lời" (short rules: "…sau {n} ngày…"); **Vẫn dùng** · **Tạm dừng**.
+     - paused notice (Turmeric tile): "Đã tạm dừng {name}", meta the reason ("Chưa trả lời 3 lần" / "Ví đã bị xóa" / "Danh mục đã bị xóa" / "Tài sản đã bị xóa"); **Tiếp tục** · **Bỏ qua**.
+     - suggestion (Jade Mist bulb tile, not Turmeric): "Tự ghi {category} mỗi tháng?" (weekly: "mỗi tuần"), meta "{amount} quanh ngày {d}, đã 3 tháng liền" (weekly: "vào {weekday}, đã 4 tuần liền"); **Tạo quy tắc** (secondary) · **Không** (ghost).
+     Hidden when empty.
+   - **"30 ngày tới"**, right "chi {out} · thu {in}" per currency (VND first). Date sub-labels "Thứ Sáu, 5/12"; rows: category tile, name, wallet, signed amount (expense/buy Lychee "−", income Leaf "+", transfer neutral "{from} → {to}"). Empty: "Không có khoản nào trong 30 ngày tới".
+   - **"Quy tắc · {n}"**: row = tile, name, meta "{schedule in words} · lần tới {d/m}" (ask-me: "· luôn hỏi"), amount. Paused: muted tile, meta in Turmeric-ink "Đã tạm dừng · {reason}", secondary **Tiếp tục**. Rows link to rule detail.
+   - **Empty state** (no rules, nothing waiting): title "Chưa có khoản định kỳ", line "Tiền nhà, lương, Netflix… ghi một lần, CoinCrew tự ghi các lần sau.", button "Thêm quy tắc".
+3. **Schedule in words:** "Hàng ngày", "Mỗi {n} ngày", "{Thứ Hai} hàng tuần" / "{T2, T4} hàng tuần", "Mỗi {n} tuần vào {…}", "Ngày {d} mỗi tháng", "Ngày cuối mỗi tháng", "Mỗi {n} tháng, ngày {d}", "Ngày {d/m} hàng năm".
+4. **Entry form "Lặp lại" row** (repeat icon; value "Không lặp" or the schedule in words in Jade). Sheet "Lặp lại": Không lặp · Hàng ngày · "{weekday} hàng tuần" · "Ngày {d} hàng tháng" (or "Ngày cuối hàng tháng" when the date is the month's last day) · "Ngày {d/m} hàng năm" · "Tùy chỉnh…", with a hint "Từ lần này, CoinCrew tự ghi khoản này đúng ngày. Lần tới: {d/m}." Picking closes the sheet.
+5. **"Tùy chỉnh lặp lại"** (full sheet/page): "Mỗi [n]" + segmented Ngày/Tuần/Tháng/Năm; weekly: weekday chips T2…CN; monthly: segmented "Ngày {d}" / "Ngày cuối tháng" with the note "Tháng không có ngày {d} sẽ ghi vào ngày cuối tháng." (d ≥ 29); Bắt đầu; Kết thúc (Không bao giờ / Vào ngày / Sau {n} lần); switch "Hỏi số tiền mỗi lần" with "Dùng khi số tiền thay đổi (điện, nước). Khoản sẽ chờ bạn xác nhận." (forced on and disabled for a buy: "Mua tài sản luôn chờ bạn nhập số lượng."); Jade Mist note "Thỉnh thoảng CoinCrew sẽ hỏi bạn còn dùng khoản này không, để không ghi mãi một khoản đã hủy."; primary **Xong**.
+6. **Rule detail** (`/recurring/:id`): header = name with a pen icon button (Sửa); summary card "{Chi|Thu|Chuyển|Mua} · {schedule}", the amount (display), "Lần tới {d/m} · {wallet} · đã xác nhận {d/m}"; "Đã ghi" list of the rule's transactions (latest 10); buttons **Tạm dừng**/**Tiếp tục** (secondary) and **Xóa quy tắc** (Lychee-outline ghost) with the line "Xóa quy tắc không xóa các giao dịch đã ghi." Delete asks to confirm in a sheet. Editing says "Thay đổi chỉ áp dụng cho các lần sau."
+7. **Repeat mark:** list rows of rule-made transactions add a 12px repeat icon + "Lặp lại" to the meta line. Transaction detail: a row "Tự ghi theo quy tắc “{name}”" / "{schedule}" linking to the rule; on a manual expense/income/buy/transfer instead a Jade row "Lặp lại giao dịch này" (opens the rule form pre-filled).
+8. **Budget "still due":** a hatched primary segment after "spent" on the bar; line (repeat icon) "Còn {n} khoản định kỳ sắp tới · {amount}"; pace line "Sau đó, mỗi ngày còn khoảng {x} ({days} ngày)". Hidden when n = 0. Budget state is unchanged by still-due.
+9. **Confirm feedback:** snackbar "Đã ghi {name}" after Xác nhận; "Đã bỏ qua" with Undo not offered (skip is final); "Đã tạo quy tắc"; errors as `InlineError` in the item row.
+
