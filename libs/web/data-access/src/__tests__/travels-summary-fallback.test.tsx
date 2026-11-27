@@ -4,6 +4,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 import type {
+  BudgetDef,
+  BudgetsProgressResponse,
   BudgetsResponse,
   CategoriesResponse,
   CategoryView,
@@ -286,6 +288,192 @@ describe('useTravelSummary rows fallback', () => {
 
     expect(calls.some((c) => c.path === '/api/me/personal/travels/tr-1/rows')).toBe(false);
     expect(result.current.summary!.currencies[0]!.total).toBe(180_000);
+
+    unmount();
+  });
+
+  it('when /travels/:id/rows returns 500 with a working budgets/progress, uses progress rows with no error', async () => {
+    const today = todayLocal();
+    const trip: TravelView = {
+      id: 'tr-1',
+      tagId: 't-dalat',
+      name: 'Đà Lạt',
+      start: today,
+      end: today,
+      countsFrom: today,
+      groupIds: [],
+      budgetId: null,
+      createdAt: '2026-11-27T00:00:00.000Z',
+    };
+    const otherBudget: BudgetDef = {
+      id: 'b-other',
+      name: 'Food',
+      target: { kind: 'category', categoryId: 'c-food' },
+      currency: 'VND',
+      periodKind: 'month',
+      monthStartDay: null,
+      from: today,
+      to: null,
+      excludedWalletIds: [],
+      limits: [{ effectiveFrom: today, amount: 1_000_000 }],
+      suggestionDismissedUntil: null,
+      createdOn: today,
+    };
+    const progressRows: CountedSpendRow[] = [
+      {
+        id: 'e-prog',
+        kind: 'entry',
+        date: today,
+        amount: 250_000,
+        currency: 'VND',
+        walletId: 'w-1',
+        categoryId: 'c-food',
+        tagIds: ['t-dalat'],
+      },
+    ];
+
+    mockFetch(
+      baseRoutes({
+        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/budgets': { budgets: [otherBudget] } satisfies BudgetsResponse,
+        'GET /api/me/personal/budgets/progress': { rows: progressRows } satisfies BudgetsProgressResponse,
+        'GET /api/me/personal/travels/tr-1/rows': () =>
+          Response.json({ error: { code: 'INTERNAL', message: 'Boom' } }, { status: 500 }),
+      }),
+    );
+
+    const queryClient = makeQueryClient();
+    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.summary).not.toBeNull();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.summary!.currencies[0]!.total).toBe(250_000);
+
+    unmount();
+  });
+
+  it('when both /travels/:id/rows and budgets/progress fail, sets error', async () => {
+    const today = todayLocal();
+    const trip: TravelView = {
+      id: 'tr-1',
+      tagId: 't-dalat',
+      name: 'Đà Lạt',
+      start: today,
+      end: today,
+      countsFrom: today,
+      groupIds: [],
+      budgetId: null,
+      createdAt: '2026-11-27T00:00:00.000Z',
+    };
+    const otherBudget: BudgetDef = {
+      id: 'b-other',
+      name: 'Food',
+      target: { kind: 'category', categoryId: 'c-food' },
+      currency: 'VND',
+      periodKind: 'month',
+      monthStartDay: null,
+      from: today,
+      to: null,
+      excludedWalletIds: [],
+      limits: [{ effectiveFrom: today, amount: 1_000_000 }],
+      suggestionDismissedUntil: null,
+      createdOn: today,
+    };
+
+    mockFetch(
+      baseRoutes({
+        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/budgets': { budgets: [otherBudget] } satisfies BudgetsResponse,
+        'GET /api/me/personal/budgets/progress': () =>
+          Response.json({ error: { code: 'INTERNAL', message: 'Progress failed' } }, { status: 500 }),
+        'GET /api/me/personal/travels/tr-1/rows': () =>
+          Response.json({ error: { code: 'INTERNAL', message: 'Rows failed' } }, { status: 500 }),
+      }),
+    );
+
+    const queryClient = makeQueryClient();
+    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.summary).toBeNull();
+
+    unmount();
+  });
+
+  it('when /travels/:id/rows succeeds and budgets/progress fails, uses /rows with no error', async () => {
+    const today = todayLocal();
+    const trip: TravelView = {
+      id: 'tr-1',
+      tagId: 't-dalat',
+      name: 'Đà Lạt',
+      start: today,
+      end: today,
+      countsFrom: today,
+      groupIds: [],
+      budgetId: null,
+      createdAt: '2026-11-27T00:00:00.000Z',
+    };
+    const otherBudget: BudgetDef = {
+      id: 'b-other',
+      name: 'Food',
+      target: { kind: 'category', categoryId: 'c-food' },
+      currency: 'VND',
+      periodKind: 'month',
+      monthStartDay: null,
+      from: today,
+      to: null,
+      excludedWalletIds: [],
+      limits: [{ effectiveFrom: today, amount: 1_000_000 }],
+      suggestionDismissedUntil: null,
+      createdOn: today,
+    };
+    const serverRows: CountedSpendRow[] = [
+      {
+        id: 'e-1',
+        kind: 'entry',
+        date: today,
+        amount: 310_000,
+        currency: 'VND',
+        walletId: 'w-1',
+        categoryId: 'c-food',
+        tagIds: ['t-dalat'],
+      },
+    ];
+
+    mockFetch(
+      baseRoutes({
+        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/budgets': { budgets: [otherBudget] } satisfies BudgetsResponse,
+        'GET /api/me/personal/budgets/progress': () =>
+          Response.json({ error: { code: 'INTERNAL', message: 'Progress failed' } }, { status: 500 }),
+        'GET /api/me/personal/travels/tr-1/rows': { rows: serverRows } satisfies TravelRowsResponse,
+      }),
+    );
+
+    const queryClient = makeQueryClient();
+    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.summary).not.toBeNull();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.summary!.currencies[0]!.total).toBe(310_000);
 
     unmount();
   });

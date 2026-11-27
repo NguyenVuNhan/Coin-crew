@@ -21,7 +21,7 @@ import {
   type UpdateTravelInput,
 } from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
-import { apiFetch, apiSend, ApiClientError } from './client';
+import { apiFetch, apiSend, type ApiClientError } from './client';
 import { useBudgetsProgress, useBudgetsSource } from './budgets';
 import { WALLETS_KEY } from './personal';
 import {
@@ -228,31 +228,46 @@ export function useTravelSummary(id: string): {
     queryFn: () =>
       apiFetch<TravelRowsResponse>(`/api/me/personal/travels/${encodeURIComponent(id)}/rows`),
     enabled: travelRowsEnabled,
+    retry: false,
   });
 
-  // Legacy screen tests (e.g. travel-detail.test.tsx) stub budgets/progress without /travels/:id/rows.
-  const useFallbackProgressRows =
-    travelRowsEnabled &&
-    travelRowsQuery.error instanceof ApiClientError &&
-    travelRowsQuery.error.status === 404 &&
-    !sourcePending &&
-    !sourceError &&
-    sourceRows.length > 0;
+  let rows: CountedSpendRow[];
+  let rowsPending: boolean;
+  let rowsError: ApiClientError | null;
 
-  const rows =
-    source === 'copy'
-      ? sourceRows
-      : useFallbackProgressRows
-        ? sourceRows
-        : (travelRowsQuery.data?.rows ?? EMPTY_ROWS);
-
-  const rowsPending =
-    source === 'pending' ||
-    sourcePending ||
-    (travelRowsEnabled && travelRowsQuery.isPending);
-
-  const rowsError =
-    travelRowsEnabled && !useFallbackProgressRows ? travelRowsQuery.error : null;
+  if (source === 'copy') {
+    rows = sourceRows;
+    rowsPending = sourcePending;
+    rowsError = sourceError;
+  } else if (source === 'pending') {
+    rows = EMPTY_ROWS;
+    rowsPending = true;
+    rowsError = sourceError;
+  } else if (!travelRowsEnabled) {
+    rows = EMPTY_ROWS;
+    rowsPending = sourcePending;
+    rowsError = sourceError;
+  } else if (travelRowsQuery.isSuccess) {
+    // /rows succeeded: ignore sourcePending and sourceError so budgets/progress cannot block or fail it.
+    rows = travelRowsQuery.data.rows;
+    rowsPending = false;
+    rowsError = null;
+  } else if (travelRowsQuery.isError) {
+    // /rows failed: fall back to useBudgetsSource server rows (even if empty) unless it also errored.
+    if (sourceError) {
+      rows = EMPTY_ROWS;
+      rowsPending = false;
+      rowsError = travelRowsQuery.error;
+    } else {
+      rows = sourceRows;
+      rowsPending = sourcePending;
+      rowsError = null;
+    }
+  } else {
+    rows = EMPTY_ROWS;
+    rowsPending = true;
+    rowsError = null;
+  }
 
   const walletsQuery = useWalletDetails({ enabled });
   const wallets = walletsQuery.data?.wallets;
@@ -278,7 +293,6 @@ export function useTravelSummary(id: string): {
 
   const error =
     travelsQuery.error ??
-    sourceError ??
     rowsError ??
     walletsQuery.error ??
     (hasBudget ? budgetsProgress.error : null) ??

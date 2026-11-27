@@ -284,6 +284,7 @@ describe('GET /me/personal/travels/:id/rows', () => {
 
     const body = await json<TravelRowsResponse>(res);
     expect(body.rows).toHaveLength(3);
+    expect(body.rows.some((r) => r.id === 'gx-untagged')).toBe(false);
 
     const byNote = body.rows.map((r) => ({
       kind: r.kind,
