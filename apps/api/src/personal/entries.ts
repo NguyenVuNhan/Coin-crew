@@ -234,7 +234,7 @@ function assertNoOversell(
   }
 }
 
-async function resolveTags(
+export async function resolveTags(
   db: Db,
   userId: string,
   names: string[],

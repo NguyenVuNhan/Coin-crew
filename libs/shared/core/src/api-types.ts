@@ -27,6 +27,8 @@ export type ApiErrorCode =
   | 'FIXED_CATEGORY'
   | 'DEFAULT_WALLET'
   | 'OVERSELL'
+  | 'TRAVEL_OVERLAP'
+  | 'TAG_TAKEN'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
@@ -112,6 +114,7 @@ import type { GroupRow } from './groupShares';
 import type { WalletOverride } from './visibility';
 import type { BudgetDef, BudgetPeriodKind, BudgetTarget } from './budgets';
 import type { CountedSpendRow } from './reports';
+import type { TravelDef } from './travels';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -996,5 +999,53 @@ export interface UpdateBudgetInput {
 
 export interface BudgetsProgressResponse {
   rows: CountedSpendRow[];
+}
+
+export interface TravelView extends TravelDef {
+  createdAt: string;
+}
+
+export interface TravelsResponse {
+  travels: TravelView[];
+}
+
+export interface TravelLimitInput {
+  amount: number;
+  currency: CurrencyCode;
+}
+
+export interface CreateTravelInput {
+  name: string;
+  start: string;
+  end: string;
+  countsFrom?: string;
+  groupIds: string[];
+  limit?: TravelLimitInput;
+  today: string;
+}
+
+export interface UpdateTravelInput {
+  name?: string;
+  start?: string;
+  end?: string;
+  countsFrom?: string;
+  groupIds?: string[];
+  limit?: TravelLimitInput | null;
+  endNow?: true;
+  today: string;
+}
+
+export interface TravelExisting {
+  own: { count: number; totals: { currency: CurrencyCode; amount: number }[] };
+  shares: { count: number; total: number };
+}
+
+export interface TravelSavedResponse {
+  travel: TravelView;
+  existing: TravelExisting;
+}
+
+export interface ApplyTravelExistingInput {
+  tag: boolean;
 }
 
