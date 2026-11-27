@@ -53,6 +53,24 @@
         ],
         "createdAt": "2026-11-21T06:21:14.683Z",
         "reason": "Reference mockup, not shipped UI: the flagged text is white annotation over the dark scrim and wireframe chips; the real components follow DESIGN.md tokens (planner)"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/recurring/1-placement-options.html"
+        ],
+        "createdAt": "2026-11-27T15:25:27.058Z",
+        "reason": "Claude: throwaway brainstorm wireframes scaled down so phones fit side by side; spec notes the small text"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "docs/superpowers/mockups/recurring/2-recurring-combined.html"
+        ],
+        "createdAt": "2026-11-27T15:25:27.732Z",
+        "reason": "Claude: throwaway brainstorm wireframes scaled down so phones fit side by side; spec notes the small text"
       }
     ]
   }
