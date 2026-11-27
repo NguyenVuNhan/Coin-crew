@@ -20,6 +20,8 @@ import {
   type EntryInput,
   type EntryView,
   type ListResponse,
+  type RecurringDraft,
+  type RecurringSchedule,
   type WalletDetailView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
@@ -31,6 +33,11 @@ import { useTripView } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import { useBudgetImpacts } from '@cc/web-data-access/budgets';
+import {
+  useCreateRule,
+  useRecurringRules,
+  useUpdateRule,
+} from '@cc/web-data-access/recurring';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -65,6 +72,8 @@ import { AssetPicker } from '../components/AssetPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { categoryIconName } from '../components/categoryIcon';
 import { EntryDateRow, formatEntryDayLabel } from '../components/EntryDateRow';
+import { RepeatField, type RepeatValue } from '../components/RepeatField';
+import { defaultMonthlySchedule } from '../lib/scheduleWords';
 import { useEntryFold } from '../components/entryFold';
 import { FoldLine } from '../components/FoldLine';
 import { runFoldTransition } from '../components/foldTransition';
@@ -179,10 +188,13 @@ function pickDefaultWallet(activeWallets: WalletDetailView[]): string {
 export function EntryPage(): JSX.Element {
   const t = useT();
   const { id } = useParams<{ id: string }>();
-  const isEdit = Boolean(id);
   const location = useLocation();
+  const isRuleEdit = Boolean(id) && location.pathname.startsWith('/recurring/');
+  const isEntryEdit = Boolean(id) && !isRuleEdit;
+  const isEdit = Boolean(id);
   const [searchParams, setSearchParams] = useSearchParams();
-  const isDirectEdit = isEdit && searchParams.get('group') === '1';
+  const isDirectEdit = isEntryEdit && searchParams.get('group') === '1';
+  const isRepeatPreset = !isEdit && searchParams.get('repeat') === '1';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { goBack } = useBack('/trips');
@@ -200,7 +212,7 @@ export function EntryPage(): JSX.Element {
   const stateEntry = (location.state as { entry?: EntryView } | null)?.entry;
 
   const cachedEntry = useMemo(() => {
-    if (!id || isDirectEdit || stateEntry) return stateEntry ?? null;
+    if (!id || !isEntryEdit || isDirectEdit || stateEntry) return stateEntry ?? null;
     const cachedLists = queryClient.getQueriesData<ListResponse>({ queryKey: PERSONAL_LIST_KEY });
     for (const [, data] of cachedLists) {
       if (!data) continue;
@@ -211,7 +223,7 @@ export function EntryPage(): JSX.Element {
       }
     }
     return null;
-  }, [id, isDirectEdit, stateEntry, queryClient]);
+  }, [id, isEntryEdit, isDirectEdit, stateEntry, queryClient]);
 
   const cachedGroupRow = useMemo(() => {
     if (!id || !isDirectEdit) return null;
@@ -261,14 +273,19 @@ export function EntryPage(): JSX.Element {
     directExpense?.spentOn.slice(0, 7) ??
     searchParams.get('month') ??
     currentMonthLocal();
-  const needsCounterpartFetch = isEdit && !isDirectEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
+  const needsCounterpartFetch = isEntryEdit && !isDirectEdit && Boolean(preEntry?.transferId) && !cachedCounterpart;
   const listQuery = usePersonalList(
     { month: monthParam, ...(isDirectEdit ? { groups: 'show' as const } : {}) },
     {
       enabled:
-        isEdit &&
+        isEntryEdit &&
         (isDirectEdit ? !cachedGroupRow : !cachedEntry || needsCounterpartFetch),
     },
+  );
+  const rulesQuery = useRecurringRules({ enabled: isRuleEdit });
+  const editingRule = useMemo(
+    () => (isRuleEdit && id ? (rulesQuery.data?.rules.find((r) => r.id === id) ?? null) : null),
+    [isRuleEdit, id, rulesQuery.data?.rules],
   );
 
   const directGroupRow = useMemo(() => {
@@ -311,6 +328,8 @@ export function EntryPage(): JSX.Element {
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
+  const createRule = useCreateRule();
+  const updateRule = useUpdateRule();
 
   const allWallets = useMemo(
     () => walletsQuery.data?.wallets ?? [],
@@ -350,6 +369,14 @@ export function EntryPage(): JSX.Element {
   const [secondaryExpr, setSecondaryExpr] = useState('');
   const [activeTransferField, setActiveTransferField] = useState<'primary' | 'secondary'>('primary');
   const [dateTime, setDateTime] = useState(() => nowDatetimeLocal());
+  const [repeatValue, setRepeatValue] = useState<RepeatValue | null>(() => {
+    if (!isRepeatPreset) return null;
+    const initDate = nowDatetimeLocal().split('T')[0] || todayLocal();
+    return {
+      schedule: defaultMonthlySchedule(initDate),
+      askMe: initial.trade && initial.type === 'expense',
+    };
+  });
   const [note, setNote] = useState('');
   const [loanNote, setLoanNote] = useState('');
   const [loanCategory, setLoanCategory] = useState<DanhMucValue>(null);
@@ -575,6 +602,60 @@ export function EntryPage(): JSX.Element {
     setCounterpartAppliedId(entry.id);
   }, [isEdit, entry, counterpartEntry, counterpartAppliedId]);
 
+  // Initialize form from loaded rule in rule edit mode (/recurring/:id/edit)
+  useEffect(() => {
+    if (!isRuleEdit || !editingRule || walletsQuery.isPending || initializedId === editingRule.id) {
+      return;
+    }
+    const d = editingRule.draft;
+    const wCurrency = allWallets.find((w) => w.id === d.walletId)?.currency ?? 'VND';
+    if (d.type === 'transfer') {
+      setIsTransferMode(true);
+      setIsTradeMode(false);
+      setEntryType('expense');
+      setActiveTab('expense');
+      setWalletId(d.walletId);
+      setOtherWalletId(d.toWalletId ?? '');
+      setPrimaryExpr(formatKeypadValue(d.amount, wCurrency));
+      if (d.amountReceived != null) {
+        const toCur = allWallets.find((w) => w.id === d.toWalletId)?.currency ?? 'VND';
+        setSecondaryExpr(formatKeypadValue(d.amountReceived, toCur));
+      }
+    } else if (d.type === 'buy') {
+      setIsTradeMode(true);
+      setIsTransferMode(false);
+      setEntryType('expense');
+      setActiveTab('expense');
+      setWalletId(d.walletId);
+      setCategoryId(null);
+      setAssetId(d.assetId ?? null);
+      setPrimaryExpr(formatKeypadValue(d.amount, wCurrency));
+    } else {
+      setIsTradeMode(false);
+      setIsTransferMode(false);
+      setEntryType(d.type);
+      setActiveTab(d.type);
+      setWalletId(d.walletId);
+      setCategoryId(d.categoryId ?? null);
+      setCategoryPicked(Boolean(d.categoryId));
+      setPrimaryExpr(formatKeypadValue(d.amount, wCurrency));
+    }
+
+    setDateTime(`${editingRule.schedule.startDate}T00:00`);
+    setNote(d.note ?? '');
+    setTags(d.tags ?? []);
+    setExcludeFromReports(Boolean(d.excludeFromReports));
+    setExcludeTouched(true);
+    if (Boolean(d.excludeFromReports) !== (d.type === 'transfer')) {
+      setShowMore(true);
+    }
+    setRepeatValue({
+      schedule: editingRule.schedule,
+      askMe: d.type === 'buy' ? true : editingRule.askMe,
+    });
+    setInitializedId(editingRule.id);
+  }, [isRuleEdit, editingRule, walletsQuery.isPending, allWallets, initializedId]);
+
   const selectedWallet = useMemo(() => {
     if (isEdit) return allWallets.find((w) => w.id === walletId);
     if (isLoanDebt) {
@@ -661,7 +742,7 @@ export function EntryPage(): JSX.Element {
     : undefined;
 
   const hasArchivedWallet =
-    isEdit &&
+    isEntryEdit &&
     (isTransferMode
       ? Boolean(fromWallet?.archived || toWallet?.archived)
       : Boolean(selectedWallet?.archived));
@@ -718,7 +799,14 @@ export function EntryPage(): JSX.Element {
       : primaryMinor
     : null;
 
+  const isBuyMode = isTradeMode && entryType === 'expense';
+  const isSellMode = isTradeMode && entryType === 'income';
+  const canRepeat = !isLoanDebt && !isSellMode && (!isEdit || isRuleEdit);
+  const isRecurringSave = canRepeat && (isRuleEdit || repeatValue !== null);
+
   const canShareChi =
+    !isRuleEdit &&
+    !repeatValue &&
     activeTab === 'expense' &&
     !isTransferMode &&
     !isTradeMode &&
@@ -920,6 +1008,7 @@ export function EntryPage(): JSX.Element {
 
   const budgetDraft = useMemo<BudgetDraft | null>(() => {
     if (
+      isRuleEdit ||
       isLoanDebt ||
       entryType !== 'expense' ||
       isTransferMode ||
@@ -1312,7 +1401,12 @@ export function EntryPage(): JSX.Element {
     (activeIsSecondary ? secondaryButtonRef : primaryButtonRef).current?.focus();
   };
 
-  const isSaving = createEntry.isPending || updateEntry.isPending || quickShare.isSaving;
+  const isSaving =
+    createEntry.isPending ||
+    updateEntry.isPending ||
+    quickShare.isSaving ||
+    createRule.isPending ||
+    updateRule.isPending;
 
   const handleRetryQuickShareLink = async () => {
     if (isSaving || savingRef.current) return;
@@ -1348,7 +1442,8 @@ export function EntryPage(): JSX.Element {
     const date = rawDate || todayLocal();
     const time = rawTime ? rawTime.slice(0, 5) : null;
 
-    let input: EntryInput;
+    let input: EntryInput | null = null;
+    let ruleDraft: RecurringDraft | null = null;
     let lastUsedWalletId: string | null;
     let savedMessage: string;
 
@@ -1546,25 +1641,39 @@ export function EntryPage(): JSX.Element {
         }
       }
 
-      input = {
-        type: 'transfer',
-        fromWalletId: fromWallet.id,
-        toWalletId: toWallet.id,
-        amountSent: sent,
-        ...(received !== undefined ? { amountReceived: received } : {}),
-        date,
-        time,
-        note: note.trim() ? note.trim() : null,
-        ...(isEdit ? { tags } : {}),
-        excludeFromReports,
-      };
+      if (isRecurringSave) {
+        ruleDraft = {
+          type: 'transfer',
+          walletId: fromWallet.id,
+          toWalletId: toWallet.id,
+          amount: sent,
+          ...(received !== undefined ? { amountReceived: received } : {}),
+          tags: isRuleEdit ? tags : [],
+          note: note.trim() ? note.trim() : null,
+          excludeFromReports,
+        };
+      } else {
+        input = {
+          type: 'transfer',
+          fromWalletId: fromWallet.id,
+          toWalletId: toWallet.id,
+          amountSent: sent,
+          ...(received !== undefined ? { amountReceived: received } : {}),
+          date,
+          time,
+          note: note.trim() ? note.trim() : null,
+          ...(isEdit ? { tags } : {}),
+          excludeFromReports,
+        };
+      }
       lastUsedWalletId = null; // transfers never change the remembered wallet
       savedMessage = t('personalEntry.savedTransfer', {
         amount: formatMoney(sent, fromWallet.currency),
         wallet: toWallet.name,
       });
     } else if (isTradeMode) {
-      if (!selectedWallet || !selectedAsset || parsedQuantity === null || isClientOversell) return;
+      const isBuyRule = isBuyMode && isRecurringSave;
+      if (!selectedWallet || !selectedAsset || (!isBuyRule && (parsedQuantity === null || isClientOversell))) return;
       const amountToSave =
         confirmedOverride?.target === 'primary' ? confirmedOverride.minor : doneMinor;
       if (!confirmedOverride && selectedWallet.currency === 'VND' && amountToSave >= 1 && amountToSave <= 999) {
@@ -1585,25 +1694,38 @@ export function EntryPage(): JSX.Element {
         return;
       }
 
-      input = {
-        type: entryType === 'expense' ? 'buy' : 'sell',
-        walletId: selectedWallet.id,
-        assetId: selectedAsset.id,
-        quantity: parsedQuantity,
-        amount: amountToSave,
-        date,
-        time,
-        note: note.trim() ? note.trim() : null,
-        ...(isEdit ? { tags } : {}),
-      };
-      lastUsedWalletId = selectedWallet.id;
-      savedMessage = t(
-        entryType === 'expense' ? 'personalEntry.savedBuy' : 'personalEntry.savedSell',
-        {
-          qty: formatQuantity(parsedQuantity, selectedAsset.decimals),
-          asset: selectedAsset.name,
-        },
-      );
+      if (isBuyRule) {
+        ruleDraft = {
+          type: 'buy',
+          walletId: selectedWallet.id,
+          assetId: selectedAsset.id,
+          amount: amountToSave,
+          tags: isRuleEdit ? tags : [],
+          note: note.trim() ? note.trim() : null,
+        };
+        lastUsedWalletId = selectedWallet.id;
+        savedMessage = t('recurring.toastRuleCreated');
+      } else {
+        input = {
+          type: entryType === 'expense' ? 'buy' : 'sell',
+          walletId: selectedWallet.id,
+          assetId: selectedAsset.id,
+          quantity: parsedQuantity!,
+          amount: amountToSave,
+          date,
+          time,
+          note: note.trim() ? note.trim() : null,
+          ...(isEdit ? { tags } : {}),
+        };
+        lastUsedWalletId = selectedWallet.id;
+        savedMessage = t(
+          entryType === 'expense' ? 'personalEntry.savedBuy' : 'personalEntry.savedSell',
+          {
+            qty: formatQuantity(parsedQuantity!, selectedAsset.decimals),
+            asset: selectedAsset.name,
+          },
+        );
+      }
     } else {
       if (!selectedWallet) return;
       if (!effectiveCategoryId) {
@@ -1703,22 +1825,67 @@ export function EntryPage(): JSX.Element {
           ? tags
           : [];
 
-      input = {
-        type: entryType,
-        walletId: selectedWallet.id,
-        amount: amountToSave,
-        categoryId: effectiveCategoryId,
-        date,
-        time,
-        note: note.trim() ? note.trim() : null,
-        tags: resolvedEntryTags,
-        excludeFromReports,
-      };
+      if (isRecurringSave) {
+        ruleDraft = {
+          type: entryType,
+          walletId: selectedWallet.id,
+          amount: amountToSave,
+          categoryId: effectiveCategoryId,
+          tags: resolvedEntryTags,
+          note: note.trim() ? note.trim() : null,
+          excludeFromReports,
+        };
+      } else {
+        input = {
+          type: entryType,
+          walletId: selectedWallet.id,
+          amount: amountToSave,
+          categoryId: effectiveCategoryId,
+          date,
+          time,
+          note: note.trim() ? note.trim() : null,
+          tags: resolvedEntryTags,
+          excludeFromReports,
+        };
+      }
       lastUsedWalletId = selectedWallet.id;
     }
 
     savingRef.current = true;
     try {
+      if (isRecurringSave && ruleDraft && repeatValue) {
+        const schedule: RecurringSchedule = isRuleEdit
+          ? repeatValue.schedule
+          : { ...repeatValue.schedule, startDate: date };
+        const askMe = isBuyMode ? true : repeatValue.askMe;
+        if (isRuleEdit && editingRule) {
+          await updateRule.mutateAsync({
+            id: editingRule.id,
+            input: { draft: ruleDraft, schedule, askMe },
+          });
+          showUndo({
+            message: t('recurring.toastRuleUpdated'),
+            actionLabel: t('common.close'),
+            onAction: () => {},
+          });
+          navigate(`/recurring/${encodeURIComponent(editingRule.id)}`, { replace: true });
+        } else {
+          const created = await createRule.mutateAsync({
+            draft: ruleDraft,
+            schedule,
+            askMe,
+          });
+          if (lastUsedWalletId) writeLastWallet(lastUsedWalletId);
+          showUndo({
+            message: t('recurring.toastRuleCreated'),
+            actionLabel: t('common.close'),
+            onAction: () => {},
+          });
+          navigate(`/recurring/${encodeURIComponent(created.rule.id)}`, { replace: true });
+        }
+        return;
+      }
+      if (!input) return;
       if (isDirectEdit && ledger && directExpense) {
         await createEntry.mutateAsync(input);
         await quickShare.deleteExpense({
@@ -1947,14 +2114,16 @@ export function EntryPage(): JSX.Element {
       (!cachedGroupRow && listQuery.isPending));
   const isLoading =
     walletsQuery.isPending ||
-    (isEdit && !isDirectEdit && !entry && listQuery.isPending) ||
+    (isEntryEdit && !isDirectEdit && !entry && listQuery.isPending) ||
+    (isRuleEdit && !editingRule && rulesQuery.isPending) ||
     isDirectEditLoading;
   const isLoanLoading =
     isLoanDebt && (ledgerLoading || (Boolean(ledger) && directViewLoading && !directView));
   const isLoanLedgerError = (isLoanDebt || isDirectEdit) && !ledgerLoading && !ledger;
   const isLoanViewError =
     (isLoanDebt || isDirectEdit) && Boolean(ledger) && !directViewLoading && !directView;
-  const isEditMissing = isEdit && (isDirectEdit ? !directExpense : !entry);
+  const isEditMissing = isEntryEdit && (isDirectEdit ? !directExpense : !entry);
+  const isRuleMissing = isRuleEdit && !editingRule;
   const noActiveWallet = !isEdit && !isLoading && !walletsQuery.isError && activeWallets.length === 0;
 
   useEffect(() => {
@@ -2000,44 +2169,53 @@ export function EntryPage(): JSX.Element {
             <Icon name="back" size={24} />
           </button>
 
-          <Tabs
-            value={isEdit && !isDirectEdit ? entryType : activeTab}
-            onValueChange={(v) => handleTabChange(v as TabValue)}
-            className="flex-1 min-w-0 gap-0"
-          >
-            <TabsList
-              aria-label={t('personalEntry.tabs')}
-              className="flex bg-muted rounded-full p-1 gap-1 h-auto w-full"
+          {isRuleEdit ? (
+            <h1
+              data-testid="rule-edit-title"
+              className="m-0 flex-1 text-lg font-semibold text-foreground truncate"
             >
-              <TabsTrigger
-                value="expense"
-                disabled={editLockedTrade && entryType !== 'expense'}
-                data-testid="entry-tab-expense"
-                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
-                className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+              {t('recurring.editRuleTitle')}
+            </h1>
+          ) : (
+            <Tabs
+              value={isEdit && !isDirectEdit ? entryType : activeTab}
+              onValueChange={(v) => handleTabChange(v as TabValue)}
+              className="flex-1 min-w-0 gap-0"
+            >
+              <TabsList
+                aria-label={t('personalEntry.tabs')}
+                className="flex bg-muted rounded-full p-1 gap-1 h-auto w-full"
               >
-                {t('personalEntry.expense')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="income"
-                disabled={isDirectEdit || editLockedTransfer || (editLockedTrade && entryType !== 'income')}
-                data-testid="entry-tab-income"
-                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
-                className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
-              >
-                {t('personalEntry.income')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="loan-debt"
-                disabled={isEdit && !isDirectEdit}
-                data-testid="entry-tab-loan-debt"
-                style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
-                className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
-              >
-                {t('personalEntry.loanDebt')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+                <TabsTrigger
+                  value="expense"
+                  disabled={editLockedTrade && entryType !== 'expense'}
+                  data-testid="entry-tab-expense"
+                  style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'expense' ? { viewTransitionName: 'entry-tab' } : undefined}
+                  className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+                >
+                  {t('personalEntry.expense')}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="income"
+                  disabled={isDirectEdit || editLockedTransfer || (editLockedTrade && entryType !== 'income')}
+                  data-testid="entry-tab-income"
+                  style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'income' ? { viewTransitionName: 'entry-tab' } : undefined}
+                  className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+                >
+                  {t('personalEntry.income')}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="loan-debt"
+                  disabled={isEdit && !isDirectEdit}
+                  data-testid="entry-tab-loan-debt"
+                  style={!isMousePointer && (isEdit && !isDirectEdit ? entryType : activeTab) === 'loan-debt' ? { viewTransitionName: 'entry-tab' } : undefined}
+                  className="flex-1 min-w-0 min-h-11 rounded-full px-2 text-sm font-medium text-muted-foreground data-active:bg-card data-active:text-foreground data-active:shadow-sm data-active:font-semibold"
+                >
+                  {t('personalEntry.loanDebt')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </div>
       </header>
 
@@ -2059,6 +2237,21 @@ export function EntryPage(): JSX.Element {
             error={directViewError ?? { code: 'UNKNOWN' }}
             onRetry={() => refetchDirectView()}
           />
+        ) : isRuleMissing && rulesQuery.isError ? (
+          <InlineError error={rulesQuery.error} onRetry={() => rulesQuery.refetch()} />
+        ) : isRuleMissing ? (
+          <div data-testid="rule-edit-not-found">
+            <EmptyState
+              icon="repeat"
+              title={t('recurring.notFoundTitle')}
+              body={t('recurring.notFoundBody')}
+              action={
+                <Button href="/recurring" variant="primary" block data-testid="rule-edit-back-recurring">
+                  {t('recurring.title')}
+                </Button>
+              }
+            />
+          </div>
         ) : isEditMissing && listQuery.isError ? (
           <InlineError error={listQuery.error} onRetry={() => listQuery.refetch()} />
         ) : isEditMissing ? (
@@ -2598,88 +2791,90 @@ export function EntryPage(): JSX.Element {
                       </span>
                     </button>
 
-                    <div className="w-full px-4 py-2 flex flex-col gap-1">
-                      <div className="min-h-11 flex items-center justify-between gap-3">
-                        <Label
-                          htmlFor="entry-quantity-input"
-                          className="text-sm font-medium text-muted-foreground shrink-0"
-                        >
-                          {t('personalEntry.quantity')}
-                        </Label>
-                        <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-                          <Input
-                            id="entry-quantity-input"
-                            ref={quantityInputRef}
-                            type="text"
-                            inputMode={
-                              selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'
-                            }
-                            value={quantityText}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const next =
-                                selectedAsset && quantityInputDecimals(selectedAsset) > 0
-                                  ? raw.replace(/\./g, ',')
-                                  : raw;
-                              setQuantityText(next);
-                              setServerOversellError(null);
-                              setValidationError(null);
-                            }}
-                            placeholder="0"
-                            data-testid="entry-quantity"
-                            className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
-                          />
-                          {selectedAsset && (
-                            <span
-                              data-testid="entry-quantity-unit"
-                              className="text-sm font-medium text-muted-foreground shrink-0"
-                            >
-                              {isLotAsset(selectedAsset)
-                                ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
-                                : selectedAsset.unit}
-                            </span>
-                          )}
+                    {!(isBuyMode && isRecurringSave) && (
+                      <div className="w-full px-4 py-2 flex flex-col gap-1">
+                        <div className="min-h-11 flex items-center justify-between gap-3">
+                          <Label
+                            htmlFor="entry-quantity-input"
+                            className="text-sm font-medium text-muted-foreground shrink-0"
+                          >
+                            {t('personalEntry.quantity')}
+                          </Label>
+                          <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                            <Input
+                              id="entry-quantity-input"
+                              ref={quantityInputRef}
+                              type="text"
+                              inputMode={
+                                selectedAsset && isLotAsset(selectedAsset) ? 'numeric' : 'decimal'
+                              }
+                              value={quantityText}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const next =
+                                  selectedAsset && quantityInputDecimals(selectedAsset) > 0
+                                    ? raw.replace(/\./g, ',')
+                                    : raw;
+                                setQuantityText(next);
+                                setServerOversellError(null);
+                                setValidationError(null);
+                              }}
+                              placeholder="0"
+                              data-testid="entry-quantity"
+                              className="text-base border-0 shadow-none text-right px-0 focus-visible:ring-0 min-h-11 tabular-nums"
+                            />
+                            {selectedAsset && (
+                              <span
+                                data-testid="entry-quantity-unit"
+                                className="text-sm font-medium text-muted-foreground shrink-0"
+                              >
+                                {isLotAsset(selectedAsset)
+                                  ? `× ${assetUnitText(selectedAsset)} ${selectedAsset.name}`
+                                  : selectedAsset.unit}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {selectedAsset &&
-                        isLotAsset(selectedAsset) &&
-                        selectedAsset.decimals > 0 &&
-                        parsedQuantity !== null && (
+                        {selectedAsset &&
+                          isLotAsset(selectedAsset) &&
+                          selectedAsset.decimals > 0 &&
+                          parsedQuantity !== null && (
+                            <p
+                              data-testid="entry-quantity-total"
+                              className="m-0 text-xs text-muted-foreground text-right tabular-nums"
+                            >
+                              = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                            </p>
+                          )}
+                        {entryType === 'income' && selectedAsset && heldQuantity !== null && (
                           <p
-                            data-testid="entry-quantity-total"
+                            data-testid="entry-held"
                             className="m-0 text-xs text-muted-foreground text-right tabular-nums"
                           >
-                            = {assetQuantityLabel(parsedQuantity, selectedAsset)}
+                            {t('personalEntry.heldQuantity', {
+                              qty: formatQuantity(heldQuantity, selectedAsset.decimals),
+                              unit: selectedAsset.unit || selectedAsset.name,
+                            })}
                           </p>
                         )}
-                      {entryType === 'income' && selectedAsset && heldQuantity !== null && (
-                        <p
-                          data-testid="entry-held"
-                          className="m-0 text-xs text-muted-foreground text-right tabular-nums"
-                        >
-                          {t('personalEntry.heldQuantity', {
-                            qty: formatQuantity(heldQuantity, selectedAsset.decimals),
-                            unit: selectedAsset.unit || selectedAsset.name,
-                          })}
-                        </p>
-                      )}
-                      {showOversellError && (
-                        <div data-testid="entry-quantity-error">
-                          <InlineError
-                            error={
-                              isClientOversell && selectedAsset && heldQuantity !== null
-                                ? ownError(
-                                    t('personalEntry.oversellError', {
-                                      qty: formatQuantity(heldQuantity, selectedAsset.decimals),
-                                      unit: selectedAsset.unit || selectedAsset.name,
-                                    }),
-                                  )
-                                : serverOversellError
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
+                        {showOversellError && (
+                          <div data-testid="entry-quantity-error">
+                            <InlineError
+                              error={
+                                isClientOversell && selectedAsset && heldQuantity !== null
+                                  ? ownError(
+                                      t('personalEntry.oversellError', {
+                                        qty: formatQuantity(heldQuantity, selectedAsset.decimals),
+                                        unit: selectedAsset.unit || selectedAsset.name,
+                                      }),
+                                    )
+                                  : serverOversellError
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 );
 
@@ -2740,15 +2935,51 @@ export function EntryPage(): JSX.Element {
                       {otherWalletRow}
                       {tradeRows}
 
-                      <EntryDateRow
-                        date={dateTime.split('T')[0] ?? ''}
-                        time={dateTime.split('T')[1]?.slice(0, 5) || null}
-                        showTime={!isLoanDebt}
-                        onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
-                      />
+                      {isRuleEdit ? (
+                        <div
+                          className="w-full px-4 py-3 min-h-11 flex items-center justify-between gap-3"
+                          data-testid="entry-date-row"
+                        >
+                          <span className="text-sm font-medium text-muted-foreground shrink-0">
+                            {t('personalEntry.date')}
+                          </span>
+                          <span
+                            data-testid="entry-date-value"
+                            className="text-base font-medium text-muted-foreground"
+                          >
+                            {formatEntryDayLabel(dateTime.split('T')[0] ?? '', t)}
+                          </span>
+                        </div>
+                      ) : (
+                        <EntryDateRow
+                          date={dateTime.split('T')[0] ?? ''}
+                          time={dateTime.split('T')[1]?.slice(0, 5) || null}
+                          showTime={!isLoanDebt}
+                          onChange={(next) => setDateTime(`${next.date}T${next.time ?? '00:00'}`)}
+                        />
+                      )}
+
+                      {canRepeat && (
+                        <RepeatField
+                          date={dateTime.split('T')[0] || todayLocal()}
+                          value={repeatValue}
+                          onChange={setRepeatValue}
+                          isBuy={isBuyMode}
+                          allowNone={!isRuleEdit}
+                        />
+                      )}
 
                       {isTransferMode && excludeRow}
                     </div>
+
+                    {isRuleEdit && (
+                      <p
+                        data-testid="rule-edit-hint"
+                        className="m-0 px-1 text-xs text-muted-foreground"
+                      >
+                        {t('recurring.editRuleHint')}
+                      </p>
+                    )}
 
                     {/* More details toggle (not for transfers or trades) */}
                     {!isTransferMode && !isTradeMode && (
@@ -2784,6 +3015,7 @@ export function EntryPage(): JSX.Element {
         !isLoanLedgerError &&
         !isLoanViewError &&
         !isEditMissing &&
+        !isRuleMissing &&
         !noActiveWallet && (
         effectiveKeypadOpen ? (
           <DockedAmountKeypad
@@ -2822,9 +3054,9 @@ export function EntryPage(): JSX.Element {
                   ? null
                   : !selectedAsset
                     ? t('personalEntry.chooseAsset')
-                    : parsedQuantity === null
+                    : !(isBuyMode && isRecurringSave) && parsedQuantity === null
                       ? t('personalEntry.enterQuantity')
-                      : isClientOversell
+                      : !(isBuyMode && isRecurringSave) && isClientOversell
                         ? t('personalEntry.fixQuantity')
                         : primaryMinor === null
                           ? t('loanDebt.enterAmount')

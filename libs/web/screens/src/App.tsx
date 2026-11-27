@@ -115,6 +115,7 @@ export function App() {
       <Route path="/budgets/:id" element={<PersonalRoute><BudgetDetailScreen /></PersonalRoute>} />
       <Route path="/recurring" element={<PersonalRoute><RecurringScreen /></PersonalRoute>} />
       <Route path="/recurring/:id" element={<PersonalRoute><RuleDetailScreen /></PersonalRoute>} />
+      <Route path="/recurring/:id/edit" element={<PersonalRoute><EntryPage /></PersonalRoute>} />
       <Route path="/people/:key" element={<PersonScreen />} />
       <Route path="/people/in/:tripId/:pid" element={<PersonScreen />} />
       <Route path="/r/:token" element={<RequestPage />} />

@@ -2110,4 +2110,36 @@ export const vi: Record<MessageKey, string> = {
   'recurring.autoRecordedBy': 'Tự ghi theo quy tắc “{name}”', // REVIEW
   'recurring.ruleDeleted': 'Quy tắc đã bị xóa', // REVIEW
   'recurring.repeatThis': 'Lặp lại giao dịch này', // REVIEW
+  'recurring.repeatLabel': 'Lặp lại', // REVIEW
+  'recurring.repeatNone': 'Không lặp', // REVIEW
+  'recurring.presetMonthly': 'Ngày {day} hàng tháng', // REVIEW
+  'recurring.presetMonthlyLast': 'Ngày cuối hàng tháng', // REVIEW
+  'recurring.presetCustom': 'Tùy chỉnh…', // REVIEW
+  'recurring.sheetHint': 'Từ lần này, CoinCrew tự ghi khoản này đúng ngày. Lần tới: {date}.', // REVIEW
+  'recurring.sheetHintNoNext': 'Từ lần này, CoinCrew tự ghi khoản này đúng ngày.', // REVIEW
+  'recurring.customTitle': 'Tùy chỉnh lặp lại', // REVIEW
+  'recurring.every': 'Mỗi', // REVIEW
+  'recurring.everyInputAria': 'Khoảng cách lặp lại', // REVIEW
+  'recurring.unitCapDay': 'Ngày', // REVIEW
+  'recurring.unitCapWeek': 'Tuần', // REVIEW
+  'recurring.unitCapMonth': 'Tháng', // REVIEW
+  'recurring.unitCapYear': 'Năm', // REVIEW
+  'recurring.monthDayDate': 'Ngày {day}', // REVIEW
+  'recurring.monthDayLast': 'Ngày cuối tháng', // REVIEW
+  'recurring.shortMonthNote': 'Tháng không có ngày {day} sẽ ghi vào ngày cuối tháng.', // REVIEW
+  'recurring.endLabel': 'Kết thúc', // REVIEW
+  'recurring.endNever': 'Không bao giờ', // REVIEW
+  'recurring.endOnDate': 'Vào ngày', // REVIEW
+  'recurring.endAfterCount': 'Sau', // REVIEW
+  'recurring.endCountSuffix': 'lần', // REVIEW
+  'recurring.endAfterCountAria': 'Số lần lặp lại', // REVIEW
+  'recurring.endDateAria': 'Ngày kết thúc', // REVIEW
+  'recurring.askMeTitle': 'Hỏi số tiền mỗi lần', // REVIEW
+  'recurring.askMeHint': 'Dùng khi số tiền thay đổi (điện, nước). Khoản sẽ chờ bạn xác nhận.', // REVIEW
+  'recurring.askMeBuyHint': 'Mua tài sản luôn chờ bạn nhập số lượng.', // REVIEW
+  'recurring.checkInNote': 'Thỉnh thoảng CoinCrew sẽ hỏi bạn còn dùng khoản này không, để không ghi mãi một khoản đã hủy.', // REVIEW
+  'recurring.done': 'Xong', // REVIEW
+  'recurring.editRuleTitle': 'Sửa quy tắc', // REVIEW
+  'recurring.editRuleHint': 'Thay đổi chỉ áp dụng cho các lần sau.', // REVIEW
+  'recurring.toastRuleUpdated': 'Đã cập nhật quy tắc', // REVIEW
 };

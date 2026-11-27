@@ -46,6 +46,30 @@ function parseYmd(ymd: string): [number, number, number] {
   return [y ?? 1970, m ?? 1, d ?? 1];
 }
 
+/** Returns the 1-based day of month for a YYYY-MM-DD date. */
+export function dayOfMonth(ymd: string): number {
+  const [, , d] = parseYmd(ymd);
+  return d;
+}
+
+/** Returns true when a YYYY-MM-DD date is the last calendar day of its month. */
+export function isLastDayOfMonth(ymd: string): boolean {
+  const [y, m, d] = parseYmd(ymd);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return d === lastDay;
+}
+
+/** Builds the default monthly schedule for an entry date (using 'last' on the month's last day). */
+export function defaultMonthlySchedule(ymd: string): RecurringSchedule {
+  return {
+    unit: 'month',
+    every: 1,
+    monthDay: isLastDayOfMonth(ymd) ? 'last' : dayOfMonth(ymd),
+    startDate: ymd,
+    end: { kind: 'never' },
+  };
+}
+
 /** ISO weekday: 1 = Mon ... 7 = Sun. */
 export function isoWeekday(ymd: string): number {
   const [y, m, d] = parseYmd(ymd);
