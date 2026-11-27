@@ -3,25 +3,22 @@ import { Link, useNavigate } from 'react-router';
 import {
   daysUntil,
   formatMoney,
-  summarizeTravel,
   travelState,
   type BudgetDef,
   type BudgetProgress,
   type TravelExisting,
   type TravelSavedResponse,
   type TravelState,
-  type TravelSummary,
   type TravelView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
-import { useBudgetsProgress, useBudgetsSource } from '@cc/web-data-access/budgets';
-import { useWalletDetails } from '@cc/web-data-access/personalMoney';
-import { useTravels } from '@cc/web-data-access/travels';
+import { useBudgetsProgress } from '@cc/web-data-access/budgets';
+import { useTravels, useTravelSummary } from '@cc/web-data-access/travels';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { InlineError } from '@cc/web-ui/components/InlineError';
-import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { BudgetBar } from '../components/budgets/BudgetBar';
@@ -31,9 +28,95 @@ import { formatTravelRange, TravelForm } from '../components/travels/TravelForm'
 interface TravelRowItem {
   travel: TravelView;
   state: TravelState;
-  summary: TravelSummary | null;
   progress: BudgetProgress | null;
   budgetDef: BudgetDef | null;
+}
+
+function TravelRow({
+  travel,
+  state,
+  progress,
+  budgetDef,
+  today,
+}: TravelRowItem & { today: string }): JSX.Element {
+  const t = useT();
+  const { summary, isPending } = useTravelSummary(travel.id);
+
+  const firstCurrency = summary?.currencies[0] ?? null;
+  const totalText = firstCurrency
+    ? formatMoney(firstCurrency.total, firstCurrency.currency)
+    : formatMoney(0, budgetDef?.currency ?? 'VND');
+  const rangeText = formatTravelRange(travel.start, travel.end);
+
+  const usedPct =
+    progress && progress.limit > 0
+      ? Math.min(100, Math.round((progress.spent / progress.limit) * 100))
+      : 0;
+  const todayPct = progress ? Math.round(progress.elapsed * 100) : undefined;
+
+  let endingNode: JSX.Element | null = null;
+  if (state === 'done') {
+    if (travel.budgetId === null) {
+      endingNode = <span className="text-muted-foreground">{t('travels.noLimit')}</span>;
+    } else if (progress && budgetDef) {
+      const over = progress.spent > progress.limit;
+      const diff = Math.abs(progress.limit - progress.spent);
+      const text = over
+        ? t('travels.over', {
+            amount: formatMoney(diff, budgetDef.currency),
+            limit: formatMoney(progress.limit, budgetDef.currency),
+          })
+        : t('travels.under', {
+            amount: formatMoney(diff, budgetDef.currency),
+            limit: formatMoney(progress.limit, budgetDef.currency),
+          });
+      endingNode = (
+        <span className={cn(over ? 'text-danger' : 'text-muted-foreground')}>{text}</span>
+      );
+    }
+  }
+
+  return (
+    <Link
+      to={`/travels/${encodeURIComponent(travel.id)}`}
+      data-testid={`travel-row-${travel.id}`}
+      className="fsl-travel-row w-full min-h-11 px-4 py-3 flex flex-col gap-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline text-foreground"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+          <span className="text-sm font-semibold text-foreground truncate">{travel.name}</span>
+          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1.5">
+            <span>{rangeText}</span>
+            {state === 'upcoming' && (
+              <span>{`· ${t('travels.bookDaysLeft', { n: daysUntil(travel, today) })}`}</span>
+            )}
+            {state === 'done' && endingNode && (
+              <>
+                <span>·</span>
+                {endingNode}
+              </>
+            )}
+          </div>
+        </div>
+        {isPending ? (
+          <Skeleton width={72} height={18} radius="sm" className="shrink-0" />
+        ) : (
+          <span className="text-sm font-semibold text-foreground tabular-nums shrink-0">
+            {totalText}
+          </span>
+        )}
+      </div>
+
+      {state === 'on' && progress && budgetDef && (
+        <div className="flex flex-col gap-1">
+          <BudgetBar state={progress.state} used={usedPct} today={todayPct} />
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {`${formatMoney(progress.spent, budgetDef.currency)} / ${formatMoney(progress.limit, budgetDef.currency)}`}
+          </span>
+        </div>
+      )}
+    </Link>
+  );
 }
 
 function TravelSection({
@@ -47,7 +130,6 @@ function TravelSection({
   items: TravelRowItem[];
   today: string;
 }): JSX.Element | null {
-  const t = useT();
   if (items.length === 0) return null;
 
   return (
@@ -56,84 +138,9 @@ function TravelSection({
         <h2 className="m-0 text-sm font-semibold text-muted-foreground">{heading}</h2>
       </div>
       <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
-        {items.map(({ travel, state, summary, progress, budgetDef }) => {
-          const firstCurrency = summary?.currencies[0] ?? null;
-          const totalText = firstCurrency
-            ? formatMoney(firstCurrency.total, firstCurrency.currency)
-            : formatMoney(0, budgetDef?.currency ?? 'VND');
-          const rangeText = formatTravelRange(travel.start, travel.end);
-
-          const usedPct =
-            progress && progress.limit > 0
-              ? Math.min(100, Math.round((progress.spent / progress.limit) * 100))
-              : 0;
-          const todayPct = progress ? Math.round(progress.elapsed * 100) : undefined;
-
-          let endingNode: JSX.Element | null = null;
-          if (state === 'done') {
-            if (travel.budgetId === null) {
-              endingNode = <span className="text-muted-foreground">{t('travels.noLimit')}</span>;
-            } else if (progress && budgetDef) {
-              const over = progress.spent > progress.limit;
-              const diff = Math.abs(progress.limit - progress.spent);
-              const text = over
-                ? t('travels.over', {
-                    amount: formatMoney(diff, budgetDef.currency),
-                    limit: formatMoney(progress.limit, budgetDef.currency),
-                  })
-                : t('travels.under', {
-                    amount: formatMoney(diff, budgetDef.currency),
-                    limit: formatMoney(progress.limit, budgetDef.currency),
-                  });
-              endingNode = (
-                <span className={cn(over ? 'text-danger' : 'text-muted-foreground')}>
-                  {text}
-                </span>
-              );
-            }
-          }
-
-          return (
-            <Link
-              key={travel.id}
-              to={`/travels/${encodeURIComponent(travel.id)}`}
-              data-testid={`travel-row-${travel.id}`}
-              className="fsl-travel-row w-full min-h-11 px-4 py-3 flex flex-col gap-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline text-foreground"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold text-foreground truncate">
-                    {travel.name}
-                  </span>
-                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1.5">
-                    <span>{rangeText}</span>
-                    {state === 'upcoming' && (
-                      <span>{`· ${t('travels.bookDaysLeft', { n: daysUntil(travel, today) })}`}</span>
-                    )}
-                    {state === 'done' && endingNode && (
-                      <>
-                        <span>·</span>
-                        {endingNode}
-                      </>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm font-semibold text-foreground tabular-nums shrink-0">
-                  {totalText}
-                </span>
-              </div>
-
-              {state === 'on' && progress && budgetDef && (
-                <div className="flex flex-col gap-1">
-                  <BudgetBar state={progress.state} used={usedPct} today={todayPct} />
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {`${formatMoney(progress.spent, budgetDef.currency)} / ${formatMoney(progress.limit, budgetDef.currency)}`}
-                  </span>
-                </div>
-              )}
-            </Link>
-          );
-        })}
+        {items.map((item) => (
+          <TravelRow key={item.travel.id} {...item} today={today} />
+        ))}
       </div>
     </section>
   );
@@ -145,8 +152,6 @@ export function TravelsScreen(): JSX.Element {
   const today = todayLocal();
 
   const travelsQuery = useTravels();
-  const walletsQuery = useWalletDetails();
-  const source = useBudgetsSource({ enabled: true, allowServerFallback: true });
   const budgetsProgress = useBudgetsProgress();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -156,7 +161,6 @@ export function TravelsScreen(): JSX.Element {
   } | null>(null);
 
   const travels = travelsQuery.data?.travels ?? [];
-  const wallets = walletsQuery.data?.wallets;
 
   const progressByBudgetId = useMemo(() => {
     const map = new Map<string, BudgetProgress>();
@@ -187,14 +191,10 @@ export function TravelsScreen(): JSX.Element {
 
     for (const travel of travels) {
       const state = travelState(travel, today);
-      const summary =
-        wallets && !source.isPending
-          ? summarizeTravel(travel, source.rows, wallets, source.categories)
-          : null;
       const progress = travel.budgetId ? progressByBudgetId.get(travel.budgetId) ?? null : null;
       const budgetDef = travel.budgetId ? budgetDefById.get(travel.budgetId) ?? null : null;
 
-      const item: TravelRowItem = { travel, state, summary, progress, budgetDef };
+      const item: TravelRowItem = { travel, state, progress, budgetDef };
       if (state === 'on') on.push(item);
       else if (state === 'upcoming') upcoming.push(item);
       else done.push(item);
@@ -204,11 +204,14 @@ export function TravelsScreen(): JSX.Element {
     done.sort((a, b) => b.travel.end.localeCompare(a.travel.end));
 
     return { on, upcoming, done };
-  }, [travels, today, wallets, source.isPending, source.rows, source.categories, progressByBudgetId, budgetDefById]);
+  }, [travels, today, progressByBudgetId, budgetDefById]);
 
   const handleSaved = (res: TravelSavedResponse) => {
     setFormOpen(false);
-    const totalExisting = res.existing.own.count + res.existing.shares.count;
+    const totalExisting =
+      res.existing.ownIds !== undefined || res.existing.shareRootIds !== undefined
+        ? (res.existing.ownIds?.length ?? 0) + (res.existing.shareRootIds?.length ?? 0)
+        : res.existing.own.count + res.existing.shares.count;
     if (totalExisting > 0) {
       setPendingExisting({ travelId: res.travel.id, existing: res.existing });
     } else {

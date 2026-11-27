@@ -1042,6 +1042,8 @@ export interface UpdateTravelInput {
 export interface TravelExisting {
   own: { count: number; totals: { currency: CurrencyCode; amount: number }[] };
   shares: { count: number; total: number };
+  ownIds?: string[];
+  shareRootIds?: string[];
 }
 
 export interface TravelSavedResponse {
@@ -1051,5 +1053,7 @@ export interface TravelSavedResponse {
 
 export interface ApplyTravelExistingInput {
   tag: boolean;
+  ownIds?: string[];
+  shareRootIds?: string[];
 }
 

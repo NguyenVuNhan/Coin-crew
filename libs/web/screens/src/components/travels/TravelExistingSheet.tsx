@@ -20,7 +20,14 @@ export function TravelExistingSheet({
   const t = useT();
   const applyExisting = useApplyTravelExisting();
 
-  const totalCount = existing ? existing.own.count + existing.shares.count : 0;
+  const ownIds = existing?.ownIds ?? [];
+  const shareRootIds = existing?.shareRootIds ?? [];
+  const hasExplicitIds = Boolean(
+    existing && (existing.ownIds !== undefined || existing.shareRootIds !== undefined),
+  );
+  const ownCount = hasExplicitIds ? ownIds.length : (existing?.own.count ?? 0);
+  const sharesCount = hasExplicitIds ? shareRootIds.length : (existing?.shares.count ?? 0);
+  const totalCount = ownCount + sharesCount;
   const open = Boolean(travelId && existing && totalCount > 0);
 
   const resetRef = useRef(() => {
@@ -42,7 +49,11 @@ export function TravelExistingSheet({
     if (!travelId || applyExisting.isPending || submittedRef.current) return;
     submittedRef.current = true;
     applyExisting.mutate(
-      { id: travelId, tag },
+      {
+        id: travelId,
+        tag,
+        ...(tag && hasExplicitIds ? { ownIds, shareRootIds } : {}),
+      },
       {
         onSuccess: () => {
           onDone();

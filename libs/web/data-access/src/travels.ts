@@ -139,16 +139,24 @@ export function useDeleteTravel(): UseMutationResult<void, ApiClientError, strin
 export function useApplyTravelExisting(): UseMutationResult<
   { tagged: number },
   ApiClientError,
-  { id: string; tag: boolean }
+  { id: string; tag: boolean; ownIds?: string[]; shareRootIds?: string[] }
 > {
   const queryClient = useQueryClient();
 
-  return useMutation<{ tagged: number }, ApiClientError, { id: string; tag: boolean }>({
-    mutationFn: ({ id, tag }) =>
+  return useMutation<
+    { tagged: number },
+    ApiClientError,
+    { id: string; tag: boolean; ownIds?: string[]; shareRootIds?: string[] }
+  >({
+    mutationFn: ({ id, tag, ownIds, shareRootIds }) =>
       apiSend<{ tagged: number }>(
         `/api/me/personal/travels/${encodeURIComponent(id)}/existing`,
         'POST',
-        { tag } satisfies ApplyTravelExistingInput,
+        {
+          tag,
+          ...(ownIds !== undefined ? { ownIds } : {}),
+          ...(shareRootIds !== undefined ? { shareRootIds } : {}),
+        } satisfies ApplyTravelExistingInput,
       ),
     onSuccess: () => invalidateTravelData(queryClient),
   });
@@ -175,22 +183,17 @@ export function useTravelShareSync(): void {
     if (lastKeyRef.current === syncKey) return;
     lastKeyRef.current = syncKey;
 
-    let cancelled = false;
     void apiSend<{ tagged: number }>('/api/me/personal/travels/tag-shares', 'POST', {
       today: todayLocal(),
     })
       .then((res) => {
-        if (!cancelled && res.tagged > 0) {
+        if (res.tagged > 0) {
           void requestGroupCopySync();
         }
       })
       .catch(() => {
         // Best-effort background sync; ignore transient errors.
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, [hasTravels, groupCopy.status, groupCopy.snapshot?.key]);
 }
 

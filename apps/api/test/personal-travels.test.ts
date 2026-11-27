@@ -172,6 +172,8 @@ describe('personal travels routes', () => {
     expect(body1.existing).toEqual({
       own: { count: 0, totals: [] },
       shares: { count: 0, total: 0 },
+      ownIds: [],
+      shareRootIds: [],
     });
 
     // Reuse existing tag case-insensitively on a later non-overlapping trip
@@ -549,7 +551,11 @@ describe('personal travels routes', () => {
 
     // tag: true tags own expenses start..end only and the skipped shares
     const { result: applyRes, queries: applyQ } = await countQueries(() =>
-      applyExisting(sid, saved.travel.id, { tag: true }),
+      applyExisting(sid, saved.travel.id, {
+        tag: true,
+        ownIds: saved.existing.ownIds,
+        shareRootIds: saved.existing.shareRootIds,
+      }),
     );
     expect(applyRes.status).toBe(200);
     expect(applyQ).toBeLessThanOrEqual(50);
@@ -957,7 +963,11 @@ describe('personal travels routes', () => {
       .run();
 
     const { result: applyRes, queries } = await countQueries(() =>
-      applyExisting(sid, saved.travel.id, { tag: true }),
+      applyExisting(sid, saved.travel.id, {
+        tag: true,
+        ownIds: saved.existing.ownIds,
+        shareRootIds: saved.existing.shareRootIds,
+      }),
     );
     expect(applyRes.status).toBe(200);
     expect(queries).toBeLessThanOrEqual(50);

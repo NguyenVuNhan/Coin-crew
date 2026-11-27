@@ -85,7 +85,10 @@ export function TravelDetailScreen(): JSX.Element {
 
   const handleSaved = (res: TravelSavedResponse) => {
     setFormOpen(false);
-    const existingCount = res.existing.own.count + res.existing.shares.count;
+    const existingCount =
+      res.existing.ownIds !== undefined || res.existing.shareRootIds !== undefined
+        ? (res.existing.ownIds?.length ?? 0) + (res.existing.shareRootIds?.length ?? 0)
+        : res.existing.own.count + res.existing.shares.count;
     if (existingCount > 0) {
       setPendingExisting({ travelId: res.travel.id, existing: res.existing });
     }

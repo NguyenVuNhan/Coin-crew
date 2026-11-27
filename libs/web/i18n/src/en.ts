@@ -2024,6 +2024,7 @@ export const en = {
   'travels.groupsLabel': 'With groups',
   'travels.groupsHint': 'Leave empty for solo trip',
   'travels.removeGroup': 'Remove {name}',
+  'travels.leftGroup': 'Left group',
   'travels.limitLabel': 'Limit (optional)',
   'travels.save': 'Save trip',
   'travels.overlap': 'Overlaps with {name} ({range})',

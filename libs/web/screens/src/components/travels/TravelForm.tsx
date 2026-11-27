@@ -30,6 +30,7 @@ import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Modal } from '@cc/web-ui/components/Modal';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { Sheet } from '@cc/web-ui/components/Sheet';
+import { Skeleton } from '@cc/web-ui/components/Skeleton';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -263,7 +264,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
 
   const canSubmit =
     trimmedName.length >= 1 &&
-    trimmedName.length <= 40 &&
+    trimmedName.length <= 30 &&
     datesOrderValid &&
     countsFromValid &&
     !showLimitError;
@@ -374,7 +375,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             <Input
               id={nameId}
               data-testid="travel-form-name"
-              maxLength={40}
+              maxLength={30}
               autoComplete="off"
               className="fsl-input text-base min-h-11"
               value={name}
@@ -511,7 +512,9 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             </Label>
             <div className="rounded-xl border border-border bg-card px-3 py-2 flex flex-wrap items-center gap-2 min-h-11">
               {groupIds.map((gid) => {
-                const gName = groupNameById.get(gid) ?? gid;
+                const knownName = groupNameById.get(gid);
+                const groupsLoading = groupsQuery.isPending && !groupsQuery.data;
+                const labelText = knownName ?? (groupsLoading ? '…' : t('travels.leftGroup'));
                 return (
                   <Pill
                     key={gid}
@@ -519,10 +522,16 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
                     data-testid={`travel-form-group-chip-${gid}`}
                     className="gap-0.5 py-0 pl-3 pr-0"
                   >
-                    <span>{gName}</span>
+                    {knownName ? (
+                      <span>{knownName}</span>
+                    ) : groupsLoading ? (
+                      <Skeleton width={56} height={14} radius="sm" />
+                    ) : (
+                      <span>{t('travels.leftGroup')}</span>
+                    )}
                     <button
                       type="button"
-                      aria-label={t('travels.removeGroup', { name: gName })}
+                      aria-label={t('travels.removeGroup', { name: labelText })}
                       onClick={() => setGroupIds((prev) => prev.filter((id) => id !== gid))}
                       className="inline-flex items-center justify-center min-h-11 min-w-11 -my-2 rounded-full bg-transparent border-0 text-secondary-foreground hover:bg-muted cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >

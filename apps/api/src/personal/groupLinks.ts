@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
@@ -12,6 +12,7 @@ import {
   personalGroupSettings,
   personalTags,
   personalTransactions,
+  personalTravelShareMarks,
   personalWalletSettings,
   personalWallets,
   transactions,
@@ -22,11 +23,12 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import { type GroupLinkView, type GroupSettingsView } from '@cc/core';
+import { travelForShare, type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { ensureFixedCategories } from './fixedCategories';
 import { computeGroupsKey, loadGroupSettings } from './groupShares';
 import { loadCachedGroupRows } from './tripCache';
 import { signedPersonalAmount, walletBalanceDeltaStmts } from './balanceCache';
+import { loadUserTravels } from './travels';
 import { parseJson } from './validate';
 import { loadCachedWalletsSummary } from './wallets';
 
@@ -145,7 +147,7 @@ export function groupLinkRoutes(): Hono<AppBindings> {
     const db = getDb(c.env);
 
     const ownedTx = await db
-      .select({ tripId: transactions.tripId })
+      .select({ tripId: transactions.tripId, spentOn: transactions.spentOn })
       .from(transactions)
       .innerJoin(participants, eq(participants.tripId, transactions.tripId))
       .innerJoin(trips, eq(trips.id, transactions.tripId))
@@ -157,6 +159,7 @@ export function groupLinkRoutes(): Hono<AppBindings> {
           isNull(trips.deleteAfter),
         ),
       )
+      .orderBy(desc(transactions.isLatest))
       .limit(1)
       .get();
 
@@ -227,8 +230,11 @@ export function groupLinkRoutes(): Hono<AppBindings> {
       excludeInput !== undefined ? excludeInput : existing?.excludeFromReports === 1;
 
     let nextTagIds: string[];
+    let matchedTravel: { id: string; tagId: string } | null = null;
     if (tagIdsInput !== undefined) {
       nextTagIds = tagIdsInput;
+      const travels = await loadUserTravels(db, user.id);
+      matchedTravel = travelForShare(travels, { tripId: ownedTx.tripId, date: ownedTx.spentOn });
     } else {
       const existingTags = await db
         .select({ tagId: personalGroupLinkTags.tagId })
@@ -290,6 +296,19 @@ export function groupLinkRoutes(): Hono<AppBindings> {
             db
               .insert(personalGroupLinkTags)
               .values({ userId: user.id, rootId, tagId }) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+        if (matchedTravel) {
+          stmts.push(
+            db
+              .insert(personalTravelShareMarks)
+              .values({
+                userId: user.id,
+                rootId,
+                travelId: matchedTravel.id,
+                state: tagIdsInput.includes(matchedTravel.tagId) ? 'tagged' : 'skipped',
+              })
+              .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
           );
         }
       }
