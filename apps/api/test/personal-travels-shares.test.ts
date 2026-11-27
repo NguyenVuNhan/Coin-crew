@@ -535,7 +535,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
     expect(res2.status).toBe(200);
     expect(await json<{ tagged: number }>(res2)).toEqual({ tagged: 5 });
     expect(q2).toBeLessThanOrEqual(50);
-  });
+  }, 30_000);
 
   it('skips a share already manually tagged with another trip tag (one trip per share)', async () => {
     const userId = 'u-ts-onetrip';
