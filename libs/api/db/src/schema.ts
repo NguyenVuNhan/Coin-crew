@@ -1022,3 +1022,55 @@ export const personalBudgetExcludedWallets = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.budgetId, t.walletId] })],
 );
+
+/** Personal travels / trip-mode declarations (0038, #158). */
+export const personalTravels = sqliteTable(
+  'personal_travels',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => personalTags.id, { onDelete: 'cascade' }),
+    startDate: text('start_date').notNull(),
+    endDate: text('end_date').notNull(),
+    countsFrom: text('counts_from').notNull(),
+    budgetId: text('budget_id').references(() => personalBudgets.id, { onDelete: 'set null' }),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('personal_travels_user_idx').on(t.userId)],
+);
+
+/** Group trips linked to a personal travel (0038, #158). */
+export const personalTravelGroups = sqliteTable(
+  'personal_travel_groups',
+  {
+    travelId: text('travel_id')
+      .notNull()
+      .references(() => personalTravels.id, { onDelete: 'cascade' }),
+    tripId: text('trip_id').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.travelId, t.tripId] })],
+);
+
+/** Per-user share-level tag/skip marks for trip-mode group expenses (0038, #158). */
+export const personalTravelShareMarks = sqliteTable(
+  'personal_travel_share_marks',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    rootId: text('root_id').notNull(),
+    travelId: text('travel_id')
+      .notNull()
+      .references(() => personalTravels.id, { onDelete: 'cascade' }),
+    state: text('state', { enum: ['tagged', 'skipped'] }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.rootId] }),
+    check('personal_travel_share_marks_state_check', sql`${t.state} IN ('tagged', 'skipped')`),
+  ],
+);
