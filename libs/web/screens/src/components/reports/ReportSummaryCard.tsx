@@ -6,6 +6,7 @@ import { cn } from '@cc/web-ui/lib/utils';
 
 export interface ReportSummaryCardProps {
   report: ReportData;
+  hideComparison?: boolean;
 }
 
 function formatPreviousPeriodLabel(report: ReportData): string {
@@ -102,6 +103,7 @@ export function buildSpendComparison(
 
 export function ReportSummaryCard({
   report,
+  hideComparison = false,
 }: ReportSummaryCardProps): JSX.Element {
   const t = useT();
   const approxPrefix = report.approximate ? '≈ ' : '';
@@ -114,7 +116,7 @@ export function ReportSummaryCard({
         ? 'text-danger'
         : 'text-foreground';
 
-  const comparison = buildSpendComparison(report, t);
+  const comparison = hideComparison ? null : buildSpendComparison(report, t);
 
   return (
     <Card
@@ -150,8 +152,10 @@ export function ReportSummaryCard({
           </span>
         </span>
       </div>
-      <p className="text-sm text-foreground">{comparison}</p>
-      {report.baseline3m !== null && (
+      {comparison !== null && (
+        <p className="text-sm text-foreground">{comparison}</p>
+      )}
+      {!hideComparison && report.baseline3m !== null && (
         <p className="text-sm text-muted-foreground">
           {t('reports.summaryUsual', {
             count: String(report.baseline3m.historyCount),

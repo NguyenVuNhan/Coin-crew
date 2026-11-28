@@ -58,19 +58,14 @@ export function ReportsScreen(): JSX.Element {
     return fromReport ?? null;
   }, [query.tagId, tagsQuery.data?.tags, report?.tags]);
 
+  const isTagMode = Boolean(query.tagId);
   const hasActiveFilters =
-    Boolean(query.walletId) || !query.includeGroups || Boolean(query.tagId);
+    Boolean(query.walletId) || !query.includeGroups || isTagMode;
 
   return (
     <Screen title={t('reports.title')} back="/trips" wide>
       <div className="flex flex-col gap-4 w-full">
-        {/* Top controls */}
-        <ReportPeriodBar
-          query={query}
-          period={report?.period}
-          today={today}
-          onChange={updateQuery}
-        />
+        {/* Tag filter header line under title */}
         {query.tagId && (
           <div className="flex items-center gap-2">
             <Pill
@@ -96,6 +91,13 @@ export function ReportsScreen(): JSX.Element {
             </Pill>
           </div>
         )}
+        {/* Top controls */}
+        <ReportPeriodBar
+          query={query}
+          period={report?.period}
+          today={today}
+          onChange={updateQuery}
+        />
         <ReportFilterRow
           query={query}
           wallets={wallets}
@@ -222,14 +224,14 @@ export function ReportsScreen(): JSX.Element {
             ) : (
               /* Populated report */
               <div className="flex flex-col gap-4">
-                <ReportSummaryCard report={report} />
+                <ReportSummaryCard report={report} hideComparison={isTagMode} />
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                   {/* Left column */}
                   <div className="lg:col-span-7 flex flex-col gap-4">
                     {report.walletBalance && (
                       <WalletBalanceCard balance={report.walletBalance} />
                     )}
-                    <HealthTrendCard report={report} />
+                    <HealthTrendCard report={report} hideBaseline={isTagMode} />
                   </div>
 
                   {/* Right column */}
@@ -240,6 +242,7 @@ export function ReportsScreen(): JSX.Element {
                         income={report.incomeByCategory}
                         currency={report.currency}
                         approximate={report.approximate}
+                        hideIncome={isTagMode && report.totals.income === 0}
                         onSelectCategory={(categoryId) =>
                           navigate(
                             `/reports/category/${encodeURIComponent(categoryId)}${buildReportSearch(query)}`,
@@ -247,16 +250,18 @@ export function ReportsScreen(): JSX.Element {
                         }
                       />
                     </div>
-                    <div data-testid="reports-tags-section">
-                      <TagBarsCard
-                        tags={report.tags}
-                        period={report.period}
-                        query={query}
-                        currency={report.currency}
-                        approximate={report.approximate}
-                        firstDates={reportQuery.tagFirstDates}
-                      />
-                    </div>
+                    {!isTagMode && (
+                      <div data-testid="reports-tags-section">
+                        <TagBarsCard
+                          tags={report.tags}
+                          period={report.period}
+                          query={query}
+                          currency={report.currency}
+                          approximate={report.approximate}
+                          firstDates={reportQuery.tagFirstDates}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

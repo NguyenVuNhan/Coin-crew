@@ -64,6 +64,7 @@ export interface CategoryPiesCardProps {
   currency: CurrencyCode;
   approximate: boolean;
   onSelectCategory: (categoryId: string) => void;
+  hideIncome?: boolean;
 }
 
 export function CategoryPiesCard({
@@ -72,11 +73,14 @@ export function CategoryPiesCard({
   currency,
   approximate,
   onSelectCategory,
+  hideIncome = false,
 }: CategoryPiesCardProps): JSX.Element {
   const t = useT();
   const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
   const expenseTotalId = useId();
   const incomeTotalId = useId();
+
+  const effectiveTab = hideIncome ? 'expense' : activeTab;
 
   const approxPrefix = approximate ? '≈ ' : '';
 
@@ -107,7 +111,7 @@ export function CategoryPiesCard({
     [t],
   );
 
-  const activeCategories = activeTab === 'expense' ? spending : income;
+  const activeCategories = effectiveTab === 'expense' ? spending : income;
 
   return (
     <Card className="rounded-xl bg-card border border-border p-4 shadow-none ring-0 flex flex-col gap-4 w-full text-card-foreground">
@@ -121,18 +125,19 @@ export function CategoryPiesCard({
         </span>
       </div>
 
-      {/* Two side-by-side compact donuts (NO duplicate captions underneath) */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Two side-by-side compact donuts (or single centered spending donut when income is hidden) */}
+      <div className={cn(hideIncome ? 'flex justify-center' : 'grid grid-cols-2 gap-2')}>
         {/* Spending Donut Button */}
         <button
           type="button"
           aria-label={t('reports.tabExpense')}
           aria-describedby={expenseTotalId}
-          aria-pressed={activeTab === 'expense'}
+          aria-pressed={effectiveTab === 'expense'}
           onClick={() => setActiveTab('expense')}
           className={cn(
             'relative flex flex-col items-center justify-center p-1 rounded-xl min-h-11 transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-            activeTab === 'expense'
+            hideIncome && 'w-full max-w-[180px]',
+            effectiveTab === 'expense'
               ? 'bg-muted'
               : 'bg-transparent hover:bg-muted/50',
           )}
@@ -204,91 +209,93 @@ export function CategoryPiesCard({
         </button>
 
         {/* Income Donut Button */}
-        <button
-          type="button"
-          aria-label={t('reports.tabIncome')}
-          aria-describedby={incomeTotalId}
-          aria-pressed={activeTab === 'income'}
-          onClick={() => setActiveTab('income')}
-          className={cn(
-            'relative flex flex-col items-center justify-center p-1 rounded-xl min-h-11 transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-            activeTab === 'income'
-              ? 'bg-muted'
-              : 'bg-transparent hover:bg-muted/50',
-          )}
-        >
-          <div className="relative w-full aspect-square mx-auto flex items-center justify-center">
-            <ChartContainer
-              config={donutConfig}
-              className="size-full aspect-square"
-              initialDimension={{ width: 160, height: 160 }}
-            >
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                {income.length === 0 ? (
-                  <Pie
-                    data={[{ name: 'empty', amount: 1 }]}
-                    dataKey="amount"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="62%"
-                    outerRadius="98%"
-                    stroke="none"
-                    isAnimationActive={false}
-                  >
-                    <Cell fill="var(--muted)" />
-                  </Pie>
-                ) : (
-                  <Pie
-                    data={incomeSegments}
-                    dataKey="amount"
-                    nameKey="key"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="62%"
-                    outerRadius="98%"
-                    stroke="var(--card)"
-                    strokeWidth={2}
-                    isAnimationActive={false}
-                  >
-                    {incomeSegments.map((seg) => (
-                      <Cell
-                        key={seg.key}
-                        fill={seg.color}
-                        onClick={(e?: MouseEvent) => {
-                          e?.stopPropagation?.();
-                          setActiveTab('income');
-                          if (seg.key !== 'other') {
-                            onSelectCategory(seg.key);
-                          }
-                        }}
-                      />
-                    ))}
-                  </Pie>
-                )}
-              </PieChart>
-            </ChartContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center select-none">
-              <span className="text-xs font-medium text-muted-foreground leading-none">
-                {t('reports.legendIncome')}
-              </span>
-              <span className="text-sm font-bold text-foreground tabular-nums leading-tight mt-1 truncate max-w-[56%]">
-                {approxPrefix}
-                {compactReportAmount(totalIncome)}
-              </span>
+        {!hideIncome && (
+          <button
+            type="button"
+            aria-label={t('reports.tabIncome')}
+            aria-describedby={incomeTotalId}
+            aria-pressed={effectiveTab === 'income'}
+            onClick={() => setActiveTab('income')}
+            className={cn(
+              'relative flex flex-col items-center justify-center p-1 rounded-xl min-h-11 transition-colors motion-reduce:transition-none cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+              effectiveTab === 'income'
+                ? 'bg-muted'
+                : 'bg-transparent hover:bg-muted/50',
+            )}
+          >
+            <div className="relative w-full aspect-square mx-auto flex items-center justify-center">
+              <ChartContainer
+                config={donutConfig}
+                className="size-full aspect-square"
+                initialDimension={{ width: 160, height: 160 }}
+              >
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  {income.length === 0 ? (
+                    <Pie
+                      data={[{ name: 'empty', amount: 1 }]}
+                      dataKey="amount"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="62%"
+                      outerRadius="98%"
+                      stroke="none"
+                      isAnimationActive={false}
+                    >
+                      <Cell fill="var(--muted)" />
+                    </Pie>
+                  ) : (
+                    <Pie
+                      data={incomeSegments}
+                      dataKey="amount"
+                      nameKey="key"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="62%"
+                      outerRadius="98%"
+                      stroke="var(--card)"
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                    >
+                      {incomeSegments.map((seg) => (
+                        <Cell
+                          key={seg.key}
+                          fill={seg.color}
+                          onClick={(e?: MouseEvent) => {
+                            e?.stopPropagation?.();
+                            setActiveTab('income');
+                            if (seg.key !== 'other') {
+                              onSelectCategory(seg.key);
+                            }
+                          }}
+                        />
+                      ))}
+                    </Pie>
+                  )}
+                </PieChart>
+              </ChartContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center select-none">
+                <span className="text-xs font-medium text-muted-foreground leading-none">
+                  {t('reports.legendIncome')}
+                </span>
+                <span className="text-sm font-bold text-foreground tabular-nums leading-tight mt-1 truncate max-w-[56%]">
+                  {approxPrefix}
+                  {compactReportAmount(totalIncome)}
+                </span>
+              </div>
             </div>
-          </div>
-          <span id={incomeTotalId} className="sr-only">
-            {approxPrefix}
-            {formatMoney(totalIncome, currency)}
-          </span>
-        </button>
+            <span id={incomeTotalId} className="sr-only">
+              {approxPrefix}
+              {formatMoney(totalIncome, currency)}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Ranked Category List */}
       {activeCategories.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground gap-1">
           <p className="text-sm">
-            {activeTab === 'expense'
+            {effectiveTab === 'expense'
               ? t('reports.noExpenseCategory')
               : t('reports.noIncomeCategory')}
           </p>

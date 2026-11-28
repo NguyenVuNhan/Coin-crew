@@ -15,11 +15,16 @@ import { compactReportAmount } from './reportUrl';
 
 export interface HealthTrendCardProps {
   report: ReportData;
+  hideBaseline?: boolean;
 }
 
-export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
+export function HealthTrendCard({
+  report,
+  hideBaseline = false,
+}: HealthTrendCardProps): JSX.Element {
   const t = useT();
   const approxPrefix = report.approximate ? '≈ ' : '';
+  const showBaseline = !hideBaseline && report.baseline3m !== null;
 
   const chartConfig = useMemo(
     () =>
@@ -113,7 +118,7 @@ export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
               />
             }
           />
-          {report.baseline3m !== null && (
+          {showBaseline && (
             <>
               <Area
                 type="monotone"
@@ -185,7 +190,7 @@ export function HealthTrendCard({ report }: HealthTrendCardProps): JSX.Element {
           />
           <span>{t('reports.legendExpense')}</span>
         </div>
-        {report.baseline3m !== null && (
+        {showBaseline && report.baseline3m !== null && (
           <>
             <div className="flex items-center gap-1.5">
               <span

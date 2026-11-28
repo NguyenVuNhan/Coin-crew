@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { QueryClientContext } from '@tanstack/react-query';
 import {
   filterReportTags,
   formatMoney,
   type CurrencyCode,
+  type EventView,
   type ReportData,
   type ReportPeriodWindow,
   type ReportQuery,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { useEvents } from '@cc/web-data-access/events';
 import { todayLocal } from '@cc/web-util/localDate';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Card } from '@cc/web-ui/components/ui/card';
@@ -25,18 +28,43 @@ export interface TagBarsCardProps {
   currency: CurrencyCode;
   approximate: boolean;
   firstDates?: Record<string, string>;
+  events?: EventView[];
 }
 
-export function TagBarsCard({
+function TagBarsCardWithEvents(props: TagBarsCardProps) {
+  const eventsQuery = useEvents();
+  return <TagBarsCardContent {...props} events={eventsQuery.data?.events} />;
+}
+
+export function TagBarsCard(props: TagBarsCardProps) {
+  const queryClient = useContext(QueryClientContext);
+  if (props.events !== undefined || !queryClient) {
+    return <TagBarsCardContent {...props} />;
+  }
+  return <TagBarsCardWithEvents {...props} />;
+}
+
+function TagBarsCardContent({
   tags,
   period,
   query,
   currency,
   approximate,
   firstDates,
+  events,
 }: TagBarsCardProps) {
   const t = useT();
   const today = todayLocal();
+
+  const eventIdByTagId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ev of events ?? []) {
+      if (ev.tagId) {
+        map.set(ev.tagId, ev.id);
+      }
+    }
+    return map;
+  }, [events]);
 
   const expenseTags = tags?.expense ?? [];
   const incomeTags = tags?.income ?? [];
@@ -103,46 +131,55 @@ export function TagBarsCard({
         </p>
       ) : (
         <div className="flex flex-col gap-1.5">
-          {visible.map((item) => (
-            <div key={item.tagId} className="flex items-center gap-1">
-              <Link
-                to={buildTransactionsTagUrl(item.tagId, period, query)}
-                className="block flex-1 min-w-0 min-h-11 py-1.5 px-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
-              >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="font-semibold text-sm truncate">
-                    #{item.name}
+          {visible.map((item) => {
+            const eventId = eventIdByTagId.get(item.tagId);
+            const reportHref = eventId
+              ? `/events/${encodeURIComponent(eventId)}`
+              : buildTagReportUrl(item.tagId, firstDates?.[item.tagId] ?? period.from, today);
+            const reportLabel = t('reports.tagReportAria', { tag: item.name });
+
+            return (
+              <div key={item.tagId} className="flex items-center gap-1">
+                <Link
+                  to={buildTransactionsTagUrl(item.tagId, period, query)}
+                  className="block flex-1 min-w-0 min-h-11 py-1.5 px-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="font-semibold text-sm truncate">
+                      #{item.name}
+                    </span>
+                    <span className="tabular-nums text-sm font-medium shrink-0">
+                      {approxPrefix}
+                      {formatMoney(item.amount, currency)}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      style={{
+                        width: `${Math.max(4, Math.round((item.amount / maxAmount) * 100))}%`,
+                      }}
+                      className={cn(
+                        'h-full rounded-full transition-all motion-reduce:transition-none',
+                        side === 'expense' ? 'bg-danger' : 'bg-success',
+                      )}
+                    />
+                  </div>
+                  <span className="block mt-1 text-xs tabular-nums text-muted-foreground">
+                    {t('reports.tagsEntryCount', { count: String(item.entryCount) })} · {item.percent}%
                   </span>
-                  <span className="tabular-nums text-sm font-medium shrink-0">
-                    {approxPrefix}
-                    {formatMoney(item.amount, currency)}
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    style={{
-                      width: `${Math.max(4, Math.round((item.amount / maxAmount) * 100))}%`,
-                    }}
-                    className={cn(
-                      'h-full rounded-full transition-all motion-reduce:transition-none',
-                      side === 'expense' ? 'bg-danger' : 'bg-success',
-                    )}
-                  />
-                </div>
-                <span className="block mt-1 text-xs tabular-nums text-muted-foreground">
-                  {t('reports.tagsEntryCount', { count: String(item.entryCount) })} · {item.percent}%
-                </span>
-              </Link>
-              <Link
-                to={buildTagReportUrl(item.tagId, firstDates?.[item.tagId] ?? period.from, today)}
-                aria-label={t('reports.tagReportAria', { tag: item.name })}
-                data-testid="tag-report-link"
-                className="inline-flex items-center justify-center min-h-11 min-w-11 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
-              >
-                <Icon name="pie-chart" size={16} />
-              </Link>
-            </div>
-          ))}
+                </Link>
+                <Link
+                  to={reportHref}
+                  aria-label={reportLabel}
+                  title={reportLabel}
+                  data-testid="tag-report-link"
+                  className="inline-flex items-center justify-center min-h-11 min-w-11 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+                >
+                  <Icon name="pie-chart" size={16} />
+                </Link>
+              </div>
+            );
+          })}
         </div>
       )}
 
