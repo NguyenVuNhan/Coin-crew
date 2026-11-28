@@ -3,6 +3,7 @@ import { useT } from '@cc/web-i18n';
 import type { MessageKey } from '@cc/web-i18n/en';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Input } from '@cc/web-ui/components/ui/input';
+import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
 
 const YMD_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -83,9 +84,9 @@ export function EventDateRow({
     <div className="w-full px-3.5 py-2.5 flex flex-col gap-1.5">
       <div className="min-h-11 flex items-center justify-between gap-3">
         <div className="flex flex-col min-w-0">
-          <label htmlFor={id} className="text-sm font-semibold text-foreground">
+          <Label htmlFor={id} className="text-sm font-semibold text-foreground">
             {label}
-          </label>
+          </Label>
           <span className="text-xs text-muted-foreground">{hint}</span>
         </div>
 

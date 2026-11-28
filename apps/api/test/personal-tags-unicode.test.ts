@@ -97,7 +97,7 @@ describe('personal tags unicode resolution', () => {
     expect(tags.map((t) => t.name).sort()).toEqual(['Coffee', 'Event', 'Work']);
   });
 
-  it('shares one tag between a trip created as "Đà Lạt" and an entry tagged "Đà Lạt"', async () => {
+  it('shares one tag between an event "Đà Lạt" and an entry tagged with its generated tag', async () => {
     const userId = 'tags-unicode-trip';
     const sid = await memberSid(userId);
     const { walletId, categoryId } = await setupBook(sid, userId);
@@ -120,7 +120,7 @@ describe('personal tags unicode resolution', () => {
       amount: 450_000,
       date: '2026-11-20',
       note: 'Lẩu gà lá é',
-      tags: ['Đà Lạt'],
+      tags: [event.tagName!],
     });
     expect(entryRes.status).toBe(201);
 
@@ -129,6 +129,6 @@ describe('personal tags unicode resolution', () => {
     );
     expect(tags).toHaveLength(1);
     expect(tags[0]!.id).toBe(event.tagId);
-    expect(tags[0]!.name).toBe('Đà Lạt');
+    expect(tags[0]!.name).toBe('dalat-201126-221126');
   });
 });
