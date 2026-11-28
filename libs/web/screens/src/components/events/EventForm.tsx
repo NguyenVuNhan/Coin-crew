@@ -594,16 +594,19 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
 
           {activeError && <InlineError error={activeError} />}
 
-          <Button
-            type="submit"
-            variant="primary"
-            block
-            loading={isPending}
-            disabled={!canSubmit || isPending}
-            data-testid="event-form-submit"
-          >
-            {t('events.save')}
-          </Button>
+          {/* Pinned to the bottom of the sheet's scroll area, so it rides on top of the keyboard. */}
+          <div className="sticky -bottom-6 z-10 -mx-4 -mb-6 bg-popover px-4 pt-2 pb-7">
+            <Button
+              type="submit"
+              variant="primary"
+              block
+              loading={isPending}
+              disabled={!canSubmit || isPending}
+              data-testid="event-form-submit"
+            >
+              {t('events.save')}
+            </Button>
+          </div>
 
           {isEdit && (
             <Button
