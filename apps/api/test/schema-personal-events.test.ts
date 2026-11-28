@@ -41,9 +41,11 @@ describe('personal events tables (0038)', () => {
     expect(await colsOf('personal_events')).toEqual([
       'id',
       'user_id',
+      'name',
       'tag_id',
       'start_date',
       'end_date',
+      'stopped_at',
       'counts_from',
       'budget_id',
       'created_at',
@@ -63,14 +65,14 @@ describe('personal events tables (0038)', () => {
     ]);
   });
 
-  it('deleting a tag deletes its event, groups and marks', async () => {
+  it('deleting a tag leaves the event with tag_id null', async () => {
     await seedUser('u-trv-tdel', 'Event Tag Del User');
     await seedTag('tag-trv-del', 'u-trv-tdel');
 
     await env.DB.prepare(
       `INSERT INTO personal_events
-       (id, user_id, tag_id, start_date, end_date, counts_from, budget_id, created_at, updated_at)
-       VALUES ('trv-tdel-1', 'u-trv-tdel', 'tag-trv-del', '2026-11-27', '2026-11-30', '2026-11-27', NULL, ?, ?)`,
+       (id, user_id, name, tag_id, start_date, end_date, stopped_at, counts_from, budget_id, created_at, updated_at)
+       VALUES ('trv-tdel-1', 'u-trv-tdel', 'Da Lat', 'tag-trv-del', '2026-11-27', '2026-11-30', NULL, '2026-11-27', NULL, ?, ?)`,
     )
       .bind(NOW, NOW)
       .run();
@@ -85,14 +87,21 @@ describe('personal events tables (0038)', () => {
 
     await env.DB.prepare("DELETE FROM personal_tags WHERE id = 'tag-trv-del'").run();
 
-    for (const table of [
-      'personal_events',
-      'personal_event_groups',
-      'personal_event_share_marks',
-    ]) {
-      const row = await env.DB.prepare(`SELECT count(*) AS n FROM ${table}`).first<{ n: number }>();
-      expect(row?.n, `expected 0 rows in ${table}`).toBe(0);
-    }
+    const row = await env.DB.prepare(
+      "SELECT id, tag_id FROM personal_events WHERE id = 'trv-tdel-1'",
+    ).first<{ id: string; tag_id: string | null }>();
+    expect(row).not.toBeNull();
+    expect(row?.tag_id).toBeNull();
+
+    const groups = await env.DB.prepare(
+      "SELECT count(*) AS n FROM personal_event_groups WHERE event_id = 'trv-tdel-1'",
+    ).first<{ n: number }>();
+    expect(groups?.n).toBe(1);
+
+    const marks = await env.DB.prepare(
+      "SELECT count(*) AS n FROM personal_event_share_marks WHERE event_id = 'trv-tdel-1'",
+    ).first<{ n: number }>();
+    expect(marks?.n).toBe(1);
   });
 
   it('deleting a budget sets budget_id to null', async () => {
@@ -102,8 +111,8 @@ describe('personal events tables (0038)', () => {
 
     await env.DB.prepare(
       `INSERT INTO personal_events
-       (id, user_id, tag_id, start_date, end_date, counts_from, budget_id, created_at, updated_at)
-       VALUES ('trv-bdel-1', 'u-trv-bdel', 'tag-trv-bdel', '2026-11-27', '2026-11-30', '2026-11-27', 'b-trv-del', ?, ?)`,
+       (id, user_id, name, tag_id, start_date, end_date, stopped_at, counts_from, budget_id, created_at, updated_at)
+       VALUES ('trv-bdel-1', 'u-trv-bdel', 'Da Lat', 'tag-trv-bdel', '2026-11-27', '2026-11-30', NULL, '2026-11-27', 'b-trv-del', ?, ?)`,
     )
       .bind(NOW, NOW)
       .run();
@@ -117,23 +126,23 @@ describe('personal events tables (0038)', () => {
     expect(row?.budget_id).toBeNull();
   });
 
-  it('a second mark for the same (user_id, root_id) fails', async () => {
+  it('two marks for one root and two events can coexist', async () => {
     await seedUser('u-trv-mk', 'Event Mark User');
-    await seedTag('tag-trv-mk1', 'u-trv-mk', 'Trip 1');
-    await seedTag('tag-trv-mk2', 'u-trv-mk', 'Trip 2');
+    await seedTag('tag-trv-mk1', 'u-trv-mk', 'Event 1');
+    await seedTag('tag-trv-mk2', 'u-trv-mk', 'Event 2');
 
     await env.DB.prepare(
       `INSERT INTO personal_events
-       (id, user_id, tag_id, start_date, end_date, counts_from, budget_id, created_at, updated_at)
-       VALUES ('trv-mk-1', 'u-trv-mk', 'tag-trv-mk1', '2026-11-01', '2026-11-03', '2026-11-01', NULL, ?, ?)`,
+       (id, user_id, name, tag_id, start_date, end_date, stopped_at, counts_from, budget_id, created_at, updated_at)
+       VALUES ('trv-mk-1', 'u-trv-mk', 'Event 1', 'tag-trv-mk1', '2026-11-01', '2026-11-03', NULL, '2026-11-01', NULL, ?, ?)`,
     )
       .bind(NOW, NOW)
       .run();
 
     await env.DB.prepare(
       `INSERT INTO personal_events
-       (id, user_id, tag_id, start_date, end_date, counts_from, budget_id, created_at, updated_at)
-       VALUES ('trv-mk-2', 'u-trv-mk', 'tag-trv-mk2', '2026-11-10', '2026-11-12', '2026-11-10', NULL, ?, ?)`,
+       (id, user_id, name, tag_id, start_date, end_date, stopped_at, counts_from, budget_id, created_at, updated_at)
+       VALUES ('trv-mk-2', 'u-trv-mk', 'Event 2', 'tag-trv-mk2', '2026-11-10', '2026-11-12', NULL, '2026-11-10', NULL, ?, ?)`,
     )
       .bind(NOW, NOW)
       .run();
@@ -142,10 +151,36 @@ describe('personal events tables (0038)', () => {
       "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES ('u-trv-mk', 'root-dup', 'trv-mk-1', 'tagged')",
     ).run();
 
-    await expect(
-      env.DB.prepare(
-        "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES ('u-trv-mk', 'root-dup', 'trv-mk-2', 'skipped')",
-      ).run(),
-    ).rejects.toThrow();
+    await env.DB.prepare(
+      "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES ('u-trv-mk', 'root-dup', 'trv-mk-2', 'skipped')",
+    ).run();
+
+    const rows = await env.DB.prepare(
+      "SELECT event_id, state FROM personal_event_share_marks WHERE user_id = 'u-trv-mk' AND root_id = 'root-dup' ORDER BY event_id",
+    ).all<{ event_id: string; state: string }>();
+    expect(rows.results).toEqual([
+      { event_id: 'trv-mk-1', state: 'tagged' },
+      { event_id: 'trv-mk-2', state: 'skipped' },
+    ]);
+  });
+
+  it('end_date and stopped_at accept null', async () => {
+    await seedUser('u-trv-open', 'Event Open End User');
+    await seedTag('tag-trv-open', 'u-trv-open', 'Open Event');
+
+    await env.DB.prepare(
+      `INSERT INTO personal_events
+       (id, user_id, name, tag_id, start_date, end_date, stopped_at, counts_from, budget_id, created_at, updated_at)
+       VALUES ('trv-open-1', 'u-trv-open', 'Open Event', 'tag-trv-open', '2026-11-27', NULL, NULL, '2026-11-27', NULL, ?, ?)`,
+    )
+      .bind(NOW, NOW)
+      .run();
+
+    const row = await env.DB.prepare(
+      "SELECT end_date, stopped_at FROM personal_events WHERE id = 'trv-open-1'",
+    ).first<{ end_date: string | null; stopped_at: string | null }>();
+    expect(row).not.toBeNull();
+    expect(row?.end_date).toBeNull();
+    expect(row?.stopped_at).toBeNull();
   });
 });

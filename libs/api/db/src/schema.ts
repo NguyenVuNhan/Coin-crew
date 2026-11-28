@@ -1023,7 +1023,7 @@ export const personalBudgetExcludedWallets = sqliteTable(
   (t) => [primaryKey({ columns: [t.budgetId, t.walletId] })],
 );
 
-/** Personal events / trip-mode declarations (0038, #158). */
+/** Personal events declarations (0038, #158). */
 export const personalEvents = sqliteTable(
   'personal_events',
   {
@@ -1031,11 +1031,11 @@ export const personalEvents = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    tagId: text('tag_id')
-      .notNull()
-      .references(() => personalTags.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tagId: text('tag_id').references(() => personalTags.id, { onDelete: 'set null' }),
     startDate: text('start_date').notNull(),
-    endDate: text('end_date').notNull(),
+    endDate: text('end_date'),
+    stoppedAt: text('stopped_at'),
     countsFrom: text('counts_from').notNull(),
     budgetId: text('budget_id').references(() => personalBudgets.id, { onDelete: 'set null' }),
     createdAt: text('created_at').notNull(),
@@ -1056,7 +1056,7 @@ export const personalEventGroups = sqliteTable(
   (t) => [primaryKey({ columns: [t.eventId, t.tripId] })],
 );
 
-/** Per-user share-level tag/skip marks for trip-mode group expenses (0038, #158). */
+/** Per-user share-level tag/skip marks for event group expenses (0038, #158). */
 export const personalEventShareMarks = sqliteTable(
   'personal_event_share_marks',
   {
@@ -1070,7 +1070,7 @@ export const personalEventShareMarks = sqliteTable(
     state: text('state', { enum: ['tagged', 'skipped'] }).notNull(),
   },
   (t) => [
-    primaryKey({ columns: [t.userId, t.rootId] }),
+    primaryKey({ columns: [t.userId, t.rootId, t.eventId] }),
     check('personal_event_share_marks_state_check', sql`${t.state} IN ('tagged', 'skipped')`),
   ],
 );

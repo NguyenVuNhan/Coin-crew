@@ -2,9 +2,11 @@
 CREATE TABLE `personal_events` (
   `id` text PRIMARY KEY NOT NULL,
   `user_id` text NOT NULL REFERENCES `users`(`id`) ON DELETE CASCADE,
-  `tag_id` text NOT NULL REFERENCES `personal_tags`(`id`) ON DELETE CASCADE,
+  `name` text NOT NULL,
+  `tag_id` text REFERENCES `personal_tags`(`id`) ON DELETE SET NULL,
   `start_date` text NOT NULL,
-  `end_date` text NOT NULL,
+  `end_date` text,
+  `stopped_at` text,
   `counts_from` text NOT NULL,
   `budget_id` text REFERENCES `personal_budgets`(`id`) ON DELETE SET NULL,
   `created_at` text NOT NULL,
@@ -24,5 +26,5 @@ CREATE TABLE `personal_event_share_marks` (
   `root_id` text NOT NULL,
   `event_id` text NOT NULL REFERENCES `personal_events`(`id`) ON DELETE CASCADE,
   `state` text NOT NULL CHECK (`state` IN ('tagged', 'skipped')),
-  PRIMARY KEY (`user_id`, `root_id`)
+  PRIMARY KEY (`user_id`, `root_id`, `event_id`)
 );
