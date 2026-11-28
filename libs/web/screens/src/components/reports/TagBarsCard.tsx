@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { PieChart } from 'lucide-react';
 import {
   filterReportTags,
   formatMoney,
@@ -9,12 +10,13 @@ import {
   type ReportQuery,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
+import { todayLocal } from '@cc/web-util/localDate';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { Input } from '@cc/web-ui/components/ui/input';
 import { Button } from '@cc/web-ui/components/ui/button';
 import { cn } from '@cc/web-ui/lib/utils';
-import { buildTransactionsTagUrl } from './reportUrl';
+import { buildTagReportUrl, buildTransactionsTagUrl } from './reportUrl';
 
 export interface TagBarsCardProps {
   tags: ReportData['tags'];
@@ -22,6 +24,7 @@ export interface TagBarsCardProps {
   query: ReportQuery;
   currency: CurrencyCode;
   approximate: boolean;
+  firstDates?: Record<string, string>;
 }
 
 export function TagBarsCard({
@@ -30,8 +33,10 @@ export function TagBarsCard({
   query,
   currency,
   approximate,
+  firstDates,
 }: TagBarsCardProps) {
   const t = useT();
+  const today = todayLocal();
 
   const expenseTags = tags?.expense ?? [];
   const incomeTags = tags?.income ?? [];
@@ -99,35 +104,44 @@ export function TagBarsCard({
       ) : (
         <div className="flex flex-col gap-1.5">
           {visible.map((item) => (
-            <Link
-              key={item.tagId}
-              to={buildTransactionsTagUrl(item.tagId, period, query)}
-              className="block min-h-11 py-1.5 px-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
-            >
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="font-semibold text-sm truncate">
-                  #{item.name}
+            <div key={item.tagId} className="flex items-center gap-1">
+              <Link
+                to={buildTransactionsTagUrl(item.tagId, period, query)}
+                className="block flex-1 min-w-0 min-h-11 py-1.5 px-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="font-semibold text-sm truncate">
+                    #{item.name}
+                  </span>
+                  <span className="tabular-nums text-sm font-medium shrink-0">
+                    {approxPrefix}
+                    {formatMoney(item.amount, currency)}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    style={{
+                      width: `${Math.max(4, Math.round((item.amount / maxAmount) * 100))}%`,
+                    }}
+                    className={cn(
+                      'h-full rounded-full transition-all motion-reduce:transition-none',
+                      side === 'expense' ? 'bg-danger' : 'bg-success',
+                    )}
+                  />
+                </div>
+                <span className="block mt-1 text-xs tabular-nums text-muted-foreground">
+                  {t('reports.tagsEntryCount', { count: String(item.entryCount) })} · {item.percent}%
                 </span>
-                <span className="tabular-nums text-sm font-medium shrink-0">
-                  {approxPrefix}
-                  {formatMoney(item.amount, currency)}
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  style={{
-                    width: `${Math.max(4, Math.round((item.amount / maxAmount) * 100))}%`,
-                  }}
-                  className={cn(
-                    'h-full rounded-full transition-all motion-reduce:transition-none',
-                    side === 'expense' ? 'bg-danger' : 'bg-success',
-                  )}
-                />
-              </div>
-              <span className="block mt-1 text-xs tabular-nums text-muted-foreground">
-                {t('reports.tagsEntryCount', { count: String(item.entryCount) })} · {item.percent}%
-              </span>
-            </Link>
+              </Link>
+              <Link
+                to={buildTagReportUrl(item.tagId, firstDates?.[item.tagId] ?? period.from, today)}
+                aria-label={t('reports.tagReportAria' as Parameters<typeof t>[0])}
+                data-testid="tag-report-link"
+                className="inline-flex items-center justify-center min-h-11 min-w-11 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
+              >
+                <PieChart className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
           ))}
         </div>
       )}

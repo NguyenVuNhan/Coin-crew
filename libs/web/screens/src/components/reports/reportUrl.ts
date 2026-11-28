@@ -74,10 +74,14 @@ export function parseReportQueryFromSearch(search: string, today?: string): Repo
   const rawWalletId = params.get('walletId')?.trim();
   const walletId = rawWalletId && rawWalletId.length > 0 ? rawWalletId : undefined;
 
+  const rawTagId = params.get('tagId')?.trim();
+  const tagId = rawTagId && rawTagId.length > 0 ? rawTagId : undefined;
+
   const result: ReportQuery = {
     mode,
     includeGroups,
     ...(walletId ? { walletId } : {}),
+    ...(tagId ? { tagId } : {}),
   };
 
   if (mode === 'month') {
@@ -124,12 +128,29 @@ export function buildReportSearch(query: ReportQuery): string {
     params.set('walletId', query.walletId.trim());
   }
 
+  if (query.tagId && query.tagId.trim()) {
+    params.set('tagId', query.tagId.trim());
+  }
+
   if (!query.includeGroups) {
     params.set('groups', 'hide');
   }
 
   const str = params.toString();
   return str ? `?${str}` : '';
+}
+
+/**
+ * Builds the URL for a custom-range report filtered to one tag.
+ */
+export function buildTagReportUrl(tagId: string, from: string, to: string): string {
+  return `/reports${buildReportSearch({
+    mode: 'custom',
+    from,
+    to,
+    includeGroups: true,
+    tagId,
+  })}`;
 }
 
 /**

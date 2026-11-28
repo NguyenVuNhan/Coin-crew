@@ -300,6 +300,9 @@ function parseReportQueryParams(c: { req: { query: (name: string) => string | un
   const walletIdRaw = c.req.query('walletId');
   const walletId = walletIdRaw !== undefined && walletIdRaw.trim().length > 0 ? walletIdRaw.trim() : undefined;
 
+  const tagIdRaw = c.req.query('tagId');
+  const tagId = tagIdRaw !== undefined && tagIdRaw.trim().length > 0 ? tagIdRaw.trim() : undefined;
+
   return {
     query: {
       mode,
@@ -310,6 +313,7 @@ function parseReportQueryParams(c: { req: { query: (name: string) => string | un
       to,
       walletId,
       includeGroups,
+      ...(tagId ? { tagId } : {}),
     },
     today,
     walletId,

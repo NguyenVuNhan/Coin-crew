@@ -4,6 +4,7 @@ import {
   buildCategoryDrilldown,
   buildReport,
   isBeforeStart,
+  tagFirstDates,
   type CalcEntry,
   type CategoryView,
   type EntryView,
@@ -102,6 +103,9 @@ export function buildReportQueryString(query: ReportQuery, today?: string): stri
   }
   if (query.walletId) {
     params.set('walletId', query.walletId);
+  }
+  if (query.tagId && query.tagId.trim()) {
+    params.set('tagId', query.tagId.trim());
   }
   params.set('groups', query.includeGroups ? 'show' : 'hide');
   params.set('today', today ?? todayLocal());
@@ -247,12 +251,18 @@ function useReportInternal(query: ReportQuery, opts?: ReportHookOptions) {
     query.from,
     query.to,
     query.walletId,
+    query.tagId,
     today,
   ]);
 
   const copyReport = useMemo(() => {
     if (!copyInput) return null;
     return buildReport(copyInput);
+  }, [copyInput]);
+
+  const copyTagFirstDates = useMemo(() => {
+    if (!copyInput) return undefined;
+    return tagFirstDates(copyInput);
   }, [copyInput]);
 
   const qs = useMemo(
@@ -266,6 +276,7 @@ function useReportInternal(query: ReportQuery, opts?: ReportHookOptions) {
       query.to,
       query.walletId,
       query.includeGroups,
+      query.tagId,
       today,
     ],
   );
@@ -329,6 +340,7 @@ function useReportInternal(query: ReportQuery, opts?: ReportHookOptions) {
   return {
     enabled,
     report,
+    tagFirstDates: copyReady ? copyTagFirstDates : undefined,
     isPending,
     error,
     source,
@@ -348,14 +360,19 @@ export function usePersonalReport(
   opts?: ReportHookOptions,
 ): {
   data: ReportData | undefined;
+  tagFirstDates: Record<string, string> | undefined;
   isPending: boolean;
   error: ApiClientError | null;
   source: 'copy' | 'server' | 'pending';
   refetch: () => void;
 } {
-  const { report, isPending, error, source, refetch } = useReportInternal(query, opts);
+  const { report, tagFirstDates: firstDates, isPending, error, source, refetch } = useReportInternal(
+    query,
+    opts,
+  );
   return {
     data: report,
+    tagFirstDates: firstDates,
     isPending,
     error,
     source,

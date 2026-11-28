@@ -38,6 +38,7 @@ export interface ReportQuery {
   to?: string;
   walletId?: string;
   includeGroups: boolean;
+  tagId?: string;
 }
 
 export interface ReportPeriodWindow {
@@ -527,6 +528,7 @@ function normalizeInScopeTransactions(
   const isSingleWallet = !allWallets && Boolean(query?.walletId);
   const targetWallet = isSingleWallet ? walletsById.get(query!.walletId!) : undefined;
   const reportCurrency: CurrencyCode = targetWallet ? targetWallet.currency : 'VND';
+  const tagFilterId = query?.tagId?.trim() || undefined;
 
   const isWalletInScope = (wId: string): boolean => {
     if (allWallets) return true;
@@ -545,6 +547,8 @@ function normalizeInScopeTransactions(
 
   for (const e of entries) {
     if (!isWalletInScope(e.walletId)) continue;
+    const tagIds = e.tagIds ?? [];
+    if (tagFilterId && !tagIds.includes(tagFilterId)) continue;
     const w = walletsById.get(e.walletId);
     const curr: CurrencyCode = w?.currency ?? 'VND';
 
@@ -566,13 +570,15 @@ function normalizeInScopeTransactions(
       amount,
       vndAmount: vndVal,
       categoryId,
-      tagIds: e.tagIds ?? [],
+      tagIds,
     });
   }
 
   if (includeGroups) {
     for (const row of groupRows) {
       if (!isGroupRowInScope(row)) continue;
+      const tagIds = row.link?.tagIds ?? [];
+      if (tagFilterId && !tagIds.includes(tagFilterId)) continue;
       const pb = paybacks.get(row.id) ?? 0;
       const eff = groupRowEffect(row, groupSettings, pb);
       if (eff.spending <= 0 && eff.income <= 0) continue;
@@ -597,7 +603,7 @@ function normalizeInScopeTransactions(
         amount,
         vndAmount: amount,
         categoryId: catId,
-        tagIds: row.link?.tagIds ?? [],
+        tagIds,
       });
     }
   }
@@ -1378,4 +1384,34 @@ export function listCountedSpending(
     });
   }
   return rows;
+}
+
+/**
+ * Returns the earliest counted item date (across all time) for each tagId,
+ * using the same counting rules as buildReport.
+ */
+export function tagFirstDates(
+  input: Omit<Parameters<typeof buildReport>[0], 'query' | 'today'>,
+): Record<string, string> {
+  const { txs } = normalizeInScopeTransactions(
+    {
+      wallets: input.wallets,
+      entries: input.entries,
+      categories: input.categories,
+      tags: input.tags,
+      groupRows: input.groupRows,
+      groupSettings: input.groupSettings,
+    },
+    { includeGroups: true },
+  );
+  const result: Record<string, string> = {};
+  for (const tx of txs) {
+    for (const tid of tx.tagIds) {
+      const prev = result[tid];
+      if (prev === undefined || tx.date < prev) {
+        result[tid] = tx.date;
+      }
+    }
+  }
+  return result;
 }

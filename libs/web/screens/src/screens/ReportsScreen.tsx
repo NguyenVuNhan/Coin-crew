@@ -4,11 +4,12 @@ import { formatMoney, type ReportQuery } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import { usePersonalReport } from '@cc/web-data-access/reports';
-import { useWalletDetails } from '@cc/web-data-access/personalMoney';
+import { useTags, useWalletDetails } from '@cc/web-data-access/personalMoney';
 import { Button as AppButton } from '@cc/web-ui/components/Button';
 import { Button } from '@cc/web-ui/components/ui/button';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
+import { Pill } from '@cc/web-ui/components/Pill';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Icon } from '@cc/web-ui/components/icons';
@@ -42,11 +43,23 @@ export function ReportsScreen(): JSX.Element {
 
   const reportQuery = usePersonalReport(query);
   const walletsQuery = useWalletDetails();
+  const tagsQuery = useTags({ enabled: Boolean(query.tagId) });
 
   const report = reportQuery.data;
   const wallets = walletsQuery.data?.wallets ?? [];
 
-  const hasActiveFilters = Boolean(query.walletId) || !query.includeGroups;
+  const activeTagName = useMemo(() => {
+    if (!query.tagId) return null;
+    const found = (tagsQuery.data?.tags ?? []).find((tg) => tg.id === query.tagId);
+    if (found) return found.name;
+    const fromReport =
+      report?.tags.expense.find((tg) => tg.tagId === query.tagId)?.name ??
+      report?.tags.income.find((tg) => tg.tagId === query.tagId)?.name;
+    return fromReport ?? query.tagId;
+  }, [query.tagId, tagsQuery.data?.tags, report?.tags]);
+
+  const hasActiveFilters =
+    Boolean(query.walletId) || !query.includeGroups || Boolean(query.tagId);
 
   return (
     <Screen title={t('reports.title')} back="/trips" wide>
@@ -58,6 +71,25 @@ export function ReportsScreen(): JSX.Element {
           today={today}
           onChange={updateQuery}
         />
+        {query.tagId && (
+          <div className="flex items-center gap-2">
+            <Pill
+              tone="accent"
+              data-testid="reports-tag-filter-pill"
+              className="gap-0.5 py-0 pl-3 pr-0"
+            >
+              <span>#{activeTagName}</span>
+              <button
+                type="button"
+                aria-label={t('reports.tagFilterClear' as Parameters<typeof t>[0])}
+                onClick={() => updateQuery({ ...query, tagId: undefined })}
+                className="inline-flex items-center justify-center min-h-11 min-w-11 -my-2 rounded-full bg-transparent border-0 text-secondary-foreground hover:bg-muted cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </Pill>
+          </div>
+        )}
         <ReportFilterRow
           query={query}
           wallets={wallets}
@@ -172,6 +204,7 @@ export function ReportsScreen(): JSX.Element {
                           ...query,
                           walletId: undefined,
                           includeGroups: true,
+                          tagId: undefined,
                         })
                       }
                     >
@@ -215,6 +248,7 @@ export function ReportsScreen(): JSX.Element {
                         query={query}
                         currency={report.currency}
                         approximate={report.approximate}
+                        firstDates={reportQuery.tagFirstDates}
                       />
                     </div>
                   </div>
