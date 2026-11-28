@@ -33,6 +33,9 @@ const resumeEvent = (sid: string | null, id: string, body: unknown) =>
 const startNowEvent = (sid: string | null, id: string, body: unknown) =>
   postJson(`/api/me/personal/events/${encodeURIComponent(id)}/start-now`, sid, body);
 
+const applyExisting = (sid: string | null, id: string, body: unknown) =>
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}/existing`, sid, body);
+
 const getBudget = (sid: string, id: string) =>
   call(`/api/me/personal/budgets/${encodeURIComponent(id)}`, as(sid));
 
@@ -543,5 +546,313 @@ describe('personal events lifecycle', () => {
     expect(patched.budgetId).toBeNull();
     expect(patched.tagName).toBe('dalat-201226');
     expect((await getBudget(sid, created.budgetId!)).status).toBe(404);
+  });
+
+  it('resume gap leaves out items already tagged and shares with a skipped or tagged mark', async () => {
+    const userId = 'u-lc-res-filter';
+    const sid = await memberSid(userId, 'ResFilter');
+    await switchOn(userId);
+
+    const w = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Cash', startAmount: 5_000_000, startDate: '2026-12-01' }),
+      )
+    ).wallet;
+    const cats = (await json<CategoriesResponse>(await getCategories(sid))).categories;
+    const food = cats.find((c) => c.type === 'expense')!;
+
+    await seedGroupWithExpenses('g-res-filter', userId, []);
+
+    const created = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'Đà Lạt',
+          start: '2026-12-20',
+          end: '2026-12-30',
+          groupIds: ['g-res-filter'],
+          today: '2026-12-20',
+        }),
+      )
+    ).event;
+
+    expect((await stopEvent(sid, created.id, { today: '2026-12-25' })).status).toBe(200);
+
+    // Own expense in gap (untagged -> included)
+    const ownUntagged = (
+      await json<{ entries: EntryView[] }>(
+        await createEntry(sid, {
+          type: 'expense',
+          walletId: w.id,
+          amount: 120_000,
+          categoryId: food.id,
+          date: '2026-12-26',
+          note: 'Untagged in gap',
+        }),
+      )
+    ).entries[0]!;
+
+    // Own expense in gap (already tagged -> excluded)
+    const ownTagged = (
+      await json<{ entries: EntryView[] }>(
+        await createEntry(sid, {
+          type: 'expense',
+          walletId: w.id,
+          amount: 150_000,
+          categoryId: food.id,
+          date: '2026-12-26',
+          note: 'Already tagged in gap',
+        }),
+      )
+    ).entries[0]!;
+    await env.DB.prepare(
+      'INSERT INTO personal_transaction_tags (transaction_id, tag_id) VALUES (?, ?)',
+    )
+      .bind(ownTagged.id, created.tagId!)
+      .run();
+
+    // Group shares in gap
+    await seedGroupWithExpenses('g-res-filter', userId, [
+      { id: 'ge-unmarked', description: 'Unmarked share', amount: 200_000, myShare: 100_000, spentOn: '2026-12-26' },
+      { id: 'ge-skipped', description: 'Skipped share', amount: 200_000, myShare: 100_000, spentOn: '2026-12-26' },
+      { id: 'ge-tagged-removed', description: 'Hand-untagged share', amount: 200_000, myShare: 100_000, spentOn: '2026-12-26' },
+      { id: 'ge-already-tagged', description: 'Tagged share', amount: 200_000, myShare: 100_000, spentOn: '2026-12-26' },
+    ]);
+
+    // Seed 'skipped' mark on ge-skipped
+    await env.DB.prepare(
+      "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES (?, 'ge-skipped', ?, 'skipped')",
+    )
+      .bind(userId, created.id)
+      .run();
+
+    // Seed 'tagged' mark on ge-tagged-removed without a tag (tag removed by hand)
+    await env.DB.prepare(
+      "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES (?, 'ge-tagged-removed', ?, 'tagged')",
+    )
+      .bind(userId, created.id)
+      .run();
+
+    // Seed existing tag on ge-already-tagged without a mark
+    await env.DB.prepare(
+      "INSERT INTO personal_group_links (user_id, root_id, trip_id, exclude_from_reports, created_at, updated_at, sync_version) VALUES (?, 'ge-already-tagged', 'g-res-filter', 0, '2026-12-26T00:00:00.000Z', '2026-12-26T00:00:00.000Z', 1)",
+    )
+      .bind(userId)
+      .run();
+    await env.DB.prepare(
+      "INSERT INTO personal_group_link_tags (user_id, root_id, tag_id) VALUES (?, 'ge-already-tagged', ?)",
+    )
+      .bind(userId, created.tagId!)
+      .run();
+
+    const { result: resumeRes, queries } = await countQueries(() =>
+      resumeEvent(sid, created.id, { today: '2026-12-27' }),
+    );
+    expect(resumeRes.status).toBe(200);
+    expect(queries).toBeLessThanOrEqual(50);
+
+    const resumed = await json<EventSavedResponse>(resumeRes);
+    expect(resumed.existing.ownIds).toEqual([ownUntagged.id]);
+    expect(resumed.existing.own.count).toBe(1);
+    expect(resumed.existing.shareRootIds).toEqual(['ge-unmarked']);
+    expect(resumed.existing.shares.count).toBe(1);
+  });
+
+  it('resume gap counts == items tagged by applying existing yes', async () => {
+    const userId = 'u-lc-res-apply';
+    const sid = await memberSid(userId, 'ResApply');
+    await switchOn(userId);
+
+    const w = (
+      await json<WalletDetailResponse>(
+        await addWallet(sid, { name: 'Cash', startAmount: 5_000_000, startDate: '2026-12-01' }),
+      )
+    ).wallet;
+    const cats = (await json<CategoriesResponse>(await getCategories(sid))).categories;
+    const food = cats.find((c) => c.type === 'expense')!;
+
+    await seedGroupWithExpenses('g-res-apply', userId, []);
+
+    const created = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'Đà Lạt',
+          start: '2026-12-20',
+          end: '2026-12-30',
+          groupIds: ['g-res-apply'],
+          today: '2026-12-20',
+        }),
+      )
+    ).event;
+
+    expect((await stopEvent(sid, created.id, { today: '2026-12-25' })).status).toBe(200);
+
+    // 2 untagged own expenses in gap + 1 already tagged
+    await createEntry(sid, {
+      type: 'expense',
+      walletId: w.id,
+      amount: 100_000,
+      categoryId: food.id,
+      date: '2026-12-25',
+    });
+    await createEntry(sid, {
+      type: 'expense',
+      walletId: w.id,
+      amount: 200_000,
+      categoryId: food.id,
+      date: '2026-12-26',
+    });
+    const alreadyTagged = (
+      await json<{ entries: EntryView[] }>(
+        await createEntry(sid, {
+          type: 'expense',
+          walletId: w.id,
+          amount: 300_000,
+          categoryId: food.id,
+          date: '2026-12-26',
+        }),
+      )
+    ).entries[0]!;
+    await env.DB.prepare(
+      'INSERT INTO personal_transaction_tags (transaction_id, tag_id) VALUES (?, ?)',
+    )
+      .bind(alreadyTagged.id, created.tagId!)
+      .run();
+
+    // 2 unmarked shares + 1 share with 'tagged' mark whose tag was removed by hand
+    await seedGroupWithExpenses('g-res-apply', userId, [
+      { id: 'ge-apply-1', description: 'Gap share 1', amount: 200_000, myShare: 100_000, spentOn: '2026-12-25' },
+      { id: 'ge-apply-2', description: 'Gap share 2', amount: 300_000, myShare: 150_000, spentOn: '2026-12-26' },
+      { id: 'ge-apply-removed', description: 'Hand removed', amount: 400_000, myShare: 200_000, spentOn: '2026-12-26' },
+    ]);
+    await env.DB.prepare(
+      "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES (?, 'ge-apply-removed', ?, 'tagged')",
+    )
+      .bind(userId, created.id)
+      .run();
+
+    const { result: resumeRes, queries: resumeQueries } = await countQueries(() =>
+      resumeEvent(sid, created.id, { today: '2026-12-27' }),
+    );
+    expect(resumeRes.status).toBe(200);
+    expect(resumeQueries).toBeLessThanOrEqual(50);
+
+    const resumed = await json<EventSavedResponse>(resumeRes);
+    const expectedTotal = resumed.existing.own.count + resumed.existing.shares.count;
+    expect(resumed.existing.own.count).toBe(2);
+    expect(resumed.existing.shares.count).toBe(2);
+    expect(expectedTotal).toBe(4);
+
+    const { result: applyRes, queries: applyQueries } = await countQueries(() =>
+      applyExisting(sid, created.id, {
+        tag: true,
+        ownIds: resumed.existing.ownIds,
+        shareRootIds: resumed.existing.shareRootIds,
+      }),
+    );
+    expect(applyRes.status).toBe(200);
+    expect(applyQueries).toBeLessThanOrEqual(50);
+
+    const applied = await json<{ tagged: number }>(applyRes);
+    expect(applied.tagged).toBe(expectedTotal);
+  });
+
+  it('patch end on a stopped event is 400 event_stopped', async () => {
+    const userId = 'u-lc-patch-stopped';
+    const sid = await memberSid(userId, 'PatchStopped');
+    await switchOn(userId);
+
+    const created = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'Đà Lạt',
+          start: '2026-12-20',
+          end: '2026-12-30',
+          groupIds: [],
+          today: '2026-12-20',
+        }),
+      )
+    ).event;
+
+    expect((await stopEvent(sid, created.id, { today: '2026-12-25' })).status).toBe(200);
+
+    const { result: patchDateRes, queries: q1 } = await countQueries(() =>
+      patchEvent(sid, created.id, {
+        end: '2026-12-28',
+        today: '2026-12-26',
+      }),
+    );
+    expect(patchDateRes.status).toBe(400);
+    expect(q1).toBeLessThanOrEqual(50);
+    expect((await json<{ error: { code: string } }>(patchDateRes)).error.code).toBe('event_stopped');
+
+    const { result: patchNullRes, queries: q2 } = await countQueries(() =>
+      patchEvent(sid, created.id, {
+        end: null,
+        today: '2026-12-26',
+      }),
+    );
+    expect(patchNullRes.status).toBe(400);
+    expect(q2).toBeLessThanOrEqual(50);
+    expect((await json<{ error: { code: string } }>(patchNullRes)).error.code).toBe('event_stopped');
+
+    // Even passing the same end date is rejected
+    const patchSameRes = await patchEvent(sid, created.id, {
+      end: '2026-12-25',
+      today: '2026-12-26',
+    });
+    expect(patchSameRes.status).toBe(400);
+    expect((await json<{ error: { code: string } }>(patchSameRes)).error.code).toBe('event_stopped');
+
+    // Patching other fields without end still succeeds
+    const { result: patchNameRes, queries: q3 } = await countQueries(() =>
+      patchEvent(sid, created.id, {
+        name: 'Đà Lạt 2',
+        today: '2026-12-26',
+      }),
+    );
+    expect(patchNameRes.status).toBe(200);
+    expect(q3).toBeLessThanOrEqual(50);
+    const patched = (await json<EventSavedResponse>(patchNameRes)).event;
+    expect(patched.name).toBe('Đà Lạt 2');
+    expect(patched.end).toBe('2026-12-25');
+    expect(patched.stoppedAt).toBeTruthy();
+  });
+
+  it("start-now offers a group share dated today in the event's group", async () => {
+    const userId = 'u-lc-startnow-share';
+    const sid = await memberSid(userId, 'StartNowShare');
+    await switchOn(userId);
+
+    await seedGroupWithExpenses('g-sn-today', userId, [
+      { id: 'ge-sn-before', description: 'Before today', amount: 200_000, myShare: 100_000, spentOn: '2026-12-27' },
+      { id: 'ge-sn-today', description: 'Today share', amount: 500_000, myShare: 250_000, spentOn: '2026-12-28' },
+      { id: 'ge-sn-after', description: 'After today', amount: 300_000, myShare: 150_000, spentOn: '2026-12-29' },
+    ]);
+
+    const created = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'Đà Lạt',
+          start: '2027-01-10',
+          end: '2027-01-15',
+          countsFrom: '2027-01-01',
+          groupIds: ['g-sn-today'],
+          today: '2026-12-20',
+        }),
+      )
+    ).event;
+
+    const { result: startRes, queries } = await countQueries(() =>
+      startNowEvent(sid, created.id, { today: '2026-12-28' }),
+    );
+    expect(startRes.status).toBe(200);
+    expect(queries).toBeLessThanOrEqual(50);
+
+    const started = await json<EventSavedResponse>(startRes);
+    expect(started.event.start).toBe('2026-12-28');
+    expect(started.event.countsFrom).toBe('2026-12-28');
+    expect(started.existing.shareRootIds).toEqual(['ge-sn-today']);
+    expect(started.existing.shares.count).toBe(1);
+    expect(started.existing.shares.total).toBe(250_000);
   });
 });

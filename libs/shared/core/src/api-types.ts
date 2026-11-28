@@ -32,6 +32,7 @@ export type ApiErrorCode =
   | 'invalid_range'
   | 'limit_needs_end'
   | 'not_running'
+  | 'event_stopped'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 

@@ -416,7 +416,6 @@ async function computeExisting(
     countsFrom: string;
     groupIds: string[];
     previousRange?: { start: string; end: string | null };
-    excludeOnlySkipped?: boolean;
   },
 ): Promise<{ existing: EventExisting; sharesToMark: string[] }> {
   const prev = params.previousRange;
@@ -482,9 +481,6 @@ async function computeExisting(
                   and(
                     eq(personalEventShareMarks.userId, userId),
                     eq(personalEventShareMarks.eventId, params.eventId),
-                    ...(params.excludeOnlySkipped
-                      ? [eq(personalEventShareMarks.state, 'skipped')]
-                      : []),
                   ),
                 )
                 .all()
@@ -838,6 +834,10 @@ export function eventRoutes(): Hono<AppBindings> {
     const existing = await loadUserEventById(db, user.id, id);
     if (!existing) {
       throw new ApiError('NOT_FOUND', 404, 'Event not found');
+    }
+
+    if (existing.stoppedAt !== null && Object.prototype.hasOwnProperty.call(body, 'end')) {
+      throw new ApiError('event_stopped', 400, 'Cannot change end date of a stopped event');
     }
 
     const nextName = nameInput ?? existing.name;
@@ -1207,7 +1207,7 @@ export function eventRoutes(): Hono<AppBindings> {
     }
 
     const now = nowIso();
-    const gapStart = existing.end ?? existing.stoppedAt.slice(0, 10);
+    const gapStart = existing.end;
 
     const syncedTag = await syncEventTag(
       db,
@@ -1217,7 +1217,7 @@ export function eventRoutes(): Hono<AppBindings> {
     );
 
     const existingResult =
-      gapStart <= today
+      gapStart !== null && gapStart <= today
         ? await computeExisting(db, user.id, {
             eventId: existing.id,
             tagId: syncedTag.recreated ? null : syncedTag.tagId,
@@ -1225,7 +1225,6 @@ export function eventRoutes(): Hono<AppBindings> {
             end: today,
             countsFrom: gapStart,
             groupIds: existing.groupIds,
-            excludeOnlySkipped: true,
           })
         : { existing: emptyExisting(), sharesToMark: [] };
 
