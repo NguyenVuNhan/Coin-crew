@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -178,6 +178,78 @@ function pickDefaultWallet(activeWallets: WalletDetailView[]): string {
     return lastId;
   }
   return (activeWallets.find((w) => w.isDefault) ?? activeWallets[0])?.id ?? '';
+}
+
+export function eventRowTagState(
+  match: EventMatch,
+  {
+    override,
+    isEdit,
+    hasExistingTag,
+  }: {
+    override: boolean | undefined;
+    isEdit: boolean;
+    hasExistingTag: boolean;
+  },
+): { on: boolean; shouldRemove: boolean } {
+  const startedOn = isEdit ? hasExistingTag : match.mode === 'on';
+  const on = override !== undefined ? override : startedOn;
+  const shouldRemove = override === false || (startedOn && !on);
+  return { on, shouldRemove };
+}
+
+export function applyEventTagIds({
+  baseTagIds,
+  matches,
+  isOn,
+  shouldRemove,
+}: {
+  baseTagIds: string[];
+  matches: EventMatch[];
+  isOn: (match: EventMatch) => boolean;
+  shouldRemove: (match: EventMatch) => boolean;
+}): string[] {
+  if (matches.length === 0) return baseTagIds;
+  let next = [...baseTagIds];
+  for (const match of matches) {
+    const evTagId = match.event.tagId;
+    if (!evTagId) continue;
+    if (isOn(match)) {
+      if (!next.includes(evTagId)) next.push(evTagId);
+    } else if (shouldRemove(match)) {
+      next = next.filter((tid) => tid !== evTagId);
+    }
+  }
+  return next;
+}
+
+export function applyEventTagNames({
+  baseTagNames,
+  matches,
+  resolveTagName,
+  isOn,
+  shouldRemove,
+}: {
+  baseTagNames: string[];
+  matches: EventMatch[];
+  resolveTagName: (match: EventMatch) => string | null;
+  isOn: (match: EventMatch) => boolean;
+  shouldRemove: (match: EventMatch) => boolean;
+}): string[] {
+  if (matches.length === 0) return baseTagNames;
+  let next = [...baseTagNames];
+  for (const match of matches) {
+    const tagName = resolveTagName(match);
+    if (!tagName) continue;
+    const needle = tagName.trim().toLowerCase();
+    if (isOn(match)) {
+      const already = next.some((n) => n.trim().toLowerCase() === needle);
+      if (!already) next.push(tagName);
+    } else if (shouldRemove(match)) {
+      next = next.filter((n) => n.trim().toLowerCase() !== needle);
+    }
+  }
+  return next;
 }
 
 export function EntryPage(): JSX.Element {
@@ -921,33 +993,53 @@ export function EntryPage(): JSX.Element {
     }
   }, [eventMatchKey]);
 
-  const resolveEventTagName = (match: EventMatch): string | null => {
-    const tagId = match.event.tagId;
-    if (tagId) {
-      const matchedTag = (tagsQuery.data?.tags ?? []).find((tg) => tg.id === tagId);
-      if (matchedTag) return matchedTag.name;
-    }
-    const view = eventViewById.get(match.event.id);
-    if (view?.tagName) return view.tagName;
-    return tagId ? match.event.name : null;
-  };
+  const resolveEventTagName = useCallback(
+    (match: EventMatch): string | null => {
+      const tagId = match.event.tagId;
+      if (tagId) {
+        const matchedTag = (tagsQuery.data?.tags ?? []).find((tg) => tg.id === tagId);
+        if (matchedTag) return matchedTag.name;
+      }
+      const view = eventViewById.get(match.event.id);
+      if (view?.tagName) return view.tagName;
+      return tagId ? match.event.name : null;
+    },
+    [tagsQuery.data?.tags, eventViewById],
+  );
 
-  const existingHasEventTag = (match: EventMatch): boolean => {
-    if (!isEdit) return false;
-    if (isDirectEdit) {
-      return match.event.tagId !== null && tags.includes(match.event.tagId);
-    }
-    const tagName = resolveEventTagName(match);
-    if (!tagName) return false;
-    const needle = tagName.trim().toLowerCase();
-    return tags.some((name) => name.trim().toLowerCase() === needle);
-  };
+  const existingHasEventTag = useCallback(
+    (match: EventMatch): boolean => {
+      if (!isEdit) return false;
+      if (isDirectEdit) {
+        return match.event.tagId !== null && tags.includes(match.event.tagId);
+      }
+      const tagName = resolveEventTagName(match);
+      if (!tagName) return false;
+      const needle = tagName.trim().toLowerCase();
+      return tags.some((name) => name.trim().toLowerCase() === needle);
+    },
+    [isEdit, isDirectEdit, tags, resolveEventTagName],
+  );
 
-  const isEventOn = (match: EventMatch): boolean => {
-    const override = eventOnById[match.event.id];
-    if (override !== undefined) return override;
-    return isEdit ? existingHasEventTag(match) : match.mode === 'on';
-  };
+  const getEventRowState = useCallback(
+    (match: EventMatch) =>
+      eventRowTagState(match, {
+        override: eventOnById[match.event.id],
+        isEdit,
+        hasExistingTag: existingHasEventTag(match),
+      }),
+    [eventOnById, isEdit, existingHasEventTag],
+  );
+
+  const isEventOn = useCallback(
+    (match: EventMatch): boolean => getEventRowState(match).on,
+    [getEventRowState],
+  );
+
+  const shouldRemoveEventTag = useCallback(
+    (match: EventMatch): boolean => getEventRowState(match).shouldRemove,
+    [getEventRowState],
+  );
 
   const draftTagIds = useMemo(() => {
     const baseIds = (() => {
@@ -960,19 +1052,13 @@ export function EntryPage(): JSX.Element {
         .map((name) => idByName.get(name.trim().toLowerCase()))
         .filter((tid): tid is string => Boolean(tid));
     })();
-    if (eventMatches.length === 0) return baseIds;
-    let next = [...baseIds];
-    for (const match of eventMatches) {
-      const evTagId = match.event.tagId;
-      if (!evTagId) continue;
-      if (isEventOn(match)) {
-        if (!next.includes(evTagId)) next.push(evTagId);
-      } else {
-        next = next.filter((tid) => tid !== evTagId);
-      }
-    }
-    return next;
-  }, [tags, isDirectEdit, tagsQuery.data?.tags, eventMatches, eventOnById, isEdit, eventViewById]);
+    return applyEventTagIds({
+      baseTagIds: baseIds,
+      matches: eventMatches,
+      isOn: isEventOn,
+      shouldRemove: shouldRemoveEventTag,
+    });
+  }, [tags, isDirectEdit, tagsQuery.data?.tags, eventMatches, isEventOn, shouldRemoveEventTag]);
 
   const budgetDraftAmount = useMemo(() => {
     if (primaryMinor === null || primaryMinor <= 0) return 0;
@@ -1715,20 +1801,14 @@ export function EntryPage(): JSX.Element {
           categoriesQuery.data?.categories.find((c) => c.id === effectiveCategoryId)?.systemKey ?? null;
         const shareCategoryKey =
           pickedSystemKey && isFixedExpenseKey(pickedSystemKey) ? pickedSystemKey : null;
-        const resolvedShareTagIds = (() => {
-          if (!isPlainExpense || eventMatches.length === 0) return tags;
-          let next = [...tags];
-          for (const match of eventMatches) {
-            const evTagId = match.event.tagId;
-            if (!evTagId) continue;
-            if (isEventOn(match)) {
-              if (!next.includes(evTagId)) next.push(evTagId);
-            } else {
-              next = next.filter((tid) => tid !== evTagId);
-            }
-          }
-          return next;
-        })();
+        const resolvedShareTagIds = isPlainExpense
+          ? applyEventTagIds({
+              baseTagIds: tags,
+              matches: eventMatches,
+              isOn: isEventOn,
+              shouldRemove: shouldRemoveEventTag,
+            })
+          : tags;
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
         try {
@@ -1780,25 +1860,16 @@ export function EntryPage(): JSX.Element {
       const tagNameById = new Map((tagsQuery.data?.tags ?? []).map((tg) => [tg.id, tg.name]));
       const baseEntryTags = isDirectEdit
         ? tags.map((tid) => tagNameById.get(tid)).filter((n): n is string => Boolean(n))
-        : isEdit
-          ? tags
-          : [];
-      const resolvedEntryTags = (() => {
-        if (!isPlainExpense || eventMatches.length === 0) return baseEntryTags;
-        let next = [...baseEntryTags];
-        for (const match of eventMatches) {
-          const tagName = resolveEventTagName(match);
-          if (!tagName) continue;
-          const needle = tagName.trim().toLowerCase();
-          if (isEventOn(match)) {
-            const already = next.some((n) => n.trim().toLowerCase() === needle);
-            if (!already) next.push(tagName);
-          } else {
-            next = next.filter((n) => n.trim().toLowerCase() !== needle);
-          }
-        }
-        return next;
-      })();
+        : tags;
+      const resolvedEntryTags = isPlainExpense
+        ? applyEventTagNames({
+            baseTagNames: baseEntryTags,
+            matches: eventMatches,
+            resolveTagName: resolveEventTagName,
+            isOn: isEventOn,
+            shouldRemove: shouldRemoveEventTag,
+          })
+        : baseEntryTags;
 
       input = {
         type: entryType,

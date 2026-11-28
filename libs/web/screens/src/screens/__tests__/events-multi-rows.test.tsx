@@ -3,14 +3,15 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import type {
-  CategoriesResponse,
-  CategoryView,
-  EntryView,
-  EventView,
-  TagView,
-  TripView,
-  WalletDetailView,
+import {
+  eventsForDate,
+  type CategoriesResponse,
+  type CategoryView,
+  type EntryView,
+  type EventView,
+  type TagView,
+  type TripView,
+  type WalletDetailView,
 } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
 import { browserPlatform, PlatformProvider } from '@cc/web-platform';
@@ -21,7 +22,12 @@ import { finishAmount } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
 import { App } from '../../App';
-import { EntryPage } from '../EntryPage';
+import {
+  EntryPage,
+  applyEventTagIds,
+  applyEventTagNames,
+  eventRowTagState,
+} from '../EntryPage';
 
 let mockToday = '2026-11-26';
 
@@ -366,6 +372,230 @@ describe('Multiple events on Sổ chi tiêu and in the expense form', () => {
         'dalat-251126-271126',
         'hue-011226-041226',
       ]);
+    });
+  });
+
+  it('hand-picked tag of a lead-up event is kept when its row is left untouched', () => {
+    const matches = eventsForDate([evDaLat, evHueUpcoming], '2026-11-26');
+    expect(matches.map((m) => [m.event.id, m.mode])).toEqual([
+      ['ev-dalat', 'on'],
+      ['ev-hue', 'leadup'],
+    ]);
+
+    const resolveName = (id: string) =>
+      [evDaLat, evHueUpcoming].find((e) => e.id === id)?.tagName ?? null;
+
+    // Untouched lead-up row: must not remove hand-picked tag
+    const untouchedOverrides: Record<string, boolean> = {};
+    const untouchedIds = applyEventTagIds({
+      baseTagIds: ['tag-hue', 'tag-other'],
+      matches,
+      isOn: (m) =>
+        eventRowTagState(m, {
+          override: untouchedOverrides[m.event.id],
+          isEdit: false,
+          hasExistingTag: false,
+        }).on,
+      shouldRemove: (m) =>
+        eventRowTagState(m, {
+          override: untouchedOverrides[m.event.id],
+          isEdit: false,
+          hasExistingTag: false,
+        }).shouldRemove,
+    });
+    expect(untouchedIds).toEqual(['tag-hue', 'tag-other', 'tag-dalat']);
+
+    const untouchedNames = applyEventTagNames({
+      baseTagNames: ['hue-011226-041226', 'ca-phe'],
+      matches,
+      resolveTagName: (m) => resolveName(m.event.id),
+      isOn: (m) =>
+        eventRowTagState(m, {
+          override: untouchedOverrides[m.event.id],
+          isEdit: false,
+          hasExistingTag: false,
+        }).on,
+      shouldRemove: (m) =>
+        eventRowTagState(m, {
+          override: untouchedOverrides[m.event.id],
+          isEdit: false,
+          hasExistingTag: false,
+        }).shouldRemove,
+    });
+    expect(untouchedNames).toEqual(['hue-011226-041226', 'ca-phe', 'dalat-251126-271126']);
+
+    // Explicitly turned off (override === false): removes the lead-up event's tag
+    const turnedOffOverrides: Record<string, boolean> = { 'ev-hue': false };
+    const afterTurnOffIds = applyEventTagIds({
+      baseTagIds: ['tag-hue', 'tag-other'],
+      matches,
+      isOn: (m) =>
+        eventRowTagState(m, {
+          override: turnedOffOverrides[m.event.id],
+          isEdit: false,
+          hasExistingTag: false,
+        }).on,
+      shouldRemove: (m) =>
+        eventRowTagState(m, {
+          override: turnedOffOverrides[m.event.id],
+          isEdit: false,
+          hasExistingTag: false,
+        }).shouldRemove,
+    });
+    expect(afterTurnOffIds).toEqual(['tag-other', 'tag-dalat']);
+  });
+
+  it("edit an entry with both events' tags, turn one row off: the other event's tag and an unrelated tag survive", async () => {
+    const user = userEvent.setup();
+    const bothEntry = makeEntryView({
+      id: 'e-both',
+      date: '2026-11-26',
+      tags: ['dalat-251126-271126', 'muasamtet-261126', 'ca-phe'],
+    });
+    const api = setupEntryApi([evDaLat, evTetOpen], [bothEntry]);
+
+    renderEntry('/entries/e-both/edit', { entry: bothEntry });
+
+    const rowDaLat = await screen.findByTestId('entry-event-row-ev-dalat');
+    const rowTet = await screen.findByTestId('entry-event-row-ev-tet');
+    expect(rowDaLat).toHaveTextContent('Đà Lạt');
+    expect(rowTet).toHaveTextContent('Mua sắm Tết');
+
+    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi Mua sắm Tết' }));
+    expect(screen.getByTestId('entry-event-row-ev-tet')).toHaveTextContent('Thêm vào Mua sắm Tết');
+
+    await user.click(screen.getByTestId('entry-save-btn'));
+
+    await waitFor(() => {
+      const patch = api.calls.find(
+        (c) => c.method === 'PATCH' && c.path === '/api/me/personal/transactions/e-both',
+      );
+      expect(patch).toBeDefined();
+      expect((patch?.body as { tags?: string[] }).tags).toEqual([
+        'dalat-251126-271126',
+        'ca-phe',
+      ]);
+    });
+  });
+
+  it("direct-edit: edit a shared entry with both events' tags, turn one row off: the other event's tag and an unrelated tag survive", async () => {
+    const user = userEvent.setup();
+    const sharedTripView = tripView({
+      trip: {
+        id: 't-led',
+        name: 'Quick expenses',
+        currency: 'VND',
+        fewestTransfers: true,
+        archived: false,
+        version: 1,
+        total: 200_000,
+      },
+      me: { kind: 'member', participantId: 'p-me', participantPending: false, isOrganiser: true },
+      people: [
+        { id: 'p-me', name: 'Me', status: 'active', isMember: true, bank: 'approved' },
+        { id: 'p-minh', name: 'Minh', status: 'active', isMember: false, bank: 'none' },
+      ],
+      expenses: [
+        {
+          id: 'exp-both',
+          rootId: 'exp-both',
+          description: 'Ăn trưa',
+          amount: 200_000,
+          spentOn: '2026-11-26',
+          payerId: 'p-me',
+          mode: 'equal',
+          status: 'approved',
+          rejectReason: null,
+          disabledByName: null,
+          createdById: 'p-me',
+          shares: [
+            { participantId: 'p-me', amount: 100_000, inputValue: 1 },
+            { participantId: 'p-minh', amount: 100_000, inputValue: 1 },
+          ],
+        },
+      ],
+      payments: [],
+    });
+
+    const api = mockApi({
+      'GET /api/me': meOn,
+      'GET /api/me/ledger': ledger,
+      'GET /api/trips/t-led': sharedTripView,
+      'GET /api/trips/t-led/version': { version: 1 },
+      'GET /api/me/personal/wallets': { wallets: [cashWallet] },
+      'GET /api/me/personal/categories': categoriesResp,
+      'GET /api/me/personal/tags': {
+        tags: [...tags, { id: 'tag-other', name: 'ca-phe', useCount: 1 }],
+      },
+      'GET /api/me/personal/group-settings': {
+        settings: { defaultGroupCategoryId: null, countLoans: false },
+      },
+      'GET /api/me/personal/budgets': { budgets: [] },
+      'GET /api/me/personal/events': { events: [evDaLat, evTetOpen] },
+      'GET /api/me/personal/transactions': {
+        rows: [],
+        groupRows: [
+          {
+            kind: 'group',
+            id: 'exp-both',
+            rootId: 'exp-both',
+            tripId: 't-led',
+            tripName: 'Quick expenses',
+            isDirect: true,
+            source: 'expense',
+            date: '2026-11-26',
+            title: 'Ăn trưa',
+            total: 200_000,
+            myShare: 100_000,
+            iPaid: true,
+            payerName: 'Me',
+            counterpartName: null,
+            people: ['Minh'],
+            pending: false,
+            link: {
+              walletId: 'w-cash',
+              categoryId: 'cat-food',
+              tagIds: ['tag-dalat', 'tag-tet', 'tag-other'],
+              intent: 'shared',
+              excludeFromReports: false,
+            },
+            createdAt: '2026-11-26T05:00:00Z',
+            activityAt: '2026-11-26T05:00:00Z',
+          },
+        ],
+      },
+      'PATCH /api/trips/t-led/expenses/exp-both': () =>
+        Response.json({ expenseId: 'exp-both-2', rootId: 'exp-both' }),
+      'PUT /api/me/personal/group-links/exp-both': () =>
+        Response.json({
+          link: {
+            walletId: 'w-cash',
+            categoryId: 'cat-food',
+            tagIds: ['tag-dalat', 'tag-other'],
+            intent: 'shared',
+            excludeFromReports: false,
+          },
+        }),
+    });
+
+    renderEntry('/entries/exp-both/edit?group=1');
+
+    const rowDaLat = await screen.findByTestId('entry-event-row-ev-dalat');
+    const rowTet = await screen.findByTestId('entry-event-row-ev-tet');
+    expect(rowDaLat).toHaveTextContent('Đà Lạt');
+    expect(rowTet).toHaveTextContent('Mua sắm Tết');
+
+    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi Mua sắm Tết' }));
+    expect(screen.getByTestId('entry-event-row-ev-tet')).toHaveTextContent('Thêm vào Mua sắm Tết');
+
+    await user.click(screen.getByTestId('entry-save-btn'));
+
+    await waitFor(() => {
+      const put = api.calls.find(
+        (c) => c.method === 'PUT' && c.path === '/api/me/personal/group-links/exp-both',
+      );
+      expect(put).toBeDefined();
+      expect((put?.body as { tagIds?: string[] }).tagIds).toEqual(['tag-dalat', 'tag-other']);
     });
   });
 });
