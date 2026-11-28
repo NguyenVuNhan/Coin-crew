@@ -141,7 +141,7 @@ describe('GET /me/personal/events/:id/rows', () => {
     expect((await getEventRows(otherSid, created.event.id)).status).toBe(404);
   });
 
-  it('returns tagged own + group rows inside countsFrom..end, keeps THB row, drops untagged/out-of-range, works with zero budgets, <= 50 queries', async () => {
+  it('returns all tagged own + group rows regardless of date, keeps THB row, drops untagged, works with zero budgets, <= 50 queries', async () => {
     const userId = 'u-tr-rows';
     const sid = await memberSid(userId, 'Eventer');
     await switchOn(userId);
@@ -304,5 +304,29 @@ describe('GET /me/personal/events/:id/rows', () => {
     );
     expect(event.tagId).toBeTruthy();
     expect(body.rows.every((r) => r.tagIds.includes(event.tagId!))).toBe(true);
+  });
+
+  it('returns { rows: [] } when the event tag is null', async () => {
+    const userId = 'u-tr-null-tag';
+    const sid = await memberSid(userId, 'NullTagUser');
+    await switchOn(userId);
+
+    const created = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'No Tag',
+          start: '2026-12-10',
+          end: '2026-12-12',
+          groupIds: [],
+          today: '2026-12-01',
+        }),
+      )
+    ).event;
+
+    await env.DB.prepare('DELETE FROM personal_tags WHERE id = ?').bind(created.tagId).run();
+
+    const res = await getEventRows(sid, created.id);
+    expect(res.status).toBe(200);
+    expect(await json<EventRowsResponse>(res)).toEqual({ rows: [] });
   });
 });

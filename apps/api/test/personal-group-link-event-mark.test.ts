@@ -211,4 +211,52 @@ describe('personal group-links explicit tag write records event share mark', () 
       .all<{ root_id: string }>();
     expect(marks.results).toEqual([]);
   });
+
+  it('removing an event tag flips an existing tagged mark to skipped, and re-adding flips it back to tagged', async () => {
+    const userId = 'u-gl-mark-flip';
+    const sid = await memberSid(userId, 'FlipMarkUser');
+    await switchOn(userId);
+
+    await seedGroupWithExpenses('g-flip', userId, []);
+    const ev = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'Flip Event',
+          start: '2026-11-10',
+          end: '2026-11-15',
+          countsFrom: '2026-11-01',
+          groupIds: ['g-flip'],
+          today: '2026-11-11',
+        }),
+      )
+    ).event;
+
+    await seedGroupWithExpenses('g-flip', userId, [
+      { id: 'ge-flip', description: 'Snack', amount: 100_000, myShare: 50_000, spentOn: '2026-11-11' },
+    ]);
+
+    expect((await tagShares(sid, '2026-11-11')).status).toBe(200);
+    const markAfterTag = await env.DB.prepare(
+      'SELECT state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ? AND event_id = ?',
+    )
+      .bind(userId, 'ge-flip', ev.id)
+      .first<{ state: string }>();
+    expect(markAfterTag).toEqual({ state: 'tagged' });
+
+    expect((await putGroupLink(sid, 'ge-flip', { tagIds: [] })).status).toBe(200);
+    const markAfterRemove = await env.DB.prepare(
+      'SELECT state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ? AND event_id = ?',
+    )
+      .bind(userId, 'ge-flip', ev.id)
+      .first<{ state: string }>();
+    expect(markAfterRemove).toEqual({ state: 'skipped' });
+
+    expect((await putGroupLink(sid, 'ge-flip', { tagIds: [ev.tagId] })).status).toBe(200);
+    const markAfterReadd = await env.DB.prepare(
+      'SELECT state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ? AND event_id = ?',
+    )
+      .bind(userId, 'ge-flip', ev.id)
+      .first<{ state: string }>();
+    expect(markAfterReadd).toEqual({ state: 'tagged' });
+  });
 });

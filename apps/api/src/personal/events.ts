@@ -49,8 +49,8 @@ import { loadCachedGroupRows } from './tripCache';
 import { parseJson, requireDate } from './validate';
 
 const LINK_UPSERT_CHUNK = 8;
-const LINK_TAG_CHUNK = 25;
-const MARK_INSERT_CHUNK = 20;
+const LINK_TAG_CHUNK = 32;
+const MARK_INSERT_CHUNK = 24;
 const MARK_UPDATE_CHUNK = 50;
 const TX_TAG_CHUNK = 30;
 const TX_UPDATE_CHUNK = 50;
@@ -727,7 +727,7 @@ export function eventRoutes(): Hono<AppBindings> {
 
     const db = getDb(c.env);
     const events = await loadUserEvents(db, user.id);
-    if (events.length === 0 || events.every((t) => t.groupIds.length === 0)) {
+    if (events.length === 0 || events.every((t) => t.groupIds.length === 0 || t.tagId === null)) {
       return c.json({ tagged: 0 }, 200);
     }
 
@@ -745,15 +745,17 @@ export function eventRoutes(): Hono<AppBindings> {
 
     const markedKeys = new Set(markRows.map((m) => `${m.rootId}\0${m.eventId}`));
     const matches: { rootId: string; tripId: string; tagId: string; eventId: string }[] = [];
+    let taggedShares = 0;
 
     for (const row of groupRows) {
-      if (matches.length >= TAG_SHARES_LIMIT) break;
+      if (taggedShares >= TAG_SHARES_LIMIT) break;
       if (row.pending || row.source !== 'expense' || row.myShare <= 0) continue;
 
       const matchedEvents = eventsForShare(events, row);
+      let shareMatched = false;
       for (const match of matchedEvents) {
-        if (matches.length >= TAG_SHARES_LIMIT) break;
         if (!match.tagId) continue;
+        if (row.link?.tagIds.includes(match.tagId)) continue;
         const key = `${row.rootId}\0${match.id}`;
         if (markedKeys.has(key)) continue;
 
@@ -764,6 +766,10 @@ export function eventRoutes(): Hono<AppBindings> {
           tagId: match.tagId,
           eventId: match.id,
         });
+        shareMatched = true;
+      }
+      if (shareMatched) {
+        taggedShares++;
       }
     }
 
@@ -802,7 +808,7 @@ export function eventRoutes(): Hono<AppBindings> {
       return stmts;
     });
 
-    return c.json({ tagged: matches.length }, 200);
+    return c.json({ tagged: taggedShares }, 200);
   });
 
   app.patch('/me/personal/events/:id', requirePersonal, async (c) => {

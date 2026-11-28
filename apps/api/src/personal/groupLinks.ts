@@ -300,6 +300,7 @@ export function groupLinkRoutes(): Hono<AppBindings> {
         }
         for (const matchedEvent of matchedEvents) {
           if (!matchedEvent.tagId) continue;
+          const state = tagIdsInput.includes(matchedEvent.tagId) ? 'tagged' : 'skipped';
           stmts.push(
             db
               .insert(personalEventShareMarks)
@@ -307,9 +308,16 @@ export function groupLinkRoutes(): Hono<AppBindings> {
                 userId: user.id,
                 rootId,
                 eventId: matchedEvent.id,
-                state: tagIdsInput.includes(matchedEvent.tagId) ? 'tagged' : 'skipped',
+                state,
               })
-              .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
+              .onConflictDoUpdate({
+                target: [
+                  personalEventShareMarks.userId,
+                  personalEventShareMarks.rootId,
+                  personalEventShareMarks.eventId,
+                ],
+                set: { state },
+              }) as unknown as BatchItem<'sqlite'>,
           );
         }
       }

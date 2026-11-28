@@ -402,16 +402,16 @@ describe('POST /me/personal/events/tag-shares', () => {
     expect(goneMark).toEqual({ event_id: created.id, state: 'tagged' });
   });
 
-  it("tie-break: share in two trips' ranges goes to the on trip", async () => {
+  it("share in two events' ranges gets both events' tags", async () => {
     const userId = 'u-ts-tie';
     const sid = await memberSid(userId, 'TieUser');
     await switchOn(userId);
 
     await ensureGroup('g-tie', userId);
-    const tripA = (
+    const eventA = (
       await json<EventSavedResponse>(
         await createEvent(sid, {
-          name: 'Trip On',
+          name: 'Event On',
           start: '2026-12-10',
           end: '2026-12-12',
           countsFrom: '2026-12-01',
@@ -421,10 +421,10 @@ describe('POST /me/personal/events/tag-shares', () => {
       )
     ).event;
 
-    const tripB = (
+    const eventB = (
       await json<EventSavedResponse>(
         await createEvent(sid, {
-          name: 'Trip Leadup',
+          name: 'Event Leadup',
           start: '2026-12-15',
           end: '2026-12-18',
           countsFrom: '2026-12-05',
@@ -434,7 +434,7 @@ describe('POST /me/personal/events/tag-shares', () => {
       )
     ).event;
 
-    // 2026-12-11 is inside Trip A's [start..end] and Trip B's [countsFrom..end]
+    // 2026-12-11 is inside Event A's [start..end] and Event B's [countsFrom..end]
     await seedGroupExpenses('g-tie', userId, [
       { id: 'ge-tie', description: 'Overlap dinner', amount: 600_000, myShare: 300_000, spentOn: '2026-12-11' },
     ]);
@@ -443,15 +443,19 @@ describe('POST /me/personal/events/tag-shares', () => {
     expect(res.status).toBe(200);
     expect(await json<{ tagged: number }>(res)).toEqual({ tagged: 1 });
 
-    expect(await getLinkTagIds(userId, 'ge-tie')).toEqual([tripA.tagId]);
-    expect(await getLinkTagIds(userId, 'ge-tie')).not.toContain(tripB.tagId);
+    expect(await getLinkTagIds(userId, 'ge-tie')).toEqual([eventA.tagId!, eventB.tagId!].sort());
 
-    const mark = await env.DB.prepare(
-      'SELECT event_id, state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ?',
+    const marks = await env.DB.prepare(
+      'SELECT event_id, state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ? ORDER BY event_id',
     )
       .bind(userId, 'ge-tie')
-      .first<{ event_id: string; state: string }>();
-    expect(mark).toEqual({ event_id: tripA.id, state: 'tagged' });
+      .all<{ event_id: string; state: string }>();
+    expect(marks.results).toEqual(
+      [
+        { event_id: eventA.id, state: 'tagged' },
+        { event_id: eventB.id, state: 'tagged' },
+      ].sort((a, b) => a.event_id.localeCompare(b.event_id)),
+    );
   });
 
   it('stays within 50 queries', async () => {
