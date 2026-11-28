@@ -156,7 +156,7 @@ describe('tag report URL and UI', () => {
       'GET /api/me/personal/tags': {
         tags: [{ id: 't-house', name: 'Mua nhà', useCount: 1 }],
       },
-      'GET /api/me/personal/report': (_init, url) => {
+      'GET /api/me/personal/report': (_init: unknown, url: string) => {
         reportQueries.push(url);
         return makeEmptyReport();
       },

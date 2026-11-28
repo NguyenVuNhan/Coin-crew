@@ -14,12 +14,13 @@ import {
   parseQuantity,
   quantityInputDecimals,
   quickExpenseDescription,
-  eventForDate,
+  eventsForDate,
   type AssetView,
   type BudgetDraft,
   type CurrencyCode,
   type EntryInput,
   type EntryView,
+  type EventMatch,
   type ListResponse,
   type WalletDetailView,
 } from '@cc/core';
@@ -902,40 +903,51 @@ export function EntryPage(): JSX.Element {
   const isPlainExpense = !isLoanDebt && entryType === 'expense' && !isTransferMode && !isTradeMode;
   const entryDate = dateTime.split('T')[0] || todayLocal();
   const eventsQuery = useEvents({ enabled: isPlainExpense });
-  const eventMatch = useMemo(
-    () => (isPlainExpense ? eventForDate(eventsQuery.data?.events ?? [], entryDate) : null),
+  const eventMatches = useMemo(
+    () => (isPlainExpense ? eventsForDate(eventsQuery.data?.events ?? [], entryDate) : []),
     [isPlainExpense, eventsQuery.data?.events, entryDate],
   );
-  const [eventOn, setEventOn] = useState<boolean | null>(null);
-  const eventMatchId = eventMatch?.event.id ?? null;
-  const prevEventMatchIdRef = useRef<string | null>(eventMatchId);
+  const eventViewById = useMemo(
+    () => new Map((eventsQuery.data?.events ?? []).map((ev) => [ev.id, ev])),
+    [eventsQuery.data?.events],
+  );
+  const [eventOnById, setEventOnById] = useState<Record<string, boolean>>({});
+  const eventMatchKey = eventMatches.map((m) => m.event.id).join(',');
+  const prevEventMatchKeyRef = useRef<string>(eventMatchKey);
   useEffect(() => {
-    if (prevEventMatchIdRef.current !== eventMatchId) {
-      prevEventMatchIdRef.current = eventMatchId;
-      setEventOn(null);
+    if (prevEventMatchKeyRef.current !== eventMatchKey) {
+      prevEventMatchKeyRef.current = eventMatchKey;
+      setEventOnById({});
     }
-  }, [eventMatchId]);
+  }, [eventMatchKey]);
 
-  const tripTagName = useMemo(() => {
-    if (!eventMatch) return null;
-    const matchedTag = (tagsQuery.data?.tags ?? []).find(
-      (tg) => tg.id === eventMatch.event.tagId,
-    );
-    return matchedTag?.name ?? eventMatch.event.name;
-  }, [eventMatch, tagsQuery.data?.tags]);
+  const resolveEventTagName = (match: EventMatch): string | null => {
+    const tagId = match.event.tagId;
+    if (tagId) {
+      const matchedTag = (tagsQuery.data?.tags ?? []).find((tg) => tg.id === tagId);
+      if (matchedTag) return matchedTag.name;
+    }
+    const view = eventViewById.get(match.event.id);
+    if (view?.tagName) return view.tagName;
+    return tagId ? match.event.name : null;
+  };
 
-  const existingHasEventTag = useMemo(() => {
-    if (!isEdit || !eventMatch) return false;
+  const existingHasEventTag = (match: EventMatch): boolean => {
+    if (!isEdit) return false;
     if (isDirectEdit) {
-      return tags.includes(eventMatch.event.tagId);
+      return match.event.tagId !== null && tags.includes(match.event.tagId);
     }
-    const needle = (tripTagName ?? eventMatch.event.name).trim().toLowerCase();
+    const tagName = resolveEventTagName(match);
+    if (!tagName) return false;
+    const needle = tagName.trim().toLowerCase();
     return tags.some((name) => name.trim().toLowerCase() === needle);
-  }, [isEdit, isDirectEdit, eventMatch, tags, tripTagName]);
+  };
 
-  const effectiveEventOn = eventMatch
-    ? (eventOn ?? (isEdit ? existingHasEventTag : eventMatch.mode === 'on'))
-    : false;
+  const isEventOn = (match: EventMatch): boolean => {
+    const override = eventOnById[match.event.id];
+    if (override !== undefined) return override;
+    return isEdit ? existingHasEventTag(match) : match.mode === 'on';
+  };
 
   const draftTagIds = useMemo(() => {
     const baseIds = (() => {
@@ -948,13 +960,19 @@ export function EntryPage(): JSX.Element {
         .map((name) => idByName.get(name.trim().toLowerCase()))
         .filter((tid): tid is string => Boolean(tid));
     })();
-    if (!eventMatch) return baseIds;
-    const tripTagId = eventMatch.event.tagId;
-    if (effectiveEventOn) {
-      return baseIds.includes(tripTagId) ? baseIds : [...baseIds, tripTagId];
+    if (eventMatches.length === 0) return baseIds;
+    let next = [...baseIds];
+    for (const match of eventMatches) {
+      const evTagId = match.event.tagId;
+      if (!evTagId) continue;
+      if (isEventOn(match)) {
+        if (!next.includes(evTagId)) next.push(evTagId);
+      } else {
+        next = next.filter((tid) => tid !== evTagId);
+      }
     }
-    return baseIds.filter((tid) => tid !== tripTagId);
-  }, [tags, isDirectEdit, tagsQuery.data?.tags, eventMatch, effectiveEventOn]);
+    return next;
+  }, [tags, isDirectEdit, tagsQuery.data?.tags, eventMatches, eventOnById, isEdit, eventViewById]);
 
   const budgetDraftAmount = useMemo(() => {
     if (primaryMinor === null || primaryMinor <= 0) return 0;
@@ -1698,12 +1716,18 @@ export function EntryPage(): JSX.Element {
         const shareCategoryKey =
           pickedSystemKey && isFixedExpenseKey(pickedSystemKey) ? pickedSystemKey : null;
         const resolvedShareTagIds = (() => {
-          if (!isPlainExpense || !eventMatch) return tags;
-          const tripTagId = eventMatch.event.tagId;
-          if (effectiveEventOn) {
-            return tags.includes(tripTagId) ? tags : [...tags, tripTagId];
+          if (!isPlainExpense || eventMatches.length === 0) return tags;
+          let next = [...tags];
+          for (const match of eventMatches) {
+            const evTagId = match.event.tagId;
+            if (!evTagId) continue;
+            if (isEventOn(match)) {
+              if (!next.includes(evTagId)) next.push(evTagId);
+            } else {
+              next = next.filter((tid) => tid !== evTagId);
+            }
           }
-          return tags.filter((tid) => tid !== tripTagId);
+          return next;
         })();
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
@@ -1760,24 +1784,20 @@ export function EntryPage(): JSX.Element {
           ? tags
           : [];
       const resolvedEntryTags = (() => {
-        if (!isPlainExpense || !eventMatch) return baseEntryTags;
-        const tagName = tripTagName ?? eventMatch.event.name;
-        const needle = tagName.trim().toLowerCase();
-        const fallbackNeedle = eventMatch.event.name.trim().toLowerCase();
-        if (effectiveEventOn) {
-          const already = baseEntryTags.some((n) => {
-            const norm = n.trim().toLowerCase();
-            return norm === needle || norm === fallbackNeedle;
-          });
-          return already ? baseEntryTags : [...baseEntryTags, tagName];
+        if (!isPlainExpense || eventMatches.length === 0) return baseEntryTags;
+        let next = [...baseEntryTags];
+        for (const match of eventMatches) {
+          const tagName = resolveEventTagName(match);
+          if (!tagName) continue;
+          const needle = tagName.trim().toLowerCase();
+          if (isEventOn(match)) {
+            const already = next.some((n) => n.trim().toLowerCase() === needle);
+            if (!already) next.push(tagName);
+          } else {
+            next = next.filter((n) => n.trim().toLowerCase() !== needle);
+          }
         }
-        if (isEdit) {
-          return baseEntryTags.filter((n) => {
-            const norm = n.trim().toLowerCase();
-            return norm !== needle && norm !== fallbackNeedle;
-          });
-        }
-        return baseEntryTags;
+        return next;
       })();
 
       input = {
@@ -2603,12 +2623,24 @@ export function EntryPage(): JSX.Element {
               </div>
             )}
 
-            {isPlainExpense && (
-              <EntryEventRow
-                match={eventMatch}
-                on={effectiveEventOn}
-                onToggle={setEventOn}
-              />
+            {isPlainExpense && eventMatches.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {eventMatches.map((match) => (
+                  <EntryEventRow
+                    key={match.event.id}
+                    match={match}
+                    on={isEventOn(match)}
+                    onToggle={(next) =>
+                      setEventOnById((prev) => ({ ...prev, [match.event.id]: next }))
+                    }
+                    testId={
+                      eventMatches.length === 1
+                        ? 'entry-event-row'
+                        : `entry-event-row-${match.event.id}`
+                    }
+                  />
+                ))}
+              </div>
             )}
 
             {/* Compact rows and details fold */}

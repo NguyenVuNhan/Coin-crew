@@ -130,9 +130,11 @@ const coffeeTag: TagView = {
 const daLatTrip: EventView = {
   id: 'tr-dl',
   tagId: 'tag-dl',
+  tagName: 'Đà Lạt',
   name: 'Đà Lạt',
   start: '2026-11-12',
   end: '2026-11-14',
+  stoppedAt: null,
   countsFrom: '2026-11-05',
   groupIds: [],
   budgetId: null,
@@ -322,7 +324,7 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     renderEntry();
     const row = await screen.findByTestId('entry-event-row');
-    expect(row).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(row).toHaveTextContent('Đà Lạt');
 
     await finishAmount(user, '120000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
@@ -347,10 +349,10 @@ describe('EntryPage — trip row (Task 10)', () => {
     await finishAmount(user, '120000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
-    const removeBtn = screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' });
+    const removeBtn = screen.getByRole('button', { name: 'Bỏ khỏi Đà Lạt' });
     await user.click(removeBtn);
 
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -370,13 +372,13 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     renderEntry();
     const row = await screen.findByTestId('entry-event-row');
-    expect(row).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(row).toHaveTextContent('Thêm vào Đà Lạt');
 
     await finishAmount(user, '350000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
     await user.click(screen.getByTestId('entry-event-row'));
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -406,14 +408,14 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     renderEntry();
     // 1. during (2026-11-12) -> pre-filled on
-    expect(await screen.findByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(await screen.findByTestId('entry-event-row')).toHaveTextContent('Đà Lạt');
 
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
     // 2. lead-up (2026-11-08) -> suggestion
     await changeDate(user, '2026-11-08');
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào Đà Lạt');
 
     // 3. outside (2026-11-01) -> hidden
     await changeDate(user, '2026-11-01');
@@ -421,7 +423,7 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     // 4. back to during (2026-11-13) -> pre-filled on again
     await changeDate(user, '2026-11-13');
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Đà Lạt');
   });
 
   it('✕ survives a date change within the same trip', async () => {
@@ -435,12 +437,12 @@ describe('EntryPage — trip row (Task 10)', () => {
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
     // Remove the pre-filled trip tag
-    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' }));
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi Đà Lạt' }));
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào Đà Lạt');
 
     // Change date to another day inside the same trip (2026-11-13)
     await changeDate(user, '2026-11-13');
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => {
@@ -471,7 +473,7 @@ describe('EntryPage — trip row (Task 10)', () => {
     await changeDate(user, '2026-11-13');
 
     // Row shows as off (suggestion), NOT pre-filled on
-    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => {
@@ -494,8 +496,8 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     renderEntry('/entries/e-tagged/edit', { entry: taggedEntry });
 
-    expect(await screen.findByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
-    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' }));
+    expect(await screen.findByTestId('entry-event-row')).toHaveTextContent('Đà Lạt');
+    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi Đà Lạt' }));
     await user.click(screen.getByTestId('entry-save-btn'));
 
     await waitFor(() => {
@@ -538,7 +540,7 @@ describe('EntryPage — trip row (Task 10)', () => {
     expect(await screen.findByTestId('entry-budget-warning')).toBeInTheDocument();
 
     // Tapping ✕ removes the trip tag from budgetDraft -> warning disappears
-    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' }));
+    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi Đà Lạt' }));
     await waitFor(() => {
       expect(screen.queryByTestId('entry-budget-warning')).not.toBeInTheDocument();
     });

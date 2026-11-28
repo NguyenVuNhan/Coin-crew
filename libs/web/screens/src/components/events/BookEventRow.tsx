@@ -16,19 +16,19 @@ import { Icon } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
 import { BudgetBar } from '../budgets/BudgetBar';
 
-function pickFeaturedEvent(
-  events: EventView[],
-  today: string,
-): { event: EventView; state: 'on' | 'upcoming' } | null {
-  let onTrip: EventView | null = null;
+type FeaturedEvents =
+  | { kind: 'many'; events: EventView[] }
+  | { kind: 'one'; event: EventView; state: 'on' | 'upcoming' }
+  | null;
+
+function pickFeaturedEvents(events: EventView[], today: string): FeaturedEvents {
+  const running: EventView[] = [];
   let nearestUpcoming: EventView | null = null;
 
   for (const item of events) {
     const state = eventState(item, today);
     if (state === 'on') {
-      if (!onTrip || item.start < onTrip.start) {
-        onTrip = item;
-      }
+      running.push(item);
     } else if (state === 'upcoming') {
       if (!nearestUpcoming || item.start < nearestUpcoming.start) {
         nearestUpcoming = item;
@@ -36,15 +36,24 @@ function pickFeaturedEvent(
     }
   }
 
-  if (onTrip) return { event: onTrip, state: 'on' };
-  if (nearestUpcoming) return { event: nearestUpcoming, state: 'upcoming' };
+  if (running.length > 1) {
+    running.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+    return { kind: 'many', events: running };
+  }
+  if (running.length === 1) {
+    return { kind: 'one', event: running[0]!, state: 'on' };
+  }
+  if (nearestUpcoming) {
+    return { kind: 'one', event: nearestUpcoming, state: 'upcoming' };
+  }
   return null;
 }
 
 /**
- * Trip row inside Sổ chi tiêu's top list (after Báo cáo).
- * Shows the active trip (with day index and optional budget bar), the nearest upcoming
- * trip (with days left and lead-up spending), or the idle Trips link.
+ * Event row inside Sổ chi tiêu's top list (after Báo cáo).
+ * Shows the active event(s) (with day index and optional budget bar for a single running event,
+ * or a combined count + names link to the list when several are running), the nearest upcoming
+ * event (with days left and lead-up spending), or the idle Events link.
  */
 export function BookEventRow(): JSX.Element {
   const t = useT();
@@ -52,12 +61,13 @@ export function BookEventRow(): JSX.Element {
   const eventsQuery = useEvents();
   const events = eventsQuery.data?.events ?? [];
 
-  const featured = useMemo(() => pickFeaturedEvent(events, today), [events, today]);
-  const activeId = featured?.event.id ?? '';
+  const featured = useMemo(() => pickFeaturedEvents(events, today), [events, today]);
+  const singleFeatured = featured?.kind === 'one' ? featured : null;
+  const activeId = singleFeatured?.event.id ?? '';
   const { event: resolvedEvent, summary, progress } = useEventSummary(activeId);
 
-  const activeEvent = featured && resolvedEvent ? resolvedEvent : null;
-  const activeState = activeEvent && featured ? featured.state : null;
+  const activeEvent = singleFeatured && resolvedEvent ? resolvedEvent : null;
+  const activeState = activeEvent && singleFeatured ? singleFeatured.state : null;
 
   const hasBudget = Boolean(activeEvent?.budgetId);
   const budgetsProgress = useBudgetsProgress({ enabled: hasBudget });
@@ -75,11 +85,19 @@ export function BookEventRow(): JSX.Element {
   let subtitleText: string | null = null;
   let rightMeta: string | null = null;
 
-  if (activeEvent && activeState === 'on') {
+  if (featured?.kind === 'many') {
+    titleText = t('events.bookOnMany', {
+      n: featured.events.length,
+      names: featured.events.map((ev) => ev.name).join(', '),
+    });
+  } else if (activeEvent && activeState === 'on') {
     titleText = t('events.bookOn', { name: activeEvent.name });
     const dayInfo = eventDayIndex(activeEvent, today);
     if (dayInfo) {
-      rightMeta = t('events.bookDayOf', { day: dayInfo.day, of: dayInfo.of });
+      rightMeta =
+        dayInfo.of !== null
+          ? t('events.bookDayOf', { day: dayInfo.day, of: dayInfo.of })
+          : t('events.bookDayOpen', { day: dayInfo.day });
     }
   } else if (activeEvent && activeState === 'upcoming') {
     titleText = t('events.bookUpcoming', { name: activeEvent.name });
@@ -116,7 +134,7 @@ export function BookEventRow(): JSX.Element {
           aria-hidden="true"
           className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
         >
-          <Icon name="plane" size={18} />
+          <Icon name="calendar" size={18} />
         </span>
         <div className="flex-1 flex flex-col min-w-0">
           <span className="text-sm font-semibold text-foreground leading-snug truncate">

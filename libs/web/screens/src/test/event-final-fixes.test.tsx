@@ -44,9 +44,11 @@ const sampleWallet: WalletDetailView = {
 const doneTrip: EventView = {
   id: 'tr-done',
   tagId: 'tag-done',
+  tagName: 'sapa-011026-051026',
   name: 'Sapa Oct',
   start: '2026-10-01',
   end: '2026-10-05',
+  stoppedAt: null,
   countsFrom: '2026-09-25',
   groupIds: [],
   budgetId: null,

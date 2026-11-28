@@ -92,9 +92,11 @@ const tags: TagView[] = [
 const tripOnWithBudget: EventView = {
   id: 'tr-dalat',
   tagId: 'tag-dalat',
+  tagName: 'Đà Lạt',
   name: 'Đà Lạt',
   start: '2026-11-25',
   end: '2026-11-27',
+  stoppedAt: null,
   countsFrom: '2026-11-20',
   groupIds: [],
   budgetId: 'b-dalat',
@@ -109,9 +111,11 @@ const tripOnNoBudget: EventView = {
 const tripUpcomingHue: EventView = {
   id: 'tr-hue',
   tagId: 'tag-hue',
+  tagName: 'Huế',
   name: 'Huế',
   start: '2026-12-01',
   end: '2026-12-04',
+  stoppedAt: null,
   countsFrom: '2026-11-20',
   groupIds: [],
   budgetId: null,
@@ -121,9 +125,11 @@ const tripUpcomingHue: EventView = {
 const tripUpcomingFar: EventView = {
   id: 'tr-tokyo',
   tagId: 'tag-tokyo',
+  tagName: 'Tokyo',
   name: 'Tokyo',
   start: '2026-12-20',
   end: '2026-12-28',
+  stoppedAt: null,
   countsFrom: '2026-11-20',
   groupIds: [],
   budgetId: null,
@@ -181,7 +187,7 @@ describe('BookEventRow on Sổ chi tiêu', () => {
     const row = await screen.findByTestId('book-event-row');
     expect(row).toHaveAttribute('href', '/events');
     expect(row).toHaveClass('fsl-book__event-row');
-    expect(within(row).getByText('Trips')).toBeInTheDocument();
+    expect(within(row).getByText('Events')).toBeInTheDocument();
 
     const reportsRow = screen.getByTestId('book-reports-row');
     expect(
@@ -215,7 +221,7 @@ describe('BookEventRow on Sổ chi tiêu', () => {
     await waitFor(() => {
       expect(row).toHaveAttribute('href', '/events/tr-dalat');
     });
-    expect(within(row).getByText('On trip: Đà Lạt')).toBeInTheDocument();
+    expect(within(row).getByText('Đà Lạt is on')).toBeInTheDocument();
     expect(within(row).getByText('day 2/3')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -237,7 +243,7 @@ describe('BookEventRow on Sổ chi tiêu', () => {
     await waitFor(() => {
       expect(row).toHaveAttribute('href', '/events/tr-dalat');
     });
-    expect(within(row).getByText('On trip: Đà Lạt')).toBeInTheDocument();
+    expect(within(row).getByText('Đà Lạt is on')).toBeInTheDocument();
     expect(within(row).getByText('day 2/3')).toBeInTheDocument();
     expect(row.querySelector('.fsl-budget-bar')).toBeNull();
   });
@@ -270,7 +276,7 @@ describe('BookEventRow on Sổ chi tiêu', () => {
     expect(within(row).getByText('Upcoming: Huế')).toBeInTheDocument();
     expect(within(row).getByText('5 days left')).toBeInTheDocument();
     await waitFor(() => {
-      expect(within(row).getByText('Spent before trip: 1.240.000₫')).toBeInTheDocument();
+      expect(within(row).getByText('Spent before: 1.240.000₫')).toBeInTheDocument();
     });
   });
 
@@ -294,6 +300,6 @@ describe('BookEventRow on Sổ chi tiêu', () => {
 
     const row = await screen.findByTestId('book-event-row');
     expect(row).toHaveAttribute('href', '/events');
-    expect(within(row).getByText('Trips')).toBeInTheDocument();
+    expect(within(row).getByText('Events')).toBeInTheDocument();
   });
 });
