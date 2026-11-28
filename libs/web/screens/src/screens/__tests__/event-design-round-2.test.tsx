@@ -361,7 +361,7 @@ describe('Design round 2 (R1–R6)', () => {
     expect(within(modal3).getByTestId('event-resume-drops-limit')).toBeInTheDocument();
   });
 
-  it('R3: EventDateRow has no duplicate labels, hides hint when set, keeps labels nowrap, and groups limit hint under end row', async () => {
+  it('R3: EventDateRow is one line per date with the empty meaning as its value, a clear button once set, and the limit hint under the end row', async () => {
     stubApis();
     renderAt(<EventForm open onClose={vi.fn()} onSaved={vi.fn()} />, {
       route: '/events',
@@ -373,33 +373,35 @@ describe('Design round 2 (R1–R6)', () => {
 
     await screen.findByTestId('event-form');
 
-    // Empty start: muted "Hôm nay" display, NO "Hôm nay" chip, one "Chọn ngày" chip, hint visible
+    // One line per date: label + what an empty value means, no hint lines, no chips
     expect(screen.getByTestId('event-form-start-display')).toHaveTextContent('Hôm nay');
     expect(screen.queryByTestId('event-form-start-today')).not.toBeInTheDocument();
-    expect(screen.getByTestId('event-form-start-pick')).toHaveTextContent('Chọn ngày');
-    expect(screen.getByTestId('event-form-start-hint')).toBeInTheDocument();
+    expect(screen.queryByTestId('event-form-start-pick')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('event-form-start-hint')).not.toBeInTheDocument();
 
-    // Empty end: label "Kết thúc" (not wrapping), muted "Không có ngày kết thúc", one "Chọn ngày" chip, hint has "Tùy chọn"
     const endLabel = screen.getByText('Kết thúc');
     expect(endLabel.tagName).toBe('LABEL');
     expect(endLabel).toHaveClass('whitespace-nowrap');
-    expect(screen.getByTestId('event-form-end-display')).toHaveTextContent('Không có ngày kết thúc');
-    expect(screen.getByTestId('event-form-end-pick')).toHaveTextContent('Chọn ngày');
-    expect(screen.getByTestId('event-form-end-hint')).toHaveTextContent(/Tùy chọn/);
+    expect(screen.getByTestId('event-form-end-display')).toHaveTextContent('Đến khi bạn dừng');
+    expect(screen.queryByTestId('event-form-end-pick')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('event-form-end-clear')).not.toBeInTheDocument();
 
     // Limit hint sits inside the same rounded-xl dates group as end row
     const limitHint = screen.getByTestId('event-form-limit-needs-end');
     const endInput = screen.getByTestId('event-form-end');
     expect(limitHint.parentElement).toBe(endInput.closest('.divide-y'));
 
-    // Pick a different start date -> hint hides and "Hôm nay" chip appears
+    // Picking a start date shows it and a clear button; clearing goes back to "Hôm nay"
     fireEvent.change(screen.getByTestId('event-form-start'), { target: { value: '2027-02-08' } });
-    expect(screen.queryByTestId('event-form-start-hint')).not.toBeInTheDocument();
-    expect(screen.getByTestId('event-form-start-today')).toHaveTextContent('Hôm nay');
+    expect(screen.getByTestId('event-form-start-display')).toHaveTextContent('T2, 8/2/2027');
+    fireEvent.click(screen.getByTestId('event-form-start-clear'));
+    expect(screen.getByTestId('event-form-start-display')).toHaveTextContent('Hôm nay');
 
-    // Pick an end date -> end hint hides
+    // Picking an end date shows it with a clear button and drops the limit hint
     fireEvent.change(endInput, { target: { value: '2027-02-10' } });
-    expect(screen.queryByTestId('event-form-end-hint')).not.toBeInTheDocument();
+    expect(screen.getByTestId('event-form-end-display')).toHaveTextContent('T4, 10/2/2027');
+    expect(screen.getByTestId('event-form-end-clear')).toBeInTheDocument();
+    expect(screen.queryByTestId('event-form-limit-needs-end')).not.toBeInTheDocument();
   });
 
   it('R4: EventDetailScreen header 3-line hierarchy, lifecycle pill in summary card, and solo hides zero group row', async () => {

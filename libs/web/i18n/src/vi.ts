@@ -2026,10 +2026,8 @@ export const vi: Record<MessageKey, string> = {
   'events.newEvent': 'Sự kiện mới', // REVIEW
   'events.nameLabel': 'Tên sự kiện', // REVIEW
   'events.startLabel': 'Bắt đầu', // REVIEW
-  'events.startHint': 'Để trống là bắt đầu hôm nay', // REVIEW
   'events.endLabel': 'Kết thúc', // REVIEW
-  'events.endHint': 'Tùy chọn · để trống là chạy đến khi bạn dừng', // REVIEW
-  'events.noEndDate': 'Không có ngày kết thúc', // REVIEW
+  'events.noEndDate': 'Đến khi bạn dừng', // REVIEW
   'events.openRange': 'Từ {date} · chưa có ngày kết thúc', // REVIEW
   'events.pickedDate': '{weekday}, {day}/{month}/{year}', // REVIEW
   'events.wd.0': 'CN', // REVIEW

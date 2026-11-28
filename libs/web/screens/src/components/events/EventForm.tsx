@@ -377,11 +377,10 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
               <EventDateRow
                 id={startId}
                 label={t('events.startLabel')}
-                hint={t('events.startHint')}
                 value={start}
                 emptyLabel={t('entryDate.today')}
                 testId="event-form-start"
-                quickToday={today}
+                allowClear
                 onChange={(nextStart) => {
                   setStart(nextStart);
                   if (
@@ -397,7 +396,6 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
               <EventDateRow
                 id={endId}
                 label={t('events.endLabel')}
-                hint={t('events.endHint')}
                 value={end}
                 emptyLabel={t('events.noEndDate')}
                 testId="event-form-end"
