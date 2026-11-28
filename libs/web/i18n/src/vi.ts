@@ -2007,57 +2007,57 @@ export const vi: Record<MessageKey, string> = {
   'budgets.viewExisting': 'Xem ngân sách', // REVIEW
   'budgets.missingTarget': 'Chọn danh mục hoặc thẻ để lưu.', // REVIEW
   'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
-  'travels.bookIdle': 'Chuyến đi', // REVIEW
-  'travels.bookOn': 'Đang đi {name}', // REVIEW
-  'travels.bookUpcoming': 'Sắp đi {name}', // REVIEW
-  'travels.bookDayOf': 'ngày {day}/{of}', // REVIEW
-  'travels.bookDaysLeft': 'còn {n} ngày', // REVIEW
-  'travels.bookLeadSpent': 'Đã chi trước {amount}', // REVIEW
-  'travels.listTitle': 'Chuyến đi', // REVIEW
-  'travels.sectionOn': 'Đang đi', // REVIEW
-  'travels.sectionUpcoming': 'Sắp tới', // REVIEW
-  'travels.sectionDone': 'Đã đi', // REVIEW
-  'travels.newTrip': 'Chuyến đi mới', // REVIEW
-  'travels.nameLabel': 'Tên chuyến (cũng là tag)', // REVIEW
-  'travels.fromLabel': 'Từ ngày', // REVIEW
-  'travels.toLabel': 'Đến ngày', // REVIEW
-  'travels.countsFromLine': 'Tính cả chi tiêu trước chuyến từ {date}', // REVIEW
-  'travels.groupsLabel': 'Đi cùng nhóm', // REVIEW
-  'travels.groupsHint': 'Bỏ trống nếu đi một mình', // REVIEW
-  'travels.removeGroup': 'Bỏ {name}', // REVIEW
-  'travels.leftGroup': 'Nhóm đã rời', // REVIEW
-  'travels.limitLabel': 'Hạn mức (tùy chọn)', // REVIEW
-  'travels.save': 'Lưu chuyến đi', // REVIEW
-  'travels.overlap': 'Trùng với chuyến {name} ({range})', // REVIEW
-  'travels.endEarly': 'Kết thúc sớm', // REVIEW
-  'travels.delete': 'Xóa chuyến đi', // REVIEW
-  'travels.existingTitle': 'Gắn tag cho khoản chi đã có?', // REVIEW
-  'travels.existingOwn': '{n} khoản bạn tự chi', // REVIEW
-  'travels.existingShares': '{n} phần trong nhóm', // REVIEW
-  'travels.existingNote': 'Bỏ tag từng khoản sau cũng được.', // REVIEW
-  'travels.existingYes': 'Gắn tag cho cả {n} khoản', // REVIEW
-  'travels.existingNo': 'Chỉ từ giờ trở đi', // REVIEW
-  'travels.entryOn': 'Chuyến đi {name}', // REVIEW
-  'travels.entrySuggest': 'Thêm vào chuyến {name}', // REVIEW
-  'travels.entryRemove': 'Bỏ khỏi chuyến {name}', // REVIEW
-  'travels.total': 'Tổng chi', // REVIEW
-  'travels.own': 'Bạn tự chi', // REVIEW
-  'travels.group': 'Phần của bạn trong nhóm', // REVIEW
-  'travels.over': 'Vượt {amount} so với hạn mức {limit}', // REVIEW
-  'travels.under': 'Còn {amount} trong hạn mức {limit}', // REVIEW
-  'travels.approx': '≈ {amount} tổng cộng, theo giá bạn đã đổi', // REVIEW
-  'travels.byCategory': 'Theo danh mục', // REVIEW
-  'travels.byDay': 'Theo ngày', // REVIEW
-  'travels.leadup': 'Trước chuyến đi', // REVIEW
-  'travels.seeTx': 'Xem {n} giao dịch', // REVIEW
-  'travels.statePill.on': 'Đang đi', // REVIEW
-  'travels.statePill.upcoming': 'Sắp tới', // REVIEW
-  'travels.statePill.done': 'Đã xong', // REVIEW
-  'travels.empty': 'Chưa có khoản chi nào cho chuyến này.', // REVIEW
-  'travels.noLimit': 'Không đặt hạn mức', // REVIEW
-  'travels.notFound': 'Không tìm thấy chuyến đi', // REVIEW
-  'travels.notFoundBody': 'Chuyến đi này có thể đã bị xóa.', // REVIEW
-  'travels.edit': 'Sửa chuyến đi', // REVIEW
-  'travels.solo': 'một mình', // REVIEW
-  'travels.addExpense': 'Ghi khoản chi', // REVIEW
+  'events.bookIdle': 'Chuyến đi', // REVIEW
+  'events.bookOn': 'Đang đi {name}', // REVIEW
+  'events.bookUpcoming': 'Sắp đi {name}', // REVIEW
+  'events.bookDayOf': 'ngày {day}/{of}', // REVIEW
+  'events.bookDaysLeft': 'còn {n} ngày', // REVIEW
+  'events.bookLeadSpent': 'Đã chi trước {amount}', // REVIEW
+  'events.listTitle': 'Chuyến đi', // REVIEW
+  'events.sectionOn': 'Đang đi', // REVIEW
+  'events.sectionUpcoming': 'Sắp tới', // REVIEW
+  'events.sectionDone': 'Đã đi', // REVIEW
+  'events.newTrip': 'Chuyến đi mới', // REVIEW
+  'events.nameLabel': 'Tên chuyến (cũng là tag)', // REVIEW
+  'events.fromLabel': 'Từ ngày', // REVIEW
+  'events.toLabel': 'Đến ngày', // REVIEW
+  'events.countsFromLine': 'Tính cả chi tiêu trước chuyến từ {date}', // REVIEW
+  'events.groupsLabel': 'Đi cùng nhóm', // REVIEW
+  'events.groupsHint': 'Bỏ trống nếu đi một mình', // REVIEW
+  'events.removeGroup': 'Bỏ {name}', // REVIEW
+  'events.leftGroup': 'Nhóm đã rời', // REVIEW
+  'events.limitLabel': 'Hạn mức (tùy chọn)', // REVIEW
+  'events.save': 'Lưu chuyến đi', // REVIEW
+  'events.overlap': 'Trùng với chuyến {name} ({range})', // REVIEW
+  'events.endEarly': 'Kết thúc sớm', // REVIEW
+  'events.delete': 'Xóa chuyến đi', // REVIEW
+  'events.existingTitle': 'Gắn tag cho khoản chi đã có?', // REVIEW
+  'events.existingOwn': '{n} khoản bạn tự chi', // REVIEW
+  'events.existingShares': '{n} phần trong nhóm', // REVIEW
+  'events.existingNote': 'Bỏ tag từng khoản sau cũng được.', // REVIEW
+  'events.existingYes': 'Gắn tag cho cả {n} khoản', // REVIEW
+  'events.existingNo': 'Chỉ từ giờ trở đi', // REVIEW
+  'events.entryOn': 'Chuyến đi {name}', // REVIEW
+  'events.entrySuggest': 'Thêm vào chuyến {name}', // REVIEW
+  'events.entryRemove': 'Bỏ khỏi chuyến {name}', // REVIEW
+  'events.total': 'Tổng chi', // REVIEW
+  'events.own': 'Bạn tự chi', // REVIEW
+  'events.group': 'Phần của bạn trong nhóm', // REVIEW
+  'events.over': 'Vượt {amount} so với hạn mức {limit}', // REVIEW
+  'events.under': 'Còn {amount} trong hạn mức {limit}', // REVIEW
+  'events.approx': '≈ {amount} tổng cộng, theo giá bạn đã đổi', // REVIEW
+  'events.byCategory': 'Theo danh mục', // REVIEW
+  'events.byDay': 'Theo ngày', // REVIEW
+  'events.leadup': 'Trước chuyến đi', // REVIEW
+  'events.seeTx': 'Xem {n} giao dịch', // REVIEW
+  'events.statePill.on': 'Đang đi', // REVIEW
+  'events.statePill.upcoming': 'Sắp tới', // REVIEW
+  'events.statePill.done': 'Đã xong', // REVIEW
+  'events.empty': 'Chưa có khoản chi nào cho chuyến này.', // REVIEW
+  'events.noLimit': 'Không đặt hạn mức', // REVIEW
+  'events.notFound': 'Không tìm thấy chuyến đi', // REVIEW
+  'events.notFoundBody': 'Chuyến đi này có thể đã bị xóa.', // REVIEW
+  'events.edit': 'Sửa chuyến đi', // REVIEW
+  'events.solo': 'một mình', // REVIEW
+  'events.addExpense': 'Ghi khoản chi', // REVIEW
 };

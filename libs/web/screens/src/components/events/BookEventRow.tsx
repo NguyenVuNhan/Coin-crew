@@ -3,28 +3,28 @@ import { Link } from 'react-router';
 import {
   daysUntil,
   formatMoney,
-  travelDayIndex,
-  travelState,
+  eventDayIndex,
+  eventState,
   type CurrencyCode,
-  type TravelView,
+  type EventView,
 } from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useBudgetsProgress } from '@cc/web-data-access/budgets';
-import { useTravels, useTravelSummary } from '@cc/web-data-access/travels';
+import { useEvents, useEventSummary } from '@cc/web-data-access/events';
 import { Icon } from '@cc/web-ui/components/icons';
 import { cn } from '@cc/web-ui/lib/utils';
 import { BudgetBar } from '../budgets/BudgetBar';
 
-function pickFeaturedTravel(
-  travels: TravelView[],
+function pickFeaturedEvent(
+  events: EventView[],
   today: string,
-): { travel: TravelView; state: 'on' | 'upcoming' } | null {
-  let onTrip: TravelView | null = null;
-  let nearestUpcoming: TravelView | null = null;
+): { event: EventView; state: 'on' | 'upcoming' } | null {
+  let onTrip: EventView | null = null;
+  let nearestUpcoming: EventView | null = null;
 
-  for (const item of travels) {
-    const state = travelState(item, today);
+  for (const item of events) {
+    const state = eventState(item, today);
     if (state === 'on') {
       if (!onTrip || item.start < onTrip.start) {
         onTrip = item;
@@ -36,8 +36,8 @@ function pickFeaturedTravel(
     }
   }
 
-  if (onTrip) return { travel: onTrip, state: 'on' };
-  if (nearestUpcoming) return { travel: nearestUpcoming, state: 'upcoming' };
+  if (onTrip) return { event: onTrip, state: 'on' };
+  if (nearestUpcoming) return { event: nearestUpcoming, state: 'upcoming' };
   return null;
 }
 
@@ -46,54 +46,54 @@ function pickFeaturedTravel(
  * Shows the active trip (with day index and optional budget bar), the nearest upcoming
  * trip (with days left and lead-up spending), or the idle Trips link.
  */
-export function BookTravelRow(): JSX.Element {
+export function BookEventRow(): JSX.Element {
   const t = useT();
   const today = todayLocal();
-  const travelsQuery = useTravels();
-  const travels = travelsQuery.data?.travels ?? [];
+  const eventsQuery = useEvents();
+  const events = eventsQuery.data?.events ?? [];
 
-  const featured = useMemo(() => pickFeaturedTravel(travels, today), [travels, today]);
-  const activeId = featured?.travel.id ?? '';
-  const { travel: resolvedTravel, summary, progress } = useTravelSummary(activeId);
+  const featured = useMemo(() => pickFeaturedEvent(events, today), [events, today]);
+  const activeId = featured?.event.id ?? '';
+  const { event: resolvedEvent, summary, progress } = useEventSummary(activeId);
 
-  const activeTravel = featured && resolvedTravel ? resolvedTravel : null;
-  const activeState = activeTravel && featured ? featured.state : null;
+  const activeEvent = featured && resolvedEvent ? resolvedEvent : null;
+  const activeState = activeEvent && featured ? featured.state : null;
 
-  const hasBudget = Boolean(activeTravel?.budgetId);
+  const hasBudget = Boolean(activeEvent?.budgetId);
   const budgetsProgress = useBudgetsProgress({ enabled: hasBudget });
   const budgetCurrency: CurrencyCode = useMemo(() => {
-    if (!activeTravel?.budgetId) return 'VND';
-    const def = budgetsProgress.defs.find((b) => b.id === activeTravel.budgetId);
+    if (!activeEvent?.budgetId) return 'VND';
+    const def = budgetsProgress.defs.find((b) => b.id === activeEvent.budgetId);
     return def?.currency ?? 'VND';
-  }, [activeTravel?.budgetId, budgetsProgress.defs]);
+  }, [activeEvent?.budgetId, budgetsProgress.defs]);
 
-  const href = activeTravel
-    ? `/travels/${encodeURIComponent(activeTravel.id)}`
-    : '/travels';
+  const href = activeEvent
+    ? `/events/${encodeURIComponent(activeEvent.id)}`
+    : '/events';
 
-  let titleText = t('travels.bookIdle');
+  let titleText = t('events.bookIdle');
   let subtitleText: string | null = null;
   let rightMeta: string | null = null;
 
-  if (activeTravel && activeState === 'on') {
-    titleText = t('travels.bookOn', { name: activeTravel.name });
-    const dayInfo = travelDayIndex(activeTravel, today);
+  if (activeEvent && activeState === 'on') {
+    titleText = t('events.bookOn', { name: activeEvent.name });
+    const dayInfo = eventDayIndex(activeEvent, today);
     if (dayInfo) {
-      rightMeta = t('travels.bookDayOf', { day: dayInfo.day, of: dayInfo.of });
+      rightMeta = t('events.bookDayOf', { day: dayInfo.day, of: dayInfo.of });
     }
-  } else if (activeTravel && activeState === 'upcoming') {
-    titleText = t('travels.bookUpcoming', { name: activeTravel.name });
-    rightMeta = t('travels.bookDaysLeft', { n: daysUntil(activeTravel, today) });
+  } else if (activeEvent && activeState === 'upcoming') {
+    titleText = t('events.bookUpcoming', { name: activeEvent.name });
+    rightMeta = t('events.bookDaysLeft', { n: daysUntil(activeEvent, today) });
     const firstCurrency = summary?.currencies[0];
     const leadupAmount = firstCurrency?.byDay.find((d) => d.date === 'leadup')?.amount ?? 0;
     if (firstCurrency && leadupAmount > 0) {
-      subtitleText = t('travels.bookLeadSpent', {
+      subtitleText = t('events.bookLeadSpent', {
         amount: formatMoney(leadupAmount, firstCurrency.currency),
       });
     }
   }
 
-  const showBar = activeState === 'on' && activeTravel?.budgetId !== null && progress !== null;
+  const showBar = activeState === 'on' && activeEvent?.budgetId !== null && progress !== null;
   const usedPct =
     showBar && progress
       ? progress.limit > 0
@@ -108,8 +108,8 @@ export function BookTravelRow(): JSX.Element {
   return (
     <Link
       to={href}
-      data-testid="book-travel-row"
-      className="fsl-book__travel-row flex flex-col gap-2 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
+      data-testid="book-event-row"
+      className="fsl-book__event-row flex flex-col gap-2 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
     >
       <div className="flex items-center gap-3 w-full">
         <span

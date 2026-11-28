@@ -28,4 +28,4 @@ export * from './visibility';
 export * from './reports';
 export * from './fixedCategories';
 export * from './budgets';
-export * from './travels';
+export * from './events';

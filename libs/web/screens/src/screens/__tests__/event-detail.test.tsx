@@ -6,7 +6,7 @@ import type {
   CategoryView,
   CountedSpendRow,
   TagView,
-  TravelView,
+  EventView,
   TripView,
   WalletDetailView,
 } from '@cc/core';
@@ -109,7 +109,7 @@ const tags: TagView[] = [
   { id: 'tag-bkk', name: 'Bangkok', useCount: 3 },
 ];
 
-const daLatTravel: TravelView = {
+const daLatEvent: EventView = {
   id: 'tr-dl',
   tagId: 'tag-dl',
   name: 'Đà Lạt',
@@ -121,7 +121,7 @@ const daLatTravel: TravelView = {
   createdAt: '2026-11-05T00:00:00.000Z',
 };
 
-const noLimitTravel: TravelView = {
+const noLimitEvent: EventView = {
   id: 'tr-nolim',
   tagId: 'tag-dl',
   name: 'Đà Lạt tự túc',
@@ -133,7 +133,7 @@ const noLimitTravel: TravelView = {
   createdAt: '2026-11-05T00:00:00.000Z',
 };
 
-const bangkokTravel: TravelView = {
+const bangkokEvent: EventView = {
   id: 'tr-bkk',
   tagId: 'tag-bkk',
   name: 'Bangkok',
@@ -181,14 +181,14 @@ function spendRow(
 }
 
 function stubApis(opts: {
-  travels?: TravelView[];
+  events?: EventView[];
   budgets?: BudgetDef[];
   rows?: CountedSpendRow[];
   wallets?: WalletDetailView[];
   me?: typeof meOn;
 } = {}) {
   const {
-    travels = [],
+    events = [],
     budgets = [],
     rows = [],
     wallets = [cashWallet, thbWallet],
@@ -196,7 +196,7 @@ function stubApis(opts: {
   } = opts;
   return mockApi({
     'GET /api/me': me,
-    'GET /api/me/personal/travels': { travels },
+    'GET /api/me/personal/events': { events },
     'GET /api/me/personal/budgets': { budgets },
     'GET /api/me/personal/budgets/progress': { today: '2026-11-13', rows },
     'GET /api/me/personal/wallets': { wallets },
@@ -225,16 +225,16 @@ function renderDetailVi(route: string) {
   return utils;
 }
 
-describe('TravelDetailScreen', () => {
+describe('EventDetailScreen', () => {
   it('shows total, own and group split', async () => {
     const rows: CountedSpendRow[] = [
       spendRow('r-1', '2026-11-12', 1_200_000, ['tag-dl'], { kind: 'entry', categoryId: 'cat-food' }),
       spendRow('r-2', '2026-11-13', 800_000, ['tag-dl'], { kind: 'group', categoryId: 'cat-stay' }),
     ];
-    stubApis({ travels: [daLatTravel], budgets: [dlBudget], rows });
-    renderDetailVi('/travels/tr-dl');
+    stubApis({ events: [daLatEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-dl');
 
-    const card = await screen.findByTestId('travel-summary-card');
+    const card = await screen.findByTestId('event-summary-card');
     expect(card).toHaveTextContent('2.000.000₫');
     expect(card).toHaveTextContent('Bạn tự chi');
     expect(card).toHaveTextContent('1.200.000₫');
@@ -248,19 +248,19 @@ describe('TravelDetailScreen', () => {
     ];
 
     // With limit (over)
-    stubApis({ travels: [daLatTravel], budgets: [dlBudget], rows });
-    const first = renderDetailVi('/travels/tr-dl');
+    stubApis({ events: [daLatEvent], budgets: [dlBudget], rows });
+    const first = renderDetailVi('/events/tr-dl');
 
-    const cardWithLimit = await screen.findByTestId('travel-summary-card');
+    const cardWithLimit = await screen.findByTestId('event-summary-card');
     expect(cardWithLimit).toHaveTextContent('Vượt 860.000₫ so với hạn mức 5.000.000₫');
     expect(cardWithLimit.querySelector('.fsl-budget-bar')).not.toBeNull();
     first.unmount();
 
     // Without limit
-    stubApis({ travels: [noLimitTravel], budgets: [dlBudget], rows });
-    renderDetailVi('/travels/tr-nolim');
+    stubApis({ events: [noLimitEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-nolim');
 
-    const cardNoLimit = await screen.findByTestId('travel-summary-card');
+    const cardNoLimit = await screen.findByTestId('event-summary-card');
     expect(cardNoLimit.querySelector('.fsl-budget-bar')).toBeNull();
     expect(cardNoLimit).not.toHaveTextContent('Vượt');
     expect(cardNoLimit).not.toHaveTextContent('Còn');
@@ -288,27 +288,27 @@ describe('TravelDetailScreen', () => {
         vnd: 3_200_000,
       }),
     ];
-    stubApis({ travels: [bangkokTravel], budgets: [dlBudget], rows });
-    renderDetailVi('/travels/tr-bkk');
+    stubApis({ events: [bangkokEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-bkk');
 
-    const card = await screen.findByTestId('travel-summary-card');
+    const card = await screen.findByTestId('event-summary-card');
     expect(card).toHaveTextContent('3.200.000₫');
     expect(card).toHaveTextContent('3.700');
-    expect(screen.getByTestId('travel-approx')).toHaveTextContent('5.864.000₫');
+    expect(screen.getByTestId('event-approx')).toHaveTextContent('5.864.000₫');
 
-    const switchEl = screen.getByTestId('travel-currency-switch');
+    const switchEl = screen.getByTestId('event-currency-switch');
     expect(within(switchEl).getByRole('button', { name: /VND/i })).toBeInTheDocument();
     const thbBtn = within(switchEl).getByRole('button', { name: /THB/i });
     expect(thbBtn).toBeInTheDocument();
 
     // Default VND selected -> Lưu trú in category breakdown
-    expect(screen.getByTestId('travel-by-category')).toHaveTextContent('Lưu trú');
-    expect(screen.getByTestId('travel-by-category')).not.toHaveTextContent('Mua sắm');
+    expect(screen.getByTestId('event-by-category')).toHaveTextContent('Lưu trú');
+    expect(screen.getByTestId('event-by-category')).not.toHaveTextContent('Mua sắm');
 
     // Switch to THB -> Ăn uống and Mua sắm in category breakdown
     await user.click(thbBtn);
-    expect(screen.getByTestId('travel-by-category')).toHaveTextContent('Ăn uống');
-    expect(screen.getByTestId('travel-by-category')).toHaveTextContent('Mua sắm');
+    expect(screen.getByTestId('event-by-category')).toHaveTextContent('Ăn uống');
+    expect(screen.getByTestId('event-by-category')).toHaveTextContent('Mua sắm');
   });
 
   it('approx line hidden when approxVnd is null', async () => {
@@ -326,11 +326,11 @@ describe('TravelDetailScreen', () => {
         vnd: 3_200_000,
       }),
     ];
-    stubApis({ travels: [bangkokTravel], budgets: [dlBudget], rows });
-    renderDetailVi('/travels/tr-bkk');
+    stubApis({ events: [bangkokEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-bkk');
 
-    await screen.findByTestId('travel-summary-card');
-    expect(screen.queryByTestId('travel-approx')).toBeNull();
+    await screen.findByTestId('event-summary-card');
+    expect(screen.queryByTestId('event-approx')).toBeNull();
   });
 
   it('lead-up bucket first in by-day', async () => {
@@ -339,11 +339,11 @@ describe('TravelDetailScreen', () => {
       spendRow('r-lead', '2026-11-08', 1_240_000, ['tag-dl']),
       spendRow('r-day2', '2026-11-13', 900_000, ['tag-dl']),
     ];
-    stubApis({ travels: [daLatTravel], budgets: [dlBudget], rows });
-    renderDetailVi('/travels/tr-dl');
+    stubApis({ events: [daLatEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-dl');
 
-    const byDay = await screen.findByTestId('travel-by-day');
-    const items = within(byDay).getAllByTestId(/^travel-day-row-/);
+    const byDay = await screen.findByTestId('event-by-day');
+    const items = within(byDay).getAllByTestId(/^event-day-row-/);
     expect(items[0]).toHaveTextContent('Trước chuyến đi');
     expect(items[0]).toHaveTextContent('1.240.000₫');
     expect(items[1]).toHaveTextContent('12/11');
@@ -351,11 +351,11 @@ describe('TravelDetailScreen', () => {
   });
 
   it('not-found state for a deleted trip', async () => {
-    stubApis({ travels: [], rows: [] });
-    renderDetailVi('/travels/tr-missing');
+    stubApis({ events: [], rows: [] });
+    renderDetailVi('/events/tr-missing');
 
     await waitFor(() => {
-      expect(screen.getByTestId('travel-not-found')).toBeInTheDocument();
+      expect(screen.getByTestId('event-not-found')).toBeInTheDocument();
     });
   });
 
@@ -364,10 +364,10 @@ describe('TravelDetailScreen', () => {
       spendRow('r-1', '2026-11-12', 1_000_000, ['tag-dl']),
       spendRow('r-2', '2026-11-13', 500_000, ['tag-dl']),
     ];
-    stubApis({ travels: [daLatTravel], budgets: [dlBudget], rows });
-    renderDetailVi('/travels/tr-dl');
+    stubApis({ events: [daLatEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-dl');
 
-    const link = await screen.findByTestId('travel-see-tx');
+    const link = await screen.findByTestId('event-see-tx');
     expect(link).toHaveTextContent('Xem 2 giao dịch');
     expect(link.getAttribute('href')).toBe(
       '/transactions?tagId=tag-dl&from=2026-11-05&to=2026-11-14',

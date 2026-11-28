@@ -1,14 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { TravelSavedResponse } from '@cc/core';
+import type { EventSavedResponse } from '@cc/core';
 import { json, memberSid } from './helpers';
 import { addWallet, postJson, switchOn } from './personal-helpers';
 
-const createTravel = (sid: string | null, body: unknown) =>
-  postJson('/api/me/personal/travels', sid, body);
+const createEvent = (sid: string | null, body: unknown) =>
+  postJson('/api/me/personal/events', sid, body);
 
 const tagShares = (sid: string | null, body: unknown) =>
-  postJson('/api/me/personal/travels/tag-shares', sid, body);
+  postJson('/api/me/personal/events/tag-shares', sid, body);
 
 const putGroupLink = (sid: string, rootId: string, body: unknown) =>
   postJson(`/api/me/personal/group-links/${encodeURIComponent(rootId)}`, sid, body, 'PUT');
@@ -116,9 +116,9 @@ async function getSyncVersion(userId: string): Promise<number | null> {
 }
 
 afterEach(async () => {
-  await env.DB.prepare('DELETE FROM personal_travel_share_marks').run();
-  await env.DB.prepare('DELETE FROM personal_travel_groups').run();
-  await env.DB.prepare('DELETE FROM personal_travels').run();
+  await env.DB.prepare('DELETE FROM personal_event_share_marks').run();
+  await env.DB.prepare('DELETE FROM personal_event_groups').run();
+  await env.DB.prepare('DELETE FROM personal_events').run();
   await env.DB.prepare('DELETE FROM personal_budget_excluded_wallets').run();
   await env.DB.prepare('DELETE FROM personal_budget_limits').run();
   await env.DB.prepare('DELETE FROM personal_budgets').run();
@@ -140,7 +140,7 @@ afterEach(async () => {
   await env.DB.prepare('DELETE FROM trips').run();
 });
 
-describe('POST /me/personal/travels/tag-shares', () => {
+describe('POST /me/personal/events/tag-shares', () => {
   it('guards the route: 401 signed out, 403 with switch off, 422 on invalid today', async () => {
     expect((await tagShares(null, { today: '2026-12-10' })).status).toBe(401);
 
@@ -163,8 +163,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     await ensureGroup('g-dalat', userId);
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Đà Lạt',
           start: '2026-12-10',
           end: '2026-12-12',
@@ -173,7 +173,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     // Seed new shares after the trip exists
     await seedGroupExpenses('g-dalat', userId, [
@@ -205,13 +205,13 @@ describe('POST /me/personal/travels/tag-shares', () => {
     expect(preserved?.wallet_id).toBe(walletId);
 
     const marks = await env.DB.prepare(
-      'SELECT root_id, travel_id, state FROM personal_travel_share_marks WHERE user_id = ? ORDER BY root_id',
+      'SELECT root_id, event_id, state FROM personal_event_share_marks WHERE user_id = ? ORDER BY root_id',
     )
       .bind(userId)
-      .all<{ root_id: string; travel_id: string; state: string }>();
+      .all<{ root_id: string; event_id: string; state: string }>();
     expect(marks.results).toEqual([
-      { root_id: 'ge-during', travel_id: created.id, state: 'tagged' },
-      { root_id: 'ge-leadup', travel_id: created.id, state: 'tagged' },
+      { root_id: 'ge-during', event_id: created.id, state: 'tagged' },
+      { root_id: 'ge-leadup', event_id: created.id, state: 'tagged' },
     ]);
   });
 
@@ -224,8 +224,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
     await ensureGroup('g-household', userId);
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Huế',
           start: '2026-12-10',
           end: '2026-12-12',
@@ -234,7 +234,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     await seedGroupExpenses('g-household', userId, [
       { id: 'ge-home', description: 'Electricity bill', amount: 600_000, myShare: 300_000, spentOn: '2026-12-11' },
@@ -254,8 +254,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     await ensureGroup('g-untag', userId);
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Phú Quốc',
           start: '2026-12-10',
           end: '2026-12-12',
@@ -264,7 +264,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     await seedGroupExpenses('g-untag', userId, [
       { id: 'ge-rm', description: 'Shared snack', amount: 200_000, myShare: 100_000, spentOn: '2026-12-11' },
@@ -298,8 +298,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
       { id: 'ge-old', description: 'Old booking', amount: 500_000, myShare: 250_000, spentOn: '2026-12-05' },
     ]);
 
-    const saved = await json<TravelSavedResponse>(
-      await createTravel(sid, {
+    const saved = await json<EventSavedResponse>(
+      await createEvent(sid, {
         name: 'Sapa',
         start: '2026-12-10',
         end: '2026-12-12',
@@ -322,7 +322,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
     await switchOn(userId);
 
     await ensureGroup('g-noop', userId);
-    await createTravel(sid, {
+    await createEvent(sid, {
       name: 'Nha Trang',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -357,8 +357,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     await ensureGroup('g-redate', userId);
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Hội An',
           start: '2026-12-10',
           end: '2026-12-12',
@@ -367,7 +367,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     await seedGroupExpenses('g-redate', userId, [
       { id: 'ge-move', description: 'Lantern boat', amount: 400_000, myShare: 200_000, spentOn: '2026-12-11' },
@@ -395,11 +395,11 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     // Leftover mark for ge-gone is still present
     const goneMark = await env.DB.prepare(
-      'SELECT travel_id, state FROM personal_travel_share_marks WHERE user_id = ? AND root_id = ?',
+      'SELECT event_id, state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ?',
     )
       .bind(userId, 'ge-gone')
-      .first<{ travel_id: string; state: string }>();
-    expect(goneMark).toEqual({ travel_id: created.id, state: 'tagged' });
+      .first<{ event_id: string; state: string }>();
+    expect(goneMark).toEqual({ event_id: created.id, state: 'tagged' });
   });
 
   it("tie-break: share in two trips' ranges goes to the on trip", async () => {
@@ -409,8 +409,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     await ensureGroup('g-tie', userId);
     const tripA = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Trip On',
           start: '2026-12-10',
           end: '2026-12-12',
@@ -419,11 +419,11 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     const tripB = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Trip Leadup',
           start: '2026-12-15',
           end: '2026-12-18',
@@ -432,7 +432,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     // 2026-12-11 is inside Trip A's [start..end] and Trip B's [countsFrom..end]
     await seedGroupExpenses('g-tie', userId, [
@@ -447,11 +447,11 @@ describe('POST /me/personal/travels/tag-shares', () => {
     expect(await getLinkTagIds(userId, 'ge-tie')).not.toContain(tripB.tagId);
 
     const mark = await env.DB.prepare(
-      'SELECT travel_id, state FROM personal_travel_share_marks WHERE user_id = ? AND root_id = ?',
+      'SELECT event_id, state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ?',
     )
       .bind(userId, 'ge-tie')
-      .first<{ travel_id: string; state: string }>();
-    expect(mark).toEqual({ travel_id: tripA.id, state: 'tagged' });
+      .first<{ event_id: string; state: string }>();
+    expect(mark).toEqual({ event_id: tripA.id, state: 'tagged' });
   });
 
   it('stays within 50 queries', async () => {
@@ -460,7 +460,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
     await switchOn(userId);
 
     await ensureGroup('g-q', userId);
-    await createTravel(sid, {
+    await createEvent(sid, {
       name: 'Vũng Tàu',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -500,7 +500,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
     await switchOn(userId);
 
     await ensureGroup('g-cap', userId);
-    await createTravel(sid, {
+    await createEvent(sid, {
       name: 'Big Trip',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -544,8 +544,8 @@ describe('POST /me/personal/travels/tag-shares', () => {
 
     await ensureGroup('g-one', userId);
     const tripA = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Trip A',
           start: '2026-12-10',
           end: '2026-12-12',
@@ -554,11 +554,11 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     const tripB = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Trip B',
           start: '2026-12-20',
           end: '2026-12-22',
@@ -567,7 +567,7 @@ describe('POST /me/personal/travels/tag-shares', () => {
           today: '2026-12-01',
         }),
       )
-    ).travel;
+    ).event;
 
     await seedGroupExpenses('g-one', userId, [
       { id: 'ge-manual-b', description: 'Tagged B by hand', amount: 400_000, myShare: 200_000, spentOn: '2026-12-11' },

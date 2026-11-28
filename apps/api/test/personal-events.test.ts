@@ -5,8 +5,8 @@ import type {
   CategoriesResponse,
   EntryView,
   TagView,
-  TravelSavedResponse,
-  TravelsResponse,
+  EventSavedResponse,
+  EventsResponse,
   WalletDetailResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
@@ -14,23 +14,23 @@ import { addWallet, postJson, switchOn } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
-const listTravels = (sid: string | null) =>
-  call('/api/me/personal/travels', sid ? as(sid) : {});
+const listEvents = (sid: string | null) =>
+  call('/api/me/personal/events', sid ? as(sid) : {});
 
-const createTravel = (sid: string | null, body: unknown) =>
-  postJson('/api/me/personal/travels', sid, body);
+const createEvent = (sid: string | null, body: unknown) =>
+  postJson('/api/me/personal/events', sid, body);
 
-const patchTravel = (sid: string | null, id: string, body: unknown) =>
-  postJson(`/api/me/personal/travels/${encodeURIComponent(id)}`, sid, body, 'PATCH');
+const patchEvent = (sid: string | null, id: string, body: unknown) =>
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}`, sid, body, 'PATCH');
 
-const deleteTravel = (sid: string | null, id: string) =>
-  call(`/api/me/personal/travels/${encodeURIComponent(id)}`, {
+const deleteEvent = (sid: string | null, id: string) =>
+  call(`/api/me/personal/events/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     ...(sid ? as(sid) : {}),
   });
 
 const applyExisting = (sid: string | null, id: string, body: unknown) =>
-  postJson(`/api/me/personal/travels/${encodeURIComponent(id)}/existing`, sid, body);
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}/existing`, sid, body);
 
 const getBudget = (sid: string, id: string) =>
   call(`/api/me/personal/budgets/${encodeURIComponent(id)}`, as(sid));
@@ -110,9 +110,9 @@ const countQueries = async <T>(fn: () => Promise<T>): Promise<{ result: T; queri
 };
 
 afterEach(async () => {
-  await env.DB.prepare('DELETE FROM personal_travel_share_marks').run();
-  await env.DB.prepare('DELETE FROM personal_travel_groups').run();
-  await env.DB.prepare('DELETE FROM personal_travels').run();
+  await env.DB.prepare('DELETE FROM personal_event_share_marks').run();
+  await env.DB.prepare('DELETE FROM personal_event_groups').run();
+  await env.DB.prepare('DELETE FROM personal_events').run();
   await env.DB.prepare('DELETE FROM personal_budget_excluded_wallets').run();
   await env.DB.prepare('DELETE FROM personal_budget_limits').run();
   await env.DB.prepare('DELETE FROM personal_budgets').run();
@@ -133,19 +133,19 @@ afterEach(async () => {
   await env.DB.prepare('DELETE FROM trips').run();
 });
 
-describe('personal travels routes', () => {
+describe('personal events routes', () => {
   it('guards every route: 401 signed out, 403 with switch off', async () => {
-    expect((await listTravels(null)).status).toBe(401);
-    expect((await createTravel(null, {})).status).toBe(401);
-    expect((await patchTravel(null, 'tr-1', {})).status).toBe(401);
-    expect((await deleteTravel(null, 'tr-1')).status).toBe(401);
+    expect((await listEvents(null)).status).toBe(401);
+    expect((await createEvent(null, {})).status).toBe(401);
+    expect((await patchEvent(null, 'tr-1', {})).status).toBe(401);
+    expect((await deleteEvent(null, 'tr-1')).status).toBe(401);
     expect((await applyExisting(null, 'tr-1', { tag: true })).status).toBe(401);
 
     const sid = await memberSid('u-trv-guard', 'Guard');
-    expect((await listTravels(sid)).status).toBe(403);
-    expect((await createTravel(sid, {})).status).toBe(403);
-    expect((await patchTravel(sid, 'tr-1', {})).status).toBe(403);
-    expect((await deleteTravel(sid, 'tr-1')).status).toBe(403);
+    expect((await listEvents(sid)).status).toBe(403);
+    expect((await createEvent(sid, {})).status).toBe(403);
+    expect((await patchEvent(sid, 'tr-1', {})).status).toBe(403);
+    expect((await deleteEvent(sid, 'tr-1')).status).toBe(403);
     expect((await applyExisting(sid, 'tr-1', { tag: true })).status).toBe(403);
   });
 
@@ -154,7 +154,7 @@ describe('personal travels routes', () => {
     const sid = await memberSid(userId, 'TagsUser');
     await switchOn(userId);
 
-    const res1 = await createTravel(sid, {
+    const res1 = await createEvent(sid, {
       name: 'Đà Lạt',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -162,13 +162,13 @@ describe('personal travels routes', () => {
       today: '2026-11-27',
     });
     expect(res1.status).toBe(201);
-    const body1 = await json<TravelSavedResponse>(res1);
-    expect(body1.travel.name).toBe('Đà Lạt');
-    expect(body1.travel.start).toBe('2026-12-10');
-    expect(body1.travel.end).toBe('2026-12-12');
-    expect(body1.travel.countsFrom).toBe('2026-11-27');
-    expect(body1.travel.groupIds).toEqual([]);
-    expect(body1.travel.budgetId).toBeNull();
+    const body1 = await json<EventSavedResponse>(res1);
+    expect(body1.event.name).toBe('Đà Lạt');
+    expect(body1.event.start).toBe('2026-12-10');
+    expect(body1.event.end).toBe('2026-12-12');
+    expect(body1.event.countsFrom).toBe('2026-11-27');
+    expect(body1.event.groupIds).toEqual([]);
+    expect(body1.event.budgetId).toBeNull();
     expect(body1.existing).toEqual({
       own: { count: 0, totals: [] },
       shares: { count: 0, total: 0 },
@@ -177,7 +177,7 @@ describe('personal travels routes', () => {
     });
 
     // Reuse existing tag case-insensitively on a later non-overlapping trip
-    const res2 = await createTravel(sid, {
+    const res2 = await createEvent(sid, {
       name: 'đà lạt',
       start: '2027-01-05',
       end: '2027-01-08',
@@ -185,15 +185,15 @@ describe('personal travels routes', () => {
       today: '2026-11-27',
     });
     expect(res2.status).toBe(201);
-    const body2 = await json<TravelSavedResponse>(res2);
-    expect(body2.travel.tagId).toBe(body1.travel.tagId);
-    expect(body2.travel.name).toBe('Đà Lạt');
+    const body2 = await json<EventSavedResponse>(res2);
+    expect(body2.event.tagId).toBe(body1.event.tagId);
+    expect(body2.event.name).toBe('Đà Lạt');
 
     // List returns newest start first
-    const listRes = await listTravels(sid);
+    const listRes = await listEvents(sid);
     expect(listRes.status).toBe(200);
-    const listed = (await json<TravelsResponse>(listRes)).travels;
-    expect(listed.map((t) => t.id)).toEqual([body2.travel.id, body1.travel.id]);
+    const listed = (await json<EventsResponse>(listRes)).events;
+    expect(listed.map((t) => t.id)).toEqual([body2.event.id, body1.event.id]);
   });
 
   it('rejects start after end and countsFrom after start (422)', async () => {
@@ -201,7 +201,7 @@ describe('personal travels routes', () => {
     const sid = await memberSid(userId, 'ValUser');
     await switchOn(userId);
 
-    const res1 = await createTravel(sid, {
+    const res1 = await createEvent(sid, {
       name: 'Bad Dates',
       start: '2026-12-15',
       end: '2026-12-10',
@@ -210,7 +210,7 @@ describe('personal travels routes', () => {
     });
     expect(res1.status).toBe(422);
 
-    const res2 = await createTravel(sid, {
+    const res2 = await createEvent(sid, {
       name: 'Bad CountsFrom',
       start: '2026-12-10',
       end: '2026-12-15',
@@ -221,14 +221,14 @@ describe('personal travels routes', () => {
     expect(res2.status).toBe(422);
   });
 
-  it('rejects an overlapping trip (409 TRAVEL_OVERLAP with the other trip) and allows a lead-up overlapping another trip', async () => {
+  it('rejects an overlapping trip (409 EVENT_OVERLAP with the other trip) and allows a lead-up overlapping another trip', async () => {
     const userId = 'u-trv-overlap';
     const sid = await memberSid(userId, 'OverlapUser');
     await switchOn(userId);
 
     const first = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Huế',
           start: '2026-12-20',
           end: '2026-12-23',
@@ -236,9 +236,9 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
-    const overlapRes = await createTravel(sid, {
+    const overlapRes = await createEvent(sid, {
       name: 'Đà Nẵng',
       start: '2026-12-23',
       end: '2026-12-26',
@@ -249,19 +249,19 @@ describe('personal travels routes', () => {
     const errBody = await json<{
       error: {
         code: string;
-        details: { travelId: string; name: string; start: string; end: string };
+        details: { eventId: string; name: string; start: string; end: string };
       };
     }>(overlapRes);
-    expect(errBody.error.code).toBe('TRAVEL_OVERLAP');
+    expect(errBody.error.code).toBe('EVENT_OVERLAP');
     expect(errBody.error.details).toEqual({
-      travelId: first.id,
+      eventId: first.id,
       name: 'Huế',
       start: '2026-12-20',
       end: '2026-12-23',
     });
 
     // Lead-up overlapping Huế is allowed because start..end (Dec 24..27) does not overlap Dec 20..23
-    const leadupRes = await createTravel(sid, {
+    const leadupRes = await createEvent(sid, {
       name: 'Đà Nẵng',
       start: '2026-12-24',
       end: '2026-12-27',
@@ -294,7 +294,7 @@ describe('personal travels routes', () => {
     ).wallet;
     expect(wIncluded.id).toBeTruthy();
 
-    const createRes = await createTravel(sid, {
+    const createRes = await createEvent(sid, {
       name: 'Phú Quốc',
       start: '2026-12-10',
       end: '2026-12-15',
@@ -304,7 +304,7 @@ describe('personal travels routes', () => {
       today: '2026-11-27',
     });
     expect(createRes.status).toBe(201);
-    const created = (await json<TravelSavedResponse>(createRes)).travel;
+    const created = (await json<EventSavedResponse>(createRes)).event;
     expect(created.budgetId).toBeTruthy();
 
     const b1 = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
@@ -318,7 +318,7 @@ describe('personal travels routes', () => {
     expect(b1.excludedWalletIds).toEqual([wExcluded.id]);
 
     // Moving dates moves the budget range and its limit's effective_from
-    const moveRes = await patchTravel(sid, created.id, {
+    const moveRes = await patchEvent(sid, created.id, {
       countsFrom: '2026-11-28',
       start: '2026-12-08',
       end: '2026-12-14',
@@ -331,7 +331,7 @@ describe('personal travels routes', () => {
     expect(b2.limits).toEqual([{ effectiveFrom: '2026-11-28', amount: 6_000_000 }]);
 
     // Updating limit amount replaces the single limit row
-    const amtRes = await patchTravel(sid, created.id, {
+    const amtRes = await patchEvent(sid, created.id, {
       limit: { amount: 7_500_000, currency: 'VND' },
       today: '2026-12-09',
     });
@@ -340,12 +340,12 @@ describe('personal travels routes', () => {
     expect(b2b.limits).toEqual([{ effectiveFrom: '2026-11-28', amount: 7_500_000 }]);
 
     // endNow ends today and moves the budget
-    const endNowRes = await patchTravel(sid, created.id, {
+    const endNowRes = await patchEvent(sid, created.id, {
       endNow: true,
       today: '2026-12-10',
     });
     expect(endNowRes.status).toBe(200);
-    const ended = (await json<TravelSavedResponse>(endNowRes)).travel;
+    const ended = (await json<EventSavedResponse>(endNowRes)).event;
     expect(ended.end).toBe('2026-12-10');
     const b3 = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
     expect(b3.from).toBe('2026-11-28');
@@ -353,12 +353,12 @@ describe('personal travels routes', () => {
     expect(b3.limits).toEqual([{ effectiveFrom: '2026-11-28', amount: 7_500_000 }]);
 
     // limit: null deletes the budget
-    const removeLimitRes = await patchTravel(sid, created.id, {
+    const removeLimitRes = await patchEvent(sid, created.id, {
       limit: null,
       today: '2026-12-10',
     });
     expect(removeLimitRes.status).toBe(200);
-    const noLimit = (await json<TravelSavedResponse>(removeLimitRes)).travel;
+    const noLimit = (await json<EventSavedResponse>(removeLimitRes)).event;
     expect(noLimit.budgetId).toBeNull();
     expect((await getBudget(sid, created.budgetId!)).status).toBe(404);
   });
@@ -377,8 +377,8 @@ describe('personal travels routes', () => {
     const food = cats.find((c) => c.type === 'expense')!;
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Nha Trang',
           start: '2026-11-10',
           end: '2026-11-12',
@@ -387,7 +387,7 @@ describe('personal travels routes', () => {
           today: '2026-11-10',
         }),
       )
-    ).travel;
+    ).event;
 
     const entryRes = await createEntry(sid, {
       type: 'expense',
@@ -400,11 +400,11 @@ describe('personal travels routes', () => {
     expect(entryRes.status).toBe(201);
     const entry = (await json<{ entries: EntryView[] }>(entryRes)).entries[0]!;
 
-    const delRes = await deleteTravel(sid, created.id);
+    const delRes = await deleteEvent(sid, created.id);
     expect(delRes.status).toBe(204);
 
     // Trip and budget are gone
-    const listed = (await json<TravelsResponse>(await listTravels(sid))).travels;
+    const listed = (await json<EventsResponse>(await listEvents(sid))).events;
     expect(listed).toHaveLength(0);
     expect((await getBudget(sid, created.budgetId!)).status).toBe(404);
 
@@ -511,7 +511,7 @@ describe('personal travels routes', () => {
 
     // Create past trip
     const { result: createRes, queries: createQ } = await countQueries(() =>
-      createTravel(sid, {
+      createEvent(sid, {
         name: 'Đà Lạt Nov',
         start: '2026-11-10',
         end: '2026-11-12',
@@ -523,7 +523,7 @@ describe('personal travels routes', () => {
     expect(createRes.status).toBe(201);
     expect(createQ).toBeLessThanOrEqual(50);
 
-    const saved = await json<TravelSavedResponse>(createRes);
+    const saved = await json<EventSavedResponse>(createRes);
     expect(saved.existing.own.count).toBe(2);
     expect(saved.existing.own.totals).toEqual(
       expect.arrayContaining([
@@ -535,9 +535,9 @@ describe('personal travels routes', () => {
 
     // Marks in DB are 'skipped' for ge-leadup and ge-trip (not ge-outside)
     const marksBefore = await env.DB.prepare(
-      'SELECT root_id, state FROM personal_travel_share_marks WHERE travel_id = ? ORDER BY root_id',
+      'SELECT root_id, state FROM personal_event_share_marks WHERE event_id = ? ORDER BY root_id',
     )
-      .bind(saved.travel.id)
+      .bind(saved.event.id)
       .all<{ root_id: string; state: string }>();
     expect(marksBefore.results).toEqual([
       { root_id: 'ge-leadup', state: 'skipped' },
@@ -545,13 +545,13 @@ describe('personal travels routes', () => {
     ]);
 
     // tag: false does nothing
-    const skipRes = await applyExisting(sid, saved.travel.id, { tag: false });
+    const skipRes = await applyExisting(sid, saved.event.id, { tag: false });
     expect(skipRes.status).toBe(200);
     expect(await json<{ tagged: number }>(skipRes)).toEqual({ tagged: 0 });
 
     // tag: true tags own expenses start..end only and the skipped shares
     const { result: applyRes, queries: applyQ } = await countQueries(() =>
-      applyExisting(sid, saved.travel.id, {
+      applyExisting(sid, saved.event.id, {
         tag: true,
         ownIds: saved.existing.ownIds,
         shareRootIds: saved.existing.shareRootIds,
@@ -565,7 +565,7 @@ describe('personal travels routes', () => {
     const txTags = await env.DB.prepare(
       'SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ? ORDER BY transaction_id',
     )
-      .bind(saved.travel.tagId)
+      .bind(saved.event.tagId)
       .all<{ transaction_id: string }>();
     const taggedTxIds = txTags.results.map((r) => r.transaction_id);
     expect(taggedTxIds).toContain(ownVnd.id);
@@ -575,9 +575,9 @@ describe('personal travels routes', () => {
 
     // Verify share marks turned into 'tagged'
     const marksAfter = await env.DB.prepare(
-      'SELECT root_id, state FROM personal_travel_share_marks WHERE travel_id = ? ORDER BY root_id',
+      'SELECT root_id, state FROM personal_event_share_marks WHERE event_id = ? ORDER BY root_id',
     )
-      .bind(saved.travel.id)
+      .bind(saved.event.id)
       .all<{ root_id: string; state: string }>();
     expect(marksAfter.results).toEqual([
       { root_id: 'ge-leadup', state: 'tagged' },
@@ -588,7 +588,7 @@ describe('personal travels routes', () => {
     const linkTags = await env.DB.prepare(
       'SELECT root_id FROM personal_group_link_tags WHERE user_id = ? AND tag_id = ? ORDER BY root_id',
     )
-      .bind(userId, saved.travel.tagId)
+      .bind(userId, saved.event.tagId)
       .all<{ root_id: string }>();
     expect(linkTags.results.map((r) => r.root_id)).toEqual(['ge-leadup', 'ge-trip']);
 
@@ -613,8 +613,8 @@ describe('personal travels routes', () => {
       .run();
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Hội An',
           start: '2026-12-01',
           end: '2026-12-03',
@@ -622,10 +622,10 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
     // 409 TAG_TAKEN when name belongs to another tag (case-insensitive)
-    const takenRes = await patchTravel(sid, created.id, {
+    const takenRes = await patchEvent(sid, created.id, {
       name: 'sapa',
       today: '2026-11-27',
     });
@@ -633,12 +633,12 @@ describe('personal travels routes', () => {
     expect((await json<{ error: { code: string } }>(takenRes)).error.code).toBe('TAG_TAKEN');
 
     // Valid rename renames the tag
-    const okRes = await patchTravel(sid, created.id, {
+    const okRes = await patchEvent(sid, created.id, {
       name: 'Hội An 2026',
       today: '2026-11-27',
     });
     expect(okRes.status).toBe(200);
-    const updated = (await json<TravelSavedResponse>(okRes)).travel;
+    const updated = (await json<EventSavedResponse>(okRes)).event;
     expect(updated.name).toBe('Hội An 2026');
     expect(updated.tagId).toBe(created.tagId);
 
@@ -652,8 +652,8 @@ describe('personal travels routes', () => {
     await switchOn(userId);
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Cần Thơ',
           start: '2026-12-01',
           end: '2026-12-02',
@@ -661,12 +661,12 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
     const delTagRes = await deleteTag(sid, created.tagId);
     expect(delTagRes.status).toBe(200);
 
-    const listed = (await json<TravelsResponse>(await listTravels(sid))).travels;
+    const listed = (await json<EventsResponse>(await listEvents(sid))).events;
     expect(listed).toHaveLength(0);
   });
 
@@ -677,8 +677,8 @@ describe('personal travels routes', () => {
     await switchOn('u-trv-b');
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sidA, {
+      await json<EventSavedResponse>(
+        await createEvent(sidA, {
           name: 'Private Trip',
           start: '2026-12-01',
           end: '2026-12-03',
@@ -686,11 +686,11 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
-    expect((await json<TravelsResponse>(await listTravels(sidB))).travels).toEqual([]);
-    expect((await patchTravel(sidB, created.id, { name: 'Stolen', today: '2026-11-27' })).status).toBe(404);
-    expect((await deleteTravel(sidB, created.id)).status).toBe(404);
+    expect((await json<EventsResponse>(await listEvents(sidB))).events).toEqual([]);
+    expect((await patchEvent(sidB, created.id, { name: 'Stolen', today: '2026-11-27' })).status).toBe(404);
+    expect((await deleteEvent(sidB, created.id)).status).toBe(404);
     expect((await applyExisting(sidB, created.id, { tag: true })).status).toBe(404);
   });
 
@@ -732,8 +732,8 @@ describe('personal travels routes', () => {
     });
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Vũng Tàu',
           start: '2026-12-05',
           end: '2026-12-06',
@@ -742,7 +742,7 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
     const budget = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
     expect(budget.excludedWalletIds).toEqual([wVndExcl.id]);
@@ -758,8 +758,8 @@ describe('personal travels routes', () => {
     ]);
 
     const tripA = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Trip A',
           start: '2026-12-01',
           end: '2026-12-05',
@@ -768,17 +768,17 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
     // Tag ge-a with Trip A's tag via group-link (even without a mark, e.g. manually tagged)
-    await env.DB.prepare('DELETE FROM personal_travel_share_marks WHERE travel_id = ?')
+    await env.DB.prepare('DELETE FROM personal_event_share_marks WHERE event_id = ?')
       .bind(tripA.id)
       .run();
     const linkRes = await putGroupLink(sid, 'ge-a', { tagIds: [tripA.tagId] });
     expect(linkRes.status).toBe(200);
 
     // Trip B's lead-up covers 2026-12-02; ge-a already carries Trip A's tag -> must not be counted or marked
-    const resB = await createTravel(sid, {
+    const resB = await createEvent(sid, {
       name: 'Trip B',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -787,13 +787,13 @@ describe('personal travels routes', () => {
       today: '2026-11-27',
     });
     expect(resB.status).toBe(201);
-    const savedB = await json<TravelSavedResponse>(resB);
+    const savedB = await json<EventSavedResponse>(resB);
     expect(savedB.existing.shares).toEqual({ count: 0, total: 0 });
 
     const marksB = await env.DB.prepare(
-      'SELECT root_id FROM personal_travel_share_marks WHERE travel_id = ?',
+      'SELECT root_id FROM personal_event_share_marks WHERE event_id = ?',
     )
-      .bind(savedB.travel.id)
+      .bind(savedB.event.id)
       .all<{ root_id: string }>();
     expect(marksB.results).toEqual([]);
   });
@@ -811,8 +811,8 @@ describe('personal travels routes', () => {
     ]);
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Group Swap',
           start: '2026-11-10',
           end: '2026-11-12',
@@ -821,20 +821,20 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
     // Swap g-one -> g-two: ge-1's skipped mark is deleted, ge-2's skipped mark is created
-    const patchRes = await patchTravel(sid, created.id, {
+    const patchRes = await patchEvent(sid, created.id, {
       groupIds: ['g-two'],
       today: '2026-11-27',
     });
     expect(patchRes.status).toBe(200);
-    const patched = await json<TravelSavedResponse>(patchRes);
-    expect(patched.travel.groupIds).toEqual(['g-two']);
+    const patched = await json<EventSavedResponse>(patchRes);
+    expect(patched.event.groupIds).toEqual(['g-two']);
     expect(patched.existing.shares).toEqual({ count: 1, total: 250_000 });
 
     const marks = await env.DB.prepare(
-      'SELECT root_id, state FROM personal_travel_share_marks WHERE travel_id = ? ORDER BY root_id',
+      'SELECT root_id, state FROM personal_event_share_marks WHERE event_id = ? ORDER BY root_id',
     )
       .bind(created.id)
       .all<{ root_id: string; state: string }>();
@@ -847,8 +847,8 @@ describe('personal travels routes', () => {
     await switchOn(userId);
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Future Trip',
           start: '2026-12-20',
           end: '2026-12-25',
@@ -858,14 +858,14 @@ describe('personal travels routes', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
-    const res = await patchTravel(sid, created.id, {
+    const res = await patchEvent(sid, created.id, {
       endNow: true,
       today: '2026-11-27',
     });
     expect(res.status).toBe(200);
-    const ended = (await json<TravelSavedResponse>(res)).travel;
+    const ended = (await json<EventSavedResponse>(res)).event;
     expect(ended.start).toBe('2026-11-27');
     expect(ended.end).toBe('2026-11-27');
     expect(ended.countsFrom).toBe('2026-11-27');
@@ -888,7 +888,7 @@ describe('personal travels routes', () => {
     }
 
     const { result: res, queries } = await countQueries(() =>
-      createTravel(sid, {
+      createEvent(sid, {
         name: 'Multi Group',
         start: '2026-11-10',
         end: '2026-11-12',
@@ -900,7 +900,7 @@ describe('personal travels routes', () => {
     );
     expect(res.status).toBe(201);
     expect(queries).toBeLessThanOrEqual(50);
-    const saved = await json<TravelSavedResponse>(res);
+    const saved = await json<EventSavedResponse>(res);
     expect(saved.existing.shares).toEqual({ count: 3, total: 300_000 });
   });
 
@@ -943,8 +943,8 @@ describe('personal travels routes', () => {
     }
     await env.DB.batch(seedStmts);
 
-    const saved = await json<TravelSavedResponse>(
-      await createTravel(sid, {
+    const saved = await json<EventSavedResponse>(
+      await createEvent(sid, {
         name: 'Big Trip',
         start: '2026-11-10',
         end: '2026-11-12',
@@ -957,13 +957,13 @@ describe('personal travels routes', () => {
 
     // Insert an orphan skipped mark whose transaction no longer exists -> must remain 'skipped'
     await env.DB.prepare(
-      "INSERT INTO personal_travel_share_marks (user_id, root_id, travel_id, state) VALUES (?, 'gm-orphan', ?, 'skipped')",
+      "INSERT INTO personal_event_share_marks (user_id, root_id, event_id, state) VALUES (?, 'gm-orphan', ?, 'skipped')",
     )
-      .bind(userId, saved.travel.id)
+      .bind(userId, saved.event.id)
       .run();
 
     const { result: applyRes, queries } = await countQueries(() =>
-      applyExisting(sid, saved.travel.id, {
+      applyExisting(sid, saved.event.id, {
         tag: true,
         ownIds: saved.existing.ownIds,
         shareRootIds: saved.existing.shareRootIds,
@@ -974,7 +974,7 @@ describe('personal travels routes', () => {
     expect(await json<{ tagged: number }>(applyRes)).toEqual({ tagged: COUNT });
 
     const orphanMark = await env.DB.prepare(
-      "SELECT state FROM personal_travel_share_marks WHERE user_id = ? AND root_id = 'gm-orphan'",
+      "SELECT state FROM personal_event_share_marks WHERE user_id = ? AND root_id = 'gm-orphan'",
     )
       .bind(userId)
       .first<{ state: string }>();

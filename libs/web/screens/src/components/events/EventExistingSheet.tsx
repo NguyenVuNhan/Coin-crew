@@ -1,24 +1,24 @@
 import { useEffect, useRef, type JSX } from 'react';
-import { formatMoney, type TravelExisting } from '@cc/core';
+import { formatMoney, type EventExisting } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { useApplyTravelExisting } from '@cc/web-data-access/travels';
+import { useApplyEventExisting } from '@cc/web-data-access/events';
 import { Button } from '@cc/web-ui/components/Button';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Sheet } from '@cc/web-ui/components/Sheet';
 
-export interface TravelExistingSheetProps {
-  travelId: string | null;
-  existing: TravelExisting | null;
+export interface EventExistingSheetProps {
+  eventId: string | null;
+  existing: EventExisting | null;
   onDone: () => void;
 }
 
-export function TravelExistingSheet({
-  travelId,
+export function EventExistingSheet({
+  eventId,
   existing,
   onDone,
-}: TravelExistingSheetProps): JSX.Element {
+}: EventExistingSheetProps): JSX.Element {
   const t = useT();
-  const applyExisting = useApplyTravelExisting();
+  const applyExisting = useApplyEventExisting();
 
   const ownIds = existing?.ownIds ?? [];
   const shareRootIds = existing?.shareRootIds ?? [];
@@ -28,7 +28,7 @@ export function TravelExistingSheet({
   const ownCount = hasExplicitIds ? ownIds.length : (existing?.own.count ?? 0);
   const sharesCount = hasExplicitIds ? shareRootIds.length : (existing?.shares.count ?? 0);
   const totalCount = ownCount + sharesCount;
-  const open = Boolean(travelId && existing && totalCount > 0);
+  const open = Boolean(eventId && existing && totalCount > 0);
 
   const resetRef = useRef(() => {
     applyExisting.reset();
@@ -43,14 +43,14 @@ export function TravelExistingSheet({
       submittedRef.current = false;
       resetRef.current();
     }
-  }, [open, travelId]);
+  }, [open, eventId]);
 
   const handleChoice = (tag: boolean) => {
-    if (!travelId || applyExisting.isPending || submittedRef.current) return;
+    if (!eventId || applyExisting.isPending || submittedRef.current) return;
     submittedRef.current = true;
     applyExisting.mutate(
       {
-        id: travelId,
+        id: eventId,
         tag,
         ...(tag && hasExplicitIds ? { ownIds, shareRootIds } : {}),
       },
@@ -73,18 +73,18 @@ export function TravelExistingSheet({
     <Sheet
       open={open}
       onClose={() => handleChoice(false)}
-      title={t('travels.existingTitle')}
+      title={t('events.existingTitle')}
     >
       {existing && (
         <div
-          className="fsl-travel-existing flex flex-col gap-4"
-          data-testid="travel-existing-sheet"
+          className="fsl-event-existing flex flex-col gap-4"
+          data-testid="event-existing-sheet"
         >
           <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
             {existing.own.count > 0 && (
               <div className="min-h-11 px-4 py-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-foreground">
-                  {t('travels.existingOwn', { n: existing.own.count })}
+                  {t('events.existingOwn', { n: existing.own.count })}
                 </span>
                 <span className="text-sm font-semibold text-foreground tabular-nums shrink-0">
                   {ownTotalsText}
@@ -94,7 +94,7 @@ export function TravelExistingSheet({
             {existing.shares.count > 0 && (
               <div className="min-h-11 px-4 py-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-foreground">
-                  {t('travels.existingShares', { n: existing.shares.count })}
+                  {t('events.existingShares', { n: existing.shares.count })}
                 </span>
                 <span className="text-sm font-semibold text-foreground tabular-nums shrink-0">
                   {formatMoney(existing.shares.total, 'VND')}
@@ -103,7 +103,7 @@ export function TravelExistingSheet({
             )}
           </div>
 
-          <p className="m-0 text-xs text-muted-foreground">{t('travels.existingNote')}</p>
+          <p className="m-0 text-xs text-muted-foreground">{t('events.existingNote')}</p>
 
           {applyExisting.error && <InlineError error={applyExisting.error} />}
 
@@ -113,20 +113,20 @@ export function TravelExistingSheet({
               variant="primary"
               block
               loading={applyExisting.isPending}
-              data-testid="travel-existing-yes"
+              data-testid="event-existing-yes"
               onClick={() => handleChoice(true)}
             >
-              {t('travels.existingYes', { n: totalCount })}
+              {t('events.existingYes', { n: totalCount })}
             </Button>
             <Button
               type="button"
               variant="secondary"
               block
               disabled={applyExisting.isPending}
-              data-testid="travel-existing-no"
+              data-testid="event-existing-no"
               onClick={() => handleChoice(false)}
             >
-              {t('travels.existingNo')}
+              {t('events.existingNo')}
             </Button>
           </div>
         </div>

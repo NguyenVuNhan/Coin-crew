@@ -27,7 +27,7 @@ export type ApiErrorCode =
   | 'FIXED_CATEGORY'
   | 'DEFAULT_WALLET'
   | 'OVERSELL'
-  | 'TRAVEL_OVERLAP'
+  | 'EVENT_OVERLAP'
   | 'TAG_TAKEN'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
@@ -114,7 +114,7 @@ import type { GroupRow } from './groupShares';
 import type { WalletOverride } from './visibility';
 import type { BudgetDef, BudgetPeriodKind, BudgetTarget } from './budgets';
 import type { CountedSpendRow } from './reports';
-import type { TravelDef } from './travels';
+import type { EventDef } from './events';
 
 export type AuthProvider = 'google' | 'zalo';
 
@@ -1001,57 +1001,57 @@ export interface BudgetsProgressResponse {
   rows: CountedSpendRow[];
 }
 
-export interface TravelView extends TravelDef {
+export interface EventView extends EventDef {
   createdAt: string;
 }
 
-export interface TravelsResponse {
-  travels: TravelView[];
+export interface EventsResponse {
+  events: EventView[];
 }
 
-export interface TravelRowsResponse {
+export interface EventRowsResponse {
   rows: CountedSpendRow[];
 }
 
-export interface TravelLimitInput {
+export interface EventLimitInput {
   amount: number;
   currency: CurrencyCode;
 }
 
-export interface CreateTravelInput {
+export interface CreateEventInput {
   name: string;
   start: string;
   end: string;
   countsFrom?: string;
   groupIds: string[];
-  limit?: TravelLimitInput;
+  limit?: EventLimitInput;
   today: string;
 }
 
-export interface UpdateTravelInput {
+export interface UpdateEventInput {
   name?: string;
   start?: string;
   end?: string;
   countsFrom?: string;
   groupIds?: string[];
-  limit?: TravelLimitInput | null;
+  limit?: EventLimitInput | null;
   endNow?: true;
   today: string;
 }
 
-export interface TravelExisting {
+export interface EventExisting {
   own: { count: number; totals: { currency: CurrencyCode; amount: number }[] };
   shares: { count: number; total: number };
   ownIds?: string[];
   shareRootIds?: string[];
 }
 
-export interface TravelSavedResponse {
-  travel: TravelView;
-  existing: TravelExisting;
+export interface EventSavedResponse {
+  event: EventView;
+  existing: EventExisting;
 }
 
-export interface ApplyTravelExistingInput {
+export interface ApplyEventExistingInput {
   tag: boolean;
   ownIds?: string[];
   shareRootIds?: string[];

@@ -3,9 +3,9 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 import * as groupCopy from './txCopy/groupCopy';
-import { useTravelShareSync } from './travels';
+import { useEventShareSync } from './events';
 
-describe('useTravelShareSync unmount behavior', () => {
+describe('useEventShareSync unmount behavior', () => {
   const origFetch = globalThis.fetch;
 
   beforeEach(() => {
@@ -30,11 +30,11 @@ describe('useTravelShareSync unmount behavior', () => {
 
     globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith('/api/me/personal/travels')) {
+      if (url.endsWith('/api/me/personal/events')) {
         return Promise.resolve(
           new Response(
             JSON.stringify({
-              travels: [
+              events: [
                 {
                   id: 'tr-1',
                   tagId: 'tag-1',
@@ -52,7 +52,7 @@ describe('useTravelShareSync unmount behavior', () => {
           ),
         );
       }
-      if (url.endsWith('/api/me/personal/travels/tag-shares')) {
+      if (url.endsWith('/api/me/personal/events/tag-shares')) {
         return tagSharesPromise;
       }
       return Promise.resolve(new Response('{}', { status: 200 }));
@@ -62,11 +62,11 @@ describe('useTravelShareSync unmount behavior', () => {
     const wrapper = ({ children }: { children: ReactNode }) =>
       createElement(QueryClientProvider, { client }, children);
 
-    const { unmount } = renderHook(() => useTravelShareSync(), { wrapper });
+    const { unmount } = renderHook(() => useEventShareSync(), { wrapper });
 
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/me/personal/travels/tag-shares'),
+        expect.stringContaining('/api/me/personal/events/tag-shares'),
         expect.anything(),
       );
     });

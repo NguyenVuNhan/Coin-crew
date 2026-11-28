@@ -13,9 +13,9 @@ import type {
   GroupRow,
   SyncEntryRow,
   TagView,
-  TravelRowsResponse,
-  TravelsResponse,
-  TravelView,
+  EventRowsResponse,
+  EventsResponse,
+  EventView,
   WalletDetailsResponse,
   WalletDetailView,
 } from '@cc/core';
@@ -23,9 +23,9 @@ import { todayLocal } from '@cc/web-util/localDate';
 import { openGroupCopyStore, forgetGroupCopy } from '../txCopy/groupCopy';
 import { openTxCopyStore } from '../txCopy/store';
 import { forgetTxCopy } from '../txCopy/hooks';
-import { PERSONAL_TRAVELS_KEY, useTravelSummary } from '../travels';
+import { PERSONAL_EVENTS_KEY, useEventSummary } from '../events';
 
-const TEST_USER_ID = 'travels-fallback-user-1';
+const TEST_USER_ID = 'events-fallback-user-1';
 
 type Handler = (init: RequestInit | undefined, url: string) => Response | Promise<Response>;
 
@@ -107,7 +107,7 @@ const catFood: CategoryView = {
   sortOrder: 0,
 };
 
-const travelTag: TagView = {
+const eventTag: TagView = {
   id: 't-dalat',
   name: 'Đà Lạt',
   useCount: 1,
@@ -122,11 +122,11 @@ function baseRoutes(overrides: Record<string, Handler | unknown> = {}) {
       categories: [catFood],
       recentIds: ['c-food'],
     } satisfies CategoriesResponse,
-    'GET /api/me/personal/tags': { tags: [travelTag] },
+    'GET /api/me/personal/tags': { tags: [eventTag] },
     'GET /api/me/personal/group-settings': {
       settings: { defaultGroupCategoryId: null, countLoans: false },
     },
-    'GET /api/me/personal/travels': { travels: [] } satisfies TravelsResponse,
+    'GET /api/me/personal/events': { events: [] } satisfies EventsResponse,
     'GET /api/me/personal/sync': {
       status: 'current',
       epoch: 'ep-1',
@@ -162,16 +162,16 @@ async function seedLocalCopy(entries: SyncEntryRow[], groupRows: GroupRow[], gro
   await groupStore!.replace(groupKey, groupRows);
 }
 
-describe('useTravelSummary rows fallback', () => {
+describe('useEventSummary rows fallback', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     await forgetTxCopy(TEST_USER_ID).catch(() => {});
     await forgetGroupCopy(TEST_USER_ID).catch(() => {});
   });
 
-  it('with copy unavailable and NO budgets, returns summary from /travels/:id/rows', async () => {
+  it('with copy unavailable and NO budgets, returns summary from /events/:id/rows', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -208,13 +208,13 @@ describe('useTravelSummary rows fallback', () => {
 
     const { calls } = mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
-        'GET /api/me/personal/travels/tr-1/rows': { rows: serverRows } satisfies TravelRowsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
+        'GET /api/me/personal/events/tr-1/rows': { rows: serverRows } satisfies EventRowsResponse,
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+    const { result, unmount } = renderHook(() => useEventSummary('tr-1'), {
       wrapper: makeWrapper(queryClient),
     });
 
@@ -223,8 +223,8 @@ describe('useTravelSummary rows fallback', () => {
       expect(result.current.summary).not.toBeNull();
     });
 
-    expect(calls.some((c) => c.path === '/api/me/personal/travels/tr-1/rows')).toBe(true);
-    expect(queryClient.getQueryData([...PERSONAL_TRAVELS_KEY, 'tr-1', 'rows'])).toEqual({
+    expect(calls.some((c) => c.path === '/api/me/personal/events/tr-1/rows')).toBe(true);
+    expect(queryClient.getQueryData([...PERSONAL_EVENTS_KEY, 'tr-1', 'rows'])).toEqual({
       rows: serverRows,
     });
     expect(result.current.summary!.currencies).toHaveLength(1);
@@ -235,9 +235,9 @@ describe('useTravelSummary rows fallback', () => {
     unmount();
   });
 
-  it('with copy ready, does not call /travels/:id/rows', async () => {
+  it('with copy ready, does not call /events/:id/rows', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -272,12 +272,12 @@ describe('useTravelSummary rows fallback', () => {
 
     const { calls } = mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+    const { result, unmount } = renderHook(() => useEventSummary('tr-1'), {
       wrapper: makeWrapper(queryClient),
     });
 
@@ -286,15 +286,15 @@ describe('useTravelSummary rows fallback', () => {
       expect(result.current.summary).not.toBeNull();
     });
 
-    expect(calls.some((c) => c.path === '/api/me/personal/travels/tr-1/rows')).toBe(false);
+    expect(calls.some((c) => c.path === '/api/me/personal/events/tr-1/rows')).toBe(false);
     expect(result.current.summary!.currencies[0]!.total).toBe(180_000);
 
     unmount();
   });
 
-  it('when /travels/:id/rows returns 500 with a working budgets/progress, uses progress rows with no error', async () => {
+  it('when /events/:id/rows returns 500 with a working budgets/progress, uses progress rows with no error', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -334,16 +334,16 @@ describe('useTravelSummary rows fallback', () => {
 
     mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
         'GET /api/me/personal/budgets': { budgets: [otherBudget] } satisfies BudgetsResponse,
         'GET /api/me/personal/budgets/progress': { rows: progressRows } satisfies BudgetsProgressResponse,
-        'GET /api/me/personal/travels/tr-1/rows': () =>
+        'GET /api/me/personal/events/tr-1/rows': () =>
           Response.json({ error: { code: 'INTERNAL', message: 'Boom' } }, { status: 500 }),
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+    const { result, unmount } = renderHook(() => useEventSummary('tr-1'), {
       wrapper: makeWrapper(queryClient),
     });
 
@@ -358,9 +358,9 @@ describe('useTravelSummary rows fallback', () => {
     unmount();
   });
 
-  it('when both /travels/:id/rows and budgets/progress fail, sets error', async () => {
+  it('when both /events/:id/rows and budgets/progress fail, sets error', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -388,17 +388,17 @@ describe('useTravelSummary rows fallback', () => {
 
     mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
         'GET /api/me/personal/budgets': { budgets: [otherBudget] } satisfies BudgetsResponse,
         'GET /api/me/personal/budgets/progress': () =>
           Response.json({ error: { code: 'INTERNAL', message: 'Progress failed' } }, { status: 500 }),
-        'GET /api/me/personal/travels/tr-1/rows': () =>
+        'GET /api/me/personal/events/tr-1/rows': () =>
           Response.json({ error: { code: 'INTERNAL', message: 'Rows failed' } }, { status: 500 }),
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+    const { result, unmount } = renderHook(() => useEventSummary('tr-1'), {
       wrapper: makeWrapper(queryClient),
     });
 
@@ -412,9 +412,9 @@ describe('useTravelSummary rows fallback', () => {
     unmount();
   });
 
-  it('when /travels/:id/rows succeeds and budgets/progress fails, uses /rows with no error', async () => {
+  it('when /events/:id/rows succeeds and budgets/progress fails, uses /rows with no error', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -454,16 +454,16 @@ describe('useTravelSummary rows fallback', () => {
 
     mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
         'GET /api/me/personal/budgets': { budgets: [otherBudget] } satisfies BudgetsResponse,
         'GET /api/me/personal/budgets/progress': () =>
           Response.json({ error: { code: 'INTERNAL', message: 'Progress failed' } }, { status: 500 }),
-        'GET /api/me/personal/travels/tr-1/rows': { rows: serverRows } satisfies TravelRowsResponse,
+        'GET /api/me/personal/events/tr-1/rows': { rows: serverRows } satisfies EventRowsResponse,
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+    const { result, unmount } = renderHook(() => useEventSummary('tr-1'), {
       wrapper: makeWrapper(queryClient),
     });
 

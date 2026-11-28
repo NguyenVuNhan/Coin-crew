@@ -14,7 +14,7 @@ import {
   parseQuantity,
   quantityInputDecimals,
   quickExpenseDescription,
-  travelForDate,
+  eventForDate,
   type AssetView,
   type BudgetDraft,
   type CurrencyCode,
@@ -32,7 +32,7 @@ import { useTripView } from '@cc/web-data-access/hooks';
 import { useLedger } from '@cc/web-data-access/people';
 import { QuickShareLinkError, useSaveQuickShare } from '@cc/web-data-access/quickShare';
 import { useBudgetImpacts } from '@cc/web-data-access/budgets';
-import { useTravels } from '@cc/web-data-access/travels';
+import { useEvents } from '@cc/web-data-access/events';
 import {
   PERSONAL_LIST_KEY,
   readLastWallet,
@@ -79,7 +79,7 @@ import {
   BudgetWarning,
   showBudgetSaved,
 } from '../components/budgets/BudgetWarning';
-import { EntryTravelRow } from '../components/travels/EntryTravelRow';
+import { EntryEventRow } from '../components/events/EntryEventRow';
 import { OutcomeSentence } from '../components/quickShare/OutcomeSentence';
 import { SplitWithPeople } from '../components/quickShare/SplitWithPeople';
 import { SplitFold } from '../components/quickShare/SplitFold';
@@ -901,40 +901,40 @@ export function EntryPage(): JSX.Element {
 
   const isPlainExpense = !isLoanDebt && entryType === 'expense' && !isTransferMode && !isTradeMode;
   const entryDate = dateTime.split('T')[0] || todayLocal();
-  const travelsQuery = useTravels({ enabled: isPlainExpense });
-  const travelMatch = useMemo(
-    () => (isPlainExpense ? travelForDate(travelsQuery.data?.travels ?? [], entryDate) : null),
-    [isPlainExpense, travelsQuery.data?.travels, entryDate],
+  const eventsQuery = useEvents({ enabled: isPlainExpense });
+  const eventMatch = useMemo(
+    () => (isPlainExpense ? eventForDate(eventsQuery.data?.events ?? [], entryDate) : null),
+    [isPlainExpense, eventsQuery.data?.events, entryDate],
   );
-  const [travelOn, setTravelOn] = useState<boolean | null>(null);
-  const travelMatchId = travelMatch?.travel.id ?? null;
-  const prevTravelMatchIdRef = useRef<string | null>(travelMatchId);
+  const [eventOn, setEventOn] = useState<boolean | null>(null);
+  const eventMatchId = eventMatch?.event.id ?? null;
+  const prevEventMatchIdRef = useRef<string | null>(eventMatchId);
   useEffect(() => {
-    if (prevTravelMatchIdRef.current !== travelMatchId) {
-      prevTravelMatchIdRef.current = travelMatchId;
-      setTravelOn(null);
+    if (prevEventMatchIdRef.current !== eventMatchId) {
+      prevEventMatchIdRef.current = eventMatchId;
+      setEventOn(null);
     }
-  }, [travelMatchId]);
+  }, [eventMatchId]);
 
   const tripTagName = useMemo(() => {
-    if (!travelMatch) return null;
+    if (!eventMatch) return null;
     const matchedTag = (tagsQuery.data?.tags ?? []).find(
-      (tg) => tg.id === travelMatch.travel.tagId,
+      (tg) => tg.id === eventMatch.event.tagId,
     );
-    return matchedTag?.name ?? travelMatch.travel.name;
-  }, [travelMatch, tagsQuery.data?.tags]);
+    return matchedTag?.name ?? eventMatch.event.name;
+  }, [eventMatch, tagsQuery.data?.tags]);
 
-  const existingHasTravelTag = useMemo(() => {
-    if (!isEdit || !travelMatch) return false;
+  const existingHasEventTag = useMemo(() => {
+    if (!isEdit || !eventMatch) return false;
     if (isDirectEdit) {
-      return tags.includes(travelMatch.travel.tagId);
+      return tags.includes(eventMatch.event.tagId);
     }
-    const needle = (tripTagName ?? travelMatch.travel.name).trim().toLowerCase();
+    const needle = (tripTagName ?? eventMatch.event.name).trim().toLowerCase();
     return tags.some((name) => name.trim().toLowerCase() === needle);
-  }, [isEdit, isDirectEdit, travelMatch, tags, tripTagName]);
+  }, [isEdit, isDirectEdit, eventMatch, tags, tripTagName]);
 
-  const effectiveTravelOn = travelMatch
-    ? (travelOn ?? (isEdit ? existingHasTravelTag : travelMatch.mode === 'on'))
+  const effectiveEventOn = eventMatch
+    ? (eventOn ?? (isEdit ? existingHasEventTag : eventMatch.mode === 'on'))
     : false;
 
   const draftTagIds = useMemo(() => {
@@ -948,13 +948,13 @@ export function EntryPage(): JSX.Element {
         .map((name) => idByName.get(name.trim().toLowerCase()))
         .filter((tid): tid is string => Boolean(tid));
     })();
-    if (!travelMatch) return baseIds;
-    const tripTagId = travelMatch.travel.tagId;
-    if (effectiveTravelOn) {
+    if (!eventMatch) return baseIds;
+    const tripTagId = eventMatch.event.tagId;
+    if (effectiveEventOn) {
       return baseIds.includes(tripTagId) ? baseIds : [...baseIds, tripTagId];
     }
     return baseIds.filter((tid) => tid !== tripTagId);
-  }, [tags, isDirectEdit, tagsQuery.data?.tags, travelMatch, effectiveTravelOn]);
+  }, [tags, isDirectEdit, tagsQuery.data?.tags, eventMatch, effectiveEventOn]);
 
   const budgetDraftAmount = useMemo(() => {
     if (primaryMinor === null || primaryMinor <= 0) return 0;
@@ -1698,9 +1698,9 @@ export function EntryPage(): JSX.Element {
         const shareCategoryKey =
           pickedSystemKey && isFixedExpenseKey(pickedSystemKey) ? pickedSystemKey : null;
         const resolvedShareTagIds = (() => {
-          if (!isPlainExpense || !travelMatch) return tags;
-          const tripTagId = travelMatch.travel.tagId;
-          if (effectiveTravelOn) {
+          if (!isPlainExpense || !eventMatch) return tags;
+          const tripTagId = eventMatch.event.tagId;
+          if (effectiveEventOn) {
             return tags.includes(tripTagId) ? tags : [...tags, tripTagId];
           }
           return tags.filter((tid) => tid !== tripTagId);
@@ -1760,11 +1760,11 @@ export function EntryPage(): JSX.Element {
           ? tags
           : [];
       const resolvedEntryTags = (() => {
-        if (!isPlainExpense || !travelMatch) return baseEntryTags;
-        const tagName = tripTagName ?? travelMatch.travel.name;
+        if (!isPlainExpense || !eventMatch) return baseEntryTags;
+        const tagName = tripTagName ?? eventMatch.event.name;
         const needle = tagName.trim().toLowerCase();
-        const fallbackNeedle = travelMatch.travel.name.trim().toLowerCase();
-        if (effectiveTravelOn) {
+        const fallbackNeedle = eventMatch.event.name.trim().toLowerCase();
+        if (effectiveEventOn) {
           const already = baseEntryTags.some((n) => {
             const norm = n.trim().toLowerCase();
             return norm === needle || norm === fallbackNeedle;
@@ -2604,10 +2604,10 @@ export function EntryPage(): JSX.Element {
             )}
 
             {isPlainExpense && (
-              <EntryTravelRow
-                match={travelMatch}
-                on={effectiveTravelOn}
-                onToggle={setTravelOn}
+              <EntryEventRow
+                match={eventMatch}
+                on={effectiveEventOn}
+                onToggle={setEventOn}
               />
             )}
 

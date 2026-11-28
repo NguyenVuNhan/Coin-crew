@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { CountedSpendRow, TravelView, WalletDetailView } from '@cc/core';
-import { TravelExistingSheet } from '../components/travels/TravelExistingSheet';
-import { TravelForm } from '../components/travels/TravelForm';
-import { TravelsScreen } from '../screens/TravelsScreen';
+import type { CountedSpendRow, EventView, WalletDetailView } from '@cc/core';
+import { EventExistingSheet } from '../components/events/EventExistingSheet';
+import { EventForm } from '../components/events/EventForm';
+import { EventsScreen } from '../screens/EventsScreen';
 
 function makeClient() {
   return new QueryClient({
@@ -41,7 +41,7 @@ const sampleWallet: WalletDetailView = {
   excludeFromReports: false,
 };
 
-const doneTrip: TravelView = {
+const doneTrip: EventView = {
   id: 'tr-done',
   tagId: 'tag-done',
   name: 'Sapa Oct',
@@ -64,11 +64,11 @@ describe('trip mode final fixes (screens)', () => {
     globalThis.fetch = origFetch;
   });
 
-  it('TravelExistingSheet counts n from ownIds + shareRootIds and sends exact ids on Yes', async () => {
+  it('EventExistingSheet counts n from ownIds + shareRootIds and sends exact ids on Yes', async () => {
     let postedBody: unknown = null;
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.includes('/api/me/personal/travels/tr-1/existing') && init?.method === 'POST') {
+      if (url.includes('/api/me/personal/events/tr-1/existing') && init?.method === 'POST') {
         postedBody = JSON.parse(String(init.body));
         return jsonRes({ tagged: 3 });
       }
@@ -79,8 +79,8 @@ describe('trip mode final fixes (screens)', () => {
     render(
       <QueryClientProvider client={makeClient()}>
         <MemoryRouter>
-          <TravelExistingSheet
-            travelId="tr-1"
+          <EventExistingSheet
+            eventId="tr-1"
             existing={{
               own: { count: 2, totals: [{ currency: 'VND', amount: 300_000 }] },
               shares: { count: 1, total: 150_000 },
@@ -93,7 +93,7 @@ describe('trip mode final fixes (screens)', () => {
       </QueryClientProvider>,
     );
 
-    const yesBtn = screen.getByTestId('travel-existing-yes');
+    const yesBtn = screen.getByTestId('event-existing-yes');
     expect(yesBtn).toHaveTextContent('Tag all 3 items');
 
     fireEvent.click(yesBtn);
@@ -105,7 +105,7 @@ describe('trip mode final fixes (screens)', () => {
     });
   });
 
-  it('TravelsScreen shows Skeleton while pending and real total from /travels/:id/rows with no local copy and no budgets', async () => {
+  it('EventsScreen shows Skeleton while pending and real total from /events/:id/rows with no local copy and no budgets', async () => {
     let resolveRows!: (res: Response) => void;
     const rowsPromise = new Promise<Response>((resolve) => {
       resolveRows = resolve;
@@ -127,11 +127,11 @@ describe('trip mode final fixes (screens)', () => {
 
     globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith('/api/me/personal/travels/tr-done/rows')) {
+      if (url.endsWith('/api/me/personal/events/tr-done/rows')) {
         return rowsPromise;
       }
-      if (url.endsWith('/api/me/personal/travels')) {
-        return Promise.resolve(jsonRes({ travels: [doneTrip] }));
+      if (url.endsWith('/api/me/personal/events')) {
+        return Promise.resolve(jsonRes({ events: [doneTrip] }));
       }
       if (url.includes('/api/me/personal/wallets')) {
         return Promise.resolve(jsonRes({ wallets: [sampleWallet] }));
@@ -154,17 +154,17 @@ describe('trip mode final fixes (screens)', () => {
     render(
       <QueryClientProvider client={makeClient()}>
         <MemoryRouter>
-          <TravelsScreen />
+          <EventsScreen />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
-    const row = await screen.findByTestId('travel-row-tr-done');
+    const row = await screen.findByTestId('event-row-tr-done');
     // While /rows is pending, show Skeleton and never "0₫"
     expect(row.querySelector('.fsl-skeleton')).not.toBeNull();
     expect(row.textContent).not.toContain('0₫');
 
-    // Resolve /travels/tr-done/rows with real total
+    // Resolve /events/tr-done/rows with real total
     resolveRows(jsonRes({ rows: serverRows }));
 
     await waitFor(() => {
@@ -173,7 +173,7 @@ describe('trip mode final fixes (screens)', () => {
     });
   });
 
-  it('TravelForm enforces 30-char name limit and never shows raw group ids while loading or for left groups', async () => {
+  it('EventForm enforces 30-char name limit and never shows raw group ids while loading or for left groups', async () => {
     let resolveGroups!: (res: Response) => void;
     const groupsPromise = new Promise<Response>((resolve) => {
       resolveGroups = resolve;
@@ -193,7 +193,7 @@ describe('trip mode final fixes (screens)', () => {
       return Promise.resolve(jsonRes({}));
     }) as typeof fetch;
 
-    const editTrip: TravelView = {
+    const editTrip: EventView = {
       ...doneTrip,
       id: 'tr-edit',
       groupIds: ['grp-secret-raw-id'],
@@ -202,23 +202,23 @@ describe('trip mode final fixes (screens)', () => {
     render(
       <QueryClientProvider client={makeClient()}>
         <MemoryRouter>
-          <TravelForm open onClose={() => {}} travel={editTrip} onSaved={() => {}} />
+          <EventForm open onClose={() => {}} event={editTrip} onSaved={() => {}} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     // 30-char limit on name input and submit button
-    const nameInput = screen.getByTestId('travel-form-name') as HTMLInputElement;
+    const nameInput = screen.getByTestId('event-form-name') as HTMLInputElement;
     expect(nameInput.maxLength).toBe(30);
 
     fireEvent.change(nameInput, { target: { value: 'a'.repeat(31) } });
-    expect(screen.getByTestId('travel-form-submit')).toBeDisabled();
+    expect(screen.getByTestId('event-form-submit')).toBeDisabled();
 
     fireEvent.change(nameInput, { target: { value: 'a'.repeat(30) } });
-    expect(screen.getByTestId('travel-form-submit')).not.toBeDisabled();
+    expect(screen.getByTestId('event-form-submit')).not.toBeDisabled();
 
     // While groups load: chip shows Skeleton placeholder, never raw group id
-    const chip = screen.getByTestId('travel-form-group-chip-grp-secret-raw-id');
+    const chip = screen.getByTestId('event-form-group-chip-grp-secret-raw-id');
     expect(chip.textContent).not.toContain('grp-secret-raw-id');
     expect(chip.querySelector('.fsl-skeleton')).not.toBeNull();
 

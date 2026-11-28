@@ -4,7 +4,7 @@ import type {
   BudgetResponse,
   CategoriesResponse,
   EntryView,
-  TravelSavedResponse,
+  EventSavedResponse,
   WalletDetailResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
@@ -12,14 +12,14 @@ import { addWallet, postJson, switchOn } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
-const createTravel = (sid: string, body: unknown) =>
-  postJson('/api/me/personal/travels', sid, body);
+const createEvent = (sid: string, body: unknown) =>
+  postJson('/api/me/personal/events', sid, body);
 
-const patchTravel = (sid: string, id: string, body: unknown) =>
-  postJson(`/api/me/personal/travels/${encodeURIComponent(id)}`, sid, body, 'PATCH');
+const patchEvent = (sid: string, id: string, body: unknown) =>
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}`, sid, body, 'PATCH');
 
 const applyExisting = (sid: string, id: string, body: unknown) =>
-  postJson(`/api/me/personal/travels/${encodeURIComponent(id)}/existing`, sid, body);
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}/existing`, sid, body);
 
 const getCategories = (sid: string) => call('/api/me/personal/categories', as(sid));
 const getBudget = (sid: string, id: string) =>
@@ -73,9 +73,9 @@ async function seedGroupWithExpenses(
 }
 
 afterEach(async () => {
-  await env.DB.prepare('DELETE FROM personal_travel_share_marks').run();
-  await env.DB.prepare('DELETE FROM personal_travel_groups').run();
-  await env.DB.prepare('DELETE FROM personal_travels').run();
+  await env.DB.prepare('DELETE FROM personal_event_share_marks').run();
+  await env.DB.prepare('DELETE FROM personal_event_groups').run();
+  await env.DB.prepare('DELETE FROM personal_events').run();
   await env.DB.prepare('DELETE FROM personal_budget_excluded_wallets').run();
   await env.DB.prepare('DELETE FROM personal_budget_limits').run();
   await env.DB.prepare('DELETE FROM personal_budgets').run();
@@ -96,7 +96,7 @@ afterEach(async () => {
   await env.DB.prepare('DELETE FROM trips').run();
 });
 
-describe('personal travels existing-items exact set', () => {
+describe('personal events existing-items exact set', () => {
   it('own expense whose tag was removed by hand on day 2 is NOT offered or re-tagged after endNow', async () => {
     const userId = 'u-ex-endnow';
     const sid = await memberSid(userId, 'EndNowUser');
@@ -111,8 +111,8 @@ describe('personal travels existing-items exact set', () => {
     const food = cats.find((c) => c.type === 'expense')!;
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Đà Nẵng',
           start: '2026-11-10',
           end: '2026-11-15',
@@ -120,7 +120,7 @@ describe('personal travels existing-items exact set', () => {
           today: '2026-11-10',
         }),
       )
-    ).travel;
+    ).event;
 
     // Day 2 expense: tagged with trip, then tag removed by hand
     const day2 = (
@@ -149,12 +149,12 @@ describe('personal travels existing-items exact set', () => {
     ).toBe(200);
 
     // End early on day 3
-    const endRes = await patchTravel(sid, created.id, {
+    const endRes = await patchEvent(sid, created.id, {
       endNow: true,
       today: '2026-11-12',
     });
     expect(endRes.status).toBe(200);
-    const ended = await json<TravelSavedResponse>(endRes);
+    const ended = await json<EventSavedResponse>(endRes);
     expect(ended.existing).toEqual({
       own: { count: 0, totals: [] },
       shares: { count: 0, total: 0 },
@@ -192,8 +192,8 @@ describe('personal travels existing-items exact set', () => {
     ]);
 
     // First save with g-a: ge-old is offered; user declines ("Chỉ từ giờ trở đi")
-    const first = await json<TravelSavedResponse>(
-      await createTravel(sid, {
+    const first = await json<EventSavedResponse>(
+      await createEvent(sid, {
         name: 'Sapa',
         start: '2026-11-10',
         end: '2026-11-12',
@@ -204,12 +204,12 @@ describe('personal travels existing-items exact set', () => {
     );
     expect(first.existing.shareRootIds).toEqual(['ge-old']);
     expect(
-      await json<{ tagged: number }>(await applyExisting(sid, first.travel.id, { tag: false })),
+      await json<{ tagged: number }>(await applyExisting(sid, first.event.id, { tag: false })),
     ).toEqual({ tagged: 0 });
 
     // Later PATCH adds g-b: only ge-new is offered (not ge-old)
-    const second = await json<TravelSavedResponse>(
-      await patchTravel(sid, first.travel.id, {
+    const second = await json<EventSavedResponse>(
+      await patchEvent(sid, first.event.id, {
         groupIds: ['g-a', 'g-b'],
         today: '2026-11-27',
       }),
@@ -219,7 +219,7 @@ describe('personal travels existing-items exact set', () => {
     expect(second.existing.ownIds).toEqual([]);
 
     // User clicks Yes with the returned ids + a bogus id (invalid ids are ignored)
-    const applyRes = await applyExisting(sid, first.travel.id, {
+    const applyRes = await applyExisting(sid, first.event.id, {
       tag: true,
       ownIds: ['nonexistent-own'],
       shareRootIds: [...(second.existing.shareRootIds ?? []), 'nonexistent-share'],
@@ -231,14 +231,14 @@ describe('personal travels existing-items exact set', () => {
     const linkTags = await env.DB.prepare(
       'SELECT root_id FROM personal_group_link_tags WHERE user_id = ? AND tag_id = ? ORDER BY root_id',
     )
-      .bind(userId, first.travel.tagId)
+      .bind(userId, first.event.tagId)
       .all<{ root_id: string }>();
     expect(linkTags.results.map((r) => r.root_id)).toEqual(['ge-new']);
 
     const marks = await env.DB.prepare(
-      'SELECT root_id, state FROM personal_travel_share_marks WHERE travel_id = ? ORDER BY root_id',
+      'SELECT root_id, state FROM personal_event_share_marks WHERE event_id = ? ORDER BY root_id',
     )
-      .bind(first.travel.id)
+      .bind(first.event.id)
       .all<{ root_id: string; state: string }>();
     expect(marks.results).toEqual([
       { root_id: 'ge-new', state: 'tagged' },
@@ -296,8 +296,8 @@ describe('personal travels existing-items exact set', () => {
       )
     ).entries[0]!;
 
-    const created = await json<TravelSavedResponse>(
-      await createTravel(sid, {
+    const created = await json<EventSavedResponse>(
+      await createEvent(sid, {
         name: 'Huế',
         start: '2026-11-10',
         end: '2026-11-12',
@@ -309,12 +309,12 @@ describe('personal travels existing-items exact set', () => {
 
     // Calling /existing with tag: true and NO ids tags nothing
     expect(
-      await json<{ tagged: number }>(await applyExisting(sid, created.travel.id, { tag: true })),
+      await json<{ tagged: number }>(await applyExisting(sid, created.event.id, { tag: true })),
     ).toEqual({ tagged: 0 });
 
     // Extend end by 2 days (Nov 12 -> Nov 14): only ext1 and ext2 are offered
-    const patched = await json<TravelSavedResponse>(
-      await patchTravel(sid, created.travel.id, {
+    const patched = await json<EventSavedResponse>(
+      await patchEvent(sid, created.event.id, {
         end: '2026-11-14',
         today: '2026-11-27',
       }),
@@ -324,7 +324,7 @@ describe('personal travels existing-items exact set', () => {
     expect(new Set(patched.existing.ownIds)).toEqual(new Set([ext1.id, ext2.id]));
 
     // Tagging those 2 ids tags only ext1 and ext2 (not origEntry)
-    const applyRes = await applyExisting(sid, created.travel.id, {
+    const applyRes = await applyExisting(sid, created.event.id, {
       tag: true,
       ownIds: patched.existing.ownIds,
       shareRootIds: patched.existing.shareRootIds,
@@ -335,7 +335,7 @@ describe('personal travels existing-items exact set', () => {
     const txTags = await env.DB.prepare(
       'SELECT transaction_id FROM personal_transaction_tags WHERE tag_id = ? ORDER BY transaction_id',
     )
-      .bind(created.travel.tagId)
+      .bind(created.event.tagId)
       .all<{ transaction_id: string }>();
     expect(new Set(txTags.results.map((r) => r.transaction_id))).toEqual(new Set([ext1.id, ext2.id]));
   });
@@ -369,8 +369,8 @@ describe('personal travels existing-items exact set', () => {
     ).wallet;
 
     const created = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Tokyo',
           start: '2026-12-01',
           end: '2026-12-05',
@@ -379,12 +379,12 @@ describe('personal travels existing-items exact set', () => {
           today: '2026-11-27',
         }),
       )
-    ).travel;
+    ).event;
 
     const bBefore = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
     expect(bBefore.excludedWalletIds).toEqual([wVndExcl.id]);
 
-    const patchRes = await patchTravel(sid, created.id, {
+    const patchRes = await patchEvent(sid, created.id, {
       limit: { amount: 500_00, currency: 'USD' },
       today: '2026-11-27',
     });

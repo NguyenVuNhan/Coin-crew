@@ -4,7 +4,7 @@ import {
   listCountedSpending,
   type CountedSpendRow,
 } from '../src/reports';
-import { summarizeTravel, travelRows, type TravelDef } from '../src/travels';
+import { summarizeEvent, eventRows, type EventDef } from '../src/events';
 import type { CalcEntry } from '../src/wallets';
 import type { GroupRow, GroupSettingsView } from '../src/groupShares';
 import type { CategoryView, TagView, WalletDetailView } from '../src/api-types';
@@ -102,7 +102,7 @@ const categories: CategoryView[] = [
   },
 ];
 
-const tripDef: TravelDef = {
+const tripDef: EventDef = {
   id: 'tr-1',
   tagId: 'tag-trip',
   name: 'Đà Lạt',
@@ -113,7 +113,7 @@ const tripDef: TravelDef = {
   budgetId: null,
 };
 
-describe('travels summary', () => {
+describe('events summary', () => {
   it('agrees with the report for the trip tag and range', () => {
     const wallets: WalletDetailView[] = [
       createWallet('w-vnd', 'VND'),
@@ -202,7 +202,7 @@ describe('travels summary', () => {
       groupSettings,
     });
 
-    const summary = summarizeTravel(tripDef, rows, wallets, categories);
+    const summary = summarizeEvent(tripDef, rows, wallets, categories);
     const report = buildReport({
       wallets,
       entries,
@@ -229,7 +229,7 @@ describe('travels summary', () => {
 
   it('two trips on one tag count only their own dates', () => {
     const wallets = [createWallet('w-vnd', 'VND')];
-    const trip1: TravelDef = {
+    const trip1: EventDef = {
       id: 'tr-2025',
       tagId: 'tag-dalat',
       name: 'Đà Lạt 2025',
@@ -239,7 +239,7 @@ describe('travels summary', () => {
       groupIds: [],
       budgetId: null,
     };
-    const trip2: TravelDef = {
+    const trip2: EventDef = {
       id: 'tr-2026',
       tagId: 'tag-dalat',
       name: 'Đà Lạt 2026',
@@ -256,8 +256,8 @@ describe('travels summary', () => {
       createRow({ id: 'r3', amount: 900_000, date: '2026-10-01', tagIds: ['tag-dalat'] }),
     ];
 
-    const s1 = summarizeTravel(trip1, rows, wallets, categories);
-    const s2 = summarizeTravel(trip2, rows, wallets, categories);
+    const s1 = summarizeEvent(trip1, rows, wallets, categories);
+    const s2 = summarizeEvent(trip2, rows, wallets, categories);
 
     expect(s1.currencies[0]?.total).toBe(300_000);
     expect(s1.rowIds).toEqual(['r1']);
@@ -273,7 +273,7 @@ describe('travels summary', () => {
       createRow({ id: 'r-grp-1', kind: 'group', amount: 350_000, date: '2026-11-12' }),
     ];
 
-    const summary = summarizeTravel(tripDef, rows, wallets, categories);
+    const summary = summarizeEvent(tripDef, rows, wallets, categories);
     const vnd = summary.currencies[0]!;
     expect(vnd.own).toBe(200_000);
     expect(vnd.group).toBe(350_000);
@@ -290,7 +290,7 @@ describe('travels summary', () => {
       createRow({ id: 'r-d1', amount: 150_000, date: '2026-11-10' }),
     ];
 
-    const summary = summarizeTravel(tripDef, rows, wallets, categories);
+    const summary = summarizeEvent(tripDef, rows, wallets, categories);
     expect(summary.currencies[0]!.byDay).toEqual([
       { date: 'leadup', amount: 650_000 },
       { date: '2026-11-10', amount: 150_000 },
@@ -306,7 +306,7 @@ describe('travels summary', () => {
       createRow({ id: 'r3', amount: 300_000, date: '2026-11-12', categoryId: 'cat-stay' }),
     ];
 
-    const summary = summarizeTravel(tripDef, rows, wallets, categories);
+    const summary = summarizeEvent(tripDef, rows, wallets, categories);
     expect(summary.currencies[0]!.byCategory).toEqual([
       { categoryId: 'cat-stay', amount: 300_000 },
       { categoryId: 'cat-food', amount: 175_000 },
@@ -337,7 +337,7 @@ describe('travels summary', () => {
       }),
     ];
 
-    const summary = summarizeTravel(tripDef, rows, wallets, categories);
+    const summary = summarizeEvent(tripDef, rows, wallets, categories);
     expect(summary.currencies.map((c) => c.currency)).toEqual(['VND', 'THB']);
     expect(summary.currencies[0]!.total).toBe(500_000);
     expect(summary.currencies[1]!.total).toBe(1200);
@@ -353,22 +353,22 @@ describe('travels summary', () => {
       createRow({ id: 'r1', walletId: 'w-vnd', currency: 'VND', amount: 500_000, vnd: 500_000, date: '2026-11-10' }),
       createRow({ id: 'r2', walletId: 'w-thb', currency: 'THB', amount: 1000, vnd: 750_000, date: '2026-11-11' }),
     ];
-    expect(summarizeTravel(tripDef, ratedRows, wallets, categories).approxVnd).toBe(1_250_000);
+    expect(summarizeEvent(tripDef, ratedRows, wallets, categories).approxVnd).toBe(1_250_000);
 
     const unratedRows: CountedSpendRow[] = [
       ...ratedRows,
       createRow({ id: 'r3', walletId: 'w-thb', currency: 'THB', amount: 200, vnd: null, date: '2026-11-12' }),
     ];
-    expect(summarizeTravel(tripDef, unratedRows, wallets, categories).approxVnd).toBeNull();
+    expect(summarizeEvent(tripDef, unratedRows, wallets, categories).approxVnd).toBeNull();
 
     const undefinedVndRows: CountedSpendRow[] = [
       ratedRows[0]!,
       { id: 'r4', kind: 'entry', walletId: 'w-thb', currency: 'THB', date: '2026-11-12', amount: 200, categoryId: 'cat-food', tagIds: ['tag-trip'] },
     ];
-    expect(summarizeTravel(tripDef, undefinedVndRows, wallets, categories).approxVnd).toBeNull();
+    expect(summarizeEvent(tripDef, undefinedVndRows, wallets, categories).approxVnd).toBeNull();
 
     const onlyVndRows: CountedSpendRow[] = [ratedRows[0]!];
-    expect(summarizeTravel(tripDef, onlyVndRows, wallets, categories).approxVnd).toBeNull();
+    expect(summarizeEvent(tripDef, onlyVndRows, wallets, categories).approxVnd).toBeNull();
   });
 
   it('limit currency with no rows', () => {
@@ -384,14 +384,14 @@ describe('travels summary', () => {
       }),
     ];
 
-    const summary = summarizeTravel(tripDef, rows, wallets, categories);
+    const summary = summarizeEvent(tripDef, rows, wallets, categories);
     expect(summary.currencies).toHaveLength(1);
     expect(summary.currencies[0]!.currency).toBe('THB');
     expect(summary.currencies[0]!.total).toBe(800);
     expect(summary.approxVnd).toBe(600_000);
   });
 
-  it('travelRows drops null walletId and excludeFromReports wallets', () => {
+  it('eventRows drops null walletId and excludeFromReports wallets', () => {
     const wallets = [
       createWallet('w-vnd', 'VND'),
       createWallet('w-ex', 'VND', { excludeFromReports: true, isDefault: false }),
@@ -402,6 +402,6 @@ describe('travels summary', () => {
       createRow({ id: 'r-ex', walletId: 'w-ex', amount: 100_000, date: '2026-11-10' }),
     ];
 
-    expect(travelRows(tripDef, rows, wallets).map((r) => r.id)).toEqual(['r-ok']);
+    expect(eventRows(tripDef, rows, wallets).map((r) => r.id)).toEqual(['r-ok']);
   });
 });

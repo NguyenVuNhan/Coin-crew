@@ -39,8 +39,8 @@ import { TransactionRow } from "../components/TransactionRow";
 import { WalletPie } from "../components/WalletPie";
 import { PersonalSettingsMenu } from "../components/PersonalSettingsMenu";
 import { BookBudgets } from "../components/budgets/BookBudgets";
-import { BookTravelRow } from "../components/travels/BookTravelRow";
-import { TravelShareSync } from "../components/travels/TravelShareSync";
+import { BookEventRow } from "../components/events/BookEventRow";
+import { EventShareSync } from "../components/events/EventShareSync";
 
 const DEFAULT_GROUP_SETTINGS: GroupSettingsView = {
   defaultGroupCategoryId: null,
@@ -276,7 +276,7 @@ function BookPeople({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element
             </div>
             <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
           </Link>
-          <BookTravelRow />
+          <BookEventRow />
         </>
       )}
     </div>
@@ -419,7 +419,7 @@ export function MainScreen({ book }: { book: boolean }): JSX.Element {
   const hasWallet = (wallets.data?.wallets.length ?? 0) > 0;
   return (
     <>
-      {book && hasWallet && <TravelShareSync />}
+      {book && hasWallet && <EventShareSync />}
       <Home
         book={book && hasWallet}
         title={book ? t("book.title") : undefined}

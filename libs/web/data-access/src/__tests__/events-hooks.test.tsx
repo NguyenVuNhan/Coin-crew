@@ -10,9 +10,9 @@ import type {
   GroupRow,
   SyncEntryRow,
   TagView,
-  TravelSavedResponse,
-  TravelsResponse,
-  TravelView,
+  EventSavedResponse,
+  EventsResponse,
+  EventView,
   TripListItem,
   WalletDetailsResponse,
   WalletDetailView,
@@ -31,14 +31,14 @@ import {
   PERSONAL_TAGS_KEY,
 } from '../personalMoney';
 import {
-  PERSONAL_TRAVELS_KEY,
-  useCreateTravel,
-  useTravelShareSync,
-  useTravelSummary,
-} from '../travels';
+  PERSONAL_EVENTS_KEY,
+  useCreateEvent,
+  useEventShareSync,
+  useEventSummary,
+} from '../events';
 import { useMyGroups } from '../groups';
 
-const TEST_USER_ID = 'travels-hooks-user-1';
+const TEST_USER_ID = 'events-hooks-user-1';
 
 type Handler = (init: RequestInit | undefined, url: string) => Response | Promise<Response>;
 
@@ -120,7 +120,7 @@ const catFood: CategoryView = {
   sortOrder: 0,
 };
 
-const travelTag: TagView = {
+const eventTag: TagView = {
   id: 't-dalat',
   name: 'Đà Lạt',
   useCount: 1,
@@ -191,12 +191,12 @@ function baseRoutes(
       categories: [catFood],
       recentIds: ['c-food'],
     } satisfies CategoriesResponse,
-    'GET /api/me/personal/tags': { tags: [travelTag] },
+    'GET /api/me/personal/tags': { tags: [eventTag] },
     'GET /api/me/personal/group-settings': {
       settings: { defaultGroupCategoryId: null, countLoans: false },
     },
     'GET /api/me/personal/budgets': { budgets: [] } satisfies BudgetsResponse,
-    'GET /api/me/personal/travels': { travels: [] } satisfies TravelsResponse,
+    'GET /api/me/personal/events': { events: [] } satisfies EventsResponse,
     'GET /api/me/personal/sync': {
       status: 'current',
       epoch: 'ep-1',
@@ -241,10 +241,10 @@ afterEach(async () => {
   await forgetGroupCopy(TEST_USER_ID);
 });
 
-describe('travels hooks', () => {
-  it('useCreateTravel sends today and invalidates travels and budgets', async () => {
+describe('events hooks', () => {
+  it('useCreateEvent sends today and invalidates events and budgets', async () => {
     const today = todayLocal();
-    const createdTravel: TravelView = {
+    const createdEvent: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -255,8 +255,8 @@ describe('travels hooks', () => {
       budgetId: null,
       createdAt: '2026-11-27T00:00:00.000Z',
     };
-    const saved: TravelSavedResponse = {
-      travel: createdTravel,
+    const saved: EventSavedResponse = {
+      event: createdEvent,
       existing: {
         own: { count: 0, totals: [] },
         shares: { count: 0, total: 0 },
@@ -265,14 +265,14 @@ describe('travels hooks', () => {
 
     const { calls } = mockFetch(
       baseRoutes({
-        'POST /api/me/personal/travels': saved,
+        'POST /api/me/personal/events': saved,
       }),
     );
 
     const queryClient = makeQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    const { result, unmount } = renderHook(() => useCreateTravel(), {
+    const { result, unmount } = renderHook(() => useCreateEvent(), {
       wrapper: makeWrapper(queryClient),
     });
 
@@ -283,7 +283,7 @@ describe('travels hooks', () => {
       groupIds: [],
     });
 
-    const postCall = calls.find((c) => c.method === 'POST' && c.path === '/api/me/personal/travels');
+    const postCall = calls.find((c) => c.method === 'POST' && c.path === '/api/me/personal/events');
     expect(postCall).toBeDefined();
     expect(postCall!.body).toEqual({
       name: 'Đà Lạt',
@@ -293,7 +293,7 @@ describe('travels hooks', () => {
       today,
     });
 
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PERSONAL_TRAVELS_KEY });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PERSONAL_EVENTS_KEY });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PERSONAL_BUDGETS_KEY });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PERSONAL_TAGS_KEY });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: WALLETS_KEY });
@@ -305,9 +305,9 @@ describe('travels hooks', () => {
     unmount();
   });
 
-  it('useTravelShareSync posts once per group copy key and requests a group sync only when tagged > 0', async () => {
+  it('useEventShareSync posts once per group copy key and requests a group sync only when tagged > 0', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -327,28 +327,28 @@ describe('travels hooks', () => {
     };
     const { calls } = mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
         'GET /api/me/personal/group-rows': () => Response.json(groupRowsResponse),
-        'POST /api/me/personal/travels/tag-shares': () => Response.json(tagSharesResponse),
+        'POST /api/me/personal/events/tag-shares': () => Response.json(tagSharesResponse),
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { rerender, unmount } = renderHook(() => useTravelShareSync(), {
+    const { rerender, unmount } = renderHook(() => useEventShareSync(), {
       wrapper: makeWrapper(queryClient),
     });
 
     await waitFor(() => {
-      expect(calls.filter((c) => c.path === '/api/me/personal/travels/tag-shares')).toHaveLength(1);
+      expect(calls.filter((c) => c.path === '/api/me/personal/events/tag-shares')).toHaveLength(1);
     });
 
-    const firstPost = calls.find((c) => c.path === '/api/me/personal/travels/tag-shares')!;
+    const firstPost = calls.find((c) => c.path === '/api/me/personal/events/tag-shares')!;
     expect(firstPost.body).toEqual({ today });
 
     // Rerendering with the same group copy key does not post again
     rerender();
     await new Promise((r) => setTimeout(r, 20));
-    expect(calls.filter((c) => c.path === '/api/me/personal/travels/tag-shares')).toHaveLength(1);
+    expect(calls.filter((c) => c.path === '/api/me/personal/events/tag-shares')).toHaveLength(1);
     const groupRowSyncCallsBefore = calls.filter(
       (c) => c.path === '/api/me/personal/group-rows',
     ).length;
@@ -360,7 +360,7 @@ describe('travels hooks', () => {
     groupRowsResponse = { status: 'current' };
 
     await waitFor(() => {
-      expect(calls.filter((c) => c.path === '/api/me/personal/travels/tag-shares')).toHaveLength(2);
+      expect(calls.filter((c) => c.path === '/api/me/personal/events/tag-shares')).toHaveLength(2);
     });
     await waitFor(() => {
       expect(
@@ -371,9 +371,9 @@ describe('travels hooks', () => {
     unmount();
   });
 
-  it('useTravelSummary returns the summary from copy rows', async () => {
+  it('useEventSummary returns the summary from copy rows', async () => {
     const today = todayLocal();
-    const trip: TravelView = {
+    const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
       name: 'Đà Lạt',
@@ -404,12 +404,12 @@ describe('travels hooks', () => {
 
     mockFetch(
       baseRoutes({
-        'GET /api/me/personal/travels': { travels: [trip] } satisfies TravelsResponse,
+        'GET /api/me/personal/events': { events: [trip] } satisfies EventsResponse,
       }),
     );
 
     const queryClient = makeQueryClient();
-    const { result, unmount } = renderHook(() => useTravelSummary('tr-1'), {
+    const { result, unmount } = renderHook(() => useEventSummary('tr-1'), {
       wrapper: makeWrapper(queryClient),
     });
 
@@ -418,7 +418,7 @@ describe('travels hooks', () => {
       expect(result.current.summary).not.toBeNull();
     });
 
-    expect(result.current.travel?.id).toBe('tr-1');
+    expect(result.current.event?.id).toBe('tr-1');
     expect(result.current.progress).toBeNull();
     expect(result.current.summary!.currencies).toHaveLength(1);
     expect(result.current.summary!.currencies[0]!.total).toBe(250_000);

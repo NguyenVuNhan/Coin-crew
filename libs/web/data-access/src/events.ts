@@ -8,17 +8,17 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 import {
-  summarizeTravel,
-  type ApplyTravelExistingInput,
+  summarizeEvent,
+  type ApplyEventExistingInput,
   type BudgetProgress,
   type CountedSpendRow,
-  type CreateTravelInput,
-  type TravelRowsResponse,
-  type TravelSavedResponse,
-  type TravelsResponse,
-  type TravelSummary,
-  type TravelView,
-  type UpdateTravelInput,
+  type CreateEventInput,
+  type EventRowsResponse,
+  type EventSavedResponse,
+  type EventsResponse,
+  type EventSummary,
+  type EventView,
+  type UpdateEventInput,
 } from '@cc/core';
 import { todayLocal } from '@cc/web-util/localDate';
 import { apiFetch, apiSend, type ApiClientError } from './client';
@@ -37,7 +37,7 @@ import * as groupCopyMod from './txCopy/groupCopy';
 import { requestGroupCopySync } from './txCopy/groupCopy';
 import { requestTxCopySync } from './txCopy/hooks';
 
-export const PERSONAL_TRAVELS_KEY = ['personal', 'travels'] as const;
+export const PERSONAL_EVENTS_KEY = ['personal', 'events'] as const;
 
 const UNAVAILABLE_GROUP_COPY: ReturnType<typeof groupCopyMod.useGroupCopy> = {
   status: 'unavailable',
@@ -54,9 +54,9 @@ const useGroupCopySafe: typeof groupCopyMod.useGroupCopy = (() => {
   return () => UNAVAILABLE_GROUP_COPY;
 })();
 
-async function invalidateTravelData(queryClient: QueryClient): Promise<void> {
+async function invalidateEventData(queryClient: QueryClient): Promise<void> {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: PERSONAL_TRAVELS_KEY }),
+    queryClient.invalidateQueries({ queryKey: PERSONAL_EVENTS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_BUDGETS_KEY }),
     queryClient.invalidateQueries({ queryKey: PERSONAL_TAGS_KEY }),
     queryClient.invalidateQueries({ queryKey: WALLETS_KEY }),
@@ -70,73 +70,73 @@ async function invalidateTravelData(queryClient: QueryClient): Promise<void> {
 }
 
 /** Fetches the user's personal trips. */
-export function useTravels(opts?: {
+export function useEvents(opts?: {
   enabled?: boolean;
-}): UseQueryResult<TravelsResponse, ApiClientError> {
-  return useQuery<TravelsResponse, ApiClientError>({
-    queryKey: PERSONAL_TRAVELS_KEY,
-    queryFn: () => apiFetch<TravelsResponse>('/api/me/personal/travels'),
+}): UseQueryResult<EventsResponse, ApiClientError> {
+  return useQuery<EventsResponse, ApiClientError>({
+    queryKey: PERSONAL_EVENTS_KEY,
+    queryFn: () => apiFetch<EventsResponse>('/api/me/personal/events'),
     enabled: opts?.enabled ?? true,
   });
 }
 
 /** Creates a new trip, attaching `todayLocal()`. */
-export function useCreateTravel(): UseMutationResult<
-  TravelSavedResponse,
+export function useCreateEvent(): UseMutationResult<
+  EventSavedResponse,
   ApiClientError,
-  Omit<CreateTravelInput, 'today'>
+  Omit<CreateEventInput, 'today'>
 > {
   const queryClient = useQueryClient();
 
-  return useMutation<TravelSavedResponse, ApiClientError, Omit<CreateTravelInput, 'today'>>({
+  return useMutation<EventSavedResponse, ApiClientError, Omit<CreateEventInput, 'today'>>({
     mutationFn: (input) =>
-      apiSend<TravelSavedResponse>('/api/me/personal/travels', 'POST', {
+      apiSend<EventSavedResponse>('/api/me/personal/events', 'POST', {
         ...input,
         today: todayLocal(),
       }),
-    onSuccess: () => invalidateTravelData(queryClient),
+    onSuccess: () => invalidateEventData(queryClient),
   });
 }
 
 /** Updates an existing trip, attaching `todayLocal()`. */
-export function useUpdateTravel(): UseMutationResult<
-  TravelSavedResponse,
+export function useUpdateEvent(): UseMutationResult<
+  EventSavedResponse,
   ApiClientError,
-  { id: string; input: Omit<UpdateTravelInput, 'today'> }
+  { id: string; input: Omit<UpdateEventInput, 'today'> }
 > {
   const queryClient = useQueryClient();
 
   return useMutation<
-    TravelSavedResponse,
+    EventSavedResponse,
     ApiClientError,
-    { id: string; input: Omit<UpdateTravelInput, 'today'> }
+    { id: string; input: Omit<UpdateEventInput, 'today'> }
   >({
     mutationFn: ({ id, input }) =>
-      apiSend<TravelSavedResponse>(
-        `/api/me/personal/travels/${encodeURIComponent(id)}`,
+      apiSend<EventSavedResponse>(
+        `/api/me/personal/events/${encodeURIComponent(id)}`,
         'PATCH',
         {
           ...input,
           today: todayLocal(),
         },
       ),
-    onSuccess: () => invalidateTravelData(queryClient),
+    onSuccess: () => invalidateEventData(queryClient),
   });
 }
 
 /** Deletes a trip by ID. */
-export function useDeleteTravel(): UseMutationResult<void, ApiClientError, string> {
+export function useDeleteEvent(): UseMutationResult<void, ApiClientError, string> {
   const queryClient = useQueryClient();
 
   return useMutation<void, ApiClientError, string>({
     mutationFn: (id) =>
-      apiSend<void>(`/api/me/personal/travels/${encodeURIComponent(id)}`, 'DELETE'),
-    onSuccess: () => invalidateTravelData(queryClient),
+      apiSend<void>(`/api/me/personal/events/${encodeURIComponent(id)}`, 'DELETE'),
+    onSuccess: () => invalidateEventData(queryClient),
   });
 }
 
 /** Applies or skips tagging existing matching expenses and group shares for a trip. */
-export function useApplyTravelExisting(): UseMutationResult<
+export function useApplyEventExisting(): UseMutationResult<
   { tagged: number },
   ApiClientError,
   { id: string; tag: boolean; ownIds?: string[]; shareRootIds?: string[] }
@@ -150,15 +150,15 @@ export function useApplyTravelExisting(): UseMutationResult<
   >({
     mutationFn: ({ id, tag, ownIds, shareRootIds }) =>
       apiSend<{ tagged: number }>(
-        `/api/me/personal/travels/${encodeURIComponent(id)}/existing`,
+        `/api/me/personal/events/${encodeURIComponent(id)}/existing`,
         'POST',
         {
           tag,
           ...(ownIds !== undefined ? { ownIds } : {}),
           ...(shareRootIds !== undefined ? { shareRootIds } : {}),
-        } satisfies ApplyTravelExistingInput,
+        } satisfies ApplyEventExistingInput,
       ),
-    onSuccess: () => invalidateTravelData(queryClient),
+    onSuccess: () => invalidateEventData(queryClient),
   });
 }
 
@@ -166,14 +166,14 @@ export function useApplyTravelExisting(): UseMutationResult<
  * On mount and whenever the local group-copy key changes, tags matching group shares
  * on the server when at least one trip exists; triggers a group-copy sync when `tagged > 0`.
  */
-export function useTravelShareSync(): void {
-  const travelsQuery = useTravels();
+export function useEventShareSync(): void {
+  const eventsQuery = useEvents();
   const groupCopy = useGroupCopySafe();
-  const hasTravels = (travelsQuery.data?.travels.length ?? 0) > 0;
+  const hasEvents = (eventsQuery.data?.events.length ?? 0) > 0;
   const lastKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!hasTravels) return;
+    if (!hasEvents) return;
     if (groupCopy.status === 'opening' || groupCopy.status === 'loading') return;
 
     const syncKey =
@@ -183,7 +183,7 @@ export function useTravelShareSync(): void {
     if (lastKeyRef.current === syncKey) return;
     lastKeyRef.current = syncKey;
 
-    void apiSend<{ tagged: number }>('/api/me/personal/travels/tag-shares', 'POST', {
+    void apiSend<{ tagged: number }>('/api/me/personal/events/tag-shares', 'POST', {
       today: todayLocal(),
     })
       .then((res) => {
@@ -194,24 +194,24 @@ export function useTravelShareSync(): void {
       .catch(() => {
         // Best-effort background sync; ignore transient errors.
       });
-  }, [hasTravels, groupCopy.status, groupCopy.snapshot?.key]);
+  }, [hasEvents, groupCopy.status, groupCopy.snapshot?.key]);
 }
 
 const EMPTY_ROWS: CountedSpendRow[] = [];
 
 /** Computes a trip's spending summary from local copy (or server fallback) and linked budget progress. */
-export function useTravelSummary(id: string): {
-  travel: TravelView | null;
-  summary: TravelSummary | null;
+export function useEventSummary(id: string): {
+  event: EventView | null;
+  summary: EventSummary | null;
   progress: BudgetProgress | null;
   isPending: boolean;
   error: unknown;
 } {
   const enabled = Boolean(id);
-  const travelsQuery = useTravels({ enabled });
-  const travel = useMemo(
-    () => travelsQuery.data?.travels.find((t) => t.id === id) ?? null,
-    [travelsQuery.data, id],
+  const eventsQuery = useEvents({ enabled });
+  const event = useMemo(
+    () => eventsQuery.data?.events.find((t) => t.id === id) ?? null,
+    [eventsQuery.data, id],
   );
 
   const {
@@ -225,12 +225,12 @@ export function useTravelSummary(id: string): {
     allowServerFallback: true,
   });
 
-  const travelRowsEnabled = enabled && source === 'server' && Boolean(travel);
-  const travelRowsQuery = useQuery<TravelRowsResponse, ApiClientError>({
-    queryKey: [...PERSONAL_TRAVELS_KEY, id, 'rows'],
+  const eventRowsEnabled = enabled && source === 'server' && Boolean(event);
+  const eventRowsQuery = useQuery<EventRowsResponse, ApiClientError>({
+    queryKey: [...PERSONAL_EVENTS_KEY, id, 'rows'],
     queryFn: () =>
-      apiFetch<TravelRowsResponse>(`/api/me/personal/travels/${encodeURIComponent(id)}/rows`),
-    enabled: travelRowsEnabled,
+      apiFetch<EventRowsResponse>(`/api/me/personal/events/${encodeURIComponent(id)}/rows`),
+    enabled: eventRowsEnabled,
     retry: false,
   });
 
@@ -246,21 +246,21 @@ export function useTravelSummary(id: string): {
     rows = EMPTY_ROWS;
     rowsPending = true;
     rowsError = sourceError;
-  } else if (!travelRowsEnabled) {
+  } else if (!eventRowsEnabled) {
     rows = EMPTY_ROWS;
     rowsPending = sourcePending;
     rowsError = sourceError;
-  } else if (travelRowsQuery.isSuccess) {
+  } else if (eventRowsQuery.isSuccess) {
     // /rows succeeded: ignore sourcePending and sourceError so budgets/progress cannot block or fail it.
-    rows = travelRowsQuery.data.rows;
+    rows = eventRowsQuery.data.rows;
     rowsPending = false;
     rowsError = null;
-  } else if (travelRowsQuery.isError) {
+  } else if (eventRowsQuery.isError) {
     // /rows failed: fall back to useBudgetsSource server rows (even if empty) unless it also errored.
     if (sourceError) {
       rows = EMPTY_ROWS;
       rowsPending = false;
-      rowsError = travelRowsQuery.error;
+      rowsError = eventRowsQuery.error;
     } else {
       rows = sourceRows;
       rowsPending = sourcePending;
@@ -275,34 +275,34 @@ export function useTravelSummary(id: string): {
   const walletsQuery = useWalletDetails({ enabled });
   const wallets = walletsQuery.data?.wallets;
 
-  const hasBudget = Boolean(travel?.budgetId);
+  const hasBudget = Boolean(event?.budgetId);
   const budgetsProgress = useBudgetsProgress({ enabled: enabled && hasBudget });
 
   const summary = useMemo(() => {
-    if (!travel || !wallets || rowsPending || rowsError) return null;
-    return summarizeTravel(travel, rows, wallets, categories);
-  }, [travel, wallets, rowsPending, rowsError, rows, categories]);
+    if (!event || !wallets || rowsPending || rowsError) return null;
+    return summarizeEvent(event, rows, wallets, categories);
+  }, [event, wallets, rowsPending, rowsError, rows, categories]);
 
   const progress = useMemo(() => {
-    if (!travel?.budgetId) return null;
-    return budgetsProgress.current.find((p) => p.budgetId === travel.budgetId) ?? null;
-  }, [travel?.budgetId, budgetsProgress.current]);
+    if (!event?.budgetId) return null;
+    return budgetsProgress.current.find((p) => p.budgetId === event.budgetId) ?? null;
+  }, [event?.budgetId, budgetsProgress.current]);
 
   const isPending =
-    travelsQuery.isPending ||
+    eventsQuery.isPending ||
     rowsPending ||
     walletsQuery.isPending ||
     (hasBudget && budgetsProgress.isPending);
 
   const error =
-    travelsQuery.error ??
+    eventsQuery.error ??
     rowsError ??
     walletsQuery.error ??
     (hasBudget ? budgetsProgress.error : null) ??
     null;
 
   return {
-    travel,
+    event,
     summary,
     progress,
     isPending,

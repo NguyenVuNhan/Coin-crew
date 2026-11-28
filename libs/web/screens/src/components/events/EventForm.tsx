@@ -8,11 +8,11 @@ import {
   formatMoney,
   limitFor,
   parseMoney,
-  travelState,
+  eventState,
   type CurrencyCode,
-  type TravelLimitInput,
-  type TravelSavedResponse,
-  type TravelView,
+  type EventLimitInput,
+  type EventSavedResponse,
+  type EventView,
 } from '@cc/core';
 import { useLang, useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
@@ -20,10 +20,10 @@ import { useBudgets } from '@cc/web-data-access/budgets';
 import { useMyGroups } from '@cc/web-data-access/groups';
 import { useTags, useWalletDetails } from '@cc/web-data-access/personalMoney';
 import {
-  useCreateTravel,
-  useDeleteTravel,
-  useUpdateTravel,
-} from '@cc/web-data-access/travels';
+  useCreateEvent,
+  useDeleteEvent,
+  useUpdateEvent,
+} from '@cc/web-data-access/events';
 import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
@@ -36,13 +36,13 @@ import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CurrencyBadge } from '../CurrencyBadge';
 import { formatDayMonth, parseYmd } from '../budgets/budgetLabels';
-import { TravelGroupPicker } from './TravelGroupPicker';
+import { EventGroupPicker } from './EventGroupPicker';
 
-export interface TravelFormProps {
+export interface EventFormProps {
   open: boolean;
   onClose: () => void;
-  travel?: TravelView;
-  onSaved: (res: TravelSavedResponse) => void;
+  event?: EventView;
+  onSaved: (res: EventSavedResponse) => void;
 }
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -56,7 +56,7 @@ function formatMinorInput(minor: number, currency: CurrencyCode): string {
   return frac === 0 ? String(whole) : `${whole}.${String(frac).padStart(2, '0')}`;
 }
 
-export function formatTravelRange(start: string, end: string): string {
+export function formatEventRange(start: string, end: string): string {
   const [y1, m1, d1] = parseYmd(start);
   const [y2, m2, d2] = parseYmd(end);
   if (y1 === y2 && m1 === m2) {
@@ -69,7 +69,7 @@ export function formatTravelRange(start: string, end: string): string {
 }
 
 interface OverlapDetails {
-  travelId?: string;
+  eventId?: string;
   name: string;
   start: string;
   end: string;
@@ -78,7 +78,7 @@ interface OverlapDetails {
 function extractOverlapError(err: unknown): OverlapDetails | null {
   if (!err || typeof err !== 'object') return null;
   const e = err as { code?: unknown; details?: Record<string, unknown> };
-  if (e.code !== 'TRAVEL_OVERLAP') return null;
+  if (e.code !== 'EVENT_OVERLAP') return null;
   const outer = e.details;
   const inner =
     outer && typeof outer['details'] === 'object' && outer['details'] !== null
@@ -92,28 +92,28 @@ function extractOverlapError(err: unknown): OverlapDetails | null {
     return null;
   }
   return {
-    travelId: typeof inner['travelId'] === 'string' ? inner['travelId'] : undefined,
+    eventId: typeof inner['eventId'] === 'string' ? inner['eventId'] : undefined,
     name,
     start,
     end,
   };
 }
 
-export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps): JSX.Element {
+export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JSX.Element {
   const t = useT();
   const [lang] = useLang();
   const navigate = useNavigate();
   const today = todayLocal();
-  const isEdit = Boolean(travel);
+  const isEdit = Boolean(event);
 
   const tagsQuery = useTags();
   const groupsQuery = useMyGroups({ enabled: open });
   const walletsQuery = useWalletDetails();
-  const budgetsQuery = useBudgets({ enabled: isEdit && Boolean(travel?.budgetId) });
+  const budgetsQuery = useBudgets({ enabled: isEdit && Boolean(event?.budgetId) });
 
-  const createTravel = useCreateTravel();
-  const updateTravel = useUpdateTravel();
-  const deleteTravel = useDeleteTravel();
+  const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
+  const deleteEvent = useDeleteEvent();
 
   const tags = tagsQuery.data?.tags ?? [];
   const allGroups = useMemo(
@@ -145,9 +145,9 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
   }, [availableCurrencies]);
 
   const linkedBudget = useMemo(() => {
-    if (!travel?.budgetId) return null;
-    return (budgetsQuery.data?.budgets ?? []).find((b) => b.id === travel.budgetId) ?? null;
-  }, [travel?.budgetId, budgetsQuery.data?.budgets]);
+    if (!event?.budgetId) return null;
+    return (budgetsQuery.data?.budgets ?? []).find((b) => b.id === event.budgetId) ?? null;
+  }, [event?.budgetId, budgetsQuery.data?.budgets]);
 
   const nameId = useId();
   const startId = useId();
@@ -156,15 +156,15 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
   const limitId = useId();
   const limitErrorId = useId();
 
-  const [name, setName] = useState(() => travel?.name ?? '');
-  const [start, setStart] = useState(() => travel?.start ?? '');
-  const [end, setEnd] = useState(() => travel?.end ?? '');
+  const [name, setName] = useState(() => event?.name ?? '');
+  const [start, setStart] = useState(() => event?.start ?? '');
+  const [end, setEnd] = useState(() => event?.end ?? '');
   const [countsFrom, setCountsFrom] = useState(() =>
-    travel ? travel.countsFrom : defaultCountsFrom(today, today),
+    event ? event.countsFrom : defaultCountsFrom(today, today),
   );
-  const [countsFromTouched, setCountsFromTouched] = useState(() => Boolean(travel));
+  const [countsFromTouched, setCountsFromTouched] = useState(() => Boolean(event));
   const [countsFromOpen, setCountsFromOpen] = useState(false);
-  const [groupIds, setGroupIds] = useState<string[]>(() => (travel ? [...travel.groupIds] : []));
+  const [groupIds, setGroupIds] = useState<string[]>(() => (event ? [...event.groupIds] : []));
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [limitText, setLimitText] = useState('');
   const [limitTouched, setLimitTouched] = useState(false);
@@ -174,27 +174,27 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const resetMutationsRef = useRef(() => {
-    createTravel.reset();
-    updateTravel.reset();
-    deleteTravel.reset();
+    createEvent.reset();
+    updateEvent.reset();
+    deleteEvent.reset();
   });
   resetMutationsRef.current = () => {
-    createTravel.reset();
-    updateTravel.reset();
-    deleteTravel.reset();
+    createEvent.reset();
+    updateEvent.reset();
+    deleteEvent.reset();
   };
 
   const prevOpenRef = useRef(open);
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      if (travel) {
-        setName(travel.name);
-        setStart(travel.start);
-        setEnd(travel.end);
-        setCountsFrom(travel.countsFrom);
+      if (event) {
+        setName(event.name);
+        setStart(event.start);
+        setEnd(event.end);
+        setCountsFrom(event.countsFrom);
         setCountsFromTouched(true);
         setCountsFromOpen(false);
-        setGroupIds([...travel.groupIds]);
+        setGroupIds([...event.groupIds]);
         setGroupPickerOpen(false);
         setLimitTouched(false);
         setCurrencyTouched(false);
@@ -227,7 +227,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
       resetMutationsRef.current();
     }
     prevOpenRef.current = open;
-  }, [open, travel, linkedBudget, today, defaultCurrency]);
+  }, [open, event, linkedBudget, today, defaultCurrency]);
 
   // Populate limit when linkedBudget finishes loading in edit mode.
   useEffect(() => {
@@ -244,7 +244,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
     : linkedBudget?.currency ?? defaultCurrency;
 
   const showCurrencyPicker =
-    availableCurrencies.length > 1 && !(isEdit && Boolean(travel?.budgetId));
+    availableCurrencies.length > 1 && !(isEdit && Boolean(event?.budgetId));
 
   const effectiveCountsFrom = useMemo(() => {
     if (countsFromTouched) return countsFrom;
@@ -269,8 +269,8 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
     countsFromValid &&
     !showLimitError;
 
-  const isPending = createTravel.isPending || updateTravel.isPending;
-  const activeError = isEdit ? updateTravel.error : createTravel.error;
+  const isPending = createEvent.isPending || updateEvent.isPending;
+  const activeError = isEdit ? updateEvent.error : createEvent.error;
   const overlapError = extractOverlapError(activeError);
 
   const tagSuggestions = useMemo(() => {
@@ -281,20 +281,20 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
     return list.slice(0, 6);
   }, [tags, trimmedName]);
 
-  const isCurrentlyOn = Boolean(travel && travelState(travel, today) === 'on');
+  const isCurrentlyOn = Boolean(event && eventState(event, today) === 'on');
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit || isPending) return;
 
-    const limitValue: TravelLimitInput | null =
+    const limitValue: EventLimitInput | null =
       parsedLimit !== null ? { amount: parsedLimit, currency: effectiveCurrency } : null;
 
-    if (travel) {
+    if (event) {
       const limitChanged = limitTouched || currencyTouched;
-      updateTravel.mutate(
+      updateEvent.mutate(
         {
-          id: travel.id,
+          id: event.id,
           input: {
             name: trimmedName,
             start,
@@ -313,7 +313,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
       return;
     }
 
-    createTravel.mutate(
+    createEvent.mutate(
       {
         name: trimmedName,
         start,
@@ -331,9 +331,9 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
   };
 
   const handleConfirmEndEarly = () => {
-    if (!travel || updateTravel.isPending) return;
-    updateTravel.mutate(
-      { id: travel.id, input: { endNow: true } },
+    if (!event || updateEvent.isPending) return;
+    updateEvent.mutate(
+      { id: event.id, input: { endNow: true } },
       {
         onSuccess: (res) => {
           setConfirmEndOpen(false);
@@ -344,12 +344,12 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
   };
 
   const handleConfirmDelete = () => {
-    if (!travel || deleteTravel.isPending) return;
-    deleteTravel.mutate(travel.id, {
+    if (!event || deleteEvent.isPending) return;
+    deleteEvent.mutate(event.id, {
       onSuccess: () => {
         setConfirmDeleteOpen(false);
         onClose();
-        navigate('/travels', { replace: true });
+        navigate('/events', { replace: true });
       },
     });
   };
@@ -359,22 +359,22 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
       <Sheet
         open={open}
         onClose={onClose}
-        title={isEdit && travel ? travel.name : t('travels.newTrip')}
+        title={isEdit && event ? event.name : t('events.newTrip')}
       >
         <form
-          className="fsl-travel-form flex flex-col gap-4"
-          data-testid="travel-form"
+          className="fsl-event-form flex flex-col gap-4"
+          data-testid="event-form"
           noValidate
           onSubmit={handleSubmit}
         >
           {/* Name + tag suggestions */}
           <div className="fsl-field flex flex-col gap-1.5">
             <Label htmlFor={nameId} className="text-sm font-semibold text-muted-foreground">
-              {t('travels.nameLabel')}
+              {t('events.nameLabel')}
             </Label>
             <Input
               id={nameId}
-              data-testid="travel-form-name"
+              data-testid="event-form-name"
               maxLength={30}
               autoComplete="off"
               className="fsl-input text-base min-h-11"
@@ -382,12 +382,12 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
               onChange={(e) => setName(e.target.value)}
             />
             {tagSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1" data-testid="travel-form-tag-suggestions">
+              <div className="flex flex-wrap gap-1.5 pt-1" data-testid="event-form-tag-suggestions">
                 {tagSuggestions.map((tg) => (
                   <button
                     key={tg.id}
                     type="button"
-                    data-testid={`travel-form-tag-suggestion-${tg.id}`}
+                    data-testid={`event-form-tag-suggestion-${tg.id}`}
                     onClick={() => setName(tg.name)}
                     className="min-h-11 px-3 rounded-full bg-muted text-foreground text-sm font-medium border-0 cursor-pointer hover:bg-secondary hover:text-secondary-foreground transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
@@ -403,11 +403,11 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             <div className="grid grid-cols-2 gap-2.5">
               <div className="flex flex-col gap-1">
                 <Label htmlFor={startId} className="text-sm font-semibold text-muted-foreground">
-                  {t('travels.fromLabel')}
+                  {t('events.fromLabel')}
                 </Label>
                 <Input
                   id={startId}
-                  data-testid="travel-form-start"
+                  data-testid="event-form-start"
                   type="date"
                   className="fsl-input text-base min-h-11 tabular-nums"
                   value={start}
@@ -430,11 +430,11 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
               </div>
               <div className="flex flex-col gap-1">
                 <Label htmlFor={endId} className="text-sm font-semibold text-muted-foreground">
-                  {t('travels.toLabel')}
+                  {t('events.toLabel')}
                 </Label>
                 <Input
                   id={endId}
-                  data-testid="travel-form-end"
+                  data-testid="event-form-end"
                   type="date"
                   className="fsl-input text-base min-h-11 tabular-nums"
                   value={end}
@@ -451,7 +451,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             {showRangeError && (
               <div
                 role="alert"
-                data-testid="travel-form-range-error"
+                data-testid="event-form-range-error"
                 className="text-sm text-danger"
               >
                 {t('transactions.rangeFromAfterTo')}
@@ -461,12 +461,12 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             {overlapError && (
               <div
                 role="alert"
-                data-testid="travel-form-overlap"
+                data-testid="event-form-overlap"
                 className="text-sm text-danger"
               >
-                {t('travels.overlap', {
+                {t('events.overlap', {
                   name: overlapError.name,
-                  range: formatTravelRange(overlapError.start, overlapError.end),
+                  range: formatEventRange(overlapError.start, overlapError.end),
                 })}
               </div>
             )}
@@ -474,13 +474,13 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             {/* Counts-from quiet line */}
             <button
               type="button"
-              data-testid="travel-form-counts-from-toggle"
+              data-testid="event-form-counts-from-toggle"
               aria-expanded={countsFromOpen}
               onClick={() => setCountsFromOpen((v) => !v)}
               className="min-h-11 px-1 flex items-center gap-1.5 text-left text-xs text-muted-foreground bg-transparent border-0 cursor-pointer rounded-xl hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span>
-                {t('travels.countsFromLine', {
+                {t('events.countsFromLine', {
                   date: formatDayMonth(effectiveCountsFrom),
                 })}
               </span>
@@ -491,7 +491,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
               <div className="flex flex-col gap-1">
                 <Input
                   id={countsFromId}
-                  data-testid="travel-form-counts-from"
+                  data-testid="event-form-counts-from"
                   type="date"
                   max={YMD_RE.test(start) ? start : undefined}
                   className="fsl-input text-base min-h-11 tabular-nums"
@@ -508,18 +508,18 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
           {/* Groups */}
           <div className="fsl-field flex flex-col gap-1.5">
             <Label className="text-sm font-semibold text-muted-foreground">
-              {t('travels.groupsLabel')}
+              {t('events.groupsLabel')}
             </Label>
             <div className="rounded-xl border border-border bg-card px-3 py-2 flex flex-wrap items-center gap-2 min-h-11">
               {groupIds.map((gid) => {
                 const knownName = groupNameById.get(gid);
                 const groupsLoading = groupsQuery.isPending && !groupsQuery.data;
-                const labelText = knownName ?? (groupsLoading ? '…' : t('travels.leftGroup'));
+                const labelText = knownName ?? (groupsLoading ? '…' : t('events.leftGroup'));
                 return (
                   <Pill
                     key={gid}
                     tone="accent"
-                    data-testid={`travel-form-group-chip-${gid}`}
+                    data-testid={`event-form-group-chip-${gid}`}
                     className="gap-0.5 py-0 pl-3 pr-0"
                   >
                     {knownName ? (
@@ -527,11 +527,11 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
                     ) : groupsLoading ? (
                       <Skeleton width={56} height={14} radius="sm" />
                     ) : (
-                      <span>{t('travels.leftGroup')}</span>
+                      <span>{t('events.leftGroup')}</span>
                     )}
                     <button
                       type="button"
-                      aria-label={t('travels.removeGroup', { name: labelText })}
+                      aria-label={t('events.removeGroup', { name: labelText })}
                       onClick={() => setGroupIds((prev) => prev.filter((id) => id !== gid))}
                       className="inline-flex items-center justify-center min-h-11 min-w-11 -my-2 rounded-full bg-transparent border-0 text-secondary-foreground hover:bg-muted cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
@@ -543,25 +543,25 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
               <Button
                 type="button"
                 variant="ghost"
-                data-testid="travel-form-pick-groups"
+                data-testid="event-form-pick-groups"
                 className="text-primary px-2"
                 onClick={() => setGroupPickerOpen(true)}
               >
                 <Icon name="plus" size={16} />
-                {t('travels.groupsLabel')}
+                {t('events.groupsLabel')}
               </Button>
             </div>
-            <p className="m-0 text-xs text-muted-foreground">{t('travels.groupsHint')}</p>
+            <p className="m-0 text-xs text-muted-foreground">{t('events.groupsHint')}</p>
           </div>
 
           {/* Limit (optional) */}
           <div className="fsl-field flex flex-col gap-1.5">
             <Label htmlFor={limitId} className="text-sm font-semibold text-muted-foreground">
-              {t('travels.limitLabel')}
+              {t('events.limitLabel')}
             </Label>
             <Input
               id={limitId}
-              data-testid="travel-form-limit"
+              data-testid="event-form-limit"
               type="text"
               inputMode="text"
               autoComplete="off"
@@ -575,7 +575,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             />
             {trimmedLimit !== '' && parsedLimit !== null && (
               <div
-                data-testid="travel-form-limit-preview"
+                data-testid="event-form-limit-preview"
                 className="text-sm font-semibold tabular-nums text-muted-foreground"
               >
                 {formatMoney(parsedLimit, effectiveCurrency)}
@@ -589,7 +589,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
           </div>
 
           {showCurrencyPicker && (
-            <div className="fsl-field flex flex-col gap-1.5" data-testid="travel-form-currency">
+            <div className="fsl-field flex flex-col gap-1.5" data-testid="event-form-currency">
               <Label className="text-sm font-semibold text-muted-foreground">
                 {t('budgets.formCurrency')}
               </Label>
@@ -602,7 +602,7 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
                     <button
                       key={code}
                       type="button"
-                      data-testid={`travel-form-currency-${code}`}
+                      data-testid={`event-form-currency-${code}`}
                       aria-pressed={selected}
                       onClick={() => {
                         setCurrency(code);
@@ -640,9 +640,9 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
             block
             loading={isPending}
             disabled={!canSubmit || isPending}
-            data-testid="travel-form-submit"
+            data-testid="event-form-submit"
           >
-            {t('travels.save')}
+            {t('events.save')}
           </Button>
 
           {isEdit && isCurrentlyOn && (
@@ -650,11 +650,11 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
               type="button"
               variant="ghost"
               block
-              data-testid="travel-form-end-early"
+              data-testid="event-form-end-early"
               className="text-danger border border-danger/30 hover:bg-danger-soft/50"
               onClick={() => setConfirmEndOpen(true)}
             >
-              {t('travels.endEarly')}
+              {t('events.endEarly')}
             </Button>
           )}
 
@@ -663,17 +663,17 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
               type="button"
               variant="ghost"
               block
-              data-testid="travel-form-delete"
+              data-testid="event-form-delete"
               className="text-danger border border-danger/30 hover:bg-danger-soft/50"
               onClick={() => setConfirmDeleteOpen(true)}
             >
-              {t('travels.delete')}
+              {t('events.delete')}
             </Button>
           )}
         </form>
       </Sheet>
 
-      <TravelGroupPicker
+      <EventGroupPicker
         open={groupPickerOpen}
         onClose={() => setGroupPickerOpen(false)}
         selectedIds={groupIds}
@@ -684,26 +684,26 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
         <Modal
           open={confirmEndOpen}
           onClose={() => setConfirmEndOpen(false)}
-          title={t('travels.endEarly')}
+          title={t('events.endEarly')}
         >
-          <div className="flex flex-col gap-4" data-testid="travel-end-early-confirm">
-            {updateTravel.error && <InlineError error={updateTravel.error} />}
+          <div className="flex flex-col gap-4" data-testid="event-end-early-confirm">
+            {updateEvent.error && <InlineError error={updateEvent.error} />}
             <div className="flex flex-col gap-2">
               <Button
                 type="button"
                 variant="danger"
                 block
-                loading={updateTravel.isPending}
-                data-testid="travel-form-end-early-confirm"
+                loading={updateEvent.isPending}
+                data-testid="event-form-end-early-confirm"
                 onClick={handleConfirmEndEarly}
               >
-                {t('travels.endEarly')}
+                {t('events.endEarly')}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 block
-                disabled={updateTravel.isPending}
+                disabled={updateEvent.isPending}
                 onClick={() => setConfirmEndOpen(false)}
               >
                 {t('common.cancel')}
@@ -717,26 +717,26 @@ export function TravelForm({ open, onClose, travel, onSaved }: TravelFormProps):
         <Modal
           open={confirmDeleteOpen}
           onClose={() => setConfirmDeleteOpen(false)}
-          title={t('travels.delete')}
+          title={t('events.delete')}
         >
-          <div className="flex flex-col gap-4" data-testid="travel-delete-confirm">
-            {deleteTravel.error && <InlineError error={deleteTravel.error} />}
+          <div className="flex flex-col gap-4" data-testid="event-delete-confirm">
+            {deleteEvent.error && <InlineError error={deleteEvent.error} />}
             <div className="flex flex-col gap-2">
               <Button
                 type="button"
                 variant="danger"
                 block
-                loading={deleteTravel.isPending}
-                data-testid="travel-form-delete-confirm"
+                loading={deleteEvent.isPending}
+                data-testid="event-form-delete-confirm"
                 onClick={handleConfirmDelete}
               >
-                {t('travels.delete')}
+                {t('events.delete')}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 block
-                disabled={deleteTravel.isPending}
+                disabled={deleteEvent.isPending}
                 onClick={() => setConfirmDeleteOpen(false)}
               >
                 {t('common.cancel')}

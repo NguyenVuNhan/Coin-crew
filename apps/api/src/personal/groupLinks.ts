@@ -12,7 +12,7 @@ import {
   personalGroupSettings,
   personalTags,
   personalTransactions,
-  personalTravelShareMarks,
+  personalEventShareMarks,
   personalWalletSettings,
   personalWallets,
   transactions,
@@ -23,12 +23,12 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import { travelForShare, type GroupLinkView, type GroupSettingsView } from '@cc/core';
+import { eventForShare, type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { ensureFixedCategories } from './fixedCategories';
 import { computeGroupsKey, loadGroupSettings } from './groupShares';
 import { loadCachedGroupRows } from './tripCache';
 import { signedPersonalAmount, walletBalanceDeltaStmts } from './balanceCache';
-import { loadUserTravels } from './travels';
+import { loadUserEvents } from './events';
 import { parseJson } from './validate';
 import { loadCachedWalletsSummary } from './wallets';
 
@@ -230,11 +230,11 @@ export function groupLinkRoutes(): Hono<AppBindings> {
       excludeInput !== undefined ? excludeInput : existing?.excludeFromReports === 1;
 
     let nextTagIds: string[];
-    let matchedTravel: { id: string; tagId: string } | null = null;
+    let matchedEvent: { id: string; tagId: string } | null = null;
     if (tagIdsInput !== undefined) {
       nextTagIds = tagIdsInput;
-      const travels = await loadUserTravels(db, user.id);
-      matchedTravel = travelForShare(travels, { tripId: ownedTx.tripId, date: ownedTx.spentOn });
+      const events = await loadUserEvents(db, user.id);
+      matchedEvent = eventForShare(events, { tripId: ownedTx.tripId, date: ownedTx.spentOn });
     } else {
       const existingTags = await db
         .select({ tagId: personalGroupLinkTags.tagId })
@@ -298,15 +298,15 @@ export function groupLinkRoutes(): Hono<AppBindings> {
               .values({ userId: user.id, rootId, tagId }) as unknown as BatchItem<'sqlite'>,
           );
         }
-        if (matchedTravel) {
+        if (matchedEvent) {
           stmts.push(
             db
-              .insert(personalTravelShareMarks)
+              .insert(personalEventShareMarks)
               .values({
                 userId: user.id,
                 rootId,
-                travelId: matchedTravel.id,
-                state: tagIdsInput.includes(matchedTravel.tagId) ? 'tagged' : 'skipped',
+                eventId: matchedEvent.id,
+                state: tagIdsInput.includes(matchedEvent.tagId) ? 'tagged' : 'skipped',
               })
               .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
           );

@@ -3,18 +3,18 @@ import { Link, useNavigate } from 'react-router';
 import {
   daysUntil,
   formatMoney,
-  travelState,
+  eventState,
   type BudgetDef,
   type BudgetProgress,
-  type TravelExisting,
-  type TravelSavedResponse,
-  type TravelState,
-  type TravelView,
+  type EventExisting,
+  type EventSavedResponse,
+  type EventState,
+  type EventView,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import { useBudgetsProgress } from '@cc/web-data-access/budgets';
-import { useTravels, useTravelSummary } from '@cc/web-data-access/travels';
+import { useEvents, useEventSummary } from '@cc/web-data-access/events';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { InlineError } from '@cc/web-ui/components/InlineError';
@@ -22,31 +22,31 @@ import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { BudgetBar } from '../components/budgets/BudgetBar';
-import { TravelExistingSheet } from '../components/travels/TravelExistingSheet';
-import { formatTravelRange, TravelForm } from '../components/travels/TravelForm';
+import { EventExistingSheet } from '../components/events/EventExistingSheet';
+import { formatEventRange, EventForm } from '../components/events/EventForm';
 
-interface TravelRowItem {
-  travel: TravelView;
-  state: TravelState;
+interface EventRowItem {
+  event: EventView;
+  state: EventState;
   progress: BudgetProgress | null;
   budgetDef: BudgetDef | null;
 }
 
-function TravelRow({
-  travel,
+function EventRow({
+  event,
   state,
   progress,
   budgetDef,
   today,
-}: TravelRowItem & { today: string }): JSX.Element {
+}: EventRowItem & { today: string }): JSX.Element {
   const t = useT();
-  const { summary, isPending } = useTravelSummary(travel.id);
+  const { summary, isPending } = useEventSummary(event.id);
 
   const firstCurrency = summary?.currencies[0] ?? null;
   const totalText = firstCurrency
     ? formatMoney(firstCurrency.total, firstCurrency.currency)
     : formatMoney(0, budgetDef?.currency ?? 'VND');
-  const rangeText = formatTravelRange(travel.start, travel.end);
+  const rangeText = formatEventRange(event.start, event.end);
 
   const usedPct =
     progress && progress.limit > 0
@@ -56,17 +56,17 @@ function TravelRow({
 
   let endingNode: JSX.Element | null = null;
   if (state === 'done') {
-    if (travel.budgetId === null) {
-      endingNode = <span className="text-muted-foreground">{t('travels.noLimit')}</span>;
+    if (event.budgetId === null) {
+      endingNode = <span className="text-muted-foreground">{t('events.noLimit')}</span>;
     } else if (progress && budgetDef) {
       const over = progress.spent > progress.limit;
       const diff = Math.abs(progress.limit - progress.spent);
       const text = over
-        ? t('travels.over', {
+        ? t('events.over', {
             amount: formatMoney(diff, budgetDef.currency),
             limit: formatMoney(progress.limit, budgetDef.currency),
           })
-        : t('travels.under', {
+        : t('events.under', {
             amount: formatMoney(diff, budgetDef.currency),
             limit: formatMoney(progress.limit, budgetDef.currency),
           });
@@ -78,17 +78,17 @@ function TravelRow({
 
   return (
     <Link
-      to={`/travels/${encodeURIComponent(travel.id)}`}
-      data-testid={`travel-row-${travel.id}`}
-      className="fsl-travel-row w-full min-h-11 px-4 py-3 flex flex-col gap-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline text-foreground"
+      to={`/events/${encodeURIComponent(event.id)}`}
+      data-testid={`event-row-${event.id}`}
+      className="fsl-event-row w-full min-h-11 px-4 py-3 flex flex-col gap-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline text-foreground"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-foreground truncate">{travel.name}</span>
+          <span className="text-sm font-semibold text-foreground truncate">{event.name}</span>
           <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1.5">
             <span>{rangeText}</span>
             {state === 'upcoming' && (
-              <span>{`· ${t('travels.bookDaysLeft', { n: daysUntil(travel, today) })}`}</span>
+              <span>{`· ${t('events.bookDaysLeft', { n: daysUntil(event, today) })}`}</span>
             )}
             {state === 'done' && endingNode && (
               <>
@@ -119,7 +119,7 @@ function TravelRow({
   );
 }
 
-function TravelSection({
+function EventSection({
   testId,
   heading,
   items,
@@ -127,7 +127,7 @@ function TravelSection({
 }: {
   testId: string;
   heading: string;
-  items: TravelRowItem[];
+  items: EventRowItem[];
   today: string;
 }): JSX.Element | null {
   if (items.length === 0) return null;
@@ -139,28 +139,28 @@ function TravelSection({
       </div>
       <div className="rounded-xl bg-card divide-y divide-border overflow-hidden">
         {items.map((item) => (
-          <TravelRow key={item.travel.id} {...item} today={today} />
+          <EventRow key={item.event.id} {...item} today={today} />
         ))}
       </div>
     </section>
   );
 }
 
-export function TravelsScreen(): JSX.Element {
+export function EventsScreen(): JSX.Element {
   const t = useT();
   const navigate = useNavigate();
   const today = todayLocal();
 
-  const travelsQuery = useTravels();
+  const eventsQuery = useEvents();
   const budgetsProgress = useBudgetsProgress();
 
   const [formOpen, setFormOpen] = useState(false);
   const [pendingExisting, setPendingExisting] = useState<{
-    travelId: string;
-    existing: TravelExisting;
+    eventId: string;
+    existing: EventExisting;
   } | null>(null);
 
-  const travels = travelsQuery.data?.travels ?? [];
+  const events = eventsQuery.data?.events ?? [];
 
   const progressByBudgetId = useMemo(() => {
     const map = new Map<string, BudgetProgress>();
@@ -185,108 +185,108 @@ export function TravelsScreen(): JSX.Element {
   }, [budgetsProgress.defs]);
 
   const sections = useMemo(() => {
-    const on: TravelRowItem[] = [];
-    const upcoming: TravelRowItem[] = [];
-    const done: TravelRowItem[] = [];
+    const on: EventRowItem[] = [];
+    const upcoming: EventRowItem[] = [];
+    const done: EventRowItem[] = [];
 
-    for (const travel of travels) {
-      const state = travelState(travel, today);
-      const progress = travel.budgetId ? progressByBudgetId.get(travel.budgetId) ?? null : null;
-      const budgetDef = travel.budgetId ? budgetDefById.get(travel.budgetId) ?? null : null;
+    for (const event of events) {
+      const state = eventState(event, today);
+      const progress = event.budgetId ? progressByBudgetId.get(event.budgetId) ?? null : null;
+      const budgetDef = event.budgetId ? budgetDefById.get(event.budgetId) ?? null : null;
 
-      const item: TravelRowItem = { travel, state, progress, budgetDef };
+      const item: EventRowItem = { event, state, progress, budgetDef };
       if (state === 'on') on.push(item);
       else if (state === 'upcoming') upcoming.push(item);
       else done.push(item);
     }
 
-    upcoming.sort((a, b) => a.travel.start.localeCompare(b.travel.start));
-    done.sort((a, b) => b.travel.end.localeCompare(a.travel.end));
+    upcoming.sort((a, b) => a.event.start.localeCompare(b.event.start));
+    done.sort((a, b) => b.event.end.localeCompare(a.event.end));
 
     return { on, upcoming, done };
-  }, [travels, today, progressByBudgetId, budgetDefById]);
+  }, [events, today, progressByBudgetId, budgetDefById]);
 
-  const handleSaved = (res: TravelSavedResponse) => {
+  const handleSaved = (res: EventSavedResponse) => {
     setFormOpen(false);
     const totalExisting =
       res.existing.ownIds !== undefined || res.existing.shareRootIds !== undefined
         ? (res.existing.ownIds?.length ?? 0) + (res.existing.shareRootIds?.length ?? 0)
         : res.existing.own.count + res.existing.shares.count;
     if (totalExisting > 0) {
-      setPendingExisting({ travelId: res.travel.id, existing: res.existing });
+      setPendingExisting({ eventId: res.event.id, existing: res.existing });
     } else {
-      navigate(`/travels/${encodeURIComponent(res.travel.id)}`);
+      navigate(`/events/${encodeURIComponent(res.event.id)}`);
     }
   };
 
   const handleExistingDone = () => {
-    const id = pendingExisting?.travelId;
+    const id = pendingExisting?.eventId;
     setPendingExisting(null);
     if (id) {
-      navigate(`/travels/${encodeURIComponent(id)}`);
+      navigate(`/events/${encodeURIComponent(id)}`);
     }
   };
 
-  const isLoading = travelsQuery.isPending && travels.length === 0;
-  const error = travelsQuery.error;
+  const isLoading = eventsQuery.isPending && events.length === 0;
+  const error = eventsQuery.error;
 
   return (
     <Screen
-      title={t('travels.listTitle')}
+      title={t('events.listTitle')}
       back="/trips"
       bottomBar={
-        travels.length > 0 ? (
+        events.length > 0 ? (
           <Button
             type="button"
             variant="primary"
             block
-            data-testid="travels-new-button"
+            data-testid="events-new-button"
             onClick={() => setFormOpen(true)}
           >
-            {`+ ${t('travels.newTrip')}`}
+            {`+ ${t('events.newTrip')}`}
           </Button>
         ) : undefined
       }
     >
-      <div className="fsl-travels flex flex-col gap-4">
+      <div className="fsl-events flex flex-col gap-4">
         {isLoading ? (
           <SkeletonList rows={3} />
-        ) : error && travels.length === 0 ? (
-          <InlineError error={error} onRetry={() => travelsQuery.refetch()} />
-        ) : travels.length === 0 ? (
+        ) : error && events.length === 0 ? (
+          <InlineError error={error} onRetry={() => eventsQuery.refetch()} />
+        ) : events.length === 0 ? (
           <EmptyState
             icon="plane"
-            title={t('travels.listTitle')}
-            body={t('travels.empty')}
+            title={t('events.listTitle')}
+            body={t('events.empty')}
             action={
               <Button
                 type="button"
                 variant="primary"
                 block
-                data-testid="travels-empty-add"
+                data-testid="events-empty-add"
                 onClick={() => setFormOpen(true)}
               >
-                {`+ ${t('travels.newTrip')}`}
+                {`+ ${t('events.newTrip')}`}
               </Button>
             }
           />
         ) : (
           <>
-            <TravelSection
-              testId="travels-section-on"
-              heading={t('travels.sectionOn')}
+            <EventSection
+              testId="events-section-on"
+              heading={t('events.sectionOn')}
               items={sections.on}
               today={today}
             />
-            <TravelSection
-              testId="travels-section-upcoming"
-              heading={t('travels.sectionUpcoming')}
+            <EventSection
+              testId="events-section-upcoming"
+              heading={t('events.sectionUpcoming')}
               items={sections.upcoming}
               today={today}
             />
-            <TravelSection
-              testId="travels-section-done"
-              heading={t('travels.sectionDone')}
+            <EventSection
+              testId="events-section-done"
+              heading={t('events.sectionDone')}
               items={sections.done}
               today={today}
             />
@@ -294,10 +294,10 @@ export function TravelsScreen(): JSX.Element {
         )}
       </div>
 
-      <TravelForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={handleSaved} />
+      <EventForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={handleSaved} />
 
-      <TravelExistingSheet
-        travelId={pendingExisting?.travelId ?? null}
+      <EventExistingSheet
+        eventId={pendingExisting?.eventId ?? null}
         existing={pendingExisting?.existing ?? null}
         onDone={handleExistingDone}
       />

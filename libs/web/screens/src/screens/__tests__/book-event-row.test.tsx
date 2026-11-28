@@ -5,7 +5,7 @@ import type {
   CategoryView,
   CountedSpendRow,
   TagView,
-  TravelView,
+  EventView,
   TripView,
   WalletDetailView,
 } from '@cc/core';
@@ -89,7 +89,7 @@ const tags: TagView[] = [
   { id: 'tag-hue', name: 'Huế', useCount: 1 },
 ];
 
-const tripOnWithBudget: TravelView = {
+const tripOnWithBudget: EventView = {
   id: 'tr-dalat',
   tagId: 'tag-dalat',
   name: 'Đà Lạt',
@@ -101,12 +101,12 @@ const tripOnWithBudget: TravelView = {
   createdAt: '2026-11-20T00:00:00.000Z',
 };
 
-const tripOnNoBudget: TravelView = {
+const tripOnNoBudget: EventView = {
   ...tripOnWithBudget,
   budgetId: null,
 };
 
-const tripUpcomingHue: TravelView = {
+const tripUpcomingHue: EventView = {
   id: 'tr-hue',
   tagId: 'tag-hue',
   name: 'Huế',
@@ -118,7 +118,7 @@ const tripUpcomingHue: TravelView = {
   createdAt: '2026-11-20T00:00:00.000Z',
 };
 
-const tripUpcomingFar: TravelView = {
+const tripUpcomingFar: EventView = {
   id: 'tr-tokyo',
   tagId: 'tag-tokyo',
   name: 'Tokyo',
@@ -149,7 +149,7 @@ type Routes = Parameters<typeof mockApi>[0];
 
 function mockApp(
   me: unknown,
-  travels: TravelView[],
+  events: EventView[],
   opts: { budgets?: BudgetDef[]; rows?: CountedSpendRow[]; extra?: Routes } = {},
 ) {
   const budgets = opts.budgets ?? [];
@@ -167,20 +167,20 @@ function mockApp(
     'GET /api/me/personal/transactions': { rows: [], totals: [] },
     'GET /api/me/personal/budgets': { budgets },
     'GET /api/me/personal/budgets/progress': { rows, today: '2026-11-26' },
-    'GET /api/me/personal/travels': { travels },
-    'POST /api/me/personal/travels/tag-shares': { tagged: 0 },
+    'GET /api/me/personal/events': { events },
+    'POST /api/me/personal/events/tag-shares': { tagged: 0 },
     ...opts.extra,
   });
 }
 
-describe('BookTravelRow on Sổ chi tiêu', () => {
-  it('idle row links to /travels', async () => {
+describe('BookEventRow on Sổ chi tiêu', () => {
+  it('idle row links to /events', async () => {
     mockApp(meOn, []);
     renderAt(<App />, { route: '/trips' });
 
-    const row = await screen.findByTestId('book-travel-row');
-    expect(row).toHaveAttribute('href', '/travels');
-    expect(row).toHaveClass('fsl-book__travel-row');
+    const row = await screen.findByTestId('book-event-row');
+    expect(row).toHaveAttribute('href', '/events');
+    expect(row).toHaveClass('fsl-book__event-row');
     expect(within(row).getByText('Trips')).toBeInTheDocument();
 
     const reportsRow = screen.getByTestId('book-reports-row');
@@ -206,14 +206,14 @@ describe('BookTravelRow on Sổ chi tiêu', () => {
       budgets: [dalatBudget],
       rows,
       extra: {
-        'GET /api/me/personal/travels/tr-dalat/rows': { rows },
+        'GET /api/me/personal/events/tr-dalat/rows': { rows },
       },
     });
     renderAt(<App />, { route: '/trips' });
 
-    const row = await screen.findByTestId('book-travel-row');
+    const row = await screen.findByTestId('book-event-row');
     await waitFor(() => {
-      expect(row).toHaveAttribute('href', '/travels/tr-dalat');
+      expect(row).toHaveAttribute('href', '/events/tr-dalat');
     });
     expect(within(row).getByText('On trip: Đà Lạt')).toBeInTheDocument();
     expect(within(row).getByText('day 2/3')).toBeInTheDocument();
@@ -225,7 +225,7 @@ describe('BookTravelRow on Sổ chi tiêu', () => {
     expect(within(row).getByText(/3\.100\.000₫ \/ 5\.000\.000₫/)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(calls.some((c) => c.method === 'POST' && c.path === '/api/me/personal/travels/tag-shares')).toBe(true);
+      expect(calls.some((c) => c.method === 'POST' && c.path === '/api/me/personal/events/tag-shares')).toBe(true);
     });
   });
 
@@ -233,9 +233,9 @@ describe('BookTravelRow on Sổ chi tiêu', () => {
     mockApp(meOn, [tripOnNoBudget]);
     renderAt(<App />, { route: '/trips' });
 
-    const row = await screen.findByTestId('book-travel-row');
+    const row = await screen.findByTestId('book-event-row');
     await waitFor(() => {
-      expect(row).toHaveAttribute('href', '/travels/tr-dalat');
+      expect(row).toHaveAttribute('href', '/events/tr-dalat');
     });
     expect(within(row).getByText('On trip: Đà Lạt')).toBeInTheDocument();
     expect(within(row).getByText('day 2/3')).toBeInTheDocument();
@@ -258,14 +258,14 @@ describe('BookTravelRow on Sổ chi tiêu', () => {
     mockApp(meOn, [tripUpcomingFar, tripUpcomingHue], {
       rows,
       extra: {
-        'GET /api/me/personal/travels/tr-hue/rows': { rows },
+        'GET /api/me/personal/events/tr-hue/rows': { rows },
       },
     });
     renderAt(<App />, { route: '/trips' });
 
-    const row = await screen.findByTestId('book-travel-row');
+    const row = await screen.findByTestId('book-event-row');
     await waitFor(() => {
-      expect(row).toHaveAttribute('href', '/travels/tr-hue');
+      expect(row).toHaveAttribute('href', '/events/tr-hue');
     });
     expect(within(row).getByText('Upcoming: Huế')).toBeInTheDocument();
     expect(within(row).getByText('5 days left')).toBeInTheDocument();
@@ -279,21 +279,21 @@ describe('BookTravelRow on Sổ chi tiêu', () => {
     renderAt(<App />, { route: '/trips' });
 
     await screen.findByTestId('home-total');
-    expect(screen.queryByTestId('book-travel-row')).not.toBeInTheDocument();
-    expect(calls.some((c) => c.path.startsWith('/api/me/personal/travels'))).toBe(false);
+    expect(screen.queryByTestId('book-event-row')).not.toBeInTheDocument();
+    expect(calls.some((c) => c.path.startsWith('/api/me/personal/events'))).toBe(false);
   });
 
   it('a deleted trip falls back to the idle row', async () => {
     mockApp(meOn, [], {
       extra: {
-        'GET /api/me/personal/travels': () =>
+        'GET /api/me/personal/events': () =>
           Response.json({ error: { code: 'NOT_FOUND', message: 'Not found' } }, { status: 404 }),
       },
     });
     renderAt(<App />, { route: '/trips' });
 
-    const row = await screen.findByTestId('book-travel-row');
-    expect(row).toHaveAttribute('href', '/travels');
+    const row = await screen.findByTestId('book-event-row');
+    expect(row).toHaveAttribute('href', '/events');
     expect(within(row).getByText('Trips')).toBeInTheDocument();
   });
 });

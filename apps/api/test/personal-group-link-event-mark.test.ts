@@ -1,17 +1,17 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import type { TravelSavedResponse } from '@cc/core';
+import type { EventSavedResponse } from '@cc/core';
 import { json, memberSid } from './helpers';
 import { postJson, switchOn } from './personal-helpers';
 
-const createTravel = (sid: string, body: unknown) =>
-  postJson('/api/me/personal/travels', sid, body);
+const createEvent = (sid: string, body: unknown) =>
+  postJson('/api/me/personal/events', sid, body);
 
 const putGroupLink = (sid: string, rootId: string, body: unknown) =>
   postJson(`/api/me/personal/group-links/${encodeURIComponent(rootId)}`, sid, body, 'PUT');
 
 const tagShares = (sid: string, today: string) =>
-  postJson('/api/me/personal/travels/tag-shares', sid, { today });
+  postJson('/api/me/personal/events/tag-shares', sid, { today });
 
 async function seedGroupWithExpenses(
   tripId: string,
@@ -57,9 +57,9 @@ async function seedGroupWithExpenses(
 }
 
 afterEach(async () => {
-  await env.DB.prepare('DELETE FROM personal_travel_share_marks').run();
-  await env.DB.prepare('DELETE FROM personal_travel_groups').run();
-  await env.DB.prepare('DELETE FROM personal_travels').run();
+  await env.DB.prepare('DELETE FROM personal_event_share_marks').run();
+  await env.DB.prepare('DELETE FROM personal_event_groups').run();
+  await env.DB.prepare('DELETE FROM personal_events').run();
   await env.DB.prepare('DELETE FROM personal_tags').run();
   await env.DB.prepare('DELETE FROM personal_group_link_tags').run();
   await env.DB.prepare('DELETE FROM personal_group_links').run();
@@ -71,7 +71,7 @@ afterEach(async () => {
   await env.DB.prepare('DELETE FROM trips').run();
 });
 
-describe('personal group-links explicit tag write records travel share mark', () => {
+describe('personal group-links explicit tag write records event share mark', () => {
   it('quick share during a trip with trip tag dismissed (tagIds: []) writes skipped mark so tag-shares never adds it', async () => {
     const userId = 'u-gl-mark-qs';
     const sid = await memberSid(userId, 'QuickShareMarkUser');
@@ -79,8 +79,8 @@ describe('personal group-links explicit tag write records travel share mark', ()
 
     await seedGroupWithExpenses('g-trip', userId, []);
     const trip = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Đà Lạt',
           start: '2026-11-10',
           end: '2026-11-15',
@@ -89,7 +89,7 @@ describe('personal group-links explicit tag write records travel share mark', ()
           today: '2026-11-11',
         }),
       )
-    ).travel;
+    ).event;
 
     // New expense saved during the trip (quick share flow: expense created, then PUT /group-links with tagIds: [])
     await seedGroupWithExpenses('g-trip', userId, [
@@ -100,11 +100,11 @@ describe('personal group-links explicit tag write records travel share mark', ()
 
     // Mark should be written as 'skipped'
     const mark = await env.DB.prepare(
-      'SELECT travel_id, state FROM personal_travel_share_marks WHERE user_id = ? AND root_id = ?',
+      'SELECT event_id, state FROM personal_event_share_marks WHERE user_id = ? AND root_id = ?',
     )
       .bind(userId, 'ge-qs-1')
-      .first<{ travel_id: string; state: string }>();
-    expect(mark).toEqual({ travel_id: trip.id, state: 'skipped' });
+      .first<{ event_id: string; state: string }>();
+    expect(mark).toEqual({ event_id: trip.id, state: 'skipped' });
 
     // Running tag-shares must NOT add the trip tag
     const tagRes = await tagShares(sid, '2026-11-11');
@@ -126,8 +126,8 @@ describe('personal group-links explicit tag write records travel share mark', ()
 
     await seedGroupWithExpenses('g-trip2', userId, []);
     const trip = (
-      await json<TravelSavedResponse>(
-        await createTravel(sid, {
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
           name: 'Phú Quốc',
           start: '2026-11-10',
           end: '2026-11-15',
@@ -136,7 +136,7 @@ describe('personal group-links explicit tag write records travel share mark', ()
           today: '2026-11-11',
         }),
       )
-    ).travel;
+    ).event;
 
     // Seed another tag to assign explicitly
     await env.DB.prepare(
@@ -156,13 +156,13 @@ describe('personal group-links explicit tag write records travel share mark', ()
     expect((await putGroupLink(sid, 'ge-manual-2', { tagIds: [trip.tagId] })).status).toBe(200);
 
     const marks = await env.DB.prepare(
-      'SELECT root_id, travel_id, state FROM personal_travel_share_marks WHERE user_id = ? ORDER BY root_id',
+      'SELECT root_id, event_id, state FROM personal_event_share_marks WHERE user_id = ? ORDER BY root_id',
     )
       .bind(userId)
-      .all<{ root_id: string; travel_id: string; state: string }>();
+      .all<{ root_id: string; event_id: string; state: string }>();
     expect(marks.results).toEqual([
-      { root_id: 'ge-manual-1', travel_id: trip.id, state: 'skipped' },
-      { root_id: 'ge-manual-2', travel_id: trip.id, state: 'tagged' },
+      { root_id: 'ge-manual-1', event_id: trip.id, state: 'skipped' },
+      { root_id: 'ge-manual-2', event_id: trip.id, state: 'tagged' },
     ]);
 
     // tag-shares does not re-tag ge-manual-1
@@ -187,7 +187,7 @@ describe('personal group-links explicit tag write records travel share mark', ()
     await seedGroupWithExpenses('g-out', userId, [
       { id: 'ge-other-grp', description: 'Lunch', amount: 100_000, myShare: 50_000, spentOn: '2026-11-11' },
     ]);
-    await createTravel(sid, {
+    await createEvent(sid, {
       name: 'Nha Trang',
       start: '2026-11-10',
       end: '2026-11-15',
@@ -205,7 +205,7 @@ describe('personal group-links explicit tag write records travel share mark', ()
     expect((await putGroupLink(sid, 'ge-out-date', { tagIds: [] })).status).toBe(200);
 
     const marks = await env.DB.prepare(
-      'SELECT root_id FROM personal_travel_share_marks WHERE user_id = ?',
+      'SELECT root_id FROM personal_event_share_marks WHERE user_id = ?',
     )
       .bind(userId)
       .all<{ root_id: string }>();

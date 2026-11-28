@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { CategoriesResponse, EntryView, TagView, TravelSavedResponse } from '@cc/core';
+import type { CategoriesResponse, EntryView, TagView, EventSavedResponse } from '@cc/core';
 import { call, json, memberSid } from './helpers';
 import { addWallet, postJson, switchOn } from './personal-helpers';
 
@@ -85,16 +85,16 @@ describe('personal tags unicode resolution', () => {
       categoryId,
       amount: 75_000,
       date: '2026-11-21',
-      tags: ['work', 'COFFEE', 'Travel'],
+      tags: ['work', 'COFFEE', 'Event'],
     });
     expect(secondRes.status).toBe(201);
     const secondBody = await json<{ entries: EntryView[] }>(secondRes);
-    expect(secondBody.entries[0]?.tags).toEqual(['Work', 'Coffee', 'Travel']);
+    expect(secondBody.entries[0]?.tags).toEqual(['Work', 'Coffee', 'Event']);
 
     const { tags } = await json<{ tags: TagView[] }>(
       await call('/api/me/personal/tags', as(sid)),
     );
-    expect(tags.map((t) => t.name).sort()).toEqual(['Coffee', 'Travel', 'Work']);
+    expect(tags.map((t) => t.name).sort()).toEqual(['Coffee', 'Event', 'Work']);
   });
 
   it('shares one tag between a trip created as "Đà Lạt" and an entry tagged "Đà Lạt"', async () => {
@@ -102,7 +102,7 @@ describe('personal tags unicode resolution', () => {
     const sid = await memberSid(userId);
     const { walletId, categoryId } = await setupBook(sid, userId);
 
-    const tripRes = await postJson('/api/me/personal/travels', sid, {
+    const tripRes = await postJson('/api/me/personal/events', sid, {
       name: 'Đà Lạt',
       start: '2026-11-20',
       end: '2026-11-22',
@@ -111,7 +111,7 @@ describe('personal tags unicode resolution', () => {
       today: '2026-11-20',
     });
     expect(tripRes.status).toBe(201);
-    const { travel } = await json<TravelSavedResponse>(tripRes);
+    const { event } = await json<EventSavedResponse>(tripRes);
 
     const entryRes = await postJson('/api/me/personal/transactions', sid, {
       type: 'expense',
@@ -128,7 +128,7 @@ describe('personal tags unicode resolution', () => {
       await call('/api/me/personal/tags', as(sid)),
     );
     expect(tags).toHaveLength(1);
-    expect(tags[0]!.id).toBe(travel.tagId);
+    expect(tags[0]!.id).toBe(event.tagId);
     expect(tags[0]!.name).toBe('Đà Lạt');
   });
 });

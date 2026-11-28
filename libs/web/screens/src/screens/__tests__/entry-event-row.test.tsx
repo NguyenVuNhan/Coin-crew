@@ -10,7 +10,7 @@ import type {
   EntryView,
   SyncEntryRow,
   TagView,
-  TravelView,
+  EventView,
   WalletDetailView,
 } from '@cc/core';
 import { setLang } from '@cc/web-i18n';
@@ -127,7 +127,7 @@ const coffeeTag: TagView = {
   useCount: 1,
 };
 
-const daLatTrip: TravelView = {
+const daLatTrip: EventView = {
   id: 'tr-dl',
   tagId: 'tag-dl',
   name: 'Đà Lạt',
@@ -219,13 +219,13 @@ function setLocalCopy(entries: SyncEntryRow[]) {
 }
 
 function setupApi({
-  travels = [daLatTrip],
+  events = [daLatTrip],
   budgets = [],
   tags = [daLatTag, coffeeTag],
   entries = [],
   overrides = {},
 }: {
-  travels?: TravelView[];
+  events?: EventView[];
   budgets?: BudgetDef[];
   tags?: TagView[];
   entries?: EntryView[];
@@ -239,7 +239,7 @@ function setupApi({
       settings: { defaultGroupCategoryId: null, countLoans: false },
     },
     'GET /api/me/personal/budgets': { budgets },
-    'GET /api/me/personal/travels': { travels },
+    'GET /api/me/personal/events': { events },
     'GET /api/me/personal/transactions': {
       rows: entries.map((entry) => ({ kind: 'entry', entry })),
     },
@@ -321,7 +321,7 @@ describe('EntryPage — trip row (Task 10)', () => {
     const api = setupApi();
 
     renderEntry();
-    const row = await screen.findByTestId('entry-travel-row');
+    const row = await screen.findByTestId('entry-event-row');
     expect(row).toHaveTextContent('Chuyến đi Đà Lạt');
 
     await finishAmount(user, '120000');
@@ -342,7 +342,7 @@ describe('EntryPage — trip row (Task 10)', () => {
     const api = setupApi();
 
     renderEntry();
-    await screen.findByTestId('entry-travel-row');
+    await screen.findByTestId('entry-event-row');
 
     await finishAmount(user, '120000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
@@ -350,7 +350,7 @@ describe('EntryPage — trip row (Task 10)', () => {
     const removeBtn = screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' });
     await user.click(removeBtn);
 
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -369,14 +369,14 @@ describe('EntryPage — trip row (Task 10)', () => {
     const api = setupApi();
 
     renderEntry();
-    const row = await screen.findByTestId('entry-travel-row');
+    const row = await screen.findByTestId('entry-event-row');
     expect(row).toHaveTextContent('Thêm vào chuyến Đà Lạt');
 
     await finishAmount(user, '350000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
-    await user.click(screen.getByTestId('entry-travel-row'));
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    await user.click(screen.getByTestId('entry-event-row'));
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -396,7 +396,7 @@ describe('EntryPage — trip row (Task 10)', () => {
     renderEntry();
     await screen.findByTestId('amount-keypad');
     await waitFor(() => {
-      expect(screen.queryByTestId('entry-travel-row')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('entry-event-row')).not.toBeInTheDocument();
     });
   });
 
@@ -406,22 +406,22 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     renderEntry();
     // 1. during (2026-11-12) -> pre-filled on
-    expect(await screen.findByTestId('entry-travel-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(await screen.findByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
 
     await finishAmount(user, '50000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
     // 2. lead-up (2026-11-08) -> suggestion
     await changeDate(user, '2026-11-08');
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
 
     // 3. outside (2026-11-01) -> hidden
     await changeDate(user, '2026-11-01');
-    expect(screen.queryByTestId('entry-travel-row')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('entry-event-row')).not.toBeInTheDocument();
 
     // 4. back to during (2026-11-13) -> pre-filled on again
     await changeDate(user, '2026-11-13');
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
   });
 
   it('✕ survives a date change within the same trip', async () => {
@@ -429,18 +429,18 @@ describe('EntryPage — trip row (Task 10)', () => {
     const api = setupApi();
 
     renderEntry();
-    await screen.findByTestId('entry-travel-row');
+    await screen.findByTestId('entry-event-row');
 
     await finishAmount(user, '80000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));
 
     // Remove the pre-filled trip tag
     await user.click(screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' }));
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
 
     // Change date to another day inside the same trip (2026-11-13)
     await changeDate(user, '2026-11-13');
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => {
@@ -465,13 +465,13 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     // Outside trip initially -> no row
     await screen.findByTestId('entry-save-btn');
-    expect(screen.queryByTestId('entry-travel-row')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('entry-event-row')).not.toBeInTheDocument();
 
     // Move date into the trip dates (2026-11-13)
     await changeDate(user, '2026-11-13');
 
     // Row shows as off (suggestion), NOT pre-filled on
-    expect(screen.getByTestId('entry-travel-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào chuyến Đà Lạt');
 
     await user.click(screen.getByTestId('entry-save-btn'));
     await waitFor(() => {
@@ -494,7 +494,7 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     renderEntry('/entries/e-tagged/edit', { entry: taggedEntry });
 
-    expect(await screen.findByTestId('entry-travel-row')).toHaveTextContent('Chuyến đi Đà Lạt');
+    expect(await screen.findByTestId('entry-event-row')).toHaveTextContent('Chuyến đi Đà Lạt');
     await user.click(screen.getByRole('button', { name: 'Bỏ khỏi chuyến Đà Lạt' }));
     await user.click(screen.getByTestId('entry-save-btn'));
 
@@ -512,24 +512,24 @@ describe('EntryPage — trip row (Task 10)', () => {
 
     const { unmount } = renderEntry('/entries/new?type=income');
     await screen.findByTestId('amount-keypad');
-    expect(screen.queryByTestId('entry-travel-row')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('entry-event-row')).not.toBeInTheDocument();
     unmount();
 
     renderEntry('/entries/new?type=transfer');
     await screen.findByTestId('amount-keypad');
-    expect(screen.queryByTestId('entry-travel-row')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('entry-event-row')).not.toBeInTheDocument();
   });
 
   it('budget warning counts the trip tag', async () => {
     const user = userEvent.setup();
     setLocalCopy([makeSyncEntry({ amount: 450_000, date: '2026-11-12', tagIds: ['tag-dl'] })]);
     setupApi({
-      travels: [{ ...daLatTrip, budgetId: 'b-dl' }],
+      events: [{ ...daLatTrip, budgetId: 'b-dl' }],
       budgets: [daLatBudget],
     });
 
     renderEntry();
-    await screen.findByTestId('entry-travel-row');
+    await screen.findByTestId('entry-event-row');
 
     await finishAmount(user, '100000');
     await user.click(await screen.findByTestId('category-tile-cat-food'));

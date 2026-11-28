@@ -1,5 +1,5 @@
--- Personal travels tables (#158).
-CREATE TABLE `personal_travels` (
+-- Personal events tables (#158).
+CREATE TABLE `personal_events` (
   `id` text PRIMARY KEY NOT NULL,
   `user_id` text NOT NULL REFERENCES `users`(`id`) ON DELETE CASCADE,
   `tag_id` text NOT NULL REFERENCES `personal_tags`(`id`) ON DELETE CASCADE,
@@ -11,18 +11,18 @@ CREATE TABLE `personal_travels` (
   `updated_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `personal_travels_user_idx` ON `personal_travels` (`user_id`);
+CREATE INDEX `personal_events_user_idx` ON `personal_events` (`user_id`);
 --> statement-breakpoint
-CREATE TABLE `personal_travel_groups` (
-  `travel_id` text NOT NULL REFERENCES `personal_travels`(`id`) ON DELETE CASCADE,
+CREATE TABLE `personal_event_groups` (
+  `event_id` text NOT NULL REFERENCES `personal_events`(`id`) ON DELETE CASCADE,
   `trip_id` text NOT NULL,
-  PRIMARY KEY (`travel_id`, `trip_id`)
+  PRIMARY KEY (`event_id`, `trip_id`)
 );
 --> statement-breakpoint
-CREATE TABLE `personal_travel_share_marks` (
+CREATE TABLE `personal_event_share_marks` (
   `user_id` text NOT NULL REFERENCES `users`(`id`) ON DELETE CASCADE,
   `root_id` text NOT NULL,
-  `travel_id` text NOT NULL REFERENCES `personal_travels`(`id`) ON DELETE CASCADE,
+  `event_id` text NOT NULL REFERENCES `personal_events`(`id`) ON DELETE CASCADE,
   `state` text NOT NULL CHECK (`state` IN ('tagged', 'skipped')),
   PRIMARY KEY (`user_id`, `root_id`)
 );

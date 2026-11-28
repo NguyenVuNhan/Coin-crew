@@ -8,19 +8,19 @@ import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { Checkbox } from '@cc/web-ui/components/ui/checkbox';
 import { Label } from '@cc/web-ui/components/ui/label';
 
-export interface TravelGroupPickerProps {
+export interface EventGroupPickerProps {
   open: boolean;
   onClose: () => void;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
 }
 
-export function TravelGroupPicker({
+export function EventGroupPicker({
   open,
   onClose,
   selectedIds,
   onChange,
-}: TravelGroupPickerProps): JSX.Element {
+}: EventGroupPickerProps): JSX.Element {
   const t = useT();
   const groupIdPrefix = useId();
   const groupsQuery = useMyGroups({ enabled: open });
@@ -43,14 +43,14 @@ export function TravelGroupPicker({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={t('travels.groupsLabel')}>
-      <div className="fsl-travel-group-picker flex flex-col gap-4" data-testid="travel-group-picker">
+    <Sheet open={open} onClose={onClose} title={t('events.groupsLabel')}>
+      <div className="fsl-event-group-picker flex flex-col gap-4" data-testid="event-group-picker">
         {groupsQuery.isPending && groups.length === 0 ? (
           <SkeletonList rows={3} />
         ) : groupsQuery.error && groups.length === 0 ? (
           <InlineError error={groupsQuery.error} onRetry={() => groupsQuery.refetch()} />
         ) : groups.length === 0 ? (
-          <p className="m-0 text-sm text-muted-foreground">{t('travels.groupsHint')}</p>
+          <p className="m-0 text-sm text-muted-foreground">{t('events.groupsHint')}</p>
         ) : (
           <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
             {groups.map((g) => {
@@ -60,12 +60,12 @@ export function TravelGroupPicker({
                 <Label
                   key={g.id}
                   htmlFor={checkboxId}
-                  data-testid={`travel-group-row-${g.id}`}
+                  data-testid={`event-group-row-${g.id}`}
                   className="min-h-11 px-3.5 py-2.5 flex items-center gap-3 font-normal cursor-pointer hover:bg-muted transition-colors motion-reduce:transition-none"
                 >
                   <Checkbox
                     id={checkboxId}
-                    data-testid={`travel-group-check-${g.id}`}
+                    data-testid={`event-group-check-${g.id}`}
                     checked={checked}
                     onCheckedChange={(next) => handleToggle(g.id, next === true)}
                   />
@@ -82,7 +82,7 @@ export function TravelGroupPicker({
           type="button"
           variant="primary"
           block
-          data-testid="travel-group-picker-done"
+          data-testid="event-group-picker-done"
           onClick={onClose}
         >
           {t('common.close')}

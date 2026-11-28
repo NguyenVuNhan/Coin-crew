@@ -6,7 +6,7 @@ import type {
   CategoryView,
   CountedSpendRow,
   TagView,
-  TravelView,
+  EventView,
   TripView,
   WalletDetailView,
 } from '@cc/core';
@@ -91,7 +91,7 @@ const tags: TagView[] = [
   { id: 'tag-hn', name: 'Hà Nội', useCount: 1 },
 ];
 
-const onTravel: TravelView = {
+const onEvent: EventView = {
   id: 'tr-dl',
   tagId: 'tag-dl',
   name: 'Đà Lạt',
@@ -103,7 +103,7 @@ const onTravel: TravelView = {
   createdAt: '2026-11-05T00:00:00.000Z',
 };
 
-const upcomingTravel: TravelView = {
+const upcomingEvent: EventView = {
   id: 'tr-hue',
   tagId: 'tag-hue',
   name: 'Huế',
@@ -115,7 +115,7 @@ const upcomingTravel: TravelView = {
   createdAt: '2026-11-10T00:00:00.000Z',
 };
 
-const doneOverTravel: TravelView = {
+const doneOverEvent: EventView = {
   id: 'tr-pq',
   tagId: 'tag-pq',
   name: 'Phú Quốc',
@@ -127,7 +127,7 @@ const doneOverTravel: TravelView = {
   createdAt: '2026-07-20T00:00:00.000Z',
 };
 
-const doneNoLimitTravel: TravelView = {
+const doneNoLimitEvent: EventView = {
   id: 'tr-hn',
   tagId: 'tag-hn',
   name: 'Hà Nội',
@@ -188,15 +188,15 @@ function spendRow(
 }
 
 function stubApis(opts: {
-  travels?: TravelView[];
+  events?: EventView[];
   budgets?: BudgetDef[];
   rows?: CountedSpendRow[];
   me?: typeof meOn;
 } = {}) {
-  const { travels = [], budgets = [], rows = [], me = meOn } = opts;
+  const { events = [], budgets = [], rows = [], me = meOn } = opts;
   return mockApi({
     'GET /api/me': me,
-    'GET /api/me/personal/travels': { travels },
+    'GET /api/me/personal/events': { events },
     'GET /api/me/personal/budgets': { budgets },
     'GET /api/me/personal/budgets/progress': { today: '2026-11-13', rows },
     'GET /api/me/personal/wallets': { wallets: [cashWallet] },
@@ -212,7 +212,7 @@ function stubApis(opts: {
   });
 }
 
-function renderTravelsVi(route = '/travels') {
+function renderEventsVi(route = '/events') {
   const utils = renderAt(<App />, { route, path: '*' });
   act(() => {
     setLang('vi', false);
@@ -220,7 +220,7 @@ function renderTravelsVi(route = '/travels') {
   return utils;
 }
 
-describe('TravelsScreen', () => {
+describe('EventsScreen', () => {
   it('lists trips in on, upcoming and done sections', async () => {
     const rows: CountedSpendRow[] = [
       spendRow('r-dl', '2026-11-12', 3_100_000, ['tag-dl']),
@@ -230,73 +230,73 @@ describe('TravelsScreen', () => {
     ];
 
     stubApis({
-      travels: [doneOverTravel, upcomingTravel, onTravel, doneNoLimitTravel],
+      events: [doneOverEvent, upcomingEvent, onEvent, doneNoLimitEvent],
       budgets: [dlBudget, pqBudget],
       rows,
     });
-    renderTravelsVi('/travels');
+    renderEventsVi('/events');
 
     await waitFor(() => {
-      expect(screen.getByTestId('travel-row-tr-dl')).toHaveTextContent('3.100.000₫');
+      expect(screen.getByTestId('event-row-tr-dl')).toHaveTextContent('3.100.000₫');
     });
 
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
     expect(headings).toEqual(['Đang đi', 'Sắp tới', 'Đã đi']);
 
     // On section
-    const onSection = screen.getByTestId('travels-section-on');
-    const dlRow = within(onSection).getByTestId('travel-row-tr-dl');
-    expect(dlRow).toHaveAttribute('href', '/travels/tr-dl');
+    const onSection = screen.getByTestId('events-section-on');
+    const dlRow = within(onSection).getByTestId('event-row-tr-dl');
+    expect(dlRow).toHaveAttribute('href', '/events/tr-dl');
     expect(dlRow).toHaveTextContent('Đà Lạt');
     expect(dlRow).toHaveTextContent('12–14/11');
     expect(dlRow).toHaveTextContent('3.100.000₫');
 
     // Upcoming section
-    const upcomingSection = screen.getByTestId('travels-section-upcoming');
-    const hueRow = within(upcomingSection).getByTestId('travel-row-tr-hue');
-    expect(hueRow).toHaveAttribute('href', '/travels/tr-hue');
+    const upcomingSection = screen.getByTestId('events-section-upcoming');
+    const hueRow = within(upcomingSection).getByTestId('event-row-tr-hue');
+    expect(hueRow).toHaveAttribute('href', '/events/tr-hue');
     expect(hueRow).toHaveTextContent('Huế');
     expect(hueRow).toHaveTextContent('18–21/11');
     expect(hueRow).toHaveTextContent('còn 5 ngày');
     expect(hueRow).toHaveTextContent('1.240.000₫');
 
     // Done section: ending in words (over limit + no limit)
-    const doneSection = screen.getByTestId('travels-section-done');
-    const pqRow = within(doneSection).getByTestId('travel-row-tr-pq');
-    expect(pqRow).toHaveAttribute('href', '/travels/tr-pq');
+    const doneSection = screen.getByTestId('events-section-done');
+    const pqRow = within(doneSection).getByTestId('event-row-tr-pq');
+    expect(pqRow).toHaveAttribute('href', '/events/tr-pq');
     expect(pqRow).toHaveTextContent('Phú Quốc');
     expect(pqRow).toHaveTextContent('7.860.000₫');
     expect(pqRow).toHaveTextContent(/Vượt 860\.000₫/);
 
-    const hnRow = within(doneSection).getByTestId('travel-row-tr-hn');
+    const hnRow = within(doneSection).getByTestId('event-row-tr-hn');
     expect(hnRow).toHaveTextContent('Hà Nội');
     expect(hnRow).toHaveTextContent('4.200.000₫');
     expect(hnRow).toHaveTextContent(/Không đặt hạn mức/i);
 
     // BottomBar has "+ Chuyến đi mới"
-    const newBtn = screen.getByTestId('travels-new-button');
+    const newBtn = screen.getByTestId('events-new-button');
     expect(newBtn).toHaveTextContent('+ Chuyến đi mới');
   });
 
   it('empty state offers a new trip', async () => {
     const user = userEvent.setup();
-    stubApis({ travels: [] });
-    renderTravelsVi('/travels');
+    stubApis({ events: [] });
+    renderEventsVi('/events');
 
-    const emptyAdd = await screen.findByTestId('travels-empty-add');
+    const emptyAdd = await screen.findByTestId('events-empty-add');
     expect(emptyAdd).toHaveTextContent('Chuyến đi mới');
 
     await user.click(emptyAdd);
-    expect(await screen.findByTestId('travel-form')).toBeInTheDocument();
+    expect(await screen.findByTestId('event-form')).toBeInTheDocument();
   });
 
-  it('/travels redirects to /trips with the spending book off', async () => {
-    stubApis({ travels: [onTravel], me: meOff });
-    renderTravelsVi('/travels');
+  it('/events redirects to /trips with the spending book off', async () => {
+    stubApis({ events: [onEvent], me: meOff });
+    renderEventsVi('/events');
 
     await waitFor(() => {
       expect(screen.getByTestId('location')).toHaveTextContent('/trips');
     });
-    expect(screen.queryByTestId('travel-row-tr-dl')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('event-row-tr-dl')).not.toBeInTheDocument();
   });
 });

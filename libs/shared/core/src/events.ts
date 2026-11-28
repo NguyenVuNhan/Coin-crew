@@ -3,7 +3,7 @@ import type { CurrencyCode } from './currency';
 import type { CountedSpendRow } from './reports';
 import { categoryRoot } from './visibility';
 
-export interface TravelDef {
+export interface EventDef {
   id: string;
   tagId: string;
   name: string;
@@ -14,9 +14,9 @@ export interface TravelDef {
   budgetId: string | null;
 }
 
-export type TravelState = 'upcoming' | 'on' | 'done';
+export type EventState = 'upcoming' | 'on' | 'done';
 
-export type TravelMatch = { travel: TravelDef; mode: 'on' | 'leadup' };
+export type EventMatch = { event: EventDef; mode: 'on' | 'leadup' };
 
 function parseYmd(ymd: string): [number, number, number] {
   const [y, m, d] = ymd.split('-').map(Number);
@@ -31,7 +31,7 @@ function diffDaysUtc(from: string, to: string): number {
   return Math.round((t2 - t1) / 86400000);
 }
 
-function pickEarliestStart(matches: TravelDef[]): TravelDef | null {
+function pickEarliestStart(matches: EventDef[]): EventDef | null {
   if (matches.length === 0) return null;
   let best = matches[0]!;
   for (let i = 1; i < matches.length; i++) {
@@ -44,7 +44,7 @@ function pickEarliestStart(matches: TravelDef[]): TravelDef | null {
 }
 
 /** Returns whether a trip is upcoming, currently on, or done for the given local YYYY-MM-DD date. */
-export function travelState(t: TravelDef, today: string): TravelState {
+export function eventState(t: EventDef, today: string): EventState {
   if (today < t.start) return 'upcoming';
   if (today <= t.end) return 'on';
   return 'done';
@@ -54,14 +54,14 @@ export function travelState(t: TravelDef, today: string): TravelState {
  * Matches a trip for a given date: 'on' when start <= date <= end, otherwise 'leadup'
  * when countsFrom <= date < start (picking the earliest start among matching lead-ups).
  */
-export function travelForDate(travels: TravelDef[], date: string): TravelMatch | null {
-  const onMatches = travels.filter((t) => t.start <= date && date <= t.end);
+export function eventForDate(events: EventDef[], date: string): EventMatch | null {
+  const onMatches = events.filter((t) => t.start <= date && date <= t.end);
   const on = pickEarliestStart(onMatches);
-  if (on) return { travel: on, mode: 'on' };
+  if (on) return { event: on, mode: 'on' };
 
-  const leadupMatches = travels.filter((t) => t.countsFrom <= date && date < t.start);
+  const leadupMatches = events.filter((t) => t.countsFrom <= date && date < t.start);
   const leadup = pickEarliestStart(leadupMatches);
-  if (leadup) return { travel: leadup, mode: 'leadup' };
+  if (leadup) return { event: leadup, mode: 'leadup' };
 
   return null;
 }
@@ -70,11 +70,11 @@ export function travelForDate(travels: TravelDef[], date: string): TravelMatch |
  * Matches a trip for a CoinCrew share: only trips whose groupIds include share.tripId
  * and whose countsFrom <= date <= end. Prefers 'on' over 'leadup', then earliest start.
  */
-export function travelForShare(
-  travels: TravelDef[],
+export function eventForShare(
+  events: EventDef[],
   share: { tripId: string; date: string },
-): TravelDef | null {
-  const eligible = travels.filter(
+): EventDef | null {
+  const eligible = events.filter(
     (t) => t.groupIds.includes(share.tripId) && t.countsFrom <= share.date && share.date <= t.end,
   );
   const onMatches = eligible.filter((t) => t.start <= share.date && share.date <= t.end);
@@ -86,13 +86,13 @@ export function travelForShare(
  * Finds an existing trip whose active [start, end] range overlaps (including touching)
  * the given [start, end] range, ignoring lead-up windows and optional exceptId.
  */
-export function findTravelOverlap(
-  travels: TravelDef[],
+export function findEventOverlap(
+  events: EventDef[],
   start: string,
   end: string,
   exceptId?: string,
-): TravelDef | null {
-  for (const t of travels) {
+): EventDef | null {
+  for (const t of events) {
     if (exceptId !== undefined && t.id === exceptId) continue;
     if (start <= t.end && t.start <= end) return t;
   }
@@ -105,7 +105,7 @@ export function defaultCountsFrom(start: string, today: string): string {
 }
 
 /** 1-based day index within a trip when today is inside [start, end], otherwise null. */
-export function travelDayIndex(t: TravelDef, today: string): { day: number; of: number } | null {
+export function eventDayIndex(t: EventDef, today: string): { day: number; of: number } | null {
   if (today < t.start || today > t.end) return null;
   return {
     day: diffDaysUtc(t.start, today) + 1,
@@ -114,11 +114,11 @@ export function travelDayIndex(t: TravelDef, today: string): { day: number; of: 
 }
 
 /** Signed number of days from today until t.start. */
-export function daysUntil(t: TravelDef, today: string): number {
+export function daysUntil(t: EventDef, today: string): number {
   return diffDaysUtc(today, t.start);
 }
 
-export interface TravelCurrencySummary {
+export interface EventCurrencySummary {
   currency: CurrencyCode;
   total: number;
   own: number;
@@ -128,8 +128,8 @@ export interface TravelCurrencySummary {
   count: number;
 }
 
-export interface TravelSummary {
-  currencies: TravelCurrencySummary[];
+export interface EventSummary {
+  currencies: EventCurrencySummary[];
   approxVnd: number | null;
   rowIds: string[];
 }
@@ -138,8 +138,8 @@ export interface TravelSummary {
  * Filters counted spend rows to those belonging to `t`: tagged with `t.tagId`,
  * within `t.countsFrom <= date <= t.end`, and on a non-null wallet not excluded from reports.
  */
-export function travelRows(
-  t: TravelDef,
+export function eventRows(
+  t: EventDef,
   rows: CountedSpendRow[],
   wallets: WalletDetailView[],
 ): CountedSpendRow[] {
@@ -161,7 +161,7 @@ function summarizeCurrencyRows(
   rows: CountedSpendRow[],
   tripStart: string,
   resolveTopCategoryId: (categoryId: string) => string,
-): TravelCurrencySummary {
+): EventCurrencySummary {
   let own = 0;
   let group = 0;
   const categoryTotals = new Map<string, number>();
@@ -206,13 +206,13 @@ function summarizeCurrencyRows(
 }
 
 /** Summarizes a trip's counted spend per currency, category root, day, and optional approx VND. */
-export function summarizeTravel(
-  t: TravelDef,
+export function summarizeEvent(
+  t: EventDef,
   rows: CountedSpendRow[],
   wallets: WalletDetailView[],
   categories: CategoryView[],
-): TravelSummary {
-  const matched = travelRows(t, rows, wallets);
+): EventSummary {
+  const matched = eventRows(t, rows, wallets);
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
   const topCategoryCache = new Map<string, string>();
 

@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { env } from 'cloudflare:test';
 import type {
   CategoriesResponse,
-  TravelRowsResponse,
-  TravelSavedResponse,
+  EventRowsResponse,
+  EventSavedResponse,
   WalletDetailResponse,
 } from '@cc/core';
 import { call, json, memberSid } from './helpers';
@@ -11,11 +11,11 @@ import { addWallet, postJson, switchOn } from './personal-helpers';
 
 const as = (sid: string) => ({ headers: { Cookie: `sid=${sid}` } });
 
-const createTravel = (sid: string | null, body: unknown) =>
-  postJson('/api/me/personal/travels', sid, body);
+const createEvent = (sid: string | null, body: unknown) =>
+  postJson('/api/me/personal/events', sid, body);
 
-const getTravelRows = (sid: string | null, id: string) =>
-  call(`/api/me/personal/travels/${encodeURIComponent(id)}/rows`, sid ? as(sid) : {});
+const getEventRows = (sid: string | null, id: string) =>
+  call(`/api/me/personal/events/${encodeURIComponent(id)}/rows`, sid ? as(sid) : {});
 
 const getCategories = (sid: string) => call('/api/me/personal/categories', as(sid));
 
@@ -89,9 +89,9 @@ const countQueries = async <T>(fn: () => Promise<T>): Promise<{ result: T; queri
 };
 
 afterEach(async () => {
-  await env.DB.prepare('DELETE FROM personal_travel_share_marks').run();
-  await env.DB.prepare('DELETE FROM personal_travel_groups').run();
-  await env.DB.prepare('DELETE FROM personal_travels').run();
+  await env.DB.prepare('DELETE FROM personal_event_share_marks').run();
+  await env.DB.prepare('DELETE FROM personal_event_groups').run();
+  await env.DB.prepare('DELETE FROM personal_events').run();
   await env.DB.prepare('DELETE FROM personal_budget_excluded_wallets').run();
   await env.DB.prepare('DELETE FROM personal_budget_limits').run();
   await env.DB.prepare('DELETE FROM personal_budgets').run();
@@ -113,18 +113,18 @@ afterEach(async () => {
   await env.DB.prepare('DELETE FROM trips').run();
 });
 
-describe('GET /me/personal/travels/:id/rows', () => {
+describe('GET /me/personal/events/:id/rows', () => {
   it('guards the route: 401 signed out, 403 switch off, 404 unknown or foreign trip', async () => {
-    expect((await getTravelRows(null, 'tr-missing')).status).toBe(401);
+    expect((await getEventRows(null, 'tr-missing')).status).toBe(401);
 
     const ownerId = 'u-tr-owner';
     const ownerSid = await memberSid(ownerId, 'Owner');
-    expect((await getTravelRows(ownerSid, 'tr-missing')).status).toBe(403);
+    expect((await getEventRows(ownerSid, 'tr-missing')).status).toBe(403);
 
     await switchOn(ownerId);
-    expect((await getTravelRows(ownerSid, 'tr-missing')).status).toBe(404);
+    expect((await getEventRows(ownerSid, 'tr-missing')).status).toBe(404);
 
-    const createRes = await createTravel(ownerSid, {
+    const createRes = await createEvent(ownerSid, {
       name: 'Hội An',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -133,17 +133,17 @@ describe('GET /me/personal/travels/:id/rows', () => {
       today: '2026-12-01',
     });
     expect(createRes.status).toBe(201);
-    const created = await json<TravelSavedResponse>(createRes);
+    const created = await json<EventSavedResponse>(createRes);
 
     const otherId = 'u-tr-other';
     const otherSid = await memberSid(otherId, 'Other');
     await switchOn(otherId);
-    expect((await getTravelRows(otherSid, created.travel.id)).status).toBe(404);
+    expect((await getEventRows(otherSid, created.event.id)).status).toBe(404);
   });
 
   it('returns tagged own + group rows inside countsFrom..end, keeps THB row, drops untagged/out-of-range, works with zero budgets, <= 50 queries', async () => {
     const userId = 'u-tr-rows';
-    const sid = await memberSid(userId, 'Traveler');
+    const sid = await memberSid(userId, 'Eventer');
     await switchOn(userId);
 
     const vndRes = await addWallet(sid, { name: 'Cash', currency: 'VND', startAmount: 10_000_000 });
@@ -185,7 +185,7 @@ describe('GET /me/personal/travels/:id/rows', () => {
     });
 
     // Create trip with NO budget (zero budgets in DB)
-    const createRes = await createTravel(sid, {
+    const createRes = await createEvent(sid, {
       name: 'Bangkok',
       start: '2026-12-10',
       end: '2026-12-12',
@@ -194,14 +194,14 @@ describe('GET /me/personal/travels/:id/rows', () => {
       today: '2026-12-01',
     });
     expect(createRes.status).toBe(201);
-    const { travel } = await json<TravelSavedResponse>(createRes);
+    const { event } = await json<EventSavedResponse>(createRes);
 
     // Tag gx-in and gx-out-date with the trip tag; leave gx-untagged untagged
     expect(
-      (await putGroupLink(sid, 'gx-in', { tagIds: [travel.tagId] })).status,
+      (await putGroupLink(sid, 'gx-in', { tagIds: [event.tagId] })).status,
     ).toBe(200);
     expect(
-      (await putGroupLink(sid, 'gx-out-date', { tagIds: [travel.tagId] })).status,
+      (await putGroupLink(sid, 'gx-out-date', { tagIds: [event.tagId] })).status,
     ).toBe(200);
 
     // Own VND expense inside countsFrom..start (lead-up) with trip tag -> included
@@ -278,11 +278,11 @@ describe('GET /me/personal/travels/:id/rows', () => {
       ).status,
     ).toBe(201);
 
-    const { result: res, queries } = await countQueries(() => getTravelRows(sid, travel.id));
+    const { result: res, queries } = await countQueries(() => getEventRows(sid, event.id));
     expect(res.status).toBe(200);
     expect(queries).toBeLessThanOrEqual(50);
 
-    const body = await json<TravelRowsResponse>(res);
+    const body = await json<EventRowsResponse>(res);
     expect(body.rows).toHaveLength(3);
     expect(body.rows.some((r) => r.id === 'gx-untagged')).toBe(false);
 
@@ -299,6 +299,6 @@ describe('GET /me/personal/travels/:id/rows', () => {
         { kind: 'group', currency: 'VND', amount: 1_000_000, date: '2026-12-10' },
       ]),
     );
-    expect(body.rows.every((r) => r.tagIds.includes(travel.tagId))).toBe(true);
+    expect(body.rows.every((r) => r.tagIds.includes(event.tagId))).toBe(true);
   });
 });
