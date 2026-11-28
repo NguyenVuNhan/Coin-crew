@@ -204,7 +204,7 @@ describe('GET /me/personal/events/:id/rows', () => {
       (await putGroupLink(sid, 'gx-out-date', { tagIds: [event.tagId] })).status,
     ).toBe(200);
 
-    // Own VND expense inside countsFrom..start (lead-up) with trip tag -> included
+    // Own VND expense inside countsFrom..start (lead-up) with event tag -> included
     const ownLeadRes = await createEntry(sid, {
       walletId: vndWallet.id,
       type: 'expense',
@@ -213,11 +213,11 @@ describe('GET /me/personal/events/:id/rows', () => {
       date: '2026-12-04',
       time: '09:00',
       note: 'Flight',
-      tags: ['Bangkok'],
+      tags: [event.tagName!],
     });
     expect(ownLeadRes.status).toBe(201);
 
-    // Own THB expense inside trip dates with trip tag -> included
+    // Own THB expense inside event dates with event tag -> included
     const ownThbRes = await createEntry(sid, {
       walletId: thbWallet.id,
       type: 'expense',
@@ -226,11 +226,11 @@ describe('GET /me/personal/events/:id/rows', () => {
       date: '2026-12-11',
       time: '12:00',
       note: 'Pad Thai',
-      tags: ['Bangkok'],
+      tags: [event.tagName!],
     });
     expect(ownThbRes.status).toBe(201);
 
-    // Own expense before countsFrom with trip tag -> dropped
+    // Own expense before countsFrom with event tag -> included under E8 (all tagged items count)
     expect(
       (
         await createEntry(sid, {
@@ -240,13 +240,13 @@ describe('GET /me/personal/events/:id/rows', () => {
           categoryId: foodCat.id,
           date: '2026-12-02',
           time: '10:00',
-          note: 'Too early',
-          tags: ['Bangkok'],
+          note: 'Early',
+          tags: [event.tagName!],
         })
       ).status,
     ).toBe(201);
 
-    // Own expense after end with trip tag -> dropped
+    // Own expense after end with event tag -> included under E8
     expect(
       (
         await createEntry(sid, {
@@ -256,13 +256,13 @@ describe('GET /me/personal/events/:id/rows', () => {
           categoryId: foodCat.id,
           date: '2026-12-13',
           time: '10:00',
-          note: 'Too late',
-          tags: ['Bangkok'],
+          note: 'Late',
+          tags: [event.tagName!],
         })
       ).status,
     ).toBe(201);
 
-    // Own expense inside dates without trip tag -> dropped
+    // Own expense inside dates without event tag -> dropped
     expect(
       (
         await createEntry(sid, {
@@ -283,7 +283,7 @@ describe('GET /me/personal/events/:id/rows', () => {
     expect(queries).toBeLessThanOrEqual(50);
 
     const body = await json<EventRowsResponse>(res);
-    expect(body.rows).toHaveLength(3);
+    expect(body.rows).toHaveLength(6);
     expect(body.rows.some((r) => r.id === 'gx-untagged')).toBe(false);
 
     const byNote = body.rows.map((r) => ({
@@ -296,9 +296,13 @@ describe('GET /me/personal/events/:id/rows', () => {
       expect.arrayContaining([
         { kind: 'entry', currency: 'VND', amount: 500_000, date: '2026-12-04' },
         { kind: 'entry', currency: 'THB', amount: 1_500_00, date: '2026-12-11' },
+        { kind: 'entry', currency: 'VND', amount: 100_000, date: '2026-12-02' },
+        { kind: 'entry', currency: 'VND', amount: 200_000, date: '2026-12-13' },
         { kind: 'group', currency: 'VND', amount: 1_000_000, date: '2026-12-10' },
+        { kind: 'group', currency: 'VND', amount: 300_000, date: '2026-12-01' },
       ]),
     );
-    expect(body.rows.every((r) => r.tagIds.includes(event.tagId))).toBe(true);
+    expect(event.tagId).toBeTruthy();
+    expect(body.rows.every((r) => r.tagIds.includes(event.tagId!))).toBe(true);
   });
 });

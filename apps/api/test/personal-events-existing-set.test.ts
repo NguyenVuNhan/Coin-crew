@@ -122,7 +122,7 @@ describe('personal events existing-items exact set', () => {
       )
     ).event;
 
-    // Day 2 expense: tagged with trip, then tag removed by hand
+    // Day 2 expense: tagged with event, then tag removed by hand
     const day2 = (
       await json<{ entries: EntryView[] }>(
         await createEntry(sid, {
@@ -131,7 +131,7 @@ describe('personal events existing-items exact set', () => {
           amount: 120_000,
           categoryId: food.id,
           date: '2026-11-11',
-          tags: ['Đà Nẵng'],
+          tags: [created.tagName!],
         }),
       )
     ).entries[0]!;
@@ -148,9 +148,9 @@ describe('personal events existing-items exact set', () => {
       ).status,
     ).toBe(200);
 
-    // End early on day 3
+    // Shrink end to day 3
     const endRes = await patchEvent(sid, created.id, {
-      endNow: true,
+      end: '2026-11-12',
       today: '2026-11-12',
     });
     expect(endRes.status).toBe(200);

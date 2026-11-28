@@ -29,6 +29,9 @@ export type ApiErrorCode =
   | 'OVERSELL'
   | 'EVENT_OVERLAP'
   | 'TAG_TAKEN'
+  | 'invalid_range'
+  | 'limit_needs_end'
+  | 'not_running'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL';
 
@@ -1003,6 +1006,7 @@ export interface BudgetsProgressResponse {
 
 export interface EventView extends EventDef {
   createdAt: string;
+  tagName: string | null;
 }
 
 export interface EventsResponse {
@@ -1020,8 +1024,8 @@ export interface EventLimitInput {
 
 export interface CreateEventInput {
   name: string;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string | null;
   countsFrom?: string;
   groupIds: string[];
   limit?: EventLimitInput;
@@ -1031,11 +1035,10 @@ export interface CreateEventInput {
 export interface UpdateEventInput {
   name?: string;
   start?: string;
-  end?: string;
+  end?: string | null;
   countsFrom?: string;
   groupIds?: string[];
   limit?: EventLimitInput | null;
-  endNow?: true;
   today: string;
 }
 

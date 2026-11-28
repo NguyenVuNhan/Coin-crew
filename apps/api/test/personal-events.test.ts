@@ -23,6 +23,12 @@ const createEvent = (sid: string | null, body: unknown) =>
 const patchEvent = (sid: string | null, id: string, body: unknown) =>
   postJson(`/api/me/personal/events/${encodeURIComponent(id)}`, sid, body, 'PATCH');
 
+const stopEvent = (sid: string | null, id: string, body: unknown) =>
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}/stop`, sid, body);
+
+const startNowEvent = (sid: string | null, id: string, body: unknown) =>
+  postJson(`/api/me/personal/events/${encodeURIComponent(id)}/start-now`, sid, body);
+
 const deleteEvent = (sid: string | null, id: string) =>
   call(`/api/me/personal/events/${encodeURIComponent(id)}`, {
     method: 'DELETE',
@@ -149,7 +155,7 @@ describe('personal events routes', () => {
     expect((await applyExisting(sid, 'tr-1', { tag: true })).status).toBe(403);
   });
 
-  it('creates a trip with a new tag, reuses an existing tag case-insensitively, and lists newest start first', async () => {
+  it('creates an event with a generated tag, creates a separate tag for another event, and lists newest start first', async () => {
     const userId = 'u-trv-tags';
     const sid = await memberSid(userId, 'TagsUser');
     await switchOn(userId);
@@ -164,6 +170,7 @@ describe('personal events routes', () => {
     expect(res1.status).toBe(201);
     const body1 = await json<EventSavedResponse>(res1);
     expect(body1.event.name).toBe('Đà Lạt');
+    expect(body1.event.tagName).toBe('dalat-101226-121226');
     expect(body1.event.start).toBe('2026-12-10');
     expect(body1.event.end).toBe('2026-12-12');
     expect(body1.event.countsFrom).toBe('2026-11-27');
@@ -176,7 +183,7 @@ describe('personal events routes', () => {
       shareRootIds: [],
     });
 
-    // Reuse existing tag case-insensitively on a later non-overlapping trip
+    // Each event owns its own generated tag
     const res2 = await createEvent(sid, {
       name: 'đà lạt',
       start: '2027-01-05',
@@ -186,8 +193,9 @@ describe('personal events routes', () => {
     });
     expect(res2.status).toBe(201);
     const body2 = await json<EventSavedResponse>(res2);
-    expect(body2.event.tagId).toBe(body1.event.tagId);
-    expect(body2.event.name).toBe('Đà Lạt');
+    expect(body2.event.tagId).not.toBe(body1.event.tagId);
+    expect(body2.event.name).toBe('đà lạt');
+    expect(body2.event.tagName).toBe('dalat-050127-080127');
 
     // List returns newest start first
     const listRes = await listEvents(sid);
@@ -196,7 +204,7 @@ describe('personal events routes', () => {
     expect(listed.map((t) => t.id)).toEqual([body2.event.id, body1.event.id]);
   });
 
-  it('rejects start after end and countsFrom after start (422)', async () => {
+  it('rejects start after end (400 invalid_range) and countsFrom after start (422)', async () => {
     const userId = 'u-trv-val';
     const sid = await memberSid(userId, 'ValUser');
     await switchOn(userId);
@@ -208,7 +216,8 @@ describe('personal events routes', () => {
       groupIds: [],
       today: '2026-11-27',
     });
-    expect(res1.status).toBe(422);
+    expect(res1.status).toBe(400);
+    expect((await json<{ error: { code: string } }>(res1)).error.code).toBe('invalid_range');
 
     const res2 = await createEvent(sid, {
       name: 'Bad CountsFrom',
@@ -221,22 +230,19 @@ describe('personal events routes', () => {
     expect(res2.status).toBe(422);
   });
 
-  it('rejects an overlapping trip (409 EVENT_OVERLAP with the other trip) and allows a lead-up overlapping another trip', async () => {
+  it('allows overlapping events', async () => {
     const userId = 'u-trv-overlap';
     const sid = await memberSid(userId, 'OverlapUser');
     await switchOn(userId);
 
-    const first = (
-      await json<EventSavedResponse>(
-        await createEvent(sid, {
-          name: 'Huế',
-          start: '2026-12-20',
-          end: '2026-12-23',
-          groupIds: [],
-          today: '2026-11-27',
-        }),
-      )
-    ).event;
+    const firstRes = await createEvent(sid, {
+      name: 'Huế',
+      start: '2026-12-20',
+      end: '2026-12-23',
+      groupIds: [],
+      today: '2026-11-27',
+    });
+    expect(firstRes.status).toBe(201);
 
     const overlapRes = await createEvent(sid, {
       name: 'Đà Nẵng',
@@ -245,24 +251,10 @@ describe('personal events routes', () => {
       groupIds: [],
       today: '2026-11-27',
     });
-    expect(overlapRes.status).toBe(409);
-    const errBody = await json<{
-      error: {
-        code: string;
-        details: { eventId: string; name: string; start: string; end: string };
-      };
-    }>(overlapRes);
-    expect(errBody.error.code).toBe('EVENT_OVERLAP');
-    expect(errBody.error.details).toEqual({
-      eventId: first.id,
-      name: 'Huế',
-      start: '2026-12-20',
-      end: '2026-12-23',
-    });
+    expect(overlapRes.status).toBe(201);
 
-    // Lead-up overlapping Huế is allowed because start..end (Dec 24..27) does not overlap Dec 20..23
     const leadupRes = await createEvent(sid, {
-      name: 'Đà Nẵng',
+      name: 'Đà Nẵng 2',
       start: '2026-12-24',
       end: '2026-12-27',
       countsFrom: '2026-12-01',
@@ -339,13 +331,12 @@ describe('personal events routes', () => {
     const b2b = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
     expect(b2b.limits).toEqual([{ effectiveFrom: '2026-11-28', amount: 7_500_000 }]);
 
-    // endNow ends today and moves the budget
-    const endNowRes = await patchEvent(sid, created.id, {
-      endNow: true,
+    // stop ends today and moves the budget
+    const stopRes = await stopEvent(sid, created.id, {
       today: '2026-12-10',
     });
-    expect(endNowRes.status).toBe(200);
-    const ended = (await json<EventSavedResponse>(endNowRes)).event;
+    expect(stopRes.status).toBe(200);
+    const ended = (await json<EventSavedResponse>(stopRes)).event;
     expect(ended.end).toBe('2026-12-10');
     const b3 = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
     expect(b3.from).toBe('2026-11-28');
@@ -395,7 +386,7 @@ describe('personal events routes', () => {
       amount: 150_000,
       categoryId: food.id,
       date: '2026-11-11',
-      tags: ['Nha Trang'],
+      tags: [created.tagName!],
     });
     expect(entryRes.status).toBe(201);
     const entry = (await json<{ entries: EntryView[] }>(entryRes)).entries[0]!;
@@ -600,14 +591,14 @@ describe('personal events routes', () => {
     expect(preservedLink?.wallet_id).toBe(wVnd.id);
   });
 
-  it('renaming the trip renames the tag; 409 TAG_TAKEN when the name is taken', async () => {
+  it('renaming the event renames the generated tag and adds -2 on collision', async () => {
     const userId = 'u-trv-rename';
     const sid = await memberSid(userId, 'RenameUser');
     await switchOn(userId);
 
-    // Seed another tag
+    // Seed another tag that collides with Sapa's generated tag
     await env.DB.prepare(
-      "INSERT INTO personal_tags (id, user_id, name, created_at) VALUES ('tag-taken', ?, 'Sapa', '2026-11-01T00:00:00.000Z')",
+      "INSERT INTO personal_tags (id, user_id, name, created_at) VALUES ('tag-taken', ?, 'sapa-011226-031226', '2026-11-01T00:00:00.000Z')",
     )
       .bind(userId)
       .run();
@@ -624,15 +615,15 @@ describe('personal events routes', () => {
       )
     ).event;
 
-    // 409 TAG_TAKEN when name belongs to another tag (case-insensitive)
+    // Colliding generated name appends -2 instead of failing
     const takenRes = await patchEvent(sid, created.id, {
       name: 'sapa',
       today: '2026-11-27',
     });
-    expect(takenRes.status).toBe(409);
-    expect((await json<{ error: { code: string } }>(takenRes)).error.code).toBe('TAG_TAKEN');
+    expect(takenRes.status).toBe(200);
+    expect((await json<EventSavedResponse>(takenRes)).event.tagName).toBe('sapa-011226-031226-2');
 
-    // Valid rename renames the tag
+    // Valid rename renames the generated tag
     const okRes = await patchEvent(sid, created.id, {
       name: 'Hội An 2026',
       today: '2026-11-27',
@@ -641,12 +632,13 @@ describe('personal events routes', () => {
     const updated = (await json<EventSavedResponse>(okRes)).event;
     expect(updated.name).toBe('Hội An 2026');
     expect(updated.tagId).toBe(created.tagId);
+    expect(updated.tagName).toBe('hoian2026-011226-031226');
 
     const tags = (await json<{ tags: TagView[] }>(await getTags(sid))).tags;
-    expect(tags.find((t) => t.id === created.tagId)?.name).toBe('Hội An 2026');
+    expect(tags.find((t) => t.id === created.tagId)?.name).toBe('hoian2026-011226-031226');
   });
 
-  it('deleting the tag deletes the trip', async () => {
+  it('deleting the tag sets tagId and tagName to null while keeping the event', async () => {
     const userId = 'u-trv-deltag';
     const sid = await memberSid(userId, 'DelTagUser');
     await switchOn(userId);
@@ -663,11 +655,13 @@ describe('personal events routes', () => {
       )
     ).event;
 
-    const delTagRes = await deleteTag(sid, created.tagId);
+    const delTagRes = await deleteTag(sid, created.tagId!);
     expect(delTagRes.status).toBe(200);
 
     const listed = (await json<EventsResponse>(await listEvents(sid))).events;
-    expect(listed).toHaveLength(0);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]!.tagId).toBeNull();
+    expect(listed[0]!.tagName).toBeNull();
   });
 
   it("foreign user's trip is 404 and GET excludes another user's trips", async () => {
@@ -748,7 +742,7 @@ describe('personal events routes', () => {
     expect(budget.excludedWalletIds).toEqual([wVndExcl.id]);
   });
 
-  it('T7: a share already carrying trip A tag is not marked or counted for trip B', async () => {
+  it('E5: a share carrying event A tag is still counted and marked for event B', async () => {
     const userId = 'u-trv-t7';
     const sid = await memberSid(userId, 'T7User');
     await switchOn(userId);
@@ -770,14 +764,14 @@ describe('personal events routes', () => {
       )
     ).event;
 
-    // Tag ge-a with Trip A's tag via group-link (even without a mark, e.g. manually tagged)
+    // Tag ge-a with Event A's tag via group-link
     await env.DB.prepare('DELETE FROM personal_event_share_marks WHERE event_id = ?')
       .bind(tripA.id)
       .run();
     const linkRes = await putGroupLink(sid, 'ge-a', { tagIds: [tripA.tagId] });
     expect(linkRes.status).toBe(200);
 
-    // Trip B's lead-up covers 2026-12-02; ge-a already carries Trip A's tag -> must not be counted or marked
+    // Event B's lead-up covers 2026-12-02; several events can cover the same share
     const resB = await createEvent(sid, {
       name: 'Trip B',
       start: '2026-12-10',
@@ -788,14 +782,14 @@ describe('personal events routes', () => {
     });
     expect(resB.status).toBe(201);
     const savedB = await json<EventSavedResponse>(resB);
-    expect(savedB.existing.shares).toEqual({ count: 0, total: 0 });
+    expect(savedB.existing.shares).toEqual({ count: 1, total: 300_000 });
 
     const marksB = await env.DB.prepare(
       'SELECT root_id FROM personal_event_share_marks WHERE event_id = ?',
     )
       .bind(savedB.event.id)
       .all<{ root_id: string }>();
-    expect(marksB.results).toEqual([]);
+    expect(marksB.results).toEqual([{ root_id: 'ge-a' }]);
   });
 
   it('PATCH changing groupIds writes new marks for added groups and deletes skipped marks for removed groups', async () => {
@@ -841,7 +835,7 @@ describe('personal events routes', () => {
     expect(marks.results).toEqual([{ root_id: 'ge-2', state: 'skipped' }]);
   });
 
-  it('endNow with start > today clamps start and end to today and moves budget', async () => {
+  it('start-now on an upcoming event clamps start and countsFrom to today and moves budget', async () => {
     const userId = 'u-trv-endnow-future';
     const sid = await memberSid(userId, 'FutureEndNow');
     await switchOn(userId);
@@ -860,19 +854,18 @@ describe('personal events routes', () => {
       )
     ).event;
 
-    const res = await patchEvent(sid, created.id, {
-      endNow: true,
+    const res = await startNowEvent(sid, created.id, {
       today: '2026-11-27',
     });
     expect(res.status).toBe(200);
-    const ended = (await json<EventSavedResponse>(res)).event;
-    expect(ended.start).toBe('2026-11-27');
-    expect(ended.end).toBe('2026-11-27');
-    expect(ended.countsFrom).toBe('2026-11-27');
+    const started = (await json<EventSavedResponse>(res)).event;
+    expect(started.start).toBe('2026-11-27');
+    expect(started.end).toBe('2026-12-25');
+    expect(started.countsFrom).toBe('2026-11-27');
 
     const budget = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
     expect(budget.from).toBe('2026-11-27');
-    expect(budget.to).toBe('2026-11-27');
+    expect(budget.to).toBe('2026-12-25');
     expect(budget.limits).toEqual([{ effectiveFrom: '2026-11-27', amount: 4_000_000 }]);
   });
 

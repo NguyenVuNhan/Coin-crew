@@ -23,7 +23,7 @@ import { getSessionUser } from '@cc/api-auth/session';
 import { requirePersonal } from '@cc/api-auth/personal';
 import { ApiError } from '@cc/api-util/errors';
 import { newId, nowIso } from '@cc/api-util/ids';
-import { eventForShare, type GroupLinkView, type GroupSettingsView } from '@cc/core';
+import { eventsForShare, type EventDef, type GroupLinkView, type GroupSettingsView } from '@cc/core';
 import { ensureFixedCategories } from './fixedCategories';
 import { computeGroupsKey, loadGroupSettings } from './groupShares';
 import { loadCachedGroupRows } from './tripCache';
@@ -230,11 +230,11 @@ export function groupLinkRoutes(): Hono<AppBindings> {
       excludeInput !== undefined ? excludeInput : existing?.excludeFromReports === 1;
 
     let nextTagIds: string[];
-    let matchedEvent: { id: string; tagId: string } | null = null;
+    let matchedEvents: EventDef[] = [];
     if (tagIdsInput !== undefined) {
       nextTagIds = tagIdsInput;
       const events = await loadUserEvents(db, user.id);
-      matchedEvent = eventForShare(events, { tripId: ownedTx.tripId, date: ownedTx.spentOn });
+      matchedEvents = eventsForShare(events, { tripId: ownedTx.tripId, date: ownedTx.spentOn });
     } else {
       const existingTags = await db
         .select({ tagId: personalGroupLinkTags.tagId })
@@ -298,7 +298,8 @@ export function groupLinkRoutes(): Hono<AppBindings> {
               .values({ userId: user.id, rootId, tagId }) as unknown as BatchItem<'sqlite'>,
           );
         }
-        if (matchedEvent) {
+        for (const matchedEvent of matchedEvents) {
+          if (!matchedEvent.tagId) continue;
           stmts.push(
             db
               .insert(personalEventShareMarks)

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { AppBindings } from '@cc/api-db/env';
 import { getDb, type Db } from '@cc/api-db/client';
@@ -29,20 +29,20 @@ import { newId, nowIso } from '@cc/api-util/ids';
 import {
   MAX_AMOUNT,
   defaultCountsFrom,
-  findEventOverlap,
+  eventState,
+  eventTagName,
+  eventsForShare,
   groupRowEffect,
   isCurrencyCode,
   listCountedSpending,
-  eventForShare,
+  uniqueTagName,
   type CurrencyCode,
-  type EventDef,
   type EventExisting,
   type EventLimitInput,
   type EventRowsResponse,
   type EventView,
 } from '@cc/core';
 import { budgetCreateStatements, budgetMoveOnceStatements } from './budgets';
-import { resolveTags } from './entries';
 import { loadGroupSettings } from './groupShares';
 import { loadReportInput } from './reports';
 import { loadCachedGroupRows } from './tripCache';
@@ -65,7 +65,7 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-function parseTripName(v: unknown): string {
+function parseEventName(v: unknown): string {
   if (typeof v !== 'string') {
     throw new ApiError('VALIDATION', 422, 'Invalid name');
   }
@@ -121,6 +121,62 @@ function emptyExisting(): EventExisting {
     shares: { count: 0, total: 0 },
     ownIds: [],
     shareRootIds: [],
+  };
+}
+
+/**
+ * Computes the generated tag create/rename statements for an event without merging into existing tags.
+ * If `event.tagId` is null (or missing), creates a new tag; otherwise renames it when its name differs.
+ */
+async function syncEventTag(
+  db: Db,
+  userId: string,
+  event: { name: string; start: string; end: string | null; tagId: string | null },
+  now: string,
+): Promise<{ tagId: string; tagName: string; recreated: boolean; statements: BatchItem<'sqlite'>[] }> {
+  const userTags = await db
+    .select({ id: personalTags.id, name: personalTags.name })
+    .from(personalTags)
+    .where(eq(personalTags.userId, userId))
+    .all();
+
+  const wantedBase = eventTagName(event.name, event.start, event.end);
+  const current = event.tagId ? (userTags.find((t) => t.id === event.tagId) ?? null) : null;
+
+  if (!current) {
+    const tagName = uniqueTagName(
+      wantedBase,
+      userTags.map((t) => t.name),
+    );
+    const tagId = newId();
+    return {
+      tagId,
+      tagName,
+      recreated: true,
+      statements: [
+        db
+          .insert(personalTags)
+          .values({ id: tagId, userId, name: tagName, createdAt: now }) as unknown as BatchItem<'sqlite'>,
+      ],
+    };
+  }
+
+  const otherNames = userTags.filter((t) => t.id !== current.id).map((t) => t.name);
+  const tagName = uniqueTagName(wantedBase, otherNames);
+  if (current.name === tagName) {
+    return { tagId: current.id, tagName, recreated: false, statements: [] };
+  }
+
+  return {
+    tagId: current.id,
+    tagName,
+    recreated: false,
+    statements: [
+      db
+        .update(personalTags)
+        .set({ name: tagName })
+        .where(and(eq(personalTags.id, current.id), eq(personalTags.userId, userId))) as unknown as BatchItem<'sqlite'>,
+    ],
   };
 }
 
@@ -198,15 +254,17 @@ export async function loadUserEvents(db: Db, userId: string): Promise<EventView[
       .select({
         id: personalEvents.id,
         tagId: personalEvents.tagId,
-        name: personalTags.name,
+        name: personalEvents.name,
+        tagName: personalTags.name,
         startDate: personalEvents.startDate,
         endDate: personalEvents.endDate,
+        stoppedAt: personalEvents.stoppedAt,
         countsFrom: personalEvents.countsFrom,
         budgetId: personalEvents.budgetId,
         createdAt: personalEvents.createdAt,
       })
       .from(personalEvents)
-      .innerJoin(
+      .leftJoin(
         personalTags,
         and(eq(personalTags.id, personalEvents.tagId), eq(personalTags.userId, userId)),
       )
@@ -237,15 +295,64 @@ export async function loadUserEvents(db: Db, userId: string): Promise<EventView[
 
   return rows.map((r) => ({
     id: r.id,
-    tagId: r.tagId,
+    tagId: r.tagId ?? null,
     name: r.name,
+    tagName: r.tagName ?? null,
     start: r.startDate,
-    end: r.endDate,
+    end: r.endDate ?? null,
+    stoppedAt: r.stoppedAt ?? null,
     countsFrom: r.countsFrom,
     groupIds: groupsByEvent.get(r.id) ?? [],
     budgetId: r.budgetId ?? null,
     createdAt: r.createdAt,
   }));
+}
+
+async function loadUserEventById(db: Db, userId: string, id: string): Promise<EventView | null> {
+  const [row, groupRows] = await Promise.all([
+    db
+      .select({
+        id: personalEvents.id,
+        tagId: personalEvents.tagId,
+        name: personalEvents.name,
+        tagName: personalTags.name,
+        startDate: personalEvents.startDate,
+        endDate: personalEvents.endDate,
+        stoppedAt: personalEvents.stoppedAt,
+        countsFrom: personalEvents.countsFrom,
+        budgetId: personalEvents.budgetId,
+        createdAt: personalEvents.createdAt,
+      })
+      .from(personalEvents)
+      .leftJoin(
+        personalTags,
+        and(eq(personalTags.id, personalEvents.tagId), eq(personalTags.userId, userId)),
+      )
+      .where(and(eq(personalEvents.id, id), eq(personalEvents.userId, userId)))
+      .get(),
+
+    db
+      .select({ tripId: personalEventGroups.tripId })
+      .from(personalEventGroups)
+      .where(eq(personalEventGroups.eventId, id))
+      .all(),
+  ]);
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    tagId: row.tagId ?? null,
+    name: row.name,
+    tagName: row.tagName ?? null,
+    start: row.startDate,
+    end: row.endDate ?? null,
+    stoppedAt: row.stoppedAt ?? null,
+    countsFrom: row.countsFrom,
+    groupIds: groupRows.map((g) => g.tripId),
+    budgetId: row.budgetId ?? null,
+    createdAt: row.createdAt,
+  };
 }
 
 async function assertActiveGroups(db: Db, userId: string, groupIds: string[]): Promise<void> {
@@ -302,17 +409,38 @@ async function computeExisting(
   db: Db,
   userId: string,
   params: {
-    tagId: string;
-    allTripTagIds: Set<string>;
+    eventId?: string;
+    tagId: string | null;
     start: string;
-    end: string;
+    end: string | null;
     countsFrom: string;
     groupIds: string[];
-    previousRange?: { start: string; end: string };
+    previousRange?: { start: string; end: string | null };
+    excludeOnlySkipped?: boolean;
   },
 ): Promise<{ existing: EventExisting; sharesToMark: string[] }> {
   const prev = params.previousRange;
-  const noNewOwnDays = prev !== undefined && params.start >= prev.start && params.end <= prev.end;
+  let noNewOwnDays = false;
+  let prevExcludeClause: SQL | undefined;
+
+  if (prev !== undefined) {
+    if (prev.end === null) {
+      noNewOwnDays = params.start >= prev.start;
+      prevExcludeClause = lt(personalTransactions.date, prev.start);
+    } else if (params.end === null) {
+      noNewOwnDays = false;
+      prevExcludeClause = or(
+        lt(personalTransactions.date, prev.start),
+        gt(personalTransactions.date, prev.end),
+      );
+    } else {
+      noNewOwnDays = params.start >= prev.start && params.end <= prev.end;
+      prevExcludeClause = or(
+        lt(personalTransactions.date, prev.start),
+        gt(personalTransactions.date, prev.end),
+      );
+    }
+  }
 
   const ownRowsPromise = noNewOwnDays
     ? Promise.resolve([])
@@ -330,11 +458,13 @@ async function computeExisting(
             eq(personalTransactions.type, 'expense'),
             eq(personalTransactions.source, 'manual'),
             gte(personalTransactions.date, params.start),
-            lte(personalTransactions.date, params.end),
-            ...(prev
-              ? [or(lt(personalTransactions.date, prev.start), gt(personalTransactions.date, prev.end))]
+            ...(params.end !== null ? [lte(personalTransactions.date, params.end)] : []),
+            ...(prevExcludeClause ? [prevExcludeClause] : []),
+            ...(params.tagId !== null
+              ? [
+                  sql`NOT EXISTS (SELECT 1 FROM personal_transaction_tags WHERE transaction_id = ${personalTransactions.id} AND tag_id = ${params.tagId})`,
+                ]
               : []),
-            sql`NOT EXISTS (SELECT 1 FROM personal_transaction_tags WHERE transaction_id = ${personalTransactions.id} AND tag_id = ${params.tagId})`,
           ),
         )
         .all();
@@ -344,11 +474,21 @@ async function computeExisting(
       ? Promise.all([
           loadCachedGroupRows(db, userId),
           loadGroupSettings(db, userId),
-          db
-            .select({ rootId: personalEventShareMarks.rootId })
-            .from(personalEventShareMarks)
-            .where(eq(personalEventShareMarks.userId, userId))
-            .all(),
+          params.eventId
+            ? db
+                .select({ rootId: personalEventShareMarks.rootId })
+                .from(personalEventShareMarks)
+                .where(
+                  and(
+                    eq(personalEventShareMarks.userId, userId),
+                    eq(personalEventShareMarks.eventId, params.eventId),
+                    ...(params.excludeOnlySkipped
+                      ? [eq(personalEventShareMarks.state, 'skipped')]
+                      : []),
+                  ),
+                )
+                .all()
+            : Promise.resolve([]),
         ])
       : Promise.resolve(null);
 
@@ -378,9 +518,10 @@ async function computeExisting(
     for (const row of groupRows) {
       if (row.source !== 'expense' || row.pending) continue;
       if (!groupSet.has(row.tripId)) continue;
-      if (row.date < params.countsFrom || row.date > params.end) continue;
+      if (row.date < params.countsFrom) continue;
+      if (params.end !== null && row.date > params.end) continue;
       if (markedRootIds.has(row.rootId)) continue;
-      if (row.link?.tagIds.some((tid) => params.allTripTagIds.has(tid))) continue;
+      if (params.tagId !== null && row.link?.tagIds.includes(params.tagId)) continue;
 
       const spending = groupRowEffect(row, settings).spending;
       if (spending <= 0) continue;
@@ -402,25 +543,6 @@ async function computeExisting(
   };
 }
 
-function assertNoOverlap(
-  events: EventDef[],
-  start: string,
-  end: string,
-  exceptId?: string,
-): void {
-  const overlap = findEventOverlap(events, start, end, exceptId);
-  if (overlap) {
-    throw new ApiError('EVENT_OVERLAP', 409, 'Trip dates overlap another trip', {
-      details: {
-        eventId: overlap.id,
-        name: overlap.name,
-        start: overlap.start,
-        end: overlap.end,
-      },
-    });
-  }
-}
-
 export function eventRoutes(): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
@@ -439,23 +561,21 @@ export function eventRoutes(): Hono<AppBindings> {
       .select({
         id: personalEvents.id,
         tagId: personalEvents.tagId,
-        countsFrom: personalEvents.countsFrom,
-        endDate: personalEvents.endDate,
       })
       .from(personalEvents)
       .where(and(eq(personalEvents.id, id), eq(personalEvents.userId, user.id)))
       .get();
     if (!event) {
-      throw new ApiError('NOT_FOUND', 404, 'Trip not found');
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
     }
 
+    if (!event.tagId) {
+      return c.json({ rows: [] } satisfies EventRowsResponse, 200);
+    }
+
+    const tagId = event.tagId;
     const allRows = listCountedSpending(await loadReportInput(db, user.id));
-    const rows = allRows.filter(
-      (r) =>
-        r.tagIds.includes(event.tagId) &&
-        r.date >= event.countsFrom &&
-        r.date <= event.endDate,
-    );
+    const rows = allRows.filter((r) => r.tagIds.includes(tagId));
     return c.json({ rows } satisfies EventRowsResponse, 200);
   });
 
@@ -467,10 +587,12 @@ export function eventRoutes(): Hono<AppBindings> {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
 
-    const name = parseTripName(body.name);
-    const start = requireDate(body.start);
-    const end = requireDate(body.end);
+    const name = parseEventName(body.name);
     const today = requireDate(body.today);
+    const start =
+      body.start !== undefined && body.start !== null ? requireDate(body.start) : today;
+    const end =
+      body.end !== undefined && body.end !== null ? requireDate(body.end) : null;
     const countsFrom =
       body.countsFrom !== undefined && body.countsFrom !== null
         ? requireDate(body.countsFrom)
@@ -479,36 +601,27 @@ export function eventRoutes(): Hono<AppBindings> {
     if (countsFrom > start) {
       throw new ApiError('VALIDATION', 422, 'countsFrom must be on or before start');
     }
-    if (start > end) {
-      throw new ApiError('VALIDATION', 422, 'start must be on or before end');
+    if (end !== null && end < start) {
+      throw new ApiError('invalid_range', 400, 'End date must be on or after start date');
     }
 
     const groupIds = parseGroupIds(body.groupIds);
     const limit =
       body.limit !== undefined && body.limit !== null ? parseLimit(body.limit) : null;
 
+    if (limit !== null && end === null) {
+      throw new ApiError('limit_needs_end', 400, 'Limit requires an end date');
+    }
+
     const db = getDb(c.env);
     const now = nowIso();
 
-    const [existingEvents] = await Promise.all([
-      loadUserEvents(db, user.id),
+    const [, syncedTag, excludedWalletIds, existingResult] = await Promise.all([
       assertActiveGroups(db, user.id, groupIds),
-    ]);
-    assertNoOverlap(existingEvents, start, end);
-
-    const [resolvedTag] = await resolveTags(db, user.id, [name], now);
-    if (!resolvedTag) {
-      throw new ApiError('INTERNAL', 500, 'Failed to resolve tag');
-    }
-
-    const allTripTagIds = new Set(existingEvents.map((t) => t.tagId));
-    allTripTagIds.add(resolvedTag.id);
-
-    const [excludedWalletIds, existingResult] = await Promise.all([
+      syncEventTag(db, user.id, { name, start, end, tagId: null }, now),
       limit ? loadDefaultExcludedWalletIds(db, user.id, limit.currency) : Promise.resolve([]),
       computeExisting(db, user.id, {
-        tagId: resolvedTag.id,
-        allTripTagIds,
+        tagId: null,
         start,
         end,
         countsFrom,
@@ -520,15 +633,15 @@ export function eventRoutes(): Hono<AppBindings> {
     let budgetId: string | null = null;
 
     await commitPersonalWrite(db, user.id, (v) => {
-      const stmts: BatchItem<'sqlite'>[] = [];
+      const stmts: BatchItem<'sqlite'>[] = [...syncedTag.statements];
 
-      if (limit) {
+      if (limit && end !== null) {
         const createdBudget = budgetCreateStatements(
           db,
           user.id,
           {
-            name: resolvedTag.name,
-            target: { kind: 'tag', tagId: resolvedTag.id },
+            name,
+            target: { kind: 'tag', tagId: syncedTag.tagId },
             currency: limit.currency,
             amount: limit.amount,
             periodKind: 'once',
@@ -548,9 +661,11 @@ export function eventRoutes(): Hono<AppBindings> {
         db.insert(personalEvents).values({
           id,
           userId: user.id,
-          tagId: resolvedTag.id,
+          name,
+          tagId: syncedTag.tagId,
           startDate: start,
           endDate: end,
+          stoppedAt: null,
           countsFrom,
           budgetId,
           createdAt: now,
@@ -590,10 +705,12 @@ export function eventRoutes(): Hono<AppBindings> {
 
     const event: EventView = {
       id,
-      tagId: resolvedTag.id,
-      name: resolvedTag.name,
+      tagId: syncedTag.tagId,
+      name,
+      tagName: syncedTag.tagName,
       start,
       end,
+      stoppedAt: null,
       countsFrom,
       groupIds,
       budgetId,
@@ -610,7 +727,6 @@ export function eventRoutes(): Hono<AppBindings> {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       throw new ApiError('VALIDATION', 422, 'Invalid request');
     }
-    // Validated for contract parity with budgets; reserved for future use.
     requireDate(body.today);
 
     const db = getDb(c.env);
@@ -622,32 +738,37 @@ export function eventRoutes(): Hono<AppBindings> {
     const [groupRows, markRows] = await Promise.all([
       loadCachedGroupRows(db, user.id),
       db
-        .select({ rootId: personalEventShareMarks.rootId })
+        .select({
+          rootId: personalEventShareMarks.rootId,
+          eventId: personalEventShareMarks.eventId,
+        })
         .from(personalEventShareMarks)
         .where(eq(personalEventShareMarks.userId, user.id))
         .all(),
     ]);
 
-    const markedRootIds = new Set(markRows.map((m) => m.rootId));
-    const allTripTagIds = new Set(events.map((t) => t.tagId));
+    const markedKeys = new Set(markRows.map((m) => `${m.rootId}\0${m.eventId}`));
     const matches: { rootId: string; tripId: string; tagId: string; eventId: string }[] = [];
 
     for (const row of groupRows) {
       if (matches.length >= TAG_SHARES_LIMIT) break;
       if (row.pending || row.source !== 'expense' || row.myShare <= 0) continue;
-      if (markedRootIds.has(row.rootId)) continue;
 
-      const match = eventForShare(events, row);
-      if (!match) continue;
-      if (row.link?.tagIds.some((tid) => allTripTagIds.has(tid) && tid !== match.tagId)) continue;
+      const matchedEvents = eventsForShare(events, row);
+      for (const match of matchedEvents) {
+        if (matches.length >= TAG_SHARES_LIMIT) break;
+        if (!match.tagId) continue;
+        const key = `${row.rootId}\0${match.id}`;
+        if (markedKeys.has(key)) continue;
 
-      markedRootIds.add(row.rootId);
-      matches.push({
-        rootId: row.rootId,
-        tripId: row.tripId,
-        tagId: match.tagId,
-        eventId: match.id,
-      });
+        markedKeys.add(key);
+        matches.push({
+          rootId: row.rootId,
+          tripId: row.tripId,
+          tagId: match.tagId,
+          eventId: match.id,
+        });
+      }
     }
 
     if (matches.length === 0) {
@@ -698,14 +819,10 @@ export function eventRoutes(): Hono<AppBindings> {
     }
 
     const today = requireDate(body.today);
-    if (body.endNow !== undefined && body.endNow !== true) {
-      throw new ApiError('VALIDATION', 422, 'Invalid endNow');
-    }
-    const endNow = body.endNow === true;
-
-    const nameInput = body.name !== undefined ? parseTripName(body.name) : undefined;
+    const nameInput = body.name !== undefined ? parseEventName(body.name) : undefined;
     const startInput = body.start !== undefined ? requireDate(body.start) : undefined;
-    const endInput = body.end !== undefined ? requireDate(body.end) : undefined;
+    const endInput =
+      body.end === undefined ? undefined : body.end === null ? null : requireDate(body.end);
     const countsFromInput =
       body.countsFrom !== undefined ? requireDate(body.countsFrom) : undefined;
     const groupIdsInput =
@@ -718,77 +835,61 @@ export function eventRoutes(): Hono<AppBindings> {
           : parseLimit(body.limit);
 
     const db = getDb(c.env);
-    const allEvents = await loadUserEvents(db, user.id);
-    const existing = allEvents.find((t) => t.id === id);
+    const existing = await loadUserEventById(db, user.id, id);
     if (!existing) {
-      throw new ApiError('NOT_FOUND', 404, 'Trip not found');
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
     }
 
-    let nextStart = startInput ?? existing.start;
-    let nextEnd = endInput ?? existing.end;
-    let nextCountsFrom = countsFromInput ?? existing.countsFrom;
-
-    if (endNow) {
-      nextEnd = today;
-      if (nextStart > today) {
-        nextStart = today;
-      }
-      if (nextCountsFrom > nextStart) {
-        nextCountsFrom = nextStart;
-      }
-    }
+    const nextName = nameInput ?? existing.name;
+    const nextStart = startInput ?? existing.start;
+    const nextEnd = endInput !== undefined ? endInput : existing.end;
+    const nextCountsFrom = countsFromInput ?? existing.countsFrom;
+    const nextGroupIds = groupIdsInput ?? existing.groupIds;
 
     if (nextCountsFrom > nextStart) {
       throw new ApiError('VALIDATION', 422, 'countsFrom must be on or before start');
     }
-    if (nextStart > nextEnd) {
-      throw new ApiError('VALIDATION', 422, 'start must be on or before end');
+    if (nextEnd !== null && nextEnd < nextStart) {
+      throw new ApiError('invalid_range', 400, 'End date must be on or after start date');
+    }
+    if (limitInput !== undefined && limitInput !== null && nextEnd === null) {
+      throw new ApiError('limit_needs_end', 400, 'Limit requires an end date');
     }
 
+    const nameChanged = nextName !== existing.name;
     const startOrEndChanged = nextStart !== existing.start || nextEnd !== existing.end;
     const budgetRangeChanged =
       nextCountsFrom !== existing.countsFrom || nextEnd !== existing.end;
     const datesChanged = startOrEndChanged || nextCountsFrom !== existing.countsFrom;
-
-    if (startOrEndChanged) {
-      assertNoOverlap(allEvents, nextStart, nextEnd, existing.id);
-    }
-
-    const nextGroupIds = groupIdsInput ?? existing.groupIds;
     const groupsChanged =
       groupIdsInput !== undefined && !sameStringSet(existing.groupIds, groupIdsInput);
+    const shouldSyncTag = existing.tagId === null || nameChanged || startOrEndChanged;
 
-    const nextName = nameInput ?? existing.name;
-    const nameChanged = nameInput !== undefined && nameInput !== existing.name;
-
-    await Promise.all([
-      groupIdsInput ? assertActiveGroups(db, user.id, groupIdsInput) : Promise.resolve(),
-      nameChanged
-        ? (async () => {
-            const tags = await db
-              .select({ id: personalTags.id, name: personalTags.name })
-              .from(personalTags)
-              .where(and(eq(personalTags.userId, user.id), ne(personalTags.id, existing.tagId)))
-              .all();
-            const lowerNext = nextName.toLowerCase();
-            if (tags.some((t) => t.name.toLowerCase() === lowerNext)) {
-              throw new ApiError('TAG_TAKEN', 409, 'Tag name is already taken');
-            }
-          })()
-        : Promise.resolve(),
-    ]);
-
+    const now = nowIso();
+    const clearingBudget = limitInput === null || nextEnd === null;
     const creatingBudget =
-      limitInput !== undefined && limitInput !== null && existing.budgetId === null;
+      !clearingBudget && limitInput !== undefined && existing.budgetId === null;
     const updatingBudget =
-      limitInput !== undefined && limitInput !== null && existing.budgetId !== null;
-    const allTripTagIds = new Set(allEvents.map((t) => t.tagId));
-    allTripTagIds.add(existing.tagId);
+      !clearingBudget && limitInput !== undefined && existing.budgetId !== null;
     const removedGroupIds = groupsChanged
       ? existing.groupIds.filter((gid) => !nextGroupIds.includes(gid))
       : [];
 
-    const [existingBudgetRow, existingResult] = await Promise.all([
+    const [, syncedTag, existingBudgetRow, existingResult] = await Promise.all([
+      groupIdsInput ? assertActiveGroups(db, user.id, groupIdsInput) : Promise.resolve(),
+      shouldSyncTag
+        ? syncEventTag(
+            db,
+            user.id,
+            { name: nextName, start: nextStart, end: nextEnd, tagId: existing.tagId },
+            now,
+          )
+        : Promise.resolve({
+            tagId: existing.tagId!,
+            tagName: existing.tagName,
+            recreated: false,
+            statements: [] as BatchItem<'sqlite'>[],
+          }),
       updatingBudget
         ? db
             .select({ currency: personalBudgets.currency })
@@ -798,10 +899,10 @@ export function eventRoutes(): Hono<AppBindings> {
             )
             .get()
         : Promise.resolve(undefined),
-      !endNow && (datesChanged || groupsChanged)
+      datesChanged || groupsChanged
         ? computeExisting(db, user.id, {
+            eventId: existing.id,
             tagId: existing.tagId,
-            allTripTagIds,
             start: nextStart,
             end: nextEnd,
             countsFrom: nextCountsFrom,
@@ -814,28 +915,18 @@ export function eventRoutes(): Hono<AppBindings> {
     const budgetCurrencyChanged =
       updatingBudget &&
       existingBudgetRow !== undefined &&
-      existingBudgetRow.currency !== limitInput.currency;
+      existingBudgetRow.currency !== limitInput!.currency;
     const excludedWalletIds =
       creatingBudget || budgetCurrencyChanged
         ? await loadDefaultExcludedWalletIds(db, user.id, limitInput!.currency)
         : [];
 
-    const now = nowIso();
     let nextBudgetId = existing.budgetId;
 
     await commitPersonalWrite(db, user.id, (v) => {
-      const stmts: BatchItem<'sqlite'>[] = [];
+      const stmts: BatchItem<'sqlite'>[] = [...syncedTag.statements];
 
-      if (nameChanged) {
-        stmts.push(
-          db
-            .update(personalTags)
-            .set({ name: nextName })
-            .where(and(eq(personalTags.id, existing.tagId), eq(personalTags.userId, user.id))) as unknown as BatchItem<'sqlite'>,
-        );
-      }
-
-      if (limitInput === null) {
+      if (clearingBudget) {
         if (existing.budgetId) {
           stmts.push(
             db
@@ -846,14 +937,14 @@ export function eventRoutes(): Hono<AppBindings> {
           );
         }
         nextBudgetId = null;
-      } else if (limitInput !== undefined) {
+      } else if (limitInput !== undefined && limitInput !== null && nextEnd !== null) {
         if (existing.budgetId === null) {
           const createdBudget = budgetCreateStatements(
             db,
             user.id,
             {
               name: nextName,
-              target: { kind: 'tag', tagId: existing.tagId },
+              target: { kind: 'tag', tagId: syncedTag.tagId },
               currency: limitInput.currency,
               amount: limitInput.amount,
               periodKind: 'once',
@@ -897,6 +988,7 @@ export function eventRoutes(): Hono<AppBindings> {
               .update(personalBudgets)
               .set({
                 name: nextName,
+                ...(syncedTag.recreated ? { targetId: syncedTag.tagId } : {}),
                 currency: limitInput.currency,
                 updatedAt: now,
               })
@@ -913,17 +1005,21 @@ export function eventRoutes(): Hono<AppBindings> {
             }) as unknown as BatchItem<'sqlite'>,
           );
         }
-      } else if (existing.budgetId !== null) {
+      } else if (existing.budgetId !== null && nextEnd !== null) {
         if (budgetRangeChanged) {
           stmts.push(
             ...budgetMoveOnceStatements(db, existing.budgetId, nextCountsFrom, nextEnd, now),
           );
         }
-        if (nameChanged) {
+        if (nameChanged || syncedTag.recreated) {
           stmts.push(
             db
               .update(personalBudgets)
-              .set({ name: nextName, updatedAt: now })
+              .set({
+                name: nextName,
+                ...(syncedTag.recreated ? { targetId: syncedTag.tagId } : {}),
+                updatedAt: now,
+              })
               .where(
                 and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
               ) as unknown as BatchItem<'sqlite'>,
@@ -935,6 +1031,8 @@ export function eventRoutes(): Hono<AppBindings> {
         db
           .update(personalEvents)
           .set({
+            name: nextName,
+            tagId: syncedTag.tagId,
             startDate: nextStart,
             endDate: nextEnd,
             countsFrom: nextCountsFrom,
@@ -1000,14 +1098,293 @@ export function eventRoutes(): Hono<AppBindings> {
 
     const event: EventView = {
       id: existing.id,
-      tagId: existing.tagId,
+      tagId: syncedTag.tagId,
       name: nextName,
+      tagName: syncedTag.tagName,
       start: nextStart,
       end: nextEnd,
+      stoppedAt: existing.stoppedAt,
       countsFrom: nextCountsFrom,
       groupIds: nextGroupIds,
       budgetId: nextBudgetId,
       createdAt: existing.createdAt,
+    };
+
+    return c.json({ event, existing: existingResult.existing }, 200);
+  });
+
+  app.post('/me/personal/events/:id/stop', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const id = c.req.param('id');
+    const body = await parseJson<Record<string, unknown>>(c);
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const today = requireDate(body.today);
+    const db = getDb(c.env);
+    const existing = await loadUserEventById(db, user.id, id);
+    if (!existing) {
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
+    }
+
+    if (eventState(existing, today) !== 'on') {
+      throw new ApiError('not_running', 409, 'Event is not running');
+    }
+
+    const now = nowIso();
+    const syncedTag = await syncEventTag(
+      db,
+      user.id,
+      { name: existing.name, start: existing.start, end: today, tagId: existing.tagId },
+      now,
+    );
+
+    await commitPersonalWrite(db, user.id, () => {
+      const stmts: BatchItem<'sqlite'>[] = [...syncedTag.statements];
+
+      if (existing.budgetId) {
+        stmts.push(
+          ...budgetMoveOnceStatements(db, existing.budgetId, existing.countsFrom, today, now),
+        );
+        if (syncedTag.recreated) {
+          stmts.push(
+            db
+              .update(personalBudgets)
+              .set({ targetId: syncedTag.tagId, updatedAt: now })
+              .where(
+                and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
+              ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+      }
+
+      stmts.push(
+        db
+          .update(personalEvents)
+          .set({
+            tagId: syncedTag.tagId,
+            endDate: today,
+            stoppedAt: now,
+            updatedAt: now,
+          })
+          .where(and(eq(personalEvents.id, existing.id), eq(personalEvents.userId, user.id))) as unknown as BatchItem<'sqlite'>,
+      );
+
+      return stmts;
+    });
+
+    const event: EventView = {
+      ...existing,
+      tagId: syncedTag.tagId,
+      tagName: syncedTag.tagName,
+      end: today,
+      stoppedAt: now,
+    };
+
+    return c.json({ event }, 200);
+  });
+
+  app.post('/me/personal/events/:id/resume', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const id = c.req.param('id');
+    const body = await parseJson<Record<string, unknown>>(c);
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const today = requireDate(body.today);
+    const db = getDb(c.env);
+    const existing = await loadUserEventById(db, user.id, id);
+    if (!existing) {
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
+    }
+
+    if (existing.stoppedAt === null) {
+      throw new ApiError('CONFLICT', 409, 'Event is not stopped');
+    }
+
+    const now = nowIso();
+    const gapStart = existing.end ?? existing.stoppedAt.slice(0, 10);
+
+    const syncedTag = await syncEventTag(
+      db,
+      user.id,
+      { name: existing.name, start: existing.start, end: null, tagId: existing.tagId },
+      now,
+    );
+
+    const existingResult =
+      gapStart <= today
+        ? await computeExisting(db, user.id, {
+            eventId: existing.id,
+            tagId: syncedTag.recreated ? null : syncedTag.tagId,
+            start: gapStart,
+            end: today,
+            countsFrom: gapStart,
+            groupIds: existing.groupIds,
+            excludeOnlySkipped: true,
+          })
+        : { existing: emptyExisting(), sharesToMark: [] };
+
+    await commitPersonalWrite(db, user.id, () => {
+      const stmts: BatchItem<'sqlite'>[] = [...syncedTag.statements];
+
+      if (existing.budgetId) {
+        stmts.push(
+          db
+            .delete(personalBudgets)
+            .where(
+              and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
+            ) as unknown as BatchItem<'sqlite'>,
+        );
+      }
+
+      stmts.push(
+        db
+          .update(personalEvents)
+          .set({
+            tagId: syncedTag.tagId,
+            endDate: null,
+            stoppedAt: null,
+            budgetId: null,
+            updatedAt: now,
+          })
+          .where(and(eq(personalEvents.id, existing.id), eq(personalEvents.userId, user.id))) as unknown as BatchItem<'sqlite'>,
+      );
+
+      for (const batch of chunk(existingResult.sharesToMark, MARK_INSERT_CHUNK)) {
+        stmts.push(
+          db
+            .insert(personalEventShareMarks)
+            .values(
+              batch.map((rootId) => ({
+                userId: user.id,
+                rootId,
+                eventId: existing.id,
+                state: 'skipped' as const,
+              })),
+            )
+            .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
+        );
+      }
+
+      return stmts;
+    });
+
+    const event: EventView = {
+      ...existing,
+      tagId: syncedTag.tagId,
+      tagName: syncedTag.tagName,
+      end: null,
+      stoppedAt: null,
+      budgetId: null,
+    };
+
+    return c.json({ event, existing: existingResult.existing }, 200);
+  });
+
+  app.post('/me/personal/events/:id/start-now', requirePersonal, async (c) => {
+    const user = (await getSessionUser(c))!;
+    const id = c.req.param('id');
+    const body = await parseJson<Record<string, unknown>>(c);
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new ApiError('VALIDATION', 422, 'Invalid request');
+    }
+
+    const today = requireDate(body.today);
+    const db = getDb(c.env);
+    const existing = await loadUserEventById(db, user.id, id);
+    if (!existing) {
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
+    }
+
+    if (eventState(existing, today) !== 'upcoming') {
+      throw new ApiError('CONFLICT', 409, 'Event is not upcoming');
+    }
+
+    const nextStart = today;
+    const nextCountsFrom = existing.countsFrom < today ? existing.countsFrom : today;
+    const now = nowIso();
+
+    const [syncedTag, existingResult] = await Promise.all([
+      syncEventTag(
+        db,
+        user.id,
+        { name: existing.name, start: nextStart, end: existing.end, tagId: existing.tagId },
+        now,
+      ),
+      computeExisting(db, user.id, {
+        eventId: existing.id,
+        tagId: existing.tagId,
+        start: today,
+        end: today,
+        countsFrom: nextCountsFrom,
+        groupIds: existing.groupIds,
+      }),
+    ]);
+
+    await commitPersonalWrite(db, user.id, () => {
+      const stmts: BatchItem<'sqlite'>[] = [...syncedTag.statements];
+
+      if (existing.budgetId) {
+        if (nextCountsFrom !== existing.countsFrom && existing.end !== null) {
+          stmts.push(
+            ...budgetMoveOnceStatements(db, existing.budgetId, nextCountsFrom, existing.end, now),
+          );
+        }
+        if (syncedTag.recreated) {
+          stmts.push(
+            db
+              .update(personalBudgets)
+              .set({ targetId: syncedTag.tagId, updatedAt: now })
+              .where(
+                and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
+              ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
+      }
+
+      stmts.push(
+        db
+          .update(personalEvents)
+          .set({
+            tagId: syncedTag.tagId,
+            startDate: nextStart,
+            countsFrom: nextCountsFrom,
+            updatedAt: now,
+          })
+          .where(and(eq(personalEvents.id, existing.id), eq(personalEvents.userId, user.id))) as unknown as BatchItem<'sqlite'>,
+      );
+
+      for (const batch of chunk(existingResult.sharesToMark, MARK_INSERT_CHUNK)) {
+        stmts.push(
+          db
+            .insert(personalEventShareMarks)
+            .values(
+              batch.map((rootId) => ({
+                userId: user.id,
+                rootId,
+                eventId: existing.id,
+                state: 'skipped' as const,
+              })),
+            )
+            .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
+        );
+      }
+
+      return stmts;
+    });
+
+    const event: EventView = {
+      ...existing,
+      tagId: syncedTag.tagId,
+      tagName: syncedTag.tagName,
+      start: nextStart,
+      countsFrom: nextCountsFrom,
     };
 
     return c.json({ event, existing: existingResult.existing }, 200);
@@ -1028,7 +1405,7 @@ export function eventRoutes(): Hono<AppBindings> {
       .get();
 
     if (!existing) {
-      throw new ApiError('NOT_FOUND', 404, 'Trip not found');
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
     }
 
     await commitPersonalWrite(db, user.id, () => {
@@ -1098,13 +1475,18 @@ export function eventRoutes(): Hono<AppBindings> {
       .get();
 
     if (!existing) {
-      throw new ApiError('NOT_FOUND', 404, 'Trip not found');
+      throw new ApiError('NOT_FOUND', 404, 'Event not found');
     }
 
-    if (!body.tag || (requestedOwnIds.length === 0 && requestedShareRootIds.length === 0)) {
+    if (
+      !body.tag ||
+      !existing.tagId ||
+      (requestedOwnIds.length === 0 && requestedShareRootIds.length === 0)
+    ) {
       return c.json({ tagged: 0 }, 200);
     }
 
+    const tagId = existing.tagId;
     const ownChunks = chunk(requestedOwnIds, ID_LOOKUP_CHUNK);
     const shareChunks = chunk(requestedShareRootIds, ID_LOOKUP_CHUNK);
 
@@ -1120,9 +1502,11 @@ export function eventRoutes(): Hono<AppBindings> {
                 eq(personalTransactions.type, 'expense'),
                 eq(personalTransactions.source, 'manual'),
                 gte(personalTransactions.date, existing.startDate),
-                lte(personalTransactions.date, existing.endDate),
+                ...(existing.endDate !== null
+                  ? [lte(personalTransactions.date, existing.endDate)]
+                  : []),
                 inArray(personalTransactions.id, batch),
-                sql`NOT EXISTS (SELECT 1 FROM personal_transaction_tags WHERE transaction_id = ${personalTransactions.id} AND tag_id = ${existing.tagId})`,
+                sql`NOT EXISTS (SELECT 1 FROM personal_transaction_tags WHERE transaction_id = ${personalTransactions.id} AND tag_id = ${tagId})`,
               ),
             )
             .all(),
@@ -1163,7 +1547,7 @@ export function eventRoutes(): Hono<AppBindings> {
       for (const rootId of skippedRootIds) {
         const tripId = tripByRoot.get(rootId);
         if (tripId) {
-          skippedShares.push({ rootId, tripId, tagId: existing.tagId });
+          skippedShares.push({ rootId, tripId, tagId });
         }
       }
     }
@@ -1186,7 +1570,7 @@ export function eventRoutes(): Hono<AppBindings> {
             .values(
               batch.map((transactionId) => ({
                 transactionId,
-                tagId: existing.tagId,
+                tagId,
               })),
             )
             .onConflictDoNothing() as unknown as BatchItem<'sqlite'>,
