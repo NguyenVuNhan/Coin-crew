@@ -20,6 +20,7 @@ import { Input } from '@cc/web-ui/components/ui/input';
 import { Button } from '@cc/web-ui/components/ui/button';
 import { cn } from '@cc/web-ui/lib/utils';
 import { buildTagReportUrl, buildTransactionsTagUrl } from './reportUrl';
+import { formatEventShortDates } from '../events/EventForm';
 
 export interface TagBarsCardProps {
   tags: ReportData['tags'];
@@ -55,12 +56,13 @@ function TagBarsCardContent({
 }: TagBarsCardProps) {
   const t = useT();
   const today = todayLocal();
+  const currentYear = Number(today.slice(0, 4));
 
-  const eventIdByTagId = useMemo(() => {
-    const map = new Map<string, string>();
+  const eventByTagId = useMemo(() => {
+    const map = new Map<string, EventView>();
     for (const ev of events ?? []) {
       if (ev.tagId) {
-        map.set(ev.tagId, ev.id);
+        map.set(ev.tagId, ev);
       }
     }
     return map;
@@ -132,11 +134,11 @@ function TagBarsCardContent({
       ) : (
         <div className="flex flex-col gap-1.5">
           {visible.map((item) => {
-            const eventId = eventIdByTagId.get(item.tagId);
-            const reportHref = eventId
-              ? `/events/${encodeURIComponent(eventId)}`
+            const ev = eventByTagId.get(item.tagId);
+            const reportHref = ev
+              ? `/events/${encodeURIComponent(ev.id)}`
               : buildTagReportUrl(item.tagId, firstDates?.[item.tagId] ?? period.from, today);
-            const reportLabel = t('reports.tagReportAria', { tag: item.name });
+            const reportLabel = t('reports.tagReportAria', { tag: ev ? ev.name : item.name });
 
             return (
               <div key={item.tagId} className="flex items-center gap-1">
@@ -145,9 +147,21 @@ function TagBarsCardContent({
                   className="block flex-1 min-w-0 min-h-11 py-1.5 px-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="font-semibold text-sm truncate">
-                      #{item.name}
-                    </span>
+                    {ev ? (
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <Icon
+                          name="calendar"
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <span className="font-semibold text-sm truncate">{ev.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                          {`· ${formatEventShortDates(ev.start, ev.end, currentYear)}`}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-sm truncate">#{item.name}</span>
+                    )}
                     <span className="tabular-nums text-sm font-medium shrink-0">
                       {approxPrefix}
                       {formatMoney(item.amount, currency)}

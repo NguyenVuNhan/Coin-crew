@@ -30,7 +30,7 @@ export function EntryEventRow({
     return (
       <div
         data-testid={testId}
-        className="w-full min-h-11 px-4 py-1.5 flex items-center justify-between gap-3 rounded-xl bg-card text-foreground"
+        className="w-full min-h-11 px-4 py-0 flex items-center justify-between gap-3 bg-card text-foreground"
       >
         <span className="flex items-center gap-2.5 min-w-0">
           <span
@@ -65,7 +65,7 @@ export function EntryEventRow({
       type="button"
       data-testid={testId}
       onClick={() => onToggle(true)}
-      className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 rounded-xl bg-card text-left text-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border-0 cursor-pointer transition-colors motion-reduce:transition-none"
+      className="w-full min-h-11 px-4 py-2.5 flex items-center justify-between gap-3 bg-card text-left text-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset border-0 cursor-pointer transition-colors motion-reduce:transition-none"
     >
       <span className="flex items-center gap-2.5 min-w-0">
         <Icon name="calendar" size={18} className="shrink-0" />

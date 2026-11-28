@@ -154,6 +154,15 @@ export function BookEventRow(): JSX.Element {
         )}
       </span>
     );
+  } else {
+    subtitleNode = (
+      <span
+        data-testid="book-event-subtitle"
+        className="text-xs text-muted-foreground leading-snug"
+      >
+        {t('events.bookIdleHint')}
+      </span>
+    );
   }
 
   const showBar = activeState === 'on' && activeEvent?.budgetId !== null && progress !== null;

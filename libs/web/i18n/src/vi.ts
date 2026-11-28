@@ -2010,6 +2010,7 @@ export const vi: Record<MessageKey, string> = {
   'budgets.missingTarget': 'Chọn danh mục hoặc thẻ để lưu.', // REVIEW
   'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
   'events.bookIdle': 'Sự kiện', // REVIEW
+  'events.bookIdleHint': 'Tự gắn thẻ chi tiêu cho chuyến đi, dự án', // REVIEW
   'events.bookOn': '{name} đang diễn ra', // REVIEW
   'events.bookOnMany': '{n} sự kiện đang diễn ra', // REVIEW
   'events.bookUpcoming': 'Sắp tới: {name}', // REVIEW
@@ -2026,8 +2027,9 @@ export const vi: Record<MessageKey, string> = {
   'events.nameLabel': 'Tên sự kiện', // REVIEW
   'events.startLabel': 'Bắt đầu', // REVIEW
   'events.startHint': 'Để trống là bắt đầu hôm nay', // REVIEW
-  'events.endLabel': 'Kết thúc (tùy chọn)', // REVIEW
-  'events.endHint': 'Để trống là chạy đến khi bạn dừng', // REVIEW
+  'events.endLabel': 'Kết thúc', // REVIEW
+  'events.endHint': 'Tùy chọn · để trống là chạy đến khi bạn dừng', // REVIEW
+  'events.noEndDate': 'Không có ngày kết thúc', // REVIEW
   'events.openRange': 'Từ {date} · chưa có ngày kết thúc', // REVIEW
   'events.pickedDate': '{weekday}, {day}/{month}/{year}', // REVIEW
   'events.wd.0': 'CN', // REVIEW
@@ -2062,7 +2064,7 @@ export const vi: Record<MessageKey, string> = {
   'events.existingNote': 'Bỏ thẻ từng khoản sau cũng được.', // REVIEW
   'events.existingYes': 'Gắn thẻ cho cả {n} khoản', // REVIEW
   'events.existingNo': 'Chỉ từ giờ trở đi', // REVIEW
-  'events.entryOn': '{name}', // REVIEW
+  'events.entryOn': 'Tính vào {name}', // REVIEW
   'events.entrySuggest': 'Thêm vào {name}', // REVIEW
   'events.entryRemove': 'Bỏ khỏi {name}', // REVIEW
   'events.total': 'Tổng chi', // REVIEW

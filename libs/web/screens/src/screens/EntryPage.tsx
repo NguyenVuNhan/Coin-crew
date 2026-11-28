@@ -2707,7 +2707,10 @@ export function EntryPage(): JSX.Element {
             )}
 
             {isPlainExpense && eventMatches.length > 0 && (
-              <div className="flex flex-col gap-2">
+              <div
+                data-testid="entry-event-group"
+                className="rounded-xl bg-card divide-y divide-border overflow-hidden"
+              >
                 {eventMatches.map((match) => (
                   <EntryEventRow
                     key={match.event.id}

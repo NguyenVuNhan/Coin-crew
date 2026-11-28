@@ -83,12 +83,12 @@ export function EventDateRow({
   return (
     <div className="w-full px-3.5 py-2.5 flex flex-col gap-1.5">
       <div className="min-h-11 flex items-center justify-between gap-3">
-        <div className="flex flex-col min-w-0">
-          <Label htmlFor={id} className="text-sm font-semibold text-foreground">
-            {label}
-          </Label>
-          <span className="text-xs text-muted-foreground">{hint}</span>
-        </div>
+        <Label
+          htmlFor={id}
+          className="text-sm font-semibold text-foreground whitespace-nowrap shrink-0"
+        >
+          {label}
+        </Label>
 
         <div className="flex items-center gap-1 shrink-0">
           <span className="relative inline-flex items-center">
@@ -98,7 +98,7 @@ export function EventDateRow({
               data-testid={`${testId}-display`}
               onClick={() => openPicker(inputRef.current)}
               className={cn(
-                'min-h-11 px-2.5 inline-flex items-center rounded-xl bg-transparent border-0 text-sm font-semibold tabular-nums',
+                'min-h-11 px-2.5 inline-flex items-center rounded-xl bg-transparent border-0 text-sm font-semibold tabular-nums whitespace-nowrap',
                 hasValue ? 'text-foreground' : 'text-muted-foreground',
                 disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-muted',
               )}
@@ -145,9 +145,15 @@ export function EventDateRow({
         </div>
       </div>
 
+      {!hasValue && hint && (
+        <span data-testid={`${testId}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </span>
+      )}
+
       {!disabled && (
         <div className="flex items-center justify-end gap-2">
-          {quickToday && value !== quickToday && (
+          {hasValue && quickToday && value !== quickToday && (
             <button
               type="button"
               data-testid={`${testId}-today`}

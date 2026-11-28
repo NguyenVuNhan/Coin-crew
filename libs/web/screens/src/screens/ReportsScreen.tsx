@@ -4,6 +4,7 @@ import { formatMoney, type ReportQuery } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import { usePersonalReport } from '@cc/web-data-access/reports';
+import { useEvents } from '@cc/web-data-access/events';
 import { useTags, useWalletDetails } from '@cc/web-data-access/personalMoney';
 import { Button as AppButton } from '@cc/web-ui/components/Button';
 import { Button } from '@cc/web-ui/components/ui/button';
@@ -21,6 +22,7 @@ import { HealthTrendCard } from '../components/reports/HealthTrendCard';
 import { CategoryPiesCard } from '../components/reports/CategoryPiesCard';
 import { TagBarsCard } from '../components/reports/TagBarsCard';
 import { WalletBalanceCard } from '../components/reports/WalletBalanceCard';
+import { formatEventShortDates } from '../components/events/EventForm';
 import {
   buildReportSearch,
   parseReportQueryFromSearch,
@@ -44,9 +46,16 @@ export function ReportsScreen(): JSX.Element {
   const reportQuery = usePersonalReport(query);
   const walletsQuery = useWalletDetails();
   const tagsQuery = useTags({ enabled: Boolean(query.tagId) });
+  const eventsQuery = useEvents({ enabled: Boolean(query.tagId) });
 
   const report = reportQuery.data;
   const wallets = walletsQuery.data?.wallets ?? [];
+  const currentYear = Number(today.slice(0, 4));
+
+  const activeEvent = useMemo(() => {
+    if (!query.tagId) return null;
+    return (eventsQuery.data?.events ?? []).find((ev) => ev.tagId === query.tagId) ?? null;
+  }, [query.tagId, eventsQuery.data?.events]);
 
   const activeTagName = useMemo(() => {
     if (!query.tagId) return null;
@@ -73,7 +82,15 @@ export function ReportsScreen(): JSX.Element {
               data-testid="reports-tag-filter-pill"
               className="gap-0.5 py-0 pl-3 pr-0"
             >
-              {activeTagName ? (
+              {activeEvent ? (
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  <Icon name="calendar" size={14} className="shrink-0" />
+                  <span className="truncate">{activeEvent.name}</span>
+                  <span className="text-secondary-foreground/75 font-normal tabular-nums shrink-0">
+                    {`· ${formatEventShortDates(activeEvent.start, activeEvent.end, currentYear)}`}
+                  </span>
+                </span>
+              ) : activeTagName ? (
                 <span>#{activeTagName}</span>
               ) : tagsQuery.isPending ? (
                 <Skeleton width={64} height={14} radius="sm" />

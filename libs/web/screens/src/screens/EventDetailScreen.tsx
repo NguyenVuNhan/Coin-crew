@@ -115,6 +115,10 @@ export function EventDetailScreen(): JSX.Element {
       : t('events.bookDayOpen', { day: dayInfo.day })
     : null;
   const canResume = Boolean(event && state === 'done' && event.stoppedAt !== null);
+  const plannedEnd = event?.plannedEnd ?? null;
+  const resumeDropsLimit = Boolean(
+    event && event.budgetId !== null && (plannedEnd === null || plannedEnd < today),
+  );
 
   const groupLabel = useMemo(() => {
     if (!event) return '';
@@ -181,6 +185,46 @@ export function EventDetailScreen(): JSX.Element {
     });
   };
 
+  const lifecycleAction =
+    state === 'on' ? (
+      <Button
+        type="button"
+        variant="secondary"
+        block
+        data-testid="event-stop-button"
+        onClick={() => {
+          stopEvent.reset();
+          setConfirmStopOpen(true);
+        }}
+      >
+        {t('events.stop')}
+      </Button>
+    ) : canResume ? (
+      <Button
+        type="button"
+        variant="secondary"
+        block
+        data-testid="event-resume-button"
+        onClick={() => {
+          resumeEvent.reset();
+          setConfirmResumeOpen(true);
+        }}
+      >
+        {t('events.resume')}
+      </Button>
+    ) : state === 'upcoming' ? (
+      <Button
+        type="button"
+        variant="secondary"
+        block
+        loading={startEventNow.isPending}
+        data-testid="event-start-now-button"
+        onClick={handleStartNow}
+      >
+        {t('events.startNow')}
+      </Button>
+    ) : null;
+
   return (
     <Screen
       title={event?.name ?? t('events.listTitle')}
@@ -221,31 +265,31 @@ export function EventDetailScreen(): JSX.Element {
           </div>
         ) : (
           <>
-            {/* Meta line: dates · day · groups · state pill */}
+            {/* Header meta: line 1 = state pill + dates, line 2 = day · groups, line 3 = Thẻ: #… */}
             <div className="flex flex-col gap-1 px-1">
               <div
                 data-testid="event-meta-line"
                 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
               >
-                <span>{formatEventRange(event.start, event.end, { currentYear, t })}</span>
-                {dayLabel && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span data-testid="event-day-line" className="tabular-nums">
-                      {dayLabel}
-                    </span>
-                  </>
-                )}
-                {groupLabel && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{groupLabel}</span>
-                  </>
-                )}
                 <Pill tone={STATE_PILL_TONE[state]} data-testid="event-state-pill">
                   {t(`events.statePill.${state}`)}
                 </Pill>
+                <span>{formatEventRange(event.start, event.end, { currentYear, t })}</span>
               </div>
+              {(dayLabel || groupLabel) && (
+                <div
+                  data-testid="event-meta-sub"
+                  className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground"
+                >
+                  {dayLabel && (
+                    <span data-testid="event-day-line" className="tabular-nums">
+                      {dayLabel}
+                    </span>
+                  )}
+                  {dayLabel && groupLabel && <span aria-hidden="true">·</span>}
+                  {groupLabel && <span>{groupLabel}</span>}
+                </div>
+              )}
               {event.tagName && (
                 <p
                   data-testid="event-tag-name"
@@ -256,51 +300,6 @@ export function EventDetailScreen(): JSX.Element {
               )}
             </div>
 
-            {/* Lifecycle actions */}
-            {(state === 'on' || canResume || state === 'upcoming') && (
-              <div className="flex flex-wrap items-center gap-2">
-                {state === 'on' && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    data-testid="event-stop-button"
-                    onClick={() => {
-                      stopEvent.reset();
-                      setConfirmStopOpen(true);
-                    }}
-                  >
-                    {t('events.stop')}
-                  </Button>
-                )}
-                {canResume && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    data-testid="event-resume-button"
-                    onClick={() => {
-                      resumeEvent.reset();
-                      setConfirmResumeOpen(true);
-                    }}
-                  >
-                    {t('events.resume')}
-                  </Button>
-                )}
-                {state === 'upcoming' && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    loading={startEventNow.isPending}
-                    data-testid="event-start-now-button"
-                    onClick={handleStartNow}
-                  >
-                    {t('events.startNow')}
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {startEventNow.error && <InlineError error={startEventNow.error} />}
-
             {isPending && !summary ? (
               <SkeletonList rows={3} />
             ) : error && !summary ? (
@@ -309,12 +308,20 @@ export function EventDetailScreen(): JSX.Element {
               <>
                 <div
                   data-testid="event-summary-card"
-                  className="rounded-xl bg-card border border-border p-5 flex flex-col gap-1"
+                  className="rounded-xl bg-card border border-border p-5 flex flex-col gap-3"
                 >
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {t('events.total')}
-                  </span>
-                  <Amount value={0} currency={budgetCurrency} size="xl" />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {t('events.total')}
+                    </span>
+                    <Amount value={0} currency={budgetCurrency} size="xl" />
+                  </div>
+                  {lifecycleAction && (
+                    <div className="pt-1 flex flex-col gap-2">
+                      {startEventNow.error && <InlineError error={startEventNow.error} />}
+                      {lifecycleAction}
+                    </div>
+                  )}
                 </div>
                 <div data-testid="event-empty">
                   <EmptyState
@@ -404,15 +411,24 @@ export function EventDetailScreen(): JSX.Element {
                         size="sm"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-muted-foreground">{t('events.group')}</span>
-                      <Amount
-                        value={activeSummary.group}
-                        currency={activeSummary.currency}
-                        size="sm"
-                      />
-                    </div>
+                    {(event.groupIds.length > 0 || activeSummary.group > 0) && (
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-muted-foreground">{t('events.group')}</span>
+                        <Amount
+                          value={activeSummary.group}
+                          currency={activeSummary.currency}
+                          size="sm"
+                        />
+                      </div>
+                    )}
                   </div>
+
+                  {lifecycleAction && (
+                    <div className="pt-1 flex flex-col gap-2">
+                      {startEventNow.error && <InlineError error={startEventNow.error} />}
+                      {lifecycleAction}
+                    </div>
+                  )}
                 </div>
 
                 {/* Currency switch when multiple currencies */}
@@ -600,8 +616,13 @@ export function EventDetailScreen(): JSX.Element {
             <p className="m-0 text-sm text-foreground">
               {t('events.resumeConfirm', { name: event.name })}
             </p>
-            {event.budgetId !== null && (
-              <p className="m-0 text-sm text-muted-foreground">{t('events.resumeDropsLimit')}</p>
+            {resumeDropsLimit && (
+              <p
+                data-testid="event-resume-drops-limit"
+                className="m-0 text-sm text-muted-foreground"
+              >
+                {t('events.resumeDropsLimit')}
+              </p>
             )}
             {resumeEvent.error && <InlineError error={resumeEvent.error} />}
             <div className="flex flex-col gap-2">

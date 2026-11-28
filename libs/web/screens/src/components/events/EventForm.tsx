@@ -61,6 +61,18 @@ export function formatEventDate(ymd: string, currentYear: number): string {
   return y === currentYear ? `${d}/${m}` : `${d}/${m}/${y}`;
 }
 
+export function formatEventShortDates(
+  start: string,
+  end: string | null,
+  currentYear: number,
+): string {
+  const startText = formatEventDate(start, currentYear);
+  if (end === null || end === start) {
+    return startText;
+  }
+  return `${startText} \u2013 ${formatEventDate(end, currentYear)}`;
+}
+
 export function formatEventRange(
   start: string,
   end: string | null,
@@ -387,12 +399,20 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                 label={t('events.endLabel')}
                 hint={t('events.endHint')}
                 value={end}
-                emptyLabel={t('entryDate.chipPick')}
+                emptyLabel={t('events.noEndDate')}
                 testId="event-form-end"
                 disabled={isStopped}
                 allowClear
                 onChange={(nextEnd) => setEnd(nextEnd)}
               />
+              {!hasEnd && (
+                <p
+                  data-testid="event-form-limit-needs-end"
+                  className="m-0 px-3.5 py-2.5 text-xs text-muted-foreground"
+                >
+                  {t('events.limitNeedsEnd')}
+                </p>
+              )}
             </div>
 
             {showRangeError && (
@@ -493,7 +513,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
           </div>
 
           {/* Limit (shown only when an end date is set) */}
-          {hasEnd ? (
+          {hasEnd && (
             <>
               <div className="fsl-field flex flex-col gap-1.5">
                 <Label htmlFor={limitId} className="text-sm font-semibold text-muted-foreground">
@@ -572,13 +592,6 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                 </div>
               )}
             </>
-          ) : (
-            <p
-              data-testid="event-form-limit-needs-end"
-              className="m-0 text-xs text-muted-foreground"
-            >
-              {t('events.limitNeedsEnd')}
-            </p>
           )}
 
           {activeError && <InlineError error={activeError} />}
