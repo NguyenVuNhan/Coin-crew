@@ -459,7 +459,7 @@ async function computeExisting(
         .where(
           and(
             eq(personalTransactions.userId, userId),
-            eq(personalTransactions.type, 'expense'),
+            inArray(personalTransactions.type, ['expense', 'income']),
             eq(personalTransactions.source, 'manual'),
             gte(personalTransactions.date, params.start),
             ...(params.end !== null ? [lte(personalTransactions.date, params.end)] : []),
@@ -1545,7 +1545,7 @@ export function eventRoutes(): Hono<AppBindings> {
             .where(
               and(
                 eq(personalTransactions.userId, user.id),
-                eq(personalTransactions.type, 'expense'),
+                inArray(personalTransactions.type, ['expense', 'income']),
                 eq(personalTransactions.source, 'manual'),
                 gte(personalTransactions.date, existing.startDate),
                 ...(existing.endDate !== null

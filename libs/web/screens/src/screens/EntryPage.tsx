@@ -972,12 +972,12 @@ export function EntryPage(): JSX.Element {
   const effectiveCategoryId = categoryId ?? guessedCategoryId;
   const activeGuessedId = !categoryPicked && !categoryId ? guessedCategoryId : null;
 
-  const isPlainExpense = !isLoanDebt && entryType === 'expense' && !isTransferMode && !isTradeMode;
+  const supportsEventTags = !isTransferMode && !isTradeMode;
   const entryDate = dateTime.split('T')[0] || todayLocal();
-  const eventsQuery = useEvents({ enabled: isPlainExpense });
+  const eventsQuery = useEvents({ enabled: supportsEventTags });
   const eventMatches = useMemo(
-    () => (isPlainExpense ? eventsForDate(eventsQuery.data?.events ?? [], entryDate) : []),
-    [isPlainExpense, eventsQuery.data?.events, entryDate],
+    () => (supportsEventTags ? eventsForDate(eventsQuery.data?.events ?? [], entryDate) : []),
+    [supportsEventTags, eventsQuery.data?.events, entryDate],
   );
   const eventViewById = useMemo(
     () => new Map((eventsQuery.data?.events ?? []).map((ev) => [ev.id, ev])),
@@ -1532,6 +1532,15 @@ export function EntryPage(): JSX.Element {
     const effectiveSecondaryMinor =
       confirmedOverride?.target === 'secondary' ? confirmedOverride.minor : secondaryMinor;
 
+    const resolvedShareTagIds = supportsEventTags
+      ? applyEventTagIds({
+          baseTagIds: tags,
+          matches: eventMatches,
+          isOn: isEventOn,
+          shouldRemove: shouldRemoveEventTag,
+        })
+      : tags;
+
     if (isLoanDebt) {
       if (!ledger || quickSplit.chosen.size === 0) return;
       if (quickSplit.result && !quickSplit.result.ok) return;
@@ -1608,7 +1617,7 @@ export function EntryPage(): JSX.Element {
             intent: 'loan',
             categoryId: linkCategoryId,
             walletId: loanWalletId,
-            tagIds: tags,
+            tagIds: resolvedShareTagIds,
             excludeFromReports,
           },
         });
@@ -1813,14 +1822,6 @@ export function EntryPage(): JSX.Element {
           categoriesQuery.data?.categories.find((c) => c.id === effectiveCategoryId)?.systemKey ?? null;
         const shareCategoryKey =
           pickedSystemKey && isFixedExpenseKey(pickedSystemKey) ? pickedSystemKey : null;
-        const resolvedShareTagIds = isPlainExpense
-          ? applyEventTagIds({
-              baseTagIds: tags,
-              matches: eventMatches,
-              isOn: isEventOn,
-              shouldRemove: shouldRemoveEventTag,
-            })
-          : tags;
         lastQuickShareMetaRef.current = { walletId: selectedWallet.id, savedMessage };
         savingRef.current = true;
         try {
@@ -1873,7 +1874,7 @@ export function EntryPage(): JSX.Element {
       const baseEntryTags = isDirectEdit
         ? tags.map((tid) => tagNameById.get(tid)).filter((n): n is string => Boolean(n))
         : tags;
-      const resolvedEntryTags = isPlainExpense
+      const resolvedEntryTags = supportsEventTags
         ? applyEventTagNames({
             baseTagNames: baseEntryTags,
             matches: eventMatches,
@@ -2706,7 +2707,7 @@ export function EntryPage(): JSX.Element {
               </div>
             )}
 
-            {isPlainExpense && eventMatches.length > 0 && (
+            {supportsEventTags && eventMatches.length > 0 && (
               <div
                 data-testid="entry-event-group"
                 className="rounded-xl bg-card divide-y divide-border overflow-hidden"

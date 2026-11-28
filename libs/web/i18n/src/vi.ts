@@ -2056,8 +2056,8 @@ export const vi: Record<MessageKey, string> = {
   'events.resumeDropsLimit': 'Hạn mức sẽ bị bỏ vì sự kiện không còn ngày kết thúc.', // REVIEW
   'events.startNow': 'Bắt đầu ngay', // REVIEW
   'events.delete': 'Xóa sự kiện', // REVIEW
-  'events.existingTitle': 'Gắn thẻ cho khoản chi đã có?', // REVIEW
-  'events.existingOwn': '{n} khoản bạn tự chi', // REVIEW
+  'events.existingTitle': 'Gắn thẻ cho khoản đã có?', // REVIEW
+  'events.existingOwn': '{n} khoản của bạn', // REVIEW
   'events.existingShares': '{n} phần trong nhóm', // REVIEW
   'events.existingNote': 'Bỏ thẻ từng khoản sau cũng được.', // REVIEW
   'events.existingYes': 'Gắn thẻ cho cả {n} khoản', // REVIEW

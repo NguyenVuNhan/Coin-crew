@@ -380,7 +380,7 @@ describe('Event lifecycle & optional dates', () => {
     });
 
     const sheet = await screen.findByTestId('event-existing-sheet');
-    expect(within(sheet).getByText(/2 khoản bạn tự chi/)).toBeInTheDocument();
+    expect(within(sheet).getByText(/2 khoản của bạn/)).toBeInTheDocument();
     expect(within(sheet).getByText(/1 phần trong nhóm/)).toBeInTheDocument();
   });
 
@@ -436,7 +436,7 @@ describe('Event lifecycle & optional dates', () => {
     });
 
     const sheet = await screen.findByTestId('event-existing-sheet');
-    expect(within(sheet).getByText(/1 khoản bạn tự chi/)).toBeInTheDocument();
+    expect(within(sheet).getByText(/1 khoản của bạn/)).toBeInTheDocument();
   });
 
   it('fixed-end event shows day line and omits the old view-report link', async () => {

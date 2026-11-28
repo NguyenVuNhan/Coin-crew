@@ -509,13 +509,8 @@ describe('EntryPage — trip row (Task 10)', () => {
     });
   });
 
-  it('income and transfer show no row', async () => {
+  it('transfer shows no row', async () => {
     setupApi();
-
-    const { unmount } = renderEntry('/entries/new?type=income');
-    await screen.findByTestId('amount-keypad');
-    expect(screen.queryByTestId('entry-event-row')).not.toBeInTheDocument();
-    unmount();
 
     renderEntry('/entries/new?type=transfer');
     await screen.findByTestId('amount-keypad');

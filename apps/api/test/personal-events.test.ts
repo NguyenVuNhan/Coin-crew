@@ -475,7 +475,7 @@ describe('personal events routes', () => {
       )
     ).entries[0]!;
 
-    // Own income inside start..end -> MUST NOT be counted or tagged
+    // Own income inside start..end -> counted and tagged
     const ownIncome = (
       await json<{ entries: EntryView[] }>(
         await createEntry(sid, {
@@ -515,10 +515,10 @@ describe('personal events routes', () => {
     expect(createQ).toBeLessThanOrEqual(50);
 
     const saved = await json<EventSavedResponse>(createRes);
-    expect(saved.existing.own.count).toBe(2);
+    expect(saved.existing.own.count).toBe(3);
     expect(saved.existing.own.totals).toEqual(
       expect.arrayContaining([
-        { currency: 'VND', amount: 350_000 },
+        { currency: 'VND', amount: 1_350_000 },
         { currency: 'USD', amount: 25_00 },
       ]),
     );
@@ -550,7 +550,7 @@ describe('personal events routes', () => {
     );
     expect(applyRes.status).toBe(200);
     expect(applyQ).toBeLessThanOrEqual(50);
-    expect(await json<{ tagged: number }>(applyRes)).toEqual({ tagged: 4 });
+    expect(await json<{ tagged: number }>(applyRes)).toEqual({ tagged: 5 });
 
     // Verify own transaction tags
     const txTags = await env.DB.prepare(
@@ -562,7 +562,7 @@ describe('personal events routes', () => {
     expect(taggedTxIds).toContain(ownVnd.id);
     expect(taggedTxIds).toContain(ownUsd.id);
     expect(taggedTxIds).not.toContain(leadupEntry.id);
-    expect(taggedTxIds).not.toContain(ownIncome.id);
+    expect(taggedTxIds).toContain(ownIncome.id);
 
     // Verify share marks turned into 'tagged'
     const marksAfter = await env.DB.prepare(

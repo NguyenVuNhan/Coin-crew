@@ -2,18 +2,21 @@ import { useMemo, useState, type JSX } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   CURRENCIES,
+  UNCATEGORIZED_CATEGORY_ID,
   eventDayIndex,
   eventState,
   formatMoney,
   type CurrencyCode,
   type EventExisting,
   type EventSavedResponse,
+  type ReportQuery,
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import { useBudgets } from '@cc/web-data-access/budgets';
 import { useMyGroups } from '@cc/web-data-access/groups';
 import { useCategories } from '@cc/web-data-access/personalMoney';
+import { usePersonalReport } from '@cc/web-data-access/reports';
 import {
   useEvents,
   useEventSummary,
@@ -31,8 +34,11 @@ import { Pill } from '@cc/web-ui/components/Pill';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
-import { resolveCategoryIcon } from '../components/TransactionRow';
 import { BudgetBar } from '../components/budgets/BudgetBar';
+import {
+  EventCategoryBreakdown,
+  type EventCategoryRow,
+} from '../components/events/EventCategoryBreakdown';
 import { EventExistingSheet } from '../components/events/EventExistingSheet';
 import { formatEventDate, formatEventRange, EventForm } from '../components/events/EventForm';
 
@@ -94,8 +100,6 @@ export function EventDetailScreen(): JSX.Element {
     return currencies[0]!;
   }, [currencies, selectedCurrency]);
 
-  const totalCount = summary?.rowIds.length ?? 0;
-
   const handleSaved = (res: EventSavedResponse) => {
     setFormOpen(false);
     const existingCount =
@@ -140,6 +144,82 @@ export function EventDetailScreen(): JSX.Element {
     const to = latest !== null && latest > today ? latest : today;
     return { linkFrom: from, linkTo: to };
   }, [eventSummaryRows, event?.countsFrom, today]);
+
+  const reportQueryParams = useMemo<ReportQuery>(
+    () => ({
+      mode: 'custom',
+      from: linkFrom,
+      to: linkTo,
+      includeGroups: true,
+      tagId: event?.tagId ?? undefined,
+    }),
+    [linkFrom, linkTo, event?.tagId],
+  );
+
+  const reportQuery = usePersonalReport(reportQueryParams, {
+    enabled: Boolean(event?.tagId),
+    retryOnFallback: false,
+    skipWalletsIfCached: true,
+  });
+  const report = event?.tagId ? reportQuery.data : undefined;
+  const hasIncome = Boolean(report && report.totals.income > 0);
+  const totalCount = Math.max(summary?.rowIds.length ?? 0, report?.countedCount ?? 0);
+
+  const useReportSpendingCategories = Boolean(
+    report && currencies.length <= 1 && report.spendingByCategory.length > 0,
+  );
+
+  const spendingCategoryRows = useMemo<EventCategoryRow[]>(() => {
+    if (useReportSpendingCategories && report) {
+      return report.spendingByCategory.map((item) => ({
+        categoryId: item.categoryId,
+        name:
+          item.categoryId === UNCATEGORIZED_CATEGORY_ID
+            ? t('reports.uncategorized')
+            : item.name,
+        icon: item.icon,
+        amount: item.amount,
+        percent: item.percent,
+      }));
+    }
+    if (!activeSummary) return [];
+    return activeSummary.byCategory.map((item) => {
+      const cat = categoryById.get(item.categoryId);
+      const percent =
+        activeSummary.total > 0
+          ? Math.min(100, Math.round((item.amount / activeSummary.total) * 100))
+          : 0;
+      return {
+        categoryId: item.categoryId,
+        name: cat?.name ?? t('reports.uncategorized'),
+        icon: cat?.icon,
+        amount: item.amount,
+        percent,
+      };
+    });
+  }, [useReportSpendingCategories, report, activeSummary, categoryById, t]);
+
+  const incomeCategoryRows = useMemo<EventCategoryRow[]>(() => {
+    if (!report) return [];
+    return report.incomeByCategory.map((item) => ({
+      categoryId: item.categoryId,
+      name:
+        item.categoryId === UNCATEGORIZED_CATEGORY_ID
+          ? t('reports.uncategorized')
+          : item.name,
+      icon: item.icon,
+      amount: item.amount,
+      percent: item.percent,
+    }));
+  }, [report, t]);
+
+  const spendingCategoryCurrency: CurrencyCode =
+    useReportSpendingCategories && report
+      ? report.currency
+      : activeSummary?.currency ?? report?.currency ?? budgetCurrency;
+  const spendingCategoryApproximate = Boolean(useReportSpendingCategories && report?.approximate);
+  const incomeCategoryCurrency: CurrencyCode = report?.currency ?? budgetCurrency;
+  const incomeCategoryApproximate = Boolean(report?.approximate);
 
   const txHref =
     event && event.tagId
@@ -304,7 +384,7 @@ export function EventDetailScreen(): JSX.Element {
               <SkeletonList rows={3} />
             ) : error && !summary ? (
               <InlineError error={error} onRetry={() => eventsQuery.refetch()} />
-            ) : totalCount === 0 || !activeSummary ? (
+            ) : totalCount === 0 && !hasIncome ? (
               <>
                 <div
                   data-testid="event-summary-card"
@@ -342,19 +422,48 @@ export function EventDetailScreen(): JSX.Element {
                   data-testid="event-summary-card"
                   className="rounded-xl bg-card border border-border p-5 flex flex-col gap-3"
                 >
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1" data-testid="event-spent-figure">
                     <span className="text-xs font-medium text-muted-foreground">
-                      {t('events.total')}
+                      {hasIncome ? t('reports.spent') : t('events.total')}
                     </span>
                     <div className="flex flex-col gap-0.5">
-                      {currencies.map((c) => (
+                      {hasIncome && report ? (
+                        currencies.length > 1 ? (
+                          currencies.map((c) => (
+                            <Amount
+                              key={c.currency}
+                              value={c.total}
+                              currency={c.currency}
+                              tone={c.total > 0 ? 'danger' : 'neutral'}
+                              size="xl"
+                            />
+                          ))
+                        ) : (
+                          <Amount
+                            value={report.totals.spent}
+                            currency={report.currency}
+                            approximate={report.approximate}
+                            tone={report.totals.spent > 0 ? 'danger' : 'neutral'}
+                            size="xl"
+                          />
+                        )
+                      ) : currencies.length > 0 ? (
+                        currencies.map((c) => (
+                          <Amount
+                            key={c.currency}
+                            value={c.total}
+                            currency={c.currency}
+                            size="xl"
+                          />
+                        ))
+                      ) : (
                         <Amount
-                          key={c.currency}
-                          value={c.total}
-                          currency={c.currency}
+                          value={report?.totals.spent ?? 0}
+                          currency={report?.currency ?? budgetCurrency}
+                          approximate={Boolean(report?.approximate)}
                           size="xl"
                         />
-                      ))}
+                      )}
                     </div>
                     {summary?.approxVnd !== null && summary?.approxVnd !== undefined && (
                       <p
@@ -365,6 +474,39 @@ export function EventDetailScreen(): JSX.Element {
                           amount: formatMoney(summary.approxVnd, 'VND'),
                         })}
                       </p>
+                    )}
+                    {hasIncome && report && (
+                      <div
+                        data-testid="event-income-net"
+                        className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-1 text-sm text-muted-foreground"
+                      >
+                        <span
+                          data-testid="event-income-figure"
+                          className="inline-flex items-baseline gap-1.5"
+                        >
+                          <span>{t('reports.income')}</span>
+                          <Amount
+                            value={report.totals.income}
+                            currency={report.currency}
+                            approximate={report.approximate}
+                            tone="success"
+                            size="sm"
+                          />
+                        </span>
+                        <span
+                          data-testid="event-net-figure"
+                          className="inline-flex items-baseline gap-1.5"
+                        >
+                          <span>{t('reports.net')}</span>
+                          <Amount
+                            value={report.totals.net}
+                            currency={report.currency}
+                            approximate={report.approximate}
+                            tone="auto"
+                            size="sm"
+                          />
+                        </span>
+                      </div>
                     )}
                   </div>
 
@@ -402,26 +544,28 @@ export function EventDetailScreen(): JSX.Element {
                     </div>
                   )}
 
-                  <div className="border-t border-border pt-3 flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-muted-foreground">{t('events.own')}</span>
-                      <Amount
-                        value={activeSummary.own}
-                        currency={activeSummary.currency}
-                        size="sm"
-                      />
-                    </div>
-                    {(event.groupIds.length > 0 || activeSummary.group > 0) && (
+                  {activeSummary && (
+                    <div className="border-t border-border pt-3 flex flex-col gap-2">
                       <div className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-muted-foreground">{t('events.group')}</span>
+                        <span className="text-muted-foreground">{t('events.own')}</span>
                         <Amount
-                          value={activeSummary.group}
+                          value={activeSummary.own}
                           currency={activeSummary.currency}
                           size="sm"
                         />
                       </div>
-                    )}
-                  </div>
+                      {(event.groupIds.length > 0 || activeSummary.group > 0) && (
+                        <div className="flex items-center justify-between gap-2 text-sm">
+                          <span className="text-muted-foreground">{t('events.group')}</span>
+                          <Amount
+                            value={activeSummary.group}
+                            currency={activeSummary.currency}
+                            size="sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {lifecycleAction && (
                     <div className="pt-1 flex flex-col gap-2">
@@ -432,7 +576,7 @@ export function EventDetailScreen(): JSX.Element {
                 </div>
 
                 {/* Currency switch when multiple currencies */}
-                {currencies.length > 1 && (
+                {currencies.length > 1 && activeSummary && (
                   <div
                     data-testid="event-currency-switch"
                     className="flex flex-wrap items-center gap-2"
@@ -459,66 +603,24 @@ export function EventDetailScreen(): JSX.Element {
                   </div>
                 )}
 
-                {/* Breakdown: By category */}
-                {activeSummary.byCategory.length > 0 && (
-                  <section data-testid="event-by-category" className="flex flex-col gap-2">
-                    <h2 className="m-0 px-1 text-sm font-semibold text-muted-foreground">
-                      {currencies.length > 1
-                        ? `${t('events.byCategory')} · ${CURRENCIES[activeSummary.currency].symbol}`
-                        : t('events.byCategory')}
-                    </h2>
-                    <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
-                      {activeSummary.byCategory.map((item) => {
-                        const cat = categoryById.get(item.categoryId);
-                        const pct =
-                          activeSummary.total > 0
-                            ? Math.min(100, Math.round((item.amount / activeSummary.total) * 100))
-                            : 0;
-                        const showBar = !(activeSummary.byCategory.length === 1 && pct === 100);
-                        return (
-                          <div
-                            key={item.categoryId}
-                            data-testid={`event-cat-row-${item.categoryId}`}
-                            className="px-4 py-3 flex flex-col gap-1.5"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="flex items-center gap-2 text-sm font-medium text-foreground min-w-0 truncate">
-                                <Icon
-                                  name={resolveCategoryIcon(cat?.icon)}
-                                  size={16}
-                                  className="text-muted-foreground shrink-0"
-                                />
-                                <span className="truncate">
-                                  {cat?.name ?? t('reports.uncategorized')}
-                                </span>
-                              </span>
-                              <Amount
-                                value={item.amount}
-                                currency={activeSummary.currency}
-                                size="sm"
-                              />
-                            </div>
-                            {showBar && (
-                              <div
-                                data-testid={`event-cat-bar-${item.categoryId}`}
-                                className="relative h-2 rounded-full bg-muted overflow-hidden"
-                                aria-hidden="true"
-                              >
-                                <div
-                                  className="h-full rounded-full bg-primary"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
+                {/* Breakdown: By category (spending and optional income switch) */}
+                <EventCategoryBreakdown
+                  spending={spendingCategoryRows}
+                  income={incomeCategoryRows}
+                  hasIncome={hasIncome}
+                  spendingCurrency={spendingCategoryCurrency}
+                  incomeCurrency={incomeCategoryCurrency}
+                  spendingApproximate={spendingCategoryApproximate}
+                  incomeApproximate={incomeCategoryApproximate}
+                  currencySymbolSuffix={
+                    currencies.length > 1 && activeSummary
+                      ? CURRENCIES[activeSummary.currency].symbol
+                      : undefined
+                  }
+                />
 
                 {/* Breakdown: By day */}
-                {activeSummary.byDay.length > 0 && (
+                {activeSummary && activeSummary.byDay.length > 0 && (
                   <section data-testid="event-by-day" className="flex flex-col gap-2">
                     <h2 className="m-0 px-1 text-sm font-semibold text-muted-foreground">
                       {t('events.byDay')}
