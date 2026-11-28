@@ -2007,4 +2007,147 @@ export const vi: Record<MessageKey, string> = {
   'budgets.viewExisting': 'Xem ngân sách', // REVIEW
   'budgets.missingTarget': 'Chọn danh mục hoặc thẻ để lưu.', // REVIEW
   'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
+  'budgets.stillDueDetail': 'Còn {count} khoản định kỳ sắp tới · {amount}', // REVIEW
+  'budgets.stillDuePace': 'Sau đó, mỗi ngày còn khoảng {amount} ({days} ngày)', // REVIEW
+  'budgets.stillDueRow': 'Còn {count} khoản định kỳ · {amount}', // REVIEW
+
+  'recurring.title': 'Định kỳ', // REVIEW
+  'recurring.addRule': 'Thêm quy tắc', // REVIEW
+  'recurring.homeTitle': 'Định kỳ & chờ xác nhận', // REVIEW
+  'recurring.homeDesc': '{count} quy tắc · 30 ngày tới chi {amount}', // REVIEW
+  'recurring.homeEmptyDesc': 'Tự ghi các khoản lặp lại', // REVIEW
+  'recurring.homeWaitingPill': '{count} chờ', // REVIEW
+  'recurring.waitingHeading': 'Chờ xác nhận · {count}', // REVIEW
+  'recurring.notCountedNote': 'Chưa tính vào số dư', // REVIEW
+  'recurring.upcomingHeading': '30 ngày tới', // REVIEW
+  'recurring.upcomingEmpty': 'Không có khoản nào trong 30 ngày tới', // REVIEW
+  'recurring.upcomingTotalBoth': 'chi {out} · thu {in}', // REVIEW
+  'recurring.upcomingTotalOut': 'chi {out}', // REVIEW
+  'recurring.upcomingTotalIn': 'thu {in}', // REVIEW
+  'recurring.rulesHeading': 'Quy tắc · {count}', // REVIEW
+  'recurring.emptyTitle': 'Chưa có khoản định kỳ', // REVIEW
+  'recurring.emptyBody': 'Tiền nhà, lương, Netflix… ghi một lần, CoinCrew tự ghi các lần sau.', // REVIEW
+  'recurring.confirm': 'Xác nhận', // REVIEW
+  'recurring.edit': 'Sửa', // REVIEW
+  'recurring.skip': 'Bỏ qua', // REVIEW
+  'recurring.enterAndConfirm': 'Nhập & xác nhận', // REVIEW
+  'recurring.stillUsing': 'Vẫn dùng', // REVIEW
+  'recurring.pause': 'Tạm dừng', // REVIEW
+  'recurring.resume': 'Tiếp tục', // REVIEW
+  'recurring.createRule': 'Tạo quy tắc', // REVIEW
+  'recurring.no': 'Không', // REVIEW
+  'recurring.waitingDueMeta': 'Đến hạn {date}', // REVIEW
+  'recurring.waitingAskMeta': 'Đến hạn {date} · hỏi số tiền mỗi lần', // REVIEW
+  'recurring.waitingBuyMeta': 'Đến hạn {date} · nhập số CCQ khi xác nhận', // REVIEW
+  'recurring.checkinTitle': '{name} còn dùng không?', // REVIEW
+  'recurring.checkinMetaDays': '{amount}/{unit} · tự tạm dừng sau {days} ngày nếu chưa trả lời', // REVIEW
+  'recurring.checkinMetaOccurrences': '{amount}/{unit} · tự tạm dừng sau {count} lần nữa nếu chưa trả lời', // REVIEW
+  'recurring.pausedTitle': 'Đã tạm dừng {name}', // REVIEW
+  'recurring.rulePausedMeta': 'Đã tạm dừng · {reason}', // REVIEW
+  'recurring.reasonCheckin': 'Chưa trả lời 3 lần', // REVIEW
+  'recurring.reasonWaiting': '3 khoản chưa xác nhận', // REVIEW
+  'recurring.reasonMissingWallet': 'Ví đã bị xóa', // REVIEW
+  'recurring.reasonMissingCategory': 'Danh mục đã bị xóa', // REVIEW
+  'recurring.reasonMissingAsset': 'Tài sản đã bị xóa', // REVIEW
+  'recurring.reasonManual': 'Tạm dừng thủ công', // REVIEW
+  'recurring.suggestionTitleMonth': 'Tự ghi {category} mỗi tháng?', // REVIEW
+  'recurring.suggestionTitleWeek': 'Tự ghi {category} mỗi tuần?', // REVIEW
+  'recurring.suggestionMetaMonth': '{amount} quanh ngày {day}, đã {count} tháng liền', // REVIEW
+  'recurring.suggestionMetaWeek': '{amount} vào {weekday}, đã {count} tuần liền', // REVIEW
+  'recurring.nextDue': 'lần tới {date}', // REVIEW
+  'recurring.alwaysAsk': 'luôn hỏi', // REVIEW
+  'recurring.ended': 'Đã kết thúc', // REVIEW
+  'recurring.buyName': 'Mua {asset}', // REVIEW
+  'recurring.typeExpense': 'Chi tiêu', // REVIEW
+  'recurring.typeIncome': 'Thu nhập', // REVIEW
+  'recurring.typeTransfer': 'Chuyển khoản', // REVIEW
+  'recurring.typeBuy': 'Mua tài sản', // REVIEW
+  'recurring.unitDay': 'ngày', // REVIEW
+  'recurring.unitWeek': 'tuần', // REVIEW
+  'recurring.unitMonth': 'tháng', // REVIEW
+  'recurring.unitYear': 'năm', // REVIEW
+  'recurring.toastRecorded': 'Đã ghi {name}', // REVIEW
+  'recurring.toastSkipped': 'Đã bỏ qua', // REVIEW
+  'recurring.toastRuleCreated': 'Đã tạo quy tắc', // REVIEW
+  'recurring.toastKept': 'Đã xác nhận {name}', // REVIEW
+  'recurring.toastPaused': 'Đã tạm dừng {name}', // REVIEW
+  'recurring.toastResumed': 'Đã tiếp tục {name}', // REVIEW
+  'recurring.schedule.daily': 'Hàng ngày', // REVIEW
+  'recurring.schedule.everyDays': 'Mỗi {n} ngày', // REVIEW
+  'recurring.schedule.weekly': '{days} hàng tuần', // REVIEW
+  'recurring.schedule.everyWeeks': 'Mỗi {n} tuần vào {days}', // REVIEW
+  'recurring.schedule.monthly': 'Ngày {day} mỗi tháng', // REVIEW
+  'recurring.schedule.monthlyLast': 'Ngày cuối mỗi tháng', // REVIEW
+  'recurring.schedule.everyMonths': 'Mỗi {n} tháng, ngày {day}', // REVIEW
+  'recurring.schedule.everyMonthsLast': 'Mỗi {n} tháng, ngày cuối tháng', // REVIEW
+  'recurring.schedule.yearly': 'Ngày {date} hàng năm', // REVIEW
+  'recurring.schedule.everyYears': 'Mỗi {n} năm, ngày {date}', // REVIEW
+  'recurring.weekday.full.1': 'Thứ Hai', // REVIEW
+  'recurring.weekday.full.2': 'Thứ Ba', // REVIEW
+  'recurring.weekday.full.3': 'Thứ Tư', // REVIEW
+  'recurring.weekday.full.4': 'Thứ Năm', // REVIEW
+  'recurring.weekday.full.5': 'Thứ Sáu', // REVIEW
+  'recurring.weekday.full.6': 'Thứ Bảy', // REVIEW
+  'recurring.weekday.full.7': 'Chủ Nhật', // REVIEW
+  'recurring.weekday.short.1': 'T2', // REVIEW
+  'recurring.weekday.short.2': 'T3', // REVIEW
+  'recurring.weekday.short.3': 'T4', // REVIEW
+  'recurring.weekday.short.4': 'T5', // REVIEW
+  'recurring.weekday.short.5': 'T6', // REVIEW
+  'recurring.weekday.short.6': 'T7', // REVIEW
+  'recurring.weekday.short.7': 'CN', // REVIEW
+  'recurring.typeShortExpense': 'Chi', // REVIEW
+  'recurring.typeShortIncome': 'Thu', // REVIEW
+  'recurring.typeShortTransfer': 'Chuyển', // REVIEW
+  'recurring.typeShortBuy': 'Mua', // REVIEW
+  'recurring.detailNextDue': 'Lần tới {date}', // REVIEW
+  'recurring.detailConfirmed': 'đã xác nhận {date}', // REVIEW
+  'recurring.recordedHeading': 'Đã ghi', // REVIEW
+  'recurring.recordedEmpty': 'Chưa ghi lần nào', // REVIEW
+  'recurring.deleteRule': 'Xóa quy tắc', // REVIEW
+  'recurring.deleteConfirmTitle': 'Xóa quy tắc này?', // REVIEW
+  'recurring.deleteKeepsNote': 'Xóa quy tắc không xóa các giao dịch đã ghi.', // REVIEW
+  'recurring.notFoundTitle': 'Không tìm thấy quy tắc', // REVIEW
+  'recurring.notFoundBody': 'Quy tắc này không tồn tại hoặc đã bị xóa.', // REVIEW
+  'recurring.markLabel': 'Lặp lại', // REVIEW
+  'recurring.autoRecordedBy': 'Tự ghi theo quy tắc “{name}”', // REVIEW
+  'recurring.ruleDeleted': 'Quy tắc đã bị xóa', // REVIEW
+  'recurring.repeatThis': 'Lặp lại giao dịch này', // REVIEW
+  'recurring.repeatLabel': 'Lặp lại', // REVIEW
+  'recurring.repeatNone': 'Không lặp', // REVIEW
+  'recurring.presetMonthly': 'Ngày {day} hàng tháng', // REVIEW
+  'recurring.presetMonthlyLast': 'Ngày cuối hàng tháng', // REVIEW
+  'recurring.presetCustom': 'Tùy chỉnh…', // REVIEW
+  'recurring.sheetHint': 'Từ lần này, CoinCrew tự ghi khoản này đúng ngày. Lần tới: {date}.', // REVIEW
+  'recurring.sheetHintNoNext': 'Từ lần này, CoinCrew tự ghi khoản này đúng ngày.', // REVIEW
+  'recurring.customTitle': 'Tùy chỉnh lặp lại', // REVIEW
+  'recurring.every': 'Mỗi', // REVIEW
+  'recurring.everyInputAria': 'Khoảng cách lặp lại', // REVIEW
+  'recurring.unitCapDay': 'Ngày', // REVIEW
+  'recurring.unitCapWeek': 'Tuần', // REVIEW
+  'recurring.unitCapMonth': 'Tháng', // REVIEW
+  'recurring.unitCapYear': 'Năm', // REVIEW
+  'recurring.monthDayDate': 'Ngày {day}', // REVIEW
+  'recurring.monthDayLast': 'Ngày cuối tháng', // REVIEW
+  'recurring.shortMonthNote': 'Tháng không có ngày {day} sẽ ghi vào ngày cuối tháng.', // REVIEW
+  'recurring.endLabel': 'Kết thúc', // REVIEW
+  'recurring.endNever': 'Không bao giờ', // REVIEW
+  'recurring.endOnDate': 'Vào ngày', // REVIEW
+  'recurring.endAfterCount': 'Sau', // REVIEW
+  'recurring.endCountSuffix': 'lần', // REVIEW
+  'recurring.endAfterCountAria': 'Số lần lặp lại', // REVIEW
+  'recurring.endDateAria': 'Ngày kết thúc', // REVIEW
+  'recurring.askMeTitle': 'Hỏi số tiền mỗi lần', // REVIEW
+  'recurring.askMeHint': 'Dùng khi số tiền thay đổi (điện, nước). Khoản sẽ chờ bạn xác nhận.', // REVIEW
+  'recurring.askMeBuyHint': 'Mua tài sản luôn chờ bạn nhập số lượng.', // REVIEW
+  'recurring.checkInNote': 'Thỉnh thoảng CoinCrew sẽ hỏi bạn còn dùng khoản này không, để không ghi mãi một khoản đã hủy.', // REVIEW
+  'recurring.done': 'Xong', // REVIEW
+  'recurring.editRuleTitle': 'Sửa quy tắc', // REVIEW
+  'recurring.editRuleHint': 'Thay đổi chỉ áp dụng cho các lần sau.', // REVIEW
+  'recurring.toastRuleUpdated': 'Đã cập nhật quy tắc', // REVIEW
+  'recurring.confirmTitle': 'Xác nhận khoản định kỳ', // REVIEW
+  'recurring.alreadyResolvedError': 'Khoản này đã được xử lý.', // REVIEW
+  'recurring.backToRecurring': 'Về trang Định kỳ', // REVIEW
+  'recurring.plannedNotFoundTitle': 'Không tìm thấy khoản chờ xác nhận', // REVIEW
+  'recurring.plannedNotFoundBody': 'Khoản này có thể đã được xác nhận hoặc bỏ qua.', // REVIEW
 };

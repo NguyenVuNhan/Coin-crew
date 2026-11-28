@@ -5,6 +5,7 @@ export type ApiErrorCode =
   | 'LINK_DEAD'
   | 'VALIDATION'
   | 'ALREADY_HANDLED'
+  | 'ALREADY_RESOLVED'
   | 'PERSON_PENDING'
   | 'PERSON_LEFT'
   | 'TRIP_ARCHIVED'
@@ -839,7 +840,8 @@ export interface EntryView {
   note: string | null;
   tags: string[];
   excludeFromReports: boolean;
-  source: 'manual' | 'adjustment';
+  source: 'manual' | 'adjustment' | 'recurring';
+  ruleId?: string | null;
   beforeStart: boolean;
   createdAt: string;
 }
@@ -876,6 +878,7 @@ export interface ListQuery {
   tripId?: string;
   groups?: 'show' | 'hide';
   q?: string;
+  rule?: string;
   /** "Giao dịch gần đây": the newest activity across all months, at most this many of each kind (1–20). */
   recent?: number;
 }
@@ -934,6 +937,8 @@ export interface SyncEntryRow {
   excludeFromReports: boolean;
   createdAt: string;
   syncVersion: number;
+  /** Set only on rows a recurring rule recorded. */
+  ruleId?: string | null;
 }
 
 export interface SyncLedgerRow {
@@ -996,5 +1001,64 @@ export interface UpdateBudgetInput {
 
 export interface BudgetsProgressResponse {
   rows: CountedSpendRow[];
+}
+
+import type { RecurringDraft, RecurringSchedule } from './recurring';
+
+export interface RecurringRuleView {
+  id: string;
+  draft: RecurringDraft;
+  schedule: RecurringSchedule;
+  askMe: boolean;
+  status: 'active' | 'paused' | 'ended';
+  pausedReason:
+    | 'checkin'
+    | 'waiting'
+    | 'missing_wallet'
+    | 'missing_category'
+    | 'missing_asset'
+    | 'manual'
+    | null;
+  nextDueOn: string | null;
+  lastConfirmedOn: string;
+}
+
+export type PlannedKind =
+  | 'recurring_occurrence'
+  | 'recurring_checkin'
+  | 'recurring_paused'
+  | 'rule_suggestion';
+
+export interface PlannedItemView {
+  id: string;
+  kind: PlannedKind | string;
+  ruleId: string | null;
+  dueOn: string;
+  draft: RecurringDraft | null;
+  status: 'waiting' | 'confirmed' | 'skipped' | 'dismissed';
+  meta: Record<string, unknown> | null;
+  createdOn: string;
+}
+
+export interface RecurringRuleInput {
+  draft: RecurringDraft;
+  schedule: RecurringSchedule;
+  askMe?: boolean;
+}
+
+export interface RecurringRulesResponse {
+  rules: RecurringRuleView[];
+}
+
+export interface RecurringRuleResponse {
+  rule: RecurringRuleView;
+}
+
+export interface PlannedItemsResponse {
+  items: PlannedItemView[];
+}
+
+export interface ConfirmPlannedInput {
+  entry?: EntryInput;
 }
 

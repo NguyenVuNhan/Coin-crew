@@ -58,6 +58,7 @@ import {
   House,
   Info,
   KeyRound,
+  Lightbulb,
   Landmark,
   Languages,
   Laptop,
@@ -80,6 +81,7 @@ import {
   Plus,
   QrCode,
   Receipt,
+  Repeat,
   RotateCcw,
   Scale,
   Search,
@@ -122,7 +124,7 @@ export type IconName =
   | 'back' | 'settings' | 'userPlus' | 'userCheck' | 'share' | 'copy' | 'download' | 'check' | 'circleCheck'
   | 'x' | 'chevronLeft' | 'chevronRight' | 'chevronDown' | 'chevronUp' | 'info' | 'receipt' | 'suitcase' | 'map' | 'link'
   | 'qr' | 'clock' | 'users' | 'history' | 'bank' | 'language' | 'search' | 'edit' | 'ban' | 'merge'
-  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'camera' | 'shield' | 'swap' | 'piggyBank'
+  | 'trash' | 'pie' | 'plus' | 'mars' | 'venus' | 'trophy' | 'rotateCcw' | 'repeat' | 'lightbulb' | 'camera' | 'shield' | 'swap' | 'piggyBank'
   | 'star' | 'crown' | 'user' | 'home' | 'headset' | 'bell' | 'bellOff' | 'bell-off' | 'palette' | 'calendar'
   | 'calendar-check' | 'alarm-clock' | 'smartphone' | 'ellipsis' | 'ellipsisVertical' | 'squarePlus' | 'shareIos' | 'pause' | 'play'
   | 'wallet' | 'utensils' | 'bus' | 'shopping-bag' | 'heart-pulse' | 'trending-up' | 'landmark' | 'badge-percent'
@@ -183,6 +185,8 @@ const SHAPES: Record<IconName, LucideIcon> = {
   venus: Venus,
   trophy: Trophy,
   rotateCcw: RotateCcw,
+  repeat: Repeat,
+  lightbulb: Lightbulb,
   camera: Camera,
   shield: Shield,
   piggyBank: PiggyBank,

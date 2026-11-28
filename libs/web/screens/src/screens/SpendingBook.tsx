@@ -21,11 +21,14 @@ import {
   useWalletDetails,
 } from "@cc/web-data-access/personalMoney";
 import { useCurrentMonthReportTotals } from "@cc/web-data-access/reports";
+import { upcomingTotals, usePlannedItems, useRecurringRules } from "@cc/web-data-access/recurring";
+import { upcomingOccurrences, vnDate, type WalletDetailView } from "@cc/core";
 import { EmptyState } from "@cc/web-ui/components/EmptyState";
 import { Button } from "@cc/web-ui/components/Button";
 import { Card } from "@cc/web-ui/components/ui/card";
 import { Avatar } from "@cc/web-ui/components/Avatar";
 import { Amount } from "@cc/web-ui/components/Amount";
+import { Pill } from "@cc/web-ui/components/Pill";
 import { Icon } from "@cc/web-ui/components/icons";
 import { Sheet } from "@cc/web-ui/components/Sheet";
 import { SkeletonList } from "@cc/web-ui/components/Skeleton";
@@ -189,7 +192,13 @@ function BookTotal(): JSX.Element {
   );
 }
 
-function BookPeople({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element {
+function BookPeople({
+  hasWallet = false,
+  wallets = [],
+}: {
+  hasWallet?: boolean;
+  wallets?: WalletDetailView[];
+}): JSX.Element {
   const t = useT();
   const {
     owedToYou,
@@ -274,7 +283,60 @@ function BookPeople({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element
           <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
         </Link>
       )}
+      {hasWallet && <BookRecurringRow wallets={wallets} />}
     </div>
+  );
+}
+
+/** Takes the wallets from the parent: a second wallets observer here would refetch them on mount. */
+function BookRecurringRow({ wallets }: { wallets: WalletDetailView[] }): JSX.Element {
+  const t = useT();
+  const rulesQuery = useRecurringRules();
+  const plannedQuery = usePlannedItems();
+  const today = vnDate(new Date());
+  const rules = rulesQuery.data?.rules;
+  const vndOut = useMemo(
+    () => (rules ? upcomingTotals(upcomingOccurrences(rules, today, 30), wallets).vndOut : 0),
+    [rules, today, wallets],
+  );
+
+  const ruleCount = rulesQuery.data?.rules.length ?? 0;
+  const waitingCount = plannedQuery.data?.items.length ?? 0;
+  const subLine =
+    ruleCount > 0
+      ? t('recurring.homeDesc', {
+          count: ruleCount,
+          amount: formatMoney(vndOut, 'VND'),
+        })
+      : t('recurring.homeEmptyDesc');
+
+  return (
+    <Link
+      to="/recurring"
+      data-testid="book-recurring-row"
+      className="fsl-book__recurring flex items-center gap-3 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
+    >
+      <span
+        aria-hidden="true"
+        className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+      >
+        <Icon name="repeat" size={18} />
+      </span>
+      <div className="flex-1 flex flex-col min-w-0">
+        <span className="text-sm font-semibold text-foreground leading-snug">
+          {t('recurring.homeTitle')}
+        </span>
+        <span className="text-xs text-muted-foreground leading-snug line-clamp-2 tabular-nums">
+          {subLine}
+        </span>
+      </div>
+      {waitingCount > 0 && (
+        <Pill tone="warning" data-testid="book-recurring-count" className="shrink-0 tabular-nums">
+          {t('recurring.homeWaitingPill', { count: waitingCount })}
+        </Pill>
+      )}
+      <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
+    </Link>
   );
 }
 
@@ -389,11 +451,17 @@ function BookRecent({ limit = 5 }: { limit?: number }): JSX.Element | null {
   );
 }
 
-function BookSummary({ hasWallet = false }: { hasWallet?: boolean }): JSX.Element {
+function BookSummary({
+  hasWallet = false,
+  wallets,
+}: {
+  hasWallet?: boolean;
+  wallets?: WalletDetailView[];
+}): JSX.Element {
   return (
     <>
       <BookTotal />
-      <BookPeople hasWallet={hasWallet} />
+      <BookPeople hasWallet={hasWallet} wallets={wallets} />
       <BookBudgets show={hasWallet} />
       <BookRecent limit={5} />
     </>
@@ -416,7 +484,7 @@ export function MainScreen({ book }: { book: boolean }): JSX.Element {
     <Home
       book={book && hasWallet}
       title={book ? t("book.title") : undefined}
-      summary={book ? wide ? <BookPeople hasWallet={hasWallet} /> : <BookSummary hasWallet={hasWallet} /> : undefined}
+      summary={book ? wide ? <BookPeople hasWallet={hasWallet} wallets={wallets.data?.wallets} /> : <BookSummary hasWallet={hasWallet} wallets={wallets.data?.wallets} /> : undefined}
       wideMain={
         book && wide ? (
           <>

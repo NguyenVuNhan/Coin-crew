@@ -5,6 +5,7 @@ import { retryUndeliveredFeedback } from './feedback/deliver';
 import { sendWeeklyLoanReminders } from './notifications/cron/loanReminders';
 import { sendMonthlyNotices } from './notifications/cron/monthlyNotice';
 import { sendDueReminders } from './notifications/push/cron';
+import { runRecurring } from './personal/recurringJob';
 import { purgeSyncDeletions } from './personal/syncPurge';
 import { purgeDeletedGroups } from './trips/purge';
 
@@ -14,6 +15,10 @@ export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     const now = new Date();
+    if (controller.cron === '15 * * * *') {
+      ctx.waitUntil(runRecurring(env, now));
+      return;
+    }
     if (controller.cron === '30 * * * *') {
       ctx.waitUntil(purgeDeletedGroups(env, now));
       return;

@@ -8,6 +8,7 @@ import {
   personalCategoryVisibility,
   personalGroupLinks,
   personalGroupSettings,
+  personalRecurringRules,
   personalTags,
   personalTransactions,
   personalTransactionTags,
@@ -625,6 +626,19 @@ export function categoryAndTagRoutes(): Hono<AppBindings> {
                 and(
                   eq(personalGroupSettings.defaultGroupCategoryId, id),
                   eq(personalGroupSettings.userId, user.id),
+                ),
+              ) as unknown as BatchItem<'sqlite'>,
+            // R20: move recurring rules pointing at the deleted category
+            db
+              .update(personalRecurringRules)
+              .set({
+                draft: sql`json_set(${personalRecurringRules.draft}, '$.categoryId', ${moveTo!})`,
+                updatedAt: now,
+              })
+              .where(
+                and(
+                  eq(personalRecurringRules.userId, user.id),
+                  sql`json_extract(${personalRecurringRules.draft}, '$.categoryId') = ${id}`,
                 ),
               ) as unknown as BatchItem<'sqlite'>,
           );

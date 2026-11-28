@@ -1,8 +1,8 @@
 import { useMemo, useState, type JSX, type MouseEvent, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import type { BudgetDef, BudgetProgress } from '@cc/core';
+import { formatMoney, type BudgetDef, type BudgetProgress } from '@cc/core';
 import { useT } from '@cc/web-i18n';
-import { useBudgets, useBudgetsProgress } from '@cc/web-data-access/budgets';
+import { useBudgets, useBudgetsProgress, useBudgetStillDue } from '@cc/web-data-access/budgets';
 import { useCategories } from '@cc/web-data-access/personalMoney';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -45,6 +45,54 @@ interface BudgetGroupSectionProps {
   footer?: ReactNode;
 }
 
+function BudgetRowWithStillDue({
+  progress,
+  def,
+  icon,
+  hasSuggestion,
+  withinName,
+  parentOver,
+}: {
+  progress: BudgetProgress;
+  def: BudgetDef;
+  icon: IconName;
+  hasSuggestion: boolean;
+  withinName?: string;
+  parentOver?: { name: string };
+}): JSX.Element {
+  const t = useT();
+  const stillDue = useBudgetStillDue(def, progress.period);
+  const row = (
+    <BudgetRow
+      progress={progress}
+      def={def}
+      icon={icon}
+      hasSuggestion={hasSuggestion}
+      withinName={withinName}
+      parentOver={parentOver}
+      stillDueAmount={stillDue.count > 0 ? stillDue.amount : 0}
+    />
+  );
+  if (stillDue.count <= 0 || progress.ended) return row;
+  return (
+    <div className="flex flex-col">
+      {row}
+      <div
+        data-testid={`budget-row-still-due-${def.id}`}
+        className="px-4 pb-3 -mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums"
+      >
+        <Icon name="repeat" size={12} className="shrink-0" />
+        <span>
+          {t('budgets.stillDueRow', {
+            count: stillDue.count,
+            amount: formatMoney(stillDue.amount, def.currency),
+          })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function BudgetGroupSection({
   testId,
   heading,
@@ -68,7 +116,7 @@ function BudgetGroupSection({
           const def = defById.get(progress.budgetId);
           if (!def) return null;
           return (
-            <BudgetRow
+            <BudgetRowWithStillDue
               key={def.id}
               progress={progress}
               def={def}

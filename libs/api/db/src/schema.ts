@@ -588,6 +588,7 @@ export const personalTransactions = sqliteTable(
   },
   (t) => [
     index('personal_tx_user_date_idx').on(t.userId, t.date),
+    index('personal_tx_wallet_cat_amount_idx').on(t.walletId, t.categoryId, t.amount, t.date),
     index('personal_tx_user_sync_idx').on(t.userId, t.syncVersion, t.id),
     index('personal_tx_wallet_date_idx').on(t.walletId, t.date),
     index('personal_tx_transfer_idx').on(t.transferId),
@@ -1021,4 +1022,83 @@ export const personalBudgetExcludedWallets = sqliteTable(
       .references(() => personalWallets.id, { onDelete: 'cascade' }),
   },
   (t) => [primaryKey({ columns: [t.budgetId, t.walletId] })],
+);
+
+/** Personal recurring transaction rules (0038, #117). */
+export const personalRecurringRules = sqliteTable(
+  'personal_recurring_rules',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: ['expense', 'income', 'transfer', 'buy'] }).notNull(),
+    draft: text('draft').notNull(),
+    schedule: text('schedule').notNull(),
+    askMe: integer('ask_me').notNull().default(0),
+    status: text('status', { enum: ['active', 'paused', 'ended'] }).notNull().default('active'),
+    pausedReason: text('paused_reason'),
+    nextDueOn: text('next_due_on'),
+    lastConfirmedOn: text('last_confirmed_on').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    index('personal_recurring_rules_due_idx').on(t.status, t.nextDueOn),
+    index('personal_recurring_rules_user_idx').on(t.userId),
+    check(
+      'personal_recurring_rules_type_check',
+      sql`${t.type} IN ('expense', 'income', 'transfer', 'buy')`,
+    ),
+    check(
+      'personal_recurring_rules_status_check',
+      sql`${t.status} IN ('active', 'paused', 'ended')`,
+    ),
+  ],
+);
+
+/** Tags attached to a personal recurring rule (0038, #117). */
+export const personalRecurringRuleTags = sqliteTable(
+  'personal_recurring_rule_tags',
+  {
+    ruleId: text('rule_id')
+      .notNull()
+      .references(() => personalRecurringRules.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => personalTags.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.ruleId, t.tagId] })],
+);
+
+/** Shared "to confirm" planned items (0038, #117). */
+export const personalPlannedItems = sqliteTable(
+  'personal_planned_items',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    refKey: text('ref_key').notNull(),
+    ruleId: text('rule_id'),
+    dueOn: text('due_on').notNull(),
+    draft: text('draft'),
+    meta: text('meta'),
+    status: text('status', { enum: ['waiting', 'confirmed', 'skipped', 'dismissed'] })
+      .notNull()
+      .default('waiting'),
+    transactionId: text('transaction_id'),
+    createdOn: text('created_on').notNull(),
+    resolvedAt: text('resolved_at'),
+  },
+  (t) => [
+    uniqueIndex('personal_planned_items_ref_uq').on(t.userId, t.kind, t.refKey),
+    index('personal_planned_items_user_status_idx').on(t.userId, t.status),
+    index('personal_planned_items_rule_status_idx').on(t.ruleId, t.status),
+    check(
+      'personal_planned_items_status_check',
+      sql`${t.status} IN ('waiting', 'confirmed', 'skipped', 'dismissed')`,
+    ),
+  ],
 );

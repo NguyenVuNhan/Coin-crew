@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   assetQuantityLabel,
@@ -23,6 +23,10 @@ import {
   useUpdateEntry,
   useWalletDetails,
 } from '@cc/web-data-access/personalMoney';
+import {
+  useRecurringRules,
+  useRuleFromTransaction,
+} from '@cc/web-data-access/recurring';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
@@ -36,12 +40,14 @@ import { Switch } from '@cc/web-ui/components/ui/switch';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { formatEntryDayLabel } from '../components/EntryDateRow';
+import { draftTitle } from '../components/PlannedItemCard';
 import { Screen } from '../components/Screen';
 import { TagInput } from '../components/TagInput';
 import { resolveCategoryIcon } from '../components/TransactionRow';
 import { formatFullCalendarDate } from '../components/transactions/rowHelpers';
 import { showUndo } from '../components/UndoSnackbarHost';
 import { useBack } from '../lib/navHistory';
+import { scheduleInWords } from '../lib/scheduleWords';
 
 export interface TransactionDetailContentProps {
   entry: EntryView;
@@ -68,6 +74,7 @@ export function TransactionDetailContent({
   const deleteEntry = useDeleteEntry();
   const restoreEntries = useRestoreEntries();
   const updateEntry = useUpdateEntry();
+  const ruleFromTx = useRuleFromTransaction();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedEntryField>(null);
   const [localCategoryId, setLocalCategoryId] = useState<string | null>(entry.categoryId);
@@ -75,10 +82,22 @@ export function TransactionDetailContent({
   const [localTags, setLocalTags] = useState<string[]>(entry.tags);
   const [localExclude, setLocalExclude] = useState<boolean>(entry.excludeFromReports);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [repeatError, setRepeatError] = useState<unknown>(null);
+
+  const isRecurring = entry.source === 'recurring';
+  const canRepeat =
+    entry.source === 'manual' &&
+    (entry.type === 'expense' ||
+      entry.type === 'income' ||
+      entry.type === 'buy' ||
+      entry.type === 'transfer_in' ||
+      entry.type === 'transfer_out');
+  const rulesQuery = useRecurringRules({ enabled: isRecurring });
 
   useEffect(() => {
     setExpanded(null);
     setSaveError(null);
+    setRepeatError(null);
     setLocalCategoryId(entry.categoryId);
     setLocalWalletId(entry.walletId);
     setLocalTags(entry.tags);
@@ -229,6 +248,29 @@ export function TransactionDetailContent({
         );
       },
     });
+  };
+
+  const categoriesById = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories],
+  );
+  const assetsById = useMemo(
+    () => new Map(assets.map((a) => [a.id, a])),
+    [assets],
+  );
+  const matchedRule = useMemo(() => {
+    if (!isRecurring || !entry.ruleId) return null;
+    return rulesQuery.data?.rules.find((r) => r.id === entry.ruleId) ?? null;
+  }, [isRecurring, entry.ruleId, rulesQuery.data?.rules]);
+
+  const handleRepeatThis = async () => {
+    setRepeatError(null);
+    try {
+      const res = await ruleFromTx.mutateAsync(entry.id);
+      navigate(`/recurring/${encodeURIComponent(res.rule.id)}`);
+    } catch (err) {
+      setRepeatError(err);
+    }
   };
 
   const dateLabel = formatEntryDayLabel(entry.date, t);
@@ -514,6 +556,59 @@ export function TransactionDetailContent({
         </div>
       )}
 
+      {isRecurring &&
+        (matchedRule ? (
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <Link
+              to={`/recurring/${encodeURIComponent(matchedRule.id)}`}
+              data-testid="tx-detail-rule"
+              className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm text-foreground no-underline hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
+            >
+              <Icon name="repeat" size={18} className="shrink-0 text-secondary-foreground" />
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-foreground truncate">
+                  {t('recurring.autoRecordedBy', {
+                    name: draftTitle(matchedRule.draft, categoriesById, assetsById, t),
+                  })}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {scheduleInWords(matchedRule.schedule, t)}
+                </div>
+              </div>
+              <Icon name="chevronRight" size={16} className="shrink-0 text-muted-foreground" />
+            </Link>
+          </div>
+        ) : !rulesQuery.isPending || !entry.ruleId ? (
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div
+              data-testid="tx-detail-rule"
+              className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm"
+            >
+              <Icon name="repeat" size={18} className="shrink-0 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-foreground">{t('recurring.markLabel')}</div>
+                <div className="text-xs text-muted-foreground">{t('recurring.ruleDeleted')}</div>
+              </div>
+            </div>
+          </div>
+        ) : null)}
+
+      {canRepeat && (
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <button
+            type="button"
+            data-testid="tx-detail-repeat"
+            disabled={ruleFromTx.isPending}
+            onClick={() => void handleRepeatThis()}
+            className="flex w-full min-h-12 items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-primary bg-transparent border-0 cursor-pointer hover:bg-accent disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none"
+          >
+            <Icon name="repeat" size={18} className="shrink-0 text-primary" />
+            <span className="flex-1">{t('recurring.repeatThis')}</span>
+          </button>
+        </div>
+      )}
+
+      {repeatError !== null && <InlineError error={repeatError} />}
       {saveError !== null && <InlineError error={saveError} />}
       {deleteEntry.error && <InlineError error={deleteEntry.error} />}
 

@@ -15,6 +15,7 @@ import { todayLocal } from '@cc/web-util/localDate';
 import {
   useBudgets,
   useBudgetsProgress,
+  useBudgetStillDue,
   useUpdateBudget,
 } from '@cc/web-data-access/budgets';
 import {
@@ -138,6 +139,51 @@ function buildStateNote(
   }
 
   return t('budgets.noteFine');
+}
+
+function BudgetStillDueSection({
+  def,
+  progress,
+}: {
+  def: BudgetDef;
+  progress: BudgetProgress;
+}): JSX.Element | null {
+  const t = useT();
+  const stillDue = useBudgetStillDue(def, progress.period);
+  if (stillDue.count <= 0) return null;
+
+  const afterPerDay =
+    progress.daysLeft > 0
+      ? Math.max(0, Math.floor((progress.left - stillDue.amount) / progress.daysLeft))
+      : 0;
+
+  return (
+    <div className="flex flex-col gap-2 pt-1">
+      <div
+        data-testid="budget-still-due"
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+      >
+        <Icon name="repeat" size={14} className="shrink-0" />
+        <span className="tabular-nums">
+          {t('budgets.stillDueDetail', {
+            count: stillDue.count,
+            amount: formatMoney(stillDue.amount, def.currency),
+          })}
+        </span>
+      </div>
+      {progress.daysLeft > 0 && (
+        <p
+          data-testid="budget-pace"
+          className="m-0 text-sm text-muted-foreground tabular-nums"
+        >
+          {t('budgets.stillDuePace', {
+            amount: formatMoney(afterPerDay, def.currency),
+            days: progress.daysLeft,
+          })}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function BudgetDetailScreen(): JSX.Element {
@@ -494,6 +540,8 @@ export function BudgetDetailScreen(): JSX.Element {
                   align="right"
                 />
               </div>
+
+              <BudgetStillDueSection def={def} progress={shownProgress} />
 
               {childBudgetNames && (
                 <p
