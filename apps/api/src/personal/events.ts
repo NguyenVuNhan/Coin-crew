@@ -56,6 +56,7 @@ const TX_TAG_CHUNK = 30;
 const TX_UPDATE_CHUNK = 50;
 const ID_LOOKUP_CHUNK = 80;
 const TAG_SHARES_LIMIT = 100;
+const EXISTING_APPLY_MAX_IDS = 200;
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -748,12 +749,13 @@ export function eventRoutes(): Hono<AppBindings> {
     let taggedShares = 0;
 
     for (const row of groupRows) {
-      if (taggedShares >= TAG_SHARES_LIMIT) break;
+      if (taggedShares >= TAG_SHARES_LIMIT || matches.length >= TAG_SHARES_LIMIT) break;
       if (row.pending || row.source !== 'expense' || row.myShare <= 0) continue;
 
       const matchedEvents = eventsForShare(events, row);
       let shareMatched = false;
       for (const match of matchedEvents) {
+        if (matches.length >= TAG_SHARES_LIMIT) break;
         if (!match.tagId) continue;
         if (row.link?.tagIds.includes(match.tagId)) continue;
         const key = `${row.rootId}\0${match.id}`;
@@ -1448,6 +1450,12 @@ export function eventRoutes(): Hono<AppBindings> {
     }
     if (body.shareRootIds !== undefined && !Array.isArray(body.shareRootIds)) {
       throw new ApiError('VALIDATION', 422, 'Invalid shareRootIds');
+    }
+
+    const rawOwnCount = Array.isArray(body.ownIds) ? body.ownIds.length : 0;
+    const rawShareCount = Array.isArray(body.shareRootIds) ? body.shareRootIds.length : 0;
+    if (rawOwnCount + rawShareCount > EXISTING_APPLY_MAX_IDS) {
+      throw new ApiError('VALIDATION', 400, 'At most 200 ids per request');
     }
 
     const requestedOwnIds = Array.isArray(body.ownIds)

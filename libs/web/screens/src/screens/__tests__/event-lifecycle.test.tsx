@@ -461,7 +461,7 @@ describe('Event lifecycle & optional dates', () => {
     expect(link).toHaveTextContent('Xem báo cáo');
     expect(link).toHaveAttribute(
       'href',
-      '/reports?mode=custom&from=2026-11-05&to=2026-11-14&tagId=tag-rep',
+      '/reports?mode=custom&from=2026-11-05&to=2026-11-13&tagId=tag-rep',
     );
     expect(screen.getByTestId('event-day-line')).toHaveTextContent('ngày 2/3');
   });

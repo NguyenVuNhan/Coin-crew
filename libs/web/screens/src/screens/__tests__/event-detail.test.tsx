@@ -376,7 +376,28 @@ describe('EventDetailScreen', () => {
     const link = await screen.findByTestId('event-see-tx');
     expect(link).toHaveTextContent('Xem 2 giao dịch');
     expect(link.getAttribute('href')).toBe(
-      '/transactions?tagId=tag-dl&from=2026-11-05&to=2026-11-14',
+      '/transactions?tagId=tag-dl&from=2026-11-12&to=2026-11-13',
+    );
+  });
+
+  it('report link spans the earliest to the latest tagged item', async () => {
+    const rows: CountedSpendRow[] = [
+      spendRow('r-early', '2026-10-01', 400_000, ['tag-dl']),
+      spendRow('r-mid', '2026-11-12', 1_000_000, ['tag-dl']),
+      spendRow('r-late', '2026-12-05', 300_000, ['tag-dl']),
+    ];
+    stubApis({ events: [daLatEvent], budgets: [dlBudget], rows });
+    renderDetailVi('/events/tr-dl');
+
+    const reportLink = await screen.findByTestId('event-view-report');
+    expect(reportLink).toHaveAttribute(
+      'href',
+      '/reports?mode=custom&from=2026-10-01&to=2026-12-05&tagId=tag-dl',
+    );
+    const txLink = screen.getByTestId('event-see-tx');
+    expect(txLink).toHaveAttribute(
+      'href',
+      '/transactions?tagId=tag-dl&from=2026-10-01&to=2026-12-05',
     );
   });
 });

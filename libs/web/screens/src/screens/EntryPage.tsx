@@ -989,7 +989,19 @@ export function EntryPage(): JSX.Element {
   useEffect(() => {
     if (prevEventMatchKeyRef.current !== eventMatchKey) {
       prevEventMatchKeyRef.current = eventMatchKey;
-      setEventOnById({});
+      const activeIds = new Set(eventMatchKey ? eventMatchKey.split(',') : []);
+      setEventOnById((prev) => {
+        const next: Record<string, boolean> = {};
+        let changed = false;
+        for (const [evId, val] of Object.entries(prev)) {
+          if (activeIds.has(evId)) {
+            next[evId] = val;
+          } else {
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
     }
   }, [eventMatchKey]);
 

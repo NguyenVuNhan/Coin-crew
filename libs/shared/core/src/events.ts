@@ -55,16 +55,13 @@ export function eventState(e: EventDef, today: string): EventState {
 
 /**
  * Returns the last YYYY-MM-DD date that auto-tags for `e`, or `null` when open-ended.
- * If `stoppedAt` is set, takes the smaller of `end` and the day before `stoppedAt`'s local date.
+ * When `stoppedAt` is set, `e.end` is the stop day and auto-tagging ends the day before `e.end`.
  */
 export function eventMatchEnd(e: EventDef): string | null {
   if (e.stoppedAt !== null) {
-    const stopped = new Date(e.stoppedAt);
-    const dayBeforeStop = formatYmdUtc(
-      new Date(Date.UTC(stopped.getFullYear(), stopped.getMonth(), stopped.getDate() - 1)),
-    );
-    if (e.end === null) return dayBeforeStop;
-    return dayBeforeStop < e.end ? dayBeforeStop : e.end;
+    if (e.end === null) return e.end;
+    const [y, m, d] = parseYmd(e.end);
+    return formatYmdUtc(new Date(Date.UTC(y, m - 1, d - 1)));
   }
   return e.end;
 }
@@ -171,7 +168,8 @@ export interface EventSummary {
 
 /**
  * Filters counted spend rows to those belonging to `e`: tagged with `e.tagId`,
- * and on a non-null wallet not excluded from reports. Returns `[]` when `e.tagId` is null.
+ * and on a wallet not excluded from reports (keeping wallet-less group rows like the report).
+ * Returns `[]` when `e.tagId` is null.
  */
 export function eventRows(
   e: EventDef,
@@ -183,12 +181,11 @@ export function eventRows(
   const includedWalletIds = new Set(
     wallets.filter((w) => !w.excludeFromReports).map((w) => w.id),
   );
-  return rows.filter(
-    (row) =>
-      row.tagIds.includes(tagId) &&
-      row.walletId !== null &&
-      includedWalletIds.has(row.walletId),
-  );
+  return rows.filter((row) => {
+    if (!row.tagIds.includes(tagId)) return false;
+    if (row.walletId === null) return row.kind === 'group';
+    return includedWalletIds.has(row.walletId);
+  });
 }
 
 function summarizeCurrencyRows(

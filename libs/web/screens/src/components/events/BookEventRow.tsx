@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from 'react';
+import { useMemo, useState, type JSX } from 'react';
 import { Link } from 'react-router';
 import {
   daysUntil,
@@ -11,8 +11,11 @@ import {
 import { todayLocal } from '@cc/web-util/localDate';
 import { useT } from '@cc/web-i18n';
 import { useBudgetsProgress } from '@cc/web-data-access/budgets';
-import { useEvents, useEventSummary } from '@cc/web-data-access/events';
+import { useEvents, useEventSummary, useStopEvent } from '@cc/web-data-access/events';
+import { Button } from '@cc/web-ui/components/Button';
 import { Icon } from '@cc/web-ui/components/icons';
+import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Modal } from '@cc/web-ui/components/Modal';
 import { cn } from '@cc/web-ui/lib/utils';
 import { BudgetBar } from '../budgets/BudgetBar';
 
@@ -68,6 +71,19 @@ export function BookEventRow(): JSX.Element {
 
   const activeEvent = singleFeatured && resolvedEvent ? resolvedEvent : null;
   const activeState = activeEvent && singleFeatured ? singleFeatured.state : null;
+  const canStop = Boolean(activeEvent && activeState === 'on');
+
+  const stopEvent = useStopEvent();
+  const [confirmStopOpen, setConfirmStopOpen] = useState(false);
+
+  const handleConfirmStop = () => {
+    if (!activeEvent || stopEvent.isPending) return;
+    stopEvent.mutate(activeEvent.id, {
+      onSuccess: () => {
+        setConfirmStopOpen(false);
+      },
+    });
+  };
 
   const hasBudget = Boolean(activeEvent?.budgetId);
   const budgetsProgress = useBudgetsProgress({ enabled: hasBudget });
@@ -124,51 +140,104 @@ export function BookEventRow(): JSX.Element {
   const isOver = Boolean(showBar && progress && progress.spent > progress.limit);
 
   return (
-    <Link
-      to={href}
-      data-testid="book-event-row"
-      className="fsl-book__event-row flex flex-col gap-2 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
-    >
-      <div className="flex items-center gap-3 w-full">
-        <span
-          aria-hidden="true"
-          className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
-        >
-          <Icon name="calendar" size={18} />
-        </span>
-        <div className="flex-1 flex flex-col min-w-0">
-          <span className="text-sm font-semibold text-foreground leading-snug truncate">
-            {titleText}
+    <div className="flex items-center">
+      <Link
+        to={href}
+        data-testid="book-event-row"
+        className="fsl-book__event-row flex-1 min-w-0 flex flex-col gap-2 min-h-14 px-4 py-3 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset transition-colors motion-reduce:transition-none no-underline"
+      >
+        <div className="flex items-center gap-3 w-full">
+          <span
+            aria-hidden="true"
+            className="size-9 rounded-full bg-secondary text-secondary-foreground grid place-items-center shrink-0"
+          >
+            <Icon name="calendar" size={18} />
           </span>
-          {subtitleText && (
-            <span className="text-xs text-muted-foreground leading-snug truncate tabular-nums">
-              {subtitleText}
+          <div className="flex-1 flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-foreground leading-snug truncate">
+              {titleText}
+            </span>
+            {subtitleText && (
+              <span className="text-xs text-muted-foreground leading-snug truncate tabular-nums">
+                {subtitleText}
+              </span>
+            )}
+          </div>
+          {rightMeta && (
+            <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+              {rightMeta}
             </span>
           )}
+          <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
         </div>
-        {rightMeta && (
-          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-            {rightMeta}
-          </span>
-        )}
-        <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
-      </div>
 
-      {showBar && progress && (
-        <div className="flex flex-col gap-1.5 pl-12">
-          <BudgetBar state={progress.state} used={usedPct} today={todayPct} />
-          <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
-            <span className={cn(isOver ? 'text-danger font-medium' : 'text-muted-foreground')}>
-              {isOver
-                ? `${formatMoney(Math.abs(progress.left), budgetCurrency)} ${t('budgets.overLabel')}`
-                : `${formatMoney(progress.left, budgetCurrency)} ${t('budgets.left')}`}
-            </span>
-            <span className="text-muted-foreground">
-              {`${formatMoney(progress.spent, budgetCurrency)} / ${formatMoney(progress.limit, budgetCurrency)}`}
-            </span>
+        {showBar && progress && (
+          <div className="flex flex-col gap-1.5 pl-12">
+            <BudgetBar state={progress.state} used={usedPct} today={todayPct} />
+            <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+              <span className={cn(isOver ? 'text-danger font-medium' : 'text-muted-foreground')}>
+                {isOver
+                  ? `${formatMoney(Math.abs(progress.left), budgetCurrency)} ${t('budgets.overLabel')}`
+                  : `${formatMoney(progress.left, budgetCurrency)} ${t('budgets.left')}`}
+              </span>
+              <span className="text-muted-foreground">
+                {`${formatMoney(progress.spent, budgetCurrency)} / ${formatMoney(progress.limit, budgetCurrency)}`}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
+      </Link>
+
+      {canStop && activeEvent && (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="book-event-stop"
+            aria-label={`${t('events.stop')} ${activeEvent.name}`}
+            onClick={() => {
+              stopEvent.reset();
+              setConfirmStopOpen(true);
+            }}
+            className="min-h-11 shrink-0 mr-2 px-3 text-xs"
+          >
+            {t('events.stop')}
+          </Button>
+          <Modal
+            open={confirmStopOpen}
+            onClose={() => setConfirmStopOpen(false)}
+            title={t('events.stop')}
+          >
+            <div className="flex flex-col gap-4" data-testid="event-stop-confirm-modal">
+              <p className="m-0 text-sm text-foreground">
+                {t('events.stopConfirm', { name: activeEvent.name })}
+              </p>
+              {stopEvent.error && <InlineError error={stopEvent.error} />}
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="danger"
+                  block
+                  loading={stopEvent.isPending}
+                  data-testid="event-stop-confirm"
+                  onClick={handleConfirmStop}
+                >
+                  {t('events.stop')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  block
+                  disabled={stopEvent.isPending}
+                  onClick={() => setConfirmStopOpen(false)}
+                >
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        </>
       )}
-    </Link>
+    </div>
   );
 }

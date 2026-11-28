@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -18,7 +18,7 @@ import { browserPlatform, PlatformProvider } from '@cc/web-platform';
 import { renderAt, mockApi } from '../../test/render';
 import { tripView } from '../../test/fixtures';
 import { mockMedia } from '../../test/media';
-import { finishAmount } from '../../test/entry';
+import { finishAmount, openDetails } from '../../test/entry';
 import { NavHistoryProvider } from '../../lib/navHistory';
 import { UndoSnackbarHost, hideUndo } from '../../components/UndoSnackbarHost';
 import { App } from '../../App';
@@ -596,6 +596,60 @@ describe('Multiple events on Sổ chi tiêu and in the expense form', () => {
       );
       expect(put).toBeDefined();
       expect((put?.body as { tagIds?: string[] }).tagIds).toEqual(['tag-dalat', 'tag-other']);
+    });
+  });
+
+  it("removing Đà Lạt then moving the date into Tết's lead-up keeps Đà Lạt off", async () => {
+    const user = userEvent.setup();
+    const evTetLeadup: EventView = {
+      id: 'ev-tet-lead',
+      tagId: 'tag-tet',
+      tagName: 'muasamtet-051226',
+      name: 'Tết',
+      start: '2026-12-05',
+      end: '2026-12-10',
+      stoppedAt: null,
+      countsFrom: '2026-11-27',
+      groupIds: [],
+      budgetId: null,
+      createdAt: '2026-11-26T00:00:00.000Z',
+    };
+
+    const api = setupEntryApi([evDaLat, evTetLeadup]);
+    renderEntry();
+
+    // On 2026-11-26, only Đà Lạt matches (on)
+    const rowDaLat = await screen.findByTestId('entry-event-row');
+    expect(rowDaLat).toHaveTextContent('Đà Lạt');
+    expect(screen.queryByTestId('entry-event-row-ev-tet-lead')).not.toBeInTheDocument();
+
+    await finishAmount(user, '120000');
+    await user.click(await screen.findByTestId('category-tile-cat-food'));
+
+    // Turn Đà Lạt off
+    await user.click(screen.getByRole('button', { name: 'Bỏ khỏi Đà Lạt' }));
+    expect(screen.getByTestId('entry-event-row')).toHaveTextContent('Thêm vào Đà Lạt');
+
+    // Move date to 2026-11-27 (still during Đà Lạt, now also in Tết's lead-up)
+    if (!screen.queryByTestId('entry-date-overlay-value')) {
+      await openDetails(user);
+    }
+    const datePicker = await screen.findByTestId('entry-date-overlay-value');
+    fireEvent.change(datePicker, { target: { value: '2026-11-27' } });
+
+    // Tết lead-up appears, and Đà Lạt stays off
+    const rowTet = await screen.findByTestId('entry-event-row-ev-tet-lead');
+    expect(rowTet).toHaveTextContent('Thêm vào Tết');
+    expect(screen.getByTestId('entry-event-row-ev-dalat')).toHaveTextContent('Thêm vào Đà Lạt');
+
+    // Saving does NOT include Đà Lạt's tag
+    await user.click(screen.getByTestId('entry-save-btn'));
+    await waitFor(() => {
+      const post = api.calls.find(
+        (c) => c.method === 'POST' && c.path === '/api/me/personal/transactions',
+      );
+      expect(post).toBeDefined();
+      expect((post?.body as { tags?: string[] }).tags ?? []).toEqual([]);
     });
   });
 });

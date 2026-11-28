@@ -58,7 +58,9 @@ describe('events model', () => {
   it('open event is on until stopped', () => {
     const open: EventDef = { ...base, end: null };
     expect(eventState(open, '2027-06-01')).toBe('on');
-    expect(eventState({ ...open, stoppedAt: '2027-06-01T11:00:00.000Z' }, '2027-06-01')).toBe('done');
+    expect(
+      eventState({ ...open, end: '2027-06-01', stoppedAt: '2027-06-01T11:00:00.000Z' }, '2027-06-01'),
+    ).toBe('done');
   });
 
   it('stopped event excludes its stop day', () => {
@@ -66,6 +68,15 @@ describe('events model', () => {
     expect(eventMatchEnd(stopped)).toBe('2026-12-24');
     expect(eventsForDate([stopped], '2026-12-25')).toEqual([]);
     expect(eventsForDate([stopped], '2026-12-24').map((m) => m.mode)).toEqual(['on']);
+  });
+
+  it('stop day comes from end, not the clock', () => {
+    const stopped: EventDef = {
+      ...base,
+      end: '2026-12-29',
+      stoppedAt: '2026-12-28T23:00:00.000Z',
+    };
+    expect(eventMatchEnd(stopped)).toBe('2026-12-28');
   });
 
   it('two running events both match, sorted by start', () => {

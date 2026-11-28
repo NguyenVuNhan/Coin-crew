@@ -392,4 +392,105 @@ describe('events summary', () => {
 
     expect(eventRows(tripDef, rows, wallets).map((r) => r.id)).toEqual(['r-ok']);
   });
+
+  it('eventRows keeps wallet-less group rows like the report', () => {
+    const wallets: WalletDetailView[] = [
+      createWallet('w-ex', 'VND', { kind: 'investment', excludeFromReports: true, isDefault: false }),
+    ];
+    const tags: TagView[] = [{ id: 'tag-trip', name: 'Đà Lạt', useCount: 1 }];
+    const groupRows: GroupRow[] = [
+      {
+        kind: 'group',
+        id: 'g-nowallet',
+        rootId: 'g-nowallet',
+        tripId: 'trip-g1',
+        tripName: 'Đà Lạt',
+        isDirect: false,
+        source: 'expense',
+        date: '2026-11-12',
+        title: 'Shared cab',
+        total: 400_000,
+        myShare: 200_000,
+        iPaid: false,
+        payerName: 'Friend',
+        counterpartName: 'Me',
+        people: ['Me', 'Friend'],
+        pending: false,
+        link: {
+          walletId: null,
+          categoryId: 'cat-food',
+          tagIds: ['tag-trip'],
+          intent: 'shared',
+          excludeFromReports: false,
+        },
+        createdAt: '2026-11-12T10:00:00Z',
+        activityAt: '2026-11-12T10:00:00Z',
+      },
+      {
+        kind: 'group',
+        id: 'g-exwallet',
+        rootId: 'g-exwallet',
+        tripId: 'trip-g1',
+        tripName: 'Đà Lạt',
+        isDirect: false,
+        source: 'expense',
+        date: '2026-11-12',
+        title: 'Excluded wallet share',
+        total: 300_000,
+        myShare: 150_000,
+        iPaid: false,
+        payerName: 'Friend',
+        counterpartName: 'Me',
+        people: ['Me', 'Friend'],
+        pending: false,
+        link: {
+          walletId: 'w-ex',
+          categoryId: 'cat-food',
+          tagIds: ['tag-trip'],
+          intent: 'shared',
+          excludeFromReports: false,
+        },
+        createdAt: '2026-11-12T10:00:00Z',
+        activityAt: '2026-11-12T10:00:00Z',
+      },
+    ];
+    const groupSettings: GroupSettingsView = {
+      defaultGroupCategoryId: 'cat-food',
+      countLoans: false,
+    };
+
+    const counted = listCountedSpending({
+      wallets,
+      entries: [],
+      categories,
+      tags,
+      groupRows,
+      groupSettings,
+    });
+
+    const matched = eventRows(tripDef, counted, wallets);
+    expect(matched.map((r) => r.id)).toEqual(['g-nowallet']);
+    expect(matched[0]!.walletId).toBeNull();
+
+    const summary = summarizeEvent(tripDef, counted, wallets, categories);
+    const report = buildReport({
+      wallets,
+      entries: [],
+      categories,
+      tags,
+      groupRows,
+      groupSettings,
+      query: {
+        mode: 'custom',
+        from: '2026-11-01',
+        to: '2026-11-14',
+        includeGroups: true,
+        tagId: 'tag-trip',
+      },
+      today: '2026-11-20',
+    });
+
+    expect(summary.currencies[0]?.total).toBe(200_000);
+    expect(report.totals.spent).toBe(200_000);
+  });
 });

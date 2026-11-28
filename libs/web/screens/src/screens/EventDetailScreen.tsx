@@ -52,7 +52,7 @@ export function EventDetailScreen(): JSX.Element {
   const today = todayLocal();
 
   const eventsQuery = useEvents({ enabled: Boolean(eventId) });
-  const { event, summary, progress, isPending, error } = useEventSummary(eventId);
+  const { event, summary, rows: eventSummaryRows, progress, isPending, error } = useEventSummary(eventId);
   const budgetsQuery = useBudgets({ enabled: Boolean(event?.budgetId) });
   const categoriesQuery = useCategories();
   const groupsQuery = useMyGroups({ enabled: Boolean(event && event.groupIds.length > 0) });
@@ -127,14 +127,26 @@ export function EventDetailScreen(): JSX.Element {
     return names.join(', ');
   }, [event, groupNameById, t]);
 
+  const { linkFrom, linkTo } = useMemo(() => {
+    let earliest: string | null = null;
+    let latest: string | null = null;
+    for (const row of eventSummaryRows) {
+      if (earliest === null || row.date < earliest) earliest = row.date;
+      if (latest === null || row.date > latest) latest = row.date;
+    }
+    const from = earliest ?? event?.countsFrom ?? today;
+    const to = latest !== null && latest > today ? latest : today;
+    return { linkFrom: from, linkTo: to };
+  }, [eventSummaryRows, event?.countsFrom, today]);
+
   const txHref =
     event && event.tagId
-      ? `/transactions?tagId=${encodeURIComponent(event.tagId)}&from=${encodeURIComponent(event.countsFrom)}&to=${encodeURIComponent(event.end ?? today)}`
+      ? `/transactions?tagId=${encodeURIComponent(event.tagId)}&from=${encodeURIComponent(linkFrom)}&to=${encodeURIComponent(linkTo)}`
       : '/transactions';
 
   const reportHref =
     event && event.tagId
-      ? buildTagReportUrl(event.tagId, event.countsFrom, event.end ?? today)
+      ? buildTagReportUrl(event.tagId, linkFrom, linkTo)
       : null;
 
   const usedPct =

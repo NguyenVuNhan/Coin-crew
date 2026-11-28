@@ -410,8 +410,15 @@ describe('multi-event shares and rows', () => {
       tagShares(sid, { today: '2026-12-12' }),
     );
     expect(res.status).toBe(200);
-    expect(await json<{ tagged: number }>(res)).toEqual({ tagged: 100 });
+    expect(await json<{ tagged: number }>(res)).toEqual({ tagged: 50 });
     expect(queries).toBeLessThanOrEqual(50);
+
+    const { result: res2, queries: queries2 } = await countQueries(() =>
+      tagShares(sid, { today: '2026-12-12' }),
+    );
+    expect(res2.status).toBe(200);
+    expect(await json<{ tagged: number }>(res2)).toEqual({ tagged: 50 });
+    expect(queries2).toBeLessThanOrEqual(50);
 
     expect(await getLinkTagIds(userId, 'ge-mc-000')).toEqual([eventA.tagId!, eventB.tagId!].sort());
     expect(await getLinkTagIds(userId, 'ge-mc-099')).toEqual([eventA.tagId!, eventB.tagId!].sort());
@@ -422,5 +429,49 @@ describe('multi-event shares and rows', () => {
       .bind(userId)
       .first<{ cnt: number }>();
     expect(totalMarks?.cnt).toBe(200);
+  }, 30_000);
+
+  it('tag-shares with 6 overlapping events and 100 shares stays <= 50 queries', async () => {
+    const userId = 'u-multi-6ev';
+    const sid = await memberSid(userId, 'Multi6EvUser');
+    await switchOn(userId);
+
+    await ensureGroup('g-multi-6ev', userId);
+    for (let i = 1; i <= 6; i++) {
+      const res = await createEvent(sid, {
+        name: `Event ${i}`,
+        start: '2026-12-10',
+        end: '2026-12-15',
+        countsFrom: '2026-12-01',
+        groupIds: ['g-multi-6ev'],
+        today: '2026-12-01',
+      });
+      expect(res.status).toBe(201);
+    }
+
+    const expenses = Array.from({ length: 100 }, (_, i) => ({
+      id: `ge-6ev-${String(i).padStart(3, '0')}`,
+      description: `Expense ${i}`,
+      amount: 100_000,
+      myShare: 50_000,
+      spentOn: '2026-12-12',
+    }));
+    await seedGroupExpenses('g-multi-6ev', userId, expenses);
+
+    // Force a cold trip cache to test the worst-case query budget
+    await env.DB.prepare('DELETE FROM personal_trip_cache WHERE user_id = ?').bind(userId).run();
+
+    const { result: res, queries } = await countQueries(() =>
+      tagShares(sid, { today: '2026-12-12' }),
+    );
+    expect(res.status).toBe(200);
+    expect(queries).toBeLessThanOrEqual(50);
+
+    const totalMarks = await env.DB.prepare(
+      'SELECT count(*) AS cnt FROM personal_event_share_marks WHERE user_id = ?',
+    )
+      .bind(userId)
+      .first<{ cnt: number }>();
+    expect(totalMarks?.cnt).toBe(100);
   }, 30_000);
 });

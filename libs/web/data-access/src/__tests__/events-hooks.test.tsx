@@ -32,6 +32,7 @@ import {
 } from '../personalMoney';
 import {
   PERSONAL_EVENTS_KEY,
+  useApplyEventExisting,
   useCreateEvent,
   useEventShareSync,
   useEventSummary,
@@ -509,6 +510,57 @@ describe('events hooks', () => {
 
     expect(result.current.data).toEqual({ items, archivedCount: 3 });
     expect(queryClient.getQueryData(['trips', 'active'])).toEqual({ items, archivedCount: 3 });
+
+    unmount();
+  });
+
+  it('applyExisting batches 450 ids into 3 requests', async () => {
+    const ownIds = Array.from({ length: 250 }, (_, i) => `own-${i}`);
+    const shareRootIds = Array.from({ length: 200 }, (_, i) => `share-${i}`);
+
+    const { calls } = mockFetch(
+      baseRoutes({
+        'POST /api/me/personal/events/ev-bulk/existing': (init: RequestInit | undefined) => {
+          const body = JSON.parse(String(init?.body)) as {
+            ownIds?: string[];
+            shareRootIds?: string[];
+          };
+          const count = (body.ownIds?.length ?? 0) + (body.shareRootIds?.length ?? 0);
+          return Response.json({ tagged: count });
+        },
+      }),
+    );
+
+    const queryClient = makeQueryClient();
+    const { result, unmount } = renderHook(() => useApplyEventExisting(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    const res = await result.current.mutateAsync({
+      id: 'ev-bulk',
+      tag: true,
+      ownIds,
+      shareRootIds,
+    });
+
+    expect(res).toEqual({ tagged: 450 });
+    const postCalls = calls.filter(
+      (c) => c.method === 'POST' && c.path === '/api/me/personal/events/ev-bulk/existing',
+    );
+    expect(postCalls).toHaveLength(3);
+
+    const sizes = postCalls.map((c) => {
+      const b = c.body as { ownIds?: string[]; shareRootIds?: string[] };
+      return (b.ownIds?.length ?? 0) + (b.shareRootIds?.length ?? 0);
+    });
+    expect(sizes).toEqual([200, 200, 50]);
+
+    const sentOwn = postCalls.flatMap((c) => (c.body as { ownIds?: string[] }).ownIds ?? []);
+    const sentShares = postCalls.flatMap(
+      (c) => (c.body as { shareRootIds?: string[] }).shareRootIds ?? [],
+    );
+    expect(sentOwn).toEqual(ownIds);
+    expect(sentShares).toEqual(shareRootIds);
 
     unmount();
   });

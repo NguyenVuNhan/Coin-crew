@@ -394,4 +394,34 @@ describe('personal events existing-items exact set', () => {
     expect(bAfter.currency).toBe('USD');
     expect(bAfter.excludedWalletIds).toEqual([wUsdExcl.id]);
   });
+
+  it('existing apply with 201 ids is 400', async () => {
+    const userId = 'u-ex-cap201';
+    const sid = await memberSid(userId, 'Cap201User');
+    await switchOn(userId);
+
+    const created = (
+      await json<EventSavedResponse>(
+        await createEvent(sid, {
+          name: 'Big Event',
+          start: '2026-11-10',
+          end: '2026-11-20',
+          groupIds: [],
+          today: '2026-11-10',
+        }),
+      )
+    ).event;
+
+    const ownIds = Array.from({ length: 101 }, (_, i) => `own-${i}`);
+    const shareRootIds = Array.from({ length: 100 }, (_, i) => `share-${i}`);
+
+    const res = await applyExisting(sid, created.id, {
+      tag: true,
+      ownIds,
+      shareRootIds,
+    });
+    expect(res.status).toBe(400);
+    const body = await json<{ error: { code: string } }>(res);
+    expect(body.error.code).toBe('VALIDATION');
+  });
 });

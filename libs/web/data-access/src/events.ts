@@ -8,6 +8,7 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 import {
+  eventRows,
   summarizeEvent,
   type ApplyEventExistingInput,
   type BudgetProgress,
@@ -192,6 +193,8 @@ export function useStartEventNow(): UseMutationResult<
   });
 }
 
+const APPLY_EXISTING_BATCH_SIZE = 200;
+
 /** Applies or skips tagging existing matching expenses and group shares for a trip. */
 export function useApplyEventExisting(): UseMutationResult<
   { tagged: number },
@@ -205,16 +208,39 @@ export function useApplyEventExisting(): UseMutationResult<
     ApiClientError,
     { id: string; tag: boolean; ownIds?: string[]; shareRootIds?: string[] }
   >({
-    mutationFn: ({ id, tag, ownIds, shareRootIds }) =>
-      apiSend<{ tagged: number }>(
-        `/api/me/personal/events/${encodeURIComponent(id)}/existing`,
-        'POST',
-        {
+    mutationFn: async ({ id, tag, ownIds, shareRootIds }) => {
+      const url = `/api/me/personal/events/${encodeURIComponent(id)}/existing`;
+      const own = ownIds ?? [];
+      const shares = shareRootIds ?? [];
+
+      if (!tag || own.length + shares.length <= APPLY_EXISTING_BATCH_SIZE) {
+        return apiSend<{ tagged: number }>(url, 'POST', {
           tag,
           ...(ownIds !== undefined ? { ownIds } : {}),
           ...(shareRootIds !== undefined ? { shareRootIds } : {}),
-        } satisfies ApplyEventExistingInput,
-      ),
+        } satisfies ApplyEventExistingInput);
+      }
+
+      let totalTagged = 0;
+      let oi = 0;
+      let si = 0;
+      while (oi < own.length || si < shares.length) {
+        const batchOwn = own.slice(oi, oi + APPLY_EXISTING_BATCH_SIZE);
+        oi += batchOwn.length;
+        const remaining = APPLY_EXISTING_BATCH_SIZE - batchOwn.length;
+        const batchShare = remaining > 0 ? shares.slice(si, si + remaining) : [];
+        si += batchShare.length;
+
+        const res = await apiSend<{ tagged: number }>(url, 'POST', {
+          tag,
+          ownIds: batchOwn,
+          shareRootIds: batchShare,
+        } satisfies ApplyEventExistingInput);
+        totalTagged += res.tagged;
+      }
+
+      return { tagged: totalTagged };
+    },
     onSuccess: () => invalidateEventData(queryClient),
   });
 }
@@ -260,6 +286,7 @@ const EMPTY_ROWS: CountedSpendRow[] = [];
 export function useEventSummary(id: string): {
   event: EventView | null;
   summary: EventSummary | null;
+  rows: CountedSpendRow[];
   progress: BudgetProgress | null;
   isPending: boolean;
   error: unknown;
@@ -340,6 +367,11 @@ export function useEventSummary(id: string): {
   const hasBudget = Boolean(event?.budgetId);
   const budgetsProgress = useBudgetsProgress({ enabled: enabled && hasBudget });
 
+  const matchedRows = useMemo(() => {
+    if (!event || !wallets || rowsPending || rowsError) return EMPTY_ROWS;
+    return eventRows(event, rows, wallets);
+  }, [event, wallets, rowsPending, rowsError, rows]);
+
   const summary = useMemo(() => {
     if (!event || !wallets || rowsPending || rowsError) return null;
     return summarizeEvent(event, rows, wallets, categories);
@@ -366,6 +398,7 @@ export function useEventSummary(id: string): {
   return {
     event,
     summary,
+    rows: matchedRows,
     progress,
     isPending,
     error,
