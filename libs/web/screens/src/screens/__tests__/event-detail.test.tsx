@@ -112,9 +112,11 @@ const tags: TagView[] = [
 const daLatEvent: EventView = {
   id: 'tr-dl',
   tagId: 'tag-dl',
+  tagName: 'dalat-121126-141126',
   name: 'Đà Lạt',
   start: '2026-11-12',
   end: '2026-11-14',
+  stoppedAt: null,
   countsFrom: '2026-11-05',
   groupIds: ['g-friends'],
   budgetId: 'b-dl',
@@ -124,9 +126,11 @@ const daLatEvent: EventView = {
 const noLimitEvent: EventView = {
   id: 'tr-nolim',
   tagId: 'tag-dl',
+  tagName: 'dalattutuc-121126-141126',
   name: 'Đà Lạt tự túc',
   start: '2026-11-12',
   end: '2026-11-14',
+  stoppedAt: null,
   countsFrom: '2026-11-05',
   groupIds: [],
   budgetId: null,
@@ -136,9 +140,11 @@ const noLimitEvent: EventView = {
 const bangkokEvent: EventView = {
   id: 'tr-bkk',
   tagId: 'tag-bkk',
+  tagName: 'bangkok-101126-151126',
   name: 'Bangkok',
   start: '2026-11-10',
   end: '2026-11-15',
+  stoppedAt: null,
   countsFrom: '2026-11-01',
   groupIds: [],
   budgetId: null,
@@ -344,7 +350,7 @@ describe('EventDetailScreen', () => {
 
     const byDay = await screen.findByTestId('event-by-day');
     const items = within(byDay).getAllByTestId(/^event-day-row-/);
-    expect(items[0]).toHaveTextContent('Trước chuyến đi');
+    expect(items[0]).toHaveTextContent('Trước sự kiện');
     expect(items[0]).toHaveTextContent('1.240.000₫');
     expect(items[1]).toHaveTextContent('12/11');
     expect(items[2]).toHaveTextContent('13/11');

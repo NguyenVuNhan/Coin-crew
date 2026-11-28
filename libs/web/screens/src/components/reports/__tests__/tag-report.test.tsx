@@ -177,7 +177,7 @@ describe('tag report URL and UI', () => {
     // Report request carries tagId
     expect(reportQueries.some((u) => u.includes('tagId=t-house'))).toBe(true);
 
-    const clearBtn = screen.getByRole('button', { name: 'reports.tagFilterClear' });
+    const clearBtn = screen.getByRole('button', { name: /Bỏ lọc tag|Clear tag filter/ });
     await user.click(clearBtn);
 
     await waitFor(() => {
@@ -233,7 +233,7 @@ describe('tag report URL and UI', () => {
     // New icon button links to custom-range tag report from firstDate (or period.from fallback) to today
     const reportLinks = screen.getAllByTestId('tag-report-link');
     expect(reportLinks).toHaveLength(2);
-    expect(reportLinks[0]).toHaveAttribute('aria-label', 'reports.tagReportAria');
+    expect(reportLinks[0]).toHaveAttribute('aria-label', expect.stringMatching(/Xem báo cáo cho|View report for/));
     expect(reportLinks[0]).toHaveAttribute(
       'href',
       '/reports?mode=custom&from=2026-03-15&to=2026-11-28&tagId=t-house',

@@ -94,9 +94,11 @@ const tags: TagView[] = [
 const onEvent: EventView = {
   id: 'tr-dl',
   tagId: 'tag-dl',
+  tagName: 'dalat-121126-141126',
   name: 'Đà Lạt',
   start: '2026-11-12',
   end: '2026-11-14',
+  stoppedAt: null,
   countsFrom: '2026-11-05',
   groupIds: [],
   budgetId: 'b-dl',
@@ -106,9 +108,11 @@ const onEvent: EventView = {
 const upcomingEvent: EventView = {
   id: 'tr-hue',
   tagId: 'tag-hue',
+  tagName: 'hue-181126-211126',
   name: 'Huế',
   start: '2026-11-18',
   end: '2026-11-21',
+  stoppedAt: null,
   countsFrom: '2026-11-10',
   groupIds: [],
   budgetId: null,
@@ -118,9 +122,11 @@ const upcomingEvent: EventView = {
 const doneOverEvent: EventView = {
   id: 'tr-pq',
   tagId: 'tag-pq',
+  tagName: 'phuquoc-020826-060826',
   name: 'Phú Quốc',
   start: '2026-08-02',
   end: '2026-08-06',
+  stoppedAt: null,
   countsFrom: '2026-07-20',
   groupIds: [],
   budgetId: 'b-pq',
@@ -130,9 +136,11 @@ const doneOverEvent: EventView = {
 const doneNoLimitEvent: EventView = {
   id: 'tr-hn',
   tagId: 'tag-hn',
+  tagName: 'hanoi-010326-030326',
   name: 'Hà Nội',
   start: '2026-03-01',
   end: '2026-03-03',
+  stoppedAt: null,
   countsFrom: '2026-03-01',
   groupIds: [],
   budgetId: null,
@@ -241,7 +249,7 @@ describe('EventsScreen', () => {
     });
 
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
-    expect(headings).toEqual(['Đang đi', 'Sắp tới', 'Đã đi']);
+    expect(headings).toEqual(['Đang diễn ra', 'Sắp tới', 'Đã xong']);
 
     // On section
     const onSection = screen.getByTestId('events-section-on');
@@ -273,18 +281,18 @@ describe('EventsScreen', () => {
     expect(hnRow).toHaveTextContent('4.200.000₫');
     expect(hnRow).toHaveTextContent(/Không đặt hạn mức/i);
 
-    // BottomBar has "+ Chuyến đi mới"
+    // BottomBar has "+ Sự kiện mới"
     const newBtn = screen.getByTestId('events-new-button');
-    expect(newBtn).toHaveTextContent('+ Chuyến đi mới');
+    expect(newBtn).toHaveTextContent('+ Sự kiện mới');
   });
 
-  it('empty state offers a new trip', async () => {
+  it('empty state offers a new event', async () => {
     const user = userEvent.setup();
     stubApis({ events: [] });
     renderEventsVi('/events');
 
     const emptyAdd = await screen.findByTestId('events-empty-add');
-    expect(emptyAdd).toHaveTextContent('Chuyến đi mới');
+    expect(emptyAdd).toHaveTextContent('Sự kiện mới');
 
     await user.click(emptyAdd);
     expect(await screen.findByTestId('event-form')).toBeInTheDocument();

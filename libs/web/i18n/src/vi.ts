@@ -1829,6 +1829,8 @@ export const vi: Record<MessageKey, string> = {
   'reports.noTagsData': 'Chưa có giao dịch gắn thẻ trong kỳ', // REVIEW
   'reports.tagsEntryCount': '{count} giao dịch', // REVIEW
   'reports.tagsViewTransactions': 'Xem giao dịch', // REVIEW
+  'reports.tagFilterClear': 'Bỏ lọc tag', // REVIEW
+  'reports.tagReportAria': 'Xem báo cáo cho {tag}', // REVIEW
   'reports.walletBalanceTitle': 'Số dư theo thời gian', // REVIEW
   'reports.balanceOpening': 'Đầu kỳ', // REVIEW
   'reports.balanceClosing': 'Cuối kỳ', // REVIEW
@@ -2007,39 +2009,49 @@ export const vi: Record<MessageKey, string> = {
   'budgets.viewExisting': 'Xem ngân sách', // REVIEW
   'budgets.missingTarget': 'Chọn danh mục hoặc thẻ để lưu.', // REVIEW
   'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
-  'events.bookIdle': 'Chuyến đi', // REVIEW
-  'events.bookOn': 'Đang đi {name}', // REVIEW
-  'events.bookUpcoming': 'Sắp đi {name}', // REVIEW
+  'events.bookIdle': 'Sự kiện', // REVIEW
+  'events.bookOn': '{name} đang diễn ra', // REVIEW
+  'events.bookOnMany': '{n} sự kiện đang diễn ra · {names}', // REVIEW
+  'events.bookUpcoming': 'Sắp tới: {name}', // REVIEW
   'events.bookDayOf': 'ngày {day}/{of}', // REVIEW
+  'events.bookDayOpen': 'ngày {day}', // REVIEW
   'events.bookDaysLeft': 'còn {n} ngày', // REVIEW
   'events.bookLeadSpent': 'Đã chi trước {amount}', // REVIEW
-  'events.listTitle': 'Chuyến đi', // REVIEW
-  'events.sectionOn': 'Đang đi', // REVIEW
+  'events.listTitle': 'Sự kiện', // REVIEW
+  'events.sectionOn': 'Đang diễn ra', // REVIEW
   'events.sectionUpcoming': 'Sắp tới', // REVIEW
-  'events.sectionDone': 'Đã đi', // REVIEW
-  'events.newTrip': 'Chuyến đi mới', // REVIEW
-  'events.nameLabel': 'Tên chuyến (cũng là tag)', // REVIEW
-  'events.fromLabel': 'Từ ngày', // REVIEW
-  'events.toLabel': 'Đến ngày', // REVIEW
-  'events.countsFromLine': 'Tính cả chi tiêu trước chuyến từ {date}', // REVIEW
-  'events.groupsLabel': 'Đi cùng nhóm', // REVIEW
-  'events.groupsHint': 'Bỏ trống nếu đi một mình', // REVIEW
+  'events.sectionDone': 'Đã xong', // REVIEW
+  'events.newEvent': 'Sự kiện mới', // REVIEW
+  'events.nameLabel': 'Tên sự kiện', // REVIEW
+  'events.startLabel': 'Bắt đầu', // REVIEW
+  'events.startHint': 'Để trống là bắt đầu hôm nay', // REVIEW
+  'events.endLabel': 'Kết thúc (tùy chọn)', // REVIEW
+  'events.endHint': 'Để trống là chạy đến khi bạn dừng', // REVIEW
+  'events.limitNeedsEnd': 'Đặt ngày kết thúc để đặt hạn mức', // REVIEW
+  'events.clearEndConfirm': 'Bỏ ngày kết thúc sẽ xóa hạn mức. Tiếp tục?', // REVIEW
+  'events.countsFromLine': 'Tính cả chi tiêu trước sự kiện từ {date}', // REVIEW
+  'events.groupsLabel': 'Cùng nhóm', // REVIEW
+  'events.groupsHint': 'Bỏ trống nếu chỉ riêng bạn', // REVIEW
   'events.removeGroup': 'Bỏ {name}', // REVIEW
   'events.leftGroup': 'Nhóm đã rời', // REVIEW
   'events.limitLabel': 'Hạn mức (tùy chọn)', // REVIEW
-  'events.save': 'Lưu chuyến đi', // REVIEW
-  'events.overlap': 'Trùng với chuyến {name} ({range})', // REVIEW
-  'events.endEarly': 'Kết thúc sớm', // REVIEW
-  'events.delete': 'Xóa chuyến đi', // REVIEW
+  'events.save': 'Lưu sự kiện', // REVIEW
+  'events.stop': 'Dừng', // REVIEW
+  'events.stopConfirm': 'Dừng {name} từ bây giờ? Khoản chi mới sẽ không được gắn tag nữa.', // REVIEW
+  'events.resume': 'Tiếp tục', // REVIEW
+  'events.resumeConfirm': 'Tiếp tục {name}?', // REVIEW
+  'events.resumeDropsLimit': 'Hạn mức sẽ bị bỏ vì sự kiện không còn ngày kết thúc.', // REVIEW
+  'events.startNow': 'Bắt đầu ngay', // REVIEW
+  'events.delete': 'Xóa sự kiện', // REVIEW
   'events.existingTitle': 'Gắn tag cho khoản chi đã có?', // REVIEW
   'events.existingOwn': '{n} khoản bạn tự chi', // REVIEW
   'events.existingShares': '{n} phần trong nhóm', // REVIEW
   'events.existingNote': 'Bỏ tag từng khoản sau cũng được.', // REVIEW
   'events.existingYes': 'Gắn tag cho cả {n} khoản', // REVIEW
   'events.existingNo': 'Chỉ từ giờ trở đi', // REVIEW
-  'events.entryOn': 'Chuyến đi {name}', // REVIEW
-  'events.entrySuggest': 'Thêm vào chuyến {name}', // REVIEW
-  'events.entryRemove': 'Bỏ khỏi chuyến {name}', // REVIEW
+  'events.entryOn': '{name}', // REVIEW
+  'events.entrySuggest': 'Thêm vào {name}', // REVIEW
+  'events.entryRemove': 'Bỏ khỏi {name}', // REVIEW
   'events.total': 'Tổng chi', // REVIEW
   'events.own': 'Bạn tự chi', // REVIEW
   'events.group': 'Phần của bạn trong nhóm', // REVIEW
@@ -2048,16 +2060,17 @@ export const vi: Record<MessageKey, string> = {
   'events.approx': '≈ {amount} tổng cộng, theo giá bạn đã đổi', // REVIEW
   'events.byCategory': 'Theo danh mục', // REVIEW
   'events.byDay': 'Theo ngày', // REVIEW
-  'events.leadup': 'Trước chuyến đi', // REVIEW
+  'events.leadup': 'Trước sự kiện', // REVIEW
+  'events.viewReport': 'Xem báo cáo', // REVIEW
   'events.seeTx': 'Xem {n} giao dịch', // REVIEW
-  'events.statePill.on': 'Đang đi', // REVIEW
+  'events.statePill.on': 'Đang diễn ra', // REVIEW
   'events.statePill.upcoming': 'Sắp tới', // REVIEW
   'events.statePill.done': 'Đã xong', // REVIEW
-  'events.empty': 'Chưa có khoản chi nào cho chuyến này.', // REVIEW
+  'events.empty': 'Chưa có khoản chi nào cho sự kiện này.', // REVIEW
   'events.noLimit': 'Không đặt hạn mức', // REVIEW
-  'events.notFound': 'Không tìm thấy chuyến đi', // REVIEW
-  'events.notFoundBody': 'Chuyến đi này có thể đã bị xóa.', // REVIEW
-  'events.edit': 'Sửa chuyến đi', // REVIEW
+  'events.notFound': 'Không tìm thấy sự kiện', // REVIEW
+  'events.notFoundBody': 'Sự kiện này có thể đã bị xóa.', // REVIEW
+  'events.edit': 'Sửa sự kiện', // REVIEW
   'events.solo': 'một mình', // REVIEW
   'events.addExpense': 'Ghi khoản chi', // REVIEW
 };

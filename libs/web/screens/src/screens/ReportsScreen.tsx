@@ -10,7 +10,7 @@ import { Button } from '@cc/web-ui/components/ui/button';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Pill } from '@cc/web-ui/components/Pill';
-import { SkeletonList } from '@cc/web-ui/components/Skeleton';
+import { Skeleton, SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { InlineError } from '@cc/web-ui/components/InlineError';
 import { Icon } from '@cc/web-ui/components/icons';
 import { Screen } from '../components/Screen';
@@ -55,7 +55,7 @@ export function ReportsScreen(): JSX.Element {
     const fromReport =
       report?.tags.expense.find((tg) => tg.tagId === query.tagId)?.name ??
       report?.tags.income.find((tg) => tg.tagId === query.tagId)?.name;
-    return fromReport ?? query.tagId;
+    return fromReport ?? null;
   }, [query.tagId, tagsQuery.data?.tags, report?.tags]);
 
   const hasActiveFilters =
@@ -78,10 +78,14 @@ export function ReportsScreen(): JSX.Element {
               data-testid="reports-tag-filter-pill"
               className="gap-0.5 py-0 pl-3 pr-0"
             >
-              <span>#{activeTagName}</span>
+              {activeTagName ? (
+                <span>#{activeTagName}</span>
+              ) : (
+                <Skeleton width={64} height={14} radius="sm" />
+              )}
               <button
                 type="button"
-                aria-label={t('reports.tagFilterClear' as Parameters<typeof t>[0])}
+                aria-label={t('reports.tagFilterClear')}
                 onClick={() => updateQuery({ ...query, tagId: undefined })}
                 className="inline-flex items-center justify-center min-h-11 min-w-11 -my-2 rounded-full bg-transparent border-0 text-secondary-foreground hover:bg-muted cursor-pointer p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >

@@ -8,7 +8,6 @@ import {
   formatMoney,
   limitFor,
   parseMoney,
-  eventState,
   type CurrencyCode,
   type EventLimitInput,
   type EventSavedResponse,
@@ -18,7 +17,7 @@ import { useLang, useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
 import { useBudgets } from '@cc/web-data-access/budgets';
 import { useMyGroups } from '@cc/web-data-access/groups';
-import { useTags, useWalletDetails } from '@cc/web-data-access/personalMoney';
+import { useWalletDetails } from '@cc/web-data-access/personalMoney';
 import {
   useCreateEvent,
   useDeleteEvent,
@@ -56,8 +55,11 @@ function formatMinorInput(minor: number, currency: CurrencyCode): string {
   return frac === 0 ? String(whole) : `${whole}.${String(frac).padStart(2, '0')}`;
 }
 
-export function formatEventRange(start: string, end: string): string {
+export function formatEventRange(start: string, end: string | null): string {
   const [y1, m1, d1] = parseYmd(start);
+  if (end === null) {
+    return `${d1}/${m1}\u2013\u2026`;
+  }
   const [y2, m2, d2] = parseYmd(end);
   if (y1 === y2 && m1 === m2) {
     return d1 === d2 ? `${d1}/${m1}` : `${d1}\u2013${d2}/${m2}`;
@@ -68,37 +70,6 @@ export function formatEventRange(start: string, end: string): string {
   return `${d1}/${m1}/${y1}\u2013${d2}/${m2}/${y2}`;
 }
 
-interface OverlapDetails {
-  eventId?: string;
-  name: string;
-  start: string;
-  end: string;
-}
-
-function extractOverlapError(err: unknown): OverlapDetails | null {
-  if (!err || typeof err !== 'object') return null;
-  const e = err as { code?: unknown; details?: Record<string, unknown> };
-  if (e.code !== 'EVENT_OVERLAP') return null;
-  const outer = e.details;
-  const inner =
-    outer && typeof outer['details'] === 'object' && outer['details'] !== null
-      ? (outer['details'] as Record<string, unknown>)
-      : outer;
-  if (!inner) return null;
-  const name = inner['name'];
-  const start = inner['start'];
-  const end = inner['end'];
-  if (typeof name !== 'string' || typeof start !== 'string' || typeof end !== 'string') {
-    return null;
-  }
-  return {
-    eventId: typeof inner['eventId'] === 'string' ? inner['eventId'] : undefined,
-    name,
-    start,
-    end,
-  };
-}
-
 export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JSX.Element {
   const t = useT();
   const [lang] = useLang();
@@ -106,7 +77,6 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
   const today = todayLocal();
   const isEdit = Boolean(event);
 
-  const tagsQuery = useTags();
   const groupsQuery = useMyGroups({ enabled: open });
   const walletsQuery = useWalletDetails();
   const budgetsQuery = useBudgets({ enabled: isEdit && Boolean(event?.budgetId) });
@@ -115,7 +85,6 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
 
-  const tags = tagsQuery.data?.tags ?? [];
   const allGroups = useMemo(
     () => (groupsQuery.data?.items ?? []).filter((g) => g.preset !== 'direct'),
     [groupsQuery.data?.items],
@@ -170,7 +139,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
   const [limitTouched, setLimitTouched] = useState(false);
   const [currency, setCurrency] = useState<CurrencyCode>(() => defaultCurrency);
   const [currencyTouched, setCurrencyTouched] = useState(false);
-  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [confirmClearEndOpen, setConfirmClearEndOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const resetMutationsRef = useRef(() => {
@@ -190,7 +159,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
       if (event) {
         setName(event.name);
         setStart(event.start);
-        setEnd(event.end);
+        setEnd(event.end ?? '');
         setCountsFrom(event.countsFrom);
         setCountsFromTouched(true);
         setCountsFromOpen(false);
@@ -198,7 +167,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
         setGroupPickerOpen(false);
         setLimitTouched(false);
         setCurrencyTouched(false);
-        setConfirmEndOpen(false);
+        setConfirmClearEndOpen(false);
         setConfirmDeleteOpen(false);
         if (linkedBudget) {
           const curPeriod = budgetPeriodAt(linkedBudget, today) ?? firstBudgetPeriod(linkedBudget);
@@ -221,7 +190,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
         setLimitTouched(false);
         setCurrency(defaultCurrency);
         setCurrencyTouched(false);
-        setConfirmEndOpen(false);
+        setConfirmClearEndOpen(false);
         setConfirmDeleteOpen(false);
       }
       resetMutationsRef.current();
@@ -246,21 +215,24 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
   const showCurrencyPicker =
     availableCurrencies.length > 1 && !(isEdit && Boolean(event?.budgetId));
 
+  const hasStart = YMD_RE.test(start);
+  const hasEnd = YMD_RE.test(end);
+  const effectiveStart = hasStart ? start : today;
+
   const effectiveCountsFrom = useMemo(() => {
     if (countsFromTouched) return countsFrom;
-    return defaultCountsFrom(YMD_RE.test(start) ? start : today, today);
-  }, [countsFromTouched, countsFrom, start, today]);
+    return defaultCountsFrom(effectiveStart, today);
+  }, [countsFromTouched, countsFrom, effectiveStart, today]);
 
   const trimmedName = name.trim();
-  const datesFilled = YMD_RE.test(start) && YMD_RE.test(end);
-  const datesOrderValid = datesFilled && start <= end;
-  const showRangeError = datesFilled && start > end;
+  const datesOrderValid = !hasEnd || effectiveStart <= end;
+  const showRangeError = hasEnd && effectiveStart > end;
   const countsFromValid =
-    YMD_RE.test(effectiveCountsFrom) && (!YMD_RE.test(start) || effectiveCountsFrom <= start);
+    YMD_RE.test(effectiveCountsFrom) && effectiveCountsFrom <= effectiveStart;
 
-  const trimmedLimit = limitText.trim();
+  const trimmedLimit = hasEnd ? limitText.trim() : '';
   const parsedLimit = trimmedLimit !== '' ? parseMoney(trimmedLimit, effectiveCurrency) : null;
-  const showLimitError = trimmedLimit !== '' && parsedLimit === null;
+  const showLimitError = hasEnd && trimmedLimit !== '' && parsedLimit === null;
 
   const canSubmit =
     trimmedName.length >= 1 &&
@@ -271,72 +243,69 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
 
   const isPending = createEvent.isPending || updateEvent.isPending;
   const activeError = isEdit ? updateEvent.error : createEvent.error;
-  const overlapError = extractOverlapError(activeError);
 
-  const tagSuggestions = useMemo(() => {
-    const q = trimmedName.toLowerCase();
-    const list = q
-      ? tags.filter((tg) => tg.name.toLowerCase().includes(q) && tg.name.toLowerCase() !== q)
-      : tags;
-    return list.slice(0, 6);
-  }, [tags, trimmedName]);
+  const willDropLimit = Boolean(
+    isEdit && event && event.budgetId !== null && event.end !== null && !hasEnd,
+  );
 
-  const isCurrentlyOn = Boolean(event && eventState(event, today) === 'on');
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit || isPending) return;
-
+  const submitUpdate = () => {
+    if (!event || updateEvent.isPending) return;
     const limitValue: EventLimitInput | null =
-      parsedLimit !== null ? { amount: parsedLimit, currency: effectiveCurrency } : null;
+      hasEnd && parsedLimit !== null
+        ? { amount: parsedLimit, currency: effectiveCurrency }
+        : null;
+    const limitChanged = limitTouched || currencyTouched || willDropLimit;
 
-    if (event) {
-      const limitChanged = limitTouched || currencyTouched;
-      updateEvent.mutate(
-        {
-          id: event.id,
-          input: {
-            name: trimmedName,
-            start,
-            end,
-            countsFrom: effectiveCountsFrom,
-            groupIds,
-            ...(limitChanged ? { limit: limitValue } : {}),
-          },
-        },
-        {
-          onSuccess: (res) => {
-            onSaved(res);
-          },
-        },
-      );
-      return;
-    }
-
-    createEvent.mutate(
+    updateEvent.mutate(
       {
-        name: trimmedName,
-        start,
-        end,
-        countsFrom: effectiveCountsFrom,
-        groupIds,
-        ...(limitValue ? { limit: limitValue } : {}),
+        id: event.id,
+        input: {
+          name: trimmedName,
+          start: effectiveStart,
+          end: hasEnd ? end : null,
+          countsFrom: effectiveCountsFrom,
+          groupIds,
+          ...(limitChanged ? { limit: limitValue } : {}),
+        },
       },
       {
         onSuccess: (res) => {
+          setConfirmClearEndOpen(false);
           onSaved(res);
         },
       },
     );
   };
 
-  const handleConfirmEndEarly = () => {
-    if (!event || updateEvent.isPending) return;
-    updateEvent.mutate(
-      { id: event.id, input: { endNow: true } },
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit || isPending) return;
+
+    if (event) {
+      if (willDropLimit) {
+        setConfirmClearEndOpen(true);
+        return;
+      }
+      submitUpdate();
+      return;
+    }
+
+    const limitValue: EventLimitInput | null =
+      hasEnd && parsedLimit !== null
+        ? { amount: parsedLimit, currency: effectiveCurrency }
+        : null;
+
+    createEvent.mutate(
+      {
+        name: trimmedName,
+        start: effectiveStart,
+        end: hasEnd ? end : null,
+        countsFrom: effectiveCountsFrom,
+        groupIds,
+        ...(limitValue ? { limit: limitValue } : {}),
+      },
       {
         onSuccess: (res) => {
-          setConfirmEndOpen(false);
           onSaved(res);
         },
       },
@@ -359,7 +328,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
       <Sheet
         open={open}
         onClose={onClose}
-        title={isEdit && event ? event.name : t('events.newTrip')}
+        title={isEdit && event ? event.name : t('events.newEvent')}
       >
         <form
           className="fsl-event-form flex flex-col gap-4"
@@ -367,7 +336,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
           noValidate
           onSubmit={handleSubmit}
         >
-          {/* Name + tag suggestions */}
+          {/* Name */}
           <div className="fsl-field flex flex-col gap-1.5">
             <Label htmlFor={nameId} className="text-sm font-semibold text-muted-foreground">
               {t('events.nameLabel')}
@@ -381,21 +350,6 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            {tagSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1" data-testid="event-form-tag-suggestions">
-                {tagSuggestions.map((tg) => (
-                  <button
-                    key={tg.id}
-                    type="button"
-                    data-testid={`event-form-tag-suggestion-${tg.id}`}
-                    onClick={() => setName(tg.name)}
-                    className="min-h-11 px-3 rounded-full bg-muted text-foreground text-sm font-medium border-0 cursor-pointer hover:bg-secondary hover:text-secondary-foreground transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {tg.name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Dates */}
@@ -403,7 +357,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
             <div className="grid grid-cols-2 gap-2.5">
               <div className="flex flex-col gap-1">
                 <Label htmlFor={startId} className="text-sm font-semibold text-muted-foreground">
-                  {t('events.fromLabel')}
+                  {t('events.startLabel')}
                 </Label>
                 <Input
                   id={startId}
@@ -422,15 +376,13 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                     ) {
                       setCountsFrom(nextStart);
                     }
-                    if (overlapError) {
-                      resetMutationsRef.current();
-                    }
                   }}
                 />
+                <p className="m-0 text-xs text-muted-foreground">{t('events.startHint')}</p>
               </div>
               <div className="flex flex-col gap-1">
                 <Label htmlFor={endId} className="text-sm font-semibold text-muted-foreground">
-                  {t('events.toLabel')}
+                  {t('events.endLabel')}
                 </Label>
                 <Input
                   id={endId}
@@ -438,13 +390,9 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                   type="date"
                   className="fsl-input text-base min-h-11 tabular-nums"
                   value={end}
-                  onChange={(e) => {
-                    setEnd(e.target.value);
-                    if (overlapError) {
-                      resetMutationsRef.current();
-                    }
-                  }}
+                  onChange={(e) => setEnd(e.target.value)}
                 />
+                <p className="m-0 text-xs text-muted-foreground">{t('events.endHint')}</p>
               </div>
             </div>
 
@@ -458,50 +406,41 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
               </div>
             )}
 
-            {overlapError && (
-              <div
-                role="alert"
-                data-testid="event-form-overlap"
-                className="text-sm text-danger"
-              >
-                {t('events.overlap', {
-                  name: overlapError.name,
-                  range: formatEventRange(overlapError.start, overlapError.end),
-                })}
-              </div>
-            )}
+            {/* Counts-from quiet line (only when a start date is picked) */}
+            {hasStart && (
+              <>
+                <button
+                  type="button"
+                  data-testid="event-form-counts-from-toggle"
+                  aria-expanded={countsFromOpen}
+                  onClick={() => setCountsFromOpen((v) => !v)}
+                  className="min-h-11 px-1 flex items-center gap-1.5 text-left text-xs text-muted-foreground bg-transparent border-0 cursor-pointer rounded-xl hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span>
+                    {t('events.countsFromLine', {
+                      date: formatDayMonth(effectiveCountsFrom),
+                    })}
+                  </span>
+                  <Icon name="edit" size={14} className="text-primary shrink-0" />
+                </button>
 
-            {/* Counts-from quiet line */}
-            <button
-              type="button"
-              data-testid="event-form-counts-from-toggle"
-              aria-expanded={countsFromOpen}
-              onClick={() => setCountsFromOpen((v) => !v)}
-              className="min-h-11 px-1 flex items-center gap-1.5 text-left text-xs text-muted-foreground bg-transparent border-0 cursor-pointer rounded-xl hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span>
-                {t('events.countsFromLine', {
-                  date: formatDayMonth(effectiveCountsFrom),
-                })}
-              </span>
-              <Icon name="edit" size={14} className="text-primary shrink-0" />
-            </button>
-
-            {countsFromOpen && (
-              <div className="flex flex-col gap-1">
-                <Input
-                  id={countsFromId}
-                  data-testid="event-form-counts-from"
-                  type="date"
-                  max={YMD_RE.test(start) ? start : undefined}
-                  className="fsl-input text-base min-h-11 tabular-nums"
-                  value={effectiveCountsFrom}
-                  onChange={(e) => {
-                    setCountsFrom(e.target.value);
-                    setCountsFromTouched(true);
-                  }}
-                />
-              </div>
+                {countsFromOpen && (
+                  <div className="flex flex-col gap-1">
+                    <Input
+                      id={countsFromId}
+                      data-testid="event-form-counts-from"
+                      type="date"
+                      max={start}
+                      className="fsl-input text-base min-h-11 tabular-nums"
+                      value={effectiveCountsFrom}
+                      onChange={(e) => {
+                        setCountsFrom(e.target.value);
+                        setCountsFromTouched(true);
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -554,85 +493,96 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
             <p className="m-0 text-xs text-muted-foreground">{t('events.groupsHint')}</p>
           </div>
 
-          {/* Limit (optional) */}
-          <div className="fsl-field flex flex-col gap-1.5">
-            <Label htmlFor={limitId} className="text-sm font-semibold text-muted-foreground">
-              {t('events.limitLabel')}
-            </Label>
-            <Input
-              id={limitId}
-              data-testid="event-form-limit"
-              type="text"
-              inputMode="text"
-              autoComplete="off"
-              className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums"
-              aria-describedby={showLimitError ? limitErrorId : undefined}
-              value={limitText}
-              onChange={(e) => {
-                setLimitText(e.target.value);
-                setLimitTouched(true);
-              }}
-            />
-            {trimmedLimit !== '' && parsedLimit !== null && (
-              <div
-                data-testid="event-form-limit-preview"
-                className="text-sm font-semibold tabular-nums text-muted-foreground"
-              >
-                {formatMoney(parsedLimit, effectiveCurrency)}
+          {/* Limit (shown only when an end date is set) */}
+          {hasEnd ? (
+            <>
+              <div className="fsl-field flex flex-col gap-1.5">
+                <Label htmlFor={limitId} className="text-sm font-semibold text-muted-foreground">
+                  {t('events.limitLabel')}
+                </Label>
+                <Input
+                  id={limitId}
+                  data-testid="event-form-limit"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  className="fsl-input fsl-input--amount text-base min-h-11 font-semibold tabular-nums"
+                  aria-describedby={showLimitError ? limitErrorId : undefined}
+                  value={limitText}
+                  onChange={(e) => {
+                    setLimitText(e.target.value);
+                    setLimitTouched(true);
+                  }}
+                />
+                {trimmedLimit !== '' && parsedLimit !== null && (
+                  <div
+                    data-testid="event-form-limit-preview"
+                    className="text-sm font-semibold tabular-nums text-muted-foreground"
+                  >
+                    {formatMoney(parsedLimit, effectiveCurrency)}
+                  </div>
+                )}
+                {showLimitError && (
+                  <div id={limitErrorId} role="alert" className="text-sm text-danger">
+                    {t('expenseForm.amountInvalid')}
+                  </div>
+                )}
               </div>
-            )}
-            {showLimitError && (
-              <div id={limitErrorId} role="alert" className="text-sm text-danger">
-                {t('expenseForm.amountInvalid')}
-              </div>
-            )}
-          </div>
 
-          {showCurrencyPicker && (
-            <div className="fsl-field flex flex-col gap-1.5" data-testid="event-form-currency">
-              <Label className="text-sm font-semibold text-muted-foreground">
-                {t('budgets.formCurrency')}
-              </Label>
-              <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
-                {availableCurrencies.map((code) => {
-                  const info = CURRENCIES[code];
-                  const selected = effectiveCurrency === code;
-                  const cName = lang === 'vi' ? info.nameVi : info.nameEn;
-                  return (
-                    <button
-                      key={code}
-                      type="button"
-                      data-testid={`event-form-currency-${code}`}
-                      aria-pressed={selected}
-                      onClick={() => {
-                        setCurrency(code);
-                        setCurrencyTouched(true);
-                      }}
-                      className={cn(
-                        'w-full min-h-11 px-3.5 py-2.5 flex items-center gap-3 text-left cursor-pointer bg-transparent border-0 hover:bg-muted transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                        selected && 'bg-secondary/40',
-                      )}
-                    >
-                      <CurrencyBadge code={code} size="sm" selected={selected} />
-                      <span className="flex-1 min-w-0 flex flex-col">
-                        <span className="text-sm font-semibold text-foreground truncate">
-                          {cName}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {`${code} · ${info.symbol}`}
-                        </span>
-                      </span>
-                      {selected && (
-                        <Icon name="check" size={18} className="text-primary shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+              {showCurrencyPicker && (
+                <div className="fsl-field flex flex-col gap-1.5" data-testid="event-form-currency">
+                  <Label className="text-sm font-semibold text-muted-foreground">
+                    {t('budgets.formCurrency')}
+                  </Label>
+                  <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+                    {availableCurrencies.map((code) => {
+                      const info = CURRENCIES[code];
+                      const selected = effectiveCurrency === code;
+                      const cName = lang === 'vi' ? info.nameVi : info.nameEn;
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          data-testid={`event-form-currency-${code}`}
+                          aria-pressed={selected}
+                          onClick={() => {
+                            setCurrency(code);
+                            setCurrencyTouched(true);
+                          }}
+                          className={cn(
+                            'w-full min-h-11 px-3.5 py-2.5 flex items-center gap-3 text-left cursor-pointer bg-transparent border-0 hover:bg-muted transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                            selected && 'bg-secondary/40',
+                          )}
+                        >
+                          <CurrencyBadge code={code} size="sm" selected={selected} />
+                          <span className="flex-1 min-w-0 flex flex-col">
+                            <span className="text-sm font-semibold text-foreground truncate">
+                              {cName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {`${code} · ${info.symbol}`}
+                            </span>
+                          </span>
+                          {selected && (
+                            <Icon name="check" size={18} className="text-primary shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p
+              data-testid="event-form-limit-needs-end"
+              className="m-0 text-xs text-muted-foreground"
+            >
+              {t('events.limitNeedsEnd')}
+            </p>
           )}
 
-          {activeError && !overlapError && <InlineError error={activeError} />}
+          {activeError && <InlineError error={activeError} />}
 
           <Button
             type="submit"
@@ -644,19 +594,6 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
           >
             {t('events.save')}
           </Button>
-
-          {isEdit && isCurrentlyOn && (
-            <Button
-              type="button"
-              variant="ghost"
-              block
-              data-testid="event-form-end-early"
-              className="text-danger border border-danger/30 hover:bg-danger-soft/50"
-              onClick={() => setConfirmEndOpen(true)}
-            >
-              {t('events.endEarly')}
-            </Button>
-          )}
 
           {isEdit && (
             <Button
@@ -680,13 +617,14 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
         onChange={setGroupIds}
       />
 
-      {isEdit && isCurrentlyOn && (
+      {isEdit && (
         <Modal
-          open={confirmEndOpen}
-          onClose={() => setConfirmEndOpen(false)}
-          title={t('events.endEarly')}
+          open={confirmClearEndOpen}
+          onClose={() => setConfirmClearEndOpen(false)}
+          title={t('events.save')}
         >
-          <div className="flex flex-col gap-4" data-testid="event-end-early-confirm">
+          <div className="flex flex-col gap-4" data-testid="event-clear-end-confirm">
+            <p className="m-0 text-sm text-foreground">{t('events.clearEndConfirm')}</p>
             {updateEvent.error && <InlineError error={updateEvent.error} />}
             <div className="flex flex-col gap-2">
               <Button
@@ -694,17 +632,17 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                 variant="danger"
                 block
                 loading={updateEvent.isPending}
-                data-testid="event-form-end-early-confirm"
-                onClick={handleConfirmEndEarly}
+                data-testid="event-form-clear-end-confirm"
+                onClick={submitUpdate}
               >
-                {t('events.endEarly')}
+                {t('events.save')}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 block
                 disabled={updateEvent.isPending}
-                onClick={() => setConfirmEndOpen(false)}
+                onClick={() => setConfirmClearEndOpen(false)}
               >
                 {t('common.cancel')}
               </Button>

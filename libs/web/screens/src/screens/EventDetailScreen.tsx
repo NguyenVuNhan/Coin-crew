@@ -2,8 +2,9 @@ import { useMemo, useState, type JSX } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   CURRENCIES,
-  formatMoney,
+  eventDayIndex,
   eventState,
+  formatMoney,
   type CurrencyCode,
   type EventExisting,
   type EventSavedResponse,
@@ -13,12 +14,19 @@ import { todayLocal } from '@cc/web-util/localDate';
 import { useBudgets } from '@cc/web-data-access/budgets';
 import { useMyGroups } from '@cc/web-data-access/groups';
 import { useCategories } from '@cc/web-data-access/personalMoney';
-import { useEvents, useEventSummary } from '@cc/web-data-access/events';
+import {
+  useEvents,
+  useEventSummary,
+  useResumeEvent,
+  useStartEventNow,
+  useStopEvent,
+} from '@cc/web-data-access/events';
 import { Amount } from '@cc/web-ui/components/Amount';
 import { Button } from '@cc/web-ui/components/Button';
 import { EmptyState } from '@cc/web-ui/components/EmptyState';
 import { Icon } from '@cc/web-ui/components/icons';
 import { InlineError } from '@cc/web-ui/components/InlineError';
+import { Modal } from '@cc/web-ui/components/Modal';
 import { Pill } from '@cc/web-ui/components/Pill';
 import { SkeletonList } from '@cc/web-ui/components/Skeleton';
 import { cn } from '@cc/web-ui/lib/utils';
@@ -28,6 +36,7 @@ import { BudgetBar } from '../components/budgets/BudgetBar';
 import { formatDayMonth } from '../components/budgets/budgetLabels';
 import { EventExistingSheet } from '../components/events/EventExistingSheet';
 import { formatEventRange, EventForm } from '../components/events/EventForm';
+import { buildTagReportUrl } from '../components/reports/reportUrl';
 
 const STATE_PILL_TONE = {
   on: 'accent',
@@ -35,20 +44,26 @@ const STATE_PILL_TONE = {
   done: 'neutral',
 } as const;
 
-/** Trip detail screen: summary card, optional budget bar, category & day breakdowns, and transaction link. */
+/** Event detail screen: summary card, lifecycle actions, optional budget bar, category & day breakdowns, and report/transaction links. */
 export function EventDetailScreen(): JSX.Element {
   const { id } = useParams<{ id: string }>();
-  const tripId = id ?? '';
+  const eventId = id ?? '';
   const t = useT();
   const today = todayLocal();
 
-  const eventsQuery = useEvents({ enabled: Boolean(tripId) });
-  const { event, summary, progress, isPending, error } = useEventSummary(tripId);
+  const eventsQuery = useEvents({ enabled: Boolean(eventId) });
+  const { event, summary, progress, isPending, error } = useEventSummary(eventId);
   const budgetsQuery = useBudgets({ enabled: Boolean(event?.budgetId) });
   const categoriesQuery = useCategories();
   const groupsQuery = useMyGroups({ enabled: Boolean(event && event.groupIds.length > 0) });
 
+  const stopEvent = useStopEvent();
+  const resumeEvent = useResumeEvent();
+  const startEventNow = useStartEventNow();
+
   const [formOpen, setFormOpen] = useState(false);
+  const [confirmStopOpen, setConfirmStopOpen] = useState(false);
+  const [confirmResumeOpen, setConfirmResumeOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode | null>(null);
   const [pendingExisting, setPendingExisting] = useState<{
     eventId: string;
@@ -95,6 +110,13 @@ export function EventDetailScreen(): JSX.Element {
   };
 
   const state = event ? eventState(event, today) : null;
+  const dayInfo = event ? eventDayIndex(event, today) : null;
+  const dayLabel = dayInfo
+    ? dayInfo.of !== null
+      ? t('events.bookDayOf', { day: dayInfo.day, of: dayInfo.of })
+      : t('events.bookDayOpen', { day: dayInfo.day })
+    : null;
+  const canResume = Boolean(event && state === 'done' && event.stoppedAt !== null);
 
   const groupLabel = useMemo(() => {
     if (!event) return '';
@@ -105,9 +127,15 @@ export function EventDetailScreen(): JSX.Element {
     return names.join(', ');
   }, [event, groupNameById, t]);
 
-  const txHref = event
-    ? `/transactions?tagId=${encodeURIComponent(event.tagId)}&from=${encodeURIComponent(event.countsFrom)}&to=${encodeURIComponent(event.end)}`
-    : '/transactions';
+  const txHref =
+    event && event.tagId
+      ? `/transactions?tagId=${encodeURIComponent(event.tagId)}&from=${encodeURIComponent(event.countsFrom)}&to=${encodeURIComponent(event.end ?? today)}`
+      : '/transactions';
+
+  const reportHref =
+    event && event.tagId
+      ? buildTagReportUrl(event.tagId, event.countsFrom, event.end ?? today)
+      : null;
 
   const usedPct =
     progress && progress.limit > 0
@@ -117,6 +145,34 @@ export function EventDetailScreen(): JSX.Element {
     progress && state === 'on' ? Math.round(progress.elapsed * 100) : undefined;
   const isOver = Boolean(progress && progress.spent > progress.limit);
   const budgetDiff = progress ? Math.abs(progress.limit - progress.spent) : 0;
+
+  const handleConfirmStop = () => {
+    if (!event || stopEvent.isPending) return;
+    stopEvent.mutate(event.id, {
+      onSuccess: () => {
+        setConfirmStopOpen(false);
+      },
+    });
+  };
+
+  const handleConfirmResume = () => {
+    if (!event || resumeEvent.isPending) return;
+    resumeEvent.mutate(event.id, {
+      onSuccess: (res) => {
+        setConfirmResumeOpen(false);
+        handleSaved(res);
+      },
+    });
+  };
+
+  const handleStartNow = () => {
+    if (!event || startEventNow.isPending) return;
+    startEventNow.mutate(event.id, {
+      onSuccess: (res) => {
+        handleSaved(res);
+      },
+    });
+  };
 
   return (
     <Screen
@@ -146,7 +202,7 @@ export function EventDetailScreen(): JSX.Element {
         ) : !event || !state ? (
           <div data-testid="event-not-found">
             <EmptyState
-              icon="plane"
+              icon="calendar"
               title={t('events.notFound')}
               body={t('events.notFoundBody')}
               action={
@@ -158,16 +214,30 @@ export function EventDetailScreen(): JSX.Element {
           </div>
         ) : (
           <>
-            {/* Meta line: dates · groups · state pill */}
+            {/* Meta line: dates · day · groups · #tagName · state pill */}
             <div
               data-testid="event-meta-line"
               className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground px-1"
             >
               <span>{formatEventRange(event.start, event.end)}</span>
+              {dayLabel && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span data-testid="event-day-line" className="tabular-nums">
+                    {dayLabel}
+                  </span>
+                </>
+              )}
               {groupLabel && (
                 <>
                   <span aria-hidden="true">·</span>
                   <span>{groupLabel}</span>
+                </>
+              )}
+              {event.tagName && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span data-testid="event-tag-name">{`#${event.tagName}`}</span>
                 </>
               )}
               <Pill tone={STATE_PILL_TONE[state]} data-testid="event-state-pill">
@@ -175,22 +245,91 @@ export function EventDetailScreen(): JSX.Element {
               </Pill>
             </div>
 
+            {/* Lifecycle actions + report link */}
+            {(state === 'on' || canResume || state === 'upcoming' || reportHref !== null) && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {state === 'on' && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      data-testid="event-stop-button"
+                      onClick={() => {
+                        stopEvent.reset();
+                        setConfirmStopOpen(true);
+                      }}
+                    >
+                      {t('events.stop')}
+                    </Button>
+                  )}
+                  {canResume && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      data-testid="event-resume-button"
+                      onClick={() => {
+                        resumeEvent.reset();
+                        setConfirmResumeOpen(true);
+                      }}
+                    >
+                      {t('events.resume')}
+                    </Button>
+                  )}
+                  {state === 'upcoming' && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      loading={startEventNow.isPending}
+                      data-testid="event-start-now-button"
+                      onClick={handleStartNow}
+                    >
+                      {t('events.startNow')}
+                    </Button>
+                  )}
+                </div>
+
+                {reportHref !== null && (
+                  <Link
+                    to={reportHref}
+                    data-testid="event-view-report"
+                    className="min-h-11 px-3 inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none no-underline"
+                  >
+                    <Icon name="pie-chart" size={16} />
+                    <span>{t('events.viewReport')}</span>
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {startEventNow.error && <InlineError error={startEventNow.error} />}
+
             {isPending && !summary ? (
               <SkeletonList rows={3} />
             ) : error && !summary ? (
               <InlineError error={error} onRetry={() => eventsQuery.refetch()} />
             ) : totalCount === 0 || !activeSummary ? (
-              <div data-testid="event-empty">
-                <EmptyState
-                  icon="plane"
-                  title={t('events.empty')}
-                  action={
-                    <Button variant="secondary" block href="/entries/new">
-                      {`+ ${t('events.addExpense')}`}
-                    </Button>
-                  }
-                />
-              </div>
+              <>
+                <div
+                  data-testid="event-summary-card"
+                  className="rounded-xl bg-card border border-border p-5 flex flex-col gap-1"
+                >
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {t('events.total')}
+                  </span>
+                  <Amount value={0} currency={budgetCurrency} size="xl" />
+                </div>
+                <div data-testid="event-empty">
+                  <EmptyState
+                    icon="calendar"
+                    title={t('events.empty')}
+                    action={
+                      <Button variant="secondary" block href="/entries/new">
+                        {`+ ${t('events.addExpense')}`}
+                      </Button>
+                    }
+                  />
+                </div>
+              </>
             ) : (
               <>
                 {/* Summary card */}
@@ -411,6 +550,81 @@ export function EventDetailScreen(): JSX.Element {
           event={event}
           onSaved={handleSaved}
         />
+      )}
+
+      {event && state === 'on' && (
+        <Modal
+          open={confirmStopOpen}
+          onClose={() => setConfirmStopOpen(false)}
+          title={t('events.stop')}
+        >
+          <div className="flex flex-col gap-4" data-testid="event-stop-confirm-modal">
+            <p className="m-0 text-sm text-foreground">
+              {t('events.stopConfirm', { name: event.name })}
+            </p>
+            {stopEvent.error && <InlineError error={stopEvent.error} />}
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="danger"
+                block
+                loading={stopEvent.isPending}
+                data-testid="event-stop-confirm"
+                onClick={handleConfirmStop}
+              >
+                {t('events.stop')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                block
+                disabled={stopEvent.isPending}
+                onClick={() => setConfirmStopOpen(false)}
+              >
+                {t('common.cancel')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {event && canResume && (
+        <Modal
+          open={confirmResumeOpen}
+          onClose={() => setConfirmResumeOpen(false)}
+          title={t('events.resume')}
+        >
+          <div className="flex flex-col gap-4" data-testid="event-resume-confirm-modal">
+            <p className="m-0 text-sm text-foreground">
+              {t('events.resumeConfirm', { name: event.name })}
+            </p>
+            {event.budgetId !== null && (
+              <p className="m-0 text-sm text-muted-foreground">{t('events.resumeDropsLimit')}</p>
+            )}
+            {resumeEvent.error && <InlineError error={resumeEvent.error} />}
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="primary"
+                block
+                loading={resumeEvent.isPending}
+                data-testid="event-resume-confirm"
+                onClick={handleConfirmResume}
+              >
+                {t('events.resume')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                block
+                disabled={resumeEvent.isPending}
+                onClick={() => setConfirmResumeOpen(false)}
+              >
+                {t('common.cancel')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       <EventExistingSheet

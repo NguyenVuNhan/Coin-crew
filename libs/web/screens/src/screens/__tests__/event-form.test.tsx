@@ -129,7 +129,7 @@ function renderVi(route = '/events') {
 }
 
 describe('EventForm', () => {
-  it('form requires name and dates', async () => {
+  it('form requires name, allows optional dates, and rejects end before start', async () => {
     const user = userEvent.setup();
     stubApis();
     renderVi('/events');
@@ -140,72 +140,34 @@ describe('EventForm', () => {
 
     const submit = screen.getByTestId('event-form-submit');
     expect(submit).toBeDisabled();
+    // No tag suggestions picker
+    expect(screen.queryByTestId('event-form-tag-suggestions')).not.toBeInTheDocument();
+    // Counts-from line hidden until start date is picked
+    expect(screen.queryByTestId('event-form-counts-from-toggle')).not.toBeInTheDocument();
 
-    // Fill name only -> still disabled
+    // Fill name only -> enabled (start defaults to today, end is optional)
     const nameInput = screen.getByTestId('event-form-name');
     expect(nameInput).toHaveClass('text-base');
     await user.type(nameInput, 'Đà Lạt');
-    expect(submit).toBeDisabled();
+    expect(submit).not.toBeDisabled();
 
-    // Fill start only -> still disabled
+    // Fill start -> counts-from line appears
     const startInput = screen.getByTestId('event-form-start');
     const endInput = screen.getByTestId('event-form-end');
     expect(startInput).toHaveClass('text-base');
     expect(endInput).toHaveClass('text-base');
     fireEvent.change(startInput, { target: { value: '2026-11-12' } });
-    expect(submit).toBeDisabled();
+    expect(screen.getByTestId('event-form-counts-from-toggle')).toBeInTheDocument();
+    expect(submit).not.toBeDisabled();
 
-    // End before start -> still disabled
+    // End before start -> disabled and shows range error
     fireEvent.change(endInput, { target: { value: '2026-11-10' } });
     expect(submit).toBeDisabled();
+    expect(screen.getByTestId('event-form-range-error')).toBeInTheDocument();
 
     // Valid end -> enabled
     fireEvent.change(endInput, { target: { value: '2026-11-14' } });
     expect(submit).not.toBeDisabled();
-  });
-
-  it('overlap error shows under the dates and keeps the sheet open', async () => {
-    const user = userEvent.setup();
-    stubApis({
-      extraRoutes: {
-        'POST /api/me/personal/events': () =>
-          Response.json(
-            {
-              error: {
-                code: 'EVENT_OVERLAP',
-                message: 'Trip dates overlap another trip',
-                details: {
-                  eventId: 'tr-hue',
-                  name: 'Huế',
-                  start: '2026-12-20',
-                  end: '2026-12-23',
-                },
-              },
-            },
-            { status: 409 },
-          ),
-      },
-    });
-
-    renderVi('/events');
-    await user.click(await screen.findByTestId('events-empty-add'));
-    await screen.findByTestId('event-form');
-
-    await user.type(screen.getByTestId('event-form-name'), 'Đà Lạt');
-    fireEvent.change(screen.getByTestId('event-form-start'), { target: { value: '2026-12-21' } });
-    fireEvent.change(screen.getByTestId('event-form-end'), { target: { value: '2026-12-25' } });
-    await user.click(screen.getByTestId('event-form-submit'));
-
-    const overlap = await screen.findByTestId('event-form-overlap');
-    expect(overlap).toHaveTextContent(/Huế/);
-    expect(overlap).toHaveTextContent(/20–23\/12/);
-    // Sheet stays open
-    expect(screen.getByTestId('event-form')).toBeInTheDocument();
-
-    // Changing start or end clears the overlap error
-    fireEvent.change(screen.getByTestId('event-form-start'), { target: { value: '2026-12-26' } });
-    fireEvent.change(screen.getByTestId('event-form-end'), { target: { value: '2026-12-28' } });
-    expect(screen.queryByTestId('event-form-overlap')).not.toBeInTheDocument();
   });
 
   it('existing sheet appears only when there is something to tag and sends tag:true / tag:false', async () => {
@@ -214,9 +176,11 @@ describe('EventForm', () => {
       event: {
         id: 'tr-new-1',
         tagId: 'tag-dl',
+        tagName: 'dalat-121126-141126',
         name: 'Đà Lạt',
         start: '2026-11-12',
         end: '2026-11-14',
+        stoppedAt: null,
         countsFrom: '2026-11-05',
         groupIds: [],
         budgetId: null,
@@ -353,34 +317,25 @@ describe('EventForm', () => {
     expect(removeBtn).toHaveClass('min-h-11', 'min-w-11');
   });
 
-  it('edit mode shows end-early only while on and confirms delete via Modal', async () => {
+  it('edit mode confirms delete via Modal', async () => {
     const user = userEvent.setup();
-    const onTrip: EventView = {
-      id: 'tr-on',
+    const upcomingEvent: EventView = {
+      id: 'tr-up',
       tagId: 'tag-dl',
+      tagName: 'dalat-121126-141126',
       name: 'Đà Lạt',
-      start: '2026-11-04',
-      end: '2026-11-08',
+      start: '2026-11-12',
+      end: '2026-11-14',
+      stoppedAt: null,
       countsFrom: '2026-11-01',
       groupIds: [],
       budgetId: null,
       createdAt: '2026-11-01T00:00:00.000Z',
     };
-    const upcomingTrip: EventView = {
-      ...onTrip,
-      id: 'tr-up',
-      start: '2026-11-12',
-      end: '2026-11-14',
-    };
 
     const api = stubApis({
-      events: [onTrip, upcomingTrip],
+      events: [upcomingEvent],
       extraRoutes: {
-        'PATCH /api/me/personal/events/tr-on': () =>
-          Response.json({
-            event: { ...onTrip, end: '2026-11-05' },
-            existing: { own: { count: 0, totals: [] }, shares: { count: 0, total: 0 } },
-          }),
         'DELETE /api/me/personal/events/tr-up': () => new Response(null, { status: 204 }),
       },
     });
@@ -388,31 +343,8 @@ describe('EventForm', () => {
     const onSaved = vi.fn();
     const onClose = vi.fn();
 
-    const first = renderAt(
-      <EventForm open onClose={onClose} event={onTrip} onSaved={onSaved} />,
-      { route: '/events/tr-on', path: '*' },
-    );
-    act(() => {
-      setLang('vi', false);
-    });
-
-    // Ongoing trip has both "Kết thúc sớm" and "Xóa chuyến đi"
-    const endEarlyBtn = await screen.findByTestId('event-form-end-early');
-    await user.click(endEarlyBtn);
-    await user.click(await screen.findByTestId('event-form-end-early-confirm'));
-
-    await waitFor(() => {
-      const patchCall = api.calls.find(
-        (c) => c.method === 'PATCH' && c.path === '/api/me/personal/events/tr-on',
-      );
-      expect(patchCall?.body).toEqual({ endNow: true, today: '2026-11-05' });
-    });
-    expect(onSaved).toHaveBeenCalledTimes(1);
-    first.unmount();
-
-    // Upcoming trip has no "Kết thúc sớm", only "Xóa chuyến đi"
     renderAt(
-      <EventForm open onClose={onClose} event={upcomingTrip} onSaved={onSaved} />,
+      <EventForm open onClose={onClose} event={upcomingEvent} onSaved={onSaved} />,
       { route: '/events/tr-up', path: '*' },
     );
     act(() => {
@@ -420,7 +352,6 @@ describe('EventForm', () => {
     });
 
     await screen.findByTestId('event-form');
-    expect(screen.queryByTestId('event-form-end-early')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('event-form-delete'));
     await user.click(await screen.findByTestId('event-form-delete-confirm'));
 
@@ -436,9 +367,11 @@ describe('EventForm', () => {
     const tripWithBudget: EventView = {
       id: 'tr-b',
       tagId: 'tag-dl',
+      tagName: 'dalat-121126-141126',
       name: 'Đà Lạt',
       start: '2026-11-12',
       end: '2026-11-14',
+      stoppedAt: null,
       countsFrom: '2026-11-05',
       groupIds: [],
       budgetId: 'b-dl',

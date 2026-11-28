@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { PieChart } from 'lucide-react';
 import {
   filterReportTags,
   formatMoney,
@@ -11,6 +10,7 @@ import {
 } from '@cc/core';
 import { useT } from '@cc/web-i18n';
 import { todayLocal } from '@cc/web-util/localDate';
+import { Icon } from '@cc/web-ui/components/icons';
 import { Card } from '@cc/web-ui/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@cc/web-ui/components/ui/tabs';
 import { Input } from '@cc/web-ui/components/ui/input';
@@ -135,11 +135,11 @@ export function TagBarsCard({
               </Link>
               <Link
                 to={buildTagReportUrl(item.tagId, firstDates?.[item.tagId] ?? period.from, today)}
-                aria-label={t('reports.tagReportAria' as Parameters<typeof t>[0])}
+                aria-label={t('reports.tagReportAria', { tag: item.name })}
                 data-testid="tag-report-link"
                 className="inline-flex items-center justify-center min-h-11 min-w-11 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none"
               >
-                <PieChart className="size-4" aria-hidden="true" />
+                <Icon name="pie-chart" size={16} />
               </Link>
             </div>
           ))}

@@ -201,7 +201,9 @@ export function EventsScreen(): JSX.Element {
     }
 
     upcoming.sort((a, b) => a.event.start.localeCompare(b.event.start));
-    done.sort((a, b) => b.event.end.localeCompare(a.event.end));
+    done.sort((a, b) =>
+      (b.event.end ?? b.event.start).localeCompare(a.event.end ?? a.event.start),
+    );
 
     return { on, upcoming, done };
   }, [events, today, progressByBudgetId, budgetDefById]);
@@ -243,7 +245,7 @@ export function EventsScreen(): JSX.Element {
             data-testid="events-new-button"
             onClick={() => setFormOpen(true)}
           >
-            {`+ ${t('events.newTrip')}`}
+            {`+ ${t('events.newEvent')}`}
           </Button>
         ) : undefined
       }
@@ -255,7 +257,7 @@ export function EventsScreen(): JSX.Element {
           <InlineError error={error} onRetry={() => eventsQuery.refetch()} />
         ) : events.length === 0 ? (
           <EmptyState
-            icon="plane"
+            icon="calendar"
             title={t('events.listTitle')}
             body={t('events.empty')}
             action={
@@ -266,7 +268,7 @@ export function EventsScreen(): JSX.Element {
                 data-testid="events-empty-add"
                 onClick={() => setFormOpen(true)}
               >
-                {`+ ${t('events.newTrip')}`}
+                {`+ ${t('events.newEvent')}`}
               </Button>
             }
           />
