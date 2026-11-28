@@ -135,6 +135,63 @@ export function useDeleteEvent(): UseMutationResult<void, ApiClientError, string
   });
 }
 
+/** Stops a running event as of today. */
+export function useStopEvent(): UseMutationResult<
+  { event: EventView },
+  ApiClientError,
+  string
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ event: EventView }, ApiClientError, string>({
+    mutationFn: (id) =>
+      apiSend<{ event: EventView }>(
+        `/api/me/personal/events/${encodeURIComponent(id)}/stop`,
+        'POST',
+        { today: todayLocal() },
+      ),
+    onSuccess: () => invalidateEventData(queryClient),
+  });
+}
+
+/** Resumes a stopped event as of today. */
+export function useResumeEvent(): UseMutationResult<
+  EventSavedResponse,
+  ApiClientError,
+  string
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation<EventSavedResponse, ApiClientError, string>({
+    mutationFn: (id) =>
+      apiSend<EventSavedResponse>(
+        `/api/me/personal/events/${encodeURIComponent(id)}/resume`,
+        'POST',
+        { today: todayLocal() },
+      ),
+    onSuccess: () => invalidateEventData(queryClient),
+  });
+}
+
+/** Starts an upcoming event immediately as of today. */
+export function useStartEventNow(): UseMutationResult<
+  EventSavedResponse,
+  ApiClientError,
+  string
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation<EventSavedResponse, ApiClientError, string>({
+    mutationFn: (id) =>
+      apiSend<EventSavedResponse>(
+        `/api/me/personal/events/${encodeURIComponent(id)}/start-now`,
+        'POST',
+        { today: todayLocal() },
+      ),
+    onSuccess: () => invalidateEventData(queryClient),
+  });
+}
+
 /** Applies or skips tagging existing matching expenses and group shares for a trip. */
 export function useApplyEventExisting(): UseMutationResult<
   { tagged: number },
@@ -225,7 +282,8 @@ export function useEventSummary(id: string): {
     allowServerFallback: true,
   });
 
-  const eventRowsEnabled = enabled && source === 'server' && Boolean(event);
+  const eventRowsEnabled =
+    enabled && source === 'server' && Boolean(event) && event?.tagId !== null;
   const eventRowsQuery = useQuery<EventRowsResponse, ApiClientError>({
     queryKey: [...PERSONAL_EVENTS_KEY, id, 'rows'],
     queryFn: () =>
@@ -238,7 +296,11 @@ export function useEventSummary(id: string): {
   let rowsPending: boolean;
   let rowsError: ApiClientError | null;
 
-  if (source === 'copy') {
+  if (event && event.tagId === null) {
+    rows = EMPTY_ROWS;
+    rowsPending = false;
+    rowsError = null;
+  } else if (source === 'copy') {
     rows = sourceRows;
     rowsPending = sourcePending;
     rowsError = sourceError;

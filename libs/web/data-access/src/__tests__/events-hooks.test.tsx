@@ -247,9 +247,11 @@ describe('events hooks', () => {
     const createdEvent: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
+      tagName: 'Đà Lạt',
       name: 'Đà Lạt',
       start: today,
       end: today,
+      stoppedAt: null,
       countsFrom: today,
       groupIds: [],
       budgetId: null,
@@ -310,9 +312,11 @@ describe('events hooks', () => {
     const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
+      tagName: 'Đà Lạt',
       name: 'Đà Lạt',
       start: today,
       end: today,
+      stoppedAt: null,
       countsFrom: today,
       groupIds: ['trip-1'],
       budgetId: null,
@@ -376,9 +380,11 @@ describe('events hooks', () => {
     const trip: EventView = {
       id: 'tr-1',
       tagId: 't-dalat',
+      tagName: 'Đà Lạt',
       name: 'Đà Lạt',
       start: today,
       end: today,
+      stoppedAt: null,
       countsFrom: today,
       groupIds: ['trip-1'],
       budgetId: null,
@@ -424,6 +430,53 @@ describe('events hooks', () => {
     expect(result.current.summary!.currencies[0]!.total).toBe(250_000);
     expect(result.current.summary!.currencies[0]!.own).toBe(150_000);
     expect(result.current.summary!.currencies[0]!.group).toBe(100_000);
+
+    unmount();
+  });
+
+  it('useEventSummary with a null tagId returns zero totals and no error', async () => {
+    const today = todayLocal();
+    const untaggedEvent: EventView = {
+      id: 'ev-null-tag',
+      tagId: null,
+      tagName: null,
+      name: 'No Tag Event',
+      start: today,
+      end: null,
+      stoppedAt: null,
+      countsFrom: today,
+      groupIds: [],
+      budgetId: null,
+      createdAt: '2026-11-27T00:00:00.000Z',
+    };
+
+    await seedLocalCopy(
+      [makeEntry('e-1', { amount: 150_000, date: today, tagIds: ['t-dalat'] })],
+      [],
+    );
+
+    mockFetch(
+      baseRoutes({
+        'GET /api/me/personal/events': { events: [untaggedEvent] } satisfies EventsResponse,
+      }),
+    );
+
+    const queryClient = makeQueryClient();
+    const { result, unmount } = renderHook(() => useEventSummary('ev-null-tag'), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.summary).not.toBeNull();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.summary).toEqual({
+      currencies: [],
+      approxVnd: null,
+      rowIds: [],
+    });
 
     unmount();
   });
