@@ -243,4 +243,30 @@ describe('tag report URL and UI', () => {
       '/reports?mode=custom&from=2026-11-01&to=2026-11-28&tagId=t-food',
     );
   });
+
+  it('unknown tag id shows the chip without a skeleton after tags load', async () => {
+    mockApi({
+      'GET /api/me': meOn,
+      'GET /api/me/personal/wallets': { wallets: [] },
+      'GET /api/me/personal/tags': {
+        tags: [{ id: 't-house', name: 'Mua nhà', useCount: 1 }],
+      },
+      'GET /api/me/personal/report': () =>
+        makeEmptyReport({
+          countedCount: 0,
+          tags: { expense: [], income: [], hasMultiTagOverlap: false },
+        }),
+    });
+
+    renderAt(<App />, {
+      route: '/reports?mode=custom&from=2026-09-01&to=2026-11-28&tagId=t-missing',
+    });
+
+    const pill = await screen.findByTestId('reports-tag-filter-pill');
+    await waitFor(() => {
+      expect(pill).toHaveTextContent('#?');
+    });
+    expect(pill.querySelector('.fsl-skeleton')).toBeNull();
+    expect(pill.textContent).not.toContain('t-missing');
+  });
 });

@@ -489,4 +489,61 @@ describe('Event lifecycle & optional dates', () => {
     expect(screen.queryByTestId('event-view-report')).not.toBeInTheDocument();
     expect(screen.queryByTestId('event-tag-name')).not.toBeInTheDocument();
   });
+
+  it('editing a stopped event saves without sending end', async () => {
+    const user = userEvent.setup();
+    const stoppedEvent: EventView = {
+      id: 'ev-stop',
+      tagId: 'tag-stop',
+      tagName: 'dalat-101126-111126',
+      name: 'Đà Lạt',
+      start: '2026-11-10',
+      end: '2026-11-11',
+      stoppedAt: '2026-11-11T12:00:00.000Z',
+      countsFrom: '2026-11-10',
+      groupIds: [],
+      budgetId: null,
+      createdAt: '2026-11-10T00:00:00.000Z',
+    };
+
+    const api = stubApis({
+      events: [stoppedEvent],
+      extraRoutes: {
+        'PATCH /api/me/personal/events/ev-stop': () =>
+          Response.json({
+            event: { ...stoppedEvent, name: 'Đà Lạt 2' },
+            existing: { own: { count: 0, totals: [] }, shares: { count: 0, total: 0 } },
+          }),
+      },
+    });
+
+    const onSaved = vi.fn();
+    renderAt(<EventForm open onClose={vi.fn()} event={stoppedEvent} onSaved={onSaved} />, {
+      route: '/events/ev-stop',
+      path: '*',
+    });
+    act(() => {
+      setLang('vi', false);
+    });
+
+    const endInput = await screen.findByTestId('event-form-end');
+    expect(endInput).toBeDisabled();
+    expect(endInput).toHaveValue('2026-11-11');
+
+    const nameInput = screen.getByTestId('event-form-name');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Đà Lạt 2');
+    await user.click(screen.getByTestId('event-form-submit'));
+
+    await waitFor(() => {
+      expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+
+    const patchCall = api.calls.find(
+      (c) => c.method === 'PATCH' && c.path === '/api/me/personal/events/ev-stop',
+    );
+    expect(patchCall).toBeDefined();
+    expect(patchCall?.body).not.toHaveProperty('end');
+    expect(patchCall?.body).toMatchObject({ name: 'Đà Lạt 2' });
+  });
 });

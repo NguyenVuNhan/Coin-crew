@@ -80,8 +80,10 @@ export function ReportsScreen(): JSX.Element {
             >
               {activeTagName ? (
                 <span>#{activeTagName}</span>
-              ) : (
+              ) : tagsQuery.isPending ? (
                 <Skeleton width={64} height={14} radius="sm" />
+              ) : (
+                <span className="text-muted-foreground">#?</span>
               )}
               <button
                 type="button"

@@ -243,6 +243,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
 
   const isPending = createEvent.isPending || updateEvent.isPending;
   const activeError = isEdit ? updateEvent.error : createEvent.error;
+  const isStopped = Boolean(isEdit && event && event.stoppedAt !== null);
 
   const willDropLimit = Boolean(
     isEdit && event && event.budgetId !== null && event.end !== null && !hasEnd,
@@ -262,7 +263,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
         input: {
           name: trimmedName,
           start: effectiveStart,
-          end: hasEnd ? end : null,
+          ...(isStopped ? {} : { end: hasEnd ? end : null }),
           countsFrom: effectiveCountsFrom,
           groupIds,
           ...(limitChanged ? { limit: limitValue } : {}),
@@ -388,6 +389,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                   id={endId}
                   data-testid="event-form-end"
                   type="date"
+                  disabled={isStopped}
                   className="fsl-input text-base min-h-11 tabular-nums"
                   value={end}
                   onChange={(e) => setEnd(e.target.value)}
@@ -621,7 +623,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
         <Modal
           open={confirmClearEndOpen}
           onClose={() => setConfirmClearEndOpen(false)}
-          title={t('events.save')}
+          title={event?.name ?? ''}
         >
           <div className="flex flex-col gap-4" data-testid="event-clear-end-confirm">
             <p className="m-0 text-sm text-foreground">{t('events.clearEndConfirm')}</p>
@@ -635,7 +637,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                 data-testid="event-form-clear-end-confirm"
                 onClick={submitUpdate}
               >
-                {t('events.save')}
+                {t('common.continue')}
               </Button>
               <Button
                 type="button"
