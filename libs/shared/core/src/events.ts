@@ -1,14 +1,16 @@
 import type { CategoryView, WalletDetailView } from './api-types';
 import type { CurrencyCode } from './currency';
+import { foldForSearch } from './listFilter';
 import type { CountedSpendRow } from './reports';
 import { categoryRoot } from './visibility';
 
 export interface EventDef {
   id: string;
-  tagId: string;
+  tagId: string | null;
   name: string;
-  start: string;
-  end: string;
+  start: string;            // YYYY-MM-DD, always set
+  end: string | null;       // null = runs until stopped
+  stoppedAt: string | null; // ISO timestamp when Dừng was tapped
   countsFrom: string;
   groupIds: string[];
   budgetId: string | null;
@@ -31,72 +33,105 @@ function diffDaysUtc(from: string, to: string): number {
   return Math.round((t2 - t1) / 86400000);
 }
 
-function pickEarliestStart(matches: EventDef[]): EventDef | null {
-  if (matches.length === 0) return null;
-  let best = matches[0]!;
-  for (let i = 1; i < matches.length; i++) {
-    const candidate = matches[i]!;
-    if (candidate.start < best.start) {
-      best = candidate;
-    }
-  }
-  return best;
+function formatYmdUtc(dt: Date): string {
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(dt.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
-/** Returns whether a trip is upcoming, currently on, or done for the given local YYYY-MM-DD date. */
-export function eventState(t: EventDef, today: string): EventState {
-  if (today < t.start) return 'upcoming';
-  if (today <= t.end) return 'on';
+function formatDdmmyy(ymd: string): string {
+  const [y = '', m = '', d = ''] = ymd.split('-');
+  return `${d}${m}${y.slice(-2)}`;
+}
+
+/** Returns whether an event is upcoming, currently on, or done for the given local YYYY-MM-DD date. */
+export function eventState(e: EventDef, today: string): EventState {
+  if (e.stoppedAt !== null) return 'done';
+  if (today < e.start) return 'upcoming';
+  if (e.end === null || today <= e.end) return 'on';
   return 'done';
 }
 
 /**
- * Matches a trip for a given date: 'on' when start <= date <= end, otherwise 'leadup'
- * when countsFrom <= date < start (picking the earliest start among matching lead-ups).
+ * Returns the last YYYY-MM-DD date that auto-tags for `e`, or `null` when open-ended.
+ * If `stoppedAt` is set, takes the smaller of `end` and the day before `stoppedAt`'s local date.
  */
-export function eventForDate(events: EventDef[], date: string): EventMatch | null {
-  const onMatches = events.filter((t) => t.start <= date && date <= t.end);
-  const on = pickEarliestStart(onMatches);
-  if (on) return { event: on, mode: 'on' };
-
-  const leadupMatches = events.filter((t) => t.countsFrom <= date && date < t.start);
-  const leadup = pickEarliestStart(leadupMatches);
-  if (leadup) return { event: leadup, mode: 'leadup' };
-
-  return null;
+export function eventMatchEnd(e: EventDef): string | null {
+  if (e.stoppedAt !== null) {
+    const stopped = new Date(e.stoppedAt);
+    const dayBeforeStop = formatYmdUtc(
+      new Date(Date.UTC(stopped.getFullYear(), stopped.getMonth(), stopped.getDate() - 1)),
+    );
+    if (e.end === null) return dayBeforeStop;
+    return dayBeforeStop < e.end ? dayBeforeStop : e.end;
+  }
+  return e.end;
 }
 
 /**
- * Matches a trip for a CoinCrew share: only trips whose groupIds include share.tripId
- * and whose countsFrom <= date <= end. Prefers 'on' over 'leadup', then earliest start.
+ * Returns all events matching `date`, sorted by `start` ascending.
+ * Matches `'on'` when `start <= date` and (`matchEnd === null || date <= matchEnd`),
+ * or `'leadup'` when `countsFrom <= date < start`. One match per event, `'on'` wins.
  */
-export function eventForShare(
+export function eventsForDate(events: EventDef[], date: string): EventMatch[] {
+  const matches: EventMatch[] = [];
+  for (const event of events) {
+    const matchEnd = eventMatchEnd(event);
+    if (event.start <= date && (matchEnd === null || date <= matchEnd)) {
+      matches.push({ event, mode: 'on' });
+    } else if (event.countsFrom <= date && date < event.start) {
+      matches.push({ event, mode: 'leadup' });
+    }
+  }
+  return matches.sort((a, b) =>
+    a.event.start < b.event.start ? -1 : a.event.start > b.event.start ? 1 : 0,
+  );
+}
+
+/**
+ * Returns every event whose `groupIds` include `share.tripId`, `countsFrom <= date`,
+ * and (`matchEnd === null || date <= matchEnd`), sorted by `start` ascending.
+ */
+export function eventsForShare(
   events: EventDef[],
   share: { tripId: string; date: string },
-): EventDef | null {
-  const eligible = events.filter(
-    (t) => t.groupIds.includes(share.tripId) && t.countsFrom <= share.date && share.date <= t.end,
-  );
-  const onMatches = eligible.filter((t) => t.start <= share.date && share.date <= t.end);
-  if (onMatches.length > 0) return pickEarliestStart(onMatches);
-  return pickEarliestStart(eligible);
+): EventDef[] {
+  return events
+    .filter((e) => {
+      if (!e.groupIds.includes(share.tripId)) return false;
+      if (share.date < e.countsFrom) return false;
+      const matchEnd = eventMatchEnd(e);
+      return matchEnd === null || share.date <= matchEnd;
+    })
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
 }
 
-/**
- * Finds an existing trip whose active [start, end] range overlaps (including touching)
- * the given [start, end] range, ignoring lead-up windows and optional exceptId.
- */
-export function findEventOverlap(
-  events: EventDef[],
-  start: string,
-  end: string,
-  exceptId?: string,
-): EventDef | null {
-  for (const t of events) {
-    if (exceptId !== undefined && t.id === exceptId) continue;
-    if (start <= t.end && t.start <= end) return t;
+/** Builds a generated tag name from an event's name and dates: `<slug>-<ddmmyy>[-<ddmmyy>]`. */
+export function eventTagName(name: string, start: string, end: string | null): string {
+  const folded = foldForSearch(name).replace(/[^a-z0-9]/g, '');
+  const base = folded.length > 0 ? folded : 'event';
+  const startPart = formatDdmmyy(start);
+  if (end === null) {
+    return `${base}-${startPart}`;
   }
-  return null;
+  return `${base}-${startPart}-${formatDdmmyy(end)}`;
+}
+
+/** Returns `base` if not in `taken` (case-insensitively), else `base-2`, `base-3`, etc. */
+export function uniqueTagName(base: string, taken: Iterable<string>): string {
+  const takenLower = new Set<string>();
+  for (const name of taken) {
+    takenLower.add(name.toLowerCase());
+  }
+  if (!takenLower.has(base.toLowerCase())) {
+    return base;
+  }
+  let n = 2;
+  while (takenLower.has(`${base}-${n}`.toLowerCase())) {
+    n++;
+  }
+  return `${base}-${n}`;
 }
 
 /** Default countsFrom date: min(today, start). */
@@ -104,18 +139,18 @@ export function defaultCountsFrom(start: string, today: string): string {
   return today <= start ? today : start;
 }
 
-/** 1-based day index within a trip when today is inside [start, end], otherwise null. */
-export function eventDayIndex(t: EventDef, today: string): { day: number; of: number } | null {
-  if (today < t.start || today > t.end) return null;
+/** 1-based day index within an event when currently `'on'`, otherwise null. */
+export function eventDayIndex(e: EventDef, today: string): { day: number; of: number | null } | null {
+  if (eventState(e, today) !== 'on') return null;
   return {
-    day: diffDaysUtc(t.start, today) + 1,
-    of: diffDaysUtc(t.start, t.end) + 1,
+    day: diffDaysUtc(e.start, today) + 1,
+    of: e.end === null ? null : diffDaysUtc(e.start, e.end) + 1,
   };
 }
 
-/** Signed number of days from today until t.start. */
-export function daysUntil(t: EventDef, today: string): number {
-  return diffDaysUtc(today, t.start);
+/** Signed number of days from today until e.start. */
+export function daysUntil(e: EventDef, today: string): number {
+  return diffDaysUtc(today, e.start);
 }
 
 export interface EventCurrencySummary {
@@ -135,22 +170,22 @@ export interface EventSummary {
 }
 
 /**
- * Filters counted spend rows to those belonging to `t`: tagged with `t.tagId`,
- * within `t.countsFrom <= date <= t.end`, and on a non-null wallet not excluded from reports.
+ * Filters counted spend rows to those belonging to `e`: tagged with `e.tagId`,
+ * and on a non-null wallet not excluded from reports. Returns `[]` when `e.tagId` is null.
  */
 export function eventRows(
-  t: EventDef,
+  e: EventDef,
   rows: CountedSpendRow[],
   wallets: WalletDetailView[],
 ): CountedSpendRow[] {
+  if (e.tagId === null) return [];
+  const tagId = e.tagId;
   const includedWalletIds = new Set(
     wallets.filter((w) => !w.excludeFromReports).map((w) => w.id),
   );
   return rows.filter(
     (row) =>
-      row.tagIds.includes(t.tagId) &&
-      t.countsFrom <= row.date &&
-      row.date <= t.end &&
+      row.tagIds.includes(tagId) &&
       row.walletId !== null &&
       includedWalletIds.has(row.walletId),
   );
@@ -159,7 +194,7 @@ export function eventRows(
 function summarizeCurrencyRows(
   currency: CurrencyCode,
   rows: CountedSpendRow[],
-  tripStart: string,
+  eventStart: string,
   resolveTopCategoryId: (categoryId: string) => string,
 ): EventCurrencySummary {
   let own = 0;
@@ -177,7 +212,7 @@ function summarizeCurrencyRows(
     const topCatId = resolveTopCategoryId(row.categoryId);
     categoryTotals.set(topCatId, (categoryTotals.get(topCatId) ?? 0) + row.amount);
 
-    const dayKey: string | 'leadup' = row.date < tripStart ? 'leadup' : row.date;
+    const dayKey: string | 'leadup' = row.date < eventStart ? 'leadup' : row.date;
     dayTotals.set(dayKey, (dayTotals.get(dayKey) ?? 0) + row.amount);
   }
 
@@ -205,14 +240,14 @@ function summarizeCurrencyRows(
   };
 }
 
-/** Summarizes a trip's counted spend per currency, category root, day, and optional approx VND. */
+/** Summarizes an event's counted spend per currency, category root, day, and optional approx VND. */
 export function summarizeEvent(
-  t: EventDef,
+  e: EventDef,
   rows: CountedSpendRow[],
   wallets: WalletDetailView[],
   categories: CategoryView[],
 ): EventSummary {
-  const matched = eventRows(t, rows, wallets);
+  const matched = eventRows(e, rows, wallets);
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
   const topCategoryCache = new Map<string, string>();
 
@@ -250,7 +285,7 @@ export function summarizeEvent(
 
   const currencies = Array.from(byCurrency.entries())
     .map(([currency, cRows]) =>
-      summarizeCurrencyRows(currency, cRows, t.start, resolveTopCategoryId),
+      summarizeCurrencyRows(currency, cRows, e.start, resolveTopCategoryId),
     )
     .sort((a, b) => {
       if (a.currency === 'VND' && b.currency !== 'VND') return -1;

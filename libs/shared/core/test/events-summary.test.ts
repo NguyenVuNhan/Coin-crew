@@ -108,6 +108,7 @@ const tripDef: EventDef = {
   name: 'Đà Lạt',
   start: '2026-11-10',
   end: '2026-11-14',
+  stoppedAt: null,
   countsFrom: '2026-11-01',
   groupIds: ['trip-g1'],
   budgetId: null,
@@ -213,7 +214,7 @@ describe('events summary', () => {
       query: {
         mode: 'custom',
         from: tripDef.countsFrom,
-        to: tripDef.end,
+        to: tripDef.end ?? undefined,
         includeGroups: true,
       },
       today: '2026-11-20',
@@ -227,24 +228,15 @@ describe('events summary', () => {
     expect(summary.rowIds).not.toContain('e-excluded-wallet');
   });
 
-  it('two trips on one tag count only their own dates', () => {
+  it('counts every row carrying the event tag regardless of date', () => {
     const wallets = [createWallet('w-vnd', 'VND')];
-    const trip1: EventDef = {
-      id: 'tr-2025',
-      tagId: 'tag-dalat',
-      name: 'Đà Lạt 2025',
-      start: '2025-03-10',
-      end: '2025-03-12',
-      countsFrom: '2025-03-01',
-      groupIds: [],
-      budgetId: null,
-    };
-    const trip2: EventDef = {
+    const ev: EventDef = {
       id: 'tr-2026',
       tagId: 'tag-dalat',
       name: 'Đà Lạt 2026',
       start: '2026-11-10',
       end: '2026-11-12',
+      stoppedAt: null,
       countsFrom: '2026-11-05',
       groupIds: [],
       budgetId: null,
@@ -256,13 +248,9 @@ describe('events summary', () => {
       createRow({ id: 'r3', amount: 900_000, date: '2026-10-01', tagIds: ['tag-dalat'] }),
     ];
 
-    const s1 = summarizeEvent(trip1, rows, wallets, categories);
-    const s2 = summarizeEvent(trip2, rows, wallets, categories);
-
-    expect(s1.currencies[0]?.total).toBe(300_000);
-    expect(s1.rowIds).toEqual(['r1']);
-    expect(s2.currencies[0]?.total).toBe(500_000);
-    expect(s2.rowIds).toEqual(['r2']);
+    const summary = summarizeEvent(ev, rows, wallets, categories);
+    expect(summary.currencies[0]?.total).toBe(1_700_000);
+    expect(summary.rowIds).toEqual(['r1', 'r2', 'r3']);
   });
 
   it('own vs group split', () => {
