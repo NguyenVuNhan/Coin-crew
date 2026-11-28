@@ -46,7 +46,8 @@ function EventRow({
   const totalText = firstCurrency
     ? formatMoney(firstCurrency.total, firstCurrency.currency)
     : formatMoney(0, budgetDef?.currency ?? 'VND');
-  const rangeText = formatEventRange(event.start, event.end);
+  const currentYear = Number(today.slice(0, 4));
+  const rangeText = formatEventRange(event.start, event.end, { currentYear, t });
 
   const usedPct =
     progress && progress.limit > 0
@@ -55,25 +56,21 @@ function EventRow({
   const todayPct = progress ? Math.round(progress.elapsed * 100) : undefined;
 
   let endingNode: JSX.Element | null = null;
-  if (state === 'done') {
-    if (event.budgetId === null) {
-      endingNode = <span className="text-muted-foreground">{t('events.noLimit')}</span>;
-    } else if (progress && budgetDef) {
-      const over = progress.spent > progress.limit;
-      const diff = Math.abs(progress.limit - progress.spent);
-      const text = over
-        ? t('events.over', {
-            amount: formatMoney(diff, budgetDef.currency),
-            limit: formatMoney(progress.limit, budgetDef.currency),
-          })
-        : t('events.under', {
-            amount: formatMoney(diff, budgetDef.currency),
-            limit: formatMoney(progress.limit, budgetDef.currency),
-          });
-      endingNode = (
-        <span className={cn(over ? 'text-danger' : 'text-muted-foreground')}>{text}</span>
-      );
-    }
+  if (state === 'done' && event.budgetId !== null && progress && budgetDef) {
+    const over = progress.spent > progress.limit;
+    const diff = Math.abs(progress.limit - progress.spent);
+    const text = over
+      ? t('events.over', {
+          amount: formatMoney(diff, budgetDef.currency),
+          limit: formatMoney(progress.limit, budgetDef.currency),
+        })
+      : t('events.under', {
+          amount: formatMoney(diff, budgetDef.currency),
+          limit: formatMoney(progress.limit, budgetDef.currency),
+        });
+    endingNode = (
+      <span className={cn(over ? 'text-danger' : 'text-muted-foreground')}>{text}</span>
+    );
   }
 
   return (
@@ -235,7 +232,7 @@ export function EventsScreen(): JSX.Element {
   return (
     <Screen
       title={t('events.listTitle')}
-      back="/trips"
+      back="/"
       bottomBar={
         events.length > 0 ? (
           <Button
@@ -259,7 +256,7 @@ export function EventsScreen(): JSX.Element {
           <EmptyState
             icon="calendar"
             title={t('events.listTitle')}
-            body={t('events.empty')}
+            body={t('events.listEmpty')}
             action={
               <Button
                 type="button"

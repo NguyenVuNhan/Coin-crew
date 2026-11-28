@@ -2011,13 +2011,14 @@ export const vi: Record<MessageKey, string> = {
   'budgets.missingAmount': 'Nhập mức ngân sách để lưu.', // REVIEW
   'events.bookIdle': 'Sự kiện', // REVIEW
   'events.bookOn': '{name} đang diễn ra', // REVIEW
-  'events.bookOnMany': '{n} sự kiện đang diễn ra · {names}', // REVIEW
+  'events.bookOnMany': '{n} sự kiện đang diễn ra', // REVIEW
   'events.bookUpcoming': 'Sắp tới: {name}', // REVIEW
   'events.bookDayOf': 'ngày {day}/{of}', // REVIEW
   'events.bookDayOpen': 'ngày {day}', // REVIEW
   'events.bookDaysLeft': 'còn {n} ngày', // REVIEW
   'events.bookLeadSpent': 'Đã chi trước {amount}', // REVIEW
   'events.listTitle': 'Sự kiện', // REVIEW
+  'events.listEmpty': 'Chưa có sự kiện nào. Tạo một sự kiện cho chuyến đi tới.', // REVIEW
   'events.sectionOn': 'Đang diễn ra', // REVIEW
   'events.sectionUpcoming': 'Sắp tới', // REVIEW
   'events.sectionDone': 'Đã xong', // REVIEW
@@ -2027,6 +2028,16 @@ export const vi: Record<MessageKey, string> = {
   'events.startHint': 'Để trống là bắt đầu hôm nay', // REVIEW
   'events.endLabel': 'Kết thúc (tùy chọn)', // REVIEW
   'events.endHint': 'Để trống là chạy đến khi bạn dừng', // REVIEW
+  'events.openRange': 'Từ {date} · chưa có ngày kết thúc', // REVIEW
+  'events.pickedDate': '{weekday}, {day}/{month}/{year}', // REVIEW
+  'events.wd.0': 'CN', // REVIEW
+  'events.wd.1': 'T2', // REVIEW
+  'events.wd.2': 'T3', // REVIEW
+  'events.wd.3': 'T4', // REVIEW
+  'events.wd.4': 'T5', // REVIEW
+  'events.wd.5': 'T6', // REVIEW
+  'events.wd.6': 'T7', // REVIEW
+  'events.clearDate': 'Bỏ ngày', // REVIEW
   'events.limitNeedsEnd': 'Đặt ngày kết thúc để đặt hạn mức', // REVIEW
   'events.clearEndConfirm': 'Bỏ ngày kết thúc sẽ xóa hạn mức. Tiếp tục?', // REVIEW
   'events.countsFromLine': 'Tính cả chi tiêu trước sự kiện từ {date}', // REVIEW
@@ -2037,17 +2048,19 @@ export const vi: Record<MessageKey, string> = {
   'events.limitLabel': 'Hạn mức (tùy chọn)', // REVIEW
   'events.save': 'Lưu sự kiện', // REVIEW
   'events.stop': 'Dừng', // REVIEW
-  'events.stopConfirm': 'Dừng {name} từ bây giờ? Khoản chi mới sẽ không được gắn tag nữa.', // REVIEW
+  'events.stopTitle': 'Dừng {name}?', // REVIEW
+  'events.stopConfirm': 'Khoản chi mới sẽ không còn tự vào {name}. Bấm Tiếp tục bất cứ lúc nào.', // REVIEW
+  'events.stopAction': 'Dừng sự kiện', // REVIEW
   'events.resume': 'Tiếp tục', // REVIEW
   'events.resumeConfirm': 'Tiếp tục {name}?', // REVIEW
   'events.resumeDropsLimit': 'Hạn mức sẽ bị bỏ vì sự kiện không còn ngày kết thúc.', // REVIEW
   'events.startNow': 'Bắt đầu ngay', // REVIEW
   'events.delete': 'Xóa sự kiện', // REVIEW
-  'events.existingTitle': 'Gắn tag cho khoản chi đã có?', // REVIEW
+  'events.existingTitle': 'Gắn thẻ cho khoản chi đã có?', // REVIEW
   'events.existingOwn': '{n} khoản bạn tự chi', // REVIEW
   'events.existingShares': '{n} phần trong nhóm', // REVIEW
-  'events.existingNote': 'Bỏ tag từng khoản sau cũng được.', // REVIEW
-  'events.existingYes': 'Gắn tag cho cả {n} khoản', // REVIEW
+  'events.existingNote': 'Bỏ thẻ từng khoản sau cũng được.', // REVIEW
+  'events.existingYes': 'Gắn thẻ cho cả {n} khoản', // REVIEW
   'events.existingNo': 'Chỉ từ giờ trở đi', // REVIEW
   'events.entryOn': '{name}', // REVIEW
   'events.entrySuggest': 'Thêm vào {name}', // REVIEW
@@ -2061,7 +2074,7 @@ export const vi: Record<MessageKey, string> = {
   'events.byCategory': 'Theo danh mục', // REVIEW
   'events.byDay': 'Theo ngày', // REVIEW
   'events.leadup': 'Trước sự kiện', // REVIEW
-  'events.viewReport': 'Xem báo cáo', // REVIEW
+  'events.tagLine': 'Thẻ: #{name}', // REVIEW
   'events.seeTx': 'Xem {n} giao dịch', // REVIEW
   'events.statePill.on': 'Đang diễn ra', // REVIEW
   'events.statePill.upcoming': 'Sắp tới', // REVIEW

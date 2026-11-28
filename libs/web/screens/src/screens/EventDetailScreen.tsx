@@ -33,10 +33,8 @@ import { cn } from '@cc/web-ui/lib/utils';
 import { Screen } from '../components/Screen';
 import { resolveCategoryIcon } from '../components/TransactionRow';
 import { BudgetBar } from '../components/budgets/BudgetBar';
-import { formatDayMonth } from '../components/budgets/budgetLabels';
 import { EventExistingSheet } from '../components/events/EventExistingSheet';
-import { formatEventRange, EventForm } from '../components/events/EventForm';
-import { buildTagReportUrl } from '../components/reports/reportUrl';
+import { formatEventDate, formatEventRange, EventForm } from '../components/events/EventForm';
 
 const STATE_PILL_TONE = {
   on: 'accent',
@@ -144,10 +142,7 @@ export function EventDetailScreen(): JSX.Element {
       ? `/transactions?tagId=${encodeURIComponent(event.tagId)}&from=${encodeURIComponent(linkFrom)}&to=${encodeURIComponent(linkTo)}`
       : '/transactions';
 
-  const reportHref =
-    event && event.tagId
-      ? buildTagReportUrl(event.tagId, linkFrom, linkTo)
-      : null;
+  const currentYear = Number(today.slice(0, 4));
 
   const usedPct =
     progress && progress.limit > 0
@@ -226,89 +221,80 @@ export function EventDetailScreen(): JSX.Element {
           </div>
         ) : (
           <>
-            {/* Meta line: dates · day · groups · #tagName · state pill */}
-            <div
-              data-testid="event-meta-line"
-              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground px-1"
-            >
-              <span>{formatEventRange(event.start, event.end)}</span>
-              {dayLabel && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span data-testid="event-day-line" className="tabular-nums">
-                    {dayLabel}
-                  </span>
-                </>
-              )}
-              {groupLabel && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>{groupLabel}</span>
-                </>
-              )}
+            {/* Meta line: dates · day · groups · state pill */}
+            <div className="flex flex-col gap-1 px-1">
+              <div
+                data-testid="event-meta-line"
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+              >
+                <span>{formatEventRange(event.start, event.end, { currentYear, t })}</span>
+                {dayLabel && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span data-testid="event-day-line" className="tabular-nums">
+                      {dayLabel}
+                    </span>
+                  </>
+                )}
+                {groupLabel && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{groupLabel}</span>
+                  </>
+                )}
+                <Pill tone={STATE_PILL_TONE[state]} data-testid="event-state-pill">
+                  {t(`events.statePill.${state}`)}
+                </Pill>
+              </div>
               {event.tagName && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span data-testid="event-tag-name">{`#${event.tagName}`}</span>
-                </>
+                <p
+                  data-testid="event-tag-name"
+                  className="m-0 text-xs text-muted-foreground"
+                >
+                  {t('events.tagLine', { name: event.tagName })}
+                </p>
               )}
-              <Pill tone={STATE_PILL_TONE[state]} data-testid="event-state-pill">
-                {t(`events.statePill.${state}`)}
-              </Pill>
             </div>
 
-            {/* Lifecycle actions + report link */}
-            {(state === 'on' || canResume || state === 'upcoming' || reportHref !== null) && (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  {state === 'on' && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      data-testid="event-stop-button"
-                      onClick={() => {
-                        stopEvent.reset();
-                        setConfirmStopOpen(true);
-                      }}
-                    >
-                      {t('events.stop')}
-                    </Button>
-                  )}
-                  {canResume && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      data-testid="event-resume-button"
-                      onClick={() => {
-                        resumeEvent.reset();
-                        setConfirmResumeOpen(true);
-                      }}
-                    >
-                      {t('events.resume')}
-                    </Button>
-                  )}
-                  {state === 'upcoming' && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      loading={startEventNow.isPending}
-                      data-testid="event-start-now-button"
-                      onClick={handleStartNow}
-                    >
-                      {t('events.startNow')}
-                    </Button>
-                  )}
-                </div>
-
-                {reportHref !== null && (
-                  <Link
-                    to={reportHref}
-                    data-testid="event-view-report"
-                    className="min-h-11 px-3 inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors motion-reduce:transition-none no-underline"
+            {/* Lifecycle actions */}
+            {(state === 'on' || canResume || state === 'upcoming') && (
+              <div className="flex flex-wrap items-center gap-2">
+                {state === 'on' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    data-testid="event-stop-button"
+                    onClick={() => {
+                      stopEvent.reset();
+                      setConfirmStopOpen(true);
+                    }}
                   >
-                    <Icon name="pie-chart" size={16} />
-                    <span>{t('events.viewReport')}</span>
-                  </Link>
+                    {t('events.stop')}
+                  </Button>
+                )}
+                {canResume && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    data-testid="event-resume-button"
+                    onClick={() => {
+                      resumeEvent.reset();
+                      setConfirmResumeOpen(true);
+                    }}
+                  >
+                    {t('events.resume')}
+                  </Button>
+                )}
+                {state === 'upcoming' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    loading={startEventNow.isPending}
+                    data-testid="event-start-now-button"
+                    onClick={handleStartNow}
+                  >
+                    {t('events.startNow')}
+                  </Button>
                 )}
               </div>
             )}
@@ -472,6 +458,7 @@ export function EventDetailScreen(): JSX.Element {
                           activeSummary.total > 0
                             ? Math.min(100, Math.round((item.amount / activeSummary.total) * 100))
                             : 0;
+                        const showBar = !(activeSummary.byCategory.length === 1 && pct === 100);
                         return (
                           <div
                             key={item.categoryId}
@@ -495,15 +482,18 @@ export function EventDetailScreen(): JSX.Element {
                                 size="sm"
                               />
                             </div>
-                            <div
-                              className="relative h-2 rounded-full bg-muted overflow-hidden"
-                              aria-hidden="true"
-                            >
+                            {showBar && (
                               <div
-                                className="h-full rounded-full bg-primary"
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
+                                data-testid={`event-cat-bar-${item.categoryId}`}
+                                className="relative h-2 rounded-full bg-muted overflow-hidden"
+                                aria-hidden="true"
+                              >
+                                <div
+                                  className="h-full rounded-full bg-primary"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -527,7 +517,7 @@ export function EventDetailScreen(): JSX.Element {
                           <span className="text-sm text-foreground">
                             {item.date === 'leadup'
                               ? t('events.leadup')
-                              : formatDayMonth(item.date)}
+                              : formatEventDate(item.date, currentYear)}
                           </span>
                           <Amount
                             value={item.amount}
@@ -568,7 +558,7 @@ export function EventDetailScreen(): JSX.Element {
         <Modal
           open={confirmStopOpen}
           onClose={() => setConfirmStopOpen(false)}
-          title={t('events.stop')}
+          title={t('events.stopTitle', { name: event.name })}
         >
           <div className="flex flex-col gap-4" data-testid="event-stop-confirm-modal">
             <p className="m-0 text-sm text-foreground">
@@ -578,13 +568,13 @@ export function EventDetailScreen(): JSX.Element {
             <div className="flex flex-col gap-2">
               <Button
                 type="button"
-                variant="danger"
+                variant="primary"
                 block
                 loading={stopEvent.isPending}
                 data-testid="event-stop-confirm"
                 onClick={handleConfirmStop}
               >
-                {t('events.stop')}
+                {t('events.stopAction')}
               </Button>
               <Button
                 type="button"

@@ -242,7 +242,7 @@ describe('EventForm', () => {
     const existingSheet = await screen.findByTestId('event-existing-sheet');
     expect(within(existingSheet).getByText(/8 khoản bạn tự chi/)).toBeInTheDocument();
     expect(within(existingSheet).getByText(/4 phần trong nhóm/)).toBeInTheDocument();
-    expect(within(existingSheet).getByTestId('event-existing-yes')).toHaveTextContent('Gắn tag cho cả 12 khoản');
+    expect(within(existingSheet).getByTestId('event-existing-yes')).toHaveTextContent('Gắn thẻ cho cả 12 khoản');
 
     await user.click(within(existingSheet).getByTestId('event-existing-yes'));
 

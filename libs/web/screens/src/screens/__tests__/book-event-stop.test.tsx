@@ -163,7 +163,7 @@ describe('BookEventRow stop action', () => {
     // Confirm modal opens and we are still on Sổ chi tiêu (row still mounted, did not navigate to detail)
     const modal = await screen.findByTestId('event-stop-confirm-modal');
     expect(modal).toHaveTextContent(
-      'Dừng Đà Lạt từ bây giờ? Khoản chi mới sẽ không được gắn tag nữa.',
+      'Khoản chi mới sẽ không còn tự vào Đà Lạt. Bấm Tiếp tục bất cứ lúc nào.',
     );
     expect(screen.getByTestId('book-event-row')).toBeInTheDocument();
     expect(api.calls.filter((c) => c.path.endsWith('/stop'))).toHaveLength(0);
@@ -185,7 +185,8 @@ describe('BookEventRow stop action', () => {
 
     const row = await screen.findByTestId('book-event-row');
     await waitFor(() => {
-      expect(within(row).getByText('2 sự kiện đang diễn ra · Đà Lạt, Mua sắm Tết')).toBeInTheDocument();
+      expect(within(row).getByText('2 sự kiện đang diễn ra')).toBeInTheDocument();
+      expect(within(row).getByText('Đà Lạt, Mua sắm Tết')).toBeInTheDocument();
     });
     expect(row).toHaveAttribute('href', '/events');
     expect(screen.queryByTestId('book-event-stop')).not.toBeInTheDocument();

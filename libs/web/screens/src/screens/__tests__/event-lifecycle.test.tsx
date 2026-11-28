@@ -305,7 +305,7 @@ describe('Event lifecycle & optional dates', () => {
 
     const modal = await screen.findByTestId('event-stop-confirm-modal');
     expect(modal).toHaveTextContent(
-      'Dừng Đà Lạt từ bây giờ? Khoản chi mới sẽ không được gắn tag nữa.',
+      'Khoản chi mới sẽ không còn tự vào Đà Lạt. Bấm Tiếp tục bất cứ lúc nào.',
     );
     expect(api.calls.filter((c) => c.path.endsWith('/stop'))).toHaveLength(0);
 
@@ -439,7 +439,7 @@ describe('Event lifecycle & optional dates', () => {
     expect(within(sheet).getByText(/1 khoản bạn tự chi/)).toBeInTheDocument();
   });
 
-  it('view report link uses countsFrom..end', async () => {
+  it('fixed-end event shows day line and omits the old view-report link', async () => {
     const fixedEndEvent: EventView = {
       id: 'ev-rep',
       tagId: 'tag-rep',
@@ -457,13 +457,8 @@ describe('Event lifecycle & optional dates', () => {
     stubApis({ events: [fixedEndEvent] });
     renderVi('/events/ev-rep');
 
-    const link = await screen.findByTestId('event-view-report');
-    expect(link).toHaveTextContent('Xem báo cáo');
-    expect(link).toHaveAttribute(
-      'href',
-      '/reports?mode=custom&from=2026-11-05&to=2026-11-13&tagId=tag-rep',
-    );
-    expect(screen.getByTestId('event-day-line')).toHaveTextContent('ngày 2/3');
+    expect(await screen.findByTestId('event-day-line')).toHaveTextContent('ngày 2/3');
+    expect(screen.queryByTestId('event-view-report')).not.toBeInTheDocument();
   });
 
   it('null tag hides the report link and shows 0', async () => {

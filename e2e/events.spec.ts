@@ -122,18 +122,11 @@ test('events: create with name only, auto-tag expense, run two events, stop one,
     await expect(backToOneRow).toContainText('Mua sắm Tết đang diễn ra');
     await assertNoHorizontalOverflow(page);
 
-    // 5. Open "Xem báo cáo" from Đà Lạt's event page; report shows #dalat-… chip and 450.000₫.
+    // 5. Event page itself is the report for Đà Lạt: shows 450.000₫, its tag line, and no redundant report link.
     await page.goto(dalatUrl);
-    const viewReportLink = page.getByTestId('event-view-report');
-    await expect(viewReportLink).toBeVisible();
-    await viewReportLink.click();
-
-    await expect(page).toHaveURL(/\/reports\?/);
-    const tagPill = page.getByTestId('reports-tag-filter-pill');
-    await expect(tagPill).toBeVisible();
-    await expect(tagPill).toContainText(/#dalat-\d{6}/);
-
-    const summary = page.getByTestId('reports-summary');
+    await expect(page.getByTestId('event-view-report')).toHaveCount(0);
+    await expect(page.getByTestId('event-tag-name')).toContainText(/#dalat-\d{6}/);
+    const summary = page.getByTestId('event-summary-card');
     await expect(summary).toBeVisible();
     await expect(summary).toContainText('450.000₫');
     await assertNoHorizontalOverflow(page);

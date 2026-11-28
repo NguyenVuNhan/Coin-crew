@@ -380,7 +380,7 @@ describe('EventDetailScreen', () => {
     );
   });
 
-  it('report link spans the earliest to the latest tagged item', async () => {
+  it('transactions link spans the earliest to the latest tagged item and report link is removed', async () => {
     const rows: CountedSpendRow[] = [
       spendRow('r-early', '2026-10-01', 400_000, ['tag-dl']),
       spendRow('r-mid', '2026-11-12', 1_000_000, ['tag-dl']),
@@ -389,12 +389,8 @@ describe('EventDetailScreen', () => {
     stubApis({ events: [daLatEvent], budgets: [dlBudget], rows });
     renderDetailVi('/events/tr-dl');
 
-    const reportLink = await screen.findByTestId('event-view-report');
-    expect(reportLink).toHaveAttribute(
-      'href',
-      '/reports?mode=custom&from=2026-10-01&to=2026-12-05&tagId=tag-dl',
-    );
-    const txLink = screen.getByTestId('event-see-tx');
+    const txLink = await screen.findByTestId('event-see-tx');
+    expect(screen.queryByTestId('event-view-report')).not.toBeInTheDocument();
     expect(txLink).toHaveAttribute(
       'href',
       '/transactions?tagId=tag-dl&from=2026-10-01&to=2026-12-05',

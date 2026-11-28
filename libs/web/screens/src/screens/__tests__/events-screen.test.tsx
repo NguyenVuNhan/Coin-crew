@@ -256,7 +256,7 @@ describe('EventsScreen', () => {
     const dlRow = within(onSection).getByTestId('event-row-tr-dl');
     expect(dlRow).toHaveAttribute('href', '/events/tr-dl');
     expect(dlRow).toHaveTextContent('Đà Lạt');
-    expect(dlRow).toHaveTextContent('12–14/11');
+    expect(dlRow).toHaveTextContent('12/11 – 14/11');
     expect(dlRow).toHaveTextContent('3.100.000₫');
 
     // Upcoming section
@@ -264,11 +264,11 @@ describe('EventsScreen', () => {
     const hueRow = within(upcomingSection).getByTestId('event-row-tr-hue');
     expect(hueRow).toHaveAttribute('href', '/events/tr-hue');
     expect(hueRow).toHaveTextContent('Huế');
-    expect(hueRow).toHaveTextContent('18–21/11');
+    expect(hueRow).toHaveTextContent('18/11 – 21/11');
     expect(hueRow).toHaveTextContent('còn 5 ngày');
     expect(hueRow).toHaveTextContent('1.240.000₫');
 
-    // Done section: ending in words (over limit + no limit)
+    // Done section: ending in words (over limit; no-limit event omits "Không đặt hạn mức")
     const doneSection = screen.getByTestId('events-section-done');
     const pqRow = within(doneSection).getByTestId('event-row-tr-pq');
     expect(pqRow).toHaveAttribute('href', '/events/tr-pq');
@@ -279,7 +279,7 @@ describe('EventsScreen', () => {
     const hnRow = within(doneSection).getByTestId('event-row-tr-hn');
     expect(hnRow).toHaveTextContent('Hà Nội');
     expect(hnRow).toHaveTextContent('4.200.000₫');
-    expect(hnRow).toHaveTextContent(/Không đặt hạn mức/i);
+    expect(hnRow).not.toHaveTextContent(/Không đặt hạn mức/i);
 
     // BottomBar has "+ Sự kiện mới"
     const newBtn = screen.getByTestId('events-new-button');

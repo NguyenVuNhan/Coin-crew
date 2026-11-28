@@ -34,7 +34,8 @@ import { Input } from '@cc/web-ui/components/ui/input';
 import { Label } from '@cc/web-ui/components/ui/label';
 import { cn } from '@cc/web-ui/lib/utils';
 import { CurrencyBadge } from '../CurrencyBadge';
-import { formatDayMonth, parseYmd } from '../budgets/budgetLabels';
+import { parseYmd } from '../budgets/budgetLabels';
+import { EventDateRow } from './EventDateRow';
 import { EventGroupPicker } from './EventGroupPicker';
 
 export interface EventFormProps {
@@ -55,19 +56,24 @@ function formatMinorInput(minor: number, currency: CurrencyCode): string {
   return frac === 0 ? String(whole) : `${whole}.${String(frac).padStart(2, '0')}`;
 }
 
-export function formatEventRange(start: string, end: string | null): string {
-  const [y1, m1, d1] = parseYmd(start);
+export function formatEventDate(ymd: string, currentYear: number): string {
+  const [y, m, d] = parseYmd(ymd);
+  return y === currentYear ? `${d}/${m}` : `${d}/${m}/${y}`;
+}
+
+export function formatEventRange(
+  start: string,
+  end: string | null,
+  opts: { currentYear: number; t: ReturnType<typeof useT> },
+): string {
+  const startText = formatEventDate(start, opts.currentYear);
   if (end === null) {
-    return `${d1}/${m1}\u2013\u2026`;
+    return opts.t('events.openRange', { date: startText });
   }
-  const [y2, m2, d2] = parseYmd(end);
-  if (y1 === y2 && m1 === m2) {
-    return d1 === d2 ? `${d1}/${m1}` : `${d1}\u2013${d2}/${m2}`;
+  if (end === start) {
+    return startText;
   }
-  if (y1 === y2) {
-    return `${d1}/${m1}\u2013${d2}/${m2}`;
-  }
-  return `${d1}/${m1}/${y1}\u2013${d2}/${m2}/${y2}`;
+  return `${startText} \u2013 ${formatEventDate(end, opts.currentYear)}`;
 }
 
 export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JSX.Element {
@@ -355,47 +361,38 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
 
           {/* Dates */}
           <div className="fsl-field flex flex-col gap-2">
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor={startId} className="text-sm font-semibold text-muted-foreground">
-                  {t('events.startLabel')}
-                </Label>
-                <Input
-                  id={startId}
-                  data-testid="event-form-start"
-                  type="date"
-                  className="fsl-input text-base min-h-11 tabular-nums"
-                  value={start}
-                  onChange={(e) => {
-                    const nextStart = e.target.value;
-                    setStart(nextStart);
-                    if (
-                      countsFromTouched &&
-                      YMD_RE.test(nextStart) &&
-                      YMD_RE.test(countsFrom) &&
-                      countsFrom > nextStart
-                    ) {
-                      setCountsFrom(nextStart);
-                    }
-                  }}
-                />
-                <p className="m-0 text-xs text-muted-foreground">{t('events.startHint')}</p>
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor={endId} className="text-sm font-semibold text-muted-foreground">
-                  {t('events.endLabel')}
-                </Label>
-                <Input
-                  id={endId}
-                  data-testid="event-form-end"
-                  type="date"
-                  disabled={isStopped}
-                  className="fsl-input text-base min-h-11 tabular-nums"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
-                <p className="m-0 text-xs text-muted-foreground">{t('events.endHint')}</p>
-              </div>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              <EventDateRow
+                id={startId}
+                label={t('events.startLabel')}
+                hint={t('events.startHint')}
+                value={start}
+                emptyLabel={t('entryDate.today')}
+                testId="event-form-start"
+                quickToday={today}
+                onChange={(nextStart) => {
+                  setStart(nextStart);
+                  if (
+                    countsFromTouched &&
+                    YMD_RE.test(nextStart) &&
+                    YMD_RE.test(countsFrom) &&
+                    countsFrom > nextStart
+                  ) {
+                    setCountsFrom(nextStart);
+                  }
+                }}
+              />
+              <EventDateRow
+                id={endId}
+                label={t('events.endLabel')}
+                hint={t('events.endHint')}
+                value={end}
+                emptyLabel={t('entryDate.chipPick')}
+                testId="event-form-end"
+                disabled={isStopped}
+                allowClear
+                onChange={(nextEnd) => setEnd(nextEnd)}
+              />
             </div>
 
             {showRangeError && (
@@ -420,7 +417,7 @@ export function EventForm({ open, onClose, event, onSaved }: EventFormProps): JS
                 >
                   <span>
                     {t('events.countsFromLine', {
-                      date: formatDayMonth(effectiveCountsFrom),
+                      date: formatEventDate(effectiveCountsFrom, Number(today.slice(0, 4))),
                     })}
                   </span>
                   <Icon name="edit" size={14} className="text-primary shrink-0" />

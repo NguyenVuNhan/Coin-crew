@@ -285,7 +285,8 @@ describe('Multiple events on Sổ chi tiêu and in the expense form', () => {
 
     const row = await screen.findByTestId('book-event-row');
     await waitFor(() => {
-      expect(within(row).getByText('2 sự kiện đang diễn ra · Đà Lạt, Mua sắm Tết')).toBeInTheDocument();
+      expect(within(row).getByText('2 sự kiện đang diễn ra')).toBeInTheDocument();
+      expect(within(row).getByText('Đà Lạt, Mua sắm Tết')).toBeInTheDocument();
     });
     expect(row).toHaveAttribute('href', '/events');
     expect(row.querySelector('.fsl-budget-bar')).toBeNull();

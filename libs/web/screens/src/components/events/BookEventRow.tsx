@@ -98,33 +98,62 @@ export function BookEventRow(): JSX.Element {
     : '/events';
 
   let titleText = t('events.bookIdle');
-  let subtitleText: string | null = null;
-  let rightMeta: string | null = null;
+  let subtitleNode: JSX.Element | null = null;
 
   if (featured?.kind === 'many') {
     titleText = t('events.bookOnMany', {
       n: featured.events.length,
-      names: featured.events.map((ev) => ev.name).join(', '),
     });
+    subtitleNode = (
+      <span
+        data-testid="book-event-subtitle"
+        className="text-xs text-muted-foreground leading-snug truncate"
+      >
+        {featured.events.map((ev) => ev.name).join(', ')}
+      </span>
+    );
   } else if (activeEvent && activeState === 'on') {
     titleText = t('events.bookOn', { name: activeEvent.name });
     const dayInfo = eventDayIndex(activeEvent, today);
     if (dayInfo) {
-      rightMeta =
+      const dayText =
         dayInfo.of !== null
           ? t('events.bookDayOf', { day: dayInfo.day, of: dayInfo.of })
           : t('events.bookDayOpen', { day: dayInfo.day });
+      subtitleNode = (
+        <span
+          data-testid="book-event-subtitle"
+          className="text-xs text-muted-foreground leading-snug tabular-nums"
+        >
+          {dayText}
+        </span>
+      );
     }
   } else if (activeEvent && activeState === 'upcoming') {
     titleText = t('events.bookUpcoming', { name: activeEvent.name });
-    rightMeta = t('events.bookDaysLeft', { n: daysUntil(activeEvent, today) });
+    const daysLeftText = t('events.bookDaysLeft', { n: daysUntil(activeEvent, today) });
     const firstCurrency = summary?.currencies[0];
     const leadupAmount = firstCurrency?.byDay.find((d) => d.date === 'leadup')?.amount ?? 0;
-    if (firstCurrency && leadupAmount > 0) {
-      subtitleText = t('events.bookLeadSpent', {
-        amount: formatMoney(leadupAmount, firstCurrency.currency),
-      });
-    }
+    const leadText =
+      firstCurrency && leadupAmount > 0
+        ? t('events.bookLeadSpent', {
+            amount: formatMoney(leadupAmount, firstCurrency.currency),
+          })
+        : null;
+    subtitleNode = (
+      <span
+        data-testid="book-event-subtitle"
+        className="text-xs text-muted-foreground leading-snug truncate tabular-nums flex items-center gap-1.5"
+      >
+        <span>{daysLeftText}</span>
+        {leadText && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span className="truncate">{leadText}</span>
+          </>
+        )}
+      </span>
+    );
   }
 
   const showBar = activeState === 'on' && activeEvent?.budgetId !== null && progress !== null;
@@ -154,21 +183,15 @@ export function BookEventRow(): JSX.Element {
             <Icon name="calendar" size={18} />
           </span>
           <div className="flex-1 flex flex-col min-w-0">
-            <span className="text-sm font-semibold text-foreground leading-snug truncate">
+            <span
+              data-testid="book-event-title"
+              className="text-sm font-semibold text-foreground leading-snug"
+            >
               {titleText}
             </span>
-            {subtitleText && (
-              <span className="text-xs text-muted-foreground leading-snug truncate tabular-nums">
-                {subtitleText}
-              </span>
-            )}
+            {subtitleNode}
           </div>
-          {rightMeta && (
-            <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-              {rightMeta}
-            </span>
-          )}
-          <Icon name="chevronRight" className="text-muted-foreground shrink-0" />
+          {!canStop && <Icon name="chevronRight" className="text-muted-foreground shrink-0" />}
         </div>
 
         {showBar && progress && (
@@ -189,24 +212,24 @@ export function BookEventRow(): JSX.Element {
       </Link>
 
       {canStop && activeEvent && (
-        <>
+        <div className="flex items-center self-stretch border-l border-border pl-3 pr-3 ml-1 shrink-0">
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             data-testid="book-event-stop"
             aria-label={`${t('events.stop')} ${activeEvent.name}`}
             onClick={() => {
               stopEvent.reset();
               setConfirmStopOpen(true);
             }}
-            className="min-h-11 shrink-0 mr-2 px-3 text-xs"
+            className="min-h-11 shrink-0 rounded-full px-4 text-xs"
           >
             {t('events.stop')}
           </Button>
           <Modal
             open={confirmStopOpen}
             onClose={() => setConfirmStopOpen(false)}
-            title={t('events.stop')}
+            title={t('events.stopTitle', { name: activeEvent.name })}
           >
             <div className="flex flex-col gap-4" data-testid="event-stop-confirm-modal">
               <p className="m-0 text-sm text-foreground">
@@ -216,13 +239,13 @@ export function BookEventRow(): JSX.Element {
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="primary"
                   block
                   loading={stopEvent.isPending}
                   data-testid="event-stop-confirm"
                   onClick={handleConfirmStop}
                 >
-                  {t('events.stop')}
+                  {t('events.stopAction')}
                 </Button>
                 <Button
                   type="button"
@@ -236,7 +259,7 @@ export function BookEventRow(): JSX.Element {
               </div>
             </div>
           </Modal>
-        </>
+        </div>
       )}
     </div>
   );
