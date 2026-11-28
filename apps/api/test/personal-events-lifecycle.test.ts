@@ -291,7 +291,7 @@ describe('personal events lifecycle', () => {
     expect((await json<{ error: { code: string } }>(stopAgain)).error.code).toBe('not_running');
   });
 
-  it('resume clears end, drops the budget and returns the gap', async () => {
+  it('resume restores planned end, keeps the budget and returns the gap', async () => {
     const userId = 'u-lc-resume';
     const sid = await memberSid(userId, 'ResumeUser');
     await switchOn(userId);
@@ -362,15 +362,17 @@ describe('personal events lifecycle', () => {
     expect(queries).toBeLessThanOrEqual(50);
 
     const resumed = await json<EventSavedResponse>(resumeRes);
-    expect(resumed.event.end).toBeNull();
+    expect(resumed.event.end).toBe('2026-12-30');
+    expect(resumed.event.plannedEnd).toBeNull();
     expect(resumed.event.stoppedAt).toBeNull();
-    expect(resumed.event.budgetId).toBeNull();
-    expect(resumed.event.tagName).toBe('dalat-201226');
+    expect(resumed.event.budgetId).toBe(created.budgetId);
+    expect(resumed.event.tagName).toBe('dalat-201226-301226');
     expect(resumed.existing.ownIds).toEqual([gapEntry.id]);
     expect(resumed.existing.shareRootIds).toEqual(['ge-gap']);
 
-    // Budget row is gone
-    expect((await getBudget(sid, created.budgetId!)).status).toBe(404);
+    // Budget range is restored to planned end
+    const budget = (await json<BudgetResponse>(await getBudget(sid, created.budgetId!))).budget;
+    expect(budget.to).toBe('2026-12-30');
   });
 
   it('start-now moves start and renames', async () => {

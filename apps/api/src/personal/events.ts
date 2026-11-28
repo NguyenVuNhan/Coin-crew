@@ -259,6 +259,7 @@ export async function loadUserEvents(db: Db, userId: string): Promise<EventView[
         tagName: personalTags.name,
         startDate: personalEvents.startDate,
         endDate: personalEvents.endDate,
+        plannedEnd: personalEvents.plannedEnd,
         stoppedAt: personalEvents.stoppedAt,
         countsFrom: personalEvents.countsFrom,
         budgetId: personalEvents.budgetId,
@@ -301,6 +302,7 @@ export async function loadUserEvents(db: Db, userId: string): Promise<EventView[
     tagName: r.tagName ?? null,
     start: r.startDate,
     end: r.endDate ?? null,
+    plannedEnd: r.plannedEnd ?? null,
     stoppedAt: r.stoppedAt ?? null,
     countsFrom: r.countsFrom,
     groupIds: groupsByEvent.get(r.id) ?? [],
@@ -319,6 +321,7 @@ async function loadUserEventById(db: Db, userId: string, id: string): Promise<Ev
         tagName: personalTags.name,
         startDate: personalEvents.startDate,
         endDate: personalEvents.endDate,
+        plannedEnd: personalEvents.plannedEnd,
         stoppedAt: personalEvents.stoppedAt,
         countsFrom: personalEvents.countsFrom,
         budgetId: personalEvents.budgetId,
@@ -348,6 +351,7 @@ async function loadUserEventById(db: Db, userId: string, id: string): Promise<Ev
     tagName: row.tagName ?? null,
     start: row.startDate,
     end: row.endDate ?? null,
+    plannedEnd: row.plannedEnd ?? null,
     stoppedAt: row.stoppedAt ?? null,
     countsFrom: row.countsFrom,
     groupIds: groupRows.map((g) => g.tripId),
@@ -662,6 +666,7 @@ export function eventRoutes(): Hono<AppBindings> {
           tagId: syncedTag.tagId,
           startDate: start,
           endDate: end,
+          plannedEnd: null,
           stoppedAt: null,
           countsFrom,
           budgetId,
@@ -707,6 +712,7 @@ export function eventRoutes(): Hono<AppBindings> {
       tagName: syncedTag.tagName,
       start,
       end,
+      plannedEnd: null,
       stoppedAt: null,
       countsFrom,
       groupIds,
@@ -1111,6 +1117,7 @@ export function eventRoutes(): Hono<AppBindings> {
       tagName: syncedTag.tagName,
       start: nextStart,
       end: nextEnd,
+      plannedEnd: existing.plannedEnd ?? null,
       stoppedAt: existing.stoppedAt,
       countsFrom: nextCountsFrom,
       groupIds: nextGroupIds,
@@ -1174,6 +1181,7 @@ export function eventRoutes(): Hono<AppBindings> {
           .set({
             tagId: syncedTag.tagId,
             endDate: today,
+            plannedEnd: existing.end,
             stoppedAt: now,
             updatedAt: now,
           })
@@ -1188,6 +1196,7 @@ export function eventRoutes(): Hono<AppBindings> {
       tagId: syncedTag.tagId,
       tagName: syncedTag.tagName,
       end: today,
+      plannedEnd: existing.end,
       stoppedAt: now,
     };
 
@@ -1216,11 +1225,17 @@ export function eventRoutes(): Hono<AppBindings> {
 
     const now = nowIso();
     const gapStart = existing.end;
+    const restorePlannedEnd =
+      existing.plannedEnd !== null &&
+      existing.plannedEnd !== undefined &&
+      existing.plannedEnd >= today;
+    const nextEnd = restorePlannedEnd ? existing.plannedEnd! : null;
+    const nextBudgetId = restorePlannedEnd ? existing.budgetId : null;
 
     const syncedTag = await syncEventTag(
       db,
       user.id,
-      { name: existing.name, start: existing.start, end: null, tagId: existing.tagId },
+      { name: existing.name, start: existing.start, end: nextEnd, tagId: existing.tagId },
       now,
     );
 
@@ -1240,13 +1255,29 @@ export function eventRoutes(): Hono<AppBindings> {
       const stmts: BatchItem<'sqlite'>[] = [...syncedTag.statements];
 
       if (existing.budgetId) {
-        stmts.push(
-          db
-            .delete(personalBudgets)
-            .where(
-              and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
-            ) as unknown as BatchItem<'sqlite'>,
-        );
+        if (restorePlannedEnd) {
+          stmts.push(
+            ...budgetMoveOnceStatements(db, existing.budgetId, existing.countsFrom, nextEnd!, now),
+          );
+          if (syncedTag.recreated) {
+            stmts.push(
+              db
+                .update(personalBudgets)
+                .set({ targetId: syncedTag.tagId, updatedAt: now })
+                .where(
+                  and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
+                ) as unknown as BatchItem<'sqlite'>,
+            );
+          }
+        } else {
+          stmts.push(
+            db
+              .delete(personalBudgets)
+              .where(
+                and(eq(personalBudgets.id, existing.budgetId), eq(personalBudgets.userId, user.id)),
+              ) as unknown as BatchItem<'sqlite'>,
+          );
+        }
       }
 
       stmts.push(
@@ -1254,9 +1285,10 @@ export function eventRoutes(): Hono<AppBindings> {
           .update(personalEvents)
           .set({
             tagId: syncedTag.tagId,
-            endDate: null,
+            endDate: nextEnd,
+            plannedEnd: null,
             stoppedAt: null,
-            budgetId: null,
+            budgetId: nextBudgetId,
             updatedAt: now,
           })
           .where(and(eq(personalEvents.id, existing.id), eq(personalEvents.userId, user.id))) as unknown as BatchItem<'sqlite'>,
@@ -1285,9 +1317,10 @@ export function eventRoutes(): Hono<AppBindings> {
       ...existing,
       tagId: syncedTag.tagId,
       tagName: syncedTag.tagName,
-      end: null,
+      end: nextEnd,
+      plannedEnd: null,
       stoppedAt: null,
-      budgetId: null,
+      budgetId: nextBudgetId,
     };
 
     return c.json({ event, existing: existingResult.existing }, 200);

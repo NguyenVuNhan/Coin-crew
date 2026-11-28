@@ -35,6 +35,7 @@ async function seedBudget(id: string, userId: string, tagId: string): Promise<vo
 describe('personal events tables (0038)', () => {
   it('the three tables exist with their columns', async () => {
     expect(personalEvents.id).toBeDefined();
+    expect(personalEvents.plannedEnd).toBeDefined();
     expect(personalEventGroups.eventId).toBeDefined();
     expect(personalEventShareMarks.userId).toBeDefined();
 
@@ -45,6 +46,7 @@ describe('personal events tables (0038)', () => {
       'tag_id',
       'start_date',
       'end_date',
+      'planned_end',
       'stopped_at',
       'counts_from',
       'budget_id',

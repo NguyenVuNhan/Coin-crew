@@ -1008,6 +1008,8 @@ export interface BudgetsProgressResponse {
 export interface EventView extends EventDef {
   createdAt: string;
   tagName: string | null;
+  /** The end date planned before Dừng (null when the event had no end); restored by Tiếp tục. Null while running. */
+  plannedEnd?: string | null;
 }
 
 export interface EventsResponse {

@@ -1035,6 +1035,7 @@ export const personalEvents = sqliteTable(
     tagId: text('tag_id').references(() => personalTags.id, { onDelete: 'set null' }),
     startDate: text('start_date').notNull(),
     endDate: text('end_date'),
+    plannedEnd: text('planned_end'),
     stoppedAt: text('stopped_at'),
     countsFrom: text('counts_from').notNull(),
     budgetId: text('budget_id').references(() => personalBudgets.id, { onDelete: 'set null' }),

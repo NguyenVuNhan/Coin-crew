@@ -6,6 +6,7 @@ CREATE TABLE `personal_events` (
   `tag_id` text REFERENCES `personal_tags`(`id`) ON DELETE SET NULL,
   `start_date` text NOT NULL,
   `end_date` text,
+  `planned_end` text,
   `stopped_at` text,
   `counts_from` text NOT NULL,
   `budget_id` text REFERENCES `personal_budgets`(`id`) ON DELETE SET NULL,
